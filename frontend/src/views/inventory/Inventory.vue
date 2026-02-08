@@ -498,6 +498,34 @@ async function stopScanner() {
   }
 }
 
+// Profit Calculation
+const totalCostPrice = computed(() => {
+  return selectedItems.value.reduce((sum, item) => sum + (Number(item.cost_price) || 0), 0);
+});
+
+const estimatedProfit = computed(() => {
+  const selling = Number(stockOutForm.value.selling_price) || 0;
+  return selling - totalCostPrice.value;
+});
+
+const profitPercentage = computed(() => {
+  if (totalCostPrice.value === 0) return 0;
+  return (estimatedProfit.value / totalCostPrice.value) * 100;
+});
+
+const formattedSellingPrice = computed({
+  get: () => {
+    return stockOutForm.value.selling_price
+      ? formatCurrency(stockOutForm.value.selling_price).replace('Rp', '').trim()
+      : '';
+  },
+  set: (newValue) => {
+    // Remove non-numeric characters
+    const numericValue = newValue.replace(/[^\d]/g, '');
+    stockOutForm.value.selling_price = numericValue ? parseInt(numericValue) : null;
+  }
+});
+
 // Can Submit validation
 const canSubmitStockOut = computed(() => {
   if (!selectedStockOutCategory.value || selectedItems.value.length === 0) return false;
@@ -1157,8 +1185,17 @@ function getStockStatus(product) {
                   <label class="label text-emerald-500">Total Harga Jual (Rp) *</label>
                   <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                    <input v-model="stockOutForm.selling_price" type="number" class="input pl-10 bg-surface-800"
+                    <input v-model="formattedSellingPrice" type="text" class="input pl-10 bg-surface-800"
                       placeholder="0" />
+                  </div>
+                  <!-- Profit Display -->
+                  <div class="mt-2 text-xs flex items-center gap-2" v-if="stockOutForm.selling_price">
+                    <span class="text-text-secondary">Modal: {{ formatCurrency(totalCostPrice) }}</span>
+                    <span class="text-text-secondary">|</span>
+                    <span :class="estimatedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'">
+                      {{ estimatedProfit >= 0 ? 'Untung' : 'Rugi' }}: {{ formatCurrency(estimatedProfit) }}
+                      ({{ profitPercentage.toFixed(1) }}%)
+                    </span>
                   </div>
                 </div>
 
