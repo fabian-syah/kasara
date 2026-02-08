@@ -25,6 +25,7 @@ import {
 const toast = useToast();
 const router = useRouter();
 const authStore = useAuthStore();
+const apiUrl = import.meta.env.VITE_API_URL;
 
 // State
 const isLoading = ref(false);
@@ -489,18 +490,10 @@ onMounted(fetchInitialData);
                             class="absolute top-3 right-10 p-1 hover:bg-surface-800 rounded-full text-text-secondary hover:text-primary-500 transition-colors z-10">
                             <Edit2 :size="16" />
                         </div>
-
-                        <!-- EDIT BUTTON -->
-                        <div v-if="authStore.user?.id === user.created_by?.id || authStore.user?.id === user.created_by"
-                            @click="openEditModal(user, $event)"
-                            class="absolute top-3 right-10 p-1 hover:bg-surface-800 rounded-full text-text-secondary hover:text-primary-500 transition-colors z-10">
-                            <Edit2 :size="16" />
-                        </div>
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative">
-                                <img v-if="user.photo_inventory"
-                                    :src="`${import.meta.env.VITE_API_URL}/storage/${user.photo_inventory}`"
+                                <img v-if="user.photo_inventory" :src="`${apiUrl}/storage/${user.photo_inventory}`"
                                     class="w-full h-full object-cover" />
                                 <span v-else class="text-primary-500">{{ user.name[0] }}</span>
                             </div>
@@ -508,7 +501,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -651,7 +644,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
