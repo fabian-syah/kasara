@@ -36,7 +36,9 @@ class User extends Authenticatable
         'is_active',
         'theme_color',
         'last_seen',
-        'created_by', // Menambahkan created_by agar mass assignment berhasil
+        'created_by',
+        'photo_inventory',
+        'phone',
     ];
 
     // Relasi ke Cabang

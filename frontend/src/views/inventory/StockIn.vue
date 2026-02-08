@@ -259,6 +259,64 @@ async function createInventoryAccount() {
     }
 }
 
+// EDIT ACCOUNT LOGIC
+import { Camera, Edit2 } from "lucide-vue-next";
+
+const showEditAccountModal = ref(false);
+const editForm = ref({
+    id: null,
+    name: "",
+    phone: "",
+    photo_inventory: null,
+    photo_preview: null
+});
+const isUpdatingAccount = ref(false);
+const photoInput = ref(null);
+
+function openEditModal(user, event) {
+    event.stopPropagation(); // Prevent card selection
+    editForm.value = {
+        id: user.id,
+        name: user.full_name || user.name,
+        phone: user.phone || "",
+        photo_inventory: null,
+        photo_preview: user.photo_inventory ? `${import.meta.env.VITE_API_URL}/storage/${user.photo_inventory}` : null
+    };
+    showEditAccountModal.value = true;
+}
+
+function handlePhotoChange(event) {
+    const file = event.target.files[0];
+    if (file) {
+        editForm.value.photo_inventory = file;
+        editForm.value.photo_preview = URL.createObjectURL(file);
+    }
+}
+
+async function updateInventoryAccount() {
+    isUpdatingAccount.value = true;
+    try {
+        const formData = new FormData();
+        formData.append('phone', editForm.value.phone);
+        if (editForm.value.photo_inventory) {
+            formData.append('photo_inventory', editForm.value.photo_inventory);
+        }
+
+        await inventoryApi.updateAccount(editForm.value.id, formData);
+        toast.success("Akun berhasil diupdate!");
+        showEditAccountModal.value = false;
+        fetchInitialData();
+    } catch (e) {
+        console.error("Update error:", e);
+        toast.error(e.response?.data?.message || "Gagal update akun");
+    } finally {
+        isUpdatingAccount.value = false;
+    }
+}
+
+
+
+
 const selectedInventoryUserId = ref(null);
 
 function selectUserPlacement(user) {
@@ -410,6 +468,20 @@ onMounted(fetchInitialData);
                             class="absolute top-3 right-3 text-primary-500">
                             <CheckCircle2 :size="24" />
                         </div>
+
+                        <!-- EDIT BUTTON -->
+                        <div v-if="authStore.user?.id === user.created_by?.id || authStore.user?.id === user.created_by"
+                            @click="openEditModal(user, $event)"
+                            class="absolute top-3 right-10 p-1 hover:bg-surface-800 rounded-full text-text-secondary hover:text-primary-500 transition-colors z-10">
+                            <Edit2 :size="16" />
+                        </div>
+
+                        <!-- EDIT BUTTON -->
+                        <div v-if="authStore.user?.id === user.created_by?.id || authStore.user?.id === user.created_by"
+                            @click="openEditModal(user, $event)"
+                            class="absolute top-3 right-10 p-1 hover:bg-surface-800 rounded-full text-text-secondary hover:text-primary-500 transition-colors z-10">
+                            <Edit2 :size="16" />
+                        </div>
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold">
@@ -461,6 +533,60 @@ onMounted(fetchInitialData);
                                     class="btn btn-primary px-6 rounded-xl">
                                     <Loader2 v-if="isCreatingAccount" class="animate-spin mr-2" :size="16" />
                                     {{ isCreatingAccount ? 'Membuat...' : 'Buat Akun' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Edit Account -->
+                <div v-if="showEditAccountModal"
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div
+                        class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                        <h3 class="text-xl font-bold text-white mb-4">Edit Akun Inventory</h3>
+
+                        <div class="space-y-4">
+                            <!-- Photo Upload -->
+                            <div class="flex justify-center mb-6">
+                                <div class="relative group cursor-pointer" @click="photoInput.click()">
+                                    <div
+                                        class="w-24 h-24 rounded-full bg-surface-800 border-2 border-surface-700 overflow-hidden flex items-center justify-center">
+                                        <img v-if="editForm.photo_preview" :src="editForm.photo_preview"
+                                            class="w-full h-full object-cover" />
+                                        <div v-else class="text-text-secondary">
+                                            <Camera :size="32" />
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Edit2 :size="20" class="text-white" />
+                                    </div>
+                                    <input type="file" ref="photoInput" class="hidden" accept="image/*"
+                                        @change="handlePhotoChange" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="label text-xs uppercase">Nama Akun (Terkunci)</label>
+                                <input v-model="editForm.name"
+                                    class="input bg-surface-800 opacity-50 cursor-not-allowed" disabled />
+                                <p class="text-[10px] text-text-secondary mt-1">*Nama akun hanya bisa diubah oleh Super
+                                    Admin</p>
+                            </div>
+
+                            <div>
+                                <label class="label text-xs uppercase">No HP / WhatsApp</label>
+                                <input v-model="editForm.phone" class="input bg-surface-800" placeholder="08..." />
+                            </div>
+
+                            <div class="flex justify-end gap-3 mt-6">
+                                <button @click="showEditAccountModal = false"
+                                    class="btn btn-secondary px-6 rounded-xl">Batal</button>
+                                <button @click="updateInventoryAccount" :disabled="isUpdatingAccount"
+                                    class="btn btn-primary px-6 rounded-xl">
+                                    <Loader2 v-if="isUpdatingAccount" class="animate-spin mr-2" :size="16" />
+                                    {{ isUpdatingAccount ? 'Menyimpan...' : 'Simpan Perubahan' }}
                                 </button>
                             </div>
                         </div>

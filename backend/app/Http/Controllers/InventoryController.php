@@ -539,6 +539,42 @@ class InventoryController extends Controller
         }
     }
 
+    public function updateAccount(Request $request, $id)
+    {
+        $user = Auth::user();
+        $account = \App\Models\User::findOrFail($id);
+
+        // Security Check: Only the creator can edit
+        if ($account->created_by !== $user->id) {
+            return response()->json(['message' => 'Unauthorized action.'], 403);
+        }
+
+        $request->validate([
+            'phone' => 'nullable|string|max:20',
+            'photo_inventory' => 'nullable|image|max:2048', // 2MB Max
+        ]);
+
+        $account->phone = $request->phone;
+
+        if ($request->hasFile('photo_inventory')) {
+            // Delete old photo if exists
+            if ($account->photo_inventory && \Illuminate\Support\Facades\Storage::exists('public/' . $account->photo_inventory)) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $account->photo_inventory);
+            }
+            $path = $request->file('photo_inventory')->store('account-photos', 'public');
+            $account->photo_inventory = $path;
+        }
+
+        $account->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Akun inventory berhasil diupdate.',
+            'data' => $account
+        ]);
+    }
+
+
     public function update(Request $request, $id)
     {
         $detail = ProductDetail::findOrFail($id);
