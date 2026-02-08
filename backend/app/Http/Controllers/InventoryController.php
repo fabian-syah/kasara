@@ -299,7 +299,7 @@ class InventoryController extends Controller
             'storage' => 'nullable|string', // Allow root storage
             'imeis.*.condition' => 'required_if:type,hp|in:new,second',
             'imeis.*.cost_price' => 'required_if:type,hp|numeric|min:0',
-            'imeis.*.selling_price' => 'required_if:type,hp|numeric|min:0',
+            'imeis.*.selling_price' => 'nullable|numeric|min:0',
         ]);
 
         $user = Auth::user();
@@ -389,7 +389,7 @@ class InventoryController extends Controller
                         'placement_type' => $request->placement_type,
                         'placement_id' => $request->placement_id,
                         'cost_price' => $item['cost_price'],
-                        'selling_price' => $item['selling_price'],
+                        'selling_price' => $item['selling_price'] ?? null,
                         'distributor_id' => $distributorId,
                         'user_id' => $ownerUserId,
                     ]);
@@ -422,7 +422,7 @@ class InventoryController extends Controller
             }
 
             // Update Master Product Price (Sync with latest Stock In Selling Price)
-            if ($request->type === 'hp' && count($request->imeis) > 0) {
+            if ($request->type === 'hp' && count($request->imeis) > 0 && isset($request->imeis[0]['selling_price'])) {
                 // Use the first item's selling price as the master price
                 $product->update(['price' => $request->imeis[0]['selling_price']]);
             }

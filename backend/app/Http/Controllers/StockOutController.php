@@ -87,16 +87,22 @@ class StockOutController extends Controller
 
         // Shopee: Per-item validation
         if ($request->category === 'shopee') {
-            $rules['shopee_items'] = 'required|array|min:1';
-            $rules['shopee_items.*.product_detail_id'] = 'required|exists:product_details,id';
-            $rules['shopee_items.*.tracking_no'] = 'required|string|max:100';
+            // Add Selling Price validation
+            $rules['selling_price'] = 'required|numeric|min:0';
+
+            // Allow simplified frontend without shopee_items array for now if not provided
+            if ($request->has('shopee_items')) {
+                $rules['shopee_items'] = 'required|array|min:1';
+                $rules['shopee_items.*.product_detail_id'] = 'required|exists:product_details,id';
+                $rules['shopee_items.*.tracking_no'] = 'required|string|max:100';
+            }
 
             // Validate Global Fields
             $rules['shopee_receiver'] = 'required|string|max:255';
             $rules['shopee_phone'] = 'required|string|max:50';
             $rules['shopee_address'] = 'required|string';
-            $rules['shopee_province'] = 'required|string';
-            $rules['shopee_city'] = 'required|string';
+            $rules['shopee_province'] = 'nullable|string'; // Made nullable as per frontend might not send it
+            $rules['shopee_city'] = 'nullable|string';     // Made nullable
             $rules['shopee_district'] = 'nullable|string';
             $rules['shopee_village'] = 'nullable|string';
             $rules['shopee_postal_code'] = 'nullable|string|max:10';
@@ -146,6 +152,7 @@ class StockOutController extends Controller
                 'receipt_id' => StockOut::generateReceiptId(),
                 'category' => $request->category,
                 'user_id' => Auth::id(),
+                'selling_price' => $request->selling_price,
                 // Pindah Cabang
                 'destination_branch_id' => $request->destination_branch_id,
                 'receiver_name' => $request->receiver_name,
@@ -189,10 +196,20 @@ class StockOutController extends Controller
             // Attach items and update status
             $newStatus = $this->getStatusByCategory($request->category);
 
+            $pricePerItem = 0;
+            if ($request->category === 'shopee' && $request->selling_price && $productDetails->count() > 0) {
+                $pricePerItem = $request->selling_price / $productDetails->count();
+            }
+
             foreach ($productDetails as $detail) {
                 $stockOut->items()->attach($detail->id);
 
                 $updateData = ['status' => $newStatus];
+
+                // Update selling price if applicable (Shopee)
+                if ($request->category === 'shopee') {
+                    $updateData['selling_price'] = $pricePerItem;
+                }
 
                 // If pindah_cabang, move location immediately
                 if ($request->category === 'pindah_cabang') {

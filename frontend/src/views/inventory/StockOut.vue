@@ -96,6 +96,7 @@ const form = ref({
     shopee_address: '',
     shopee_notes: '',
     shopee_tracking_no: '',
+    selling_price: null,
     notes: '',
 });
 
@@ -244,6 +245,7 @@ function resetForm() {
         shopee_address: '',
         shopee_notes: '',
         shopee_tracking_no: '',
+        selling_price: null,
     };
     selectedCategory.value = null;
 }
@@ -337,7 +339,7 @@ const canSubmit = computed(() => {
         case 'retur':
             return form.value.retur_officer && form.value.retur_issue && form.value.customer_name && form.value.customer_phone;
         case 'shopee':
-            return form.value.shopee_receiver && form.value.shopee_phone && form.value.shopee_address && form.value.shopee_tracking_no;
+            return form.value.shopee_receiver && form.value.shopee_phone && form.value.shopee_address && form.value.shopee_tracking_no && form.value.selling_price;
         default:
             return true;
     }
@@ -631,6 +633,14 @@ onMounted(() => {
                 </div>
 
                 <div v-if="selectedCategory === 'shopee'" class="space-y-4">
+                    <div>
+                        <label class="label text-emerald-500">Total Harga Jual (Rp) *</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                            <input v-model="form.selling_price" type="number" class="input pl-10 bg-surface-800"
+                                placeholder="0" />
+                        </div>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="label">Nama Penerima *</label>

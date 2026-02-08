@@ -698,7 +698,7 @@ onMounted(fetchInitialData);
                             </select>
                         </div>
                         <div>
-                            <label class="label text-[10px] uppercase text-emerald-500">Modal Satuan</label>
+                            <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
                             <div class="relative">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
@@ -706,15 +706,7 @@ onMounted(fetchInitialData);
                                     class="input bg-surface-900 h-10 text-sm pl-10" placeholder="0" />
                             </div>
                         </div>
-                        <div>
-                            <label class="label text-[10px] uppercase text-blue-500">Jual Satuan</label>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                                <input v-model="sellingPriceDisplay" type="text"
-                                    class="input bg-surface-900 h-10 text-sm pl-10" placeholder="0" />
-                            </div>
-                        </div>
+
                     </div>
 
                     <!-- Single Bulk Textarea -->
