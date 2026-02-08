@@ -189,13 +189,7 @@ const costPriceDisplay = computed({
     }
 });
 
-const sellingPriceDisplay = computed({
-    get: () => batchDetails.value.selling_price ? formatRupiah(batchDetails.value.selling_price).replace('Rp', '').trim() : '',
-    set: (val) => {
-        const num = parseInt(val.replace(/[^\d]/g, ''));
-        batchDetails.value.selling_price = isNaN(num) ? 0 : num;
-    }
-});
+
 
 const canSubmit = computed(() => {
     if (!selectedTypeName.value) return false;
@@ -205,7 +199,7 @@ const canSubmit = computed(() => {
         // Check if we have at least one valid IMEI in the bulk text
         if (parsedImeis.value.length === 0) return false;
         // Check prices
-        return batchDetails.value.cost_price > 0 && batchDetails.value.selling_price > 0;
+        return batchDetails.value.cost_price > 0;
     }
     return nonHpForm.value.quantity > 0;
 });
