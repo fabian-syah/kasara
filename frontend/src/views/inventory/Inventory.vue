@@ -928,6 +928,7 @@ function getStockStatus(product) {
               <template v-else>
                 <th>Lokasi</th>
                 <th>Stok</th>
+                <th>Distributor / Supplier</th>
               </template>
 
               <th>Akun Inventory</th>
@@ -1020,13 +1021,15 @@ function getStockStatus(product) {
                   </div>
                   <div v-else>
                     <span class="capitalize">{{ item.placement_type?.replace('_', ' ') }}</span>
-                    <span v-if="item.placement_id" class="text-xs ml-1 text-surface-400">#{{ item.placement_id
-                    }}</span>
+                    <span v-if="item.placement_id" class="text-xs ml-1 text-surface-400">#{{ item.placement_id }}</span>
                   </div>
                 </td>
                 <td>
                   <span class="text-lg font-bold text-text-primary">{{ item.quantity }}</span>
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
+                </td>
+                <td class="text-sm text-text-secondary">
+                  {{ item.latest_supplier || item.latest_distributor || '-' }}
                 </td>
               </template>
 

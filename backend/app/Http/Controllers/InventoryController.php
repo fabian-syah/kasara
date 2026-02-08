@@ -76,6 +76,16 @@ class InventoryController extends Controller
                 } elseif ($item->placement_type == 'online_shop') {
                     $item->placement_name = \App\Models\OnlineShop::find($item->placement_id)?->name;
                 }
+
+                // Add Last Supplier Info
+                $lastLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
+                    ->where('user_id', $item->user_id)
+                    ->where('type', 'in')
+                    ->latest()
+                    ->first();
+
+                $item->latest_supplier = $lastLog ? ($lastLog->supplier_name ?? ($lastLog->distributor ? $lastLog->distributor->name : null)) : null;
+
                 return $item;
             });
 
