@@ -26,6 +26,8 @@ const toast = useToast();
 const router = useRouter();
 const authStore = useAuthStore();
 const apiUrl = import.meta.env.VITE_API_URL;
+// Remove '/api' from the end of apiUrl to get the base URL for storage
+const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 
 // State
 const isLoading = ref(false);
@@ -493,7 +495,7 @@ onMounted(fetchInitialData);
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative">
-                                <img v-if="user.photo_inventory" :src="`${apiUrl}/storage/${user.photo_inventory}`"
+                                <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
                                     class="w-full h-full object-cover" />
                                 <span v-else class="text-primary-500">{{ user.name[0] }}</span>
                             </div>
