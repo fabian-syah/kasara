@@ -286,14 +286,22 @@ const getCategoryColor = (cat) => {
                                     <div class="flex flex-col">
                                         <span class="font-medium text-text-primary">{{ item.product?.name }}</span>
                                         <span class="text-xs text-text-secondary font-mono">{{ item.product?.sku
-                                            }}</span>
+                                        }}</span>
                                     </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span v-if="item.selling_price" class="font-mono text-emerald-400">
+                                        {{ new Intl.NumberFormat('id-ID', {
+                                            style: 'currency', currency: 'IDR'
+                                        }).format(item.selling_price) }}
+                                    </span>
+                                    <span v-else class="text-text-secondary text-xs">-</span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
                                         <span class="text-red-400 font-bold mb-1">-{{ item.quantity }} Unit</span>
                                         <span class="text-xs text-text-secondary">Balance: {{ item.balance_after
-                                            }}</span>
+                                        }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">

@@ -124,6 +124,7 @@ const stockOutForm = ref({
   shopee_postal_code: '',
   shopee_notes: '',
   shopee_tracking_no: '',
+  selling_price: null,
 
   // Giveaway Fields
   giveaway_receiver: '',
@@ -514,7 +515,8 @@ const canSubmitStockOut = computed(() => {
       return stockOutForm.value.shopee_receiver &&
         stockOutForm.value.shopee_phone &&
         stockOutForm.value.shopee_address &&
-        stockOutForm.value.shopee_tracking_no;
+        stockOutForm.value.shopee_tracking_no &&
+        stockOutForm.value.selling_price;
     case 'giveaway':
       return stockOutForm.value.giveaway_receiver &&
         stockOutForm.value.giveaway_phone &&
@@ -560,6 +562,7 @@ async function submitStockOut() {
       formData.append('shopee_district', stockOutForm.value.shopee_district);
       formData.append('shopee_village', stockOutForm.value.shopee_village);
       formData.append('shopee_postal_code', stockOutForm.value.shopee_postal_code);
+      formData.append('selling_price', stockOutForm.value.selling_price);
     } else if (selectedStockOutCategory.value === 'giveaway') {
       formData.append('giveaway_receiver', stockOutForm.value.giveaway_receiver);
       formData.append('giveaway_phone', stockOutForm.value.giveaway_phone);
@@ -945,7 +948,7 @@ function getStockStatus(product) {
                 <td class="text-sm">
                   <span class="bg-surface-800 px-3 py-1 rounded-lg text-text-secondary" v-if="item.storage">{{
                     item.storage
-                    }}</span>
+                  }}</span>
                   <span v-else class="text-text-secondary">-</span>
                 </td>
                 <td class="font-mono text-sm">
@@ -961,7 +964,7 @@ function getStockStatus(product) {
                   <div v-else>
                     <span class="capitalize">{{ item.placement_type?.replace('_', ' ') }}</span>
                     <span v-if="item.placement_id" class="text-xs ml-1 text-surface-400">#{{ item.placement_id
-                      }}</span>
+                    }}</span>
                   </div>
                 </td>
                 <td class="text-sm text-text-secondary">
@@ -990,7 +993,7 @@ function getStockStatus(product) {
                   <div v-else>
                     <span class="capitalize">{{ item.placement_type?.replace('_', ' ') }}</span>
                     <span v-if="item.placement_id" class="text-xs ml-1 text-surface-400">#{{ item.placement_id
-                      }}</span>
+                    }}</span>
                   </div>
                 </td>
                 <td>
@@ -1006,7 +1009,7 @@ function getStockStatus(product) {
                              We'll show '-' if not available or maybe the updated_at -->
                   <span class="text-sm font-medium text-text-primary">{{ item.user?.full_name || item.user?.name ||
                     '-'
-                    }}</span>
+                  }}</span>
                   <span class="text-[10px] text-text-secondary">{{ item.user?.username }}</span>
                 </div>
               </td>
@@ -1146,6 +1149,16 @@ function getStockStatus(product) {
                       <span class="text-text-secondary">|</span>
                       <span>{{ item.imei }}</span>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Selling Price -->
+                <div>
+                  <label class="label text-emerald-500">Total Harga Jual (Rp) *</label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                    <input v-model="stockOutForm.selling_price" type="number" class="input pl-10 bg-surface-800"
+                      placeholder="0" />
                   </div>
                 </div>
 
