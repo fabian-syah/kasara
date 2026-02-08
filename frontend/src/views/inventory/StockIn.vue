@@ -302,10 +302,18 @@ async function updateInventoryAccount() {
             formData.append('photo_inventory', editForm.value.photo_inventory);
         }
 
-        await inventoryApi.updateAccount(editForm.value.id, formData);
+        const response = await inventoryApi.updateAccount(editForm.value.id, formData);
+
+        // Update local state instantly
+        const updatedUser = response.data.data;
+        const index = targetUsers.value.findIndex(u => u.id === updatedUser.id);
+        if (index !== -1) {
+            targetUsers.value[index] = { ...targetUsers.value[index], ...updatedUser };
+        }
+
         toast.success("Akun berhasil diupdate!");
         showEditAccountModal.value = false;
-        fetchInitialData();
+        // fetchInitialData(); // No need to reload entire list
     } catch (e) {
         console.error("Update error:", e);
         if (e.response?.data?.errors) {
@@ -490,15 +498,22 @@ onMounted(fetchInitialData);
                         </div>
                         <div class="flex items-center gap-4">
                             <div
-                                class="w-12 h-12 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold">
-                                {{ user.name[0] }}</div>
+                                class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative">
+                                <img v-if="user.photo_inventory"
+                                    :src="`${import.meta.env.VITE_API_URL}/storage/${user.photo_inventory}`"
+                                    class="w-full h-full object-cover" />
+                                <span v-else class="text-primary-500">{{ user.name[0] }}</span>
+                            </div>
                             <div>
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
+                                    </span>
+                                    <span v-if="user.phone" class="text-[10px] text-emerald-500 font-mono">
+                                        {{ user.phone }}
                                     </span>
                                 </div>
                             </div>
