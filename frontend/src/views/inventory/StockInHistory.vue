@@ -168,7 +168,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                    }}</div>
+                                        }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>
@@ -200,13 +200,13 @@ onMounted(() => {
 
                             <td class="px-6 py-4">
                                 <div v-if="activeTab === 'hp'">
-                                    {{ item.distributor ? item.distributor.name : '-' }}
+                                    {{ item.distributor ? item.distributor.name : (item.supplier_name || '-') }}
                                     <div class="text-xs text-text-secondary">
                                         {{ item.placement_name || '-' }}
                                     </div>
                                 </div>
                                 <div v-else>
-                                    {{ item.distributor ? item.distributor.name : '-' }}
+                                    {{ item.distributor ? item.distributor.name : (item.supplier_name || '-') }}
                                     <div class="text-xs text-text-secondary"
                                         v-if="!item.distributor && item.description">
                                         {{ item.description }}

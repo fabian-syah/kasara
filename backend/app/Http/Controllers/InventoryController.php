@@ -317,15 +317,15 @@ class InventoryController extends Controller
 
         try {
             $distributorId = $request->distributor_id;
+            $supplierName = null;
+
             if (!$distributorId && $request->new_distributor_name) {
-                $newDist = \App\Models\Distributor::create([
-                    'name' => $request->new_distributor_name,
-                    'is_active' => true
-                ]);
-                $distributorId = $newDist->id;
+                // Use manual name, do not create distributor record
+                $supplierName = $request->new_distributor_name;
+                $distributorId = null;
             }
 
-            if (!$distributorId) {
+            if (!$distributorId && !$supplierName) {
                 throw new \Exception("Distributor harus dipilih atau diisi manual.");
             }
             $product = Product::findOrFail($request->product_id);
@@ -352,10 +352,11 @@ class InventoryController extends Controller
                     // For now, let's assume we map placement_id -> branch_id if type is branch, or null.
                     'user_id' => $ownerUserId, // Use the Owner User ID (Inventory Account)
                     'distributor_id' => $distributorId,
+                    'supplier_name' => $supplierName,
                     'type' => 'in',
                     'quantity' => $request->quantity,
                     'balance_after' => $inventory->quantity,
-                    'description' => "Stock In from Distributor",
+                    'description' => "Stock In from " . ($supplierName ?: "Distributor"),
                     'reference_id' => 'STOCK-IN-' . time()
                 ]);
             }
@@ -391,6 +392,7 @@ class InventoryController extends Controller
                         'cost_price' => $item['cost_price'],
                         'selling_price' => $item['selling_price'] ?? null,
                         'distributor_id' => $distributorId,
+                        'supplier_name' => $supplierName,
                         'user_id' => $ownerUserId,
                     ]);
                     $inserted_count++;
@@ -403,10 +405,11 @@ class InventoryController extends Controller
                         'branch_id' => 1,
                         'user_id' => $ownerUserId, // Use Owner User ID
                         'distributor_id' => $distributorId,
+                        'supplier_name' => $supplierName,
                         'type' => 'in',
                         'quantity' => $inserted_count,
                         'balance_after' => ProductDetail::where('product_id', $product->id)->where('status', 'available')->count(),
-                        'description' => "Stock In {$inserted_count} units (HP)",
+                        'description' => "Stock In {$inserted_count} units (HP) from " . ($supplierName ?: "Distributor"),
                         'reference_id' => 'STOCK-IN-HP-' . time()
                     ]);
                 }

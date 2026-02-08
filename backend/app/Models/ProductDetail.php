@@ -23,7 +23,8 @@ class ProductDetail extends Model
         'placement_id',
         'cost_price',
         'selling_price',
-        'distributor_id'
+        'distributor_id',
+        'supplier_name'
     ];
 
     protected $casts = [

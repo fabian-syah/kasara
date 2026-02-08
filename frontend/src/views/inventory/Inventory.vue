@@ -996,7 +996,7 @@ function getStockStatus(product) {
                   </div>
                 </td>
                 <td class="text-sm text-text-secondary">
-                  {{ item.distributor?.name || '-' }}
+                  {{ item.distributor?.name || item.supplier_name || '-' }}
                 </td>
                 <td class="text-text-primary font-medium">
                   {{ formatCurrency(item.selling_price) }}
