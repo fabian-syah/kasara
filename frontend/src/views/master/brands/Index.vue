@@ -105,6 +105,7 @@ onMounted(fetchData);
                         <tr>
                             <th class="px-6 py-4">Nama Merek</th>
                             <th class="px-6 py-4">Slug</th>
+                            <th class="px-6 py-4">Kategori</th>
                             <th class="px-6 py-4">Deskripsi</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
@@ -120,6 +121,12 @@ onMounted(fetchData);
                                 {{ brand.name }}
                             </td>
                             <td class="px-6 py-4 font-mono text-text-secondary">{{ brand.slug }}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-md text-xs font-medium"
+                                    :class="brand.category === 'imei' ? 'bg-blue-500/20 text-blue-400' : 'bg-surface-700 text-text-secondary'">
+                                    {{ brand.category === 'imei' ? 'HP / Unit' : 'Non-HP' }}
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-text-secondary">{{ brand.description || '-' }}</td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">

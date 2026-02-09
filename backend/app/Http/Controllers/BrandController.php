@@ -28,6 +28,7 @@ class BrandController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:brands,name',
             'description' => 'nullable|string',
+            'category' => 'required|in:imei,non-imei',
         ]);
 
         $brand = Brand::create($validated);
@@ -44,6 +45,7 @@ class BrandController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:brands,name,' . $brand->id,
             'description' => 'nullable|string',
+            'category' => 'required|in:imei,non-imei',
         ]);
 
         $brand->update($validated);
