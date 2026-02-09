@@ -506,7 +506,7 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                    }}</span>
+                                        }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[
@@ -634,7 +634,7 @@ onMounted(() => {
 
                 <div v-if="selectedCategory === 'shopee'" class="space-y-4">
                     <div>
-                        <label class="label text-emerald-500">Total Harga Jual (Rp) *</label>
+                        <label class="label text-emerald-500">SRP (Rp) *</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
                             <input v-model="form.selling_price" type="number" class="input pl-10 bg-surface-800"

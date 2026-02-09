@@ -1185,20 +1185,11 @@ function getStockStatus(product) {
 
                 <!-- Selling Price -->
                 <div>
-                  <label class="label text-emerald-500">Total Harga Jual (Rp) *</label>
+                  <label class="label text-emerald-500">SRP (Rp) *</label>
                   <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
                     <input v-model="formattedSellingPrice" type="text" class="input pl-10 bg-surface-800"
                       placeholder="0" />
-                  </div>
-                  <!-- Profit Display -->
-                  <div class="mt-2 text-xs flex items-center gap-2" v-if="stockOutForm.selling_price">
-                    <span class="text-text-secondary">Modal: {{ formatCurrency(totalCostPrice) }}</span>
-                    <span class="text-text-secondary">|</span>
-                    <span :class="estimatedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'">
-                      {{ estimatedProfit >= 0 ? 'Untung' : 'Rugi' }}: {{ formatCurrency(estimatedProfit) }}
-                      ({{ profitPercentage.toFixed(1) }}%)
-                    </span>
                   </div>
                 </div>
 
@@ -1233,11 +1224,6 @@ function getStockStatus(product) {
                 </div>
 
                 <!-- District & Village Removed -->
-
-                <div>
-                  <label class="label">Kode Pos</label>
-                  <input v-model="stockOutForm.shopee_postal_code" class="input" placeholder="Kode Pos" />
-                </div>
 
                 <div>
                   <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
