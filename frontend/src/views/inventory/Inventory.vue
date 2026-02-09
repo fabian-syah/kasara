@@ -7,7 +7,6 @@ import api, {
   productTypes as productTypesApi,
   brands as brandsApi,
   products as productsApi,
-  regions as regionsApi,
   users as usersApi,
   branches as branchesApi
 } from "../../api/axios";
