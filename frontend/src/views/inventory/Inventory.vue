@@ -20,6 +20,8 @@ import { formatCurrency, formatNumber } from "../../utils/formatters";
 
 import { Html5Qrcode } from "html5-qrcode";
 const router = useRouter();
+const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
+const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 import {
   Search,
   Package,
@@ -1112,57 +1114,83 @@ function getStockStatus(product) {
         <!-- Modal Body -->
         <div class="flex-1 overflow-y-auto p-6">
           <!-- Category Selection -->
-          <div v-if="!selectedStockOutCategory" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <button v-for="cat in stockOutCategories" :key="cat.id" @click="selectStockOutCategory(cat)"
-              class="card p-4 text-center hover:border-primary-500 border-2 border-transparent transition-all">
-              <component :is="cat.icon" :size="32" class="mx-auto mb-2" :class="`text-${cat.color}-500`" />
-              <p class="font-bold text-text-primary text-sm">{{ cat.name }}</p>
-            </button>
+          <div v-if="!selectedStockOutCategory" class="animate-in slide-in-from-right">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Box :size="20" class="text-primary-500" />
+              Pilih Kategori Pengeluaran
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <button v-for="category in stockOutCategories" :key="category.id"
+                @click="selectStockOutCategory(category)"
+                class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-700 bg-surface-800 hover:bg-surface-700 hover:border-primary-500/50 transition-all group gap-3 text-center h-32 md:h-40">
+                <div
+                  :class="`p-3 rounded-full bg-${category.color}-500/10 text-${category.color}-500 group-hover:scale-110 transition-transform`">
+                  <component :is="category.icon" :size="28" />
+                </div>
+                <span
+                  class="font-medium text-sm md:text-base text-text-primary group-hover:text-white transition-colors">
+                  {{ category.name }}
+                </span>
+              </button>
+            </div>
           </div>
 
-          <!-- Category Forms -->
           <div v-else class="space-y-4">
-
             <!-- STEP 2: SELECT INVENTORY ACCOUNT -->
             <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
-              <div class="flex items-center gap-2 mb-4">
-                <button @click="selectedStockOutCategory = null" class="text-text-secondary hover:text-white">
-                  <ChevronLeft :size="20" />
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                  <UserCheck :size="20" class="text-emerald-500" />
+                  Pilih Akun Inventory
+                </h3>
+                <button @click="selectedStockOutCategory = null"
+                  class="text-xs text-text-secondary hover:text-white flex items-center gap-1">
+                  <ChevronLeft :size="14" /> Kembali
                 </button>
-                <h3 class="font-bold text-white">Pilih Akun Inventory</h3>
               </div>
 
-              <div v-if="isLoadingUsers" class="py-10 text-center text-text-secondary">
-                <Loader2 class="animate-spin mx-auto mb-2" />
-                Memuat akun...
+              <div v-if="isLoadingUsers" class="flex justify-center py-12">
+                <Loader2 :size="32" class="animate-spin text-primary-500" />
+              </div>
+
+              <div v-else-if="inventoryUsers.length === 0" class="text-center py-8 text-text-secondary">
+                <div class="bg-surface-800 p-6 rounded-2xl inline-block mb-3">
+                  <UserCheck :size="32" class="text-surface-500" />
+                </div>
+                <p>Tidak ada akun inventory ditemukan.</p>
               </div>
 
               <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div v-for="user in inventoryUsers" :key="user.id" @click="selectedInventoryUser = user"
-                  class="p-4 rounded-xl border border-surface-600 bg-surface-700/50 cursor-pointer hover:border-primary-500 hover:bg-surface-700 transition-all flex items-center gap-4 group">
+                  class="p-4 rounded-2xl border border-surface-700 bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-800/80 transition-all relative group shadow-lg hover:shadow-primary-500/10">
 
-                  <div
-                    class="w-12 h-12 rounded-full bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-500">
-                    <img v-if="user.photo_inventory" :src="`${$storageUrl}/storage/${user.photo_inventory}`"
-                      class="w-full h-full object-cover" />
-                    <User v-else :size="20" class="text-text-secondary" />
+                  <div class="flex items-center gap-4">
+                    <!-- Photo -->
+                    <div
+                      class="w-14 h-14 rounded-xl bg-surface-900 flex-shrink-0 flex items-center justify-center overflow-hidden border border-surface-600 group-hover:border-primary-500/50 transition-colors">
+                      <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
+                        class="w-full h-full object-cover" alt="Foto" />
+                      <span v-else class="text-xl font-bold text-primary-500">{{ (user.full_name || user.name ||
+                        '?')[0].toUpperCase() }}</span>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-bold text-white truncate text-base mb-0.5">{{ user.full_name || user.name }}</h4>
+                      <div class="flex flex-col gap-0.5">
+                        <span class="text-xs text-text-secondary uppercase tracking-wider font-medium">{{
+                          user.roles?.[0]?.name || 'INVENTORY' }}</span>
+                        <span v-if="user.phone" class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                          <Smartphone :size="10" /> {{ user.phone }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Chevron -->
+                    <div class="text-surface-600 group-hover:text-primary-500 transition-colors">
+                      <ChevronRight :size="20" />
+                    </div>
                   </div>
-
-                  <div>
-                    <h4 class="font-bold text-white group-hover:text-primary-400 transition-colors">{{ user.full_name ||
-                      user.name }}</h4>
-                    <p class="text-xs text-text-secondary">{{ user.branch?.name || 'No Branch' }}</p>
-                  </div>
-
-                  <div class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-primary-500">
-                    <ChevronRight :size="20" />
-                  </div>
-                </div>
-
-                <div v-if="inventoryUsers.length === 0"
-                  class="col-span-full text-center py-8 text-text-secondary bg-surface-800 rounded-xl border border-dashed border-surface-600">
-                  <AlertTriangle class="mx-auto mb-2 text-yellow-500" />
-                  Belum ada akun inventory. Silakan buat di menu Stok Masuk.
                 </div>
               </div>
             </div>
@@ -1175,7 +1203,7 @@ function getStockStatus(product) {
                   <div
                     class="w-10 h-10 rounded-full bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-500">
                     <img v-if="selectedInventoryUser.photo_inventory"
-                      :src="`${$storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
+                      :src="`${storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
                       class="w-full h-full object-cover" />
                     <User v-else :size="16" class="text-text-secondary" />
                   </div>
@@ -1432,6 +1460,7 @@ function getStockStatus(product) {
             </template>
           </div>
         </div>
+
         <div v-if="selectedStockOutCategory" class="p-6 border-t border-surface-700">
           <button @click="submitStockOut" :disabled="!canSubmitStockOut || isSubmitting"
             class="btn btn-primary w-full h-12 rounded-xl font-bold disabled:opacity-30">
