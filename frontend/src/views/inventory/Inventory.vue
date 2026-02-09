@@ -2,7 +2,15 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useInventoryStore } from "../../store/inventory";
-import api, { inventory as inventoryApi, productTypes } from "../../api/axios";
+import api, {
+  inventory as inventoryApi,
+  productTypes as productTypesApi,
+  brands as brandsApi,
+  products as productsApi,
+  regions as regionsApi,
+  users as usersApi,
+  branches as branchesApi
+} from "../../api/axios";
 import { formatCurrency, formatNumber } from "../../utils/formatters";
 
 // ... (existing code)
@@ -165,7 +173,7 @@ onMounted(() => {
   fetchWarehouses();
 
   // Fetch Product Types for capacity lookup
-  productTypes.list().then(res => {
+  productTypesApi.list().then(res => {
     typeList.value = res.data.data;
   }).catch(err => console.error("Failed to load types", err));
 
@@ -687,8 +695,7 @@ const stats = computed(() => [
   },
 ]);
 
-import { inventory as inventoryApi, brands as brandsApi, productTypes as productTypesApi, products as productsApi, regions as regionsApi, users as usersApi } from "../../api/axios";
-import { branches as branchesApi } from "../../api/axios";
+
 import { useAuthStore } from "../../store/auth";
 import { useToast } from "../../composables/useToast";
 
