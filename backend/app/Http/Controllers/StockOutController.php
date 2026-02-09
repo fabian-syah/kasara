@@ -14,7 +14,7 @@ class StockOutController extends Controller
     // List all stock outs
     public function index(Request $request)
     {
-        $query = StockOut::with(['user', 'destinationBranch', 'items.product']);
+        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'items.product']);
 
         if ($request->category) {
             $query->byCategory($request->category);
@@ -77,6 +77,7 @@ class StockOutController extends Controller
 
             // Retur
             'retur_officer' => 'required_if:category,retur|nullable|string|max:255',
+            'inventory_user_id' => 'sometimes|nullable|exists:users,id',
             'retur_seal' => 'nullable|string|max:255',
             'retur_issue' => 'required_if:category,retur|nullable|string',
             'customer_name' => 'required_if:category,retur|nullable|string|max:255',
@@ -152,6 +153,7 @@ class StockOutController extends Controller
                 'receipt_id' => StockOut::generateReceiptId(),
                 'category' => $request->category,
                 'user_id' => Auth::id(),
+                'inventory_user_id' => $request->inventory_user_id,
                 'selling_price' => $request->selling_price,
                 // Pindah Cabang
                 'destination_branch_id' => $request->destination_branch_id,
@@ -242,7 +244,7 @@ class StockOutController extends Controller
     // Get single stock out
     public function show($id)
     {
-        $stockOut = StockOut::with(['items.product', 'user', 'destinationBranch'])
+        $stockOut = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch'])
             ->where('id', $id)
             ->orWhere('receipt_id', $id)
             ->firstOrFail();
@@ -253,7 +255,7 @@ class StockOutController extends Controller
     // Get Shopee History
     public function shopeeHistory(Request $request)
     {
-        $query = StockOut::with(['items.product', 'user'])
+        $query = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->where('category', 'shopee');
 
         if ($request->has('q') && !empty($request->q)) {

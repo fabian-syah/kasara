@@ -207,7 +207,7 @@ const getCategoryColor = (cat) => {
                             <th class="px-6 py-4 whitespace-nowrap">Item</th>
                             <th class="px-6 py-4 whitespace-nowrap">Quantity / Info</th>
                             <th v-if="activeTab === 'non-hp'" class="px-6 py-4 whitespace-nowrap">Deskripsi</th>
-                            <th v-if="activeTab === 'hp'" class="px-6 py-4 whitespace-nowrap">Petugas</th>
+                            <th v-if="activeTab === 'hp'" class="px-6 py-4 whitespace-nowrap">Admin / Inventory</th>
                             <th v-if="activeTab === 'non-hp'" class="px-6 py-4 whitespace-nowrap">Diinput Oleh</th>
                         </tr>
                     </thead>
@@ -273,9 +273,15 @@ const getCategoryColor = (cat) => {
                                     <span class="font-bold text-red-400">-{{ (item.items || []).length }} Unit</span>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2 text-xs">
-                                        <User :size="12" />
-                                        <span>{{ item.user ? item.user.name : '-' }}</span>
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2 text-sm font-bold text-white">
+                                            <User :size="14" class="text-primary-400" />
+                                            <span>{{ item.inventory_user ? (item.inventory_user.full_name ||
+                                                item.inventory_user.name) : '-' }}</span>
+                                        </div>
+                                        <span class="text-[10px] text-text-secondary mt-1 ml-6">
+                                            Admin: {{ item.user ? item.user.name : '-' }}
+                                        </span>
                                     </div>
                                 </td>
                             </template>

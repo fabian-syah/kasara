@@ -53,6 +53,7 @@ class StockOut extends Model
         'shopee_items_data',
         // Meta
         'user_id',
+        'inventory_user_id',
         'notes',
         // Confirmation
         'confirmed_at',
@@ -76,6 +77,11 @@ class StockOut extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function inventoryUser()
+    {
+        return $this->belongsTo(User::class, 'inventory_user_id');
     }
 
     public function destinationBranch()
