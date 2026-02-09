@@ -1177,287 +1177,287 @@ function getStockStatus(product) {
                     <p class="font-bold text-white text-sm">{{ selectedInventoryUser.full_name ||
                       selectedInventoryUser.name }}</p>
                   </div>
-                  <button @click="selectedInventoryUser = null"
-                    class="text-xs text-primary-400 hover:text-primary-300 font-medium">
-                    Ganti Akun
-                  </button>
                 </div>
+                <button @click="selectedInventoryUser = null"
+                  class="text-xs text-primary-400 hover:text-primary-300 font-medium">
+                  Ganti Akun
+                </button>
+              </div>
 
-                <!-- Pindah Cabang Form -->
-                <template v-if="selectedStockOutCategory === 'pindah_cabang'">
+              <!-- Pindah Cabang Form -->
+              <template v-if="selectedStockOutCategory === 'pindah_cabang'">
+                <div>
+                  <label class="label">Cabang Tujuan *</label>
+                  <select v-model="stockOutForm.destination_branch_id" class="input">
+                    <option :value="null">-- Pilih Cabang --</option>
+                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label">Nama Penerima *</label>
+                  <input v-model="stockOutForm.receiver_name" class="input" placeholder="Nama yang menerima barang" />
+                </div>
+                <div>
+                  <label class="label">Catatan</label>
+                  <textarea v-model="stockOutForm.transfer_notes" class="input" rows="3"
+                    placeholder="Catatan tambahan..."></textarea>
+                </div>
+              </template>
+
+              <!-- Kesalahan Input Form -->
+              <template v-if="selectedStockOutCategory === 'kesalahan_input'">
+                <div>
+                  <label class="label">Alasan Hapus *</label>
+                  <textarea v-model="stockOutForm.deletion_reason" class="input" rows="4"
+                    placeholder="Jelaskan alasan penghapusan data..."></textarea>
+                </div>
+              </template>
+
+              <!-- Retur Form -->
+              <template v-if="selectedStockOutCategory === 'retur'">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="label">Cabang Tujuan *</label>
-                    <select v-model="stockOutForm.destination_branch_id" class="input">
-                      <option :value="null">-- Pilih Cabang --</option>
-                      <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                    <label class="label">Nama Petugas *</label>
+                    <input v-model="stockOutForm.retur_officer" class="input" placeholder="Nama petugas retur" />
+                  </div>
+                  <div>
+                    <label class="label">Pilih Gudang *</label>
+                    <select v-model="stockOutForm.return_destination_id" class="input">
+                      <option :value="null">-- Pilih Gudang Retur --</option>
+                      <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label class="label">Foto Bukti / Kondisi (Max 10MB)</label>
+                  <input type="file" accept="image/*" @change="handleFileChange"
+                    class="w-full text-sm text-text-secondary file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-surface-700 file:text-primary-400 hover:file:bg-surface-600 transition-all cursor-pointer border border-surface-700 rounded-xl bg-surface-800" />
+                  <div v-if="proofImagePreview" class="mt-3">
+                    <img :src="proofImagePreview" class="h-24 rounded-xl object-cover border border-surface-600" />
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="label">Nama Penerima *</label>
-                    <input v-model="stockOutForm.receiver_name" class="input" placeholder="Nama yang menerima barang" />
+                    <label class="label">Segel</label>
+                    <input v-model="stockOutForm.retur_seal" class="input" placeholder="Nomor segel (opsional)" />
                   </div>
                   <div>
-                    <label class="label">Catatan</label>
-                    <textarea v-model="stockOutForm.transfer_notes" class="input" rows="3"
-                      placeholder="Catatan tambahan..."></textarea>
+                    <label class="label">Nama Customer *</label>
+                    <input v-model="stockOutForm.customer_name" class="input" placeholder="Nama customer" />
                   </div>
-                </template>
+                </div>
+                <div>
+                  <label class="label">Kendala / Masalah *</label>
+                  <textarea v-model="stockOutForm.retur_issue" class="input" rows="3"
+                    placeholder="Jelaskan kendala atau masalah..."></textarea>
+                </div>
+                <div>
+                  <label class="label">No. WA Customer *</label>
+                  <input v-model="stockOutForm.customer_phone" class="input" placeholder="08xxxxxxxxxx" />
+                </div>
+              </template>
 
-                <!-- Kesalahan Input Form -->
-                <template v-if="selectedStockOutCategory === 'kesalahan_input'">
-                  <div>
-                    <label class="label">Alasan Hapus *</label>
-                    <textarea v-model="stockOutForm.deletion_reason" class="input" rows="4"
-                      placeholder="Jelaskan alasan penghapusan data..."></textarea>
+              <!-- Shopee Form (Global) -->
+              <template v-if="selectedStockOutCategory === 'shopee'">
+                <div class="space-y-4">
+                  <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
+                    <p class="text-xs uppercase font-bold text-text-secondary mb-2">
+                      Item yang dikirim ({{ selectedItems.length }})
+                    </p>
+                    <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                      <div v-for="(item, idx) in selectedItems" :key="item.id"
+                        class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
+                        <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
+                        <span>{{ item.product?.name }}</span>
+                        <span class="text-text-secondary">|</span>
+                        <span>{{ item.imei }}</span>
+                      </div>
+                    </div>
                   </div>
-                </template>
 
-                <!-- Retur Form -->
-                <template v-if="selectedStockOutCategory === 'retur'">
+                  <!-- Selling Price -->
+                  <div>
+                    <label class="label text-emerald-500">SRP (Rp) *</label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                      <input v-model="formattedSellingPrice" type="text" class="input pl-10 bg-surface-800"
+                        placeholder="0" />
+                    </div>
+                  </div>
+
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label class="label">Nama Petugas *</label>
-                      <input v-model="stockOutForm.retur_officer" class="input" placeholder="Nama petugas retur" />
+                      <label class="label">Nama Penerima *</label>
+                      <input v-model="stockOutForm.shopee_receiver" class="input" placeholder="Nama penerima" />
                     </div>
                     <div>
-                      <label class="label">Pilih Gudang *</label>
-                      <select v-model="stockOutForm.return_destination_id" class="input">
-                        <option :value="null">-- Pilih Gudang Retur --</option>
-                        <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                      <label class="label">No. WA *</label>
+                      <input v-model="stockOutForm.shopee_phone" class="input" placeholder="08xxxxxxxxxx" />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="label">Provinsi *</label>
+                      <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
+                        class="input">
+                        <option value="">-- Pilih Provinsi --</option>
+                        <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="label">Kota/Kabupaten *</label>
+                      <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)" class="input"
+                        :disabled="!selectedRegionIds.province">
+                        <option value="">-- Pilih Kota --</option>
+                        <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
                       </select>
                     </div>
                   </div>
+
+                  <!-- District & Village Removed -->
+
                   <div>
-                    <label class="label">Foto Bukti / Kondisi (Max 10MB)</label>
-                    <input type="file" accept="image/*" @change="handleFileChange"
-                      class="w-full text-sm text-text-secondary file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-surface-700 file:text-primary-400 hover:file:bg-surface-600 transition-all cursor-pointer border border-surface-700 rounded-xl bg-surface-800" />
-                    <div v-if="proofImagePreview" class="mt-3">
-                      <img :src="proofImagePreview" class="h-24 rounded-xl object-cover border border-surface-600" />
-                    </div>
+                    <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
+                    <textarea v-model="stockOutForm.shopee_address" class="input" rows="3"
+                      placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
                   </div>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="label">Segel</label>
-                      <input v-model="stockOutForm.retur_seal" class="input" placeholder="Nomor segel (opsional)" />
-                    </div>
-                    <div>
-                      <label class="label">Nama Customer *</label>
-                      <input v-model="stockOutForm.customer_name" class="input" placeholder="Nama customer" />
-                    </div>
-                  </div>
+
                   <div>
-                    <label class="label">Kendala / Masalah *</label>
-                    <textarea v-model="stockOutForm.retur_issue" class="input" rows="3"
-                      placeholder="Jelaskan kendala atau masalah..."></textarea>
+                    <label class="label">Catatan</label>
+                    <input v-model="stockOutForm.shopee_notes" class="input" placeholder="Catatan pengiriman..." />
                   </div>
+
                   <div>
-                    <label class="label">No. WA Customer *</label>
-                    <input v-model="stockOutForm.customer_phone" class="input" placeholder="08xxxxxxxxxx" />
-                  </div>
-                </template>
-
-                <!-- Shopee Form (Global) -->
-                <template v-if="selectedStockOutCategory === 'shopee'">
-                  <div class="space-y-4">
-                    <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                      <p class="text-xs uppercase font-bold text-text-secondary mb-2">
-                        Item yang dikirim ({{ selectedItems.length }})
-                      </p>
-                      <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                        <div v-for="(item, idx) in selectedItems" :key="item.id"
-                          class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
-                          <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
-                          <span>{{ item.product?.name }}</span>
-                          <span class="text-text-secondary">|</span>
-                          <span>{{ item.imei }}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Selling Price -->
-                    <div>
-                      <label class="label text-emerald-500">SRP (Rp) *</label>
-                      <div class="relative">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                        <input v-model="formattedSellingPrice" type="text" class="input pl-10 bg-surface-800"
-                          placeholder="0" />
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="label">Nama Penerima *</label>
-                        <input v-model="stockOutForm.shopee_receiver" class="input" placeholder="Nama penerima" />
-                      </div>
-                      <div>
-                        <label class="label">No. WA *</label>
-                        <input v-model="stockOutForm.shopee_phone" class="input" placeholder="08xxxxxxxxxx" />
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="label">Provinsi *</label>
-                        <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
-                          class="input">
-                          <option value="">-- Pilih Provinsi --</option>
-                          <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="label">Kota/Kabupaten *</label>
-                        <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)"
-                          class="input" :disabled="!selectedRegionIds.province">
-                          <option value="">-- Pilih Kota --</option>
-                          <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <!-- District & Village Removed -->
-
-                    <div>
-                      <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
-                      <textarea v-model="stockOutForm.shopee_address" class="input" rows="3"
-                        placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
-                    </div>
-
-                    <div>
-                      <label class="label">Catatan</label>
-                      <input v-model="stockOutForm.shopee_notes" class="input" placeholder="Catatan pengiriman..." />
-                    </div>
-
-                    <div>
-                      <label class="label">No. Resi *</label>
-                      <div class="flex gap-2">
-                        <input v-model="stockOutForm.shopee_tracking_no" class="input font-mono"
-                          placeholder="Scan atau ketik manual..." />
-                        <button @click="startScanner()" type="button" class="btn btn-secondary px-4">
-                          <ScanBarcode :size="18" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-
-                <!-- Giveaway Form -->
-                <template v-if="selectedStockOutCategory === 'giveaway'">
-                  <div class="space-y-4">
-                    <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                      <p class="text-xs uppercase font-bold text-text-secondary mb-2">
-                        Item Giveaway ({{ selectedItems.length }})
-                      </p>
-                      <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                        <div v-for="(item, idx) in selectedItems" :key="item.id"
-                          class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
-                          <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
-                          <span>{{ item.product?.name }}</span>
-                          <span class="text-text-secondary">|</span>
-                          <span>{{ item.imei }}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="label">Nama Customer *</label>
-                        <input v-model="stockOutForm.giveaway_receiver" class="input" placeholder="Nama customer" />
-                      </div>
-                      <div>
-                        <label class="label">No. WA *</label>
-                        <input v-model="stockOutForm.giveaway_phone" class="input" placeholder="08xxxxxxxxxx" />
-                      </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="label">Provinsi *</label>
-                        <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
-                          class="input">
-                          <option value="">-- Pilih Provinsi --</option>
-                          <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="label">Kota/Kabupaten *</label>
-                        <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)"
-                          class="input" :disabled="!selectedRegionIds.province">
-                          <option value="">-- Pilih Kota --</option>
-                          <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <!-- District & Village Removed -->
-
-                    <div>
-                      <label class="label">Kode Pos</label>
-                      <input v-model="stockOutForm.giveaway_postal_code" class="input" placeholder="Kode Pos" />
-                    </div>
-
-                    <div>
-                      <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
-                      <textarea v-model="stockOutForm.giveaway_address" class="input" rows="3"
-                        placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
-                    </div>
-
-                    <div>
-                      <label class="label">Catatan</label>
-                      <input v-model="stockOutForm.giveaway_notes" class="input" placeholder="Catatan giveaway..." />
-                    </div>
-                  </div>
-                </template>
-
-                <!-- Selected Items Summary -->
-                <div class="mt-6 pt-4 border-t border-surface-700">
-                  <p class="text-xs uppercase font-bold text-text-secondary mb-3">
-                    Barang yang akan dikeluarkan ({{ selectedItems.length }})
-                  </p>
-                  <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                    <div v-for="item in selectedItems" :key="item.id"
-                      class="bg-surface-700 px-3 py-2 rounded-xl text-sm flex items-center gap-2">
-                      <Smartphone :size="14" />
-                      <span class="font-mono text-xs">{{ item.imei }}</span>
+                    <label class="label">No. Resi *</label>
+                    <div class="flex gap-2">
+                      <input v-model="stockOutForm.shopee_tracking_no" class="input font-mono"
+                        placeholder="Scan atau ketik manual..." />
+                      <button @click="startScanner()" type="button" class="btn btn-secondary px-4">
+                        <ScanBarcode :size="18" />
+                      </button>
                     </div>
                   </div>
                 </div>
+              </template>
+
+              <!-- Giveaway Form -->
+              <template v-if="selectedStockOutCategory === 'giveaway'">
+                <div class="space-y-4">
+                  <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
+                    <p class="text-xs uppercase font-bold text-text-secondary mb-2">
+                      Item Giveaway ({{ selectedItems.length }})
+                    </p>
+                    <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                      <div v-for="(item, idx) in selectedItems" :key="item.id"
+                        class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
+                        <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
+                        <span>{{ item.product?.name }}</span>
+                        <span class="text-text-secondary">|</span>
+                        <span>{{ item.imei }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="label">Nama Customer *</label>
+                      <input v-model="stockOutForm.giveaway_receiver" class="input" placeholder="Nama customer" />
+                    </div>
+                    <div>
+                      <label class="label">No. WA *</label>
+                      <input v-model="stockOutForm.giveaway_phone" class="input" placeholder="08xxxxxxxxxx" />
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="label">Provinsi *</label>
+                      <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
+                        class="input">
+                        <option value="">-- Pilih Provinsi --</option>
+                        <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="label">Kota/Kabupaten *</label>
+                      <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)" class="input"
+                        :disabled="!selectedRegionIds.province">
+                        <option value="">-- Pilih Kota --</option>
+                        <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- District & Village Removed -->
+
+                  <div>
+                    <label class="label">Kode Pos</label>
+                    <input v-model="stockOutForm.giveaway_postal_code" class="input" placeholder="Kode Pos" />
+                  </div>
+
+                  <div>
+                    <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
+                    <textarea v-model="stockOutForm.giveaway_address" class="input" rows="3"
+                      placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
+                  </div>
+
+                  <div>
+                    <label class="label">Catatan</label>
+                    <input v-model="stockOutForm.giveaway_notes" class="input" placeholder="Catatan giveaway..." />
+                  </div>
+                </div>
+              </template>
+
+              <!-- Selected Items Summary -->
+              <div class="mt-6 pt-4 border-t border-surface-700">
+                <p class="text-xs uppercase font-bold text-text-secondary mb-3">
+                  Barang yang akan dikeluarkan ({{ selectedItems.length }})
+                </p>
+                <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                  <div v-for="item in selectedItems" :key="item.id"
+                    class="bg-surface-700 px-3 py-2 rounded-xl text-sm flex items-center gap-2">
+                    <Smartphone :size="14" />
+                    <span class="font-mono text-xs">{{ item.imei }}</span>
+                  </div>
+                </div>
               </div>
-          </div>
-
-          <!-- Modal Footer -->
-          <div v-if="selectedStockOutCategory" class="p-6 border-t border-surface-700">
-            <button @click="submitStockOut" :disabled="!canSubmitStockOut || isSubmitting"
-              class="btn btn-primary w-full h-12 rounded-xl font-bold disabled:opacity-30">
-              <Loader2 v-if="isSubmitting" :size="20" class="animate-spin mr-2" />
-              {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Keluar Stok' }}
-            </button>
+            </template>
           </div>
         </div>
-      </div>
-
-      <!-- Scanner Modal -->
-      <div v-if="isScanning" class="fixed inset-0 bg-black/95 z-[60] flex flex-col items-center justify-center p-4">
-        <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
-          <div class="flex items-center justify-between p-4 border-b border-surface-700">
-            <h3 class="text-white font-bold flex items-center gap-2">
-              <ScanBarcode :size="20" class="text-orange-500" />
-              Scan Barcode Resi
-            </h3>
-            <button @click="stopScanner" class="text-text-secondary hover:text-white transition-colors">
-              <X :size="24" />
-            </button>
-          </div>
-          <div :id="scannerContainerId" class="w-full aspect-video bg-black"></div>
-          <div class="p-4 text-center space-y-3">
-            <p class="text-text-secondary text-sm animate-pulse">Arahkan kamera ke barcode resi...</p>
-            <div class="text-xs text-text-secondary">
-              <p>Atau ketik manual nomor resi di form lalu tutup scanner</p>
-            </div>
-          </div>
+        <div v-if="selectedStockOutCategory" class="p-6 border-t border-surface-700">
+          <button @click="submitStockOut" :disabled="!canSubmitStockOut || isSubmitting"
+            class="btn btn-primary w-full h-12 rounded-xl font-bold disabled:opacity-30">
+            <Loader2 v-if="isSubmitting" :size="20" class="animate-spin mr-2" />
+            {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Keluar Stok' }}
+          </button>
         </div>
       </div>
-
     </div>
+
+    <!-- Scanner Modal -->
+    <div v-if="isScanning" class="fixed inset-0 bg-black/95 z-[60] flex flex-col items-center justify-center p-4">
+      <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-surface-700">
+          <h3 class="text-white font-bold flex items-center gap-2">
+            <ScanBarcode :size="20" class="text-orange-500" />
+            Scan Barcode Resi
+          </h3>
+          <button @click="stopScanner" class="text-text-secondary hover:text-white transition-colors">
+            <X :size="24" />
+          </button>
+        </div>
+        <div :id="scannerContainerId" class="w-full aspect-video bg-black"></div>
+        <div class="p-4 text-center space-y-3">
+          <p class="text-text-secondary text-sm animate-pulse">Arahkan kamera ke barcode resi...</p>
+          <div class="text-xs text-text-secondary">
+            <p>Atau ketik manual nomor resi di form lalu tutup scanner</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </template>
 
 <style scoped>
