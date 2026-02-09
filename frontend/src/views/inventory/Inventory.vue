@@ -1140,7 +1140,7 @@ function getStockStatus(product) {
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
                   <UserCheck :size="20" class="text-emerald-500" />
-                  Pilih Akun Inventory
+                  Pilih User Inventory
                 </h3>
                 <button @click="selectedStockOutCategory = null"
                   class="text-xs text-text-secondary hover:text-white flex items-center gap-1">
