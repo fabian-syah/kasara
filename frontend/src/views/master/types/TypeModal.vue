@@ -18,7 +18,6 @@ const form = ref({
     brand_id: '',
     name: '',
     category: 'imei', // imei, non_imei, service
-    ram: '',
     storage: ''
 });
 
@@ -32,6 +31,12 @@ const isEditing = computed(() => !!props.type);
 const title = computed(() => isEditing.value ? 'Edit Tipe Produk' : 'Tambah Tipe Produk');
 
 const showSpecs = computed(() => form.value.category === 'imei');
+
+const filteredBrands = computed(() => {
+    // Map Type category (non_imei) to Brand category (non-imei)
+    const targetCat = form.value.category === 'imei' ? 'imei' : 'non-imei';
+    return brands.value.filter(b => b.category === targetCat);
+});
 
 // Fetch brands for dropdown
 onMounted(async () => {
@@ -51,7 +56,6 @@ watch(() => props.type, (newVal) => {
             brand_id: '',
             name: '',
             category: 'imei',
-            ram: '',
             storage: ''
         };
     }
@@ -68,7 +72,6 @@ const save = async () => {
         // Clean up specs if not IMEI
         const payload = { ...form.value };
         if (!showSpecs.value) {
-            payload.ram = null;
             payload.storage = null;
         }
 
@@ -128,7 +131,7 @@ const save = async () => {
                         <select v-model="form.brand_id"
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
                             <option value="" disabled>Pilih Merek...</option>
-                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select>
                     </div>
                 </div>
@@ -144,24 +147,15 @@ const save = async () => {
                 </div>
 
                 <!-- Specs (Only for IMEI) -->
-                <div v-if="showSpecs" class="grid grid-cols-2 gap-4 animate-in">
+                <div v-if="showSpecs" class="animate-in">
                     <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1">RAM</label>
-                        <div class="relative">
-                            <Cpu class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="16" />
-                            <input v-model="form.ram" type="text"
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
-                                placeholder="8GB">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1">Penyimpanan</label>
+                        <label class="block text-sm font-medium text-text-secondary mb-1">Kapasitas</label>
                         <div class="relative">
                             <HardDrive class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
                                 :size="16" />
                             <input v-model="form.storage" type="text"
                                 class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
-                                placeholder="256GB">
+                                placeholder="Contoh: 128GB, 256GB">
                         </div>
                     </div>
                 </div>
