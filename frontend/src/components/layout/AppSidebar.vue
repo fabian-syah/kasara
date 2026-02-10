@@ -28,7 +28,8 @@ import {
     Warehouse,
     Database,
     Search,
-    ArrowDownRight
+    ArrowDownRight,
+    DollarSign
 } from "lucide-vue-next";
 import { ref } from 'vue';
 
@@ -129,7 +130,7 @@ function isGroupActive(items) {
 
 <template>
     <aside
-        class="fixed inset-y-0 left-0 z-[100] w-64 bg-surface-800 border-r border-surface-700 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0"
+        class="fixed inset-y-0 left-0 z-100 w-64 bg-surface-800 border-r border-surface-700 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0"
         :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
         <!-- Logo -->
         <div class="p-6 flex items-center justify-between">
@@ -165,9 +166,9 @@ function isGroupActive(items) {
                 Menu Utama
             </p>
 
-            <template v-for="item in visibleMenuItems" :key="item.id">
+            <template v-for="item in visibleMenuItems">
                 <!-- Dropdown Menu -->
-                <div v-if="item.items" class="space-y-1">
+                <div v-if="item.items" :key="item.id + '-group'" class="space-y-1">
                     <button @click="toggleMenu(item.id)"
                         class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border border-transparent hover:bg-surface-700 hover:text-text-primary"
                         :class="[
@@ -196,7 +197,7 @@ function isGroupActive(items) {
                 </div>
 
                 <!-- Regular Link -->
-                <router-link v-else :to="item.path"
+                <router-link v-else :key="item.id" :to="item.path"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border"
                     :class="isActiveRoute(item.path)
                         ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20'
