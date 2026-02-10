@@ -129,6 +129,14 @@ const confirmDelete = async (id) => {
                             <td class="p-4">
                                 <div class="font-bold text-text-primary">{{ item.product_type?.name }}</div>
                                 <div class="text-xs text-text-secondary">{{ item.product_type?.brand?.name }}</div>
+                                <div v-if="item.ram || item.storage" class="flex gap-1 mt-1">
+                                    <span v-if="item.ram"
+                                        class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded text-text-secondary">{{
+                                        item.ram }}</span>
+                                    <span v-if="item.storage"
+                                        class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded text-text-secondary">{{
+                                        item.storage }}</span>
+                                </div>
                             </td>
                             <td class="p-4">
                                 <span class="px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wide"

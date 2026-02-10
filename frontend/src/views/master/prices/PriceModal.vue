@@ -20,6 +20,8 @@ const selectedBrandId = ref('');
 const form = ref({
     product_type_id: '',
     condition: 'new',
+    ram: '',
+    storage: '',
     cost_price: 0,
     price: 0
 });
@@ -67,6 +69,24 @@ const filteredTypes = computed(() => {
     return types.value.filter(t => t.brand_id == selectedBrandId.value);
 });
 
+// Computed options for RAM and Storage based on selected type
+const capacityOptions = computed(() => {
+    if (!form.value.product_type_id) return { rams: [], storages: [] };
+    const type = types.value.find(t => t.id === form.value.product_type_id);
+    if (!type) return { rams: [], storages: [] };
+
+    const ramSet = new Set();
+    const storageSet = new Set();
+
+    if (type.ram) type.ram.split(/[,/]+/).forEach(s => ramSet.add(s.trim()));
+    if (type.storage) type.storage.split(/[,/]+/).forEach(s => storageSet.add(s.trim()));
+
+    return {
+        rams: Array.from(ramSet),
+        storages: Array.from(storageSet)
+    };
+});
+
 watch(() => props.price, (newVal) => {
     if (newVal) {
         form.value = { ...newVal };
@@ -77,6 +97,8 @@ watch(() => props.price, (newVal) => {
         form.value = {
             product_type_id: '',
             condition: 'new',
+            ram: '',
+            storage: '',
             cost_price: 0,
             price: 0
         };
@@ -137,6 +159,25 @@ const save = async () => {
                         <select v-model="form.product_type_id" class="input" :disabled="!selectedBrandId || isEditing">
                             <option value="">Pilih Tipe</option>
                             <option v-for="t in filteredTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Capacity Selection (Dynamic) -->
+                <div v-if="capacityOptions.rams.length > 0 || capacityOptions.storages.length > 0"
+                    class="grid grid-cols-2 gap-4 animate-in fade-in">
+                    <div v-if="capacityOptions.rams.length > 0">
+                        <label class="label">RAM (Opsional)</label>
+                        <select v-model="form.ram" class="input" :disabled="isEditing">
+                            <option value="">Semua RAM</option>
+                            <option v-for="r in capacityOptions.rams" :key="r" :value="r">{{ r }}</option>
+                        </select>
+                    </div>
+                    <div v-if="capacityOptions.storages.length > 0">
+                        <label class="label">Storage (Opsional)</label>
+                        <select v-model="form.storage" class="input" :disabled="isEditing">
+                            <option value="">Semua Storage</option>
+                            <option v-for="s in capacityOptions.storages" :key="s" :value="s">{{ s }}</option>
                         </select>
                     </div>
                 </div>

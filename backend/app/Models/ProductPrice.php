@@ -9,7 +9,7 @@ class ProductPrice extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['product_type_id', 'condition', 'cost_price', 'price'];
+    protected $fillable = ['product_type_id', 'condition', 'ram', 'storage', 'cost_price', 'price'];
 
     protected $casts = [
         'cost_price' => 'decimal:2',

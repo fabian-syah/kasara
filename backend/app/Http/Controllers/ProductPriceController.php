@@ -41,18 +41,31 @@ class ProductPriceController extends Controller
         $validated = $request->validate([
             'product_type_id' => 'required|exists:product_types,id',
             'condition' => 'required|in:new,second',
+            'ram' => 'nullable|string',
+            'storage' => 'nullable|string',
             'cost_price' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
         ]);
 
         // Check uniqueness
-        $exists = ProductPrice::where('product_type_id', $request->product_type_id)
-            ->where('condition', $request->condition)
-            ->exists();
+        $query = ProductPrice::where('product_type_id', $request->product_type_id)
+            ->where('condition', $request->condition);
 
-        if ($exists) {
+        if ($request->filled('ram')) {
+            $query->where('ram', $request->ram);
+        } else {
+            $query->whereNull('ram');
+        }
+
+        if ($request->filled('storage')) {
+            $query->where('storage', $request->storage);
+        } else {
+            $query->whereNull('storage');
+        }
+
+        if ($query->exists()) {
             return response()->json([
-                'message' => 'Harga untuk tipe dan kondisi ini sudah ada.'
+                'message' => 'Harga untuk varian tipe dan kondisi ini sudah ada.'
             ], 422);
         }
 
@@ -70,6 +83,8 @@ class ProductPriceController extends Controller
         $validated = $request->validate([
             'cost_price' => 'required|numeric|min:0',
             'price' => 'required|numeric|min:0',
+            // Allow updating fields if needed, but uniqueness check is complex here.
+            // For now, assume we only update prices.
         ]);
 
         $productPrice->update($validated);
@@ -96,11 +111,42 @@ class ProductPriceController extends Controller
         $request->validate([
             'product_type_id' => 'required|exists:product_types,id',
             'condition' => 'required|in:new,second',
+            'ram' => 'nullable|string',
+            'storage' => 'nullable|string',
         ]);
 
-        $price = ProductPrice::where('product_type_id', $request->product_type_id)
-            ->where('condition', $request->condition)
-            ->first();
+        $query = ProductPrice::where('product_type_id', $request->product_type_id)
+            ->where('condition', $request->condition);
+
+        // Flexible lookup:
+        // 1. Try exact match (ram + storage)
+        // 2. Try partial match (storage only - if ram is null in db or request)
+        // 3. Try base match (no ram/storage specified in db)
+
+        // For simplicity and strictness:
+        if ($request->filled('ram')) {
+            $query->where('ram', $request->ram);
+        }
+        if ($request->filled('storage')) {
+            $query->where('storage', $request->storage);
+        }
+
+        // If generic price exists (null/null), we might want that if specific not found?
+        // Let's stick to exact match first.
+
+        $price = $query->first();
+
+        // Fallback: If no exact match, try finding a "base" price for this type?
+        // Maybe later. For now, specific.
+
+        if (!$price) {
+            // Try fallback to null/null (base price for type)
+            $price = ProductPrice::where('product_type_id', $request->product_type_id)
+                ->where('condition', $request->condition)
+                ->whereNull('ram')
+                ->whereNull('storage')
+                ->first();
+        }
 
         if (!$price) {
             return response()->json([

@@ -187,9 +187,9 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'retur_items', 'products', 'users', 'transactions', 'audit', 'reports', 'settings', 'warehouses', 'distributors', 'channels', 'categories', 'online_shops', 'brands', 'types', 'branches', 'track'],
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'retur_items', 'products', 'users', 'transactions', 'audit', 'reports', 'settings', 'warehouses', 'distributors', 'channels', 'categories', 'online_shops', 'brands', 'types', 'prices', 'branches', 'track'],
     [ROLES.ANALIST]: ['dashboard', 'reports', 'track'],
-    [ROLES.ADMIN_PRODUK]: ['dashboard', 'products', 'brands', 'types', 'categories', 'track'],
+    [ROLES.ADMIN_PRODUK]: ['dashboard', 'products', 'brands', 'types', 'prices', 'categories', 'track'],
     [ROLES.AUDIT]: ['dashboard', 'audit', 'transactions', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
     [ROLES.LEADER]: ['dashboard', 'transactions', 'reports', 'track'],
