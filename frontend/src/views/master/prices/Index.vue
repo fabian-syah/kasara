@@ -17,7 +17,8 @@ const selectedPrice = ref(null);
 const filters = ref({
     search: '',
     product_type_id: '',
-    condition: ''
+    condition: '',
+    category: 'hp' // default to hp
 });
 
 // Fetch Data
@@ -97,11 +98,27 @@ const confirmDelete = async (id) => {
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
                 <input v-model="filters.search" class="input pl-10 bg-surface-900" placeholder="Cari Tipe / Merek..." />
             </div>
-            <select v-model="filters.condition" class="input bg-surface-900 w-[150px]">
+            <select v-if="filters.category === 'hp'" v-model="filters.condition" class="input bg-surface-900 w-[150px]">
                 <option value="">Semua Kondisi</option>
                 <option value="new">Baru (New)</option>
                 <option value="second">Bekas (Second)</option>
             </select>
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="flex gap-2 border-b border-surface-700">
+            <button @click="filters.category = 'hp'" class="px-6 py-3 font-medium transition-all relative"
+                :class="filters.category === 'hp' ? 'text-primary-500' : 'text-text-secondary hover:text-text-primary'">
+                HP / IMEI
+                <div v-if="filters.category === 'hp'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500">
+                </div>
+            </button>
+            <button @click="filters.category = 'non-hp'" class="px-6 py-3 font-medium transition-all relative"
+                :class="filters.category === 'non-hp' ? 'text-primary-500' : 'text-text-secondary hover:text-text-primary'">
+                Non HP / Aksesoris
+                <div v-if="filters.category === 'non-hp'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500">
+                </div>
+            </button>
         </div>
 
         <!-- Table -->
@@ -111,7 +128,7 @@ const confirmDelete = async (id) => {
                     <thead>
                         <tr class="border-b border-surface-700 bg-surface-900/50 text-text-secondary text-sm">
                             <th class="p-4 font-medium">Merek & Tipe</th>
-                            <th class="p-4 font-medium">Kondisi</th>
+                            <th v-if="filters.category === 'hp'" class="p-4 font-medium">Kondisi</th>
                             <th class="p-4 font-medium">Harga Modal</th>
                             <th class="p-4 font-medium">Harga Jual</th>
                             <th class="p-4 font-medium text-right">Aksi</th>
@@ -129,16 +146,17 @@ const confirmDelete = async (id) => {
                             <td class="p-4">
                                 <div class="font-bold text-text-primary">{{ item.product_type?.name }}</div>
                                 <div class="text-xs text-text-secondary">{{ item.product_type?.brand?.name }}</div>
-                                <div v-if="item.ram || item.storage" class="flex gap-1 mt-1">
+                                <div v-if="(item.ram || item.storage) && filters.category === 'hp'"
+                                    class="flex gap-1 mt-1">
                                     <span v-if="item.ram"
                                         class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded text-text-secondary">{{
-                                        item.ram }}</span>
+                                            item.ram }}</span>
                                     <span v-if="item.storage"
                                         class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded text-text-secondary">{{
-                                        item.storage }}</span>
+                                            item.storage }}</span>
                                 </div>
                             </td>
-                            <td class="p-4">
+                            <td v-if="filters.category === 'hp'" class="p-4">
                                 <span class="px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wide"
                                     :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'">
                                     {{ item.condition === 'new' ? 'BARU' : 'BEKAS' }}
@@ -164,8 +182,8 @@ const confirmDelete = async (id) => {
             </div>
         </div>
 
-        <PriceModal :show="showModal" :price="selectedPrice" @close="showModal = false"
-            @saved="fetchData(); showModal = false" />
+        <PriceModal :show="showModal" :price="selectedPrice" :initialCategory="filters.category"
+            @close="showModal = false" @saved="fetchData(); showModal = false" />
     </div>
 </template>
 

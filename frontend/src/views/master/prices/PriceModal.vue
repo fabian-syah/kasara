@@ -6,7 +6,9 @@ import { useToast } from '../../../composables/useToast';
 
 const props = defineProps({
     show: Boolean,
-    price: Object // If exists, editing
+    show: Boolean,
+    price: Object, // If exists, editing
+    initialCategory: String // 'hp' or 'non-hp'
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -16,6 +18,8 @@ const loading = ref(false);
 const brands = ref([]);
 const types = ref([]);
 const selectedBrandId = ref('');
+
+const category = ref('hp'); // 'hp' or 'non-hp'
 
 const form = ref({
     product_type_id: '',
@@ -64,9 +68,14 @@ onMounted(async () => {
 });
 
 // Filter types based on selected brand
+// Filter types based on selected brand AND category
 const filteredTypes = computed(() => {
     if (!selectedBrandId.value) return [];
-    return types.value.filter(t => t.brand_id == selectedBrandId.value);
+    return types.value.filter(t => {
+        const isHp = t.category === 'HP / Gadget';
+        const matchesCategory = category.value === 'hp' ? isHp : !isHp;
+        return t.brand_id == selectedBrandId.value && matchesCategory;
+    });
 });
 
 // Computed options for RAM and Storage based on selected type
@@ -92,8 +101,12 @@ watch(() => props.price, (newVal) => {
         form.value = { ...newVal };
         // Set selectedBrandId to pre-fill dropdowns
         const type = types.value.find(t => t.id === newVal.product_type_id);
-        if (type) selectedBrandId.value = type.brand_id;
+        if (type) {
+            selectedBrandId.value = type.brand_id;
+            category.value = type.category === 'HP / Gadget' ? 'hp' : 'non-hp';
+        }
     } else {
+        category.value = props.initialCategory || 'hp';
         form.value = {
             product_type_id: '',
             condition: 'new',
@@ -145,6 +158,20 @@ const save = async () => {
             </div>
 
             <div class="p-6 space-y-4">
+                <!-- Category Switch -->
+                <div class="bg-surface-900 p-1 rounded-xl flex mb-4" v-if="!isEditing">
+                    <button @click="category = 'hp'; form.product_type_id = ''"
+                        class="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+                        :class="category === 'hp' ? 'bg-surface-700 text-white shadow' : 'text-text-secondary hover:text-text-primary'">
+                        HP / IMEI
+                    </button>
+                    <button @click="category = 'non-hp'; form.product_type_id = ''"
+                        class="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+                        :class="category === 'non-hp' ? 'bg-surface-700 text-white shadow' : 'text-text-secondary hover:text-text-primary'">
+                        Non HP
+                    </button>
+                </div>
+
                 <!-- Brand & Type Selection -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -163,8 +190,8 @@ const save = async () => {
                     </div>
                 </div>
 
-                <!-- Capacity Selection (Dynamic) -->
-                <div v-if="capacityOptions.rams.length > 0 || capacityOptions.storages.length > 0"
+                <!-- Capacity Selection (HP Only) -->
+                <div v-if="category === 'hp' && (capacityOptions.rams.length > 0 || capacityOptions.storages.length > 0)"
                     class="grid grid-cols-2 gap-4 animate-in fade-in">
                     <div v-if="capacityOptions.rams.length > 0">
                         <label class="label">RAM (Opsional)</label>
@@ -182,8 +209,8 @@ const save = async () => {
                     </div>
                 </div>
 
-                <!-- Condition -->
-                <div>
+                <!-- Condition (HP Only) -->
+                <div v-if="category === 'hp'">
                     <label class="label">Kondisi Barang</label>
                     <div class="grid grid-cols-2 gap-3">
                         <button type="button" @click="form.condition = 'new'"

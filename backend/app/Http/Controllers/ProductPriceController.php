@@ -19,6 +19,18 @@ class ProductPriceController extends Controller
             $query->where('condition', $request->condition);
         }
 
+        // Filter by category (hp vs non-hp)
+        if ($request->filled('category')) {
+            $cat = $request->category;
+            $query->whereHas('productType', function ($q) use ($cat) {
+                if ($cat === 'hp') {
+                    $q->where('category', 'HP / Gadget');
+                } else {
+                    $q->where('category', '!=', 'HP / Gadget');
+                }
+            });
+        }
+
         // Search by type name or brand name
         if ($request->filled('search')) {
             $search = $request->search;
