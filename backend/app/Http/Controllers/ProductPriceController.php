@@ -24,9 +24,9 @@ class ProductPriceController extends Controller
             $cat = $request->category;
             $query->whereHas('productType', function ($q) use ($cat) {
                 if ($cat === 'hp') {
-                    $q->where('category', 'HP / Gadget');
+                    $q->whereIn('category', ['imei', 'HP / Gadget']);
                 } else {
-                    $q->where('category', '!=', 'HP / Gadget');
+                    $q->whereNotIn('category', ['imei', 'HP / Gadget']);
                 }
             });
         }

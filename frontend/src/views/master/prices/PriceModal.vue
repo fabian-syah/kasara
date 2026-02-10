@@ -68,12 +68,19 @@ onMounted(async () => {
 });
 
 // Filter types based on selected brand
-// Filter types based on selected brand AND category
 const filteredTypes = computed(() => {
     if (!selectedBrandId.value) return [];
     return types.value.filter(t => {
-        const isHp = t.category === 'HP / Gadget';
+        // Normalize category check
+        const typeCategory = (t.category || '').toLowerCase().trim();
+        // Check for 'imei' (new standard) or legacy 'hp'/'hp / gadget'
+        const isHp = typeCategory === 'imei' || typeCategory === 'hp' || typeCategory.includes('hp');
+
         const matchesCategory = category.value === 'hp' ? isHp : !isHp;
+
+        // Debugging (optional, remove in prod)
+        // console.log(`Type: ${t.name}, Cat: ${t.category}, isHp: ${isHp}, SelectedCat: ${category.value}, Match: ${matchesCategory}`);
+
         return t.brand_id == selectedBrandId.value && matchesCategory;
     });
 });
