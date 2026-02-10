@@ -196,3 +196,11 @@ export const productTypes = {
     update: (id, data) => api.put(`/product-types/${id}`, data),
     delete: (id) => api.delete(`/product-types/${id}`)
 }
+
+export const productPrices = {
+    list: (params) => api.get('/product-prices', { params }),
+    get: (id) => api.get(`/product-prices/${id}`),
+    create: (data) => api.post('/product-prices', data),
+    update: (id, data) => api.put(`/product-prices/${id}`, data),
+    delete: (id) => api.delete(`/product-prices/${id}`)
+}

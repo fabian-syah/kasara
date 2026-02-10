@@ -29,7 +29,7 @@ const categories = [
 
 const capacityOptions = [
     // Storage Only
-    "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB",
+    "16GB", "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB",
     // RAM/Storage Combos
     "1/8", "1/16", "1/32",
     "2/8", "2/16", "2/32", "2/64",
