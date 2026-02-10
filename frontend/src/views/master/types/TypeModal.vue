@@ -27,6 +27,22 @@ const categories = [
     // { value: 'service', label: 'Jasa Service', icon: Wrench } // Merged into non_imei
 ];
 
+const capacityOptions = [
+    // Storage Only
+    "32 GB", "64 GB", "128 GB", "256 GB", "512 GB", "1 TB", "2 TB",
+    // RAM/Storage Combos
+    "1/8", "1/16", "1/32",
+    "2/8", "2/16", "2/32", "2/64",
+    "3/32", "3/64", "3/128", "3/256",
+    "4/32", "4/64", "4/128", "4/256", "4/512",
+    "6/64", "6/128", "6/256", "6/512",
+    "8/64", "8/128", "8/256", "8/512", "8/1024",
+    "12/128", "12/256", "12/512", "12/1024",
+    "16/128", "16/256", "16/512", "16/1024",
+    "18/128", "18/256", "18/512", "18/1024",
+    "24/256", "24/512", "24/1024", "24/2064"
+];
+
 const isEditing = computed(() => !!props.type);
 const title = computed(() => isEditing.value ? 'Edit Tipe Produk' : 'Tambah Tipe Produk');
 
@@ -149,13 +165,16 @@ const save = async () => {
                 <!-- Specs (Only for IMEI) -->
                 <div v-if="showSpecs" class="animate-in">
                     <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1">Kapasitas</label>
+                        <label class="block text-sm font-medium text-text-secondary mb-1">Kapasitas (RAM /
+                            Storage)</label>
                         <div class="relative">
                             <HardDrive class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
                                 :size="16" />
-                            <input v-model="form.storage" type="text"
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
-                                placeholder="Contoh: 128GB, 256GB">
+                            <select v-model="form.storage"
+                                class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
+                                <option value="" disabled>Pilih Kapasitas...</option>
+                                <option v-for="cap in capacityOptions" :key="cap" :value="cap">{{ cap }}</option>
+                            </select>
                         </div>
                     </div>
                 </div>
