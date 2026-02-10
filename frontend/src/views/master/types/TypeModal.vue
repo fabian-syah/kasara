@@ -110,6 +110,33 @@ const save = async () => {
         loading.value = false;
     }
 };
+
+// Helper for formatting
+const formatCurrency = (value) => {
+    if (!value) return '';
+    return new Intl.NumberFormat('id-ID', {
+        style: 'decimal',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(value);
+};
+
+// Computed for Auto Rupiah
+const costPriceDisplay = computed({
+    get: () => form.value.cost_price ? formatCurrency(form.value.cost_price) : '',
+    set: (val) => {
+        const num = parseInt(val.replace(/\D/g, '') || '0');
+        form.value.cost_price = num;
+    }
+});
+
+const priceDisplay = computed({
+    get: () => form.value.price ? formatCurrency(form.value.price) : '',
+    set: (val) => {
+        const num = parseInt(val.replace(/\D/g, '') || '0');
+        form.value.price = num;
+    }
+});
 </script>
 
 <template>
@@ -184,12 +211,12 @@ const save = async () => {
                 </div>
 
                 <!-- Price Fields -->
-                <div class="grid grid-cols-2 gap-4 animate-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in">
                     <div>
                         <label class="block text-sm font-medium text-text-secondary mb-1">Harga Modal (Default)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="form.cost_price" type="number"
+                            <input v-model="costPriceDisplay" type="text"
                                 class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-8 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
                                 placeholder="0">
                         </div>
@@ -198,7 +225,7 @@ const save = async () => {
                         <label class="block text-sm font-medium text-text-secondary mb-1">Harga Jual (Default)</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="form.price" type="number"
+                            <input v-model="priceDisplay" type="text"
                                 class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-8 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
                                 placeholder="0">
                         </div>
