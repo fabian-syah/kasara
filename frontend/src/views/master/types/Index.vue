@@ -103,6 +103,17 @@ const getCategoryColor = (cat) => {
     return 'text-amber-500 bg-amber-500/10 border-amber-500/20';
 };
 
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(new Date(dateString));
+};
+
 onMounted(fetchData);
 </script>
 
@@ -175,6 +186,8 @@ onMounted(fetchData);
                             <th class="px-6 py-4">Merek</th>
                             <th class="px-6 py-4">Kategori</th>
                             <th class="px-6 py-4">Spesifikasi</th>
+                            <th class="px-6 py-4">Tanggal Dibuat</th>
+                            <th class="px-6 py-4">Terakhir Update</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -197,6 +210,12 @@ onMounted(fetchData);
                                         type.storage }}</span>
                                 </div>
                                 <span v-else class="text-xs italic">-</span>
+                            </td>
+                            <td class="px-6 py-4 text-text-secondary text-xs">
+                                {{ formatDate(type.created_at) }}
+                            </td>
+                            <td class="px-6 py-4 text-text-secondary text-xs">
+                                {{ formatDate(type.updated_at) }}
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
