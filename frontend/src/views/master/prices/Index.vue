@@ -68,6 +68,17 @@ const formatRupiah = (val) => {
     }).format(val);
 };
 
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Intl.DateTimeFormat('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(new Date(dateString));
+};
+
 const confirmDelete = async (id) => {
     if (!confirm('Yakin ingin menghapus harga ini?')) return;
     try {
@@ -131,6 +142,7 @@ const confirmDelete = async (id) => {
                             <th v-if="filters.category === 'hp'" class="p-4 font-medium">Kondisi</th>
                             <th class="p-4 font-medium">Harga Modal</th>
                             <th class="p-4 font-medium">Harga Jual</th>
+                            <th class="p-4 font-medium">Diperbarui</th>
                             <th class="p-4 font-medium text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -164,6 +176,9 @@ const confirmDelete = async (id) => {
                             </td>
                             <td class="p-4 text-text-primary">{{ formatRupiah(item.cost_price) }}</td>
                             <td class="p-4 text-text-primary font-bold">{{ formatRupiah(item.price) }}</td>
+                            <td class="p-4 text-sm text-text-secondary">
+                                {{ formatDate(item.updated_at) }}
+                            </td>
                             <td class="p-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <button @click="openModal(item)"
