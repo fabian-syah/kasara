@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { X, Save, Smartphone, Disc, Wrench, HardDrive, Cpu, Tag } from 'lucide-vue-next';
+import { X, Save, Smartphone, Disc, Wrench, HardDrive, Cpu, Tag, DollarSign } from 'lucide-vue-next';
 import { productTypes as api, brands as brandsApi } from '../../../api/axios';
 import { useToast } from '../../../composables/useToast';
 
@@ -18,7 +18,9 @@ const form = ref({
     brand_id: '',
     name: '',
     category: 'imei', // imei, non_imei, service
-    storage: ''
+    storage: '',
+    cost_price: 0,
+    price: 0
 });
 
 const categories = [
@@ -72,7 +74,9 @@ watch(() => props.type, (newVal) => {
             brand_id: '',
             name: '',
             category: 'imei',
-            storage: ''
+            storage: '',
+            cost_price: 0,
+            price: 0
         };
     }
 }, { immediate: true });
@@ -178,7 +182,28 @@ const save = async () => {
                         </div>
                     </div>
                 </div>
-
+            </div>
+            <!-- Price Fields -->
+            <div class="grid grid-cols-2 gap-4 animate-in">
+                <div>
+                    <label class="block text-sm font-medium text-text-secondary mb-1">Harga Modal (Default)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                        <input v-model="form.cost_price" type="number"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-8 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
+                            placeholder="0">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-text-secondary mb-1">Harga Jual (Default)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                        <input v-model="form.price" type="number"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-8 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
+                            placeholder="0">
+                    </div>
+                </div>
+                <!-- Price Fields End -->
             </div>
 
             <!-- Footer -->
@@ -190,7 +215,8 @@ const save = async () => {
                 <button @click="save" :disabled="loading"
                     class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-xl font-medium shadow-lg shadow-primary-500/20 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     <div v-if="loading"
-                        class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin">
+                    </div>
                     <span v-else>Simpan</span>
                 </button>
             </div>

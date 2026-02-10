@@ -38,6 +38,8 @@ class ProductTypeController extends Controller
             'category' => 'required|in:imei,non_imei,service',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
+            'cost_price' => 'nullable|numeric|min:0',
+            'price' => 'nullable|numeric|min:0',
         ]);
 
         $productType = ProductType::create($validated);
@@ -57,6 +59,8 @@ class ProductTypeController extends Controller
             'category' => 'required|in:imei,non_imei,service',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
+            'cost_price' => 'nullable|numeric|min:0',
+            'price' => 'nullable|numeric|min:0',
         ]);
 
         $productType->update($validated);
