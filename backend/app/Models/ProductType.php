@@ -10,7 +10,7 @@ class ProductType extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['brand_id', 'name', 'slug', 'ram', 'storage', 'category'];
+    protected $fillable = ['brand_id', 'name', 'slug', 'ram', 'storage', 'category', 'cost_price', 'price'];
 
     protected static function boot()
     {
