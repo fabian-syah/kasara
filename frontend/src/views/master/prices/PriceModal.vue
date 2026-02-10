@@ -67,6 +67,13 @@ onMounted(async () => {
     }
 });
 
+// Filter brands based on category
+const filteredBrands = computed(() => {
+    // Map 'hp' -> 'imei', 'non-hp' -> 'non-imei'
+    const targetCat = category.value === 'hp' ? 'imei' : 'non-imei';
+    return brands.value.filter(b => b.category === targetCat);
+});
+
 // Filter types based on selected brand
 const filteredTypes = computed(() => {
     if (!selectedBrandId.value) return [];
@@ -182,10 +189,10 @@ const save = async () => {
                 <!-- Brand & Type Selection -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="label">Merek</label>
+                        <label class="label">Brand</label>
                         <select v-model="selectedBrandId" class="input" :disabled="isEditing">
-                            <option value="">Pilih Merek</option>
-                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            <option value="">Pilih Brand</option>
+                            <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select>
                     </div>
                     <div>
