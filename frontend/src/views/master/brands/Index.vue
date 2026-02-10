@@ -9,6 +9,7 @@ const toast = useToast();
 const brands = ref([]);
 const loading = ref(false);
 const searchQuery = ref('');
+const activeCategory = ref('all');
 const showModal = ref(false);
 const editingBrand = ref(null);
 
@@ -25,13 +26,41 @@ const fetchData = async () => {
     }
 };
 
+const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    });
+};
+
+const formatTime = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
 const filteredBrands = computed(() => {
-    if (!searchQuery.value) return brands.value;
-    const query = searchQuery.value.toLowerCase();
-    return brands.value.filter(b =>
-        b.name.toLowerCase().includes(query) ||
-        (b.description && b.description.toLowerCase().includes(query))
-    );
+    let result = brands.value;
+
+    // Filter by Category
+    if (activeCategory.value !== 'all') {
+        result = result.filter(b => b.category === activeCategory.value);
+    }
+
+    // Filter by Search
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
+        result = result.filter(b =>
+            b.name.toLowerCase().includes(query) ||
+            (b.description && b.description.toLowerCase().includes(query))
+        );
+    }
+
+    return result;
 });
 
 const openCreateModal = () => {
@@ -79,11 +108,32 @@ onMounted(fetchData);
         </div>
 
         <!-- Filter -->
-        <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-            <div class="relative max-w-md">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-                <input v-model="searchQuery" type="text" placeholder="Cari nama merek..."
-                    class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
+        <div class="space-y-4">
+            <!-- Category Tabs -->
+            <div class="flex gap-2 p-1 bg-surface-800 rounded-xl border border-surface-700 w-fit">
+                <button @click="activeCategory = 'all'" class="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                    :class="activeCategory === 'all' ? 'bg-surface-700 text-white shadow-sm' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                    Semua
+                </button>
+                <button @click="activeCategory = 'imei'"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                    :class="activeCategory === 'imei' ? 'bg-blue-500/20 text-blue-400 shadow-sm' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                    HP / Unit
+                </button>
+                <button @click="activeCategory = 'non-imei'"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                    :class="activeCategory === 'non-imei' ? 'bg-purple-500/20 text-purple-400 shadow-sm' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                    Non-HP
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
+                <div class="relative max-w-md">
+                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
+                    <input v-model="searchQuery" type="text" placeholder="Cari nama merek..."
+                        class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
+                </div>
             </div>
         </div>
 
@@ -104,9 +154,9 @@ onMounted(fetchData);
                     <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
                         <tr>
                             <th class="px-6 py-4">Nama Merek</th>
-                            <th class="px-6 py-4">Slug</th>
                             <th class="px-6 py-4">Kategori</th>
-                            <th class="px-6 py-4">Deskripsi</th>
+                            <th class="px-6 py-4">Tanggal Dibuat</th>
+                            <th class="px-6 py-4">Terakhir Update</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -118,16 +168,26 @@ onMounted(fetchData);
                                     class="w-8 h-8 rounded-lg bg-surface-700 flex items-center justify-center text-text-secondary">
                                     <Tag :size="16" />
                                 </div>
-                                {{ brand.name }}
+                                <div>
+                                    <div class="font-medium text-white">{{ brand.name }}</div>
+                                    <div class="text-xs text-text-secondary font-mono">{{ brand.slug }}</div>
+                                </div>
                             </td>
-                            <td class="px-6 py-4 font-mono text-text-secondary">{{ brand.slug }}</td>
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 rounded-md text-xs font-medium"
-                                    :class="brand.category === 'imei' ? 'bg-blue-500/20 text-blue-400' : 'bg-surface-700 text-text-secondary'">
+                                    :class="brand.category === 'imei' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'">
                                     {{ brand.category === 'imei' ? 'HP / Unit' : 'Non-HP' }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-text-secondary">{{ brand.description || '-' }}</td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="text-text-primary">{{ formatDate(brand.created_at) }}</span>
+                                    <span class="text-xs text-text-secondary">{{ formatTime(brand.created_at) }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-text-secondary">
+                                {{ formatDate(brand.updated_at) }}
+                            </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2">
                                     <button @click="openEditModal(brand)"
