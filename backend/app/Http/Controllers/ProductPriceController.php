@@ -11,16 +11,16 @@ class ProductPriceController extends Controller
     {
         $query = ProductPrice::with(['productType.brand']);
 
-        if ($request->has('product_type_id')) {
+        if ($request->filled('product_type_id')) {
             $query->where('product_type_id', $request->product_type_id);
         }
 
-        if ($request->has('condition')) {
+        if ($request->filled('condition')) {
             $query->where('condition', $request->condition);
         }
 
         // Search by type name or brand name
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('productType', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
