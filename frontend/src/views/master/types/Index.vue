@@ -10,7 +10,9 @@ const types = ref([]);
 const brands = ref([]);
 const loading = ref(false);
 const searchQuery = ref('');
+
 const selectedBrand = ref('');
+const selectedCategory = ref('hp'); // 'hp' or 'non-hp'
 const showModal = ref(false);
 const editingType = ref(null);
 
@@ -40,11 +42,20 @@ const filteredTypes = computed(() => {
 
     if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase();
+
         result = result.filter(t =>
             t.name.toLowerCase().includes(query) ||
             (t.brand && t.brand.name.toLowerCase().includes(query))
         );
     }
+
+    // Filter by Category Tab
+    if (selectedCategory.value === 'hp') {
+        result = result.filter(t => t.category === 'imei' || t.category === 'HP / Gadget');
+    } else {
+        result = result.filter(t => t.category !== 'imei' && t.category !== 'HP / Gadget');
+    }
+
     return result;
 });
 
@@ -125,6 +136,23 @@ onMounted(fetchData);
                     <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
                 </select>
             </div>
+        </div>
+
+
+        <!-- Category Tabs -->
+        <div class="flex gap-2 border-b border-surface-700">
+            <button @click="selectedCategory = 'hp'" class="px-6 py-3 font-medium transition-all relative"
+                :class="selectedCategory === 'hp' ? 'text-primary-500' : 'text-text-secondary hover:text-text-primary'">
+                HP / IMEI
+                <div v-if="selectedCategory === 'hp'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500">
+                </div>
+            </button>
+            <button @click="selectedCategory = 'non-hp'" class="px-6 py-3 font-medium transition-all relative"
+                :class="selectedCategory === 'non-hp' ? 'text-primary-500' : 'text-text-secondary hover:text-text-primary'">
+                NON HP / NON IMEI
+                <div v-if="selectedCategory === 'non-hp'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500">
+                </div>
+            </button>
         </div>
 
         <!-- Content -->

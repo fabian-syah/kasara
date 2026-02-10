@@ -15,8 +15,15 @@ class ProductTypeController extends Controller
             $query->where('brand_id', $request->brand_id);
         }
 
-        if ($request->has('category')) {
-            $query->where('category', $request->category);
+        if ($request->filled('category')) {
+            $cat = $request->category;
+            if ($cat === 'hp' || $cat === 'imei') {
+                $query->whereIn('category', ['imei', 'HP / Gadget']);
+            } elseif ($cat === 'non-hp' || $cat === 'non_imei') {
+                $query->whereNotIn('category', ['imei', 'HP / Gadget']);
+            } else {
+                $query->where('category', $cat);
+            }
         }
 
         if ($request->has('search')) {
