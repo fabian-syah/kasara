@@ -80,6 +80,7 @@ const menuItems = [
     { id: "online_shops", path: "/online-shops", label: "Toko Online", icon: Globe },
     { id: "brands", path: "/brands", label: "Data Merek", icon: Database },
     { id: "types", path: "/types", label: "Tipe Produk", icon: Tags },
+    { id: "prices", path: "/prices", label: "Data Harga", icon: DollarSign },
     { id: "categories", path: "/categories", label: "Kategori", icon: Box },
     { id: "distributors", path: "/distributors", label: "Distributor", icon: Truck },
 

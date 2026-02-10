@@ -117,6 +117,41 @@ import { debounce } from "../../utils/debounce";
 // ... (state)
 
 // --- PERBAIKAN: Gunakan Debounce pada API Lookup agar tidak lag saat ganti merk/tipe ---
+// --- REFACTORED: Price Lookup based on Type + Condition ---
+const fetchPriceLookup = async () => {
+    if (!selectedProduct.value || !batchDetails.value.condition) return;
+
+    // Find the product type ID from the selected product or type name
+    // This part is tricky because selectedProduct is a product ID, but we need product_type_id
+    // However, the Product model has 'type_name' or similar, but we might need to rely on the fact that 
+    // we matched a product which links to a type.
+    // Actually, the new system links prices to ProductType.
+    // In StockIn, we select a brand and type NAME.
+    // We need to find the ProductType ID matching that name.
+
+    const typeObj = allowedTypes.value.find(t => t.name === selectedTypeName.value && t.brand_id === selectedBrand.value);
+
+    if (typeObj) {
+        try {
+            const res = await inventoryApi.lookupPrice({
+                product_type_id: typeObj.id,
+                condition: batchDetails.value.condition
+            });
+
+            if (res.data.found) {
+                batchDetails.value.cost_price = Number(res.data.cost_price);
+                batchDetails.value.selling_price = Number(res.data.price);
+            } else {
+                // Not found, maybe reset or keep 0
+                batchDetails.value.cost_price = 0;
+                batchDetails.value.selling_price = 0;
+            }
+        } catch (e) {
+            console.error("Price lookup failed", e);
+        }
+    }
+};
+
 const fetchProductMatch = debounce(async (brandId, typeName) => {
     if (!brandId || !typeName) {
         selectedProduct.value = null;
@@ -146,12 +181,12 @@ const fetchProductMatch = debounce(async (brandId, typeName) => {
 
         if (found) {
             selectedProduct.value = found.id;
-            // Auto-fill prices from Product Type Default
-            batchDetails.value.cost_price = Number(found.cost_price) || 0;
-            batchDetails.value.selling_price = Number(found.price) || 0;
+            // TRIGGER PRICE LOOKUP
+            fetchPriceLookup();
         } else {
             selectedProduct.value = null;
-            // Reset or keep previous? Maybe keep previous to avoid annoying clearing
+            // Also trigger lookup because price depends on Type, not specific Product ID
+            fetchPriceLookup();
         }
 
     } catch (e) {
@@ -159,6 +194,11 @@ const fetchProductMatch = debounce(async (brandId, typeName) => {
         selectedProduct.value = null;
     }
 }, 300);
+
+// Watch condition to update price
+watch(() => batchDetails.value.condition, () => {
+    fetchPriceLookup();
+});
 
 // --- REFACTORED: Single Bulk Input Logic ---
 const bulkImeiText = ref("");
@@ -506,7 +546,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -649,7 +689,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>

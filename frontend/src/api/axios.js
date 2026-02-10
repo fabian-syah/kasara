@@ -105,6 +105,7 @@ export const inventory = {
     historyOut: (params) => api.get('/inventory/history/out', { params }),
     getProductsLookup: (params) => api.get('/inventory/products-lookup', { params }),
     createAccount: (data) => api.post('/inventory/account', data),
+    lookupPrice: (data) => api.post('/product-prices/lookup', data),
     updateAccount: (id, data) => api.post(`/inventory/account/${id}/update`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
     })

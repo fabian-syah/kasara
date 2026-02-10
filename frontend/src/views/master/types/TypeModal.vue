@@ -18,9 +18,7 @@ const form = ref({
     brand_id: '',
     name: '',
     category: 'imei', // imei, non_imei, service
-    storage: '',
-    cost_price: 0,
-    price: 0
+    storage: ''
 });
 
 const categories = [
@@ -82,9 +80,7 @@ watch(() => props.type, (newVal) => {
             brand_id: '',
             name: '',
             category: 'imei',
-            storage: '',
-            cost_price: 0,
-            price: 0
+            storage: ''
         };
         selectedStorage.value = [];
     }
@@ -139,23 +135,6 @@ const formatCurrency = (value) => {
         maximumFractionDigits: 0
     }).format(value);
 };
-
-// Computed for Auto Rupiah
-const costPriceDisplay = computed({
-    get: () => form.value.cost_price ? formatCurrency(form.value.cost_price) : '',
-    set: (val) => {
-        const num = parseInt(val.replace(/\D/g, '') || '0');
-        form.value.cost_price = num;
-    }
-});
-
-const priceDisplay = computed({
-    get: () => form.value.price ? formatCurrency(form.value.price) : '',
-    set: (val) => {
-        const num = parseInt(val.replace(/\D/g, '') || '0');
-        form.value.price = num;
-    }
-});
 </script>
 
 <template>
@@ -237,27 +216,7 @@ const priceDisplay = computed({
                     </div>
                 </div>
 
-                <!-- Price Fields -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in">
-                    <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1">Harga Modal (Default)</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="costPriceDisplay" type="text"
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-8 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
-                                placeholder="0">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1">Harga Jual (Default)</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="priceDisplay" type="text"
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-8 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
-                                placeholder="0">
-                        </div>
-                    </div>
-                </div>
+
 
             </div>
 

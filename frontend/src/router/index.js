@@ -237,6 +237,16 @@ const routes = [
                 }
             },
             {
+                path: 'prices',
+                name: 'ProductPrices',
+                component: () => import('../views/master/prices/Index.vue'),
+                meta: {
+                    title: 'Data Harga',
+                    menu: 'prices',
+                    permissions: ['master.view']
+                }
+            },
+            {
                 path: 'categories',
                 name: 'Categories',
                 component: () => import('../views/master/Categories.vue'),

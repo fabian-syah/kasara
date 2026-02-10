@@ -42,6 +42,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('distributors', DistributorController::class);
     Route::apiResource('brands', BrandController::class);
     Route::apiResource('product-types', ProductTypeController::class);
+    Route::post('/product-prices/lookup', [App\Http\Controllers\ProductPriceController::class, 'lookup']);
+    Route::apiResource('product-prices', App\Http\Controllers\ProductPriceController::class);
 
     // Inventory
     Route::get('/inventory', [InventoryController::class, 'index']);
