@@ -66,9 +66,17 @@ onMounted(async () => {
     }
 });
 
+const selectedStorage = ref([]);
+
 watch(() => props.type, (newVal) => {
     if (newVal) {
         form.value = { ...newVal };
+        // Sync selected storage for multi-select
+        if (newVal.storage) {
+            selectedStorage.value = newVal.storage.split(',').map(s => s.trim()).filter(Boolean);
+        } else {
+            selectedStorage.value = [];
+        }
     } else {
         form.value = {
             brand_id: '',
@@ -78,8 +86,19 @@ watch(() => props.type, (newVal) => {
             cost_price: 0,
             price: 0
         };
+        selectedStorage.value = [];
     }
 }, { immediate: true });
+
+const toggleStorage = (cap) => {
+    if (selectedStorage.value.includes(cap)) {
+        selectedStorage.value = selectedStorage.value.filter(c => c !== cap);
+    } else {
+        selectedStorage.value.push(cap);
+    }
+    // Update form model as comma-separated string
+    form.value.storage = selectedStorage.value.join(', ');
+};
 
 const save = async () => {
     if (!form.value.brand_id || !form.value.name) {
@@ -199,13 +218,21 @@ const priceDisplay = computed({
                         <label class="block text-sm font-medium text-text-secondary mb-1">Kapasitas (RAM /
                             Storage)</label>
                         <div class="relative">
-                            <HardDrive class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-                                :size="16" />
-                            <select v-model="form.storage"
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
-                                <option value="" disabled>Pilih Kapasitas...</option>
-                                <option v-for="cap in capacityOptions" :key="cap" :value="cap">{{ cap }}</option>
-                            </select>
+                            <HardDrive class="absolute left-3 top-3 text-text-secondary" :size="16" />
+                            <div class="pl-10">
+                                <div class="flex flex-wrap gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <button v-for="cap in capacityOptions" :key="cap" @click="toggleStorage(cap)"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200"
+                                        :class="selectedStorage.includes(cap)
+                                            ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/20'
+                                            : 'bg-surface-900 border-surface-700 text-text-secondary hover:border-surface-500 hover:text-text-primary'">
+                                        {{ cap }}
+                                    </button>
+                                </div>
+                                <div v-if="selectedStorage.length > 0" class="mt-2 text-[10px] text-emerald-500">
+                                    Terpilih: {{ selectedStorage.join(', ') }}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
