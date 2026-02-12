@@ -234,6 +234,7 @@ onMounted(() => {
                             <th class="px-6 py-4" v-if="activeTab === 'hp'">IMEI / Detail</th>
                             <th class="px-6 py-4" v-else>Quantity / Info</th>
                             <th class="px-6 py-4">Sumber / Distributor</th>
+                            <th class="px-6 py-4">Catatan</th>
                             <th class="px-6 py-4">Diinput Oleh</th>
                         </tr>
                     </thead>
@@ -248,7 +249,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                    }}</div>
+                                        }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>

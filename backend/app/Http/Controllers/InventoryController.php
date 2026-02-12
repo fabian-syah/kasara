@@ -431,6 +431,7 @@ class InventoryController extends Controller
             'imeis.*.condition' => 'required_if:type,hp|in:new,second',
             'imeis.*.cost_price' => 'required_if:type,hp|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:5000',
         ]);
 
         $user = Auth::user();
@@ -488,7 +489,8 @@ class InventoryController extends Controller
                     'quantity' => $request->quantity,
                     'balance_after' => $inventory->quantity,
                     'description' => "Stock In from " . ($supplierName ?: "Distributor"),
-                    'reference_id' => 'STOCK-IN-' . time()
+                    'reference_id' => 'STOCK-IN-' . time(),
+                    'notes' => $request->notes,
                 ]);
             }
 
@@ -525,6 +527,7 @@ class InventoryController extends Controller
                         'distributor_id' => $distributorId,
                         'supplier_name' => $supplierName,
                         'user_id' => $ownerUserId,
+                        'notes' => $request->notes,
                     ]);
                     $inserted_count++;
                 }
@@ -541,7 +544,8 @@ class InventoryController extends Controller
                         'quantity' => $inserted_count,
                         'balance_after' => ProductDetail::where('product_id', $product->id)->where('status', 'available')->count(),
                         'description' => "Stock In {$inserted_count} units (HP) from " . ($supplierName ?: "Distributor"),
-                        'reference_id' => 'STOCK-IN-HP-' . time()
+                        'reference_id' => 'STOCK-IN-HP-' . time(),
+                        'notes' => $request->notes,
                     ]);
                 }
 

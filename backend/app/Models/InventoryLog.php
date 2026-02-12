@@ -19,7 +19,8 @@ class InventoryLog extends Model
         'balance_after',
         'reference_id',
         'description',
-        'supplier_name'
+        'supplier_name',
+        'notes'
     ];
 
     public function product()
