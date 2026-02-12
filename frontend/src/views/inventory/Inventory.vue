@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useInventoryStore } from "../../store/inventory";
+import { storeToRefs } from "pinia";
 import api, {
   inventory as inventoryApi,
   productTypes as productTypesApi,
