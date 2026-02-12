@@ -774,14 +774,7 @@ async function fetchBranches() {
   }
 }
 
-async function fetchWarehouses() {
-  try {
-    const response = await api.get('/warehouses');
-    warehouses.value = response.data.data || response.data;
-  } catch (e) {
-    console.error("Gagal memuat gudang", e);
-  }
-}
+
 
 const currentWarehouse = ref(null);
 
