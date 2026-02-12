@@ -379,8 +379,7 @@ class StockOutController extends Controller
 
             // 1. Search STOCK IN
             $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
-                ->where('imei', 'like', "{$query}%") // Cari yang berawalan 123...
-                ->orWhere('imei', $query)            // Atau persis sama
+                ->where('imei', $query)
                 ->get();
 
             foreach ($productDetails as $detail) {
