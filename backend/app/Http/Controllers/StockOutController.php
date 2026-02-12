@@ -379,7 +379,8 @@ class StockOutController extends Controller
 
             // 1. Search STOCK IN
             $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
-                ->where('imei', 'like', "%{$query}%")
+                ->where('imei', 'like', "{$query}%") // Cari yang berawalan 123...
+                ->orWhere('imei', $query)            // Atau persis sama
                 ->get();
 
             foreach ($productDetails as $detail) {
@@ -389,19 +390,17 @@ class StockOutController extends Controller
                     'imei' => $detail->imei,
                     'product_name' => $detail->product?->name,
                     'status' => $detail->status,
-                    'created_at' => $detail->created_at,
-                    // ... sisa fields lainnya
+                    'created_at' => $detail->created_at->format('Y-m-d H:i:s'), // Simpan format asli untuk sorting
                 ];
             }
 
             // 2. Search STOCK OUT (Optimized Query)
             $stockOuts = StockOut::with(['items.product', 'user', 'destinationBranch'])
-                ->where('receipt_id', 'like', "%{$query}%")
-                ->orWhere('shopee_tracking_no', 'like', "%{$query}%")
+                ->where('receipt_id', 'like', "{$query}%")
+                ->orWhere('shopee_tracking_no', $query) // No Resi biasanya harus spesifik
                 ->orWhere('shopee_items_data', 'like', "%{$query}%")
-                ->orWhere('non_hp_items', 'like', "%{$query}%")
                 ->orWhereHas('items', function ($q) use ($query) {
-                    $q->where('imei', 'like', "%{$query}%");
+                    $q->where('imei', 'like', "{$query}%");
                 })
                 ->get()
                 ->unique('id');
@@ -462,6 +461,10 @@ class StockOutController extends Controller
                     continue;
                 }
             }
+
+            usort($results, function ($a, $b) {
+                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            });
 
             return response()->json([
                 'query' => $query,
