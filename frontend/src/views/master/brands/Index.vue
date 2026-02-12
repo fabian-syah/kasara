@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { Plus, Search, Edit, Trash2, Tag, RefreshCw, Box } from 'lucide-vue-next';
-import { brands as api } from '../../../api/axios';
+import { brands as api, auth as apiAuth } from '../../../api/axios';
 import { useToast } from '../../../composables/useToast';
 import BrandModal from './BrandModal.vue';
 
@@ -84,9 +84,45 @@ const handleDelete = async (id) => {
     }
 };
 
-const handleSaved = () => {
-    showModal.value = false;
-    fetchData();
+showModal.value = false;
+fetchData();
+
+// --- Delete with Password Confirmation ---
+const showDeleteModal = ref(false);
+const deletePassword = ref('');
+const brandToDelete = ref(null);
+const verifyingPassword = ref(false);
+
+const openDeleteModal = (brandId) => {
+    brandToDelete.value = brandId;
+    deletePassword.value = '';
+    showDeleteModal.value = true;
+};
+
+const confirmDelete = async () => {
+    if (!deletePassword.value) return;
+
+    verifyingPassword.value = true;
+    try {
+        // 1. Verify Password
+        await apiAuth.verifyPassword(deletePassword.value);
+
+        // 2. Delete Brand if password valid
+        await api.delete(brandToDelete.value);
+
+        toast.success('Merek berhasil dihapus');
+        fetchData();
+        showDeleteModal.value = false;
+    } catch (error) {
+        console.error(error);
+        if (error.response && error.response.status === 422) {
+            toast.error('Password salah!');
+        } else {
+            toast.error('Gagal menghapus merek');
+        }
+    } finally {
+        verifyingPassword.value = false;
+    }
 };
 
 onMounted(fetchData);
@@ -200,7 +236,7 @@ onMounted(fetchData);
                                         class="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
                                         <Edit :size="16" />
                                     </button>
-                                    <button @click="handleDelete(brand.id)"
+                                    <button @click="openDeleteModal(brand.id)"
                                         class="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                                         <Trash2 :size="16" />
                                     </button>
@@ -213,6 +249,39 @@ onMounted(fetchData);
         </div>
 
         <BrandModal :show="showModal" :brand="editingBrand" @close="showModal = false" @saved="handleSaved" />
+
+        <!-- Delete Confirmation Modal -->
+        <div v-if="showDeleteModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in">
+            <div class="bg-surface-800 border border-surface-700 rounded-2xl w-full max-w-md p-6 shadow-xl slide-in">
+                <h3 class="text-xl font-bold text-text-primary mb-2">Konfirmasi Hapus</h3>
+                <p class="text-text-secondary mb-6">
+                    Tindakan ini tidak dapat dibatalkan. Masukkan password Anda untuk melanjutkan penghapusan merek ini.
+                </p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">Password</label>
+                        <input v-model="deletePassword" type="password" placeholder="Masukkan password anda"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-surface-500"
+                            @keyup.enter="confirmDelete" />
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button @click="showDeleteModal = false"
+                            class="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium transition-colors">
+                            Batal
+                        </button>
+                        <button @click="confirmDelete" :disabled="verifyingPassword || !deletePassword"
+                            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-red-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RefreshCw v-if="verifyingPassword" class="animate-spin" :size="18" />
+                            <Trash2 v-else :size="18" />
+                            <span>{{ verifyingPassword ? 'Memverifikasi...' : 'Hapus Permanen' }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 

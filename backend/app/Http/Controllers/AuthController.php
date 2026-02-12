@@ -86,4 +86,23 @@ class AuthController extends Controller
             'user' => $request->user()->load('branch', 'roles', 'warehouse', 'onlineShop'),
         ]);
     }
+
+    public function verifyPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $request->user()->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password salah.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password benar.',
+        ]);
+    }
 }

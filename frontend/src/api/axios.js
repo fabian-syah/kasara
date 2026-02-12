@@ -75,7 +75,8 @@ export default api
 export const auth = {
     login: (credentials) => api.post('/login', credentials),
     logout: () => api.post('/logout'),
-    me: () => api.get('/me'),
+    verifyPassword: (password) => api.post('/verify-password', { password }),
+    user: () => api.get('/user'),
     refresh: () => api.post('/refresh')
 }
 
