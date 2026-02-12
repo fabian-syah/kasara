@@ -736,7 +736,7 @@ const stats = computed(() => [
 ]);
 
 
-import { useAuthStore } from "../../store/auth";
+// useAuthStore already imported at top level
 import { useToast } from "../../composables/useToast";
 
 const toast = useToast();
