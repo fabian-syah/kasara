@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useInventoryStore } from "../../store/inventory";
+import { useAuthStore } from "../../store/auth";
 import { storeToRefs } from "pinia";
 import api, {
   inventory as inventoryApi,
@@ -57,6 +58,7 @@ import {
 } from "lucide-vue-next";
 
 const inventoryStore = useInventoryStore();
+const authStore = useAuthStore();
 
 import { debounce } from "../../utils/debounce";
 
@@ -738,7 +740,7 @@ import { useAuthStore } from "../../store/auth";
 import { useToast } from "../../composables/useToast";
 
 const toast = useToast();
-const authStore = useAuthStore();
+// authStore already declared at top level
 const currentBranch = ref(null);
 const isTogglingReturn = ref(false);
 
