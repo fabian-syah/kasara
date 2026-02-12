@@ -155,6 +155,7 @@ onMounted(fetchData);
                         <tr>
                             <th class="px-6 py-4">Nama Merek</th>
                             <th class="px-6 py-4">Kategori</th>
+                            <th class="px-6 py-4 text-center">Total Produk</th>
                             <th class="px-6 py-4">Tanggal Dibuat</th>
                             <th class="px-6 py-4">Terakhir Update</th>
                             <th class="px-6 py-4 text-right">Aksi</th>
@@ -177,6 +178,11 @@ onMounted(fetchData);
                                 <span class="px-2 py-1 rounded-md text-xs font-medium"
                                     :class="brand.category === 'imei' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'">
                                     {{ brand.category === 'imei' ? 'HP / Unit' : 'Non-HP' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="px-2 py-1 rounded-md bg-surface-700 text-text-primary text-xs font-bold">
+                                    {{ brand.product_types_count || 0 }} Type
                                 </span>
                             </td>
                             <td class="px-6 py-4">

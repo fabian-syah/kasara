@@ -19,7 +19,7 @@ class BrandController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $query->latest()->get()
+            'data' => $query->withCount('productTypes')->latest()->get()
         ]);
     }
 
