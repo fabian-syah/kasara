@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductType;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ProductTypeController extends Controller
 {
@@ -41,7 +42,14 @@ class ProductTypeController extends Controller
     {
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('product_types')->where(function ($query) use ($request) {
+                    return $query->where('brand_id', $request->brand_id);
+                }),
+            ],
             'category' => 'required|in:imei,non_imei,service',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
@@ -62,7 +70,14 @@ class ProductTypeController extends Controller
     {
         $validated = $request->validate([
             'brand_id' => 'required|exists:brands,id',
-            'name' => 'required|string|max:255',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('product_types')->ignore($productType->id)->where(function ($query) use ($request) {
+                    return $query->where('brand_id', $request->brand_id);
+                }),
+            ],
             'category' => 'required|in:imei,non_imei,service',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
