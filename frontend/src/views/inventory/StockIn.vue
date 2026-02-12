@@ -147,6 +147,8 @@ const availableSpecs = computed(() => {
 });
 
 
+const suggestedSellingPrice = ref(0);
+
 // --- PERBAIKAN: Gunakan Debounce pada API Lookup agar tidak lag saat ganti merk/tipe ---
 // --- REFACTORED: Price Lookup based on Type + Condition ---
 const fetchPriceLookup = async () => {
@@ -167,11 +169,11 @@ const fetchPriceLookup = async () => {
 
             if (res.data.found) {
                 batchDetails.value.cost_price = Number(res.data.cost_price);
-                // Populate selling price if available
-                batchDetails.value.selling_price = Number(res.data.selling_price || 0);
+                // Populate suggested selling price for placeholder
+                suggestedSellingPrice.value = Number(res.data.price || 0); // Backend returns 'price'
             } else {
                 batchDetails.value.cost_price = 0;
-                batchDetails.value.selling_price = 0;
+                suggestedSellingPrice.value = 0;
             }
         } catch (e) {
             console.error("Price lookup failed", e);
@@ -782,7 +784,8 @@ onMounted(fetchInitialData);
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
                                 <input v-model="sellingPriceDisplay" type="text"
-                                    class="input bg-surface-900 h-10 text-sm pl-10" placeholder="0" />
+                                    class="input bg-surface-900 h-10 text-sm pl-10"
+                                    :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
                             </div>
                         </div>
                     </div>
