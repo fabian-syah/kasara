@@ -287,7 +287,7 @@ const getCategoryColor = (cat) => {
                             <th class="px-6 py-4 whitespace-nowrap">Tujuan / Penerima</th>
                             <th class="px-6 py-4 whitespace-nowrap">Item</th>
                             <th class="px-6 py-4 whitespace-nowrap">Quantity / Info</th>
-                            <th class="px-6 py-4 whitespace-nowrap">Deskripsi / Catatan</th>
+                            <!-- <th class="px-6 py-4 whitespace-nowrap">Deskripsi / Catatan</th> -->
                             <th class="px-6 py-4 whitespace-nowrap">Admin / Inventory</th>
                         </tr>
                     </thead>
@@ -422,10 +422,10 @@ const getCategoryColor = (cat) => {
                                 </td>
 
                                 <!-- Col 6: Deskripsi / Catatan -->
-                                <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">
+                                <!-- <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">
                                     {{ item.notes || item.shopee_notes || item.giveaway_notes || item.transfer_notes ||
                                         '-' }}
-                                </td>
+                                </td> -->
 
                                 <!-- Col 7: Admin / Inventory -->
                                 <td class="px-6 py-4">
