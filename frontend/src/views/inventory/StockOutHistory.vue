@@ -85,9 +85,9 @@ const fetchData = async (page = 1) => {
 
         let response;
         if (activeTab.value === 'hp') {
-            response = await stockOut.list(params);
+            response = await stockOut.list({ ...params, type: 'hp' });
         } else {
-            response = await inventory.historyOut(params);
+            response = await stockOut.list({ ...params, type: 'non-hp' });
         }
 
         items.value = response.data.data;
@@ -283,13 +283,12 @@ const getCategoryColor = (cat) => {
                     <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
                         <tr>
                             <th class="px-6 py-4 whitespace-nowrap">Tanggal / ID</th>
-                            <th v-if="activeTab === 'hp'" class="px-6 py-4 whitespace-nowrap">Kategori</th>
-                            <th v-if="activeTab === 'hp'" class="px-6 py-4 whitespace-nowrap">Tujuan / Penerima</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Kategori</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Tujuan / Penerima</th>
                             <th class="px-6 py-4 whitespace-nowrap">Item</th>
                             <th class="px-6 py-4 whitespace-nowrap">Quantity / Info</th>
-                            <th v-if="activeTab === 'non-hp'" class="px-6 py-4 whitespace-nowrap">Deskripsi</th>
-                            <th v-if="activeTab === 'hp'" class="px-6 py-4 whitespace-nowrap">Admin / Inventory</th>
-                            <th v-if="activeTab === 'non-hp'" class="px-6 py-4 whitespace-nowrap">Diinput Oleh</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Deskripsi / Catatan</th>
+                            <th class="px-6 py-4 whitespace-nowrap">Admin / Inventory</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700/50">

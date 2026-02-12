@@ -27,24 +27,62 @@ class StockOutController extends Controller
             $query->search($request->search);
         }
 
+        // Filter by Type (HP vs Non-HP)
+        if ($request->type === 'hp') {
+            $query->whereHas('items');
+        } elseif ($request->type === 'non-hp') {
+            $query->whereNotNull('non_hp_items');
+        }
+
         // DATE FILTER
-        if ($request->category !== 'recap_harian') { // Recap harian might not need this or handled differently
+        if ($request->category !== 'recap_harian') {
             if ($request->month && $request->year) {
                 $query->whereMonth('created_at', $request->month)
                     ->whereYear('created_at', $request->year);
             }
         }
 
-        // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
+        // DATE FILTER FOR INVENTORY ROLE
         $user = Auth::user();
         if ($user && $user->hasRole('inventory')) {
             $startDate = \Carbon\Carbon::now()->subMonth()->startOfMonth();
             $query->where('created_at', '>=', $startDate);
         }
 
-        return response()->json(
-            $query->latest()->paginate($request->per_page ?? 20)
-        );
+        $results = $query->latest()->paginate($request->per_page ?? 20);
+
+        // For Non-HP items, we need to load product details manually since they are in JSON
+        if ($request->type === 'non-hp' || !$request->type) {
+            // Collect all product IDs from non_hp_items
+            $productIds = [];
+            foreach ($results->items() as $item) {
+                if ($item->non_hp_items) {
+                    foreach ($item->non_hp_items as $nonHpItem) {
+                        $productIds[] = $nonHpItem['product_id'];
+                    }
+                }
+            }
+
+            if (!empty($productIds)) {
+                $products = Product::whereIn('id', array_unique($productIds))->get()->keyBy('id');
+
+                // Attach product data to the non_hp_items
+                foreach ($results->items() as $item) {
+                    if ($item->non_hp_items) {
+                        $enrichedItems = [];
+                        foreach ($item->non_hp_items as $nonHpItem) {
+                            $prod = $products[$nonHpItem['product_id']] ?? null;
+                            $nonHpItem['product_name'] = $prod ? $prod->name : 'Unknown Product';
+                            $nonHpItem['product_sku'] = $prod ? $prod->sku : '-';
+                            $enrichedItems[] = $nonHpItem;
+                        }
+                        $item->non_hp_items = $enrichedItems;
+                    }
+                }
+            }
+        }
+
+        return response()->json($results);
     }
 
     // Create stock out
@@ -424,7 +462,18 @@ class StockOutController extends Controller
                 'items' => $out->items->map(fn($i) => [
                     'imei' => $i->imei,
                     'product_name' => $i->product?->name,
-                ]),
+                ])->when($out->non_hp_items, function ($collection) use ($out) {
+                    // Enrich non-hp items
+                    $nonHp = collect($out->non_hp_items)->map(function ($item) {
+                        $product = \App\Models\Product::find($item['product_id']);
+                        return [
+                            'imei' => 'Qty: ' . $item['quantity'],
+                            'product_name' => $product ? $product->name : 'Unknown Product',
+                            'is_non_hp' => true
+                        ];
+                    });
+                    return $collection->merge($nonHp);
+                }),
                 'destination_branch' => $out->destinationBranch?->name,
                 'receiver_name' => $out->receiver_name,
                 'customer_name' => $out->customer_name,
