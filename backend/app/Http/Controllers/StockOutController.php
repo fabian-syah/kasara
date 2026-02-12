@@ -431,82 +431,87 @@ class StockOutController extends Controller
         $stockOuts = $byReceipt->merge($byImei)->merge($byShopee)->unique('id');
 
         foreach ($stockOuts as $out) {
-            // Parse Shopee per-item data
-            $shopeeItems = $out->shopee_items_data ?? [];
-            $shopeeReceivers = [];
-            $shopeeTrackingNos = [];
+            try {
+                // Parse Shopee per-item data
+                $shopeeItems = $out->shopee_items_data ?? [];
+                $shopeeReceivers = [];
+                $shopeeTrackingNos = [];
 
-            if (is_array($shopeeItems) && count($shopeeItems) > 0) {
-                foreach ($shopeeItems as $item) {
-                    if (!empty($item['receiver'])) {
-                        $shopeeReceivers[] = $item['receiver'];
+                if (is_array($shopeeItems) && count($shopeeItems) > 0) {
+                    foreach ($shopeeItems as $item) {
+                        if (!empty($item['receiver'])) {
+                            $shopeeReceivers[] = $item['receiver'];
+                        }
+                        if (!empty($item['tracking_no'])) {
+                            $shopeeTrackingNos[] = $item['tracking_no'];
+                        }
                     }
-                    if (!empty($item['tracking_no'])) {
-                        $shopeeTrackingNos[] = $item['tracking_no'];
+                } else {
+                    // Fallback to legacy single fields
+                    if ($out->shopee_receiver) {
+                        $shopeeReceivers[] = $out->shopee_receiver;
+                    }
+                    if ($out->shopee_tracking_no) {
+                        $shopeeTrackingNos[] = $out->shopee_tracking_no;
                     }
                 }
-            } else {
-                // Fallback to legacy single fields
-                if ($out->shopee_receiver) {
-                    $shopeeReceivers[] = $out->shopee_receiver;
-                }
-                if ($out->shopee_tracking_no) {
-                    $shopeeTrackingNos[] = $out->shopee_tracking_no;
-                }
-            }
 
-            $results[] = [
-                'type' => 'stock_out',
-                'id' => $out->receipt_id,
-                'category' => $out->category,
-                'items' => $out->items->map(fn($i) => [
-                    'imei' => $i->imei,
-                    'product_name' => $i->product?->name,
-                ])->when(!empty($out->non_hp_items), function ($collection) use ($out) {
-                    try {
-                        // Ensure it is an iterable array
-                        $items = is_string($out->non_hp_items)
-                            ? json_decode($out->non_hp_items, true)
-                            : $out->non_hp_items;
+                $results[] = [
+                    'type' => 'stock_out',
+                    'id' => $out->receipt_id,
+                    'category' => $out->category,
+                    'items' => $out->items->map(fn($i) => [
+                        'imei' => $i->imei,
+                        'product_name' => $i->product?->name,
+                    ])->when(!empty($out->non_hp_items), function ($collection) use ($out) {
+                        try {
+                            // Ensure it is an iterable array
+                            $items = is_string($out->non_hp_items)
+                                ? json_decode($out->non_hp_items, true)
+                                : $out->non_hp_items;
 
-                        if (!is_array($items))
-                            return $collection;
+                            if (!is_array($items))
+                                return $collection;
 
-                        $nonHp = collect($items)->map(function ($item) {
-                            if (!isset($item['product_id']))
-                                return null;
+                            $nonHp = collect($items)->map(function ($item) {
+                                if (!isset($item['product_id']))
+                                    return null;
 
-                            $product = \App\Models\Product::find($item['product_id']);
-                            return [
-                                'imei' => 'Qty: ' . ($item['quantity'] ?? 1),
-                                'product_name' => $product ? $product->name : 'Unknown Product',
-                                'is_non_hp' => true
-                            ];
-                        })->filter(); // Remove nulls
+                                $product = \App\Models\Product::find($item['product_id']);
+                                return [
+                                    'imei' => 'Qty: ' . ($item['quantity'] ?? 1),
+                                    'product_name' => $product ? $product->name : 'Unknown Product',
+                                    'is_non_hp' => true
+                                ];
+                            })->filter(); // Remove nulls
     
-                        return $collection->merge($nonHp);
-                    } catch (\Exception $e) {
-                        return $collection;
-                    }
-                }),
-                'destination_branch' => $out->destinationBranch?->name,
-                'receiver_name' => $out->receiver_name,
-                'customer_name' => $out->customer_name,
-                // Shopee: now returns arrays for per-item data
-                'shopee_receivers' => $shopeeReceivers,
-                'shopee_tracking_nos' => $shopeeTrackingNos,
-                'shopee_items_data' => $shopeeItems, // Full per-item data
-                // Legacy fields for backward compatibility
-                'shopee_receiver' => implode(', ', $shopeeReceivers) ?: null,
-                'shopee_tracking_no' => implode(', ', $shopeeTrackingNos) ?: null,
-                'deletion_reason' => $out->deletion_reason,
-                'processed_by' => $out->user?->name ?? $out->user?->username,
-                'created_at' => $out->created_at,
-            ];
+                            return $collection->merge($nonHp);
+                        } catch (\Exception $e) {
+                            return $collection;
+                        }
+                    }),
+                    'destination_branch' => $out->destinationBranch?->name,
+                    'receiver_name' => $out->receiver_name,
+                    'customer_name' => $out->customer_name,
+                    // Shopee: now returns arrays for per-item data
+                    'shopee_receivers' => $shopeeReceivers,
+                    'shopee_tracking_nos' => $shopeeTrackingNos,
+                    'shopee_items_data' => $shopeeItems, // Full per-item data
+                    // Legacy fields for backward compatibility
+                    'shopee_receiver' => implode(', ', $shopeeReceivers) ?: null,
+                    'shopee_tracking_no' => implode(', ', $shopeeTrackingNos) ?: null,
+                    'deletion_reason' => $out->deletion_reason,
+                    'processed_by' => $out->user?->name ?? $out->user?->username,
+                    'created_at' => $out->created_at,
+                ];
+            } catch (\Exception $e) {
+                // Log error or skip faulty record
+                continue;
+            }
         }
 
         // Sort by created_at desc
-        usort($results, fn($a, $b) => strtotime($b['created_at']) - strtotime($a['created_at']));
+        usort($results, fn($a, $b) => strtotime((string) $b['created_at']) - strtotime((string) $a['created_at']));
 
         return response()->json([
             'query' => $query,
