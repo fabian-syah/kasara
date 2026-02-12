@@ -167,8 +167,11 @@ const fetchPriceLookup = async () => {
 
             if (res.data.found) {
                 batchDetails.value.cost_price = Number(res.data.cost_price);
+                // Populate selling price if available
+                batchDetails.value.selling_price = Number(res.data.selling_price || 0);
             } else {
                 batchDetails.value.cost_price = 0;
+                batchDetails.value.selling_price = 0;
             }
         } catch (e) {
             console.error("Price lookup failed", e);
@@ -250,6 +253,14 @@ const costPriceDisplay = computed({
         // Remove non-numeric chars
         const num = parseInt(val.replace(/[^\d]/g, ''));
         batchDetails.value.cost_price = isNaN(num) ? 0 : num;
+    }
+});
+
+const sellingPriceDisplay = computed({
+    get: () => batchDetails.value.selling_price ? formatRupiah(batchDetails.value.selling_price).replace('Rp', '').trim() : '',
+    set: (val) => {
+        const num = parseInt(val.replace(/[^\d]/g, ''));
+        batchDetails.value.selling_price = isNaN(num) ? 0 : num;
     }
 });
 
@@ -562,7 +573,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -705,7 +716,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -765,7 +776,15 @@ onMounted(fetchInitialData);
                                     class="input bg-surface-900 h-10 text-sm pl-10" placeholder="0" />
                             </div>
                         </div>
-
+                        <div>
+                            <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan)</label>
+                            <div class="relative">
+                                <span
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                                <input v-model="sellingPriceDisplay" type="text"
+                                    class="input bg-surface-900 h-10 text-sm pl-10" placeholder="0" />
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Notes Field -->
