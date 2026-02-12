@@ -11,7 +11,8 @@ import api, {
   brands as brandsApi,
   products as productsApi,
   users as usersApi,
-  branches as branchesApi
+  branches as branchesApi,
+  warehouses as warehousesApi
 } from "../../api/axios";
 import { formatCurrency, formatNumber } from "../../utils/formatters";
 
@@ -750,6 +751,17 @@ async function fetchCurrentBranch() {
     } catch (e) {
       console.error("Gagal load info branch", e);
     }
+  }
+}
+
+const warehouses = ref([]);
+
+async function fetchWarehouses() {
+  try {
+    const response = await warehousesApi.list();
+    warehouses.value = response.data.data || response.data;
+  } catch (e) {
+    console.error("Gagal load warehouses", e);
   }
 }
 
