@@ -771,20 +771,21 @@ onMounted(fetchInitialData);
                         </div>
                         <div>
                             <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-bold z-10">Rp</span>
+                            <div
+                                class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
+                                <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
                                 <input v-model="costPriceDisplay" type="text"
-                                    class="input bg-surface-900 h-12 text-sm pl-12" placeholder="0" />
+                                    class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary"
+                                    placeholder="0" />
                             </div>
                         </div>
                         <div>
                             <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan)</label>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-bold z-10">Rp</span>
+                            <div
+                                class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
+                                <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
                                 <input v-model="sellingPriceDisplay" type="text"
-                                    class="input bg-surface-900 h-12 text-sm pl-12"
+                                    class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary"
                                     :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
                             </div>
                         </div>
