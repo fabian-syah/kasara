@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useInventoryStore } from "../../store/inventory";
 import { useAuthStore } from "../../store/auth";
 import { storeToRefs } from "pinia";
+import { useToast } from "../../composables/useToast";
 import api, {
   inventory as inventoryApi,
   productTypes as productTypesApi,
@@ -59,6 +60,7 @@ import {
 
 const inventoryStore = useInventoryStore();
 const authStore = useAuthStore();
+const toast = useToast();
 
 import { debounce } from "../../utils/debounce";
 
@@ -736,11 +738,7 @@ const stats = computed(() => [
 ]);
 
 
-// useAuthStore already imported at top level
-import { useToast } from "../../composables/useToast";
 
-const toast = useToast();
-// authStore already declared at top level
 const currentBranch = ref(null);
 const isTogglingReturn = ref(false);
 
