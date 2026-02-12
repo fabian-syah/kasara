@@ -395,11 +395,11 @@ class StockOutController extends Controller
 
             // 2. Search STOCK OUT (Optimized Query)
             $stockOuts = StockOut::with(['items.product', 'user', 'destinationBranch'])
-                ->where('receipt_id', 'like', "{$query}%")
+                ->where('receipt_id', $query)
                 ->orWhere('shopee_tracking_no', $query) // No Resi biasanya harus spesifik
-                ->orWhere('shopee_items_data', 'like', "%{$query}%")
+                ->orWhere('shopee_items_data', $query)
                 ->orWhereHas('items', function ($q) use ($query) {
-                    $q->where('imei', 'like', "{$query}%");
+                    $q->where('imei', $query);
                 })
                 ->get()
                 ->unique('id');
