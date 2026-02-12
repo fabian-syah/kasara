@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-    Search, ArrowLeft, RefreshCw, Smartphone, Box, Calendar, User, FileText, Database
+    Search, ArrowLeft, RefreshCw, Smartphone, Box, Calendar, User, FileText, Database, Download
 } from 'lucide-vue-next';
 import { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -12,8 +12,9 @@ const router = useRouter();
 const toast = useToast();
 
 const loading = ref(false);
-const items = ref([]); // Data list
-const activeTab = ref('hp'); // 'hp' or 'non-hp'
+const exporting = ref(false);
+const items = ref([]);
+const activeTab = ref('hp');
 const searchQuery = ref('');
 const pagination = ref({
     current_page: 1,
@@ -21,7 +22,10 @@ const pagination = ref({
     total: 0
 });
 
-// Month Filter
+// Date Filter
+const filterMode = ref('month'); // 'today', 'yesterday', 'date', 'month'
+const selectedDate = ref(new Date().toISOString().slice(0, 10)); // YYYY-MM-DD
+
 const currentDate = new Date();
 const currentMonth = currentDate.getMonth() + 1;
 const currentYear = currentDate.getFullYear();
@@ -42,18 +46,42 @@ const monthOptions = [
 ];
 const selectedMonth = ref(monthOptions[0].value);
 
+const filterPresets = [
+    { label: 'Hari Ini', value: 'today' },
+    { label: 'Kemarin', value: 'yesterday' },
+    { label: 'Pilih Tanggal', value: 'date' },
+    { label: 'Per Bulan', value: 'month' },
+];
+
+const getDateParam = () => {
+    if (filterMode.value === 'today') {
+        return new Date().toISOString().slice(0, 10);
+    } else if (filterMode.value === 'yesterday') {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return d.toISOString().slice(0, 10);
+    } else if (filterMode.value === 'date') {
+        return selectedDate.value;
+    }
+    return null;
+};
+
 const fetchData = async (page = 1) => {
     loading.value = true;
     try {
         const params = {
             page,
             type: activeTab.value,
-            page,
-            type: activeTab.value,
             search: searchQuery.value,
-            month: selectedMonth.value.month,
-            year: selectedMonth.value.year
         };
+
+        const dateParam = getDateParam();
+        if (dateParam) {
+            params.date = dateParam;
+        } else {
+            params.month = selectedMonth.value.month;
+            params.year = selectedMonth.value.year;
+        }
 
         const response = await inventory.historyIn(params);
         items.value = response.data.data;
@@ -70,7 +98,37 @@ const fetchData = async (page = 1) => {
     }
 };
 
-watch([activeTab, searchQuery, selectedMonth], () => {
+const exportExcel = async () => {
+    exporting.value = true;
+    try {
+        const params = { type: activeTab.value, search: searchQuery.value };
+        const dateParam = getDateParam();
+        if (dateParam) {
+            params.date = dateParam;
+        } else {
+            params.month = selectedMonth.value.month;
+            params.year = selectedMonth.value.year;
+        }
+
+        const response = await inventory.exportHistoryIn(params);
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `stok-masuk-${activeTab.value}-${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('File berhasil diunduh!');
+    } catch (error) {
+        console.error(error);
+        toast.error('Gagal mengunduh file.');
+    } finally {
+        exporting.value = false;
+    }
+};
+
+watch([activeTab, searchQuery, filterMode, selectedMonth, selectedDate], () => {
     fetchData(1);
 });
 
@@ -95,6 +153,11 @@ onMounted(() => {
             </div>
 
             <div class="flex items-center gap-3">
+                <button @click="exportExcel" :disabled="exporting"
+                    class="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-all">
+                    <Download :size="16" :class="{ 'animate-bounce': exporting }" />
+                    <span>{{ exporting ? 'Downloading...' : 'Export Excel' }}</span>
+                </button>
                 <button @click="fetchData(pagination.current_page)"
                     class="p-2.5 text-text-secondary hover:text-primary-500 hover:bg-primary-500/10 rounded-xl transition-all">
                     <RefreshCw :size="20" :class="{ 'animate-spin': loading }" />
@@ -103,7 +166,7 @@ onMounted(() => {
         </div>
 
         <!-- Controls -->
-        <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
+        <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 space-y-4">
             <div class="flex flex-col sm:flex-row gap-4 justify-between">
                 <!-- Tab Switcher -->
                 <div class="flex space-x-1 rounded-xl bg-surface-900 p-1 w-fit">
@@ -115,21 +178,38 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <select v-model="selectedMonth"
-                        class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
-                        <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">
-                            {{ option.label }}
-                        </option>
-                    </select>
-                </div>
-
                 <!-- Search -->
                 <div class="relative w-full sm:w-72">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
                     <input v-model="searchQuery" type="text" placeholder="Cari SKU, Produk, atau..."
                         class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                 </div>
+            </div>
+
+            <!-- Date Filter -->
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="preset in filterPresets" :key="preset.value" @click="filterMode = preset.value"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border" :class="filterMode === preset.value
+                            ? 'bg-primary-500/20 text-primary-400 border-primary-500/30'
+                            : 'bg-surface-900 text-text-secondary border-surface-700 hover:text-white'">
+                        {{ preset.label }}
+                    </button>
+                </div>
+
+                <input v-if="filterMode === 'date'" v-model="selectedDate" type="date"
+                    class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50" />
+
+                <select v-if="filterMode === 'month'" v-model="selectedMonth"
+                    class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
+                    <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">
+                        {{ option.label }}
+                    </option>
+                </select>
+
+                <span class="text-xs text-text-secondary ml-2">
+                    Total: {{ pagination.total }} item
+                </span>
             </div>
         </div>
 
@@ -168,7 +248,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                        }}</div>
+                                    }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>

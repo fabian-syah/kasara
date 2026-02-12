@@ -86,9 +86,26 @@ function formatRupiah(value) {
 }
 
 // Selection Logic
+const isImeiCategory = (cat) => ['imei', 'HP / Gadget'].includes(cat);
+
 const filteredTypes = computed(() => {
     if (!selectedBrand.value) return [];
-    return allowedTypes.value.filter(t => t.brand_id === selectedBrand.value);
+    return allowedTypes.value.filter(t => {
+        if (t.brand_id !== selectedBrand.value) return false;
+        // Filter by category based on itemType
+        if (itemType.value === 'hp') return isImeiCategory(t.category);
+        return !isImeiCategory(t.category);
+    });
+});
+
+// Only show brands that have matching types for the selected itemType
+const filteredBrands = computed(() => {
+    const brandIds = new Set(
+        allowedTypes.value
+            .filter(t => itemType.value === 'hp' ? isImeiCategory(t.category) : !isImeiCategory(t.category))
+            .map(t => t.brand_id)
+    );
+    return brands.value.filter(b => brandIds.has(b.id));
 });
 
 const uniqueTypeNames = computed(() => Array.from(new Set(filteredTypes.value.map(t => t.name))));
@@ -136,10 +153,8 @@ const fetchPriceLookup = async () => {
 
             if (res.data.found) {
                 batchDetails.value.cost_price = Number(res.data.cost_price);
-                batchDetails.value.selling_price = Number(res.data.price);
             } else {
                 batchDetails.value.cost_price = 0;
-                batchDetails.value.selling_price = 0;
             }
         } catch (e) {
             console.error("Price lookup failed", e);
@@ -541,7 +556,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -684,7 +699,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -693,7 +708,7 @@ onMounted(fetchInitialData);
                     <div><label class="label text-[10px] uppercase">Merk</label><select v-model="selectedBrand"
                             class="input bg-surface-900">
                             <option :value="null">-- Pilih Merk --</option>
-                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select></div>
                     <div><label class="label text-[10px] uppercase">Tipe</label><select v-model="selectedTypeName"
                             :disabled="!selectedBrand" class="input bg-surface-900 disabled:opacity-30">
@@ -727,7 +742,7 @@ onMounted(fetchInitialData);
                 <div v-if="itemType === 'hp'" class="space-y-6">
                     <!-- Global Settings for Batch -->
                     <div
-                        class="grid grid-cols-1 md:grid-cols-4 gap-5 bg-surface-900/50 p-6 rounded-3xl border border-surface-700">
+                        class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-surface-900/50 p-6 rounded-3xl border border-surface-700">
                         <div>
                             <label class="label text-[10px] uppercase">Kondisi (Batch)</label>
                             <select v-model="batchDetails.condition" class="input bg-surface-900 h-10 text-sm">
@@ -743,22 +758,6 @@ onMounted(fetchInitialData);
                                 <input v-model="costPriceDisplay" type="text"
                                     class="input bg-surface-900 h-10 text-sm pl-10" placeholder="0" />
                             </div>
-                        </div>
-                        <div>
-                            <label class="label text-[10px] uppercase text-blue-400">Harga Jual (dari Data
-                                Harga)</label>
-                            <div class="relative">
-                                <span
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                                <input
-                                    :value="batchDetails.selling_price ? formatRupiah(batchDetails.selling_price).replace('Rp', '').trim() : '0'"
-                                    type="text"
-                                    class="input bg-surface-900 h-10 text-sm pl-10 opacity-60 cursor-not-allowed"
-                                    disabled />
-                            </div>
-                            <p v-if="batchDetails.selling_price > 0" class="text-[10px] text-emerald-500 mt-1">✓
-                                Otomatis dari Data Harga</p>
-                            <p v-else class="text-[10px] text-amber-500 mt-1">⚠ Belum ada di Data Harga</p>
                         </div>
 
                     </div>

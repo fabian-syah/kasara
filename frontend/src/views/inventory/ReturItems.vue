@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useToast } from 'vue-toastification';
+import { useToast } from '../../composables/useToast';
 import { useAuthStore } from '../../store/auth';
 import api from '../../api/axios';
 import {
@@ -178,7 +178,7 @@ onMounted(() => {
                                     class="flex items-center gap-2 text-xs text-text-secondary">
                                     <UserCircle :size="12" />
                                     <span>Customer: <strong class="text-text-primary">{{ item.customer_name
-                                            }}</strong></span>
+                                    }}</strong></span>
                                 </div>
                                 <div v-if="item.retur_issue" class="flex items-start gap-2 text-xs text-text-secondary">
                                     <MessageSquare :size="12" class="shrink-0 mt-0.5" />

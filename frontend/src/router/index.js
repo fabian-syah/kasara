@@ -79,6 +79,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/stock-opname',
+                name: 'StockOpname',
+                component: () => import('../views/inventory/StockOpname.vue'),
+                meta: {
+                    title: 'Stock Opname',
+                    menu: 'inventory',
+                    permissions: ['inventory.view']
+                }
+            },
+            {
                 path: 'inventory/stock-in',
                 name: 'StockIn',
                 component: () => import('../views/inventory/StockIn.vue'),

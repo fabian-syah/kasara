@@ -230,7 +230,9 @@ class InventoryController extends Controller
         }
 
         // DATE FILTER
-        if ($request->month && $request->year) {
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($request->month && $request->year) {
             $query->whereMonth('created_at', $request->month)
                 ->whereYear('created_at', $request->year);
         }
@@ -272,7 +274,9 @@ class InventoryController extends Controller
         }
 
         // DATE FILTER
-        if ($request->month && $request->year) {
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($request->month && $request->year) {
             $query->whereMonth('created_at', $request->month)
                 ->whereYear('created_at', $request->year);
         }
@@ -284,6 +288,123 @@ class InventoryController extends Controller
         }
 
         return response()->json($query->latest()->paginate(20));
+    }
+
+    // Export Stock In History as CSV
+    public function exportStockInHistory(Request $request)
+    {
+        $user = Auth::user();
+        $type = $request->type ?? 'hp';
+
+        if ($type === 'non-hp') {
+            $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
+            if ($request->search) {
+                $search = $request->search;
+                $query->whereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%"))->orWhere('description', 'like', "%{$search}%");
+            }
+        } else {
+            $query = ProductDetail::with(['product', 'distributor', 'user']);
+            if ($request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('imei', 'like', "%{$search}%")->orWhereHas('product', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+                });
+            }
+        }
+
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($request->month && $request->year) {
+            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+        }
+
+        $items = $query->latest()->get();
+
+        $callback = function () use ($items, $type) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            if ($type === 'hp') {
+                fputcsv($file, ['Tanggal', 'Produk', 'SKU', 'IMEI', 'RAM', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Diinput Oleh']);
+                foreach ($items as $item) {
+                    fputcsv($file, [
+                        $item->created_at->format('Y-m-d H:i'),
+                        $item->product->name ?? '-',
+                        $item->product->sku ?? '-',
+                        $item->imei ?? '-',
+                        $item->ram ?? '-',
+                        $item->storage ?? '-',
+                        $item->condition === 'new' ? 'Baru' : 'Bekas',
+                        $item->cost_price ?? 0,
+                        $item->selling_price ?? 0,
+                        $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                        $item->user->name ?? '-',
+                    ]);
+                }
+            } else {
+                fputcsv($file, ['Tanggal', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Distributor', 'Diinput Oleh']);
+                foreach ($items as $item) {
+                    fputcsv($file, [
+                        $item->created_at->format('Y-m-d H:i'),
+                        $item->product->name ?? '-',
+                        $item->product->sku ?? '-',
+                        $item->quantity ?? 0,
+                        $item->description ?? '-',
+                        $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                        $item->user->name ?? '-',
+                    ]);
+                }
+            }
+            fclose($file);
+        };
+
+        $filename = 'stok-masuk-' . ($type) . '-' . now()->format('Y-m-d') . '.csv';
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    // Export Stock Out History as CSV
+    public function exportStockOutHistory(Request $request)
+    {
+        $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->whereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%"))->orWhere('description', 'like', "%{$search}%");
+        }
+
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($request->month && $request->year) {
+            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+        }
+
+        $items = $query->latest()->get();
+
+        $callback = function () use ($items) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, ['Tanggal', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Diinput Oleh']);
+            foreach ($items as $item) {
+                fputcsv($file, [
+                    $item->created_at->format('Y-m-d H:i'),
+                    $item->product->name ?? '-',
+                    $item->product->sku ?? '-',
+                    $item->quantity ?? 0,
+                    $item->description ?? '-',
+                    $item->user->name ?? '-',
+                ]);
+            }
+            fclose($file);
+        };
+
+        $filename = 'stok-keluar-' . now()->format('Y-m-d') . '.csv';
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     public function stockIn(Request $request)
