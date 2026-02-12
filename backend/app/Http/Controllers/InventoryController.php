@@ -478,7 +478,7 @@ class InventoryController extends Controller
                 $inventory->increment('quantity', $request->quantity);
 
                 // Log
-                InventoryLog::create([
+                $log = InventoryLog::create([
                     'product_id' => $product->id,
                     'branch_id' => 1, // Fallback or need to make nullable if placement isn't branch
                     // TODO: Update InventoryLog to support polymorphic placement too? Or just use description for now.
@@ -493,6 +493,9 @@ class InventoryController extends Controller
                     'reference_id' => 'STOCK-IN-' . time(),
                     'notes' => $request->notes,
                 ]);
+
+                // Dispatch History Event
+                event(new \App\Events\InventoryLogEvent($log->load(['product', 'user', 'distributor'])));
             }
 
             // 2. Handle HP (IMEI Based)
@@ -504,6 +507,8 @@ class InventoryController extends Controller
                 $inserted_count = 0;
                 $duplicates = [];
 
+                $newDetails = []; // Capture for events
+
                 foreach ($details as $item) {
                     // Check Duplicate IMEI globally
                     if (ProductDetail::where('imei', $item['imei'])->exists()) {
@@ -511,12 +516,9 @@ class InventoryController extends Controller
                         continue;
                     }
 
-                    ProductDetail::create([
+                    $detail = ProductDetail::create([
                         'product_id' => $product->id,
                         'imei' => $item['imei'],
-
-
-
                         'ram' => $request->ram ?? null, // Use parent spec
                         'storage' => $request->storage ?? null, // Use parent spec
                         'condition' => $item['condition'],
@@ -530,6 +532,8 @@ class InventoryController extends Controller
                         'user_id' => $ownerUserId,
                         'notes' => $request->notes,
                     ]);
+
+                    $newDetails[] = $detail;
                     $inserted_count++;
                 }
 
@@ -550,7 +554,19 @@ class InventoryController extends Controller
                     ]);
                 }
 
+                // Update Master Product Price (Sync with latest Stock In Selling Price)
+                if (count($request->imeis) > 0 && isset($request->imeis[0]['selling_price'])) {
+                    $product->update(['price' => $request->imeis[0]['selling_price']]);
+                }
+
                 DB::commit();
+
+                // Dispatch Events for HP Items
+                foreach ($newDetails as $detail) {
+                    // Load relationships to match what frontend expects
+                    $detail->load(['product', 'distributor', 'user']);
+                    event(new \App\Events\StockInEvent($detail));
+                }
 
                 return response()->json([
                     'message' => 'Stock in processed',
@@ -560,17 +576,13 @@ class InventoryController extends Controller
                 ], 201);
             }
 
-            // Update Master Product Price (Sync with latest Stock In Selling Price)
-            if ($request->type === 'hp' && count($request->imeis) > 0 && isset($request->imeis[0]['selling_price'])) {
-                // Use the first item's selling price as the master price
-                $product->update(['price' => $request->imeis[0]['selling_price']]);
-            }
-            // For non-hp, we might need similar logic if price is passed, but currently it's quantity only?
-            // Checking validation: Non-HP doesn't seem to have price input in stockIn validation?
-            // Actually it does not. Non-HP stock in is just quantity.
-            // So only update for HP for now.
-
             DB::commit();
+
+            // Dispatch Event for Non-HP
+            if ($request->type === 'non-hp') {
+                event(new \App\Events\StockInEvent($inventory->load(['product', 'user'])));
+            }
+
             return response()->json(['message' => 'Stock in successful'], 201);
 
         } catch (\Exception $e) {

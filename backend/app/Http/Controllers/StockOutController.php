@@ -323,9 +323,12 @@ class StockOutController extends Controller
 
             DB::commit();
 
+            // Dispatch Event for Real-time Update
+            event(new \App\Events\StockOutEvent($stockOut->load(['items.product', 'user', 'destinationBranch', 'inventoryUser'])));
+
             return response()->json([
                 'message' => 'Stok berhasil dikeluarkan',
-                'data' => $stockOut->load(['items.product', 'user'])
+                'data' => $stockOut
             ], 201);
 
         } catch (\Exception $e) {

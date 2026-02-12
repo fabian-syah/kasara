@@ -140,6 +140,66 @@ export const useInventoryStore = defineStore('inventory', () => {
         }
     }
 
+    // Real-time Actions
+    function pushNewProduct(newProduct) {
+        // Determine unique ID key (works for both ProductDetail and Inventory models if they have 'id')
+        // Check if item already exists (Upsert)
+        const index = products.value.findIndex(p => p.id === newProduct.id);
+
+        if (index > -1) {
+            // Update existing
+            products.value[index] = { ...products.value[index], ...newProduct };
+        } else {
+            // Add new to top
+            products.value.unshift(newProduct);
+            // Optional: You might want to remove the last item if pagination is strict, 
+            // but for real-time 'live' feel, accumulating is usually fine until refresh.
+        }
+    }
+
+    function handleStockOut(data) {
+        // data can be a StockOut object which contains items
+        if (!data) return;
+
+        // For HP items (items relation)
+        if (Array.isArray(data.items)) {
+            data.items.forEach(item => {
+                // Item here is ProductDetail (from StockOut->items relation)
+                // We want to update the status of this item in our list to 'sold' or 'out'
+                // The StockOut controller updates status to 'sold', 'transfer', etc.
+                // But the event payload $stockOut->items might just contain the pivot or the current state.
+                // Actually StockOutController: $stockOut->items()->attach($detail->id);
+                // $stockOut->load(['items.product']) returns the ProductDetail models.
+                // Their status should be updated in DB by Controller before dispatch.
+                // So 'item' should have the new status.
+
+                updateProduct(item.id, { status: item.status });
+            });
+        }
+
+        // For Non-HP items
+        let nonHpItems = data.non_hp_items;
+        if (typeof nonHpItems === 'string') {
+            try { nonHpItems = JSON.parse(nonHpItems); } catch (e) { nonHpItems = []; }
+        }
+
+        if (Array.isArray(nonHpItems)) {
+            nonHpItems.forEach(item => {
+                // Find inventory record by product_id
+                // Note: This matches assuming the user looking is the one who owns the inventory or viewing the same placement
+                // Since StockOutEvent is broadcasted to 'stock-out' channel, everyone receives it.
+                // We should only update if our local list contains this product_id.
+                const productInStore = products.value.find(p => p.product_id === item.product_id);
+                if (productInStore) {
+                    // Update quantity
+                    // Ensure we don't go below 0 visually
+                    const newQty = Math.max(0, parseInt(productInStore.quantity) - parseInt(item.quantity));
+                    updateProduct(productInStore.id, { quantity: newQty });
+                }
+            });
+        }
+    }
+
     return {
         // State
         products,
@@ -163,6 +223,8 @@ export const useInventoryStore = defineStore('inventory', () => {
         updateStock,
         addProduct,
         updateProduct,
-        deleteProduct
+        deleteProduct,
+        pushNewProduct,
+        handleStockOut
     }
 })

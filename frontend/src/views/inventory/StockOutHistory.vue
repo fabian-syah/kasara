@@ -141,6 +141,31 @@ watch([searchQuery, activeTab, filterMode, selectedMonth, selectedDate], () => {
 
 onMounted(() => {
     fetchData();
+
+    if (window.Echo) {
+        window.Echo.channel('stock-out')
+            .listen('.StockOutEvent', (e) => {
+                const out = e.stockOut;
+                // Determine if this stock out is relevant for current tab
+                const hasHp = out.items && out.items.length > 0;
+
+                // non_hp_items can be array or JSON string depending on serialization, but likely array due to casts
+                let hasNonHp = false;
+                if (Array.isArray(out.non_hp_items)) {
+                    hasNonHp = out.non_hp_items.length > 0;
+                } else if (typeof out.non_hp_items === 'string') {
+                    hasNonHp = out.non_hp_items.length > 2; // "{}" or "[]"
+                }
+
+                if (activeTab.value === 'hp' && hasHp) {
+                    items.value.unshift(out);
+                    toast.info(`Stok keluar baru: ${out.receipt_id}`);
+                } else if (activeTab.value === 'non-hp' && hasNonHp) {
+                    items.value.unshift(out);
+                    toast.info(`Stok keluar (Non-HP) baru: ${out.receipt_id}`);
+                }
+            });
+    }
 });
 
 const getCategoryLabel = (cat) => {

@@ -391,6 +391,35 @@ onMounted(() => {
     fetchInventory();
     fetchBranches();
     fetchCurrentBranch();
+
+    if (window.Echo) {
+        // Listen for new stock coming in
+        window.Echo.channel('inventory')
+            .listen('.StockInEvent', (e) => {
+                const product = e.product;
+                // Add to list if it's available (StockInEvent implies it is available initially)
+                // Check if already exists to avoid duplicate
+                if (inventoryItems.value.find(i => i.id === product.id)) return;
+
+                // Add to top
+                inventoryItems.value.unshift(product);
+                toast.success('Stok baru tersedia!');
+            });
+
+        // Listen for stock going out
+        window.Echo.channel('stock-out')
+            .listen('.StockOutEvent', (e) => {
+                const out = e.stockOut;
+                if (out.items && Array.isArray(out.items)) {
+                    out.items.forEach(outItem => {
+                        const idx = inventoryItems.value.findIndex(i => i.id === outItem.id);
+                        if (idx !== -1) {
+                            inventoryItems.value.splice(idx, 1);
+                        }
+                    });
+                }
+            });
+    }
 });
 </script>
 
@@ -506,7 +535,7 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                        }}</span>
+                                    }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[

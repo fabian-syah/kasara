@@ -134,6 +134,26 @@ watch([activeTab, searchQuery, filterMode, selectedMonth, selectedDate], () => {
 
 onMounted(() => {
     fetchData();
+
+    if (window.Echo) {
+        window.Echo.channel('inventory-log')
+            .listen('.InventoryLogEvent', (e) => {
+                const log = e.log;
+                const isHp = log.product && log.product.type === 'hp';
+                const isNonHp = log.product && log.product.type === 'non-hp';
+
+                if (activeTab.value === 'hp' && isHp) {
+                    items.value.unshift(log);
+                    // Optional: maintain limit
+                    if (items.value.length > 20) items.value.pop();
+                    toast.success(`History Masuk: ${log.product.name}`);
+                } else if (activeTab.value === 'non-hp' && isNonHp) {
+                    items.value.unshift(log);
+                    if (items.value.length > 20) items.value.pop();
+                    toast.success(`History Masuk: ${log.product.name}`);
+                }
+            });
+    }
 });
 </script>
 
@@ -249,7 +269,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                    }}</div>
+                                        }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>

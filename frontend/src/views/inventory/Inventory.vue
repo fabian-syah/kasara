@@ -164,10 +164,34 @@ const proofImagePreview = ref(null);
 
 // Branches & Warehouses
 const branches = ref([]);
-const warehouses = ref([]);
+const { user } = storeToRefs(authStore);
 
 onMounted(() => {
   loadInventory(); // Use new loader
+
+  // Real-time Updates
+  if (window.Echo) {
+    window.Echo.channel('inventory')
+      .listen('.StockInEvent', (e) => {
+        console.log('StockIn Event:', e);
+        // The event name might be prefixed with dot or namespace depending on Laravel Echo config.
+        // Usually it's just the class name if broadcastAs returns it, or full class name.
+        // In my Event class I used broadcastAs() return 'StockInEvent'.
+        // So .listen('.StockInEvent') or just 'StockInEvent'.
+        // If I used broadcastAs, I don't need dot.
+        // Wait, if I use broadcastAs, it's just that string.
+        // Let's assume 'StockInEvent'.
+
+        inventoryStore.pushNewProduct(e.product);
+        toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
+      });
+
+    window.Echo.channel('stock-out')
+      .listen('.StockOutEvent', (e) => {
+        console.log('StockOut Event:', e);
+        inventoryStore.handleStockOut(e.stockOut);
+      });
+  }
   fetchCurrentBranch();
   fetchCurrentWarehouse();
   fetchBranches();
