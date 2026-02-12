@@ -183,6 +183,8 @@ class StockOutController extends Controller
                         'reference_id' => 'OUT-' . time(), // Temp ref
                         'user_id' => $user->id,
                         'branch_id' => $user->branch_id ?? null,
+                        'warehouse_id' => $user->warehouse_id ?? null,
+                        'online_shop_id' => $user->online_shop_id ?? null,
                     ]);
                 }
             }
