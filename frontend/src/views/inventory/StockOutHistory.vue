@@ -296,7 +296,7 @@ const getCategoryColor = (cat) => {
                             <!-- Tanggal for both -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex flex-col">
-                                    <span v-if="activeTab === 'hp'" class="font-mono text-xs text-primary-400">
+                                    <span class="font-mono text-xs text-primary-400">
                                         {{ item.receipt_id || item.transaction_code || '-' }}
                                     </span>
                                     <span class="text-xs text-text-secondary flex items-center gap-1 mt-1">
@@ -367,18 +367,6 @@ const getCategoryColor = (cat) => {
 
                             <!-- Non-HP Specific Columns -->
                             <template v-else>
-                                <!-- Col 1: Tanggal/ID -->
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex flex-col">
-                                        <span class="font-mono text-xs text-primary-400">
-                                            {{ item.receipt_id }}
-                                        </span>
-                                        <span class="text-xs text-text-secondary">
-                                            {{ formatDate(item.created_at) }}
-                                        </span>
-                                    </div>
-                                </td>
-
                                 <!-- Col 2: Kategori -->
                                 <td class="px-6 py-4">
                                     <span
@@ -429,14 +417,14 @@ const getCategoryColor = (cat) => {
                                 <td class="px-6 py-4">
                                     <span class="font-bold text-red-400">
                                         -{{(item.non_hp_items || []).reduce((acc, curr) => acc +
-                                        parseInt(curr.quantity), 0) }} Unit
+                                            parseInt(curr.quantity), 0)}} Unit
                                     </span>
                                 </td>
 
                                 <!-- Col 6: Deskripsi / Catatan -->
                                 <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">
                                     {{ item.notes || item.shopee_notes || item.giveaway_notes || item.transfer_notes ||
-                                    '-' }}
+                                        '-' }}
                                 </td>
 
                                 <!-- Col 7: Admin / Inventory -->
