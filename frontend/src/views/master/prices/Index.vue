@@ -127,38 +127,60 @@ const confirmDelete = async () => {
 // Export to Excel
 const exporting = ref(false);
 
+const formatExcelDate = (dateString) => {
+    if (!dateString) return '-';
+    const d = new Date(dateString);
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    const hour = String(d.getHours()).padStart(2, '0');
+    const minute = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${month} ${year}  ${hour}:${minute}`;
+};
+
+const formatRupiahExcel = (val) => {
+    if (!val && val !== 0) return 'Rp 0';
+    return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
+};
+
 const exportToExcel = () => {
     exporting.value = true;
     try {
+        const TAB = '\t';
         const categoryLabel = filters.value.category === 'hp' ? 'HP_IMEI' : 'Non_HP';
         const headers = filters.value.category === 'hp'
-            ? ['No', 'Brand', 'Tipe', 'Kapasitas', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Diperbarui']
-            : ['No', 'Brand', 'Tipe', 'Harga Modal', 'Harga Jual', 'Diperbarui'];
+            ? ['No', 'Brand', 'Tipe', 'Kapasitas', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Tanggal', 'Jam']
+            : ['No', 'Brand', 'Tipe', 'Harga Modal', 'Harga Jual', 'Tanggal', 'Jam'];
 
-        let csvContent = '\uFEFF'; // BOM for UTF-8
-        csvContent += headers.join(';') + '\n';
+        let tsvContent = '\uFEFF'; // BOM for UTF-8
+        tsvContent += headers.join(TAB) + '\n';
 
         prices.value.forEach((item, index) => {
             const brand = item.product_type?.brand?.name || '-';
             const tipe = item.product_type?.name || '-';
             const kapasitas = [item.ram, item.storage].filter(Boolean).join(' / ') || '-';
             const kondisi = item.condition === 'new' ? 'Baru' : 'Bekas';
-            const modal = item.cost_price || 0;
-            const jual = item.price || 0;
-            const updated = formatDate(item.updated_at);
+            const modal = formatRupiahExcel(item.cost_price);
+            const jual = formatRupiahExcel(item.price);
+
+            // Split date and time
+            const d = item.updated_at ? new Date(item.updated_at) : null;
+            const tanggal = d ? `${String(d.getDate()).padStart(2, '0')} ${['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][d.getMonth()]} ${d.getFullYear()}` : '-';
+            const jam = d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '-';
 
             const row = filters.value.category === 'hp'
-                ? [index + 1, brand, tipe, kapasitas, kondisi, modal, jual, updated]
-                : [index + 1, brand, tipe, modal, jual, updated];
+                ? [index + 1, brand, tipe, kapasitas, kondisi, modal, jual, tanggal, jam]
+                : [index + 1, brand, tipe, modal, jual, tanggal, jam];
 
-            csvContent += row.join(';') + '\n';
+            tsvContent += row.join(TAB) + '\n';
         });
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blob = new Blob([tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `Data_Harga_${categoryLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.download = `Data_Harga_${categoryLabel}_${new Date().toISOString().slice(0, 10)}.xls`;
         link.click();
         URL.revokeObjectURL(url);
         toast.success('Data berhasil diexport!');
