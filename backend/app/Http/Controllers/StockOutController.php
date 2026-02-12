@@ -377,9 +377,9 @@ class StockOutController extends Controller
 
             $results = [];
 
-            // 1. Search STOCK IN
+            // 1. Search STOCK IN - Pakai Exact Match (Hapus LIKE)
             $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
-                ->where('imei', $query)
+                ->where('imei', $query) // Harus persis sama
                 ->get();
 
             foreach ($productDetails as $detail) {
@@ -389,27 +389,27 @@ class StockOutController extends Controller
                     'imei' => $detail->imei,
                     'product_name' => $detail->product?->name,
                     'status' => $detail->status,
-                    'created_at' => $detail->created_at->format('Y-m-d H:i:s'), // Simpan format asli untuk sorting
+                    // Pastikan format string untuk sorting
+                    'created_at' => $detail->created_at->toDateTimeString(),
                 ];
             }
 
-            // 2. Search STOCK OUT (Optimized Query)
+            // 2. Search STOCK OUT - Pakai Exact Match untuk IMEI dan Resi
             $stockOuts = StockOut::with(['items.product', 'user', 'destinationBranch'])
-                ->where('receipt_id', $query)
-                ->orWhere('shopee_tracking_no', $query) // No Resi biasanya harus spesifik
-                ->orWhere('shopee_items_data', $query)
+                ->where('receipt_id', $query) // Exact Match ID Resi Internal
+                ->orWhere('shopee_tracking_no', $query) // Exact Match No Resi Shopee
                 ->orWhereHas('items', function ($q) use ($query) {
-                    $q->where('imei', $query);
+                    $q->where('imei', $query); // Exact Match IMEI
                 })
+                // Opsional: Jika masih ingin mencari di dalam JSON Shopee tapi secara spesifik
+                // Kita bisa biarkan ini jika query-nya memang nomor resi lengkap
+                ->orWhere('shopee_items_data', 'like', "%\"{$query}\"%")
                 ->get()
                 ->unique('id');
 
             foreach ($stockOuts as $out) {
                 try {
-                    // 1. Ambil data Shopee Items
                     $shopeeItems = $out->shopee_items_data;
-
-                    // Pastikan $shopeeItems adalah array (handle cast otomatis Laravel atau manual)
                     if (is_string($shopeeItems)) {
                         $shopeeItems = json_decode($shopeeItems, true);
                     }
@@ -418,7 +418,6 @@ class StockOutController extends Controller
                     $shopeeReceivers = [];
                     $shopeeTrackingNos = [];
 
-                    // 2. Logic Ekstraksi Data
                     if (count($shopeeItems) > 0) {
                         foreach ($shopeeItems as $item) {
                             if (!empty($item['receiver']))
@@ -428,7 +427,6 @@ class StockOutController extends Controller
                         }
                     }
 
-                    // 3. Fallback ke field legacy jika array kosong (untuk data lama)
                     if (empty($shopeeReceivers) && $out->shopee_receiver) {
                         $shopeeReceivers[] = $out->shopee_receiver;
                     }
@@ -436,7 +434,6 @@ class StockOutController extends Controller
                         $shopeeTrackingNos[] = $out->shopee_tracking_no;
                     }
 
-                    // 4. Masukkan ke hasil akhir
                     $results[] = [
                         'type' => 'stock_out',
                         'id' => $out->receipt_id,
@@ -444,23 +441,21 @@ class StockOutController extends Controller
                         'items' => $out->items->map(fn($i) => [
                             'imei' => $i->imei,
                             'product_name' => $i->product?->name,
-                        ])->toArray(), // Jangan lupa tambahkan logic non_hp_items yang tadi jika perlu
-
-                        // INI YANG PENTING: Gabungkan array jadi string untuk ditampilkan di UI
+                        ])->toArray(),
                         'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                         'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
-
                         'destination_branch' => $out->destinationBranch?->name,
                         'receiver_name' => $out->receiver_name,
                         'customer_name' => $out->customer_name,
                         'processed_by' => $out->user?->name ?? $out->user?->username,
-                        'created_at' => $out->created_at,
+                        'created_at' => $out->created_at->toDateTimeString(),
                     ];
                 } catch (\Exception $e) {
                     continue;
                 }
             }
 
+            // Urutkan: Terbaru di paling atas (Status keluar biasanya paling baru)
             usort($results, function ($a, $b) {
                 return strtotime($b['created_at']) - strtotime($a['created_at']);
             });
@@ -474,8 +469,6 @@ class StockOutController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error: ' . $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
             ], 500);
         }
     }
