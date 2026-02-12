@@ -20,7 +20,7 @@ const fetchData = async () => {
         brands.value = res.data.data;
     } catch (error) {
         console.error(error);
-        toast.error('Gagal memuat data merek');
+        toast.error('Gagal memuat data brand');
     } finally {
         loading.value = false;
     }
@@ -133,13 +133,13 @@ onMounted(fetchData);
         <!-- Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-text-primary tracking-tight">Data Merek</h1>
-                <p class="text-text-secondary mt-1">Kelola daftar merek produk</p>
+                <h1 class="text-2xl font-bold text-text-primary tracking-tight">Data Brand</h1>
+                <p class="text-text-secondary mt-1">Kelola daftar brand produk</p>
             </div>
             <button @click="openCreateModal"
                 class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary-500/20 active:scale-95">
                 <Plus :size="20" />
-                <span>Tambah Merek</span>
+                <span>Tambah Brand</span>
             </button>
         </div>
 
@@ -167,7 +167,7 @@ onMounted(fetchData);
             <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                 <div class="relative max-w-md">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-                    <input v-model="searchQuery" type="text" placeholder="Cari nama merek..."
+                    <input v-model="searchQuery" type="text" placeholder="Cari nama brand..."
                         class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                 </div>
             </div>
@@ -189,7 +189,7 @@ onMounted(fetchData);
                 <table class="w-full text-sm text-left text-text-primary">
                     <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
                         <tr>
-                            <th class="px-6 py-4">Nama Merek</th>
+                            <th class="px-6 py-4">Nama Brand</th>
                             <th class="px-6 py-4">Kategori</th>
                             <th class="px-6 py-4 text-center">Total Produk</th>
                             <th class="px-6 py-4">Tanggal Dibuat</th>
