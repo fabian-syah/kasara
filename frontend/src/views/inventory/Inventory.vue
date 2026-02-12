@@ -945,12 +945,13 @@ function getStockStatus(product) {
               <th>SKU</th>
               <th>Produk</th>
 
-              <!-- HP Columns -->
               <template v-if="activeTab === 'hp'">
                 <th>Kapasitas</th>
+                <th>Kondisi</th>
                 <th>IMEI</th>
                 <th>Lokasi</th>
                 <th>Distributor</th>
+                <th>Harga Modal</th>
                 <th>Harga Jual</th>
                 <th>Status</th>
               </template>
@@ -1011,6 +1012,12 @@ function getStockStatus(product) {
                   }}</span>
                   <span v-else class="text-text-secondary">-</span>
                 </td>
+                <td class="text-sm">
+                  <span class="badge"
+                    :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'">
+                    {{ item.condition === 'new' ? 'Baru' : 'Bekas' }}
+                  </span>
+                </td>
                 <td class="font-mono text-sm">
                   <div class="bg-surface-700/50 px-2 py-1 rounded w-fit text-text-primary">{{ item.imei }}</div>
                 </td>
@@ -1029,6 +1036,9 @@ function getStockStatus(product) {
                 </td>
                 <td class="text-sm text-text-secondary">
                   {{ item.distributor?.name || item.supplier_name || '-' }}
+                </td>
+                <td class="text-text-secondary text-sm">
+                  {{ formatCurrency(item.cost_price) }}
                 </td>
                 <td class="text-text-primary font-medium">
                   {{ formatCurrency(item.selling_price) }}
