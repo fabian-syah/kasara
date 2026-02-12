@@ -407,34 +407,60 @@ class StockOutController extends Controller
                 ->unique('id');
 
             foreach ($stockOuts as $out) {
-                // Mapping Items (HP & Non-HP)
-                $mappedItems = $out->items->map(fn($i) => [
-                    'imei' => $i->imei,
-                    'product_name' => $i->product?->name,
-                ])->toArray();
+                try {
+                    // 1. Ambil data Shopee Items
+                    $shopeeItems = $out->shopee_items_data;
 
-                // Tambahkan Non-HP items jika ada
-                $nonHpRaw = is_string($out->non_hp_items) ? json_decode($out->non_hp_items, true) : $out->non_hp_items;
-                if (is_array($nonHpRaw)) {
-                    foreach ($nonHpRaw as $nhp) {
-                        $p = \App\Models\Product::find($nhp['product_id']);
-                        $mappedItems[] = [
-                            'imei' => 'Qty: ' . ($nhp['quantity'] ?? 1),
-                            'product_name' => $p ? $p->name : 'Unknown Product',
-                            'is_non_hp' => true
-                        ];
+                    // Pastikan $shopeeItems adalah array (handle cast otomatis Laravel atau manual)
+                    if (is_string($shopeeItems)) {
+                        $shopeeItems = json_decode($shopeeItems, true);
                     }
-                }
+                    $shopeeItems = $shopeeItems ?? [];
 
-                $results[] = [
-                    'type' => 'stock_out',
-                    'id' => $out->receipt_id,
-                    'category' => $out->category,
-                    'items' => $mappedItems,
-                    'processed_by' => $out->user?->name ?? $out->user?->username,
-                    'created_at' => $out->created_at,
-                    // Masukkan field shopee_receivers dll seperti kode awalmu
-                ];
+                    $shopeeReceivers = [];
+                    $shopeeTrackingNos = [];
+
+                    // 2. Logic Ekstraksi Data
+                    if (count($shopeeItems) > 0) {
+                        foreach ($shopeeItems as $item) {
+                            if (!empty($item['receiver']))
+                                $shopeeReceivers[] = $item['receiver'];
+                            if (!empty($item['tracking_no']))
+                                $shopeeTrackingNos[] = $item['tracking_no'];
+                        }
+                    }
+
+                    // 3. Fallback ke field legacy jika array kosong (untuk data lama)
+                    if (empty($shopeeReceivers) && $out->shopee_receiver) {
+                        $shopeeReceivers[] = $out->shopee_receiver;
+                    }
+                    if (empty($shopeeTrackingNos) && $out->shopee_tracking_no) {
+                        $shopeeTrackingNos[] = $out->shopee_tracking_no;
+                    }
+
+                    // 4. Masukkan ke hasil akhir
+                    $results[] = [
+                        'type' => 'stock_out',
+                        'id' => $out->receipt_id,
+                        'category' => $out->category,
+                        'items' => $out->items->map(fn($i) => [
+                            'imei' => $i->imei,
+                            'product_name' => $i->product?->name,
+                        ])->toArray(), // Jangan lupa tambahkan logic non_hp_items yang tadi jika perlu
+
+                        // INI YANG PENTING: Gabungkan array jadi string untuk ditampilkan di UI
+                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+
+                        'destination_branch' => $out->destinationBranch?->name,
+                        'receiver_name' => $out->receiver_name,
+                        'customer_name' => $out->customer_name,
+                        'processed_by' => $out->user?->name ?? $out->user?->username,
+                        'created_at' => $out->created_at,
+                    ];
+                } catch (\Exception $e) {
+                    continue;
+                }
             }
 
             return response()->json([
