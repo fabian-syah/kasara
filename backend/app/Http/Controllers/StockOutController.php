@@ -369,155 +369,163 @@ class StockOutController extends Controller
     // Track by IMEI or Receipt ID
     public function track(Request $request)
     {
-        $query = $request->q;
+        try {
+            $query = $request->q;
 
-        if (!$query || strlen($query) < 3) {
-            return response()->json(['message' => 'Query minimal 3 karakter'], 422);
-        }
-
-        $results = [];
-
-        // ==========================================
-        // PART 1: Search STOCK IN (Product Details)
-        // ==========================================
-        $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
-            ->where('imei', 'like', "%{$query}%")
-            ->get();
-
-        foreach ($productDetails as $detail) {
-            $results[] = [
-                'type' => 'stock_in',
-                'id' => 'IN-' . $detail->id,
-                'imei' => $detail->imei,
-                'product_name' => $detail->product?->name,
-                'product_brand' => $detail->product?->brand,
-                'ram' => $detail->ram,
-                'storage' => $detail->storage,
-                'condition' => $detail->condition,
-                'status' => $detail->status,
-                'placement_type' => $detail->placement_type,
-                'placement_id' => $detail->placement_id,
-                'distributor' => $detail->distributor?->name,
-                'input_by' => $detail->user?->name ?? $detail->user?->username,
-                'cost_price' => $detail->cost_price,
-                'selling_price' => $detail->selling_price,
-                'created_at' => $detail->created_at,
-            ];
-        }
-
-        // ==========================================
-        // PART 2: Search STOCK OUT
-        // ==========================================
-        // Search by Receipt ID
-        $byReceipt = StockOut::with(['items.product', 'user', 'destinationBranch'])
-            ->where('receipt_id', 'like', "%{$query}%")
-            ->get();
-
-        // Search by IMEI in stock out items
-        $byImei = StockOut::with(['items.product', 'user', 'destinationBranch'])
-            ->whereHas('items', function ($q) use ($query) {
-                $q->where('imei', 'like', "%{$query}%");
-            })
-            ->get();
-
-        // Search by Shopee tracking (legacy field OR inside shopee_items_data JSON)
-        $byShopee = StockOut::with(['items.product', 'user', 'destinationBranch'])
-            ->where(function ($q) use ($query) {
-                $q->where('shopee_tracking_no', 'like', "%{$query}%")
-                    ->orWhere('shopee_items_data', 'like', "%{$query}%");
-            })
-            ->get();
-
-        $stockOuts = $byReceipt->merge($byImei)->merge($byShopee)->unique('id');
-
-        foreach ($stockOuts as $out) {
-            try {
-                // Parse Shopee per-item data
-                $shopeeItems = $out->shopee_items_data ?? [];
-                $shopeeReceivers = [];
-                $shopeeTrackingNos = [];
-
-                if (is_array($shopeeItems) && count($shopeeItems) > 0) {
-                    foreach ($shopeeItems as $item) {
-                        if (!empty($item['receiver'])) {
-                            $shopeeReceivers[] = $item['receiver'];
-                        }
-                        if (!empty($item['tracking_no'])) {
-                            $shopeeTrackingNos[] = $item['tracking_no'];
-                        }
-                    }
-                } else {
-                    // Fallback to legacy single fields
-                    if ($out->shopee_receiver) {
-                        $shopeeReceivers[] = $out->shopee_receiver;
-                    }
-                    if ($out->shopee_tracking_no) {
-                        $shopeeTrackingNos[] = $out->shopee_tracking_no;
-                    }
-                }
-
-                $results[] = [
-                    'type' => 'stock_out',
-                    'id' => $out->receipt_id,
-                    'category' => $out->category,
-                    'items' => $out->items->map(fn($i) => [
-                        'imei' => $i->imei,
-                        'product_name' => $i->product?->name,
-                    ])->when(!empty($out->non_hp_items), function ($collection) use ($out) {
-                        try {
-                            // Ensure it is an iterable array
-                            $items = is_string($out->non_hp_items)
-                                ? json_decode($out->non_hp_items, true)
-                                : $out->non_hp_items;
-
-                            if (!is_array($items))
-                                return $collection;
-
-                            $nonHp = collect($items)->map(function ($item) {
-                                if (!isset($item['product_id']))
-                                    return null;
-
-                                $product = \App\Models\Product::find($item['product_id']);
-                                return [
-                                    'imei' => 'Qty: ' . ($item['quantity'] ?? 1),
-                                    'product_name' => $product ? $product->name : 'Unknown Product',
-                                    'is_non_hp' => true
-                                ];
-                            })->filter(); // Remove nulls
-    
-                            return $collection->merge($nonHp);
-                        } catch (\Exception $e) {
-                            return $collection;
-                        }
-                    }),
-                    'destination_branch' => $out->destinationBranch?->name,
-                    'receiver_name' => $out->receiver_name,
-                    'customer_name' => $out->customer_name,
-                    // Shopee: now returns arrays for per-item data
-                    'shopee_receivers' => $shopeeReceivers,
-                    'shopee_tracking_nos' => $shopeeTrackingNos,
-                    'shopee_items_data' => $shopeeItems, // Full per-item data
-                    // Legacy fields for backward compatibility
-                    'shopee_receiver' => implode(', ', $shopeeReceivers) ?: null,
-                    'shopee_tracking_no' => implode(', ', $shopeeTrackingNos) ?: null,
-                    'deletion_reason' => $out->deletion_reason,
-                    'processed_by' => $out->user?->name ?? $out->user?->username,
-                    'created_at' => $out->created_at,
-                ];
-            } catch (\Exception $e) {
-                // Log error or skip faulty record
-                continue;
+            if (!$query || strlen($query) < 3) {
+                return response()->json(['message' => 'Query minimal 3 karakter'], 422);
             }
+
+            $results = [];
+
+            // ==========================================
+            // PART 1: Search STOCK IN (Product Details)
+            // ==========================================
+            $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
+                ->where('imei', 'like', "%{$query}%")
+                ->get();
+
+            foreach ($productDetails as $detail) {
+                $results[] = [
+                    'type' => 'stock_in',
+                    'id' => 'IN-' . $detail->id,
+                    'imei' => $detail->imei,
+                    'product_name' => $detail->product?->name,
+                    'product_brand' => $detail->product?->brand,
+                    'ram' => $detail->ram,
+                    'storage' => $detail->storage,
+                    'condition' => $detail->condition,
+                    'status' => $detail->status,
+                    'placement_type' => $detail->placement_type,
+                    'placement_id' => $detail->placement_id,
+                    'distributor' => $detail->distributor?->name,
+                    'input_by' => $detail->user?->name ?? $detail->user?->username,
+                    'cost_price' => $detail->cost_price,
+                    'selling_price' => $detail->selling_price,
+                    'created_at' => $detail->created_at,
+                ];
+            }
+
+            // ==========================================
+            // PART 2: Search STOCK OUT
+            // ==========================================
+            // Search by Receipt ID
+            $byReceipt = StockOut::with(['items.product', 'user', 'destinationBranch'])
+                ->where('receipt_id', 'like', "%{$query}%")
+                ->get();
+
+            // Search by IMEI in stock out items
+            $byImei = StockOut::with(['items.product', 'user', 'destinationBranch'])
+                ->whereHas('items', function ($q) use ($query) {
+                    $q->where('imei', 'like', "%{$query}%");
+                })
+                ->get();
+
+            // Search by Shopee tracking (legacy field OR inside shopee_items_data JSON)
+            $byShopee = StockOut::with(['items.product', 'user', 'destinationBranch'])
+                ->where(function ($q) use ($query) {
+                    $q->where('shopee_tracking_no', 'like', "%{$query}%")
+                        ->orWhere('shopee_items_data', 'like', "%{$query}%");
+                })
+                ->get();
+
+            $stockOuts = $byReceipt->merge($byImei)->merge($byShopee)->unique('id');
+
+            foreach ($stockOuts as $out) {
+                try {
+                    // Parse Shopee per-item data
+                    $shopeeItems = $out->shopee_items_data ?? [];
+                    $shopeeReceivers = [];
+                    $shopeeTrackingNos = [];
+
+                    if (is_array($shopeeItems) && count($shopeeItems) > 0) {
+                        foreach ($shopeeItems as $item) {
+                            if (!empty($item['receiver'])) {
+                                $shopeeReceivers[] = $item['receiver'];
+                            }
+                            if (!empty($item['tracking_no'])) {
+                                $shopeeTrackingNos[] = $item['tracking_no'];
+                            }
+                        }
+                    } else {
+                        // Fallback to legacy single fields
+                        if ($out->shopee_receiver) {
+                            $shopeeReceivers[] = $out->shopee_receiver;
+                        }
+                        if ($out->shopee_tracking_no) {
+                            $shopeeTrackingNos[] = $out->shopee_tracking_no;
+                        }
+                    }
+
+                    $results[] = [
+                        'type' => 'stock_out',
+                        'id' => $out->receipt_id,
+                        'category' => $out->category,
+                        'items' => $out->items->map(fn($i) => [
+                            'imei' => $i->imei,
+                            'product_name' => $i->product?->name,
+                        ])->when(!empty($out->non_hp_items), function ($collection) use ($out) {
+                            try {
+                                // Ensure it is an iterable array
+                                $items = is_string($out->non_hp_items)
+                                    ? json_decode($out->non_hp_items, true)
+                                    : $out->non_hp_items;
+
+                                if (!is_array($items))
+                                    return $collection;
+
+                                $nonHp = collect($items)->map(function ($item) {
+                                    if (!isset($item['product_id']))
+                                        return null;
+
+                                    $product = \App\Models\Product::find($item['product_id']);
+                                    return [
+                                        'imei' => 'Qty: ' . ($item['quantity'] ?? 1),
+                                        'product_name' => $product ? $product->name : 'Unknown Product',
+                                        'is_non_hp' => true
+                                    ];
+                                })->filter(); // Remove nulls
+    
+                                return $collection->merge($nonHp);
+                            } catch (\Exception $e) {
+                                return $collection;
+                            }
+                        }),
+                        'destination_branch' => $out->destinationBranch?->name,
+                        'receiver_name' => $out->receiver_name,
+                        'customer_name' => $out->customer_name,
+                        // Shopee: now returns arrays for per-item data
+                        'shopee_receivers' => $shopeeReceivers,
+                        'shopee_tracking_nos' => $shopeeTrackingNos,
+                        'shopee_items_data' => $shopeeItems, // Full per-item data
+                        // Legacy fields for backward compatibility
+                        'shopee_receiver' => implode(', ', $shopeeReceivers) ?: null,
+                        'shopee_tracking_no' => implode(', ', $shopeeTrackingNos) ?: null,
+                        'deletion_reason' => $out->deletion_reason,
+                        'processed_by' => $out->user?->name ?? $out->user?->username,
+                        'created_at' => $out->created_at,
+                    ];
+                } catch (\Exception $e) {
+                    // Log error or skip faulty record
+                    continue;
+                }
+            }
+
+            // Sort by created_at desc
+            usort($results, fn($a, $b) => strtotime((string) $b['created_at']) - strtotime((string) $a['created_at']));
+
+            return response()->json([
+                'query' => $query,
+                'count' => count($results),
+                'data' => $results
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Terjadi kesalahan server: ' . $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
+            ], 500);
         }
-
-        // Sort by created_at desc
-        usort($results, fn($a, $b) => strtotime((string) $b['created_at']) - strtotime((string) $a['created_at']));
-
-        return response()->json([
-            'query' => $query,
-            'count' => count($results),
-            'data' => $results
-        ]);
     }
 
     // Helper: Get status based on category
