@@ -324,7 +324,11 @@ class StockOutController extends Controller
             DB::commit();
 
             // Dispatch Event for Real-time Update
-            event(new \App\Events\StockOutEvent($stockOut->load(['items.product', 'user', 'destinationBranch', 'inventoryUser'])));
+            try {
+                event(new \App\Events\StockOutEvent($stockOut->load(['items.product', 'user', 'destinationBranch', 'inventoryUser'])));
+            } catch (\Exception $e) {
+                \Log::error("Failed to broadcast StockOutEvent: " . $e->getMessage());
+            }
 
             return response()->json([
                 'message' => 'Stok berhasil dikeluarkan',

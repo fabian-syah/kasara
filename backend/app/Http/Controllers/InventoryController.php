@@ -563,9 +563,13 @@ class InventoryController extends Controller
 
                 // Dispatch Events for HP Items
                 foreach ($newDetails as $detail) {
-                    // Load relationships to match what frontend expects
-                    $detail->load(['product', 'distributor', 'user']);
-                    event(new \App\Events\StockInEvent($detail));
+                    try {
+                        // Load relationships to match what frontend expects
+                        $detail->load(['product', 'distributor', 'user']);
+                        event(new \App\Events\StockInEvent($detail));
+                    } catch (\Exception $e) {
+                        \Log::error("Failed to broadcast StockInEvent for HP item: " . $e->getMessage());
+                    }
                 }
 
                 return response()->json([
@@ -580,7 +584,11 @@ class InventoryController extends Controller
 
             // Dispatch Event for Non-HP
             if ($request->type === 'non-hp') {
-                event(new \App\Events\StockInEvent($inventory->load(['product', 'user'])));
+                try {
+                    event(new \App\Events\StockInEvent($inventory->load(['product', 'user'])));
+                } catch (\Exception $e) {
+                    \Log::error("Failed to broadcast StockInEvent for Non-HP item: " . $e->getMessage());
+                }
             }
 
             return response()->json(['message' => 'Stock in successful'], 201);
