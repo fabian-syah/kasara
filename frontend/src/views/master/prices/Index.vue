@@ -132,75 +132,45 @@ const formatRupiahExcel = (val) => {
     return 'Rp ' + new Intl.NumberFormat('id-ID').format(val);
 };
 
-const escapeXml = (str) => {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-};
-
 const exportToExcel = () => {
     exporting.value = true;
     try {
         const categoryLabel = filters.value.category === 'hp' ? 'HP_IMEI' : 'Non_HP';
-        const headers = filters.value.category === 'hp'
-            ? ['No', 'Brand', 'Tipe', 'Kapasitas', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Tanggal', 'Jam']
-            : ['No', 'Brand', 'Tipe', 'Harga Modal', 'Harga Jual', 'Tanggal', 'Jam'];
+        const isHp = filters.value.category === 'hp';
 
-        const colCount = headers.length;
+        let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Data Harga</x:Name></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body><table border="1">';
 
-        // Build rows data
-        const rows = prices.value.map((item, index) => {
+        // Header
+        html += '<tr style="background:#1E293B;color:#fff;font-weight:bold">';
+        html += '<td>No</td><td>Brand</td><td>Tipe</td>';
+        if (isHp) html += '<td>Kapasitas</td><td>Kondisi</td>';
+        html += '<td>Harga Modal</td><td>Harga Jual</td><td>Tanggal</td><td>Jam</td>';
+        html += '</tr>';
+
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+        // Data rows
+        prices.value.forEach((item, index) => {
             const brand = item.product_type?.brand?.name || '-';
             const tipe = item.product_type?.name || '-';
             const kapasitas = [item.ram, item.storage].filter(Boolean).join(' / ') || '-';
             const kondisi = item.condition === 'new' ? 'Baru' : 'Bekas';
             const modal = formatRupiahExcel(item.cost_price);
             const jual = formatRupiahExcel(item.price);
-
             const d = item.updated_at ? new Date(item.updated_at) : null;
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
             const tanggal = d ? `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}` : '-';
             const jam = d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '-';
 
-            return filters.value.category === 'hp'
-                ? [index + 1, brand, tipe, kapasitas, kondisi, modal, jual, tanggal, jam]
-                : [index + 1, brand, tipe, modal, jual, tanggal, jam];
+            html += '<tr>';
+            html += `<td>${index + 1}</td><td>${brand}</td><td>${tipe}</td>`;
+            if (isHp) html += `<td>${kapasitas}</td><td>${kondisi}</td>`;
+            html += `<td>${modal}</td><td>${jual}</td><td>${tanggal}</td><td>${jam}</td>`;
+            html += '</tr>';
         });
 
-        // Build Excel XML
-        const xmlCell = (val, isNumber = false) => {
-            if (isNumber) {
-                return `<Cell><Data ss:Type="Number">${val}</Data></Cell>`;
-            }
-            return `<Cell><Data ss:Type="String">${escapeXml(val)}</Data></Cell>`;
-        };
+        html += '</table></body></html>';
 
-        let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<?mso-application progid="Excel.Sheet"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
- <Style ss:ID="hdr"><Font ss:Bold="1" ss:Size="11"/><Interior ss:Color="#1E293B" ss:Pattern="Solid"/><Font ss:Color="#FFFFFF" ss:Bold="1"/></Style>
- <Style ss:ID="def"><Font ss:Size="10"/></Style>
-</Styles>
-<Worksheet ss:Name="Data Harga">
-<Table ss:DefaultColumnWidth="100">`;
-
-        // Header row
-        xml += `<Row ss:StyleID="hdr">`;
-        headers.forEach(h => { xml += `<Cell><Data ss:Type="String">${escapeXml(h)}</Data></Cell>`; });
-        xml += `</Row>`;
-
-        // Data rows
-        rows.forEach(row => {
-            xml += `<Row ss:StyleID="def">`;
-            row.forEach((cell, i) => {
-                xml += xmlCell(cell, i === 0); // Only 'No' column is numeric
-            });
-            xml += `</Row>`;
-        });
-
-        xml += `</Table></Worksheet></Workbook>`;
-
-        const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+        const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
