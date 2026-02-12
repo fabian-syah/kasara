@@ -85,6 +85,7 @@ class InventoryController extends Controller
                     ->first();
 
                 $item->latest_supplier = $lastLog ? ($lastLog->supplier_name ?? ($lastLog->distributor ? $lastLog->distributor->name : null)) : null;
+                $item->notes = $lastLog ? $lastLog->notes : null;
 
                 return $item;
             });
@@ -755,6 +756,7 @@ class InventoryController extends Controller
         DB::beginTransaction();
         try {
             foreach ($details as $detail) {
+                /** @var \App\Models\ProductDetail $detail */
                 // Split by newline, comma, space
                 $imeis = preg_split('/[\s,\n]+/', $detail->imei, -1, PREG_SPLIT_NO_EMPTY);
                 $imeis = array_values(array_unique($imeis));

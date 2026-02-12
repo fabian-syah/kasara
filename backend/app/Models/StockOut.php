@@ -55,6 +55,7 @@ class StockOut extends Model
         'user_id',
         'inventory_user_id',
         'notes',
+        'non_hp_items',
         // Confirmation
         'confirmed_at',
         'confirmed_by',
@@ -65,6 +66,7 @@ class StockOut extends Model
         'updated_at' => 'datetime',
         'confirmed_at' => 'datetime',
         'shopee_items_data' => 'array',
+        'non_hp_items' => 'array',
     ];
 
     // Relationships

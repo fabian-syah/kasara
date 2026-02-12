@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use App\Models\Inventory;
+use App\Models\InventoryLog;
+use App\Models\Product;
 
 class StockOutController extends Controller
 {
@@ -64,8 +67,11 @@ class StockOutController extends Controller
                     'inventaris'
                 ])
             ],
-            'product_detail_ids' => 'required|array|min:1',
+            'product_detail_ids' => 'required_without:non_hp_items|array',
             'product_detail_ids.*' => 'exists:product_details,id',
+            'non_hp_items' => 'required_without:product_detail_ids|array',
+            'non_hp_items.*.product_id' => 'required|exists:products,id',
+            'non_hp_items.*.quantity' => 'required|integer|min:1',
 
             // Pindah Cabang
             'destination_branch_id' => 'required_if:category,pindah_cabang|nullable|exists:branches,id',
@@ -127,13 +133,58 @@ class StockOutController extends Controller
         DB::beginTransaction();
 
         try {
-            // Verify all items are available
-            $productDetails = ProductDetail::whereIn('id', $request->product_detail_ids)
-                ->where('status', 'available')
-                ->get();
+            // Verify HP items availability
+            $productDetails = collect();
+            if ($request->product_detail_ids) {
+                $productDetails = ProductDetail::whereIn('id', $request->product_detail_ids)
+                    ->where('status', 'available')
+                    ->get();
 
-            if ($productDetails->count() !== count($request->product_detail_ids)) {
-                throw new \Exception('Beberapa barang sudah tidak tersedia atau sudah keluar stok.');
+                if ($productDetails->count() !== count($request->product_detail_ids)) {
+                    throw new \Exception('Beberapa barang HP sudah tidak tersedia atau sudah keluar stok.');
+                }
+            }
+
+            // Verify Non-HP items availability and Deduct
+            $user = Auth::user();
+            if ($request->non_hp_items) {
+                foreach ($request->non_hp_items as $item) {
+                    $product = Product::findOrFail($item['product_id']);
+
+                    // Identify Inventory Source based on User
+                    $invQuery = Inventory::where('product_id', $item['product_id']);
+
+                    if ($user->branch_id) {
+                        $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                    } elseif ($user->warehouse_id) {
+                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
+                    } elseif ($user->online_shop_id) {
+                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                    } else if (!$user->hasRole('super_admin')) {
+                        throw new \Exception("Anda tidak memiliki lokasi fisik untuk mengurangi stok.");
+                    }
+
+                    $inventory = $invQuery->first();
+
+                    if (!$inventory || $inventory->quantity < $item['quantity']) {
+                        throw new \Exception("Stok tidak cukup untuk produk: {$product->name}");
+                    }
+
+                    // Deduct
+                    $inventory->decrement('quantity', $item['quantity']);
+
+                    // Log
+                    InventoryLog::create([
+                        'product_id' => $item['product_id'],
+                        'type' => 'out',
+                        'quantity' => $item['quantity'],
+                        'balance_after' => $inventory->quantity,
+                        'description' => "Stock Out ({$request->category})",
+                        'reference_id' => 'OUT-' . time(), // Temp ref
+                        'user_id' => $user->id,
+                        'branch_id' => $user->branch_id ?? null,
+                    ]);
+                }
             }
 
             // Handle File Upload
@@ -193,6 +244,7 @@ class StockOutController extends Controller
                 'giveaway_notes' => $request->giveaway_notes,
 
                 'notes' => $request->notes, // Generic notes
+                'non_hp_items' => $request->non_hp_items, // Stored as JSON
             ]);
 
             // Attach items and update status
@@ -204,6 +256,7 @@ class StockOutController extends Controller
             }
 
             foreach ($productDetails as $detail) {
+                /** @var \App\Models\ProductDetail $detail */
                 $stockOut->items()->attach($detail->id);
 
                 $updateData = ['status' => $newStatus];

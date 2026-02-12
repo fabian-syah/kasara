@@ -369,6 +369,10 @@ function toggleSelectAll() {
 function toggleSelect(item) {
   const idx = selectedItems.value.findIndex(i => i.id === item.id);
   if (idx === -1) {
+    // Init quantity for non-hp
+    if (activeTab.value === 'non-hp') {
+      item.out_quantity = 1;
+    }
     selectedItems.value.push(item);
   } else {
     selectedItems.value.splice(idx, 1);
@@ -593,9 +597,17 @@ async function submitStockOut() {
     const formData = new FormData();
     formData.append('category', selectedStockOutCategory.value);
 
-    selectedItems.value.forEach(item => {
-      formData.append('product_detail_ids[]', item.id);
-    });
+    // HP vs Non-HP Payload
+    if (activeTab.value === 'non-hp') {
+      selectedItems.value.forEach((item, index) => {
+        formData.append(`non_hp_items[${index}][product_id]`, item.product_id);
+        formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || 1);
+      });
+    } else {
+      selectedItems.value.forEach(item => {
+        formData.append('product_detail_ids[]', item.id);
+      });
+    }
 
     if (selectedInventoryUser.value) {
       formData.append('inventory_user_id', selectedInventoryUser.value.id);
@@ -830,7 +842,7 @@ function getStockStatus(product) {
 
         <!-- Keluar Stok Button -->
         <button class="btn" :class="selectedItems.length > 0 ? 'btn-primary' : 'btn-secondary'"
-          @click="openStockOutModal" :disabled="selectedItems.length === 0 || activeTab === 'non-hp'">
+          @click="openStockOutModal" :disabled="selectedItems.length === 0">
           <ArrowDownUp :size="16" />
           Keluar Stok
           <span v-if="selectedItems.length > 0" class="ml-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
@@ -1326,7 +1338,13 @@ function getStockStatus(product) {
                         <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
                         <span>{{ item.product?.name }}</span>
                         <span class="text-text-secondary">|</span>
-                        <span>{{ item.imei }}</span>
+                        <span v-if="activeTab === 'hp'">{{ item.imei }}</span>
+                        <div v-else class="flex items-center gap-1">
+                          <input type="number" v-model="item.out_quantity"
+                            class="w-12 h-6 text-xs p-1 rounded bg-surface-900 border border-surface-600 text-center"
+                            min="1" :max="item.quantity">
+                          <span class="text-text-secondary">/ {{ item.quantity }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1410,7 +1428,13 @@ function getStockStatus(product) {
                         <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
                         <span>{{ item.product?.name }}</span>
                         <span class="text-text-secondary">|</span>
-                        <span>{{ item.imei }}</span>
+                        <span v-if="activeTab === 'hp'">{{ item.imei }}</span>
+                        <div v-else class="flex items-center gap-1">
+                          <input type="number" v-model="item.out_quantity"
+                            class="w-12 h-6 text-xs p-1 rounded bg-surface-900 border border-surface-600 text-center"
+                            min="1" :max="item.quantity">
+                          <span class="text-text-secondary">/ {{ item.quantity }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
