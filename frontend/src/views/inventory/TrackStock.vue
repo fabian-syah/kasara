@@ -29,6 +29,7 @@ const results = ref([]);
 const hasSearched = ref(false);
 
 // Category styling for stock out
+// Di dalam <script setup>
 const categoryIcons = {
     pindah_cabang: Building2,
     kesalahan_input: AlertTriangle,
@@ -214,16 +215,16 @@ function formatCurrency(value) {
                             'border-l-blue-500': result.category === 'pindah_cabang',
                             'border-l-amber-500': result.category === 'kesalahan_input',
                             'border-l-purple-500': result.category === 'retur',
-                            'border-l-orange-500': result.category === 'shopee',
+                            'border-l-[#EE4D2D]': result.category === 'shopee', // Warna Oranye Shopee
                         }">
-                        <!-- Header -->
+
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
                                     'bg-blue-500/20 text-blue-500': result.category === 'pindah_cabang',
                                     'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
                                     'bg-purple-500/20 text-purple-500': result.category === 'retur',
-                                    'bg-orange-500/20 text-orange-500': result.category === 'shopee',
+                                    'bg-[#EE4D2D]/20 text-[#EE4D2D]': result.category === 'shopee', // Warna Oranye Shopee
                                 }">
                                     <component :is="categoryIcons[result.category]" :size="24" />
                                 </div>
@@ -291,7 +292,7 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                    }}</span>
+                                                }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>
