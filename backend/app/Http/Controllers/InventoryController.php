@@ -463,7 +463,7 @@ class InventoryController extends Controller
         if ($request->name) {
             $query->where('name', 'like', '%' . $request->name . '%');
         }
-        return response()->json($query->select('id', 'name', 'type', 'sku', 'brand', 'cost_price', 'price')->limit(20)->get());
+        return response()->json($query->select('id', 'name', 'type', 'sku', 'brand', 'price')->limit(20)->get());
     }
 
     // Update item status (e.g., accept return: returned -> available)
