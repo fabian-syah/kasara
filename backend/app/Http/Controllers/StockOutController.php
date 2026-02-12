@@ -462,17 +462,32 @@ class StockOutController extends Controller
                 'items' => $out->items->map(fn($i) => [
                     'imei' => $i->imei,
                     'product_name' => $i->product?->name,
-                ])->when($out->non_hp_items, function ($collection) use ($out) {
-                    // Enrich non-hp items
-                    $nonHp = collect($out->non_hp_items)->map(function ($item) {
-                        $product = \App\Models\Product::find($item['product_id']);
-                        return [
-                            'imei' => 'Qty: ' . $item['quantity'],
-                            'product_name' => $product ? $product->name : 'Unknown Product',
-                            'is_non_hp' => true
-                        ];
-                    });
-                    return $collection->merge($nonHp);
+                ])->when(!empty($out->non_hp_items), function ($collection) use ($out) {
+                    try {
+                        // Ensure it is an iterable array
+                        $items = is_string($out->non_hp_items)
+                            ? json_decode($out->non_hp_items, true)
+                            : $out->non_hp_items;
+
+                        if (!is_array($items))
+                            return $collection;
+
+                        $nonHp = collect($items)->map(function ($item) {
+                            if (!isset($item['product_id']))
+                                return null;
+
+                            $product = \App\Models\Product::find($item['product_id']);
+                            return [
+                                'imei' => 'Qty: ' . ($item['quantity'] ?? 1),
+                                'product_name' => $product ? $product->name : 'Unknown Product',
+                                'is_non_hp' => true
+                            ];
+                        })->filter(); // Remove nulls
+    
+                        return $collection->merge($nonHp);
+                    } catch (\Exception $e) {
+                        return $collection;
+                    }
                 }),
                 'destination_branch' => $out->destinationBranch?->name,
                 'receiver_name' => $out->receiver_name,

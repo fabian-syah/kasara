@@ -365,37 +365,91 @@ const getCategoryColor = (cat) => {
                                 </td>
                             </template>
 
-                            <!-- Non-HP Specific Columns (InventoryLog) -->
+                            <!-- Non-HP Specific Columns -->
                             <template v-else>
-                                <td class="px-6 py-4">
+                                <!-- Col 1: Tanggal/ID -->
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex flex-col">
-                                        <span class="font-medium text-text-primary">{{ item.product?.name }}</span>
-                                        <span class="text-xs text-text-secondary font-mono">{{ item.product?.sku
-                                            }}</span>
+                                        <span class="font-mono text-xs text-primary-400">
+                                            {{ item.receipt_id }}
+                                        </span>
+                                        <span class="text-xs text-text-secondary">
+                                            {{ formatDate(item.created_at) }}
+                                        </span>
                                     </div>
                                 </td>
+
+                                <!-- Col 2: Kategori -->
                                 <td class="px-6 py-4">
-                                    <span v-if="item.selling_price" class="font-mono text-emerald-400">
-                                        {{ new Intl.NumberFormat('id-ID', {
-                                            style: 'currency', currency: 'IDR'
-                                        }).format(item.selling_price) }}
+                                    <span
+                                        class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
+                                        :class="getCategoryColor(item.category)">
+                                        {{ getCategoryLabel(item.category) }}
                                     </span>
-                                    <span v-else class="text-text-secondary text-xs">-</span>
                                 </td>
+
+                                <!-- Col 3: Tujuan / Penerima -->
                                 <td class="px-6 py-4">
-                                    <div class="flex flex-col">
-                                        <span class="text-red-400 font-bold mb-1">-{{ item.quantity }} Unit</span>
-                                        <span class="text-xs text-text-secondary">Balance: {{ item.balance_after
-                                            }}</span>
+                                    <div class="flex items-center gap-2">
+                                        <Truck v-if="item.category === 'pindah_cabang'" :size="16"
+                                            class="text-text-secondary" />
+                                        <User v-else :size="16" class="text-text-secondary" />
+                                        <span class="font-medium whitespace-nowrap max-w-[150px] truncate block">
+                                            {{ item.category === 'pindah_cabang'
+                                                ? (item.destination_branch ? item.destination_branch.name : '-')
+                                                : (item.receiver_name || item.shopee_receiver || item.giveaway_receiver ||
+                                                    item.recipient_name || '-')
+                                            }}
+                                        </span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">
-                                    {{ item.description || '-' }}
-                                </td>
+
+                                <!-- Col 4: Item (Product Name) -->
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2 text-xs">
-                                        <User :size="12" />
-                                        <span>{{ item.user ? item.user.name : '-' }}</span>
+                                    <div class="flex flex-col gap-1">
+                                        <div v-for="(detail, index) in (item.non_hp_items || []).slice(0, 3)"
+                                            :key="index" class="text-xs flex justify-between gap-4">
+                                            <span class="text-text-secondary truncate max-w-[150px]">
+                                                {{ detail.product_name || 'Unknown Product' }}
+                                            </span>
+                                            <span class="font-mono text-xs bg-surface-900 px-1 rounded">
+                                                Qty: {{ detail.quantity }}
+                                            </span>
+                                        </div>
+                                        <div v-if="(item.non_hp_items || []).length > 3"
+                                            class="text-xs text-primary-400 italic">
+                                            +{{ (item.non_hp_items || []).length - 3 }} item lainnya
+                                        </div>
+                                        <span v-if="!(item.non_hp_items || []).length"
+                                            class="text-xs text-text-secondary md:hidden block">-</span>
+                                    </div>
+                                </td>
+
+                                <!-- Col 5: Quantity (Total) -->
+                                <td class="px-6 py-4">
+                                    <span class="font-bold text-red-400">
+                                        -{{(item.non_hp_items || []).reduce((acc, curr) => acc +
+                                        parseInt(curr.quantity), 0) }} Unit
+                                    </span>
+                                </td>
+
+                                <!-- Col 6: Deskripsi / Catatan -->
+                                <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">
+                                    {{ item.notes || item.shopee_notes || item.giveaway_notes || item.transfer_notes ||
+                                    '-' }}
+                                </td>
+
+                                <!-- Col 7: Admin / Inventory -->
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2 text-sm font-bold text-white">
+                                            <User :size="14" class="text-primary-400" />
+                                            <span>{{ item.inventory_user ? (item.inventory_user.full_name ||
+                                                item.inventory_user.name) : '-' }}</span>
+                                        </div>
+                                        <span class="text-[10px] text-text-secondary mt-1 ml-6">
+                                            Admin: {{ item.user ? item.user.name : '-' }}
+                                        </span>
                                     </div>
                                 </td>
                             </template>
