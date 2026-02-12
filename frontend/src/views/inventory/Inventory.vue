@@ -967,6 +967,7 @@ function getStockStatus(product) {
                 <th>Distributor / Supplier</th>
               </template>
 
+              <th>Catatan</th>
               <th>Akun Inventory</th>
               <th class="text-center">Aksi</th>
             </tr>
@@ -1077,6 +1078,13 @@ function getStockStatus(product) {
                   {{ item.latest_supplier || item.latest_distributor || '-' }}
                 </td>
               </template>
+
+              <td class="max-w-[200px]">
+                <span v-if="item.notes" class="text-xs text-text-secondary italic block truncate" :title="item.notes">
+                  {{ item.notes }}
+                </span>
+                <span v-else class="text-text-secondary/30">-</span>
+              </td>
 
               <td>
                 <div class="flex flex-col">

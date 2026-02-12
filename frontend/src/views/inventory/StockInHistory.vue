@@ -249,7 +249,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                        }}</div>
+                                    }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>
@@ -293,6 +293,15 @@ onMounted(() => {
                                         {{ item.description }}
                                     </div>
                                 </div>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <span v-if="item.notes"
+                                    class="text-xs text-text-secondary italic max-w-[200px] block truncate"
+                                    :title="item.notes">
+                                    {{ item.notes }}
+                                </span>
+                                <span v-else class="text-text-secondary/30">-</span>
                             </td>
 
                             <td class="px-6 py-4">
