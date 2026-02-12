@@ -68,6 +68,19 @@ const imeiRows = ref([
 ]);
 const nonHpForm = ref({ quantity: 1 });
 
+// --- REFACTORED: Single Bulk Input Logic ---
+const bulkImeiText = ref("");
+const batchDetails = ref({
+    condition: "new",
+    cost_price: 0,
+    selling_price: 0
+});
+
+// Parsed IMEIs for count/validation
+const parsedImeis = computed(() => {
+    return bulkImeiText.value.split(/[^a-zA-Z0-9]+/).filter(s => s.length >= 5);
+});
+
 // Hierarchical Selection State
 const brands = ref([]);
 const allowedTypes = ref([]);
@@ -213,17 +226,7 @@ watch([() => batchDetails.value.condition, selectedRam, selectedStorage], () => 
 });
 
 // --- REFACTORED: Single Bulk Input Logic ---
-const bulkImeiText = ref("");
-const batchDetails = ref({
-    condition: "new",
-    cost_price: 0,
-    selling_price: 0
-});
-
-// Parsed IMEIs for count/validation
-const parsedImeis = computed(() => {
-    return bulkImeiText.value.split(/[^a-zA-Z0-9]+/).filter(s => s.length >= 5);
-});
+// Moved to top state to prevent ReferenceError
 
 // NEW: Optimized Watcher
 watch([selectedBrand, selectedTypeName], ([newBrand, newType]) => {
