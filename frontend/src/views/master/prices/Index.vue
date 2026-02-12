@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { Plus, Search, Edit2, Trash2, Tag, Smartphone, Filter } from 'lucide-vue-next';
-import { productPrices as api, brands as brandsApi, productTypes as typesApi } from '../../../api/axios';
+import { ref, onMounted, watch } from 'vue';
+import { Plus, Search, Edit2, Trash2, RefreshCw, Box, Download } from 'lucide-vue-next';
+import { productPrices as api, brands as brandsApi, productTypes as typesApi, auth as apiAuth } from '../../../api/axios';
 import { useToast } from '../../../composables/useToast';
-import PriceModal from './PriceModal.vue'; // We will create this next
+import PriceModal from './PriceModal.vue';
 
 const toast = useToast();
 const loading = ref(false);
@@ -14,11 +14,27 @@ const types = ref([]);
 const showModal = ref(false);
 const selectedPrice = ref(null);
 
+// --- Delete with Password Confirmation ---
+const showDeleteModal = ref(false);
+const deletePassword = ref('');
+const priceToDelete = ref(null);
+const verifyingPassword = ref(false);
+
+// Debounced search
+let searchTimeout = null;
+const searchInput = ref('');
+
 const filters = ref({
     search: '',
-    product_type_id: '',
     condition: '',
-    category: 'hp' // default to hp
+    category: 'hp'
+});
+
+watch(searchInput, (val) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        filters.value.search = val;
+    }, 300);
 });
 
 // Fetch Data
@@ -61,6 +77,7 @@ const openModal = (price = null) => {
 };
 
 const formatRupiah = (val) => {
+    if (!val && val !== 0) return 'Rp 0';
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -79,52 +96,131 @@ const formatDate = (dateString) => {
     }).format(new Date(dateString));
 };
 
-const confirmDelete = async (id) => {
-    if (!confirm('Yakin ingin menghapus harga ini?')) return;
+// Delete with password
+const openDeleteModal = (id) => {
+    priceToDelete.value = id;
+    deletePassword.value = '';
+    showDeleteModal.value = true;
+};
+
+const confirmDelete = async () => {
+    if (!deletePassword.value) return;
+    verifyingPassword.value = true;
     try {
-        await api.delete(id);
+        await apiAuth.verifyPassword(deletePassword.value);
+        await api.delete(priceToDelete.value);
         toast.success('Harga berhasil dihapus');
         fetchData();
+        showDeleteModal.value = false;
+    } catch (error) {
+        console.error(error);
+        if (error.response && error.response.status === 422) {
+            toast.error('Password salah!');
+        } else {
+            toast.error('Gagal menghapus harga');
+        }
+    } finally {
+        verifyingPassword.value = false;
+    }
+};
+
+// Export to Excel
+const exporting = ref(false);
+
+const exportToExcel = () => {
+    exporting.value = true;
+    try {
+        const categoryLabel = filters.value.category === 'hp' ? 'HP_IMEI' : 'Non_HP';
+        const headers = filters.value.category === 'hp'
+            ? ['No', 'Brand', 'Tipe', 'Kapasitas', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Diperbarui']
+            : ['No', 'Brand', 'Tipe', 'Harga Modal', 'Harga Jual', 'Diperbarui'];
+
+        let csvContent = '\uFEFF'; // BOM for UTF-8
+        csvContent += headers.join(';') + '\n';
+
+        prices.value.forEach((item, index) => {
+            const brand = item.product_type?.brand?.name || '-';
+            const tipe = item.product_type?.name || '-';
+            const kapasitas = [item.ram, item.storage].filter(Boolean).join(' / ') || '-';
+            const kondisi = item.condition === 'new' ? 'Baru' : 'Bekas';
+            const modal = item.cost_price || 0;
+            const jual = item.price || 0;
+            const updated = formatDate(item.updated_at);
+
+            const row = filters.value.category === 'hp'
+                ? [index + 1, brand, tipe, kapasitas, kondisi, modal, jual, updated]
+                : [index + 1, brand, tipe, modal, jual, updated];
+
+            csvContent += row.join(';') + '\n';
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Data_Harga_${categoryLabel}_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('Data berhasil diexport!');
     } catch (e) {
-        toast.error('Gagal menghapus');
+        console.error(e);
+        toast.error('Gagal export data');
+    } finally {
+        exporting.value = false;
     }
 };
 </script>
 
 <template>
-    <div class="space-y-6 animate-in fade-in">
-        <div class="flex items-center justify-between">
+    <div class="space-y-4 sm:space-y-6 animate-in">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-                <h1 class="text-2xl font-bold text-text-primary">Data Harga</h1>
-                <p class="text-text-secondary">Kelola harga dasar berdasarkan Tipe dan Kondisi</p>
+                <h1 class="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">Data Harga</h1>
+                <p class="text-text-secondary text-sm mt-1">Kelola harga dasar berdasarkan Tipe dan Kondisi</p>
             </div>
-            <button @click="openModal()" class="btn btn-primary flex items-center gap-2 px-4 py-2 rounded-xl">
-                <Plus :size="18" /> Tambah Harga
-            </button>
+            <div class="flex items-center gap-2">
+                <button @click="exportToExcel" :disabled="exporting || prices.length === 0"
+                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 sm:px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Download :size="18" />
+                    <span class="hidden sm:inline">Export Excel</span>
+                </button>
+                <button @click="openModal()"
+                    class="bg-primary-600 hover:bg-primary-700 text-white px-3 sm:px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary-500/20 active:scale-95 text-sm">
+                    <Plus :size="18" />
+                    <span class="hidden sm:inline">Tambah Harga</span>
+                </button>
+            </div>
         </div>
 
         <!-- Filters -->
-        <div class="bg-surface-800 p-4 rounded-xl border border-surface-700 flex gap-4 flex-wrap">
-            <div class="relative flex-1 min-w-[200px]">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-                <input v-model="filters.search" class="input pl-10 bg-surface-900" placeholder="Cari Tipe / Merek..." />
+        <div class="bg-surface-800 p-3 sm:p-4 rounded-2xl border border-surface-700">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-1">
+                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
+                    <input v-model="searchInput" type="text" placeholder="Cari Brand / Tipe..."
+                        class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
+                </div>
+                <select v-if="filters.category === 'hp'" v-model="filters.condition"
+                    class="w-full sm:w-44 bg-surface-900 border border-surface-700 rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 appearance-none">
+                    <option value="">Semua Kondisi</option>
+                    <option value="new">Baru (New)</option>
+                    <option value="second">Bekas (Second)</option>
+                </select>
             </div>
-            <select v-if="filters.category === 'hp'" v-model="filters.condition" class="input bg-surface-900 w-[150px]">
-                <option value="">Semua Kondisi</option>
-                <option value="new">Baru (New)</option>
-                <option value="second">Bekas (Second)</option>
-            </select>
         </div>
 
         <!-- Category Tabs -->
         <div class="flex gap-2 border-b border-surface-700">
-            <button @click="filters.category = 'hp'" class="px-6 py-3 font-medium transition-all relative"
+            <button @click="filters.category = 'hp'"
+                class="px-4 sm:px-6 py-3 font-medium transition-all relative text-sm"
                 :class="filters.category === 'hp' ? 'text-primary-500' : 'text-text-secondary hover:text-text-primary'">
                 HP / IMEI
                 <div v-if="filters.category === 'hp'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500">
                 </div>
             </button>
-            <button @click="filters.category = 'non-hp'" class="px-6 py-3 font-medium transition-all relative"
+            <button @click="filters.category = 'non-hp'"
+                class="px-4 sm:px-6 py-3 font-medium transition-all relative text-sm"
                 :class="filters.category === 'non-hp' ? 'text-primary-500' : 'text-text-secondary hover:text-text-primary'">
                 Non HP / Aksesoris
                 <div v-if="filters.category === 'non-hp'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500">
@@ -132,61 +228,87 @@ const confirmDelete = async (id) => {
             </button>
         </div>
 
-        <!-- Table -->
-        <div class="bg-surface-800 rounded-xl border border-surface-700 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-surface-700 bg-surface-900/50 text-text-secondary text-sm">
-                            <th class="p-4 font-medium">Merek & Tipe</th>
-                            <th v-if="filters.category === 'hp'" class="p-4 font-medium">Kondisi</th>
-                            <th class="p-4 font-medium">Harga Modal</th>
-                            <th class="p-4 font-medium">Harga Jual</th>
-                            <th class="p-4 font-medium">Diperbarui</th>
-                            <th class="p-4 font-medium text-right">Aksi</th>
+        <!-- Content -->
+        <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+            <!-- Loading -->
+            <div v-if="loading" class="p-8 sm:p-12 flex justify-center items-center">
+                <RefreshCw class="animate-spin text-primary-500" :size="28" />
+                <span class="ml-3 text-text-secondary text-sm">Memuat data...</span>
+            </div>
+
+            <!-- Empty -->
+            <div v-else-if="prices.length === 0" class="p-8 sm:p-12 text-center text-text-secondary">
+                <Box :size="40" class="mx-auto mb-3 opacity-50" />
+                <p class="text-sm">Belum ada data harga</p>
+            </div>
+
+            <!-- Desktop Table -->
+            <div v-else class="hidden md:block overflow-x-auto">
+                <table class="w-full text-sm text-left text-text-primary">
+                    <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
+                        <tr>
+                            <th class="px-5 py-3">Brand & Tipe</th>
+                            <th v-if="filters.category === 'hp'" class="px-5 py-3 text-center">Kapasitas</th>
+                            <th v-if="filters.category === 'hp'" class="px-5 py-3 text-center">Kondisi</th>
+                            <th class="px-5 py-3 text-right">Harga Modal</th>
+                            <th class="px-5 py-3 text-right">Harga Jual</th>
+                            <th class="px-5 py-3">Diperbarui</th>
+                            <th class="px-5 py-3 text-right">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-surface-700">
-                        <tr v-if="loading" class="animate-pulse">
-                            <td colspan="5" class="p-8 text-center text-text-secondary">Memuat data...</td>
-                        </tr>
-                        <tr v-else-if="prices.length === 0">
-                            <td colspan="5" class="p-8 text-center text-text-secondary">Belum ada data harga.</td>
-                        </tr>
-                        <tr v-else v-for="item in prices" :key="item.id"
-                            class="hover:bg-surface-700/30 transition-colors">
-                            <td class="p-4">
-                                <div class="font-bold text-text-primary">{{ item.product_type?.name }}</div>
-                                <div class="text-xs text-text-secondary">{{ item.product_type?.brand?.name }}</div>
-                                <div v-if="(item.ram || item.storage) && filters.category === 'hp'"
-                                    class="flex gap-1 mt-1">
-                                    <span v-if="item.ram"
-                                        class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded text-text-secondary">{{
-                                            item.ram }}</span>
-                                    <span v-if="item.storage"
-                                        class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded text-text-secondary">{{
-                                            item.storage }}</span>
+                    <tbody class="divide-y divide-surface-700/50">
+                        <tr v-for="item in prices" :key="item.id" class="hover:bg-surface-700/30 transition-colors">
+                            <!-- Combined Brand & Type -->
+                            <td class="px-5 py-3">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
+                                        <span class="text-primary-400 text-xs font-bold">{{
+                                            (item.product_type?.brand?.name || '?')[0] }}</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="font-semibold text-text-primary truncate">
+                                            {{ item.product_type?.brand?.name || '-' }} {{ item.product_type?.name || ''
+                                            }}
+                                        </p>
+                                    </div>
                                 </div>
                             </td>
-                            <td v-if="filters.category === 'hp'" class="p-4">
-                                <span class="px-2 py-1 rounded-lg text-xs font-bold uppercase tracking-wide"
-                                    :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'">
+                            <!-- Capacity (HP only) -->
+                            <td v-if="filters.category === 'hp'" class="px-5 py-3 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <span v-if="item.ram"
+                                        class="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-[11px] font-semibold border border-indigo-500/20">
+                                        {{ item.ram }}
+                                    </span>
+                                    <span v-if="item.storage"
+                                        class="inline-flex items-center px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[11px] font-semibold border border-cyan-500/20">
+                                        {{ item.storage }}
+                                    </span>
+                                    <span v-if="!item.ram && !item.storage"
+                                        class="text-text-secondary text-xs italic">-</span>
+                                </div>
+                            </td>
+                            <!-- Condition (HP only) -->
+                            <td v-if="filters.category === 'hp'" class="px-5 py-3 text-center">
+                                <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide"
+                                    :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'">
                                     {{ item.condition === 'new' ? 'BARU' : 'BEKAS' }}
                                 </span>
                             </td>
-                            <td class="p-4 text-text-primary">{{ formatRupiah(item.cost_price) }}</td>
-                            <td class="p-4 text-text-primary font-bold">{{ formatRupiah(item.price) }}</td>
-                            <td class="p-4 text-sm text-text-secondary">
-                                {{ formatDate(item.updated_at) }}
-                            </td>
-                            <td class="p-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
+                            <td class="px-5 py-3 text-right text-text-secondary text-sm">{{
+                                formatRupiah(item.cost_price) }}</td>
+                            <td class="px-5 py-3 text-right font-bold text-emerald-400 text-sm">{{
+                                formatRupiah(item.price) }}</td>
+                            <td class="px-5 py-3 text-text-secondary text-xs">{{ formatDate(item.updated_at) }}</td>
+                            <td class="px-5 py-3 text-right">
+                                <div class="flex justify-end gap-1">
                                     <button @click="openModal(item)"
-                                        class="p-2 hover:bg-surface-600 rounded-lg text-blue-400 transition-colors">
+                                        class="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
                                         <Edit2 :size="16" />
                                     </button>
-                                    <button @click="confirmDelete(item.id)"
-                                        class="p-2 hover:bg-surface-600 rounded-lg text-red-400 transition-colors">
+                                    <button @click="openDeleteModal(item.id)"
+                                        class="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                                         <Trash2 :size="16" />
                                     </button>
                                 </div>
@@ -195,21 +317,116 @@ const confirmDelete = async (id) => {
                     </tbody>
                 </table>
             </div>
+
+            <!-- Mobile Card List -->
+            <div v-if="!loading && prices.length > 0" class="md:hidden divide-y divide-surface-700/50">
+                <div v-for="item in prices" :key="item.id" class="p-4 hover:bg-surface-700/20 transition-colors">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="w-9 h-9 rounded-xl bg-primary-500/10 flex items-center justify-center shrink-0">
+                                <span class="text-primary-400 text-xs font-bold">{{ (item.product_type?.brand?.name ||
+                                    '?')[0] }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-semibold text-text-primary text-sm truncate">
+                                    {{ item.product_type?.brand?.name || '-' }} {{ item.product_type?.name || '' }}
+                                </p>
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                    <span v-if="item.ram"
+                                        class="inline-flex px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-semibold border border-indigo-500/20">
+                                        {{ item.ram }}
+                                    </span>
+                                    <span v-if="item.storage"
+                                        class="inline-flex px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-semibold border border-cyan-500/20">
+                                        {{ item.storage }}
+                                    </span>
+                                    <span v-if="filters.category === 'hp'"
+                                        class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
+                                        :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'">
+                                        {{ item.condition === 'new' ? 'BARU' : 'BEKAS' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-1 shrink-0">
+                            <button @click="openModal(item)"
+                                class="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
+                                <Edit2 :size="16" />
+                            </button>
+                            <button @click="openDeleteModal(item.id)"
+                                class="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <Trash2 :size="16" />
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Price Row -->
+                    <div class="flex items-center justify-between mt-2.5 pt-2 border-t border-surface-700/50">
+                        <div class="flex items-center gap-4">
+                            <div>
+                                <p class="text-[10px] text-text-secondary uppercase">Modal</p>
+                                <p class="text-sm text-text-secondary">{{ formatRupiah(item.cost_price) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-text-secondary uppercase">Jual</p>
+                                <p class="text-sm font-bold text-emerald-400">{{ formatRupiah(item.price) }}</p>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-text-secondary">{{ formatDate(item.updated_at) }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <PriceModal :show="showModal" :price="selectedPrice" :initialCategory="filters.category"
             @close="showModal = false" @saved="fetchData(); showModal = false" />
+
+        <!-- Delete Confirmation Modal -->
+        <div v-if="showDeleteModal"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in">
+            <div class="bg-surface-800 border border-surface-700 rounded-2xl w-full max-w-md p-6 shadow-xl">
+                <h3 class="text-lg font-bold text-text-primary mb-2">Konfirmasi Hapus</h3>
+                <p class="text-text-secondary text-sm mb-5">
+                    Masukkan password Anda untuk melanjutkan penghapusan harga ini.
+                </p>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">Password</label>
+                        <input v-model="deletePassword" type="password" placeholder="Masukkan password anda"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-surface-500"
+                            @keyup.enter="confirmDelete" />
+                    </div>
+                    <div class="flex justify-end gap-3 pt-1">
+                        <button @click="showDeleteModal = false"
+                            class="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium text-sm transition-colors">
+                            Batal
+                        </button>
+                        <button @click="confirmDelete" :disabled="verifyingPassword || !deletePassword"
+                            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-red-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RefreshCw v-if="verifyingPassword" class="animate-spin" :size="16" />
+                            <Trash2 v-else :size="16" />
+                            <span>{{ verifyingPassword ? 'Memverifikasi...' : 'Hapus' }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
-@reference "../../../style.css";
-
-.input {
-    @apply w-full border border-surface-600 rounded-xl px-4 py-2 text-text-primary focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder:text-surface-500;
+.animate-in {
+    animation: fadeIn 0.3s ease-out;
 }
 
-.btn-primary {
-    @apply bg-primary-600 hover:bg-primary-500 text-white font-medium transition-all shadow-lg shadow-primary-500/20 active:scale-95;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

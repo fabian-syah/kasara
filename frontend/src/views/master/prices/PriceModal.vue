@@ -6,7 +6,6 @@ import { useToast } from '../../../composables/useToast';
 
 const props = defineProps({
     show: Boolean,
-    show: Boolean,
     price: Object, // If exists, editing
     initialCategory: String // 'hp' or 'non-hp'
 });
