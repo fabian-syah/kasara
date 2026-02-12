@@ -109,15 +109,22 @@ const capacityOptions = computed(() => {
     };
 });
 
+// Helper to populate brand/category from a price item
+const populateFromPrice = (priceItem) => {
+    if (!priceItem || types.value.length === 0) return;
+    form.value = { ...priceItem };
+    const type = types.value.find(t => t.id == priceItem.product_type_id);
+    if (type) {
+        selectedBrandId.value = type.brand_id;
+        const typeCat = (type.category || '').toLowerCase().trim();
+        const isHp = typeCat === 'imei' || typeCat === 'hp' || typeCat.includes('hp');
+        category.value = isHp ? 'hp' : 'non-hp';
+    }
+};
+
 watch(() => props.price, (newVal) => {
     if (newVal) {
-        form.value = { ...newVal };
-        // Set selectedBrandId to pre-fill dropdowns
-        const type = types.value.find(t => t.id === newVal.product_type_id);
-        if (type) {
-            selectedBrandId.value = type.brand_id;
-            category.value = type.category === 'HP / Gadget' ? 'hp' : 'non-hp';
-        }
+        populateFromPrice(newVal);
     } else {
         category.value = props.initialCategory || 'hp';
         form.value = {
@@ -131,6 +138,13 @@ watch(() => props.price, (newVal) => {
         selectedBrandId.value = '';
     }
 }, { immediate: true });
+
+// Re-populate when types finish loading (fixes race condition with onMounted)
+watch(() => types.value.length, () => {
+    if (props.price && types.value.length > 0) {
+        populateFromPrice(props.price);
+    }
+});
 
 const save = async () => {
     if (!form.value.product_type_id) {
