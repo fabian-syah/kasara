@@ -530,22 +530,24 @@ class InventoryController extends Controller
                             $existing->restore();
                         }
 
-                        // UPDATE properties to reflect new Stock In
+                        // UPDATE properties to reflect new Stock In (FRESH ENTRY)
                         $existing->update([
                             // Update core fields
-                            'product_id' => $product->id, // Ensure it matches (in case product type changed?)
-                            'ram' => $request->ram ?? $existing->ram,
+                            'product_id' => $product->id,
+                            'ram' => $request->ram ?? $existing->ram, // Keep existing spec if not provided (safer)
                             'storage' => $request->storage ?? $existing->storage,
                             'condition' => $item['condition'],
-                            'status' => 'available', // Set back to available
+                            'status' => 'available',
                             'placement_type' => $request->placement_type,
                             'placement_id' => $request->placement_id,
-                            'cost_price' => $item['cost_price'] ?? 0, // Handle nullable cost price
+                            'cost_price' => $item['cost_price'] ?? 0,
                             'selling_price' => $item['selling_price'] ?? null,
                             'distributor_id' => $distributorId,
                             'supplier_name' => $supplierName,
                             'user_id' => $ownerUserId,
                             'notes' => $request->notes,
+                            'created_at' => now(), // RESET Created At to make it look NEW
+                            'updated_at' => now(),
                         ]);
 
                         $newDetails[] = $existing;

@@ -283,8 +283,9 @@ const canSubmit = computed(() => {
         if (!selectedStorage.value) return false;
         // Check if we have at least one valid IMEI in the bulk text
         if (parsedImeis.value.length === 0) return false;
-        // Check prices - Cost Price is now OPTIONAL
-        // return batchDetails.value.cost_price >= 0; 
+        // Check prices - Selling Price is REQUIRED (Visual * added)
+        if (batchDetails.value.selling_price <= 0) return false;
+
         return true;
     }
     return nonHpForm.value.quantity > 0;
@@ -584,7 +585,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -728,7 +729,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -793,7 +794,8 @@ onMounted(fetchInitialData);
                             </div>
                         </div>
                         <div>
-                            <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan)</label>
+                            <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span
+                                    class="text-red-500">*</span></label>
                             <div
                                 class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
                                 <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
