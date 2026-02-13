@@ -471,19 +471,29 @@ class StockOutController extends Controller
 
             foreach ($stockOuts as $out) {
                 try {
-                    $shopeeItems = $out->shopee_items_data;
-                    if (is_string($shopeeItems)) {
-                        $shopeeItems = json_decode($shopeeItems, true);
-                    }
                     $shopeeItems = $shopeeItems ?? [];
 
                     $shopeeReceivers = [];
                     $shopeeTrackingNos = [];
 
+                    // 1. Extract from Shopee Items (IMEI)
                     if (count($shopeeItems) > 0) {
                         foreach ($shopeeItems as $item) {
                             if (!empty($item['receiver']))
                                 $shopeeReceivers[] = $item['receiver'];
+                            if (!empty($item['tracking_no']))
+                                $shopeeTrackingNos[] = $item['tracking_no'];
+                        }
+                    }
+
+                    // 2. Extract from Non-HP Items
+                    $nonHpItems = $out->non_hp_items ?? [];
+                    if (is_string($nonHpItems))
+                        $nonHpItems = json_decode($nonHpItems, true); // Safety
+
+                    if (!empty($nonHpItems)) {
+                        foreach ($nonHpItems as $item) {
+                            // Assuming Non-HP items might have tracking_no (if frontend sends it)
                             if (!empty($item['tracking_no']))
                                 $shopeeTrackingNos[] = $item['tracking_no'];
                         }
@@ -496,14 +506,36 @@ class StockOutController extends Controller
                         $shopeeTrackingNos[] = $out->shopee_tracking_no;
                     }
 
+                    // Prepare Items List (Merge HP and Non-HP)
+                    $mergedItems = $out->items->map(fn($i) => [
+                        'type' => 'hp',
+                        'imei' => $i->imei,
+                        'product_name' => $i->product?->name,
+                        'quantity' => 1,
+                    ])->toArray();
+
+                    // Enrich Non-HP Items with Product Name
+                    if (!empty($nonHpItems)) {
+                        $productIds = array_column($nonHpItems, 'product_id');
+                        if (!empty($productIds)) {
+                            $products = \App\Models\Product::whereIn('id', $productIds)->pluck('name', 'id');
+                            foreach ($nonHpItems as $item) {
+                                $mergedItems[] = [
+                                    'type' => 'non-hp',
+                                    'imei' => '-',
+                                    'product_name' => $products[$item['product_id']] ?? 'Unknown Product',
+                                    'quantity' => $item['quantity'] ?? 1,
+                                    'tracking_no' => $item['tracking_no'] ?? null,
+                                ];
+                            }
+                        }
+                    }
+
                     $results[] = [
                         'type' => 'stock_out',
                         'id' => $out->receipt_id,
                         'category' => $out->category,
-                        'items' => $out->items->map(fn($i) => [
-                            'imei' => $i->imei,
-                            'product_name' => $i->product?->name,
-                        ])->toArray(),
+                        'items' => $mergedItems,
                         'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                         'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
                         'destination_branch' => $out->destinationBranch?->name,
