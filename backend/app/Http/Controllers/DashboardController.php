@@ -40,7 +40,7 @@ class DashboardController extends Controller
 
         // 2. Recent Updates
         // Recent Product Types
-        $recentTypes = ProductType::with(['brand', 'category'])
+        $recentTypes = ProductType::with(['brand'])
             ->latest()
             ->take(5)
             ->get()
@@ -49,7 +49,7 @@ class DashboardController extends Controller
                     'id' => $type->id,
                     'name' => $type->name,
                     'brand_name' => $type->brand->name ?? '-',
-                    'category_name' => $type->category->name ?? '-',
+                    'category_name' => $type->category ?? '-', // Category is a string column, not relationship
                     'created_at' => $type->created_at->format('d M Y H:i'),
                 ];
             });
