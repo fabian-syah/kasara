@@ -531,10 +531,10 @@ class InventoryController extends Controller
                         }
 
                         // UPDATE properties to reflect new Stock In (FRESH ENTRY)
-                        $existing->update([
-                            // Update core fields
+                        $existing->fill([
+                            // Update core fields - Mass Assignable
                             'product_id' => $product->id,
-                            'ram' => $request->ram ?? $existing->ram, // Keep existing spec if not provided (safer)
+                            'ram' => $request->ram ?? $existing->ram, // Keep existing spec if not provided
                             'storage' => $request->storage ?? $existing->storage,
                             'condition' => $item['condition'],
                             'status' => 'available',
@@ -546,9 +546,12 @@ class InventoryController extends Controller
                             'supplier_name' => $supplierName,
                             'user_id' => $ownerUserId,
                             'notes' => $request->notes,
-                            'created_at' => now(), // RESET Created At to make it look NEW
-                            'updated_at' => now(),
                         ]);
+
+                        // FORCE UPDATE created_at (Bypass Mass Assignment Protection if not fillable)
+                        $existing->created_at = now();
+                        $existing->updated_at = now();
+                        $existing->save();
 
                         $newDetails[] = $existing;
                         $inserted_count++;
