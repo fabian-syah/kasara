@@ -425,13 +425,13 @@ class InventoryController extends Controller
 
             // For HP
             'imeis' => 'required_if:type,hp|array',
-            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[a-zA-Z0-9]+$/'], // No newlines allowed
+            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'], // Only numbers allowed
             // 'imeis.*.color' => 'nullable|string',
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
             'storage' => 'nullable|string', // Allow root storage
             'imeis.*.condition' => 'required_if:type,hp|in:new,second',
-            'imeis.*.cost_price' => 'required_if:type,hp|numeric|min:0',
+            'imeis.*.cost_price' => 'nullable|numeric|min:0', // Optional now
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
         ]);

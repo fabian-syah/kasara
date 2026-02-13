@@ -1020,7 +1020,7 @@ function getStockStatus(product) {
                 <th>IMEI</th>
                 <th>Lokasi</th>
                 <th>Distributor</th>
-                <th>Harga Modal</th>
+                <!-- Harga Modal Removed -->
                 <th>Harga Jual</th>
                 <th>Status</th>
               </template>
@@ -1107,9 +1107,7 @@ function getStockStatus(product) {
                 <td class="text-sm text-text-secondary">
                   {{ item.distributor?.name || item.supplier_name || '-' }}
                 </td>
-                <td class="text-text-secondary text-sm">
-                  {{ formatCurrency(item.cost_price) }}
-                </td>
+                <!-- Cost Price Removed -->
                 <td class="text-text-primary font-medium">
                   {{ formatCurrency(item.selling_price) }}
                 </td>
@@ -1344,7 +1342,7 @@ function getStockStatus(product) {
                           <div>
                             <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
                             <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
-                              }}</p>
+                            }}</p>
                           </div>
                         </div>
                         <span v-if="item.type !== 'non-hp'"

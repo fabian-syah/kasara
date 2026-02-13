@@ -275,8 +275,9 @@ const canSubmit = computed(() => {
         if (!selectedStorage.value) return false;
         // Check if we have at least one valid IMEI in the bulk text
         if (parsedImeis.value.length === 0) return false;
-        // Check prices
-        return batchDetails.value.cost_price > 0;
+        // Check prices - Cost Price is now OPTIONAL
+        // return batchDetails.value.cost_price >= 0; 
+        return true;
     }
     return nonHpForm.value.quantity > 0;
 });
@@ -575,7 +576,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -718,7 +719,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -805,7 +806,8 @@ onMounted(fetchInitialData);
                                 class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
                                 {{ parsedImeis.length }} items</span>
                         </label>
-                        <textarea v-model="bulkImeiText" rows="8"
+                        <textarea :value="bulkImeiText"
+                            @input="e => bulkImeiText = e.target.value.replace(/[^0-9\s]/g, '')" rows="8"
                             class="input bg-surface-900 font-mono text-sm leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500 transition-all placeholder:text-text-secondary/30"
                             placeholder="Contoh: &#10;123456789012345&#10;987654321098765&#10;Paste banyak IMEI sekaligus disini..."></textarea>
                         <p class="text-[10px] text-text-secondary flex items-center gap-1">
