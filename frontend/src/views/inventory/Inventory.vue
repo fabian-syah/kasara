@@ -350,6 +350,10 @@ const availableStockOutCategories = computed(() => {
   });
 });
 
+const requiresInventoryUser = computed(() => {
+  return ['pindah_cabang', 'inventaris'].includes(selectedStockOutCategory.value);
+});
+
 // Inventory Users State
 const inventoryUsers = ref([]);
 const selectedInventoryUser = ref(null);
@@ -1243,8 +1247,9 @@ function getStockStatus(product) {
           </div>
 
           <div v-else class="space-y-4">
-            <!-- STEP 2: SELECT INVENTORY ACCOUNT -->
-            <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
+
+            <!-- STEP 2: SELECT INVENTORY ACCOUNT (Conditional) -->
+            <div v-if="requiresInventoryUser && !selectedInventoryUser" class="animate-in slide-in-from-right">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
                   <UserCheck :size="20" class="text-emerald-500" />
@@ -1283,7 +1288,8 @@ function getStockStatus(product) {
 
                     <!-- Details -->
                     <div class="flex-1 min-w-0">
-                      <h4 class="font-bold text-white truncate text-base mb-0.5">{{ user.full_name || user.name }}</h4>
+                      <h4 class="font-bold text-white truncate text-base mb-0.5">{{ user.full_name || user.name }}
+                      </h4>
                       <div class="flex flex-col gap-0.5">
                         <span class="text-xs text-text-secondary uppercase tracking-wider font-medium">{{
                           user.roles?.[0]?.name || 'INVENTORY' }}</span>
@@ -1304,7 +1310,7 @@ function getStockStatus(product) {
 
             <!-- STEP 3: FORMS -->
             <template v-else>
-              <div
+              <div v-if="selectedInventoryUser"
                 class="flex items-center justify-between mb-6 bg-surface-700/30 p-3 rounded-xl border border-surface-600">
                 <div class="flex items-center gap-3">
                   <div
@@ -1497,7 +1503,8 @@ function getStockStatus(product) {
                             <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
                             <div>
                               <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
-                              <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                              <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{
+                                item.product?.type
                               }}</p>
                             </div>
                           </div>
