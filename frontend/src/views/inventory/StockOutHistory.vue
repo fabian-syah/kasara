@@ -203,6 +203,11 @@ const getCategoryColor = (cat) => {
     };
     return colors[cat] || 'text-surface-400 bg-surface-400/10 border-surface-400/20';
 };
+
+const formatCurrency = (value) => {
+    if (!value && value !== 0) return '-';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+};
 </script>
 
 <template>
@@ -356,6 +361,7 @@ const getCategoryColor = (cat) => {
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
+                                        <!-- HP Items -->
                                         <div v-for="(detail, index) in (item.items || []).slice(0, 3)" :key="index"
                                             class="text-xs flex justify-between gap-4">
                                             <span class="text-text-secondary truncate max-w-[150px]">
@@ -369,12 +375,31 @@ const getCategoryColor = (cat) => {
                                             class="text-xs text-primary-400 italic">
                                             +{{ (item.items || []).length - 3 }} item lainnya
                                         </div>
-                                        <span v-if="!(item.items || []).length"
+                                        <!-- Non-HP Items (mixed) -->
+                                        <div v-if="item.non_hp_items && item.non_hp_items.length > 0"
+                                            class="mt-1 border-t border-surface-700/40 pt-1">
+                                            <div v-for="(nhItem, idx) in item.non_hp_items" :key="'nh-' + idx"
+                                                class="text-xs flex justify-between gap-4">
+                                                <span class="text-amber-400 truncate max-w-[150px]">
+                                                    {{ nhItem.product_name || 'Non-HP' }}
+                                                </span>
+                                                <span class="font-mono text-xs bg-surface-900 px-1 rounded">
+                                                    ×{{ nhItem.quantity }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <span v-if="!(item.items || []).length && !(item.non_hp_items || []).length"
                                             class="text-xs text-text-secondary">-</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="font-bold text-red-400">-{{ (item.items || []).length }} Unit</span>
+                                    <div class="flex flex-col gap-1">
+                                        <span class="font-bold text-red-400">-{{ (item.items || []).length }}
+                                            Unit</span>
+                                        <span v-if="item.selling_price" class="text-xs text-emerald-400 font-medium">
+                                            {{ formatCurrency(item.selling_price) }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
@@ -433,26 +458,38 @@ const getCategoryColor = (cat) => {
                                             class="text-xs text-primary-400 italic">
                                             +{{ (item.non_hp_items || []).length - 3 }} item lainnya
                                         </div>
-                                        <span v-if="!(item.non_hp_items || []).length"
+                                        <!-- HP Items (mixed) -->
+                                        <div v-if="item.items && item.items.length > 0"
+                                            class="mt-1 border-t border-surface-700/40 pt-1">
+                                            <div v-for="(hpItem, idx) in item.items" :key="'hp-' + idx"
+                                                class="text-xs flex justify-between gap-4">
+                                                <span class="text-primary-400 truncate max-w-[150px]">
+                                                    {{ hpItem.product ? hpItem.product.name : 'HP' }}
+                                                </span>
+                                                <span class="font-mono text-xs bg-surface-900 px-1 rounded">
+                                                    {{ hpItem.imei }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <span v-if="!(item.non_hp_items || []).length && !(item.items || []).length"
                                             class="text-xs text-text-secondary md:hidden block">-</span>
                                     </div>
                                 </td>
 
                                 <!-- Col 5: Quantity (Total) -->
                                 <td class="px-6 py-4">
-                                    <span class="font-bold text-red-400">
-                                        -{{(item.non_hp_items || []).reduce((acc, curr) => acc +
-                                            parseInt(curr.quantity), 0)}} Unit
-                                    </span>
+                                    <div class="flex flex-col gap-1">
+                                        <span class="font-bold text-red-400">
+                                            -{{(item.non_hp_items || []).reduce((acc, curr) => acc +
+                                                parseInt(curr.quantity), 0)}} Unit
+                                        </span>
+                                        <span v-if="item.selling_price" class="text-xs text-emerald-400 font-medium">
+                                            {{ formatCurrency(item.selling_price) }}
+                                        </span>
+                                    </div>
                                 </td>
 
-                                <!-- Col 6: Deskripsi / Catatan -->
-                                <!-- <td class="px-6 py-4 text-text-secondary text-xs max-w-xs truncate">
-                                    {{ item.notes || item.shopee_notes || item.giveaway_notes || item.transfer_notes ||
-                                        '-' }}
-                                </td> -->
-
-                                <!-- Col 7: Admin / Inventory -->
+                                <!-- Col 6: Admin / Inventory -->
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
                                         <div class="flex items-center gap-2 text-sm font-bold text-white">

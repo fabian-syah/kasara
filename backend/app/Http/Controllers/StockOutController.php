@@ -398,6 +398,33 @@ class StockOutController extends Controller
 
         $history = $query->latest()->paginate(20);
 
+        // Enrich non_hp_items with product names
+        $productIds = [];
+        foreach ($history->items() as $item) {
+            if ($item->non_hp_items) {
+                foreach ($item->non_hp_items as $nonHpItem) {
+                    $productIds[] = $nonHpItem['product_id'];
+                }
+            }
+        }
+
+        if (!empty($productIds)) {
+            $products = Product::whereIn('id', array_unique($productIds))->get()->keyBy('id');
+
+            foreach ($history->items() as $item) {
+                if ($item->non_hp_items) {
+                    $enrichedItems = [];
+                    foreach ($item->non_hp_items as $nonHpItem) {
+                        $prod = $products[$nonHpItem['product_id']] ?? null;
+                        $nonHpItem['product_name'] = $prod ? $prod->name : 'Unknown Product';
+                        $nonHpItem['product_sku'] = $prod ? $prod->sku : '-';
+                        $enrichedItems[] = $nonHpItem;
+                    }
+                    $item->non_hp_items = $enrichedItems;
+                }
+            }
+        }
+
         return response()->json($history);
     }
 

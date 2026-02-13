@@ -91,6 +91,11 @@ const formatAddress = (stockOut, detailAddress) => {
     return parts.join(', ');
 };
 
+const formatCurrency = (value) => {
+    if (!value && value !== 0) return '-';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+};
+
 // Initial load
 onMounted(() => {
     fetchHistory();
@@ -131,93 +136,88 @@ onMounted(() => {
 
             <div v-else class="divide-y divide-surface-700">
                 <div v-for="item in history" :key="item.id" class="p-4 hover:bg-surface-700/30 transition-colors">
-                    <div class="flex flex-col md:flex-row gap-4">
-                        <!-- Left: Info Utama -->
-                        <div class="flex-1 space-y-3">
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="font-mono font-bold text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded text-sm">
-                                        {{ item.receipt_id }}
-                                    </span>
-                                    <span class="text-xs text-text-secondary flex items-center gap-1">
-                                        <Calendar :size="12" />
-                                        {{ formatDate(item.created_at) }}
-                                    </span>
-                                </div>
-                                <div class="text-xs bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
-                                    {{ item.user?.name || item.user?.username || 'Unknown' }}
-                                </div>
+                    <div class="flex flex-col gap-4">
+                        <!-- Header Row -->
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span
+                                    class="font-mono font-bold text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded text-sm">
+                                    {{ item.receipt_id }}
+                                </span>
+                                <span class="text-xs text-text-secondary flex items-center gap-1">
+                                    <Calendar :size="12" />
+                                    {{ formatDate(item.created_at) }}
+                                </span>
                             </div>
+                            <div class="flex items-center gap-2">
+                                <span v-if="item.selling_price" class="text-sm font-bold text-emerald-400">
+                                    {{ formatCurrency(item.selling_price) }}
+                                </span>
+                                <span class="text-xs bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
+                                    {{ item.user?.name || 'Unknown' }}
+                                </span>
+                            </div>
+                        </div>
 
-                            <!-- List Penerima (Per-Item) -->
-                            <div class="space-y-2">
-                                <template v-if="item.shopee_items_data && item.shopee_items_data.length > 0">
-                                    <div v-for="(shopeeItem, idx) in item.shopee_items_data" :key="idx"
-                                        class="bg-surface-900/50 rounded-lg p-3 border border-surface-700/50 text-sm">
-                                        <div class="flex flex-wrap gap-x-6 gap-y-1 mb-1 items-center">
-                                            <span class="text-primary-500 font-bold text-xs">#{{ idx + 1 }}</span>
-                                            <span class="font-medium text-text-primary flex items-center gap-1">
-                                                <User :size="12" class="text-text-secondary" />
-                                                {{ shopeeItem.receiver }}
-                                            </span>
-                                            <span
-                                                class="font-mono bg-surface-800 px-1.5 rounded text-xs text-text-primary border border-surface-700">
-                                                {{ shopeeItem.tracking_no }}
-                                            </span>
-                                            <span v-if="shopeeItem.phone" class="text-text-secondary text-xs">
-                                                {{ shopeeItem.phone }}
-                                            </span>
-                                        </div>
-                                        <div v-if="shopeeItem.address"
-                                            class="text-xs text-text-secondary pl-5 flex items-start gap-1">
-                                            <MapPin :size="10" class="mt-0.5 shrink-0" />
-                                            <span>{{ formatAddress(item, shopeeItem.address) }}</span>
-                                        </div>
-                                        <div v-if="shopeeItem.product_detail_id" class="mt-2 pl-5">
-                                            <!-- We need to match product detail from items relation properly if possible. 
-                                                  But here we loop shopee_items_data.
-                                                  Ideally we cross reference `item.items` using product_detail_id -->
-                                            <div
-                                                class="flex items-center gap-2 text-xs text-text-primary bg-surface-700/50 px-2 py-1 rounded inline-flex">
-                                                <Smartphone :size="12" />
-                                                <span>Item ID: {{ shopeeItem.product_detail_id }}</span>
-                                                <!-- Finding the matching item from relation -->
-                                                <span
-                                                    v-for="relItem in item.items.filter(i => i.id == shopeeItem.product_detail_id)"
-                                                    :key="relItem.id">
-                                                    - {{ relItem.product?.name }} ({{ relItem.imei }})
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                                <!-- Legacy Fallback -->
-                                <template v-else>
-                                    <div class="bg-surface-900/50 rounded-lg p-3 border border-surface-700/50 text-sm">
-                                        <div class="flex flex-wrap gap-4">
-                                            <div>
-                                                <p class="text-xs text-text-secondary">Penerima</p>
-                                                <p class="font-medium text-text-primary">{{ item.shopee_receiver || '-'
-                                                }}</p>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs text-text-secondary">No. Resi</p>
-                                                <p class="font-mono text-text-primary bg-surface-800 px-1.5 rounded">{{
-                                                    item.shopee_tracking_no || '-' }}</p>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2 flex flex-wrap gap-2">
-                                            <div v-for="prod in item.items" :key="prod.id"
-                                                class="flex items-center gap-1.5 text-xs bg-surface-700 px-2 py-1 rounded text-text-primary">
-                                                <Smartphone :size="12" />
-                                                {{ prod.product?.name }}
-                                                <span class="text-text-secondary font-mono">{{ prod.imei }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
+                        <!-- Penerima & Resi Info -->
+                        <div class="bg-surface-900/50 rounded-lg p-3 border border-surface-700/50 text-sm">
+                            <div class="flex flex-wrap gap-x-6 gap-y-1 items-center">
+                                <span class="font-medium text-text-primary flex items-center gap-1">
+                                    <User :size="12" class="text-text-secondary" />
+                                    {{ item.shopee_receiver || '-' }}
+                                </span>
+                                <span v-if="item.shopee_phone" class="text-text-secondary text-xs">
+                                    {{ item.shopee_phone }}
+                                </span>
+                                <span
+                                    class="font-mono bg-surface-800 px-1.5 rounded text-xs text-text-primary border border-surface-700">
+                                    {{ item.shopee_items_data?.[0]?.tracking_no || '-' }}
+                                </span>
                             </div>
+                            <div v-if="item.shopee_address"
+                                class="text-xs text-text-secondary mt-1 flex items-start gap-1">
+                                <MapPin :size="10" class="mt-0.5 shrink-0" />
+                                <span>{{ formatAddress(item, item.shopee_address) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- HP Items (IMEI) -->
+                        <div v-if="item.items && item.items.length > 0" class="space-y-1">
+                            <p class="text-[10px] uppercase font-bold text-text-secondary">Unit HP (IMEI)</p>
+                            <div class="flex flex-wrap gap-2">
+                                <div v-for="prod in item.items" :key="prod.id"
+                                    class="flex items-center gap-2 text-xs bg-surface-700/50 px-3 py-1.5 rounded-lg text-text-primary border border-surface-600/50">
+                                    <Smartphone :size="12" class="text-primary-400" />
+                                    <span class="font-medium">{{ prod.product?.name }}</span>
+                                    <span class="text-text-secondary font-mono text-[10px]">{{ prod.imei }}</span>
+                                    <span v-if="prod.selling_price" class="text-emerald-400 font-bold ml-1">
+                                        {{ formatCurrency(prod.selling_price) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Non-HP Items -->
+                        <div v-if="item.non_hp_items && item.non_hp_items.length > 0" class="space-y-1">
+                            <p class="text-[10px] uppercase font-bold text-text-secondary">Non HP / Aksesoris</p>
+                            <div class="flex flex-wrap gap-2">
+                                <div v-for="(nhItem, idx) in item.non_hp_items" :key="idx"
+                                    class="flex items-center gap-2 text-xs bg-surface-700/50 px-3 py-1.5 rounded-lg text-text-primary border border-surface-600/50">
+                                    <Package :size="12" class="text-amber-400" />
+                                    <span class="font-medium">{{ nhItem.product_name || 'Unknown' }}</span>
+                                    <span class="text-text-secondary">×{{ nhItem.quantity }}</span>
+                                    <span v-if="nhItem.selling_price" class="text-emerald-400 font-bold ml-1">
+                                        @ {{ formatCurrency(nhItem.selling_price) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inventory User -->
+                        <div v-if="item.inventory_user" class="flex items-center gap-1 text-xs text-text-secondary">
+                            <User :size="12" class="text-primary-400" />
+                            <span>Akun Inventory: <strong class="text-white">{{ item.inventory_user.full_name ||
+                                    item.inventory_user.name }}</strong></span>
                         </div>
                     </div>
                 </div>
