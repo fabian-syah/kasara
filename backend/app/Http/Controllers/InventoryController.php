@@ -496,7 +496,11 @@ class InventoryController extends Controller
                 ]);
 
                 // Dispatch History Event
-                event(new \App\Events\InventoryLogEvent($log->load(['product', 'user', 'distributor'])));
+                try {
+                    event(new \App\Events\InventoryLogEvent($log->load(['product', 'user', 'distributor'])));
+                } catch (\Exception $e) {
+                    \Log::error("Failed to broadcast InventoryLogEvent: " . $e->getMessage());
+                }
             }
 
             // 2. Handle HP (IMEI Based)
