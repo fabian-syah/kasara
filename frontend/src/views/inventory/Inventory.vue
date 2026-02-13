@@ -1418,7 +1418,12 @@ function getStockStatus(product) {
                             <div class="relative">
                               <span
                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                              <input type="number" v-model="item.selling_price"
+                              <input type="text" :value="item.selling_price ? formatNumber(item.selling_price) : ''"
+                                @input="e => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  item.selling_price = val ? parseInt(val) : 0;
+                                  e.target.value = formatNumber(item.selling_price);
+                                }"
                                 class="w-full text-sm p-2 pl-9 rounded-lg bg-surface-900 border border-surface-600 focus:outline-none focus:border-emerald-500 transition-colors"
                                 placeholder="0">
                             </div>
