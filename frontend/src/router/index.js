@@ -326,6 +326,17 @@ const routes = [
                     // For now, let's reuse 'online.scan' as it's part of the online operations.
                     permissions: ['online.scan', 'online.analysis']
                 }
+            },
+
+            // System Administration
+            {
+                path: 'system-status',
+                name: 'SystemStatus',
+                component: () => import('../views/admin/SystemStatus.vue'),
+                meta: {
+                    title: 'VPS Status',
+                    menu: 'system_status',
+                }
             }
         ]
     },
