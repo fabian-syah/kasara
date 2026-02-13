@@ -21,7 +21,9 @@ import {
     XCircle,
     List,
     Camera,
-    Edit2
+    Edit2,
+    X,
+    AlertTriangle
 } from "lucide-vue-next";
 import { debounce } from "../../utils/debounce";
 
@@ -306,6 +308,15 @@ const showCreateAccountModal = ref(false);
 const newAccountName = ref("");
 const isCreatingAccount = ref(false);
 
+// Duplicate Modal State
+const showDuplicateModal = ref(false);
+const duplicateDetails = ref({ success: 0, fail: 0, items: [] });
+
+function closeDuplicateModal() {
+    showDuplicateModal.value = false;
+    router.push('/inventory'); // Redirect after acknowledging
+}
+
 async function fetchInitialData() {
     isLoading.value = true;
     try {
@@ -511,12 +522,18 @@ async function submitStockIn() {
 
         // Handle partial success/duplicates if any
         if (response.data.duplicates && response.data.duplicates.length > 0) {
-            toast.warning(`Berhasil: ${response.data.inserted_count}. Gagal (Duplikat): ${response.data.duplicates.length}`);
+            // Show Duplicate Modal
+            duplicateDetails.value = {
+                success: response.data.inserted_count,
+                fail: response.data.duplicates.length,
+                items: response.data.duplicates
+            };
+            showDuplicateModal.value = true;
+            // DO NOT redirect yet
         } else {
             toast.success("Stok berhasil ditambahkan!");
+            router.push('/inventory');
         }
-
-        router.push('/inventory');
 
     } catch (error) {
         console.error(error);
@@ -849,6 +866,56 @@ onMounted(fetchInitialData);
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black shadow-xl shadow-emerald-600/20">
                     <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                     {{ isSubmitting ? 'Proses...' : 'Selesai & Simpan' }}
+                </button>
+            </div>
+        </div>
+
+
+        <!-- Duplicate Report Modal -->
+        <div v-if="showDuplicateModal"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+            <div
+                class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-lg shadow-2xl relative animate-in zoom-in-95">
+                <!-- Close Button (Absolute) -->
+                <button @click="closeDuplicateModal"
+                    class="absolute top-4 right-4 text-text-secondary hover:text-white transition-colors">
+                    <X :size="24" />
+                </button>
+
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle :size="32" class="text-yellow-500" />
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Laporan Stok Masuk</h3>
+                    <p class="text-text-secondary text-sm mt-1">Beberapa item berhasil, namun ada duplikat.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+                        <span class="block text-2xl font-bold text-emerald-500">{{ duplicateDetails.success }}</span>
+                        <span class="text-xs text-emerald-400 font-semibold uppercase">Berhasil</span>
+                    </div>
+                    <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
+                        <span class="block text-2xl font-bold text-red-500">{{ duplicateDetails.fail }}</span>
+                        <span class="text-xs text-red-400 font-semibold uppercase">Gagal (Duplikat)</span>
+                    </div>
+                </div>
+
+                <div v-if="duplicateDetails.fail > 0"
+                    class="bg-surface-800 rounded-xl p-4 mb-6 max-h-40 overflow-y-auto border border-surface-700">
+                    <h4
+                        class="text-xs font-bold text-text-secondary uppercase mb-2 sticky top-0 bg-surface-800 pb-2 border-b border-surface-700">
+                        Daftar IMEI Duplikat:</h4>
+                    <ul class="space-y-1">
+                        <li v-for="imei in duplicateDetails.items" :key="imei"
+                            class="text-sm font-mono text-red-400 flex items-center gap-2">
+                            <XCircle :size="14" /> {{ imei }}
+                        </li>
+                    </ul>
+                </div>
+
+                <button @click="closeDuplicateModal" class="btn btn-primary w-full py-4 rounded-xl font-bold text-lg">
+                    Tutup & Ke Inventory
                 </button>
             </div>
         </div>
