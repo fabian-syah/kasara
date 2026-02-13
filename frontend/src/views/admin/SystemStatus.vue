@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import api from '../../api/axios';
 import {
     Server, Cpu, HardDrive, Database, Activity, RefreshCw, CheckCircle2, XCircle,
-    Clock, Layers, WifiOff, ChevronDown, ChevronUp
+    Clock, Layers, WifiOff, ChevronDown, ChevronUp,
+    Shield, ShieldAlert, ShieldCheck, Lock, Unlock, Ban, AlertTriangle
 } from 'lucide-vue-next';
 
 const REFRESH_INTERVAL = 5000; // 5 detik
@@ -43,6 +44,49 @@ const fetchStatus = async () => {
         countdown.value = REFRESH_INTERVAL / 1000;
     }
 };
+
+const isBlocking = ref(false);
+
+const toggleDefender = async () => {
+    // Optimistic UI update or wait? Let's wait.
+    try {
+        isLoading.value = true;
+        await api.post('/system-status/toggle-defender');
+        await fetchStatus();
+    } catch (err) {
+        // alert('Gagal mengubah status defender: ' + (err.response?.data?.message || err.message));
+        error.value = err.response?.data?.message || err.message;
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+const blockIp = async (ip) => {
+    if (!confirm(`Blokir IP ${ip} secara manual?`)) return;
+    try {
+        isBlocking.value = true;
+        await api.post('/system-status/block-ip', { ip });
+        await fetchStatus();
+    } catch (err) {
+        alert('Gagal memblokir IP: ' + (err.response?.data?.message || err.message));
+    } finally {
+        isBlocking.value = false;
+    }
+};
+
+const unblockIp = async (ip) => {
+    if (!confirm(`Buka blokir IP ${ip}?`)) return;
+    try {
+        isBlocking.value = true;
+        await api.post('/system-status/unblock-ip', { ip });
+        await fetchStatus();
+    } catch (err) {
+        alert('Gagal membuka blokir IP: ' + (err.response?.data?.message || err.message));
+    } finally {
+        isBlocking.value = false;
+    }
+};
+
 
 const toggleSection = (section) => {
     expandedSections.value[section] = !expandedSections.value[section];
@@ -196,6 +240,181 @@ onUnmounted(() => {
 
         <!-- Data Sections -->
         <template v-if="data">
+            <!-- Security Center -->
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden mb-6">
+                <div
+                    class="p-5 border-b border-surface-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-red-500/10">
+                            <ShieldAlert :size="20" class="text-red-400" />
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-text-primary flex items-center gap-2">
+                                Security Center
+                                <span v-if="data.security.threat_level === 'critical'"
+                                    class="animate-pulse px-2 py-0.5 rounded text-[10px] bg-red-500 text-white font-bold uppercase">CRITICAL
+                                    THREAT</span>
+                            </h2>
+                            <p class="text-xs text-text-secondary">Monitoring serangan & proteksi server</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors" :class="data.security.defender_active
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : 'bg-surface-700/50 border-surface-600 text-text-secondary'">
+                            <ShieldCheck v-if="data.security.defender_active" :size="14" />
+                            <Shield v-else :size="14" />
+                            <span class="text-xs font-bold">{{ data.security.defender_active ? 'DEFENDER AKTIF' :
+                                'DEFENDER MATI' }}</span>
+                        </div>
+                        <button @click="toggleDefender" :disabled="isLoading"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all hover:brightness-110"
+                            :class="data.security.defender_active
+                                ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
+                                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'">
+                            {{ data.security.defender_active ? 'Matikan' : 'Aktifkan' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alerts Banner -->
+                <div v-if="data.security.alerts.length > 0" class="px-5 pt-5 space-y-2">
+                    <div v-for="(alert, idx) in data.security.alerts" :key="idx"
+                        class="p-3 rounded-xl border text-sm flex items-center gap-3" :class="{
+                            'bg-red-500/10 border-red-500/20 text-red-400': alert.level === 'critical',
+                            'bg-orange-500/10 border-orange-500/20 text-orange-400': alert.level === 'high' || alert.level === 'warning',
+                            'bg-blue-500/10 border-blue-500/20 text-blue-400': alert.level === 'info',
+                            'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': alert.level === 'success'
+                        }">
+                        <AlertTriangle v-if="alert.level === 'critical' || alert.level === 'warning'" :size="18"
+                            class="shrink-0" />
+                        <ShieldCheck v-else-if="alert.level === 'success'" :size="18" class="shrink-0" />
+                        <Activity v-else :size="18" class="shrink-0" />
+                        <div>
+                            <span class="font-bold">{{ alert.message }}</span>
+                            <span class="block text-[10px] opacity-70">{{ new
+                                Date(alert.time).toLocaleTimeString('id-ID') }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Threat Level -->
+                    <div class="bg-surface-900/50 rounded-xl p-4 border border-surface-700/50">
+                        <p class="text-[10px] uppercase text-text-secondary font-semibold mb-1">Threat Level</p>
+                        <div class="flex items-center gap-2">
+                            <div class="h-2 w-full rounded-full bg-surface-700 overflow-hidden">
+                                <div class="h-full transition-all duration-500" :class="{
+                                    'w-1/4 bg-emerald-500': data.security.threat_level === 'low',
+                                    'w-2/4 bg-amber-500': data.security.threat_level === 'medium',
+                                    'w-3/4 bg-orange-500': data.security.threat_level === 'high',
+                                    'w-full bg-red-500 animate-pulse': data.security.threat_level === 'critical'
+                                }"></div>
+                            </div>
+                            <span class="text-xs font-bold uppercase" :class="{
+                                'text-emerald-400': data.security.threat_level === 'low',
+                                'text-amber-400': data.security.threat_level === 'medium',
+                                'text-orange-400': data.security.threat_level === 'high',
+                                'text-red-400': data.security.threat_level === 'critical'
+                            }">{{ data.security.threat_level }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Failed Logins -->
+                    <div class="bg-surface-900/50 rounded-xl p-4 border border-surface-700/50">
+                        <p class="text-[10px] uppercase text-text-secondary font-semibold mb-1">Gagal Login (1 Jam)</p>
+                        <p class="text-lg font-bold"
+                            :class="data.security.failed_logins_1h > 5 ? 'text-red-400' : 'text-text-primary'">
+                            {{ data.security.failed_logins_1h }} <span
+                                class="text-xs font-normal text-text-secondary">percobaan</span>
+                        </p>
+                    </div>
+
+                    <!-- Firewall Status -->
+                    <div class="bg-surface-900/50 rounded-xl p-4 border border-surface-700/50">
+                        <p class="text-[10px] uppercase text-text-secondary font-semibold mb-1">Firewall / Fail2Ban</p>
+                        <div class="flex gap-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] border"
+                                :class="data.security.firewall_active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'">
+                                {{ data.security.firewall_active ? 'FW ON' : 'FW OFF' }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[10px] border"
+                                :class="data.security.fail2ban_active ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'">
+                                {{ data.security.fail2ban_active ? 'F2B ON' : 'F2B OFF' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Last Attack -->
+                    <div class="bg-surface-900/50 rounded-xl p-4 border border-surface-700/50">
+                        <p class="text-[10px] uppercase text-text-secondary font-semibold mb-1">Serangan Terakhir</p>
+                        <p class="text-xs font-mono text-text-primary truncate">
+                            {{ data.security.last_attack_time || 'Belum ada data' }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Alerts & Lists -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 border-t border-surface-700/50">
+                    <!-- Alerts / Recent Attacks -->
+                    <div class="p-5 border-b lg:border-b-0 lg:border-r border-surface-700/50">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <Activity :size="16" class="text-amber-400" />
+                            Aktivitas Mencurigakan (Top 10)
+                        </h3>
+                        <div v-if="data.security.recent_attacks.length === 0"
+                            class="text-center py-6 text-text-secondary text-xs italic">
+                            Tidak ada aktivitas mencurigakan baru-baru ini.
+                        </div>
+                        <div v-else class="space-y-2">
+                            <div v-for="(attack, idx) in data.security.recent_attacks" :key="idx"
+                                class="flex items-center justify-between p-2 rounded bg-surface-900/30 border border-surface-700/30 text-xs">
+                                <div>
+                                    <div class="font-mono font-bold text-red-300">{{ attack.ip }}</div>
+                                    <div class="text-[10px] text-text-secondary">{{ attack.attempts }}x via {{
+                                        attack.service }} • {{ attack.last_attempt }}</div>
+                                </div>
+                                <button v-if="!attack.auto_blocked" @click="blockIp(attack.ip)" :disabled="isBlocking"
+                                    class="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded border border-red-500/20 transition-colors">
+                                    Block
+                                </button>
+                                <span v-else
+                                    class="px-2 py-1 bg-surface-800 text-text-secondary rounded border border-surface-700 text-[10px]">
+                                    Blocked
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Blocked IPs -->
+                    <div class="p-5">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <Ban :size="16" class="text-red-400" />
+                            IP Terblokir ({{ data.security.blocked_ips.length }})
+                        </h3>
+                        <div v-if="data.security.blocked_ips.length === 0"
+                            class="text-center py-6 text-text-secondary text-xs italic">
+                            Belum ada IP yang diblokir.
+                        </div>
+                        <div v-else class="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                            <div v-for="(blocked, idx) in data.security.blocked_ips" :key="idx"
+                                class="flex items-center justify-between p-2 rounded bg-surface-900/30 border border-surface-700/30 text-xs">
+                                <div>
+                                    <div class="font-mono font-bold text-red-300">{{ blocked.ip }}</div>
+                                    <div class="text-[10px] text-text-secondary">Source: {{ blocked.source }} {{
+                                        blocked.jail ? `(${blocked.jail})` : '' }}</div>
+                                </div>
+                                <button @click="unblockIp(blocked.ip)" :disabled="isBlocking"
+                                    class="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/20 transition-colors">
+                                    Unblock
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Server Overview Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Hostname -->

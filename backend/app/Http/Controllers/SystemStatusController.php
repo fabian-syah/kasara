@@ -100,6 +100,9 @@ class SystemStatusController extends Controller
             ['name' => 'Axios', 'version' => '1.13.4', 'icon' => 'axios', 'color' => '#5A29E4'],
         ];
 
+        // Security Status (Integrated)
+        $status['security'] = $this->getSecurityData();
+
         return response()->json($status);
     }
 
@@ -154,5 +157,319 @@ class SystemStatusController extends Controller
         }
 
         return '—';
+    }
+
+    // ============================================================
+    // SECURITY MONITORING & AUTO-DEFENDER
+    // ============================================================
+
+    private function getSecurityData(): array
+    {
+        $security = [
+            'defender_active' => Cache::get('security_defender_active', true),
+            'threat_level' => 'low', // low, medium, high, critical
+            'failed_logins_1h' => 0,
+            'failed_logins_24h' => 0,
+            'blocked_ips' => [],
+            'recent_attacks' => [],
+            'alerts' => [],
+            'firewall_active' => false,
+            'fail2ban_active' => false,
+            'last_attack_time' => null,
+        ];
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            $security['alerts'][] = [
+                'level' => 'info',
+                'message' => 'Security monitoring hanya tersedia di Linux VPS',
+                'time' => now()->toIso8601String(),
+            ];
+            return $security;
+        }
+
+        // 1. Parse auth.log for failed attempts
+        $authLogPaths = ['/var/log/auth.log', '/var/log/secure'];
+        $authLog = null;
+        foreach ($authLogPaths as $path) {
+            if (file_exists($path) && is_readable($path)) {
+                $authLog = $path;
+                break;
+            }
+        }
+
+        if ($authLog) {
+            $failedAttempts = $this->parseFailedAttempts($authLog);
+            $now = time();
+
+            // Count failures in last 1h and 24h
+            foreach ($failedAttempts as $attempt) {
+                $age = $now - $attempt['timestamp'];
+                if ($age <= 3600) {
+                    $security['failed_logins_1h']++;
+                }
+                if ($age <= 86400) {
+                    $security['failed_logins_24h']++;
+                }
+            }
+
+            // Group by IP for attack detection
+            $ipAttempts = [];
+            foreach ($failedAttempts as $attempt) {
+                if ($now - $attempt['timestamp'] <= 3600) {
+                    $ip = $attempt['ip'];
+                    if (!isset($ipAttempts[$ip])) {
+                        $ipAttempts[$ip] = ['count' => 0, 'last_time' => '', 'service' => $attempt['service']];
+                    }
+                    $ipAttempts[$ip]['count']++;
+                    $ipAttempts[$ip]['last_time'] = $attempt['time_str'];
+                }
+            }
+
+            // Build recent attacks list (top attackers)
+            arsort($ipAttempts);
+            $attackerIps = array_slice($ipAttempts, 0, 10, true);
+            foreach ($attackerIps as $ip => $info) {
+                if ($info['count'] >= 3) {
+                    $security['recent_attacks'][] = [
+                        'ip' => $ip,
+                        'attempts' => $info['count'],
+                        'last_attempt' => $info['last_time'],
+                        'service' => $info['service'],
+                        'auto_blocked' => false,
+                    ];
+                }
+            }
+
+            // Set last attack time
+            if (!empty($failedAttempts)) {
+                $lastAttempt = end($failedAttempts);
+                $security['last_attack_time'] = $lastAttempt['time_str'];
+            }
+
+            // Generate alerts for brute-force attacks
+            foreach ($attackerIps as $ip => $info) {
+                if ($info['count'] >= 10) {
+                    $security['alerts'][] = [
+                        'level' => 'critical',
+                        'message' => "Brute-force terdeteksi dari {$ip} ({$info['count']}x percobaan via {$info['service']})",
+                        'time' => now()->toIso8601String(),
+                        'ip' => $ip,
+                    ];
+
+                    // Auto-block if defender is active
+                    if ($security['defender_active'] && $info['count'] >= 10) {
+                        $this->autoBlockIp($ip);
+                        $security['alerts'][] = [
+                            'level' => 'success',
+                            'message' => "Auto-Defender: IP {$ip} otomatis diblokir ({$info['count']}x gagal login)",
+                            'time' => now()->toIso8601String(),
+                            'ip' => $ip,
+                        ];
+                        // Mark as auto-blocked in recent attacks
+                        foreach ($security['recent_attacks'] as &$attack) {
+                            if ($attack['ip'] === $ip) {
+                                $attack['auto_blocked'] = true;
+                            }
+                        }
+                    }
+                } elseif ($info['count'] >= 5) {
+                    $security['alerts'][] = [
+                        'level' => 'warning',
+                        'message' => "Percobaan login mencurigakan dari {$ip} ({$info['count']}x via {$info['service']})",
+                        'time' => now()->toIso8601String(),
+                        'ip' => $ip,
+                    ];
+                }
+            }
+        }
+
+        // 2. Check fail2ban status
+        $fail2banStatus = @shell_exec('fail2ban-client status 2>/dev/null');
+        if ($fail2banStatus) {
+            $security['fail2ban_active'] = true;
+
+            // Get banned IPs from sshd jail
+            $sshdStatus = @shell_exec('fail2ban-client status sshd 2>/dev/null');
+            if ($sshdStatus && preg_match('/Banned IP list:\s*(.+)$/m', $sshdStatus, $matches)) {
+                $bannedIps = array_filter(array_map('trim', explode(' ', $matches[1])));
+                foreach ($bannedIps as $ip) {
+                    $security['blocked_ips'][] = [
+                        'ip' => $ip,
+                        'source' => 'fail2ban',
+                        'jail' => 'sshd',
+                    ];
+                }
+            }
+        }
+
+        // 3. Check iptables blocked IPs (from our custom chain)
+        $iptables = @shell_exec('iptables -L APEX-DEFENDER -n 2>/dev/null');
+        if ($iptables) {
+            $security['firewall_active'] = true;
+            preg_match_all('/DROP\s+all\s+--\s+([\d.]+)/', $iptables, $matches);
+            if (!empty($matches[1])) {
+                foreach ($matches[1] as $ip) {
+                    // Avoid duplicates from fail2ban
+                    $exists = false;
+                    foreach ($security['blocked_ips'] as $blocked) {
+                        if ($blocked['ip'] === $ip) {
+                            $exists = true;
+                            break;
+                        }
+                    }
+                    if (!$exists) {
+                        $security['blocked_ips'][] = [
+                            'ip' => $ip,
+                            'source' => 'defender',
+                            'jail' => null,
+                        ];
+                    }
+                }
+            }
+        } else {
+            // Check if iptables is at least available
+            $hasIptables = @shell_exec('which iptables 2>/dev/null');
+            $security['firewall_active'] = !empty(trim($hasIptables ?? ''));
+        }
+
+        // 4. Determine threat level
+        if ($security['failed_logins_1h'] >= 50 || count($security['recent_attacks']) >= 5) {
+            $security['threat_level'] = 'critical';
+        } elseif ($security['failed_logins_1h'] >= 20 || count($security['recent_attacks']) >= 3) {
+            $security['threat_level'] = 'high';
+        } elseif ($security['failed_logins_1h'] >= 5 || count($security['recent_attacks']) >= 1) {
+            $security['threat_level'] = 'medium';
+        }
+
+        // 5. Add info alert if no threats detected
+        if (empty($security['alerts'])) {
+            $security['alerts'][] = [
+                'level' => 'success',
+                'message' => 'Tidak ada ancaman terdeteksi. Sistem aman.',
+                'time' => now()->toIso8601String(),
+            ];
+        }
+
+        return $security;
+    }
+
+    private function parseFailedAttempts(string $logPath): array
+    {
+        $attempts = [];
+        $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (!$lines)
+            return [];
+
+        // Only process last 2000 lines for performance
+        $lines = array_slice($lines, -2000);
+        $currentYear = date('Y');
+
+        foreach ($lines as $line) {
+            // Match SSH failed attempts
+            if (preg_match('/^(\w+\s+\d+\s+[\d:]+)\s.*(?:Failed password|Invalid user|authentication failure).*(?:from|rhost=)\s*([\d.]+)/i', $line, $m)) {
+                $timeStr = $m[1] . ' ' . $currentYear;
+                $timestamp = @strtotime($timeStr);
+                if ($timestamp && $timestamp <= time()) {
+                    $attempts[] = [
+                        'ip' => $m[2],
+                        'timestamp' => $timestamp,
+                        'time_str' => date('Y-m-d H:i:s', $timestamp),
+                        'service' => 'SSH',
+                    ];
+                }
+            }
+        }
+
+        return $attempts;
+    }
+
+    private function autoBlockIp(string $ip): bool
+    {
+        // Don't block private/local IPs
+        if ($this->isPrivateIp($ip))
+            return false;
+
+        // Check if already blocked (cached)
+        $blockedKey = "defender_blocked_{$ip}";
+        if (Cache::has($blockedKey))
+            return false;
+
+        // Try to create our custom chain if it doesn't exist
+        @shell_exec('iptables -N APEX-DEFENDER 2>/dev/null');
+        @shell_exec('iptables -I INPUT -j APEX-DEFENDER 2>/dev/null');
+
+        // Block the IP
+        $result = @shell_exec("iptables -A APEX-DEFENDER -s {$ip} -j DROP 2>&1");
+
+        // Cache that we blocked this IP (24h TTL)
+        Cache::put($blockedKey, true, 86400);
+
+        // Log it
+        \Illuminate\Support\Facades\Log::warning("APEX Defender: Auto-blocked IP {$ip}");
+
+        return true;
+    }
+
+    public function blockIp(Request $request)
+    {
+        $request->validate(['ip' => 'required|ip']);
+        $ip = $request->ip;
+
+        if ($this->isPrivateIp($ip)) {
+            return response()->json(['message' => 'Tidak bisa blokir IP private/local'], 422);
+        }
+
+        @shell_exec('iptables -N APEX-DEFENDER 2>/dev/null');
+        @shell_exec('iptables -I INPUT -j APEX-DEFENDER 2>/dev/null');
+
+        // Check if already blocked
+        $check = @shell_exec("iptables -C APEX-DEFENDER -s {$ip} -j DROP 2>&1");
+        if (strpos($check, 'iptables: Bad rule') === false && empty($check)) {
+            return response()->json(['message' => "IP {$ip} sudah diblokir"], 422);
+        }
+
+        @shell_exec("iptables -A APEX-DEFENDER -s {$ip} -j DROP 2>&1");
+        Cache::put("defender_blocked_{$ip}", true, 86400);
+
+        \Illuminate\Support\Facades\Log::warning("APEX Defender: Manual block IP {$ip} by user " . auth()->id());
+
+        return response()->json(['success' => true, 'message' => "IP {$ip} berhasil diblokir"]);
+    }
+
+    public function unblockIp(Request $request)
+    {
+        $request->validate(['ip' => 'required|ip']);
+        $ip = $request->ip;
+
+        @shell_exec("iptables -D APEX-DEFENDER -s {$ip} -j DROP 2>&1");
+        Cache::forget("defender_blocked_{$ip}");
+
+        // Also try to unban from fail2ban
+        @shell_exec("fail2ban-client set sshd unbanip {$ip} 2>/dev/null");
+
+        \Illuminate\Support\Facades\Log::info("APEX Defender: Unblocked IP {$ip} by user " . auth()->id());
+
+        return response()->json(['success' => true, 'message' => "IP {$ip} berhasil di-unblokir"]);
+    }
+
+    public function toggleDefender(Request $request)
+    {
+        $current = Cache::get('security_defender_active', true);
+        $newState = !$current;
+        Cache::put('security_defender_active', $newState, 60 * 60 * 24 * 365); // 1 year
+
+        $statusLabel = $newState ? 'AKTIF' : 'NONAKTIF';
+        \Illuminate\Support\Facades\Log::info("APEX Defender: Status diubah ke {$statusLabel} oleh user " . auth()->id());
+
+        return response()->json([
+            'success' => true,
+            'defender_active' => $newState,
+            'message' => "Auto-Defender sekarang {$statusLabel}",
+        ]);
+    }
+
+    private function isPrivateIp(string $ip): bool
+    {
+        return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
 }

@@ -73,4 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // System Status
     Route::get('/system-status', [\App\Http\Controllers\SystemStatusController::class, 'index']);
+    Route::post('/system-status/block-ip', [\App\Http\Controllers\SystemStatusController::class, 'blockIp']);
+    Route::post('/system-status/unblock-ip', [\App\Http\Controllers\SystemStatusController::class, 'unblockIp']);
+    Route::post('/system-status/toggle-defender', [\App\Http\Controllers\SystemStatusController::class, 'toggleDefender']);
 });
