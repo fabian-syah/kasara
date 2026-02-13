@@ -1212,6 +1212,10 @@ function getStockStatus(product) {
               class="text-text-secondary hover:text-white transition-colors">
               <ChevronLeft :size="20" />
             </button>
+            <button v-else-if="selectedInventoryUser" @click="selectedInventoryUser = null"
+              class="text-text-secondary hover:text-white transition-colors">
+              <ChevronLeft :size="20" />
+            </button>
             <h2 class="text-xl font-bold text-white">
               {{selectedStockOutCategory ? stockOutCategories.find(c => c.id === selectedStockOutCategory)?.name :
                 'Pilih Kategori'}}
@@ -1224,8 +1228,84 @@ function getStockStatus(product) {
 
         <!-- Modal Body -->
         <div class="flex-1 overflow-y-auto p-6">
-          <!-- Category Selection -->
-          <div v-if="!selectedStockOutCategory" class="animate-in slide-in-from-right">
+          <!-- STEP 1: SELECT INVENTORY ACCOUNT -->
+          <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <UserCheck :size="20" class="text-emerald-500" />
+              Pilih User Inventory
+            </h3>
+
+            <div v-if="isLoadingUsers" class="flex justify-center py-12">
+              <Loader2 :size="32" class="animate-spin text-primary-500" />
+            </div>
+
+            <div v-else-if="inventoryUsers.length === 0" class="text-center py-8 text-text-secondary">
+              <div class="bg-surface-800 p-6 rounded-2xl inline-block mb-3">
+                <UserCheck :size="32" class="text-surface-500" />
+              </div>
+              <p>Tidak ada akun inventory ditemukan.</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-for="user in inventoryUsers" :key="user.id" @click="selectedInventoryUser = user"
+                class="p-4 rounded-2xl border border-surface-700 bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-800/80 transition-all relative group shadow-lg hover:shadow-primary-500/10">
+
+                <div class="flex items-center gap-4">
+                  <!-- Photo -->
+                  <div
+                    class="w-14 h-14 rounded-xl bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-600 group-hover:border-primary-500/50 transition-colors">
+                    <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
+                      class="w-full h-full object-cover" alt="Foto" />
+                    <span v-else class="text-xl font-bold text-primary-500">{{ (user.full_name || user.name ||
+                      '?')[0].toUpperCase() }}</span>
+                  </div>
+
+                  <!-- Details -->
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-white truncate text-base mb-0.5">{{ user.full_name || user.name }}</h4>
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-xs text-text-secondary uppercase tracking-wider font-medium">{{
+                        user.roles?.[0]?.name || 'INVENTORY' }}</span>
+                      <span v-if="user.phone" class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                        <Smartphone :size="10" /> {{ user.phone }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Chevron -->
+                  <div class="text-surface-600 group-hover:text-primary-500 transition-colors">
+                    <ChevronRight :size="20" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: CATEGORY SELECTION -->
+          <div v-else-if="!selectedStockOutCategory" class="animate-in slide-in-from-right">
+            <!-- Selected User Header -->
+            <div
+              class="flex items-center justify-between mb-6 bg-surface-700/30 p-3 rounded-xl border border-surface-600">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-10 h-10 rounded-full bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-500">
+                  <img v-if="selectedInventoryUser.photo_inventory"
+                    :src="`${storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
+                    class="w-full h-full object-cover" />
+                  <User v-else :size="16" class="text-text-secondary" />
+                </div>
+                <div>
+                  <p class="text-xs text-text-secondary uppercase">Akun Inventory</p>
+                  <p class="font-bold text-white text-sm">{{ selectedInventoryUser.full_name ||
+                    selectedInventoryUser.name }}</p>
+                </div>
+              </div>
+              <button @click="selectedInventoryUser = null"
+                class="text-xs text-primary-400 hover:text-primary-300 font-medium">
+                Ganti Akun
+              </button>
+            </div>
+
             <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Box :size="20" class="text-primary-500" />
               Pilih Kategori Pengeluaran
@@ -1246,197 +1326,215 @@ function getStockStatus(product) {
             </div>
           </div>
 
+          <!-- STEP 3: FORMS -->
           <div v-else class="space-y-4">
-
-            <!-- STEP 2: SELECT INVENTORY ACCOUNT (Conditional) -->
-            <div v-if="requiresInventoryUser && !selectedInventoryUser" class="animate-in slide-in-from-right">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                  <UserCheck :size="20" class="text-emerald-500" />
-                  Pilih User Inventory
-                </h3>
-                <button @click="selectedStockOutCategory = null"
-                  class="text-xs text-text-secondary hover:text-white flex items-center gap-1">
-                  <ChevronLeft :size="14" /> Kembali
-                </button>
+            <!-- Pindah Cabang Form -->
+            <template v-if="selectedStockOutCategory === 'pindah_cabang'">
+              <div>
+                <label class="label">Cabang Tujuan *</label>
+                <select v-model="stockOutForm.destination_branch_id" class="input">
+                  <option :value="null">-- Pilih Cabang --</option>
+                  <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                </select>
               </div>
-
-              <div v-if="isLoadingUsers" class="flex justify-center py-12">
-                <Loader2 :size="32" class="animate-spin text-primary-500" />
+              <div>
+                <label class="label">Nama Penerima *</label>
+                <input v-model="stockOutForm.receiver_name" class="input" placeholder="Nama yang menerima barang" />
               </div>
-
-              <div v-else-if="inventoryUsers.length === 0" class="text-center py-8 text-text-secondary">
-                <div class="bg-surface-800 p-6 rounded-2xl inline-block mb-3">
-                  <UserCheck :size="32" class="text-surface-500" />
-                </div>
-                <p>Tidak ada akun inventory ditemukan.</p>
+              <div>
+                <label class="label">Catatan</label>
+                <textarea v-model="stockOutForm.transfer_notes" class="input" rows="3"
+                  placeholder="Catatan tambahan..."></textarea>
               </div>
+            </template>
 
-              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div v-for="user in inventoryUsers" :key="user.id" @click="selectedInventoryUser = user"
-                  class="p-4 rounded-2xl border border-surface-700 bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-800/80 transition-all relative group shadow-lg hover:shadow-primary-500/10">
+            <!-- Kesalahan Input Form -->
+            <template v-if="selectedStockOutCategory === 'kesalahan_input'">
+              <!-- Item List (Added for Quantity Input) -->
+              <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600 mb-4">
+                <p class="text-xs uppercase font-bold text-text-secondary mb-3">
+                  Item yang dihapus ({{ selectedItems.length }})
+                </p>
 
-                  <div class="flex items-center gap-4">
-                    <!-- Photo -->
-                    <div
-                      class="w-14 h-14 rounded-xl bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-600 group-hover:border-primary-500/50 transition-colors">
-                      <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
-                        class="w-full h-full object-cover" alt="Foto" />
-                      <span v-else class="text-xl font-bold text-primary-500">{{ (user.full_name || user.name ||
-                        '?')[0].toUpperCase() }}</span>
+                <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
+                    class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
+
+                    <!-- Header -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
+                        <div>
+                          <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
+                          <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                          }}</p>
+                        </div>
+                      </div>
+                      <span v-if="item.type !== 'non-hp'"
+                        class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
+                        {{ item.imei }}
+                      </span>
                     </div>
 
-                    <!-- Details -->
-                    <div class="flex-1 min-w-0">
-                      <h4 class="font-bold text-white truncate text-base mb-0.5">{{ user.full_name || user.name }}
-                      </h4>
-                      <div class="flex flex-col gap-0.5">
-                        <span class="text-xs text-text-secondary uppercase tracking-wider font-medium">{{
-                          user.roles?.[0]?.name || 'INVENTORY' }}</span>
-                        <span v-if="user.phone" class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
-                          <Smartphone :size="10" /> {{ user.phone }}
-                        </span>
+                    <!-- Quantity for Non-HP -->
+                    <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2">
+                      <label class="text-[10px] text-text-secondary block mb-1">Qty Hapus</label>
+                      <div class="flex items-center gap-2">
+                        <input type="number" v-model="item.out_quantity"
+                          class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
+                          min="1" :max="item.quantity" placeholder="1">
+                        <span class="text-xs text-text-secondary">/{{ item.quantity }} Pcs</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
 
-                    <!-- Chevron -->
-                    <div class="text-surface-600 group-hover:text-primary-500 transition-colors">
-                      <ChevronRight :size="20" />
+              <div>
+                <label class="label">Alasan Hapus *</label>
+                <textarea v-model="stockOutForm.deletion_reason" class="input" rows="4"
+                  placeholder="Jelaskan alasan penghapusan data..."></textarea>
+              </div>
+            </template>
+
+            <!-- Retur Form -->
+            <template v-if="selectedStockOutCategory === 'retur'">
+              <!-- Item List (Added for Quantity Input) -->
+              <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600 mb-4">
+                <p class="text-xs uppercase font-bold text-text-secondary mb-3">
+                  Item yang diretur ({{ selectedItems.length }})
+                </p>
+
+                <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
+                    class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
+
+                    <!-- Header -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
+                        <div>
+                          <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
+                          <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                          }}</p>
+                        </div>
+                      </div>
+                      <span v-if="item.type !== 'non-hp'"
+                        class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
+                        {{ item.imei }}
+                      </span>
+                    </div>
+
+                    <!-- Quantity for Non-HP -->
+                    <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2">
+                      <label class="text-[10px] text-text-secondary block mb-1">Qty Retur</label>
+                      <div class="flex items-center gap-2">
+                        <input type="number" v-model="item.out_quantity"
+                          class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
+                          min="1" :max="item.quantity" placeholder="1">
+                        <span class="text-xs text-text-secondary">/{{ item.quantity }} Pcs</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- STEP 3: FORMS -->
-            <template v-else>
-              <div v-if="selectedInventoryUser"
-                class="flex items-center justify-between mb-6 bg-surface-700/30 p-3 rounded-xl border border-surface-600">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-10 h-10 rounded-full bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-500">
-                    <img v-if="selectedInventoryUser.photo_inventory"
-                      :src="`${storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
-                      class="w-full h-full object-cover" />
-                    <User v-else :size="16" class="text-text-secondary" />
-                  </div>
-                  <div>
-                    <p class="text-xs text-text-secondary uppercase">Akun Inventory</p>
-                    <p class="font-bold text-white text-sm">{{ selectedInventoryUser.full_name ||
-                      selectedInventoryUser.name }}</p>
-                  </div>
-                </div>
-                <button @click="selectedInventoryUser = null"
-                  class="text-xs text-primary-400 hover:text-primary-300 font-medium">
-                  Ganti Akun
-                </button>
-              </div>
-
-              <!-- Pindah Cabang Form -->
-              <template v-if="selectedStockOutCategory === 'pindah_cabang'">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="label">Cabang Tujuan *</label>
-                  <select v-model="stockOutForm.destination_branch_id" class="input">
-                    <option :value="null">-- Pilih Cabang --</option>
-                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                  <label class="label">Nama Petugas *</label>
+                  <input v-model="stockOutForm.retur_officer" class="input" placeholder="Nama petugas retur" />
+                </div>
+                <div>
+                  <label class="label">Pilih Gudang *</label>
+                  <select v-model="stockOutForm.return_destination_id" class="input">
+                    <option :value="null">-- Pilih Gudang Retur --</option>
+                    <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
                   </select>
                 </div>
+              </div>
+              <div>
+                <label class="label">Foto Bukti / Kondisi (Max 10MB)</label>
+                <input type="file" accept="image/*" @change="handleFileChange"
+                  class="w-full text-sm text-text-secondary file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-surface-700 file:text-primary-400 hover:file:bg-surface-600 transition-all cursor-pointer border border-surface-700 rounded-xl bg-surface-800" />
+                <div v-if="proofImagePreview" class="mt-3">
+                  <img :src="proofImagePreview" class="h-24 rounded-xl object-cover border border-surface-600" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="label">Nama Penerima *</label>
-                  <input v-model="stockOutForm.receiver_name" class="input" placeholder="Nama yang menerima barang" />
+                  <label class="label">Segel</label>
+                  <input v-model="stockOutForm.retur_seal" class="input" placeholder="Nomor segel (opsional)" />
                 </div>
                 <div>
-                  <label class="label">Catatan</label>
-                  <textarea v-model="stockOutForm.transfer_notes" class="input" rows="3"
-                    placeholder="Catatan tambahan..."></textarea>
+                  <label class="label">Nama Customer *</label>
+                  <input v-model="stockOutForm.customer_name" class="input" placeholder="Nama customer" />
                 </div>
-              </template>
+              </div>
+              <div>
+                <label class="label">Kendala / Masalah *</label>
+                <textarea v-model="stockOutForm.retur_issue" class="input" rows="3"
+                  placeholder="Jelaskan kendala atau masalah..."></textarea>
+              </div>
+              <div>
+                <label class="label">No. WA Customer *</label>
+                <input v-model="stockOutForm.customer_phone" class="input" placeholder="08xxxxxxxxxx" />
+              </div>
+            </template>
 
-              <!-- Kesalahan Input Form -->
-              <template v-if="selectedStockOutCategory === 'kesalahan_input'">
-                <!-- Item List (Added for Quantity Input) -->
-                <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600 mb-4">
+            <!-- Shopee / Orderan Online Form -->
+            <template v-if="selectedStockOutCategory === 'shopee' || selectedStockOutCategory === 'orderan_online'">
+              <div class="space-y-4">
+                <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
                   <p class="text-xs uppercase font-bold text-text-secondary mb-3">
-                    Item yang dihapus ({{ selectedItems.length }})
+                    Item yang dikirim ({{ selectedItems.length }})
                   </p>
 
                   <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
                     <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
                       class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
 
-                      <!-- Header -->
+                      <!-- Item Header -->
                       <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                           <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
                           <div>
                             <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
-                            <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                            <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{
+                              item.product?.type
                             }}</p>
                           </div>
                         </div>
                         <span v-if="item.type !== 'non-hp'"
-                          class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
-                          {{ item.imei }}
-                        </span>
+                          class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">{{
+                            item.imei }}</span>
                       </div>
 
-                      <!-- Quantity for Non-HP -->
-                      <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2">
-                        <label class="text-[10px] text-text-secondary block mb-1">Qty Hapus</label>
-                        <div class="flex items-center gap-2">
-                          <input type="number" v-model="item.out_quantity"
-                            class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
-                            min="1" :max="item.quantity" placeholder="1">
-                          <span class="text-xs text-text-secondary">/{{ item.quantity }} Pcs</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="label">Alasan Hapus *</label>
-                  <textarea v-model="stockOutForm.deletion_reason" class="input" rows="4"
-                    placeholder="Jelaskan alasan penghapusan data..."></textarea>
-                </div>
-              </template>
-
-              <!-- Retur Form -->
-              <template v-if="selectedStockOutCategory === 'retur'">
-                <!-- Item List (Added for Quantity Input) -->
-                <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600 mb-4">
-                  <p class="text-xs uppercase font-bold text-text-secondary mb-3">
-                    Item yang diretur ({{ selectedItems.length }})
-                  </p>
-
-                  <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
-                    <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
-                      class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
-
-                      <!-- Header -->
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                          <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
-                          <div>
-                            <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
-                            <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
-                            }}</p>
+                      <div class="flex gap-3">
+                        <!-- Quantity for Non-HP -->
+                        <div v-if="item.type === 'non-hp'" class="w-1/3">
+                          <label class="text-[10px] text-text-secondary block mb-1">Qty</label>
+                          <div class="flex items-center gap-2">
+                            <input type="number" v-model="item.out_quantity"
+                              class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
+                              min="1" :max="item.quantity">
+                            <span class="text-xs text-text-secondary">/{{ item.quantity }}</span>
                           </div>
                         </div>
-                        <span v-if="item.type !== 'non-hp'"
-                          class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
-                          {{ item.imei }}
-                        </span>
-                      </div>
 
-                      <!-- Quantity for Non-HP -->
-                      <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2">
-                        <label class="text-[10px] text-text-secondary block mb-1">Qty Retur</label>
-                        <div class="flex items-center gap-2">
-                          <input type="number" v-model="item.out_quantity"
-                            class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
-                            min="1" :max="item.quantity" placeholder="1">
-                          <span class="text-xs text-text-secondary">/{{ item.quantity }} Pcs</span>
+                        <!-- SRP for Everyone -->
+                        <div class="flex-1">
+                          <label class="text-[10px] text-emerald-500 block mb-1">SRP (Per Item)</label>
+                          <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                            <input type="text" :value="item.selling_price ? formatNumber(item.selling_price) : ''"
+                              @input="e => {
+                                const val = e.target.value.replace(/\D/g, '');
+                                item.selling_price = val ? parseInt(val) : 0;
+                                e.target.value = formatNumber(item.selling_price);
+                              }"
+                              class="w-full text-sm p-2 pl-9 rounded-lg bg-surface-900 border border-surface-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                              placeholder="0">
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1445,254 +1543,151 @@ function getStockStatus(product) {
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="label">Nama Petugas *</label>
-                    <input v-model="stockOutForm.retur_officer" class="input" placeholder="Nama petugas retur" />
+                    <label class="label">Nama Penerima *</label>
+                    <input v-model="stockOutForm.shopee_receiver" class="input" placeholder="Nama penerima" />
                   </div>
                   <div>
-                    <label class="label">Pilih Gudang *</label>
-                    <select v-model="stockOutForm.return_destination_id" class="input">
-                      <option :value="null">-- Pilih Gudang Retur --</option>
-                      <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                    <label class="label">No. WA (Opsional)</label>
+                    <input v-model="stockOutForm.shopee_phone" class="input" placeholder="08xxxxxxxxxx" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="label">Provinsi *</label>
+                    <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
+                      class="input">
+                      <option value="">-- Pilih Provinsi --</option>
+                      <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="label">Kota/Kabupaten *</label>
+                    <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)" class="input"
+                      :disabled="!selectedRegionIds.province">
+                      <option value="">-- Pilih Kota --</option>
+                      <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
                     </select>
                   </div>
                 </div>
+
+                <!-- District & Village Removed -->
+
                 <div>
-                  <label class="label">Foto Bukti / Kondisi (Max 10MB)</label>
-                  <input type="file" accept="image/*" @change="handleFileChange"
-                    class="w-full text-sm text-text-secondary file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-surface-700 file:text-primary-400 hover:file:bg-surface-600 transition-all cursor-pointer border border-surface-700 rounded-xl bg-surface-800" />
-                  <div v-if="proofImagePreview" class="mt-3">
-                    <img :src="proofImagePreview" class="h-24 rounded-xl object-cover border border-surface-600" />
-                  </div>
+                  <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
+                  <textarea v-model="stockOutForm.shopee_address" class="input" rows="3"
+                    placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="label">Segel</label>
-                    <input v-model="stockOutForm.retur_seal" class="input" placeholder="Nomor segel (opsional)" />
-                  </div>
-                  <div>
-                    <label class="label">Nama Customer *</label>
-                    <input v-model="stockOutForm.customer_name" class="input" placeholder="Nama customer" />
-                  </div>
-                </div>
+
                 <div>
-                  <label class="label">Kendala / Masalah *</label>
-                  <textarea v-model="stockOutForm.retur_issue" class="input" rows="3"
-                    placeholder="Jelaskan kendala atau masalah..."></textarea>
+                  <label class="label">Catatan</label>
+                  <input v-model="stockOutForm.shopee_notes" class="input" placeholder="Catatan pengiriman..." />
                 </div>
+
                 <div>
-                  <label class="label">No. WA Customer *</label>
-                  <input v-model="stockOutForm.customer_phone" class="input" placeholder="08xxxxxxxxxx" />
-                </div>
-              </template>
-
-              <!-- Shopee / Orderan Online Form -->
-              <template v-if="selectedStockOutCategory === 'shopee' || selectedStockOutCategory === 'orderan_online'">
-                <div class="space-y-4">
-                  <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                    <p class="text-xs uppercase font-bold text-text-secondary mb-3">
-                      Item yang dikirim ({{ selectedItems.length }})
-                    </p>
-
-                    <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
-                      <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
-                        class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
-
-                        <!-- Item Header -->
-                        <div class="flex items-center justify-between">
-                          <div class="flex items-center gap-2">
-                            <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
-                            <div>
-                              <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
-                              <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{
-                                item.product?.type
-                              }}</p>
-                            </div>
-                          </div>
-                          <span v-if="item.type !== 'non-hp'"
-                            class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">{{
-                              item.imei }}</span>
-                        </div>
-
-                        <div class="flex gap-3">
-                          <!-- Quantity for Non-HP -->
-                          <div v-if="item.type === 'non-hp'" class="w-1/3">
-                            <label class="text-[10px] text-text-secondary block mb-1">Qty</label>
-                            <div class="flex items-center gap-2">
-                              <input type="number" v-model="item.out_quantity"
-                                class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
-                                min="1" :max="item.quantity">
-                              <span class="text-xs text-text-secondary">/{{ item.quantity }}</span>
-                            </div>
-                          </div>
-
-                          <!-- SRP for Everyone -->
-                          <div class="flex-1">
-                            <label class="text-[10px] text-emerald-500 block mb-1">SRP (Per Item)</label>
-                            <div class="relative">
-                              <span
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                              <input type="text" :value="item.selling_price ? formatNumber(item.selling_price) : ''"
-                                @input="e => {
-                                  const val = e.target.value.replace(/\D/g, '');
-                                  item.selling_price = val ? parseInt(val) : 0;
-                                  e.target.value = formatNumber(item.selling_price);
-                                }"
-                                class="w-full text-sm p-2 pl-9 rounded-lg bg-surface-900 border border-surface-600 focus:outline-none focus:border-emerald-500 transition-colors"
-                                placeholder="0">
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  <label class="label">No. Resi *</label>
+                  <div class="flex gap-2">
+                    <input v-model="stockOutForm.shopee_tracking_no" class="input font-mono"
+                      placeholder="Scan atau ketik manual..." />
+                    <button @click="startScanner()" type="button" class="btn btn-secondary px-4">
+                      <ScanBarcode :size="18" />
+                    </button>
                   </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="label">Nama Penerima *</label>
-                      <input v-model="stockOutForm.shopee_receiver" class="input" placeholder="Nama penerima" />
-                    </div>
-                    <div>
-                      <label class="label">No. WA (Opsional)</label>
-                      <input v-model="stockOutForm.shopee_phone" class="input" placeholder="08xxxxxxxxxx" />
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="label">Provinsi *</label>
-                      <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
-                        class="input">
-                        <option value="">-- Pilih Provinsi --</option>
-                        <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="label">Kota/Kabupaten *</label>
-                      <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)" class="input"
-                        :disabled="!selectedRegionIds.province">
-                        <option value="">-- Pilih Kota --</option>
-                        <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- District & Village Removed -->
-
-                  <div>
-                    <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
-                    <textarea v-model="stockOutForm.shopee_address" class="input" rows="3"
-                      placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
-                  </div>
-
-                  <div>
-                    <label class="label">Catatan</label>
-                    <input v-model="stockOutForm.shopee_notes" class="input" placeholder="Catatan pengiriman..." />
-                  </div>
-
-                  <div>
-                    <label class="label">No. Resi *</label>
-                    <div class="flex gap-2">
-                      <input v-model="stockOutForm.shopee_tracking_no" class="input font-mono"
-                        placeholder="Scan atau ketik manual..." />
-                      <button @click="startScanner()" type="button" class="btn btn-secondary px-4">
-                        <ScanBarcode :size="18" />
-                      </button>
-                    </div>
-                    <p class="text-xs text-text-secondary mt-1">* Satu resi untuk semua item di atas</p>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Giveaway Form -->
-              <template v-if="selectedStockOutCategory === 'giveaway'">
-                <div class="space-y-4">
-                  <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                    <p class="text-xs uppercase font-bold text-text-secondary mb-2">
-                      Item Giveaway ({{ selectedItems.length }})
-                    </p>
-                    <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                      <div v-for="(item, idx) in selectedItems" :key="item.id"
-                        class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
-                        <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
-                        <span>{{ item.product?.name }}</span>
-                        <span class="text-text-secondary">|</span>
-                        <span v-if="activeTab === 'hp'">{{ item.imei }}</span>
-                        <div v-else class="flex items-center gap-1">
-                          <input type="number" v-model="item.out_quantity"
-                            class="w-12 h-6 text-xs p-1 rounded bg-surface-900 border border-surface-600 text-center"
-                            min="1" :max="item.quantity">
-                          <span class="text-text-secondary">/ {{ item.quantity }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="label">Nama Customer *</label>
-                      <input v-model="stockOutForm.giveaway_receiver" class="input" placeholder="Nama customer" />
-                    </div>
-                    <div>
-                      <label class="label">No. WA *</label>
-                      <input v-model="stockOutForm.giveaway_phone" class="input" placeholder="08xxxxxxxxxx" />
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="label">Provinsi *</label>
-                      <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
-                        class="input">
-                        <option value="">-- Pilih Provinsi --</option>
-                        <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="label">Kota/Kabupaten *</label>
-                      <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)" class="input"
-                        :disabled="!selectedRegionIds.province">
-                        <option value="">-- Pilih Kota --</option>
-                        <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <!-- District & Village Removed -->
-
-                  <div>
-                    <label class="label">Kode Pos</label>
-                    <input v-model="stockOutForm.giveaway_postal_code" class="input" placeholder="Kode Pos" />
-                  </div>
-
-                  <div>
-                    <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
-                    <textarea v-model="stockOutForm.giveaway_address" class="input" rows="3"
-                      placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
-                  </div>
-
-                  <div>
-                    <label class="label">Catatan</label>
-                    <input v-model="stockOutForm.giveaway_notes" class="input" placeholder="Catatan giveaway..." />
-                  </div>
-                </div>
-              </template>
-
-              <!-- Selected Items Summary -->
-              <div class="mt-6 pt-4 border-t border-surface-700">
-                <p class="text-xs uppercase font-bold text-text-secondary mb-3">
-                  Barang yang akan dikeluarkan ({{ selectedItems.length }})
-                </p>
-                <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                  <div v-for="item in selectedItems" :key="item.id"
-                    class="bg-surface-700 px-3 py-2 rounded-xl text-sm flex items-center gap-2">
-                    <Smartphone :size="14" />
-                    <span class="font-mono text-xs">{{ item.imei }}</span>
-                  </div>
+                  <p class="text-xs text-text-secondary mt-1">* Satu resi untuk semua item di atas</p>
                 </div>
               </div>
             </template>
+
+            <!-- Giveaway Form -->
+            <template v-if="selectedStockOutCategory === 'giveaway'">
+              <div class="space-y-4">
+                <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
+                  <p class="text-xs uppercase font-bold text-text-secondary mb-2">
+                    Item Giveaway ({{ selectedItems.length }})
+                  </p>
+                  <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    <div v-for="(item, idx) in selectedItems" :key="item.id"
+                      class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
+                      <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
+                      <span>{{ item.product?.name }}</span>
+                      <span class="text-text-secondary">|</span>
+                      <span v-if="activeTab === 'hp'">{{ item.imei }}</span>
+                      <div v-else class="flex items-center gap-1">
+                        <input type="number" v-model="item.out_quantity"
+                          class="w-12 h-6 text-xs p-1 rounded bg-surface-900 border border-surface-600 text-center"
+                          min="1" :max="item.quantity">
+                        <span class="text-text-secondary">/ {{ item.quantity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="label">Nama Customer *</label>
+                    <input v-model="stockOutForm.giveaway_receiver" class="input" placeholder="Nama customer" />
+                  </div>
+                  <div>
+                    <label class="label">No. WA *</label>
+                    <input v-model="stockOutForm.giveaway_phone" class="input" placeholder="08xxxxxxxxxx" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="label">Provinsi *</label>
+                    <select :value="selectedRegionIds.province" @change="e => onProvinceChange(e.target.value)"
+                      class="input">
+                      <option value="">-- Pilih Provinsi --</option>
+                      <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="label">Kota/Kabupaten *</label>
+                    <select :value="selectedRegionIds.city" @change="e => onCityChange(e.target.value)" class="input"
+                      :disabled="!selectedRegionIds.province">
+                      <option value="">-- Pilih Kota --</option>
+                      <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- District & Village Removed -->
+
+                <div>
+                  <label class="label">Kode Pos</label>
+                  <input v-model="stockOutForm.giveaway_postal_code" class="input" placeholder="Kode Pos" />
+                </div>
+
+                <div>
+                  <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
+                  <textarea v-model="stockOutForm.giveaway_address" class="input" rows="3"
+                    placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
+                </div>
+
+                <div>
+                  <label class="label">Catatan</label>
+                  <input v-model="stockOutForm.giveaway_notes" class="input" placeholder="Catatan giveaway..." />
+                </div>
+              </div>
+            </template>
+
+            <!-- Selected Items Summary -->
+            <div class="mt-6 pt-4 border-t border-surface-700">
+              <p class="text-xs uppercase font-bold text-text-secondary mb-3">
+                Barang yang akan dikeluarkan ({{ selectedItems.length }})
+              </p>
+              <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                <div v-for="item in selectedItems" :key="item.id"
+                  class="bg-surface-700 px-3 py-2 rounded-xl text-sm flex items-center gap-2">
+                  <Smartphone :size="14" />
+                  <span class="font-mono text-xs">{{ item.imei }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
 
         <div v-if="selectedStockOutCategory" class="p-6 border-t border-surface-700">
           <button @click="submitStockOut" :disabled="!canSubmitStockOut || isSubmitting"
