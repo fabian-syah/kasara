@@ -241,6 +241,14 @@ watch([selectedBrand, selectedTypeName], ([newBrand, newType]) => {
 watch(selectedBrand, () => { selectedTypeName.value = ""; selectedRam.value = ""; selectedStorage.value = ""; });
 watch(selectedTypeName, () => { selectedRam.value = ""; selectedStorage.value = ""; });
 
+// Sanitize IMEI Input (Numeric Only + Whitespace)
+watch(bulkImeiText, (val) => {
+    const sanitized = val.replace(/[^0-9\s]/g, ''); // Allow numbers and whitespace (newlines)
+    if (val !== sanitized) {
+        bulkImeiText.value = sanitized;
+    }
+});
+
 const canNext = computed(() => {
     if (currentStep.value === 1) return !!placementId.value;
     if (currentStep.value === 2) return !!itemType.value;
@@ -698,7 +706,8 @@ onMounted(fetchInitialData);
 
             <div v-if="currentStep === 3"
                 class="bg-surface-900 p-8 rounded-3xl border border-surface-700 animate-in slide-in-from-right">
-                <label class="label text-xs uppercase font-black text-text-secondary mb-4">Pemasok</label>
+                <label class="label text-xs uppercase font-black text-text-secondary mb-4">Pemasok <span
+                        class="text-red-500">*</span></label>
                 <div class="flex gap-3">
                     <select v-if="!isManualDistributor" v-model="selectedDistributor"
                         class="input flex-1 bg-surface-800">
@@ -725,12 +734,14 @@ onMounted(fetchInitialData);
                 </div>
 
                 <div class="grid grid-cols-2 gap-5 bg-surface-900/50 p-8 rounded-3xl border border-surface-700">
-                    <div><label class="label text-[10px] uppercase">Merk</label><select v-model="selectedBrand"
+                    <div><label class="label text-[10px] uppercase">Merk <span
+                                class="text-red-500">*</span></label><select v-model="selectedBrand"
                             class="input bg-surface-900">
                             <option :value="null">-- Pilih Merk --</option>
                             <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                         </select></div>
-                    <div><label class="label text-[10px] uppercase">Tipe</label><select v-model="selectedTypeName"
+                    <div><label class="label text-[10px] uppercase">Tipe <span
+                                class="text-red-500">*</span></label><select v-model="selectedTypeName"
                             :disabled="!selectedBrand" class="input bg-surface-900 disabled:opacity-30">
                             <option value="">-- Pilih Tipe --</option>
                             <option v-for="n in uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
@@ -747,7 +758,8 @@ onMounted(fetchInitialData);
 
                     <!-- Quantity (Non-HP Only) -->
                     <div v-if="itemType === 'non-hp'">
-                        <label class="label text-[10px] uppercase">Jumlah Stok (Pcs/Unit)</label>
+                        <label class="label text-[10px] uppercase">Jumlah Stok (Pcs/Unit) <span
+                                class="text-red-500">*</span></label>
                         <input v-model.number="nonHpForm.quantity" type="number" min="1"
                             class="input bg-surface-900 h-[42px]" placeholder="Jumlah..." />
                     </div>
@@ -763,7 +775,8 @@ onMounted(fetchInitialData);
                     <div
                         class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-surface-900/50 p-6 rounded-3xl border border-surface-700">
                         <div>
-                            <label class="label text-[10px] uppercase">Kondisi (Batch)</label>
+                            <label class="label text-[10px] uppercase">Kondisi (Batch) <span
+                                    class="text-red-500">*</span></label>
                             <select v-model="batchDetails.condition" class="input bg-surface-900 h-12 text-sm">
                                 <option value="new">Baru</option>
                                 <option value="second">Bekas</option>
@@ -801,13 +814,15 @@ onMounted(fetchInitialData);
                     <!-- Single Bulk Textarea -->
                     <div class="space-y-2">
                         <label class="label text-sm uppercase font-bold flex justify-between">
-                            <span>Input IMEI (Scan / Copy-Paste)</span>
+                            <div class="flex items-center gap-2">
+                                <span>Input IMEI (Scan / Copy-Paste)</span>
+                                <span class="text-red-500">*</span>
+                            </div>
                             <span
                                 class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
                                 {{ parsedImeis.length }} items</span>
                         </label>
-                        <textarea :value="bulkImeiText"
-                            @input="e => bulkImeiText = e.target.value.replace(/[^0-9\s]/g, '')" rows="8"
+                        <textarea v-model="bulkImeiText" rows="8"
                             class="input bg-surface-900 font-mono text-sm leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500 transition-all placeholder:text-text-secondary/30"
                             placeholder="Contoh: &#10;123456789012345&#10;987654321098765&#10;Paste banyak IMEI sekaligus disini..."></textarea>
                         <p class="text-[10px] text-text-secondary flex items-center gap-1">
