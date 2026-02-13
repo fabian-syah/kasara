@@ -368,6 +368,11 @@ const filteredProducts = computed(() => {
     items = items.filter((item) => item.product?.category === selectedCategory.value);
   }
 
+  // Hide Non-HP items with 0 stock
+  if (activeTab.value === 'non-hp') {
+    items = items.filter((item) => (item.quantity || 0) > 0);
+  }
+
   return items;
 });
 

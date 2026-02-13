@@ -28,7 +28,8 @@ class InventoryController extends Controller
             // ============================================
             // NON-HP (Quantity Based)
             // ============================================
-            $query = Inventory::with(['product', 'user']);
+            $query = Inventory::with(['product', 'user'])
+                ->where('quantity', '>', 0); // Hide items with 0 stock
 
             // Filter by Branch/Placement
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
