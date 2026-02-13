@@ -752,9 +752,8 @@ onMounted(fetchInitialData);
                     </div>
 
                     <div v-if="!selectedProduct && selectedTypeName"
-                        class="col-span-full text-red-400 text-[10px] animate-pulse">
-                        <XCircle :size="12" class="inline mr-1" /> Spek belum terdaftar, tapi sistem akan mencoba
-                        mapping otomatis ke Tipe Model terdekat.
+                        class="col-span-full text-green-400 text-[10px] animate-pulse">
+                        <CheckCircle :size="12" class="inline mr-1" /> Lanjutkan.
                     </div>
                 </div>
 
