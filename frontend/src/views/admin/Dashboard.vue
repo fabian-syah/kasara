@@ -24,9 +24,17 @@ const authStore = useAuthStore();
 const dashboardRole = ref('general');
 const recentTypes = ref([]);
 const recentPrices = ref([]);
+const recentTransactions = ref([]);
 
-// Stats data (Initial static data for general, overwritten for admin_produk)
-const stats = ref([
+// Determine initial role immediately to prevent flash of wrong dashboard
+if (authStore.hasRole('admin_produk')) {
+  dashboardRole.value = 'admin_produk';
+} else if (authStore.hasRole('online_shop') || authStore.hasRole('toko_online') || authStore.user?.online_shop_id) {
+  dashboardRole.value = 'online_shop';
+}
+
+// Stats data (Initial static data for general, overwritten for other roles)
+const initialStats = [
   {
     id: 1,
     label: "Pendapatan Hari Ini",
@@ -63,7 +71,10 @@ const stats = ref([
     icon: Users,
     color: "amber",
   },
-]);
+];
+
+// If role is determined, start with empty/loading stats to avoid showing static general stats
+const stats = ref(dashboardRole.value === 'general' ? initialStats : []);
 
 // ... Top Products, Low Stock, etc. (Keep existing for general role)
 const topProducts = ref([
@@ -80,7 +91,8 @@ const lowStockItems = ref([
   { id: 3, name: "Samsung Galaxy Z Fold 5", stock: 2, minStock: 5 },
 ]);
 
-const recentTransactions = ref([
+// Initial static recent transactions for General Dashboard
+const initialRecentTransactions = [
   {
     id: "TRX-001",
     customer: "Ahmad Rizki",
@@ -109,7 +121,12 @@ const recentTransactions = ref([
     time: "1 jam lalu",
     status: "pending",
   },
-]);
+];
+
+// Initialize properly
+if (dashboardRole.value === 'general') {
+  recentTransactions.value = initialRecentTransactions;
+}
 
 const branchPerformance = ref([
   { name: "Pusat Jakarta", revenue: 125000000, target: 150000000 },
@@ -197,27 +214,32 @@ const getColorClasses = (color) => {
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="stat in stats" :key="stat.id" class="stat-card">
+      <template v-if="isLoading && stats.length === 0">
+        <div v-for="i in 4" :key="i" class="card h-32 animate-pulse bg-surface-700/50"></div>
+      </template>
+      <div v-else v-for="stat in stats" :key="stat.id" class="stat-card">
         <div class="flex items-start justify-between mb-4">
           <div class="stat-icon" :class="getColorClasses(stat.color).icon">
             <component :is="stat.icon" :size="20" class="text-white" />
           </div>
-          <div class="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full" :class="stat.trend === 'up'
+          <div v-if="stat.trend" class="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full" :class="stat.trend === 'up'
             ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-            : 'bg-red-500/20 text-red-600 dark:text-red-400'
+            : (stat.trend === 'down' ? 'bg-red-500/20 text-red-600 dark:text-red-400' : 'bg-surface-500/20 text-text-secondary')
             ">
             <TrendingUp v-if="stat.trend === 'up'" :size="12" />
-            <TrendingDown v-else :size="12" />
+            <TrendingDown v-else-if="stat.trend === 'down'" :size="12" />
+            <span v-else>-</span>
             {{ Math.abs(stat.change) }}%
           </div>
         </div>
         <p class="text-text-secondary text-sm font-medium">{{ stat.label }}</p>
         <p class="text-2xl font-bold text-text-primary mt-1">
           {{
-            stat.label.includes("Pendapatan")
+            stat.isCurrency || stat.label.includes("Pendapatan")
               ? formatCurrency(stat.value)
               : formatNumber(stat.value)
           }}
+          <span v-if="stat.sub" class="text-xs text-text-secondary font-normal ml-2">{{ stat.sub }}</span>
         </p>
       </div>
     </div>
