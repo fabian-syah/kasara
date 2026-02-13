@@ -243,16 +243,24 @@ function formatCurrency(value) {
                             </div>
                         </div>
 
-                        <!-- Items -->
-                        <div class="mb-4" v-if="result.items?.length">
-                            <p class="text-xs uppercase font-bold text-text-secondary mb-2">Barang ({{
+                        <!-- ITEMS LIST -->
+                        <div class="mt-4 border-t border-surface-600 pt-4">
+                            <p class="text-text-secondary text-xs mb-2 font-bold uppercase tracking-wider">Barang ({{
                                 result.items.length }})</p>
-                            <div class="flex flex-wrap gap-2">
+                            <div class="space-y-2">
                                 <div v-for="(item, idx) in result.items" :key="idx"
-                                    class="bg-surface-700 px-3 py-2 rounded-lg text-sm flex items-center gap-2">
-                                    <Smartphone :size="14" />
-                                    <span>{{ item.product_name }}</span>
-                                    <span class="font-mono text-xs text-text-secondary">{{ item.imei }}</span>
+                                    class="flex items-center gap-3 p-2 bg-surface-700/30 rounded-lg">
+                                    <component :is="item.type === 'non-hp' ? Box : Smartphone" :size="16"
+                                        class="text-text-secondary" />
+                                    <div class="flex-1">
+                                        <p class="text-text-primary text-sm font-medium">{{ item.product_name }}</p>
+                                        <p class="text-text-secondary text-xs" v-if="item.imei && item.imei !== '-'">{{
+                                            item.imei }}</p>
+                                        <p class="text-text-secondary text-xs" v-else>Qty: {{ item.quantity }}</p>
+                                    </div>
+                                    <div v-if="item.tracking_no" class="text-xs bg-surface-600 px-2 py-1 rounded">
+                                        {{ item.tracking_no }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -292,7 +300,7 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                    }}</span>
+                                                }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>
