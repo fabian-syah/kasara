@@ -1327,6 +1327,46 @@ function getStockStatus(product) {
 
               <!-- Kesalahan Input Form -->
               <template v-if="selectedStockOutCategory === 'kesalahan_input'">
+                <!-- Item List (Added for Quantity Input) -->
+                <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600 mb-4">
+                  <p class="text-xs uppercase font-bold text-text-secondary mb-3">
+                    Item yang dihapus ({{ selectedItems.length }})
+                  </p>
+
+                  <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
+                      class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
+
+                      <!-- Header -->
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                          <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
+                          <div>
+                            <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
+                            <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                              }}</p>
+                          </div>
+                        </div>
+                        <span v-if="item.type !== 'non-hp'"
+                          class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
+                          {{ item.imei }}
+                        </span>
+                      </div>
+
+                      <!-- Quantity for Non-HP -->
+                      <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2">
+                        <label class="text-[10px] text-text-secondary block mb-1">Qty Hapus</label>
+                        <div class="flex items-center gap-2">
+                          <input type="number" v-model="item.out_quantity"
+                            class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
+                            min="1" :max="item.quantity" placeholder="1">
+                          <span class="text-xs text-text-secondary">/{{ item.quantity }} Pcs</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label class="label">Alasan Hapus *</label>
                   <textarea v-model="stockOutForm.deletion_reason" class="input" rows="4"
@@ -1353,7 +1393,7 @@ function getStockStatus(product) {
                           <div>
                             <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
                             <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
-                              }}</p>
+                            }}</p>
                           </div>
                         </div>
                         <span v-if="item.type !== 'non-hp'"
