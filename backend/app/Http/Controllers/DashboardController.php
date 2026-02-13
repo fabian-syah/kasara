@@ -183,27 +183,46 @@ class DashboardController extends Controller
             })
             ->latest()
             ->take(5)
-            ->get()
-            ->map(function ($trx) {
-                $items = [];
-                foreach ($trx->items as $item) {
-                    $items[] = $item->product->name;
-                }
-                if ($trx->non_hp_items) {
-                    foreach ($trx->non_hp_items as $item) {
-                        $items[] = $item['product_name'] ?? 'Item (' . $item['quantity'] . ')';
+            ->get();
+
+        // Enrich Non-HP Product Names
+        $productIds = [];
+        foreach ($recentTransactions as $trx) {
+            if ($trx->non_hp_items) {
+                foreach ($trx->non_hp_items as $item) {
+                    if (isset($item['product_id'])) {
+                        $productIds[] = $item['product_id'];
                     }
                 }
+            }
+        }
 
-                return [
-                    'id' => $trx->receipt_id,
-                    'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? 'Guest',
-                    'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
-                    'items' => implode(', ', array_slice($items, 0, 2)) . (count($items) > 2 ? '...' : ''),
-                    'time' => $trx->created_at->diffForHumans(),
-                    'status' => 'success'
-                ];
-            });
+        $products = [];
+        if (!empty($productIds)) {
+            $products = \App\Models\Product::whereIn('id', array_unique($productIds))->pluck('name', 'id');
+        }
+
+        $recentTransactions = $recentTransactions->map(function ($trx) use ($products) {
+            $items = [];
+            foreach ($trx->items as $item) {
+                $items[] = $item->product->name;
+            }
+            if ($trx->non_hp_items) {
+                foreach ($trx->non_hp_items as $item) {
+                    $name = $products[$item['product_id']] ?? 'Unknown Product';
+                    $items[] = $name . ' (' . ($item['quantity'] ?? 1) . ')';
+                }
+            }
+
+            return [
+                'id' => $trx->receipt_id,
+                'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? 'Guest',
+                'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
+                'items' => implode(', ', array_slice($items, 0, 2)) . (count($items) > 2 ? '...' : ''),
+                'time' => $trx->created_at->diffForHumans(),
+                'status' => 'success'
+            ];
+        });
 
 
         return response()->json([
