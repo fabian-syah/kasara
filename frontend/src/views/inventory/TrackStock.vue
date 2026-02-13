@@ -133,8 +133,8 @@ function formatCurrency(value) {
                 <p class="text-text-secondary text-sm">Ditemukan {{ results.length }} hasil</p>
 
                 <!-- STOCK IN Result -->
-                <template v-for="result in results" :key="result.id">
-                    <div v-if="result.type === 'stock_in'"
+                <template v-for="result in results">
+                    <div v-if="result.type === 'stock_in'" :key="'in-' + result.id"
                         class="card p-6 border-l-4 border-l-green-500 hover:bg-surface-700/30 transition-all">
                         <!-- Header -->
                         <div class="flex items-start justify-between mb-4">
@@ -210,7 +210,7 @@ function formatCurrency(value) {
                     </div>
 
                     <!-- STOCK OUT Result -->
-                    <div v-else-if="result.type === 'stock_out'"
+                    <div v-else-if="result.type === 'stock_out'" :key="'out-' + result.id"
                         class="card p-6 border-l-4 hover:bg-surface-700/30 transition-all" :class="{
                             'border-l-blue-500': result.category === 'pindah_cabang',
                             'border-l-amber-500': result.category === 'kesalahan_input',
@@ -292,7 +292,7 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                }}</span>
+                                                    }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>

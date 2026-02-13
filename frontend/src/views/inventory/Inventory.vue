@@ -397,12 +397,20 @@ function toggleSelectAll() {
 }
 
 function toggleSelect(item) {
-  const idx = selectedItems.value.findIndex(i => i.id === item.id);
+  // Ensure item has type
+  if (!item.type) {
+    item.type = activeTab.value;
+  }
+
+  const idx = selectedItems.value.findIndex(i => i.id === item.id && i.type === item.type);
   if (idx === -1) {
     // Init quantity for non-hp
-    if (activeTab.value === 'non-hp') {
+    if (item.type === 'non-hp') {
       item.out_quantity = 1;
     }
+    // Init selling price
+    item.selling_price = item.selling_price || 0;
+
     selectedItems.value.push(item);
   } else {
     selectedItems.value.splice(idx, 1);
@@ -410,7 +418,7 @@ function toggleSelect(item) {
 }
 
 function isSelected(item) {
-  return selectedItems.value.some(i => i.id === item.id);
+  return selectedItems.value.some(i => i.id === item.id && i.type === activeTab.value);
 }
 
 // Stock Out Modal Functions
@@ -441,7 +449,6 @@ function selectStockOutCategory(category) {
   selectedStockOutCategory.value = category.id;
 
   // Initialize per-item forms for Shopee
-
 }
 
 function resetStockOutForm() {
@@ -563,6 +570,16 @@ const totalCostPrice = computed(() => {
 });
 
 const estimatedProfit = computed(() => {
+  // If Shopee, sum per-item selling prices
+  if (selectedStockOutCategory.value === 'shopee') {
+    const totalSelling = selectedItems.value.reduce((sum, item) => {
+      const price = Number(item.selling_price) || 0;
+      const qty = item.type === 'non-hp' ? (item.out_quantity || 1) : 1;
+      return sum + (price * qty);
+    }, 0);
+    return totalSelling - totalCostPrice.value;
+  }
+
   const selling = Number(stockOutForm.value.selling_price) || 0;
   return selling - totalCostPrice.value;
 });
@@ -572,18 +589,7 @@ const profitPercentage = computed(() => {
   return (estimatedProfit.value / totalCostPrice.value) * 100;
 });
 
-const formattedSellingPrice = computed({
-  get: () => {
-    return stockOutForm.value.selling_price
-      ? formatCurrency(stockOutForm.value.selling_price).replace('Rp', '').trim()
-      : '';
-  },
-  set: (newValue) => {
-    // Remove non-numeric characters
-    const numericValue = newValue.replace(/[^\d]/g, '');
-    stockOutForm.value.selling_price = numericValue ? parseInt(numericValue) : null;
-  }
-});
+
 
 // Can Submit validation
 const canSubmitStockOut = computed(() => {
@@ -598,12 +604,14 @@ const canSubmitStockOut = computed(() => {
       return stockOutForm.value.retur_officer && stockOutForm.value.retur_issue &&
         stockOutForm.value.customer_name && stockOutForm.value.customer_phone;
     case 'shopee':
-      // Single form validation
+      // Check if all items have selling price
+      const allItemsHavePrice = selectedItems.value.every(item => item.selling_price && item.selling_price > 0);
+
       return stockOutForm.value.shopee_receiver &&
-        stockOutForm.value.shopee_phone &&
+        // stockOutForm.value.shopee_phone && // Optional now
         stockOutForm.value.shopee_address &&
         stockOutForm.value.shopee_tracking_no &&
-        stockOutForm.value.selling_price;
+        allItemsHavePrice; // Per-item price validation
     case 'giveaway':
       return stockOutForm.value.giveaway_receiver &&
         stockOutForm.value.giveaway_phone &&
@@ -627,17 +635,26 @@ async function submitStockOut() {
     const formData = new FormData();
     formData.append('category', selectedStockOutCategory.value);
 
-    // HP vs Non-HP Payload
-    if (activeTab.value === 'non-hp') {
-      selectedItems.value.forEach((item, index) => {
-        formData.append(`non_hp_items[${index}][product_id]`, item.product_id);
-        formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || 1);
-      });
-    } else {
-      selectedItems.value.forEach(item => {
-        formData.append('product_detail_ids[]', item.id);
-      });
-    }
+    // Split items by type
+    const hpItems = selectedItems.value.filter(item => !item.type || item.type === 'hp');
+    const nonHpItems = selectedItems.value.filter(item => item.type === 'non-hp');
+
+    // Add Non-HP Items
+    nonHpItems.forEach((item, index) => {
+      formData.append(`non_hp_items[${index}][product_id]`, item.product_id || item.id); // Inventory item.id is usually inventory ID, but product_id is needed. 
+      // Wait, item from inventoryStore.products has product_id if it is inventory record AND id if it is inventory record.
+      // For Non-HP, item structure: { id: 1, product_id: 2, quantity: 10, ... }
+      formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || 1);
+
+      if (selectedStockOutCategory.value === 'shopee') {
+        formData.append(`non_hp_items[${index}][selling_price]`, item.selling_price || 0);
+      }
+    });
+
+    // Add HP Items Product Detail IDs
+    hpItems.forEach(item => {
+      formData.append('product_detail_ids[]', item.id);
+    });
 
     if (selectedInventoryUser.value) {
       formData.append('inventory_user_id', selectedInventoryUser.value.id);
@@ -645,13 +662,14 @@ async function submitStockOut() {
 
     // For Shopee, send per-item data (constructed from global form)
     if (selectedStockOutCategory.value === 'shopee') {
-      selectedItems.value.forEach((item, index) => {
+      hpItems.forEach((item, index) => {
         formData.append(`shopee_items[${index}][product_detail_id]`, item.id);
         formData.append(`shopee_items[${index}][receiver]`, stockOutForm.value.shopee_receiver);
         formData.append(`shopee_items[${index}][phone]`, stockOutForm.value.shopee_phone);
         formData.append(`shopee_items[${index}][address]`, stockOutForm.value.shopee_address);
         formData.append(`shopee_items[${index}][notes]`, stockOutForm.value.shopee_notes);
         formData.append(`shopee_items[${index}][tracking_no]`, stockOutForm.value.shopee_tracking_no);
+        formData.append(`shopee_items[${index}][selling_price]`, item.selling_price || 0);
       });
 
       // Append Global Region Data
@@ -663,7 +681,7 @@ async function submitStockOut() {
       formData.append('shopee_district', stockOutForm.value.shopee_district);
       formData.append('shopee_village', stockOutForm.value.shopee_village);
       formData.append('shopee_postal_code', stockOutForm.value.shopee_postal_code);
-      formData.append('selling_price', stockOutForm.value.selling_price);
+      // formData.append('selling_price', stockOutForm.value.selling_price); // Not used anymore for Shopee
     } else if (selectedStockOutCategory.value === 'giveaway') {
       formData.append('giveaway_receiver', stockOutForm.value.giveaway_receiver);
       formData.append('giveaway_phone', stockOutForm.value.giveaway_phone);
@@ -846,7 +864,7 @@ function getStockStatus(product) {
           <span class="text-sm font-medium text-text-secondary pl-2">Terima Retur</span>
           <button @click="toggleReturn" :disabled="isTogglingReturn" :class="[
             currentWarehouse.can_accept_returns ? 'bg-emerald-500' : 'bg-surface-600',
-            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none'
+            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none'
           ]">
             <span aria-hidden="true" :class="[
               currentWarehouse.can_accept_returns ? 'translate-x-5' : 'translate-x-0',
@@ -1230,7 +1248,7 @@ function getStockStatus(product) {
                   <div class="flex items-center gap-4">
                     <!-- Photo -->
                     <div
-                      class="w-14 h-14 rounded-xl bg-surface-900 flex-shrink-0 flex items-center justify-center overflow-hidden border border-surface-600 group-hover:border-primary-500/50 transition-colors">
+                      class="w-14 h-14 rounded-xl bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-600 group-hover:border-primary-500/50 transition-colors">
                       <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
                         class="w-full h-full object-cover" alt="Foto" />
                       <span v-else class="text-xl font-bold text-primary-500">{{ (user.full_name || user.name ||
@@ -1359,33 +1377,54 @@ function getStockStatus(product) {
               <template v-if="selectedStockOutCategory === 'shopee'">
                 <div class="space-y-4">
                   <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                    <p class="text-xs uppercase font-bold text-text-secondary mb-2">
+                    <p class="text-xs uppercase font-bold text-text-secondary mb-3">
                       Item yang dikirim ({{ selectedItems.length }})
                     </p>
-                    <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                      <div v-for="(item, idx) in selectedItems" :key="item.id"
-                        class="bg-surface-800 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 border border-surface-600">
-                        <span class="text-primary-400 font-bold">{{ idx + 1 }}.</span>
-                        <span>{{ item.product?.name }}</span>
-                        <span class="text-text-secondary">|</span>
-                        <span v-if="activeTab === 'hp'">{{ item.imei }}</span>
-                        <div v-else class="flex items-center gap-1">
-                          <input type="number" v-model="item.out_quantity"
-                            class="w-12 h-6 text-xs p-1 rounded bg-surface-900 border border-surface-600 text-center"
-                            min="1" :max="item.quantity">
-                          <span class="text-text-secondary">/ {{ item.quantity }}</span>
+
+                    <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                      <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
+                        class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
+
+                        <!-- Item Header -->
+                        <div class="flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
+                            <div>
+                              <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
+                              <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                              }}</p>
+                            </div>
+                          </div>
+                          <span v-if="item.type !== 'non-hp'"
+                            class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">{{
+                              item.imei }}</span>
+                        </div>
+
+                        <div class="flex gap-3">
+                          <!-- Quantity for Non-HP -->
+                          <div v-if="item.type === 'non-hp'" class="w-1/3">
+                            <label class="text-[10px] text-text-secondary block mb-1">Qty</label>
+                            <div class="flex items-center gap-2">
+                              <input type="number" v-model="item.out_quantity"
+                                class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
+                                min="1" :max="item.quantity">
+                              <span class="text-xs text-text-secondary">/{{ item.quantity }}</span>
+                            </div>
+                          </div>
+
+                          <!-- SRP for Everyone -->
+                          <div class="flex-1">
+                            <label class="text-[10px] text-emerald-500 block mb-1">SRP (Per Item)</label>
+                            <div class="relative">
+                              <span
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                              <input type="number" v-model="item.selling_price"
+                                class="w-full text-sm p-2 pl-9 rounded-lg bg-surface-900 border border-surface-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                                placeholder="0">
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <!-- Selling Price -->
-                  <div>
-                    <label class="label text-emerald-500">SRP (Rp) *</label>
-                    <div class="relative">
-                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                      <input v-model="formattedSellingPrice" type="text" class="input pl-10 bg-surface-800"
-                        placeholder="0" />
                     </div>
                   </div>
 
@@ -1395,7 +1434,7 @@ function getStockStatus(product) {
                       <input v-model="stockOutForm.shopee_receiver" class="input" placeholder="Nama penerima" />
                     </div>
                     <div>
-                      <label class="label">No. WA *</label>
+                      <label class="label">No. WA (Opsional)</label>
                       <input v-model="stockOutForm.shopee_phone" class="input" placeholder="08xxxxxxxxxx" />
                     </div>
                   </div>
@@ -1441,6 +1480,7 @@ function getStockStatus(product) {
                         <ScanBarcode :size="18" />
                       </button>
                     </div>
+                    <p class="text-xs text-text-secondary mt-1">* Satu resi untuk semua item di atas</p>
                   </div>
                 </div>
               </template>
@@ -1547,7 +1587,7 @@ function getStockStatus(product) {
     </div>
 
     <!-- Scanner Modal -->
-    <div v-if="isScanning" class="fixed inset-0 bg-black/95 z-[60] flex flex-col items-center justify-center p-4">
+    <div v-if="isScanning" class="fixed inset-0 bg-black/95 z-60 flex flex-col items-center justify-center p-4">
       <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
         <div class="flex items-center justify-between p-4 border-b border-surface-700">
           <h3 class="text-white font-bold flex items-center gap-2">
