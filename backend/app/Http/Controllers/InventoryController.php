@@ -515,9 +515,41 @@ class InventoryController extends Controller
                 $newDetails = []; // Capture for events
 
                 foreach ($details as $item) {
-                    // Check Duplicate IMEI globally
-                    if (ProductDetail::where('imei', $item['imei'])->exists()) {
-                        $duplicates[] = $item['imei'];
+                    // Check Duplicate IMEI globally (including soft deleted)
+                    $existing = ProductDetail::withTrashed()->where('imei', $item['imei'])->first();
+
+                    if ($existing) {
+                        // If it is currently AVAILABLE, then it is a duplicate.
+                        if ($existing->status === 'available' && !$existing->trashed()) {
+                            $duplicates[] = $item['imei'];
+                            continue;
+                        }
+
+                        // If it is NOT available (Sold, Out, etc.) OR it is Trashed -> We can Reuse/Restore it.
+                        if ($existing->trashed()) {
+                            $existing->restore();
+                        }
+
+                        // UPDATE properties to reflect new Stock In
+                        $existing->update([
+                            // Update core fields
+                            'product_id' => $product->id, // Ensure it matches (in case product type changed?)
+                            'ram' => $request->ram ?? $existing->ram,
+                            'storage' => $request->storage ?? $existing->storage,
+                            'condition' => $item['condition'],
+                            'status' => 'available', // Set back to available
+                            'placement_type' => $request->placement_type,
+                            'placement_id' => $request->placement_id,
+                            'cost_price' => $item['cost_price'] ?? 0, // Handle nullable cost price
+                            'selling_price' => $item['selling_price'] ?? null,
+                            'distributor_id' => $distributorId,
+                            'supplier_name' => $supplierName,
+                            'user_id' => $ownerUserId,
+                            'notes' => $request->notes,
+                        ]);
+
+                        $newDetails[] = $existing;
+                        $inserted_count++;
                         continue;
                     }
 
@@ -530,7 +562,7 @@ class InventoryController extends Controller
                         'status' => 'available',
                         'placement_type' => $request->placement_type,
                         'placement_id' => $request->placement_id,
-                        'cost_price' => $item['cost_price'],
+                        'cost_price' => $item['cost_price'] ?? 0,
                         'selling_price' => $item['selling_price'] ?? null,
                         'distributor_id' => $distributorId,
                         'supplier_name' => $supplierName,
