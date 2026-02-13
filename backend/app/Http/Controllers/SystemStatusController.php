@@ -487,7 +487,9 @@ class SystemStatusController extends Controller
         $logPaths = array_merge(
             glob('/var/log/nginx/*access.log') ?: [],
             glob('/var/log/apache2/*access.log') ?: [],
-            glob('/var/log/httpd/*access.log') ?: []
+            glob('/var/log/httpd/*access.log') ?: [],
+            glob('/usr/local/lsws/logs/*access.log') ?: [], // OpenLiteSpeed
+            glob('/usr/local/apache/logs/*access.log') ?: []
         );
 
         // Also check default paths if glob failed or returned nothing specific
@@ -496,6 +498,8 @@ class SystemStatusController extends Controller
                 $logPaths[] = '/var/log/nginx/access.log';
             if (file_exists('/var/log/apache2/access.log'))
                 $logPaths[] = '/var/log/apache2/access.log';
+            if (file_exists('/usr/local/lsws/logs/access.log'))
+                $logPaths[] = '/usr/local/lsws/logs/access.log';
         }
 
         $ipCounts = [];

@@ -18,7 +18,7 @@ use App\Http\Controllers\InventoryController;
 
 
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 
 // Protected routes
 // Public Fixer Route (Temporary)
