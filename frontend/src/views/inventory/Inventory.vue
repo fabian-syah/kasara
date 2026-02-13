@@ -481,6 +481,7 @@ function selectStockOutCategory(category) {
 function resetStockOutForm() {
   stockOutForm.value = {
     destination_branch_id: null,
+    sub_category: '',
     receiver_name: '',
     transfer_notes: '',
     deletion_reason: '',
@@ -640,7 +641,7 @@ const canSubmitStockOut = computed(() => {
         stockOutForm.value.shopee_tracking_no &&
         allItemsHavePrice; // Per-item price validation
     case 'keluar':
-      return stockOutForm.value.sub_category && stockOutForm.value.notes;
+      return stockOutForm.value.sub_category && stockOutForm.value.receiver_name;
     case 'giveaway':
       // Legacy check provided just in case, but category removed from list
       return true;
