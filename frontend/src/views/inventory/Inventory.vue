@@ -1005,7 +1005,7 @@ function getStockStatus(product) {
         <table class="table">
           <thead>
             <tr>
-              <th class="w-12" v-if="activeTab === 'hp'">
+              <th class="w-12">
                 <label class="flex items-center cursor-pointer">
                   <input type="checkbox" :checked="isAllSelected" :indeterminate.prop="isSomeSelected"
                     @change="toggleSelectAll" class="checkbox" />
@@ -1053,7 +1053,7 @@ function getStockStatus(product) {
             <tr v-else v-for="item in filteredProducts" :key="item.id" @click="toggleSelect(item)"
               class="cursor-pointer transition-all hover:bg-surface-700/30"
               :class="isSelected(item) ? 'bg-primary-500/10' : ''">
-              <td @click.stop v-if="activeTab === 'hp'">
+              <td @click.stop>
                 <label class="flex items-center">
                   <input type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)" class="checkbox" />
                 </label>
