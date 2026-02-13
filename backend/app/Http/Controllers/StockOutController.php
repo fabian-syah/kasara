@@ -191,6 +191,37 @@ class StockOutController extends Controller
                 foreach ($request->non_hp_items as $item) {
                     $product = Product::findOrFail($item['product_id']);
 
+                    // === SPECIAL HANDLER FOR HP BULK STOCK OUT (e.g. Kesalahan Input) ===
+                    if ($product->type === 'hp') {
+                        $hpQuery = ProductDetail::where('product_id', $product->id)
+                            ->where('status', 'available');
+
+                        // Placement Filter
+                        if ($user->branch_id) {
+                            $hpQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                        } elseif ($user->warehouse_id) {
+                            $hpQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
+                        } elseif ($user->online_shop_id) {
+                            $hpQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                        }
+
+                        $availableCount = $hpQuery->count();
+                        if ($availableCount < $item['quantity']) {
+                            throw new \Exception("Stok HP tidak cukup untuk: {$product->name}. Tersedia: $availableCount");
+                        }
+
+                        // Fetch LATEST items to remove (LIFO for rollback/error correction)
+                        $itemsToRemove = $hpQuery->latest()->take($item['quantity'])->get();
+
+                        foreach ($itemsToRemove as $detail) {
+                            $detail->update(['status' => 'out']);
+                        }
+
+                        // Skip standard Inventory decrement
+                        continue;
+                    }
+                    // === END HP HANDLER ===
+
                     // Identify Inventory Source based on User
                     $invQuery = Inventory::where('product_id', $item['product_id']);
 
