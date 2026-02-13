@@ -13,8 +13,12 @@ return new class extends Migration {
     {
         // 1. Modify 'category' column to be STRING (remove enum constraint)
         // We use raw SQL for safety across potential DB versions where Doctrine/DBAL might be missing for enum changes.
-        // Assuming MySQL/MariaDB syntax here as commonly used with Laravel/Docker.
-        DB::statement("ALTER TABLE stock_outs MODIFY COLUMN category VARCHAR(50) NOT NULL");
+        $driver = DB::getDriverName();
+        if ($driver === 'pgsql') {
+            DB::statement("ALTER TABLE stock_outs ALTER COLUMN category TYPE VARCHAR(50)");
+        } else {
+            DB::statement("ALTER TABLE stock_outs MODIFY COLUMN category VARCHAR(50) NOT NULL");
+        }
 
         // 2. Add 'sub_category' column
         if (!Schema::hasColumn('stock_outs', 'sub_category')) {
