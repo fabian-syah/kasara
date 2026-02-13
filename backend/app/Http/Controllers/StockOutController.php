@@ -471,6 +471,9 @@ class StockOutController extends Controller
 
             foreach ($stockOuts as $out) {
                 try {
+                    $shopeeItems = $out->shopee_items_data; // Restore assignment!
+                    if (is_string($shopeeItems))
+                        $shopeeItems = json_decode($shopeeItems, true); // Safety
                     $shopeeItems = $shopeeItems ?? [];
 
                     $shopeeReceivers = [];
@@ -478,11 +481,15 @@ class StockOutController extends Controller
 
                     // 1. Extract from Shopee Items (IMEI)
                     if (count($shopeeItems) > 0) {
+                        \Illuminate\Support\Facades\Log::info("Track {$out->receipt_id} - Shopee Items: " . json_encode($shopeeItems));
                         foreach ($shopeeItems as $item) {
-                            if (!empty($item['receiver']))
-                                $shopeeReceivers[] = $item['receiver'];
-                            if (!empty($item['tracking_no']))
-                                $shopeeTrackingNos[] = $item['tracking_no'];
+                            $tNo = is_array($item) ? ($item['tracking_no'] ?? null) : ($item->tracking_no ?? null);
+                            if (!empty($tNo))
+                                $shopeeTrackingNos[] = $tNo;
+
+                            $rec = is_array($item) ? ($item['receiver'] ?? null) : ($item->receiver ?? null);
+                            if (!empty($rec))
+                                $shopeeReceivers[] = $rec;
                         }
                     }
 
@@ -493,9 +500,9 @@ class StockOutController extends Controller
 
                     if (!empty($nonHpItems)) {
                         foreach ($nonHpItems as $item) {
-                            // Assuming Non-HP items might have tracking_no (if frontend sends it)
-                            if (!empty($item['tracking_no']))
-                                $shopeeTrackingNos[] = $item['tracking_no'];
+                            $tNo = is_array($item) ? ($item['tracking_no'] ?? null) : ($item->tracking_no ?? null);
+                            if (!empty($tNo))
+                                $shopeeTrackingNos[] = $tNo;
                         }
                     }
 
