@@ -20,6 +20,11 @@ use App\Http\Controllers\InventoryController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index']);
+    // ... other protected routes
+});
+
 // Protected routes
 // Public Fixer Route (Temporary)
 Route::get('/inventory/fix-data', [InventoryController::class, 'fixMergedImeis']);
