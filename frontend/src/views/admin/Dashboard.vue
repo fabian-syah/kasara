@@ -139,6 +139,15 @@ async function fetchDashboardData() {
       }));
       recentTypes.value = response.data.recent_types;
       recentPrices.value = response.data.recent_prices;
+    } else if (response.data.role === 'online_shop') {
+      dashboardRole.value = 'online_shop';
+      stats.value = response.data.stats.map(s => ({
+        ...s,
+        icon: resolveIcon(s.icon),
+        change: 0,
+        trend: 'neutral'
+      }));
+      recentTransactions.value = response.data.recentTransactions;
     } else {
       dashboardRole.value = 'general';
       // Logic for other roles or keep static
@@ -289,8 +298,52 @@ const getColorClasses = (color) => {
       </div>
     </div>
 
+    <!-- Main Content Grid (Online Shop) -->
+    <div class="grid grid-cols-1 gap-6" v-if="dashboardRole === 'online_shop'">
+      <div class="card">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-semibold text-text-primary">
+            Transaksi Terakhir
+          </h2>
+          <router-link to="/online-shop/history"
+            class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1">
+            Lihat Semua
+            <ArrowUpRight :size="14" />
+          </router-link>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+              <tr>
+                <th class="px-4 py-3 rounded-l-lg">ID Resi</th>
+                <th class="px-4 py-3">Customer</th>
+                <th class="px-4 py-3">Item</th>
+                <th class="px-4 py-3">Total</th>
+                <th class="px-4 py-3">Waktu</th>
+                <th class="px-4 py-3 rounded-r-lg">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-700">
+              <tr v-for="trx in recentTransactions" :key="trx.id" class="hover:bg-surface-700/30 transition-colors">
+                <td class="px-4 py-3 font-mono font-medium text-primary-400">{{ trx.id }}</td>
+                <td class="px-4 py-3 text-text-primary">{{ trx.customer }}</td>
+                <td class="px-4 py-3 text-text-secondary max-w-xs truncate" :title="trx.items">{{ trx.items }}</td>
+                <td class="px-4 py-3 font-bold text-emerald-400">{{ formatCurrency(trx.total) }}</td>
+                <td class="px-4 py-3 text-text-secondary">{{ trx.time }}</td>
+                <td class="px-4 py-3">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">
+                    SUKSES
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content Grid (General) -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div v-else-if="dashboardRole === 'general'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Top Products -->
       <div class="lg:col-span-2 card">
         <div class="flex items-center justify-between mb-6">
@@ -355,7 +408,7 @@ const getColorClasses = (color) => {
     </div>
 
     <!-- Bottom Grid (General) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-if="dashboardRole !== 'admin_produk'">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" v-if="dashboardRole === 'general'">
       <!-- Recent Transactions -->
       <div class="card">
         <div class="flex items-center justify-between mb-6">
