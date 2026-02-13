@@ -164,7 +164,7 @@ onUnmounted(() => {
                     VPS Status Monitor
                 </h1>
                 <p class="text-text-secondary mt-1 ml-14">
-                    <span class="font-mono text-xs bg-surface-700 px-2 py-0.5 rounded">api.stokps.com</span>
+                    <span class="font-mono text-xs bg-surface-700 px-2 py-0.5 rounded">api.stokps.com/api</span>
                     <span v-if="lastChecked" class="ml-2 text-xs">
                         Terakhir cek: {{ lastChecked.toLocaleTimeString('id-ID') }}
                     </span>
@@ -596,7 +596,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Driver</span>
                                     <span class="text-text-primary font-medium uppercase">{{ data.database.driver
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Version</span>
@@ -605,7 +605,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Database</span>
                                     <span class="text-text-primary font-mono text-xs">{{ data.database.database
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
@@ -647,7 +647,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Broadcast</span>
                                     <span class="text-text-primary font-medium">{{ data.laravel.broadcast_driver
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
