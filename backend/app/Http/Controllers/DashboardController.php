@@ -15,8 +15,11 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Check for specific role logic
-        if ($user->hasRole('admin_produk')) {
+        // Check for specific role logic (Case insensitive check)
+        // Debugging
+        \Illuminate\Support\Facades\Log::info('Dashboard Access: User ' . $user->name . ' Roles: ' . $user->getRoleNames());
+
+        if ($user->hasRole('admin_produk') || $user->hasRole('Admin Produk') || $user->hasRole('ADMIN PRODUK')) {
             return $this->getAdminProdukStats();
         }
 
