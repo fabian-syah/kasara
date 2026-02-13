@@ -88,16 +88,16 @@ class SystemStatusController extends Controller
         $status['tech_stack'] = [
             ['name' => 'PHP', 'version' => phpversion(), 'icon' => 'php', 'color' => '#777BB4'],
             ['name' => 'Laravel', 'version' => app()->version(), 'icon' => 'laravel', 'color' => '#FF2D20'],
-            ['name' => 'Laravel Octane', 'version' => $this->getPackageVersion('laravel/octane'), 'icon' => 'zap', 'color' => '#F7B731'],
-            ['name' => 'Laravel Reverb', 'version' => $this->getPackageVersion('laravel/reverb'), 'icon' => 'radio', 'color' => '#6C5CE7'],
-            ['name' => 'Laravel Sanctum', 'version' => $this->getPackageVersion('laravel/sanctum'), 'icon' => 'shield', 'color' => '#00B894'],
-            ['name' => 'Spatie Permission', 'version' => $this->getPackageVersion('spatie/laravel-permission'), 'icon' => 'lock', 'color' => '#0984E3'],
-            ['name' => 'MySQL / MariaDB', 'version' => $status['database']['version'] ?? '—', 'icon' => 'database', 'color' => '#00758F'],
+            ['name' => 'Laravel Octane', 'version' => $this->getPackageVersion('laravel/octane'), 'icon' => 'octane', 'color' => '#F7B731'],
+            ['name' => 'Laravel Reverb', 'version' => $this->getPackageVersion('laravel/reverb'), 'icon' => 'reverb', 'color' => '#6C5CE7'],
+            ['name' => 'Laravel Sanctum', 'version' => $this->getPackageVersion('laravel/sanctum'), 'icon' => 'sanctum', 'color' => '#00B894'],
+            ['name' => 'Spatie Permission', 'version' => $this->getPackageVersion('spatie/laravel-permission'), 'icon' => 'spatie', 'color' => '#0984E3'],
+            ['name' => 'MySQL / MariaDB', 'version' => $status['database']['version'] ?? '—', 'icon' => 'mysql', 'color' => '#00758F'],
             ['name' => 'Vue.js', 'version' => '3.5.24', 'icon' => 'vue', 'color' => '#42B883'],
-            ['name' => 'Vite', 'version' => '7.2.4', 'icon' => 'bolt', 'color' => '#646CFF'],
-            ['name' => 'Tailwind CSS', 'version' => '4.1.18', 'icon' => 'palette', 'color' => '#38BDF8'],
-            ['name' => 'Pinia', 'version' => '3.0.4', 'icon' => 'box', 'color' => '#FFD859'],
-            ['name' => 'Axios', 'version' => '1.13.4', 'icon' => 'globe', 'color' => '#5A29E4'],
+            ['name' => 'Vite', 'version' => '7.2.4', 'icon' => 'vite', 'color' => '#646CFF'],
+            ['name' => 'Tailwind CSS', 'version' => '4.1.18', 'icon' => 'tailwind', 'color' => '#38BDF8'],
+            ['name' => 'Pinia', 'version' => '3.0.4', 'icon' => 'pinia', 'color' => '#FFD859'],
+            ['name' => 'Axios', 'version' => '1.13.4', 'icon' => 'axios', 'color' => '#5A29E4'],
         ];
 
         return response()->json($status);
