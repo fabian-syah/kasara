@@ -15,6 +15,8 @@ return new class extends Migration {
         // We use raw SQL for safety across potential DB versions where Doctrine/DBAL might be missing for enum changes.
         $driver = DB::getDriverName();
         if ($driver === 'pgsql') {
+            // Drop the check constraint that enforces enum values
+            DB::statement("ALTER TABLE stock_outs DROP CONSTRAINT IF EXISTS stock_outs_category_check");
             DB::statement("ALTER TABLE stock_outs ALTER COLUMN category TYPE VARCHAR(50)");
         } else {
             DB::statement("ALTER TABLE stock_outs MODIFY COLUMN category VARCHAR(50) NOT NULL");
