@@ -418,7 +418,7 @@ class StockOutController extends Controller
     public function shopeeHistory(Request $request)
     {
         $query = StockOut::with(['items.product', 'user', 'inventoryUser'])
-            ->where('category', 'shopee');
+            ->whereIn('category', ['shopee', 'orderan_online']);
 
         if ($request->has('q') && !empty($request->q)) {
             $search = $request->q;

@@ -35,6 +35,7 @@ const categoryIcons = {
     kesalahan_input: AlertTriangle,
     retur: RotateCcw,
     shopee: ShoppingBag,
+    orderan_online: ShoppingBag,
 };
 
 const categoryLabels = {
@@ -42,6 +43,7 @@ const categoryLabels = {
     kesalahan_input: 'Kesalahan Input',
     retur: 'Retur',
     shopee: 'Shopee',
+    orderan_online: 'Orderan Online',
 };
 
 // Search function
@@ -215,7 +217,7 @@ function formatCurrency(value) {
                             'border-l-blue-500': result.category === 'pindah_cabang',
                             'border-l-amber-500': result.category === 'kesalahan_input',
                             'border-l-purple-500': result.category === 'retur',
-                            'border-l-[#EE4D2D]': result.category === 'shopee', // Warna Oranye Shopee
+                            'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category), // Warna Oranye Shopee
                         }">
 
                         <div class="flex items-start justify-between mb-4">
@@ -224,7 +226,7 @@ function formatCurrency(value) {
                                     'bg-blue-500/20 text-blue-500': result.category === 'pindah_cabang',
                                     'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
                                     'bg-purple-500/20 text-purple-500': result.category === 'retur',
-                                    'bg-[#EE4D2D]/20 text-[#EE4D2D]': result.category === 'shopee', // Warna Oranye Shopee
+                                    'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category), // Warna Oranye Shopee
                                 }">
                                     <component :is="categoryIcons[result.category]" :size="24" />
                                 </div>
@@ -288,7 +290,7 @@ function formatCurrency(value) {
                             </template>
 
                             <!-- Shopee (Per-Item) -->
-                            <template v-if="result.category === 'shopee'">
+                            <template v-if="['shopee', 'orderan_online'].includes(result.category)">
                                 <!-- Per-item data if available -->
                                 <template v-if="result.shopee_items_data?.length > 0">
                                     <div class="col-span-full space-y-2">
