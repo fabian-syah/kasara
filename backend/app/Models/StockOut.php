@@ -13,6 +13,7 @@ class StockOut extends Model
     protected $fillable = [
         'receipt_id',
         'category',
+        'sub_category',
         'selling_price',
         // Pindah Cabang
         'destination_branch_id',

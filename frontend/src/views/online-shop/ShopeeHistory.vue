@@ -109,9 +109,9 @@ onMounted(() => {
             <div>
                 <h1 class="text-2xl font-bold text-text-primary flex items-center gap-2">
                     <ShoppingBag class="text-primary-500" />
-                    History Shopee
+                    History Orderan Online
                 </h1>
-                <p class="text-text-secondary mt-1">Riwayat pengeluaran stok untuk pesanan Shopee</p>
+                <p class="text-text-secondary mt-1">Riwayat pengeluaran stok untuk pesanan Online</p>
             </div>
 
             <!-- Search -->
@@ -131,7 +131,7 @@ onMounted(() => {
 
             <div v-else-if="history.length === 0" class="p-12 text-center text-text-secondary">
                 <Package :size="48" class="mx-auto mb-2 opacity-50" />
-                <p>Belum ada data history Shopee</p>
+                <p>Belum ada data history Orderan Online</p>
             </div>
 
             <div v-else class="divide-y divide-surface-700">
@@ -217,7 +217,7 @@ onMounted(() => {
                         <div v-if="item.inventory_user" class="flex items-center gap-1 text-xs text-text-secondary">
                             <User :size="12" class="text-primary-400" />
                             <span>Akun Inventory: <strong class="text-white">{{ item.inventory_user.full_name ||
-                                    item.inventory_user.name }}</strong></span>
+                                item.inventory_user.name }}</strong></span>
                         </div>
                     </div>
                 </div>

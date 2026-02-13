@@ -96,8 +96,10 @@ class StockOutController extends Controller
                     'pindah_cabang',
                     'kesalahan_input',
                     'retur',
-                    'shopee',
+                    'orderan_online', // Renamed from shopee
+                    'shopee', // Kept for legacy compatibility if needed
                     'giveaway',
+                    'keluar', // New generic out category
                     'hadiah',
                     'brand_ambassador',
                     'event',
@@ -105,6 +107,7 @@ class StockOutController extends Controller
                     'inventaris'
                 ])
             ],
+            'sub_category' => 'required_if:category,keluar|nullable|string',
             'product_detail_ids' => 'required_without:non_hp_items|array',
             'product_detail_ids.*' => 'exists:product_details,id',
             'non_hp_items' => 'required_without:product_detail_ids|array',

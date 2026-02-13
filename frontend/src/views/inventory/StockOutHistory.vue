@@ -177,14 +177,16 @@ const getCategoryLabel = (cat) => {
         'hilang': 'Hilang / Dicuri',
         'giveaway': 'Giveaway / Hadiah',
         'out': 'Stok Keluar',
-        'shopee': 'Shopee',
+        'shopee': 'Orderan Online',
+        'orderan_online': 'Orderan Online',
         'retur': 'Retur',
         'kesalahan_input': 'Kesalahan Input',
         'hadiah': 'Hadiah',
         'brand_ambassador': 'Brand Ambassador',
         'event': 'Event',
         'promo': 'Promo',
-        'inventaris': 'Inventaris'
+        'inventaris': 'Inventaris',
+        'keluar': 'Keluar'
     };
     return labels[cat] || cat;
 };
@@ -198,8 +200,10 @@ const getCategoryColor = (cat) => {
         'hilang': 'text-red-500 bg-red-500/10 border-red-500/20',
         'giveaway': 'text-purple-400 bg-purple-400/10 border-purple-400/20',
         'shopee': 'text-orange-500 bg-orange-500/10 border-orange-500/20',
+        'orderan_online': 'text-orange-500 bg-orange-500/10 border-orange-500/20',
         'retur': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
-        'out': 'text-surface-400 bg-surface-400/10 border-surface-400/20'
+        'out': 'text-surface-400 bg-surface-400/10 border-surface-400/20',
+        'keluar': 'text-purple-500 bg-purple-500/10 border-purple-500/20'
     };
     return colors[cat] || 'text-surface-400 bg-surface-400/10 border-surface-400/20';
 };
@@ -339,11 +343,16 @@ const formatCurrency = (value) => {
                             <!-- HP Specific Columns -->
                             <template v-if="activeTab === 'hp'">
                                 <td class="px-6 py-4">
-                                    <span
-                                        class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
-                                        :class="getCategoryColor(item.category)">
-                                        {{ getCategoryLabel(item.category) }}
-                                    </span>
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span
+                                            class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
+                                            :class="getCategoryColor(item.category)">
+                                            {{ getCategoryLabel(item.category) }}
+                                        </span>
+                                        <span v-if="item.sub_category" class="text-[10px] text-text-secondary px-1">
+                                            {{ item.sub_category }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-2">
@@ -419,11 +428,16 @@ const formatCurrency = (value) => {
                             <template v-else>
                                 <!-- Col 2: Kategori -->
                                 <td class="px-6 py-4">
-                                    <span
-                                        class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
-                                        :class="getCategoryColor(item.category)">
-                                        {{ getCategoryLabel(item.category) }}
-                                    </span>
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span
+                                            class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
+                                            :class="getCategoryColor(item.category)">
+                                            {{ getCategoryLabel(item.category) }}
+                                        </span>
+                                        <span v-if="item.sub_category" class="text-[10px] text-text-secondary px-1">
+                                            {{ item.sub_category }}
+                                        </span>
+                                    </div>
                                 </td>
 
                                 <!-- Col 3: Tujuan / Penerima -->

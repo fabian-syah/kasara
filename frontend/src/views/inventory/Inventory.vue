@@ -45,6 +45,7 @@ import {
   Building2,
   RotateCcw,
   ShoppingBag,
+  LogOut,
   Gift,
   Trophy,
   UserCheck,
@@ -118,6 +119,7 @@ const isSubmitting = ref(false);
 
 // Stock Out Form
 const stockOutForm = ref({
+  sub_category: '', // Added for Keluar category
   destination_branch_id: null,
   receiver_name: '',
   transfer_notes: '',
@@ -324,13 +326,29 @@ watch(searchQuery, debounce((newVal) => {
 
 // Stock Out Categories
 const stockOutCategories = ref([
-  { id: 'shopee', name: 'Shopee', icon: 'ShoppingBag', color: 'orange' },
+  { id: 'orderan_online', name: 'Orderan Online', icon: 'ShoppingBag', color: 'orange', role: 'toko_online' },
   { id: 'pindah_cabang', name: 'Pindah Cabang', icon: 'ArrowRightLeft', color: 'blue' },
   { id: 'retur', name: 'Retur Barang', icon: 'RotateCcw', color: 'red' },
   { id: 'kesalahan_input', name: 'Kesalahan Input', icon: 'AlertTriangle', color: 'yellow' },
-  { id: 'giveaway', name: 'Giveaway', icon: 'Gift', color: 'pink' }, // NEW
-  { id: 'inventaris', name: 'Inventaris', icon: 'Briefcase', color: 'purple' }, // NEW
+  { id: 'keluar', name: 'Keluar', icon: 'LogOut', color: 'purple' },
 ]);
+
+const keluarSubCategories = [
+  'Giveaway customer',
+  'Hadiah',
+  'Brand ambasador',
+  'Event / Sponsorship',
+  'Promo',
+  'Inventaris'
+];
+
+const availableStockOutCategories = computed(() => {
+  const role = authStore.userRole; // Assuming role slip is stored here
+  return stockOutCategories.value.filter(cat => {
+    if (cat.role && role !== cat.role && role !== 'super_admin') return false;
+    return true;
+  });
+});
 
 // Inventory Users State
 const inventoryUsers = ref([]);
@@ -575,8 +593,8 @@ const totalCostPrice = computed(() => {
 });
 
 const estimatedProfit = computed(() => {
-  // If Shopee, sum per-item selling prices
-  if (selectedStockOutCategory.value === 'shopee') {
+  // If Shopee/Orderan Online, sum per-item selling prices
+  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     const totalSelling = selectedItems.value.reduce((sum, item) => {
       const price = Number(item.selling_price) || 0;
       const qty = item.type === 'non-hp' ? (item.out_quantity || 1) : 1;
@@ -608,7 +626,7 @@ const canSubmitStockOut = computed(() => {
     case 'retur':
       return stockOutForm.value.retur_officer && stockOutForm.value.retur_issue &&
         stockOutForm.value.customer_name && stockOutForm.value.customer_phone;
-    case 'shopee':
+    case 'orderan_online': // Was shopee
       // Check if all items have selling price
       const allItemsHavePrice = selectedItems.value.every(item => item.selling_price && item.selling_price > 0);
 
@@ -617,13 +635,11 @@ const canSubmitStockOut = computed(() => {
         stockOutForm.value.shopee_address &&
         stockOutForm.value.shopee_tracking_no &&
         allItemsHavePrice; // Per-item price validation
+    case 'keluar':
+      return stockOutForm.value.sub_category && stockOutForm.value.notes;
     case 'giveaway':
-      return stockOutForm.value.giveaway_receiver &&
-        stockOutForm.value.giveaway_phone &&
-        stockOutForm.value.giveaway_address &&
-        stockOutForm.value.giveaway_province &&
-        stockOutForm.value.giveaway_city &&
-        stockOutForm.value.giveaway_district;
+      // Legacy check provided just in case, but category removed from list
+      return true;
     case 'inventaris':
       return selectedInventoryUser.value !== null;
     default:
@@ -651,7 +667,7 @@ async function submitStockOut() {
       // For Non-HP, item structure: { id: 1, product_id: 2, quantity: 10, ... }
       formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || 1);
 
-      if (selectedStockOutCategory.value === 'shopee') {
+      if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
         formData.append(`non_hp_items[${index}][selling_price]`, item.selling_price || 0);
       }
     });
@@ -665,8 +681,12 @@ async function submitStockOut() {
       formData.append('inventory_user_id', selectedInventoryUser.value.id);
     }
 
+    if (stockOutForm.value.sub_category) {
+      formData.append('sub_category', stockOutForm.value.sub_category);
+    }
+
     // For Shopee, send per-item data (constructed from global form)
-    if (selectedStockOutCategory.value === 'shopee') {
+    if (selectedStockOutCategory.value === 'orderan_online' || selectedStockOutCategory.value === 'shopee') {
       hpItems.forEach((item, index) => {
         formData.append(`shopee_items[${index}][product_detail_id]`, item.id);
         formData.append(`shopee_items[${index}][receiver]`, stockOutForm.value.shopee_receiver);
@@ -687,6 +707,9 @@ async function submitStockOut() {
       formData.append('shopee_village', stockOutForm.value.shopee_village);
       formData.append('shopee_postal_code', stockOutForm.value.shopee_postal_code);
       // formData.append('selling_price', stockOutForm.value.selling_price); // Not used anymore for Shopee
+    } else if (selectedStockOutCategory.value === 'keluar') {
+      formData.append('notes', stockOutForm.value.notes);
+      // Sub category already appended above
     } else if (selectedStockOutCategory.value === 'giveaway') {
       formData.append('giveaway_receiver', stockOutForm.value.giveaway_receiver);
       formData.append('giveaway_phone', stockOutForm.value.giveaway_phone);
@@ -1204,7 +1227,7 @@ function getStockStatus(product) {
               Pilih Kategori Pengeluaran
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <button v-for="category in stockOutCategories" :key="category.id"
+              <button v-for="category in availableStockOutCategories" :key="category.id"
                 @click="selectStockOutCategory(category)"
                 class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-700 bg-surface-800 hover:bg-surface-700 hover:border-primary-500/50 transition-all group gap-3 text-center h-32 md:h-40">
                 <div
@@ -1456,8 +1479,8 @@ function getStockStatus(product) {
                 </div>
               </template>
 
-              <!-- Shopee Form (Global) -->
-              <template v-if="selectedStockOutCategory === 'shopee'">
+              <!-- Shopee / Orderan Online Form -->
+              <template v-if="selectedStockOutCategory === 'shopee' || selectedStockOutCategory === 'orderan_online'">
                 <div class="space-y-4">
                   <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
                     <p class="text-xs uppercase font-bold text-text-secondary mb-3">
