@@ -424,9 +424,9 @@ onUnmounted(() => {
                         <div class="p-2 rounded-lg bg-blue-500/10">
                             <Server :size="18" class="text-blue-400" />
                         </div>
-                        <span class="text-xs text-text-secondary uppercase font-semibold">Hostname</span>
+                        <span class="text-xs text-text-secondary uppercase font-semibold">Web API</span>
                     </div>
-                    <p class="text-lg font-bold text-text-primary truncate">{{ data.server.hostname }}</p>
+                    <p class="text-sm font-bold text-text-primary truncate">https://api.stokps.com/api/</p>
                     <p class="text-xs text-text-secondary mt-1">{{ data.server.os }}</p>
                 </div>
 
@@ -596,7 +596,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Driver</span>
                                     <span class="text-text-primary font-medium uppercase">{{ data.database.driver
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Version</span>
@@ -605,7 +605,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Database</span>
                                     <span class="text-text-primary font-mono text-xs">{{ data.database.database
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
@@ -647,7 +647,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Broadcast</span>
                                     <span class="text-text-primary font-medium">{{ data.laravel.broadcast_driver
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                         </div>
