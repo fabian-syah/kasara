@@ -283,6 +283,9 @@ class SystemStatusController extends Controller
             }
         }
 
+        // 1.5 Detect HTTP Flood / DDoS (Web Traffic)
+        $this->detectHttpFlood($security);
+
         // 2. Check fail2ban status
         $fail2banStatus = @shell_exec('fail2ban-client status 2>/dev/null');
         if ($fail2banStatus) {
@@ -471,5 +474,129 @@ class SystemStatusController extends Controller
     private function isPrivateIp(string $ip): bool
     {
         return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+    }
+
+    private function detectHttpFlood(array &$security)
+    {
+        // Limit log lines to parse (tail)
+        $maxLines = 2000;
+        $scanWindow = 60; // scan last 60 seconds
+        $threshold = 100; // block if > 100 reqs / minute (adjust as needed)
+
+        // Find access logs
+        $logPaths = array_merge(
+            glob('/var/log/nginx/*access.log') ?: [],
+            glob('/var/log/apache2/*access.log') ?: [],
+            glob('/var/log/httpd/*access.log') ?: []
+        );
+
+        // Also check default paths if glob failed or returned nothing specific
+        if (empty($logPaths)) {
+            if (file_exists('/var/log/nginx/access.log'))
+                $logPaths[] = '/var/log/nginx/access.log';
+            if (file_exists('/var/log/apache2/access.log'))
+                $logPaths[] = '/var/log/apache2/access.log';
+        }
+
+        $ipCounts = [];
+        $now = time();
+
+        foreach ($logPaths as $path) {
+            // Use tail to read only recent lines
+            $cmd = "tail -n {$maxLines} " . escapeshellarg($path);
+            $lines = explode("\n", shell_exec($cmd) ?? '');
+
+            foreach ($lines as $line) {
+                if (empty($line))
+                    continue;
+
+                // Nginx/Apache common log format: IP - - [Date] "Request" Status Bytes ...
+                // Regex to extract IP and Date
+                if (preg_match('/^(\S+) \- \S+ \[([^\]]+)\]/', $line, $m)) {
+                    $ip = $m[1];
+                    $dateStr = $m[2]; // e.g. 13/Feb/2026:15:40:19 +0700
+
+                    // Parse date
+                    // Nginx format: 13/Feb/2026:15:40:19 +0700
+                    // We need to convert to something strtotime understands or use DateTime
+                    $dateStrClean = preg_replace('/:/', ' ', $dateStr, 1); // Replace first colon with space -> 13/Feb/2026 15:40:19 +0700
+                    $timestamp = strtotime($dateStrClean);
+
+                    // Alternate parsing if strtotime fails
+                    if (!$timestamp) {
+                        try {
+                            $dt = \DateTime::createFromFormat('d/M/Y:H:i:s O', $dateStr);
+                            $timestamp = $dt ? $dt->getTimestamp() : 0;
+                        } catch (\Exception $e) {
+                            $timestamp = 0;
+                        }
+                    }
+
+                    // Only count if within scan window (last 60s)
+                    if ($timestamp && ($now - $timestamp) <= $scanWindow) {
+                        if (!isset($ipCounts[$ip])) {
+                            $ipCounts[$ip] = 0;
+                        }
+                        $ipCounts[$ip]++;
+                    }
+                }
+            }
+        }
+
+        // Analyze counts
+        foreach ($ipCounts as $ip => $count) {
+            if ($count >= 50) { // Suspicious level
+                $isAttack = $count >= $threshold;
+
+                // Add to recent attacks list
+                $security['recent_attacks'][] = [
+                    'ip' => $ip,
+                    'attempts' => $count,
+                    'last_attempt' => date('Y-m-d H:i:s'),
+                    'service' => 'HTTP/Web',
+                    'auto_blocked' => false,
+                ];
+
+                // Determine threat level
+                if ($isAttack) {
+                    $alertMsg = "DDoS/HTTP Flood terdeteksi dari {$ip} ({$count} reqs/menit)";
+                    $security['alerts'][] = [
+                        'level' => 'critical',
+                        'message' => $alertMsg,
+                        'time' => now()->toIso8601String(),
+                        'ip' => $ip,
+                    ];
+                    $security['threat_level'] = 'critical';
+
+                    // Auto-block
+                    if ($security['defender_active']) {
+                        if ($this->autoBlockIp($ip)) {
+                            $security['alerts'][] = [
+                                'level' => 'success',
+                                'message' => "Auto-Defender: Web Attacker {$ip} diblokir ({$count} reqs/menit)",
+                                'time' => now()->toIso8601String(),
+                                'ip' => $ip,
+                            ];
+                            // Mark as blocked in the list we just added
+                            foreach ($security['recent_attacks'] as &$attack) {
+                                if ($attack['ip'] === $ip) {
+                                    $attack['auto_blocked'] = true;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    $security['alerts'][] = [
+                        'level' => 'warning',
+                        'message' => "Trafik tinggi mencurigakan dari {$ip} ({$count} reqs/menit)",
+                        'time' => now()->toIso8601String(),
+                        'ip' => $ip,
+                    ];
+                    if ($security['threat_level'] !== 'critical') {
+                        $security['threat_level'] = 'high';
+                    }
+                }
+            }
+        }
     }
 }

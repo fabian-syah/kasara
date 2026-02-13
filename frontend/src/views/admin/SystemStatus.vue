@@ -255,7 +255,7 @@ onUnmounted(() => {
                                     class="animate-pulse px-2 py-0.5 rounded text-[10px] bg-red-500 text-white font-bold uppercase">CRITICAL
                                     THREAT</span>
                             </h2>
-                            <p class="text-xs text-text-secondary">Monitoring serangan & proteksi server</p>
+                            <p class="text-xs text-text-secondary">Monitoring serangan SSH & Web DDoS</p>
                         </div>
                     </div>
 
@@ -596,7 +596,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Driver</span>
                                     <span class="text-text-primary font-medium uppercase">{{ data.database.driver
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Version</span>
@@ -605,7 +605,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Database</span>
                                     <span class="text-text-primary font-mono text-xs">{{ data.database.database
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
@@ -647,7 +647,7 @@ onUnmounted(() => {
                                 <div class="flex justify-between text-sm">
                                     <span class="text-text-secondary">Broadcast</span>
                                     <span class="text-text-primary font-medium">{{ data.laravel.broadcast_driver
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                         </div>
