@@ -25,6 +25,8 @@ const dashboardRole = ref('general');
 const recentTypes = ref([]);
 const recentPrices = ref([]);
 const recentTransactions = ref([]);
+const brandSales = ref([]);
+const csPerformance = ref([]);
 
 // Determine initial role immediately to prevent flash of wrong dashboard
 if (authStore.hasRole('admin_produk')) {
@@ -165,6 +167,8 @@ async function fetchDashboardData() {
         trend: 'neutral'
       }));
       recentTransactions.value = response.data.recentTransactions;
+      brandSales.value = response.data.brandSales;
+      csPerformance.value = response.data.csPerformance;
     } else {
       dashboardRole.value = 'general';
       // Logic for other roles or keep static
@@ -325,7 +329,7 @@ const getColorClasses = (color) => {
       <div class="card">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-lg font-semibold text-text-primary">
-            Transaksi Terakhir
+            Transaksi Terakhir (Today)
           </h2>
           <router-link to="/online-shop/history"
             class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1">
@@ -351,7 +355,12 @@ const getColorClasses = (color) => {
                 <td class="px-4 py-3 text-text-primary">{{ trx.customer }}</td>
                 <td class="px-4 py-3 text-text-secondary max-w-xs truncate" :title="trx.items">{{ trx.items }}</td>
                 <td class="px-4 py-3 font-bold text-emerald-400">{{ formatCurrency(trx.total) }}</td>
-                <td class="px-4 py-3 text-text-secondary">{{ trx.time }}</td>
+                <td class="px-4 py-3 text-text-secondary">
+                  <div class="flex flex-col">
+                    <span class="text-xs">{{ trx.datetime }}</span>
+                    <span class="text-[10px] opacity-70">{{ trx.time }}</span>
+                  </div>
+                </td>
                 <td class="px-4 py-3">
                   <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">
                     SUKSES
@@ -360,6 +369,84 @@ const getColorClasses = (color) => {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- New Widgets Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Brand Sales (Today) -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-text-primary">
+              Total Brand Terjual (Hari Ini)
+            </h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+                <tr>
+                  <th class="px-4 py-3 rounded-l-lg">Produk / Model</th>
+                  <th class="px-4 py-3 rounded-r-lg text-right">Unit Terjual</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-700">
+                <tr v-if="brandSales.length === 0">
+                  <td colspan="2" class="px-4 py-8 text-center text-text-secondary italic">
+                    Belum ada penjualan hari ini
+                  </td>
+                </tr>
+                <tr v-for="(item, idx) in brandSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
+                  <td class="px-4 py-3 font-medium text-text-primary">{{ item.name }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <span class="font-bold text-emerald-400">{{ item.count }}</span>
+                    <span class="text-xs text-text-secondary ml-1">Unit</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CS Performance (Today) -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-text-primary">
+              Total Penjualan CS (Hari Ini)
+            </h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+                <tr>
+                  <th class="px-4 py-3 rounded-l-lg">Nama CS</th>
+                  <th class="px-4 py-3 text-center">Unit HP</th>
+                  <th class="px-4 py-3 text-center">Non-HP</th>
+                  <th class="px-4 py-3 rounded-r-lg text-right">Total Nominal</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-700">
+                <tr v-if="csPerformance.length === 0">
+                  <td colspan="4" class="px-4 py-8 text-center text-text-secondary italic">
+                    Belum ada data performa hari ini
+                  </td>
+                </tr>
+                <tr v-for="(cs, idx) in csPerformance" :key="idx" class="hover:bg-surface-700/30 transition-colors">
+                  <td class="px-4 py-3 font-medium text-text-primary">{{ cs.name }}</td>
+                  <td class="px-4 py-3 text-center">
+                    <span :class="cs.hp_count > 0 ? 'text-primary-400 font-bold' : 'text-text-secondary'">{{ cs.hp_count
+                      }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-center">
+                    <span :class="cs.non_hp_count > 0 ? 'text-blue-400 font-bold' : 'text-text-secondary'">{{
+                      cs.non_hp_count }}</span>
+                  </td>
+                  <td class="px-4 py-3 text-right font-bold text-emerald-400">
+                    {{ formatCurrency(cs.total_sales) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -183,7 +183,7 @@ function isGroupActive(items) {
                 Menu Utama
             </p>
 
-            <template v-for="item in visibleMenuItems" :key="item.id">
+            <div v-for="item in visibleMenuItems" :key="item.id">
                 <!-- Dropdown Menu -->
                 <div v-if="item.items" class="space-y-1">
                     <button @click.prevent="toggleMenu(item.id)" type="button"
@@ -213,7 +213,7 @@ function isGroupActive(items) {
                 </div>
 
                 <!-- Regular Link -->
-                <router-link v-else :key="item.id" :to="item.path"
+                <router-link v-else :to="item.path"
                     class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border"
                     :class="isActiveRoute(item.path)
                         ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20'
@@ -226,7 +226,7 @@ function isGroupActive(items) {
                     <span>{{ item.label }}</span>
                     <ChevronRight :size="14" class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                 </router-link>
-            </template>
+            </div>
         </nav>
 
         <!-- User Section -->

@@ -9,7 +9,8 @@ import {
     Palette,
     Sun,
     Moon,
-    Bell
+    Bell,
+    X
 } from "lucide-vue-next";
 
 const emit = defineEmits(['toggle-mobile-menu']);
@@ -35,17 +36,17 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
             </button>
 
             <!-- Search -->
-            <div class="relative w-full max-w-xs md:max-w-md group">
+            <div class="relative w-full max-w-[140px] sm:max-w-xs md:max-w-md group transition-all duration-300">
                 <Search
                     class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors"
                     :size="18" />
-                <input type="text" placeholder="Cari transaksi, produk..."
+                <input type="text" placeholder="Cari..."
                     class="w-full bg-surface-900 border border-surface-700 rounded-full py-2 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all font-sans" />
             </div>
         </div>
 
         <!-- Right Side -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 sm:gap-4">
             <!-- Theme Toggle -->
             <div class="relative">
                 <button @click="isThemeMenuOpen = !isThemeMenuOpen"
@@ -59,19 +60,38 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                     leave-active-class="transition duration-75 ease-in"
                     leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
                     <div v-if="isThemeMenuOpen"
-                        class="absolute right-0 mt-2 w-72 bg-surface-800 border border-surface-700 rounded-xl shadow-xl z-50 p-4">
+                        class="fixed inset-x-4 top-16 md:absolute md:top-auto md:right-0 md:left-auto md:w-72 bg-surface-800 border border-surface-700 rounded-xl shadow-xl z-50 p-4 mt-2">
+
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-semibold text-text-primary text-sm">
                                 Tampilan
                             </h3>
+                            <button @click="isThemeMenuOpen = false"
+                                class="md:hidden p-1 text-text-secondary hover:text-text-primary">
+                                <X :size="16" />
+                            </button>
                             <button @click="themeStore.toggleDarkMode"
-                                class="p-2 rounded-lg bg-surface-900 border border-surface-700 hover:bg-surface-700 transition-colors text-text-primary"
+                                class="hidden md:block p-2 rounded-lg bg-surface-900 border border-surface-700 hover:bg-surface-700 transition-colors text-text-primary"
                                 :title="themeStore.isDark
                                     ? 'Switch to Light Mode'
                                     : 'Switch to Dark Mode'
                                     ">
                                 <Sun v-if="themeStore.isDark" :size="16" />
                                 <Moon v-else :size="16" />
+                            </button>
+                        </div>
+
+                        <!-- Mobile Dark Mode Toggle -->
+                        <div
+                            class="flex md:hidden items-center justify-between mb-4 bg-surface-900 p-3 rounded-lg border border-surface-700">
+                            <span class="text-sm text-text-secondary">Mode Gelap</span>
+                            <button @click="themeStore.toggleDarkMode"
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                :class="themeStore.isDark ? 'bg-primary-600' : 'bg-surface-600'">
+                                <span class="sr-only">Use setting</span>
+                                <span aria-hidden="true"
+                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                    :class="themeStore.isDark ? 'translate-x-5' : 'translate-x-0'"></span>
                             </button>
                         </div>
 

@@ -182,7 +182,7 @@ class DashboardController extends Controller
                 }
             })
             ->latest()
-            ->take(5)
+            ->take(10) // Updated to 10
             ->get();
 
         // Enrich Non-HP Product Names
@@ -220,10 +220,157 @@ class DashboardController extends Controller
                 'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
                 'items' => implode(', ', array_slice($items, 0, 2)) . (count($items) > 2 ? '...' : ''),
                 'time' => $trx->created_at->diffForHumans(),
+                'datetime' => $trx->created_at->format('d M H:i'), // Added datetime for daily context
                 'status' => 'success'
             ];
         });
 
+        // 4. Brand Sales (Today)
+        // Aggregate by Product Name for today's sales
+        $brandSalesMap = [];
+
+        foreach ($todaySales as $sale) {
+            // HP Items
+            foreach ($sale->items as $item) {
+                // Eager loading product name from relationship is ideal, but todaySales might not have it loaded.
+                // Re-fetch or rely on relationship if loaded. StockOut model has items() relation which is ProductDetail.
+                // ProductDetail belongsTo Product.
+                // We need to load it. todaySales was fetched with simple get().
+                // Let's reload or fetch fresh for aggregation if performance is ok.
+                // Or better: fetch todaySales WITH relations.
+            }
+        }
+
+        // Refetch todaySales with relationships for aggregation
+        $todaySalesWithRelations = \App\Models\StockOut::with(['items.product', 'user']) // Load necessary relations
+            ->whereIn('category', ['shopee', 'orderan_online'])
+            ->whereDate('created_at', now());
+
+        if ($user->online_shop_id) {
+            $todaySalesWithRelations->whereHas('user', function ($q) use ($user) {
+                $q->where('online_shop_id', $user->online_shop_id);
+            });
+        } else {
+            $todaySalesWithRelations->where('user_id', $user->id);
+        }
+        $todaySalesWithRelations = $todaySalesWithRelations->get();
+
+        foreach ($todaySalesWithRelations as $sale) {
+            // HP Items
+            foreach ($sale->items as $item) {
+                $name = $item->product->name ?? 'Unknown';
+                if (!isset($brandSalesMap[$name])) {
+                    $brandSalesMap[$name] = 0;
+                }
+                $brandSalesMap[$name]++;
+            }
+
+            // Non-HP Items
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    // Need product name. We can fetch using the IDs gathered earlier or do a quick lookup.
+                    // Since we might have many distinct products, let's collect IDs first or use the $products map if covered.
+                    // The $products map only covers recent transactions.
+                    // Let's assume we need to fetch names for aggregation.
+                    $pid = $item['product_id'] ?? null;
+                    if ($pid) {
+                        // We'll fetch all needed product names in one go below to avoid N+1 inside loop
+                    }
+                }
+            }
+        }
+
+        // Optimized Brand Sales Aggregation
+        $brandSales = [];
+        // First pass: collect Non-HP Product IDs
+        $nonHpProductIds = [];
+        foreach ($todaySalesWithRelations as $sale) {
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    if (isset($item['product_id'])) {
+                        $nonHpProductIds[] = $item['product_id'];
+                    }
+                }
+            }
+        }
+
+        $nonHpProductNames = [];
+        if (!empty($nonHpProductIds)) {
+            $nonHpProductNames = \App\Models\Product::whereIn('id', array_unique($nonHpProductIds))->pluck('name', 'id');
+        }
+
+        foreach ($todaySalesWithRelations as $sale) {
+            // HP
+            foreach ($sale->items as $item) {
+                $name = $item->product->name ?? 'Unknown';
+                if (!isset($brandSales[$name])) {
+                    $brandSales[$name] = 0;
+                }
+                $brandSales[$name]++;
+            }
+            // Non-HP
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    $pid = $item['product_id'] ?? null;
+                    if ($pid) {
+                        $name = $nonHpProductNames[$pid] ?? 'Unknown Non-HP';
+                        if (!isset($brandSales[$name])) {
+                            $brandSales[$name] = 0;
+                        }
+                        $brandSales[$name] += ($item['quantity'] ?? 1);
+                    }
+                }
+            }
+        }
+
+        // Convert to array of objects
+        $brandSalesData = [];
+        foreach ($brandSales as $name => $count) {
+            $brandSalesData[] = ['name' => $name, 'count' => $count];
+        }
+        // Sort by count desc
+        usort($brandSalesData, fn($a, $b) => $b['count'] <=> $a['count']);
+
+
+        // 5. CS Performance (Today)
+        $csPerformance = [];
+        foreach ($todaySalesWithRelations as $sale) {
+            $csName = $sale->user->name ?? 'Unknown'; // Or full_name
+            if (!isset($csPerformance[$csName])) {
+                $csPerformance[$csName] = [
+                    'name' => $csName,
+                    'hp_count' => 0,
+                    'non_hp_count' => 0,
+                    'total_sales' => 0
+                ];
+            }
+
+            // Calculations
+            $saleTotal = 0;
+            // HP
+            foreach ($sale->items as $item) {
+                $csPerformance[$csName]['hp_count']++;
+                $saleTotal += $item->selling_price;
+            }
+            // Non-HP
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    $csPerformance[$csName]['non_hp_count'] += ($item['quantity'] ?? 1);
+                    $saleTotal += ($item['selling_price'] ?? 0) * ($item['quantity'] ?? 1);
+                }
+            }
+            // Legacy/Fallback selling_price if no items detected but price exists
+            if ($sale->items->isEmpty() && !$sale->non_hp_items && $sale->selling_price > 0) {
+                $saleTotal += $sale->selling_price;
+                // Assume HP or spread? Let's just add to sales.
+            }
+
+            $csPerformance[$csName]['total_sales'] += $saleTotal;
+        }
+
+        // Convert to array
+        $csPerformanceData = array_values($csPerformance);
+        usort($csPerformanceData, fn($a, $b) => $b['total_sales'] <=> $a['total_sales']);
 
         return response()->json([
             'role' => 'online_shop',
@@ -259,7 +406,9 @@ class DashboardController extends Controller
                     'color' => 'amber',
                 ],
             ],
-            'recentTransactions' => $recentTransactions
+            'recentTransactions' => $recentTransactions,
+            'brandSales' => $brandSalesData,
+            'csPerformance' => $csPerformanceData
         ]);
     }
 }

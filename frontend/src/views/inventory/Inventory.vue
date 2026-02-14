@@ -1036,7 +1036,7 @@ function getStockStatus(product) {
               <th class="w-12">
                 <label class="flex items-center cursor-pointer">
                   <input type="checkbox" :checked="isAllSelected" :indeterminate.prop="isSomeSelected"
-                    @change="toggleSelectAll" class="checkbox" />
+                    @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
               </th>
               <th>SKU</th>
@@ -1083,7 +1083,8 @@ function getStockStatus(product) {
               :class="isSelected(item) ? 'bg-primary-500/10' : ''">
               <td @click.stop>
                 <label class="flex items-center">
-                  <input type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)" class="checkbox" />
+                  <input type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)"
+                    class="checkbox border-surface-400" />
                 </label>
               </td>
               <td class="font-mono text-sm text-text-secondary">
