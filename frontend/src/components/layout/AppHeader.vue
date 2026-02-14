@@ -10,7 +10,6 @@ import {
     Sun,
     Moon,
     Bell,
-    Bell,
     X,
     Settings,
     ChevronDown,

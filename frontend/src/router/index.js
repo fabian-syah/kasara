@@ -205,15 +205,6 @@ const routes = [
                 meta: {
                     title: 'Laporan',
                     menu: 'reports',
-                }
-            },
-            {
-                path: 'reports',
-                name: 'Reports',
-                component: Reports,
-                meta: {
-                    title: 'Laporan',
-                    menu: 'reports',
                     permissions: ['reports.view']
                 }
             },
