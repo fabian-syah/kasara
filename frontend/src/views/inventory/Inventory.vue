@@ -107,10 +107,22 @@ watch(activeTab, () => {
   loadInventory();
 });
 
-async function loadInventory() {
-  // We need to modify the store fetching logic or bypass it partially for the active tab parameter
-  // Assuming inventoryStore.fetchProducts accepts params
-  await inventoryStore.fetchProducts({ type: activeTab.value });
+async function loadInventory(page = 1) {
+  // Use inventoryStore action if possible, or direct API
+  await inventoryStore.fetchProducts({
+    type: activeTab.value,
+    page: page,
+    search: debouncedSearch.value,
+    category: selectedCategory.value,
+    status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : null
+    // Add other filters as needed
+  });
+}
+
+function changePage(page) {
+  if (page >= 1 && page <= inventoryStore.pagination.last_page) {
+    loadInventory(page);
+  }
 }
 
 
@@ -1232,6 +1244,38 @@ function getStockStatus(product) {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-4 mb-8" v-if="inventoryStore.pagination.total > 0">
+      <div class="text-sm text-text-secondary">
+        Showing {{ inventoryStore.pagination.from }} to {{ inventoryStore.pagination.to }} of {{
+          inventoryStore.pagination.total }} results
+      </div>
+      <div class="flex items-center gap-2">
+        <button @click="changePage(inventoryStore.pagination.current_page - 1)"
+          :disabled="inventoryStore.pagination.current_page === 1"
+          class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary">
+          <ChevronLeft :size="20" />
+        </button>
+
+        <div class="flex items-center gap-1">
+          <button v-for="page in inventoryStore.pagination.last_page" :key="page" @click="changePage(page)"
+            v-show="Math.abs(page - inventoryStore.pagination.current_page) <= 2 || page === 1 || page === inventoryStore.pagination.last_page"
+            class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-colors"
+            :class="page === inventoryStore.pagination.current_page ? 'bg-primary-500 text-white' : 'hover:bg-surface-700 text-text-secondary'">
+            <span
+              v-if="Math.abs(page - inventoryStore.pagination.current_page) === 2 && page !== 1 && page !== inventoryStore.pagination.last_page">...</span>
+            <span v-else>{{ page }}</span>
+          </button>
+        </div>
+
+        <button @click="changePage(inventoryStore.pagination.current_page + 1)"
+          :disabled="inventoryStore.pagination.current_page === inventoryStore.pagination.last_page"
+          class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary">
+          <ChevronRight :size="20" />
+        </button>
       </div>
     </div>
 
