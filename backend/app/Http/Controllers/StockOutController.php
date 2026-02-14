@@ -22,7 +22,7 @@ class StockOutController extends Controller
     // List all stock outs
     public function index(Request $request)
     {
-        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'items.product']);
+        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product']);
 
         if ($request->category) {
             $query->byCategory($request->category);

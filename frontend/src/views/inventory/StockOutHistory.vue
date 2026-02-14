@@ -361,7 +361,7 @@ const formatCurrency = (value) => {
                                         <User v-else :size="16" class="text-text-secondary" />
                                         <span class="font-medium whitespace-nowrap max-w-[150px] truncate block">
                                             {{ item.category === 'pindah_cabang'
-                                                ? (item.destination_branch ? item.destination_branch.name : '-')
+                                                ? (item.destination?.name || item.destination_branch?.name || '-')
                                                 : (item.receiver_name || item.shopee_receiver || item.giveaway_receiver ||
                                                     item.recipient_name || '-')
                                             }}
@@ -448,7 +448,7 @@ const formatCurrency = (value) => {
                                         <User v-else :size="16" class="text-text-secondary" />
                                         <span class="font-medium whitespace-nowrap max-w-[150px] truncate block">
                                             {{ item.category === 'pindah_cabang'
-                                                ? (item.destination_branch ? item.destination_branch.name : '-')
+                                                ? (item.destination?.name || item.destination_branch?.name || '-')
                                                 : (item.receiver_name || item.shopee_receiver || item.giveaway_receiver ||
                                                     item.recipient_name || '-')
                                             }}

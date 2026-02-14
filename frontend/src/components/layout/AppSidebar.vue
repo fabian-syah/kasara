@@ -90,6 +90,9 @@ const menuItems = [
     },
     { id: "audit", path: "/audit", label: "Audit", icon: ClipboardCheck },
 
+    // Incoming Transfer (Barang Masuk)
+    { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Transfer Masuk", icon: ArrowDownRight },
+
     // Admin Produk Reports (Moved to Online Shop section conceptually or renamed)
     // The user wants it for "toko_online" role.
 
