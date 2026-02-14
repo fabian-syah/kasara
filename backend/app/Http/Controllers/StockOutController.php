@@ -661,49 +661,50 @@ class StockOutController extends Controller
             ->where('status', 'pending');
 
         // Filter by Destination
-        $locationFound = false;
+        $query->where(function ($q) use ($user) {
+            $hasFilter = false;
 
-        // Branch
-        $branchIds = $user->getAccessibleBranchIds();
-        if (!empty($branchIds)) {
-            $query->orWhere(function ($q) use ($branchIds) {
-                $q->where('destination_type', 'branch')
-                    ->whereIn('destination_id', $branchIds);
-            });
-            $locationFound = true;
-        }
-
-        // Warehouse
-        $warehouseIds = $user->getAccessibleWarehouseIds();
-        if (!empty($warehouseIds)) {
-            $query->orWhere(function ($q) use ($warehouseIds) {
-                $q->where('destination_type', 'warehouse')
-                    ->whereIn('destination_id', $warehouseIds);
-            });
-            $locationFound = true;
-        }
-
-        // Online Shop
-        $onlineShopIds = $user->getAccessibleOnlineShopIds();
-        if (!empty($onlineShopIds)) {
-            $query->orWhere(function ($q) use ($onlineShopIds) {
-                $q->where('destination_type', 'online_shop')
-                    ->whereIn('destination_id', $onlineShopIds);
-            });
-            $locationFound = true;
-        }
-
-        // If no location assigned but has role, maybe allow viewing all?
-        // CURRENT LOGIC: If no specific location is assigned, they see NOTHING.
-        // This is safer. If they are 'gudang' they MUST have a warehouse assigned to see incoming for it.
-        if (!$locationFound) {
-            // Optional: if super admin, show all?
-            if ($user->hasRole('super_admin')) {
-                // No filter, show all
-            } else {
-                return response()->json(['data' => []]);
+            // Branch
+            $branchIds = $user->getAccessibleBranchIds();
+            if (!empty($branchIds)) {
+                $q->orWhere(function ($sub) use ($branchIds) {
+                    $sub->where('destination_type', 'branch')
+                        ->whereIn('destination_id', $branchIds);
+                });
+                $hasFilter = true;
             }
-        }
+
+            // Warehouse
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            if (!empty($warehouseIds)) {
+                $q->orWhere(function ($sub) use ($warehouseIds) {
+                    $sub->where('destination_type', 'warehouse')
+                        ->whereIn('destination_id', $warehouseIds);
+                });
+                $hasFilter = true;
+            }
+
+            // Online Shop
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            if (!empty($onlineShopIds)) {
+                $q->orWhere(function ($sub) use ($onlineShopIds) {
+                    $sub->where('destination_type', 'online_shop')
+                        ->whereIn('destination_id', $onlineShopIds);
+                });
+                $hasFilter = true;
+            }
+
+            // If no specific location assigned, restrict access unless Super Admin
+            if (!$hasFilter) {
+                if ($user->hasRole('super_admin')) {
+                    // Show all (do nothing, let base query stand)
+                    $q->orWhereRaw('1 = 1');
+                } else {
+                    // Block access
+                    $q->whereRaw('0 = 1');
+                }
+            }
+        });
 
         $transfers = $query->latest()->get();
 
