@@ -310,18 +310,22 @@ class StockOutController extends Controller
             }
 
             // Create stock out record
+            // Pastikan destinationType diambil dari request dengan benar
+            $destinationType = $request->destination_type; // ini nilainya 'branch', 'warehouse', dll
+
             $stockOut = StockOut::create([
                 'receipt_id' => StockOut::generateReceiptId(),
                 'category' => $request->category,
                 'user_id' => Auth::id(),
                 'inventory_user_id' => $request->inventory_user_id,
                 'selling_price' => $totalSellingPrice,
-                // Pindah Cabang
-                // 'destination_branch_id' => $request->destination_branch_id, // Deprecated if using polymorphic
+
+                // FIX: Pastikan kolom destination_type dan destination_id terisi
                 'destination_type' => $destinationType,
                 'destination_id' => $request->destination_id,
-                'status' => ($request->category === 'pindah_cabang') ? 'pending' : 'received', // Default received for other types? Or null? status column matches enum: pending, received, partial, rejected. 
-                // For non-transfer, maybe status is irrelevant or 'completed'/'received'. Let's say 'received' as it's done.
+
+                // Default status untuk pindah cabang harus 'pending' agar muncul di menu konfirmasi
+                'status' => ($request->category === 'pindah_cabang') ? 'pending' : 'received',
 
                 'receiver_name' => $request->receiver_name,
                 'transfer_notes' => $request->transfer_notes,
