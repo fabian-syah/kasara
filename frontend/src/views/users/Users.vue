@@ -107,8 +107,8 @@ function openEditModal(user) {
   editingUser.value = user;
 
   // Parse placements if available
-  const branchPlacements = user.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [];
-  const onlineShopPlacements = user.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [];
+  const branchPlacements = (user.placements || []).filter(p => p.model_type === 'branch').map(p => p.model_id);
+  const onlineShopPlacements = (user.placements || []).filter(p => p.model_type === 'online_shop').map(p => p.model_id);
 
   form.value = {
     full_name: user.full_name,
@@ -214,8 +214,8 @@ async function permanentDeleteUser(id) {
 
 // Helper to get placement name for table
 function getPlacementName(user) {
-  if (user.roles?.some(r => r.name === 'audit') && user.placements?.length > 0) {
-    const count = user.placements.length;
+  if (user.roles?.some(r => r.name === 'audit') && (user.placements || []).length > 0) {
+    const count = (user.placements || []).length;
     return `${count} Akses Lokasi`;
   }
   if (user.branch) return user.branch.name;
