@@ -115,7 +115,7 @@ function openEditModal(user) {
     username: user.username,
     code_id: user.code_id || "",
     email: user.email,
-    role: user.roles && user.roles.length > 0 ? user.roles[0].name : '',
+    role: user.roles?.length ? user.roles[0].name : '',
     branch_id: user.branch_id,
     warehouse_id: user.warehouse_id,
     online_shop_id: user.online_shop_id,
@@ -341,7 +341,7 @@ function getPlacementName(user) {
                     <p class="text-xs text-text-secondary font-mono mb-1">{{ user.username }}</p>
 
                     <!-- Relationship Info -->
-                    <div v-if="user.created_users && user.created_users.length > 0" class="flex flex-wrap gap-1 mt-1.5">
+                    <div v-if="user.created_users?.length" class="flex flex-wrap gap-1 mt-1.5">
                       <span class="text-[10px] text-text-secondary mr-1">Memiliki:</span>
                       <span v-for="child in user.created_users" :key="child.id"
                         class="px-1.5 py-0.5 rounded text-[10px] bg-surface-100 dark:bg-surface-700 text-text-primary border border-surface-200 dark:border-surface-600">
@@ -359,7 +359,7 @@ function getPlacementName(user) {
                 </div>
               </td>
               <td class="px-6 py-4">
-                <span v-if="user.roles && user.roles.length"
+                <span v-if="user.roles?.length"
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                   {{ ROLE_LABELS[user.roles[0].name] || user.roles[0].name }}
                 </span>
@@ -454,7 +454,7 @@ function getPlacementName(user) {
               </div>
             </div>
           </div>
-          <span v-if="user.roles && user.roles.length"
+          <span v-if="user.roles?.length"
             class="text-xs px-2 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg border border-surface-200 dark:border-surface-700">
             {{ ROLE_LABELS[user.roles[0].name] || user.roles[0].name }}
           </span>
