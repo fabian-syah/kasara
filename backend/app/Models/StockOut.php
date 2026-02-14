@@ -17,6 +17,9 @@ class StockOut extends Model
         'selling_price',
         // Pindah Cabang
         'destination_branch_id',
+        'destination_type',
+        'destination_id',
+        'status',
         'receiver_name',
         'transfer_notes',
         // Kesalahan Input
