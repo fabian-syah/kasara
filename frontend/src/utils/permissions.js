@@ -176,6 +176,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.ONLINE_SCAN,
         PERMISSIONS.INVENTORY_VIEW,
         PERMISSIONS.INVENTORY_STOCK_IN,
+        PERMISSIONS.INVENTORY_MANAGE, // Allow confirming transfers
         PERMISSIONS.USERS_VIEW // Needed to select target account for stock in
     ],
 
@@ -198,7 +199,7 @@ export const ROLE_MENUS = {
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_transfers', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_transfers', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_scan', 'shopee_history', 'reports', 'inventory', 'track'],
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_scan', 'shopee_history', 'reports', 'inventory', 'incoming_transfers', 'track'],
     [ROLES.LEADER_SHOPEE]: ['dashboard', 'online_analysis', 'shopee_history', 'track']
 }
 
