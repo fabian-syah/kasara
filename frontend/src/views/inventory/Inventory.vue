@@ -1204,35 +1204,36 @@ function getStockStatus(product) {
     </div>
 
     <!-- Stock Out Modal -->
-    <div v-if="showStockOutModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+    <div v-if="showStockOutModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div
-        class="bg-surface-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in duration-200">
+        class="bg-surface-0 dark:bg-surface-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in duration-200 border border-surface-200 dark:border-surface-700 shadow-xl">
         <!-- Modal Header -->
-        <div class="flex items-center justify-between p-6 border-b border-surface-700">
+        <div class="flex items-center justify-between p-6 border-b border-surface-200 dark:border-surface-700">
           <div class="flex items-center gap-3">
             <button v-if="selectedStockOutCategory" @click="selectedStockOutCategory = null"
-              class="text-text-secondary hover:text-white transition-colors">
+              class="text-text-secondary hover:text-text-primary transition-colors">
               <ChevronLeft :size="20" />
             </button>
             <button v-else-if="selectedInventoryUser" @click="selectedInventoryUser = null"
-              class="text-text-secondary hover:text-white transition-colors">
+              class="text-text-secondary hover:text-text-primary transition-colors">
               <ChevronLeft :size="20" />
             </button>
-            <h2 class="text-xl font-bold text-white">
+            <h2 class="text-xl font-bold text-text-primary">
               {{selectedStockOutCategory ? stockOutCategories.find(c => c.id === selectedStockOutCategory)?.name :
                 'Pilih Kategori'}}
             </h2>
           </div>
-          <button @click="closeStockOutModal" class="text-text-secondary hover:text-white transition-colors">
+          <button @click="closeStockOutModal" class="text-text-secondary hover:text-text-primary transition-colors">
             <X :size="24" />
           </button>
         </div>
 
         <!-- Modal Body -->
-        <div class="flex-1 overflow-y-auto p-6">
+        <div class="flex-1 overflow-y-auto p-6 bg-surface-50 dark:bg-surface-900/50">
           <!-- STEP 1: SELECT INVENTORY ACCOUNT -->
           <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
               <UserCheck :size="20" class="text-emerald-500" />
               Pilih User Inventory
             </h3>
@@ -1242,7 +1243,7 @@ function getStockStatus(product) {
             </div>
 
             <div v-else-if="inventoryUsers.length === 0" class="text-center py-8 text-text-secondary">
-              <div class="bg-surface-800 p-6 rounded-2xl inline-block mb-3">
+              <div class="bg-surface-100 dark:bg-surface-800 p-6 rounded-2xl inline-block mb-3">
                 <UserCheck :size="32" class="text-surface-500" />
               </div>
               <p>Tidak ada akun inventory ditemukan.</p>
@@ -1250,12 +1251,12 @@ function getStockStatus(product) {
 
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div v-for="user in inventoryUsers" :key="user.id" @click="selectedInventoryUser = user"
-                class="p-4 rounded-2xl border border-surface-700 bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-800/80 transition-all relative group shadow-lg hover:shadow-primary-500/10">
+                class="p-4 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-50 dark:hover:bg-surface-700/80 transition-all relative group shadow-sm hover:shadow-md">
 
                 <div class="flex items-center gap-4">
                   <!-- Photo -->
                   <div
-                    class="w-14 h-14 rounded-xl bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-600 group-hover:border-primary-500/50 transition-colors">
+                    class="w-14 h-14 rounded-xl bg-surface-100 dark:bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-200 dark:border-surface-600 group-hover:border-primary-500/50 transition-colors">
                     <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
                       class="w-full h-full object-cover" alt="Foto" />
                     <span v-else class="text-xl font-bold text-primary-500">{{ (user.full_name || user.name ||
@@ -1264,18 +1265,20 @@ function getStockStatus(product) {
 
                   <!-- Details -->
                   <div class="flex-1 min-w-0">
-                    <h4 class="font-bold text-white truncate text-base mb-0.5">{{ user.full_name || user.name }}</h4>
+                    <h4 class="font-bold text-text-primary truncate text-base mb-0.5">{{ user.full_name || user.name }}
+                    </h4>
                     <div class="flex flex-col gap-0.5">
                       <span class="text-xs text-text-secondary uppercase tracking-wider font-medium">{{
                         user.roles?.[0]?.name || 'INVENTORY' }}</span>
-                      <span v-if="user.phone" class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                      <span v-if="user.phone"
+                        class="text-[10px] text-emerald-500 dark:text-emerald-400 font-mono flex items-center gap-1">
                         <Smartphone :size="10" /> {{ user.phone }}
                       </span>
                     </div>
                   </div>
 
                   <!-- Chevron -->
-                  <div class="text-surface-600 group-hover:text-primary-500 transition-colors">
+                  <div class="text-surface-400 group-hover:text-primary-500 transition-colors">
                     <ChevronRight :size="20" />
                   </div>
                 </div>
@@ -1287,10 +1290,10 @@ function getStockStatus(product) {
           <div v-else-if="!selectedStockOutCategory" class="animate-in slide-in-from-right">
             <!-- Selected User Header -->
             <div
-              class="flex items-center justify-between mb-6 bg-surface-700/30 p-3 rounded-xl border border-surface-600">
+              class="flex items-center justify-between mb-6 bg-surface-100 dark:bg-surface-700/30 p-3 rounded-xl border border-surface-200 dark:border-surface-600">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-full bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-500">
+                  class="w-10 h-10 rounded-full bg-surface-200 dark:bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-300 dark:border-surface-500">
                   <img v-if="selectedInventoryUser.photo_inventory"
                     :src="`${storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
                     class="w-full h-full object-cover" />
@@ -1298,30 +1301,29 @@ function getStockStatus(product) {
                 </div>
                 <div>
                   <p class="text-xs text-text-secondary uppercase">Akun Inventory</p>
-                  <p class="font-bold text-white text-sm">{{ selectedInventoryUser.full_name ||
+                  <p class="font-bold text-text-primary text-sm">{{ selectedInventoryUser.full_name ||
                     selectedInventoryUser.name }}</p>
                 </div>
               </div>
               <button @click="selectedInventoryUser = null"
-                class="text-xs text-primary-400 hover:text-primary-300 font-medium">
+                class="text-xs text-primary-500 hover:text-primary-600 dark:text-primary-400 font-medium">
                 Ganti Akun
               </button>
             </div>
 
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
               <Box :size="20" class="text-primary-500" />
               Pilih Kategori Pengeluaran
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
               <button v-for="category in availableStockOutCategories" :key="category.id"
                 @click="selectStockOutCategory(category)"
-                class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-700 bg-surface-800 hover:bg-surface-700 hover:border-primary-500/50 transition-all group gap-3 text-center h-32 md:h-40">
+                class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 hover:bg-surface-50 dark:hover:bg-surface-700 hover:border-primary-500/50 transition-all group gap-3 text-center h-32 md:h-40 shadow-sm hover:shadow-md">
                 <div
                   :class="`p-3 rounded-full bg-${category.color}-500/10 text-${category.color}-500 group-hover:scale-110 transition-transform`">
                   <component :is="category.icon" :size="28" />
                 </div>
-                <span
-                  class="font-medium text-sm md:text-base text-text-primary group-hover:text-white transition-colors">
+                <span class="font-medium text-sm md:text-base text-text-primary transition-colors">
                   {{ category.name }}
                 </span>
               </button>

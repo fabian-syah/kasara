@@ -181,8 +181,9 @@ class DashboardController extends Controller
                     $q->where('id', $user->id);
                 }
             })
+            ->whereDate('created_at', now()) // Filter for Today only as requested
             ->latest()
-            ->take(10) // Updated to 10
+            ->take(10)
             ->get();
 
         // Enrich Non-HP Product Names

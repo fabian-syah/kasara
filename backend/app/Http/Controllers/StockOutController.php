@@ -217,7 +217,7 @@ class StockOutController extends Controller
                         $itemsToRemove = $hpQuery->latest()->take($item['quantity'])->get();
 
                         foreach ($itemsToRemove as $detail) {
-                            $detail->update(['status' => 'out']);
+                            $detail->delete();
                         }
 
                         // Skip standard Inventory decrement
@@ -612,11 +612,10 @@ class StockOutController extends Controller
     private function getStatusByCategory(string $category): string
     {
         return match ($category) {
-            'pindah_cabang' => 'available', // Direct transfer: available at destination immediately
-            'kesalahan_input' => 'deleted',
-            'retur' => 'returned',
-            'shopee' => 'sold',
-            default => 'out'
+            'pindah_cabang' => 'available', // Direct transfer: available at destination immediately (handled by placement_id update)
+            'kesalahan_input' => 'sold',    // Fallback if soft delete logic above doesn't cover this path (though standard logic updates status later). But 'sold' is safer than 'deleted'.
+            'retur' => 'service',           // Valid enum: ['available', 'sold', 'transfer', 'service', 'booked']. Return often needs check.
+            default => 'sold'               // 'orderan_online', 'shopee', 'giveaway', 'keluar', etc. -> 'sold'
         };
     }
 }
