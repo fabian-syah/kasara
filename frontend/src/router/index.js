@@ -55,7 +55,7 @@ const routes = [
                 meta: {
                     title: 'Laporan Brand',
                     menu: 'reports',
-                    permissions: ['product.view'] // Allow all who can view products for now
+                    permissions: ['inventory.view'] // Allow all who can view products for now
                 }
             },
             {
@@ -65,7 +65,7 @@ const routes = [
                 meta: {
                     title: 'Laporan Tipe',
                     menu: 'reports',
-                    permissions: ['product.view']
+                    permissions: ['inventory.view']
                 }
             },
             {
