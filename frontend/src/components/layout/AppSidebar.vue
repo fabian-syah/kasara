@@ -197,8 +197,7 @@ function isGroupActive(items) {
                     </button>
 
                     <!-- Submenu Items -->
-                    <div v-show="expandedMenus[item.id] || isGroupActive(item.items)"
-                        class="pl-4 space-y-1 animate-in slide-in-from-top-2">
+                    <div v-show="expandedMenus[item.id] || isGroupActive(item.items)" class="pl-4 space-y-1">
                         <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
                             class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent"
                             :class="isActiveRoute(subitem.path)
