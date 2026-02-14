@@ -26,6 +26,7 @@ const recentTypes = ref([]);
 const recentPrices = ref([]);
 const recentTransactions = ref([]);
 const brandSales = ref([]);
+const typeSales = ref([]);
 const csPerformance = ref([]);
 
 // Determine initial role immediately to prevent flash of wrong dashboard
@@ -168,6 +169,7 @@ async function fetchDashboardData() {
       }));
       recentTransactions.value = response.data.recentTransactions;
       brandSales.value = response.data.brandSales;
+      typeSales.value = response.data.typeSales;
       csPerformance.value = response.data.csPerformance;
     } else {
       dashboardRole.value = 'general';
@@ -374,11 +376,11 @@ const getColorClasses = (color) => {
 
       <!-- New Widgets Row -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Brand Sales (Today) -->
+        <!-- Type Sales (Today) -->
         <div class="card">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-semibold text-text-primary">
-              Total Brand Terjual (Hari Ini)
+              Total Type Terjual (Hari Ini)
             </h2>
           </div>
           <div class="overflow-x-auto">
@@ -390,9 +392,42 @@ const getColorClasses = (color) => {
                 </tr>
               </thead>
               <tbody class="divide-y divide-surface-700">
+                <tr v-if="typeSales.length === 0">
+                  <td colspan="2" class="px-4 py-8 text-center text-text-secondary italic">
+                    Belum ada penjualan type hari ini
+                  </td>
+                </tr>
+                <tr v-for="(item, idx) in typeSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
+                  <td class="px-4 py-3 font-medium text-text-primary">{{ item.name }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <span class="font-bold text-emerald-400">{{ item.count }}</span>
+                    <span class="text-xs text-text-secondary ml-1">Unit</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Brand Sales (Today) - Modified to show Brand + Condition -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-text-primary">
+              Total Brand Terjual (Hari Ini)
+            </h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+                <tr>
+                  <th class="px-4 py-3 rounded-l-lg">Brand / Kondisi</th>
+                  <th class="px-4 py-3 rounded-r-lg text-right">Unit Terjual</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-700">
                 <tr v-if="brandSales.length === 0">
                   <td colspan="2" class="px-4 py-8 text-center text-text-secondary italic">
-                    Belum ada penjualan hari ini
+                    Belum ada penjualan brand hari ini
                   </td>
                 </tr>
                 <tr v-for="(item, idx) in brandSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
@@ -434,7 +469,7 @@ const getColorClasses = (color) => {
                   <td class="px-4 py-3 font-medium text-text-primary">{{ cs.name }}</td>
                   <td class="px-4 py-3 text-center">
                     <span :class="cs.hp_count > 0 ? 'text-primary-400 font-bold' : 'text-text-secondary'">{{ cs.hp_count
-                      }}</span>
+                    }}</span>
                   </td>
                   <td class="px-4 py-3 text-center">
                     <span :class="cs.non_hp_count > 0 ? 'text-blue-400 font-bold' : 'text-text-secondary'">{{

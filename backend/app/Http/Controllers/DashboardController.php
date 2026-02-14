@@ -226,24 +226,45 @@ class DashboardController extends Controller
             ];
         });
 
-        // 4. Brand Sales (Today)
+        // 4. Type Sales (Previously Brand Sales) - Aggregation by Product Name (Type)
         // Aggregate by Product Name for today's sales
-        $brandSalesMap = [];
+        $typeSalesMap = [];
+
+        // 5. Brand Condition Sales - Aggregation by Brand + Condition
+        $brandConditionMap = [];
 
         foreach ($todaySales as $sale) {
             // HP Items
             foreach ($sale->items as $item) {
-                // Eager loading product name from relationship is ideal, but todaySales might not have it loaded.
-                // Re-fetch or rely on relationship if loaded. StockOut model has items() relation which is ProductDetail.
-                // ProductDetail belongsTo Product.
-                // We need to load it. todaySales was fetched with simple get().
-                // Let's reload or fetch fresh for aggregation if performance is ok.
-                // Or better: fetch todaySales WITH relations.
+                // Type Stats
+                $name = $item->product->name ?? 'Unknown';
+                if (!isset($typeSalesMap[$name])) {
+                    $typeSalesMap[$name] = 0;
+                }
+                $typeSalesMap[$name]++;
+
+                // Brand Condition Stats
+                $brand = $item->product->brand ?? 'Unknown Brand';
+                $condition = ucfirst($item->condition ?? 'new'); // New/Used -> Baru/Bekas ideally
+                if (strtolower($condition) == 'new')
+                    $condition = 'Baru';
+                if (strtolower($condition) == 'used' || strtolower($condition) == 'second')
+                    $condition = 'Second';
+
+                $key = "$brand $condition";
+                if (!isset($brandConditionMap[$key])) {
+                    $brandConditionMap[$key] = 0;
+                }
+                $brandConditionMap[$key]++;
             }
         }
 
-        // Refetch todaySales with relationships for aggregation
-        $todaySalesWithRelations = \App\Models\StockOut::with(['items.product', 'user', 'inventoryUser']) // Load necessary relations
+        // Refetch todaySales with relations (optimized)
+        // We actually need relationships for the above loops if we want to be safe,
+        // but let's stick to the existing pattern of refetching or using what we have.
+        // The previous code refetched $todaySalesWithRelations. Let's use that.
+
+        $todaySalesWithRelations = \App\Models\StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn('category', ['shopee', 'orderan_online'])
             ->whereDate('created_at', now());
 
@@ -256,34 +277,11 @@ class DashboardController extends Controller
         }
         $todaySalesWithRelations = $todaySalesWithRelations->get();
 
-        foreach ($todaySalesWithRelations as $sale) {
-            // HP Items
-            foreach ($sale->items as $item) {
-                $name = $item->product->name ?? 'Unknown';
-                if (!isset($brandSalesMap[$name])) {
-                    $brandSalesMap[$name] = 0;
-                }
-                $brandSalesMap[$name]++;
-            }
+        // Re-init maps
+        $typeSales = [];
+        $brandConditionSales = [];
 
-            // Non-HP Items
-            if ($sale->non_hp_items) {
-                foreach ($sale->non_hp_items as $item) {
-                    // Need product name. We can fetch using the IDs gathered earlier or do a quick lookup.
-                    // Since we might have many distinct products, let's collect IDs first or use the $products map if covered.
-                    // The $products map only covers recent transactions.
-                    // Let's assume we need to fetch names for aggregation.
-                    $pid = $item['product_id'] ?? null;
-                    if ($pid) {
-                        // We'll fetch all needed product names in one go below to avoid N+1 inside loop
-                    }
-                }
-            }
-        }
-
-        // Optimized Brand Sales Aggregation
-        $brandSales = [];
-        // First pass: collect Non-HP Product IDs
+        // Pre-fetch Non-HP Product Names and Brands
         $nonHpProductIds = [];
         foreach ($todaySalesWithRelations as $sale) {
             if ($sale->non_hp_items) {
@@ -295,42 +293,74 @@ class DashboardController extends Controller
             }
         }
 
-        $nonHpProductNames = [];
+        $nonHpProducts = [];
         if (!empty($nonHpProductIds)) {
-            $nonHpProductNames = \App\Models\Product::whereIn('id', array_unique($nonHpProductIds))->pluck('name', 'id');
+            $nonHpProducts = \App\Models\Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
         }
 
         foreach ($todaySalesWithRelations as $sale) {
-            // HP
+            // HP Items
             foreach ($sale->items as $item) {
+                // Type Stats
                 $name = $item->product->name ?? 'Unknown';
-                if (!isset($brandSales[$name])) {
-                    $brandSales[$name] = 0;
+                if (!isset($typeSales[$name])) {
+                    $typeSales[$name] = 0;
                 }
-                $brandSales[$name]++;
+                $typeSales[$name]++;
+
+                // Brand Condition Stats
+                $brand = $item->product->brand ?? 'Unknown';
+                $conditionRaw = $item->condition ?? 'new';
+                $condition = ($conditionRaw === 'new') ? 'New' : 'Second'; // User requested "iPhone New", "iPhone Second"
+
+                $key = "$brand $condition";
+                if (!isset($brandConditionSales[$key])) {
+                    $brandConditionSales[$key] = 0;
+                }
+                $brandConditionSales[$key]++;
             }
-            // Non-HP
+            // Non-HP Items
             if ($sale->non_hp_items) {
                 foreach ($sale->non_hp_items as $item) {
                     $pid = $item['product_id'] ?? null;
-                    if ($pid) {
-                        $name = $nonHpProductNames[$pid] ?? 'Unknown Non-HP';
-                        if (!isset($brandSales[$name])) {
-                            $brandSales[$name] = 0;
+                    if ($pid && isset($nonHpProducts[$pid])) {
+                        $product = $nonHpProducts[$pid];
+                        $qty = $item['quantity'] ?? 1;
+
+                        // Type Stats
+                        $name = $product->name;
+                        if (!isset($typeSales[$name])) {
+                            $typeSales[$name] = 0;
                         }
-                        $brandSales[$name] += ($item['quantity'] ?? 1);
+                        $typeSales[$name] += $qty;
+
+                        // Brand Condition Stats (Assume Non-HP is New)
+                        $brand = $product->brand ?? 'Unknown';
+                        $condition = 'New';
+
+                        $key = "$brand $condition";
+                        if (!isset($brandConditionSales[$key])) {
+                            $brandConditionSales[$key] = 0;
+                        }
+                        $brandConditionSales[$key] += $qty;
                     }
                 }
             }
         }
 
-        // Convert to array of objects
-        $brandSalesData = [];
-        foreach ($brandSales as $name => $count) {
-            $brandSalesData[] = ['name' => $name, 'count' => $count];
+        // Format Type Sales
+        $typeSalesData = [];
+        foreach ($typeSales as $name => $count) {
+            $typeSalesData[] = ['name' => $name, 'count' => $count];
         }
-        // Sort by count desc
-        usort($brandSalesData, fn($a, $b) => $b['count'] <=> $a['count']);
+        usort($typeSalesData, fn($a, $b) => $b['count'] <=> $a['count']);
+
+        // Format Brand Condition Sales
+        $brandConditionData = [];
+        foreach ($brandConditionSales as $name => $count) {
+            $brandConditionData[] = ['name' => $name, 'count' => $count];
+        }
+        usort($brandConditionData, fn($a, $b) => $b['count'] <=> $a['count']);
 
 
         // 5. CS Performance (Today)
@@ -366,7 +396,6 @@ class DashboardController extends Controller
             // Legacy/Fallback selling_price if no items detected but price exists
             if ($sale->items->isEmpty() && !$sale->non_hp_items && $sale->selling_price > 0) {
                 $saleTotal += $sale->selling_price;
-                // Assume HP or spread? Let's just add to sales.
             }
 
             $csPerformance[$csName]['total_sales'] += $saleTotal;
@@ -411,7 +440,14 @@ class DashboardController extends Controller
                 ],
             ],
             'recentTransactions' => $recentTransactions,
-            'brandSales' => $brandSalesData,
+            'typeSales' => $typeSalesData, // Renamed from brandSales
+            'brandSales' => $brandConditionData, // New Brand+Condition stats (User requested name 'Total Brand Terjual', so we map to brandSales key for frontend compatibility or new key)
+            // Wait, user said "Total Brand Terjual (Hari Ini) jadi Total Type Terjual". 
+            // So the OLD 'brandSales' (which was actually types) should be 'typeSales' or displayed as Type.
+            // And the NEW one should be "Total Brand Terjual".
+            // So in frontend: 
+            // - Old section -> uses 'typeSales'
+            // - New section -> uses 'brandSales' (Brand+Condition)
             'csPerformance' => $csPerformanceData
         ]);
     }
