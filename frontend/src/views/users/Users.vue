@@ -378,24 +378,24 @@ function getUserRoleName(user) {
 
     <!-- Filters -->
     <div class="card space-y-4">
-      <div class="flex flex-col md:flex-row gap-4">
-        <div class="relative w-full md:flex-1">
+      <div class="flex flex-col lg:flex-row gap-4">
+        <div class="relative w-full lg:flex-1">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
           <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="input !pl-12 w-full" />
         </div>
-        <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+        <div class="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-row gap-3 w-full lg:w-auto">
           <!-- Account Type Filter -->
-          <select v-model="selectedAccountType" class="input w-full sm:w-40 font-medium">
+          <select v-model="selectedAccountType" class="input w-full font-medium">
             <option value="">Semua Tipe</option>
             <option value="main">Akun Utama (Login)</option>
             <option value="inventory">Akun Inventory</option>
           </select>
 
-          <select v-model="selectedRole" class="input w-full sm:w-48">
+          <select v-model="selectedRole" class="input w-full">
             <option value="">Semua Role</option>
             <option v-for="role in rolesList" :key="role.value" :value="role.value">{{ role.label }}</option>
           </select>
-          <select v-model="selectedBranch" class="input w-full sm:w-48">
+          <select v-model="selectedBranch" class="input w-full">
             <option value="">Semua Cabang</option>
             <option v-for="branch in branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option>
           </select>
@@ -404,7 +404,8 @@ function getUserRoleName(user) {
     </div>
 
     <!-- Table (Desktop) -->
-    <div class="card p-0 hidden md:block overflow-hidden">
+    <!-- Table (Desktop) -->
+    <div class="card p-0 hidden lg:block overflow-hidden">
       <div v-if="isLoading" class="p-12 flex justify-center items-center">
         <Loader2 class="animate-spin text-blue-500" :size="32" />
         <span class="ml-3 text-text-secondary">Memuat data user...</span>
@@ -528,12 +529,12 @@ function getUserRoleName(user) {
       </div>
     </div>
 
-    <!-- Mobile Card View -->
-    <div class="md:hidden space-y-4 pb-20">
-      <div v-if="isLoading" class="p-8 flex justify-center">
+    <!-- Mobile/Tablet Card View -->
+    <div class="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
+      <div v-if="isLoading" class="p-8 flex justify-center col-span-full">
         <Loader2 class="animate-spin text-blue-500" :size="32" />
       </div>
-      <div v-for="user in filteredUsers" :key="user.id" class="card space-y-4">
+      <div v-for="user in filteredUsers" :key="user.id" class="card space-y-4 flex flex-col justify-between h-full">
         <div class="flex justify-between items-start gap-3">
           <div class="flex items-center gap-3">
             <div class="relative">
@@ -580,7 +581,7 @@ function getUserRoleName(user) {
           </span>
         </div>
 
-        <div class="grid grid-cols-2 gap-3 text-sm border-t border-surface-700/50 pt-3">
+        <div class="grid grid-cols-2 gap-3 text-sm border-t border-surface-700/50 pt-3 mt-auto">
           <div>
             <p class="text-text-secondary text-xs mb-1">Penempatan</p>
             <p class="text-text-primary">{{ getPlacementName(user) }}</p>
