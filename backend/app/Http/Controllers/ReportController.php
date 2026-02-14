@@ -79,75 +79,93 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
-        $filterType = $request->query('type', 'hp'); // Default to hp for Type Report usually, but allow 'all' or 'non-hp'
+        $filterType = $request->query('type', 'hp'); // Default to hp
 
-        // Base Product Query
-        $productQuery = Product::query()
-            ->select('name', 'brand', 'type')
-            ->distinct()
-            ->orderBy('brand') // Order by Brand first
-            ->orderBy('name');
+        $report = collect();
 
-        if ($filterType === 'hp') {
-            $productQuery->where('type', 'hp');
-        } elseif ($filterType === 'non-hp') {
-            $productQuery->where('type', 'non-hp');
-        }
+        // 1. HP Items (Detail per RAM/Storage)
+        if ($filterType === 'all' || $filterType === 'hp') {
+            $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+                ->where('products.type', 'hp')
+                ->where('product_details.status', 'available')
+                ->whereNull('products.deleted_at');
 
-        $products = $productQuery->get();
-
-        $report = $products->map(function ($product) use ($user, $isOnlineShop) {
-            $new = 0;
-            $second = 0;
-
-            if ($product->type === 'hp') {
-                // Count from ProductDetail
-                $query = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                    ->where('products.name', $product->name)
-                    ->where('product_details.status', 'available')
-                    ->whereNull('products.deleted_at');
-
-                if ($isOnlineShop && $user->online_shop_id) {
-                    $query->where('product_details.placement_type', 'online_shop')
-                        ->where('product_details.placement_id', $user->online_shop_id);
-                }
-
-                $stats = $query->select('product_details.condition', DB::raw('count(*) as count'))
-                    ->groupBy('product_details.condition')
-                    ->pluck('count', 'condition');
-
-                $new = $stats['new'] ?? 0;
-                $second = $stats['second'] ?? 0;
-
-            } else {
-                // Count from Inventory
-                $query = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
-                    ->where('products.name', $product->name)
-                    ->whereNull('products.deleted_at');
-
-                if ($isOnlineShop && $user->online_shop_id) {
-                    $query->where('inventories.placement_type', 'online_shop')
-                        ->where('inventories.placement_id', $user->online_shop_id);
-                }
-
-                $new = $query->sum('inventories.quantity'); // Assume Non-HP is new
-                $second = 0;
+            // Filter Placement
+            if ($isOnlineShop && $user->online_shop_id) {
+                $hpQuery->where('product_details.placement_type', 'online_shop')
+                    ->where('product_details.placement_id', $user->online_shop_id);
             }
 
-            if ($new == 0 && $second == 0)
-                return null;
+            $hpStats = $hpQuery->selectRaw('
+                    products.name as product_name,
+                    products.brand as brand_name,
+                    product_details.ram,
+                    product_details.storage,
+                    COUNT(CASE WHEN product_details.condition = "new" THEN 1 END) as new_count,
+                    COUNT(CASE WHEN product_details.condition = "second" THEN 1 END) as second_count
+                ')
+                ->groupBy('products.name', 'products.brand', 'product_details.ram', 'product_details.storage')
+                ->orderBy('products.brand')
+                ->orderBy('products.name')
+                ->get();
 
-            return [
-                'id' => md5($product->name),
-                'name' => $product->name,
-                'brand_name' => $product->brand ?? '-',
-                'type' => $product->type, // 'hp' or 'non-hp'
-                'new' => $new,
-                'second' => $second,
-                'total' => $new + $second,
-            ];
-        })->filter()->values();
+            $formattedHp = $hpStats->map(function ($item) {
+                // Buat nama spesifik (Ex: iPhone 11 4GB/64GB)
+                $specWithRam = $item->ram ? "{$item->ram}/{$item->storage}" : $item->storage;
+                $displayName = $item->storage ? "{$item->product_name} ({$specWithRam})" : $item->product_name;
 
-        return response()->json($report);
+                return [
+                    'id' => md5($displayName . $item->brand_name . 'hp'), // Unique ID
+                    'name' => $displayName,
+                    'brand_name' => $item->brand_name ?? '-',
+                    'type' => 'hp',
+                    'new' => (int) $item->new_count,
+                    'second' => (int) $item->second_count,
+                    'total' => (int) $item->new_count + (int) $item->second_count,
+                    'ram' => $item->ram,
+                    'storage' => $item->storage
+                ];
+            });
+
+            $report = $report->concat($formattedHp);
+        }
+
+        // 2. Non-HP Items (Inventory - No Specs)
+        if ($filterType === 'all' || $filterType === 'non-hp') {
+            $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
+                ->where('products.type', 'non-hp')
+                ->whereNull('products.deleted_at');
+
+            if ($isOnlineShop && $user->online_shop_id) {
+                $nonHpQuery->where('inventories.placement_type', 'online_shop')
+                    ->where('inventories.placement_id', $user->online_shop_id);
+            }
+
+            $nonHpStats = $nonHpQuery->selectRaw('
+                    products.name as product_name,
+                    products.brand as brand_name,
+                    SUM(inventories.quantity) as total_qty
+                ')
+                ->groupBy('products.name', 'products.brand')
+                ->orderBy('products.brand')
+                ->orderBy('products.name')
+                ->get();
+
+            $formattedNonHp = $nonHpStats->map(function ($item) {
+                return [
+                    'id' => md5($item->product_name . $item->brand_name . 'non-hp'),
+                    'name' => $item->product_name,
+                    'brand_name' => $item->brand_name ?? '-',
+                    'type' => 'non-hp',
+                    'new' => (int) $item->total_qty, // Asumsi barang baru semua untuk aksesoris
+                    'second' => 0,
+                    'total' => (int) $item->total_qty
+                ];
+            });
+
+            $report = $report->concat($formattedNonHp);
+        }
+
+        return response()->json($report->values());
     }
 }
