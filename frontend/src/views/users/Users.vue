@@ -211,6 +211,12 @@ const stats = computed(() => {
   ];
 });
 
+function openAddModal() {
+  resetForm();
+  editingUser.value = null;
+  showModal.value = true;
+}
+
 function openEditModal(user) {
   editingUser.value = user;
 
