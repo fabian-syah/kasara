@@ -96,14 +96,14 @@ class ReportController extends Controller
                     ->where('product_details.placement_id', $user->online_shop_id);
             }
 
-            $hpStats = $hpQuery->selectRaw('
+            $hpStats = $hpQuery->selectRaw("
                     products.name as product_name,
                     products.brand as brand_name,
                     product_details.ram,
                     product_details.storage,
-                    COUNT(CASE WHEN product_details.condition = "new" THEN 1 END) as new_count,
-                    COUNT(CASE WHEN product_details.condition = "second" THEN 1 END) as second_count
-                ')
+                    COUNT(CASE WHEN product_details.condition = 'new' THEN 1 END) as new_count,
+                    COUNT(CASE WHEN product_details.condition = 'second' THEN 1 END) as second_count
+                ")
                 ->groupBy('products.name', 'products.brand', 'product_details.ram', 'product_details.storage')
                 ->orderBy('products.brand')
                 ->orderBy('products.name')
