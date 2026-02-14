@@ -49,6 +49,26 @@ const routes = [
                 }
             },
             {
+                path: 'reports/brand',
+                name: 'BrandReport',
+                component: () => import('../views/reports/BrandReport.vue'),
+                meta: {
+                    title: 'Laporan Brand',
+                    menu: 'reports',
+                    permissions: ['product.view'] // Allow all who can view products for now
+                }
+            },
+            {
+                path: 'reports/type',
+                name: 'TypeReport',
+                component: () => import('../views/reports/TypeReport.vue'),
+                meta: {
+                    title: 'Laporan Tipe',
+                    menu: 'reports',
+                    permissions: ['product.view']
+                }
+            },
+            {
                 path: 'inventory',
                 name: 'Inventory',
                 component: Inventory,

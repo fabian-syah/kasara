@@ -74,7 +74,17 @@ const menuItems = [
         icon: Receipt,
     },
     { id: "audit", path: "/audit", label: "Audit", icon: ClipboardCheck },
-    { id: "reports", path: "/reports", label: "Laporan", icon: BarChart3 },
+
+    // Admin Produk Reports
+    {
+        id: "reports",
+        label: "Laporan",
+        icon: BarChart3,
+        items: [
+            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand" },
+            { id: "report_type", path: "/reports/type", label: "Laporan Tipe" },
+        ]
+    },
 
     // Master Data
     { id: "warehouses", path: "/warehouses", label: "Cabang & Gudang", icon: Warehouse },

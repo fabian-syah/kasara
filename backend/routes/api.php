@@ -81,4 +81,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/system-status/block-ip', [\App\Http\Controllers\SystemStatusController::class, 'blockIp']);
     Route::post('/system-status/unblock-ip', [\App\Http\Controllers\SystemStatusController::class, 'unblockIp']);
     Route::post('/system-status/toggle-defender', [\App\Http\Controllers\SystemStatusController::class, 'toggleDefender']);
+
+    // Reports
+    Route::get('/reports/brand', [\App\Http\Controllers\ReportController::class, 'getBrandReport']);
+    Route::get('/reports/type', [\App\Http\Controllers\ReportController::class, 'getTypeReport']);
 });
