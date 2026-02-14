@@ -72,8 +72,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/track', [\App\Http\Controllers\StockOutController::class, 'track']);
 
     // Transfer confirmation (Pindah Cabang)
-    Route::get('/transfers/pending', [\App\Http\Controllers\StockTransferController::class, 'indexIncoming']);
-    Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockTransferController::class, 'confirm']);
+    Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);
+    Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
     // Route::get('/transfers/history', [\App\Http\Controllers\StockTransferController::class, 'history']);
 
     // System Status
