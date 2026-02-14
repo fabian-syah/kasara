@@ -153,8 +153,11 @@ async function saveProfile() {
                                 class="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                                 <Loader2 class="animate-spin text-white" :size="32" />
                             </div>
-                            <img :src="user.photo ? (user.photo.startsWith('http') ? user.photo : `/storage/${user.photo}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff`"
-                                class="w-full h-full object-cover" alt="Profile Photo" />
+                            <img :src="user.photo
+                                ? (user.photo.startsWith('http') ? user.photo : `${authStore.storageBaseUrl}/storage/${user.photo}`)
+                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff&size=512`"
+                                class="w-full h-full object-cover" alt="Profile Photo"
+                                @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff&size=512`" />
                         </div>
                         <label
                             class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"

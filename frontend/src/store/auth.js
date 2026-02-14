@@ -173,6 +173,11 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    const storageBaseUrl = computed(() => {
+        const url = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
+        return url.replace(/\/api\/?$/, '');
+    });
+
     // Call initialize on store creation
     initialize()
 
@@ -194,6 +199,7 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         fetchUser,
         setBranch,
-        initialize
+        initialize,
+        storageBaseUrl
     }
 })

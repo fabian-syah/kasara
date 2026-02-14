@@ -150,9 +150,13 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                             {{ userRole }}
                         </p>
                     </div>
-                    <img :src="authStore.user?.photo ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `/storage/${authStore.user.photo}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff`"
-                        class="w-full h-full object-cover rounded-xl border-2 border-surface-700 shadow-lg"
-                        :alt="userName" />
+                    <div class="w-10 h-10 rounded-xl overflow-hidden border-2 border-surface-700 shadow-lg relative">
+                        <img :src="authStore.user?.photo
+                            ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
+                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
+                            class="w-full h-full object-cover" :alt="userName"
+                            @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
+                    </div>
                     <ChevronDown :size="16" class="text-text-secondary transition-transform duration-200"
                         :class="{ 'rotate-180': isUserMenuOpen }" />
                 </button>
