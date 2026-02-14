@@ -446,7 +446,7 @@ class StockOutController extends Controller
     // Get single stock out
     public function show($id)
     {
-        $stockOut = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch'])
+        $stockOut = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
             ->where('id', $id)
             ->orWhere('receipt_id', $id)
             ->firstOrFail();
@@ -531,7 +531,7 @@ class StockOutController extends Controller
             }
 
             // 2. Search STOCK OUT - Pakai Exact Match untuk IMEI dan Resi
-            $stockOuts = StockOut::with(['items.product', 'user', 'destinationBranch'])
+            $stockOuts = StockOut::with(['items.product', 'user', 'destinationBranch', 'destination'])
                 ->where('receipt_id', $query) // Exact Match ID Resi Internal
                 ->orWhere('shopee_tracking_no', $query) // Exact Match No Resi Shopee
                 ->orWhereHas('items', function ($q) use ($query) {

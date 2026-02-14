@@ -273,7 +273,8 @@ function formatCurrency(value) {
                             <template v-if="result.category === 'pindah_cabang'">
                                 <div>
                                     <p class="text-text-secondary text-xs">Cabang Tujuan</p>
-                                    <p class="text-text-primary">{{ result.destination_branch || '-' }}</p>
+                                    <p class="text-text-primary">{{ result.destination?.name ||
+                                        result.destination_branch?.name || '-' }}</p>
                                 </div>
                                 <div>
                                     <p class="text-text-secondary text-xs">Penerima</p>
@@ -302,7 +303,7 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                }}</span>
+                                                    }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>
