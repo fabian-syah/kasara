@@ -59,6 +59,15 @@ const menuItems = [
     { id: "online_scan", path: "/online-shop/scan", label: "Scan Pesanan", icon: ScanBarcode },
     { id: "online_analysis", path: "/online-shop/analysis", label: "Analisa Shopee", icon: LineChart },
     { id: "shopee_history", path: "/online-shop/history", label: "History Orderan Online", icon: Receipt },
+    {
+        id: "reports",
+        label: "Laporan Stok",
+        icon: BarChart3,
+        items: [
+            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand" },
+            { id: "report_type", path: "/reports/type", label: "Laporan Tipe" },
+        ]
+    },
 
     // Modul Cabang Fisik (TAMBAHKAN INI)
     { id: "branches", path: "/branches", label: "Cabang Fisik", icon: Building2 },
@@ -75,16 +84,8 @@ const menuItems = [
     },
     { id: "audit", path: "/audit", label: "Audit", icon: ClipboardCheck },
 
-    // Admin Produk Reports
-    {
-        id: "reports",
-        label: "Laporan",
-        icon: BarChart3,
-        items: [
-            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand" },
-            { id: "report_type", path: "/reports/type", label: "Laporan Tipe" },
-        ]
-    },
+    // Admin Produk Reports (Moved to Online Shop section conceptually or renamed)
+    // The user wants it for "toko_online" role.
 
     // Master Data
     { id: "warehouses", path: "/warehouses", label: "Cabang & Gudang", icon: Warehouse },
