@@ -200,6 +200,12 @@ export const useAuthStore = defineStore('auth', () => {
         fetchUser,
         setBranch,
         initialize,
+        updateUserData(userData) {
+            if (!userData) return;
+            const enriched = enrichUserPermissions(userData);
+            user.value = enriched;
+            localStorage.setItem('user', JSON.stringify(enriched));
+        },
         storageBaseUrl
     }
 })

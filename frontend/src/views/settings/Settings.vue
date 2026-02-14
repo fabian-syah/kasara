@@ -73,10 +73,8 @@ async function handlePhotoChange(event) {
         user.value.photo = res.data.data.photo;
         photoPreview.value = null; // Clear preview to use actual URL
 
-        // Update Auth Store immediately to reflect in Header/Sidebar
-        authStore.user.photo = res.data.data.photo;
-        // Optionally fetch fresh user to be sure
-        // await authStore.fetchUser(); 
+        // Update Auth Store (persists to localStorage)
+        authStore.updateUserData(res.data.data);
 
     } catch (error) {
         console.error("Upload photo error", error);
@@ -114,8 +112,8 @@ async function saveProfile() {
 
         toast.success("Profil berhasil diperbarui!");
 
-        // Update store
-        authStore.user = res.data.data;
+        // Update store and persist
+        authStore.updateUserData(res.data.data);
 
         // Clear password fields
         form.value.current_password = "";
