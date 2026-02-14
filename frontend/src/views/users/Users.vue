@@ -99,9 +99,15 @@ function resetForm() {
   showPassword.value = false;
 }
 
-// ... (fetchData remain same)
-
-// ...
+// Computed Stats
+const stats = computed(() => {
+  const safeUsers = users.value || [];
+  return [
+    { label: "Total User", value: safeUsers.length, icon: Users, color: "blue" },
+    { label: "User Aktif", value: safeUsers.filter(u => u && u.is_active).length, icon: Check, color: "emerald" },
+    { label: "User Nonaktif", value: safeUsers.filter(u => u && !u.is_active).length, icon: Shield, color: "amber" },
+  ];
+});
 
 function openEditModal(user) {
   editingUser.value = user;
@@ -214,6 +220,7 @@ async function permanentDeleteUser(id) {
 
 // Helper to get placement name for table
 function getPlacementName(user) {
+  if (!user) return '-';
   if (user.roles?.some(r => r.name === 'audit') && (user.placements || []).length > 0) {
     const count = (user.placements || []).length;
     return `${count} Akses Lokasi`;
