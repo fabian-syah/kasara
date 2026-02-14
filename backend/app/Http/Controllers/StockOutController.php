@@ -904,6 +904,9 @@ class StockOutController extends Controller
                     $q->whereRaw('0 = 1');
                 }
             }
+
+            // Also include transfers confirmed by this user
+            $q->orWhere('confirmed_by', $user->id);
         });
 
         // Search

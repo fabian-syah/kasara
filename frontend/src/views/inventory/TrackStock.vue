@@ -185,7 +185,8 @@ function formatCurrency(value) {
                                 <p class="text-text-secondary text-xs flex items-center gap-1">
                                     <MapPin :size="12" /> Lokasi
                                 </p>
-                                <p class="text-text-primary">{{ result.placement_type }}#{{ result.placement_id }}</p>
+                                <p class="text-text-primary">{{ result.placement_name || result.placement_type + '#' +
+                                    result.placement_id }}</p>
                             </div>
                             <div>
                                 <p class="text-text-secondary text-xs flex items-center gap-1">
@@ -303,7 +304,7 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                    }}</span>
+                                                }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>

@@ -180,7 +180,7 @@ onMounted(() => fetchHistory(1));
                     <div class="text-right">
                         <p class="text-sm font-medium text-text-primary">
                             Total: {{(transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc +
-                            i.quantity, 0) || 0) }} Unit
+                                i.quantity, 0) || 0)}} Unit
                         </p>
                         <p class="text-xs text-text-secondary">
                             Diterima oleh: {{ transfer.confirmed_by_user?.name || 'Unknown' }}
@@ -250,54 +250,76 @@ onMounted(() => fetchHistory(1));
                             <p class="text-xs text-text-secondary mb-1">Asal</p>
                             <p class="font-medium text-text-primary">
                                 {{ selectedTransfer.user?.branch?.name || selectedTransfer.user?.warehouse?.name ||
-                                'Unknown' }}
+                                    'Unknown' }}
                             </p>
                         </div>
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Total Barang</p>
                             <p class="font-medium text-text-primary">
                                 {{(selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc,
-                                    i) => acc + i.quantity, 0) || 0) }} Unit
+                                    i) => acc + i.quantity, 0) || 0)}} Unit
                             </p>
                         </div>
                     </div>
 
-                    <!-- HP Items -->
-                    <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
-                        <h3
-                            class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                            <Smartphone :size="16" class="text-blue-500" /> Barang HP
-                        </h3>
-                        <div class="space-y-2">
-                            <div v-for="item in selectedTransfer.items" :key="item.id"
-                                class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
-                                <div>
-                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
-                                    <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
-                                </div>
-                                <span
-                                    class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">DITERIMA</span>
+                </div>
+
+                <!-- HP Items (Accepted) -->
+                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')"
+                    class="mt-4">
+                    <h3
+                        class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <Smartphone :size="16" class="text-blue-500" /> Barang HP (Diterima)
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="item in selectedTransfer.items.filter(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')"
+                            :key="item.id"
+                            class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
+                            <div>
+                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
                             </div>
+                            <span
+                                class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">DITERIMA</span>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Non-HP Items -->
-                    <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
-                        <h3
-                            class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                            <Package :size="16" class="text-orange-500" /> Barang Non-HP
-                        </h3>
-                        <div class="space-y-2">
-                            <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
-                                class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
-                                <div>
-                                    <p class="font-bold text-sm text-text-primary">{{ item.product_name ||
-                                        item.product?.name }}</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-sm font-bold text-text-primary">{{ item.quantity }} Unit</span>
-                                    <p class="text-xs text-text-secondary">Diterima</p>
-                                </div>
+                <!-- REJECTED ITEMS (HP) -->
+                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status === 'in_transit' || i.pivot?.status === 'rejected')"
+                    class="mt-4">
+                    <h3 class="font-bold text-red-500 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <AlertTriangle :size="16" /> Barang Ditolak / Belum Diterima
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="item in selectedTransfer.items.filter(i => i.status === 'in_transit' || i.pivot?.status === 'rejected')"
+                            :key="item.id"
+                            class="flex items-center justify-between p-3 rounded-xl border border-red-500/30 bg-red-500/10">
+                            <div>
+                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
+                            </div>
+                            <span class="text-xs font-bold text-red-500">DITOLAK</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Non-HP Items -->
+                <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
+                    <h3
+                        class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <Package :size="16" class="text-orange-500" /> Barang Non-HP
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
+                            class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
+                            <div>
+                                <p class="font-bold text-sm text-text-primary">{{ item.product_name ||
+                                    item.product?.name }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-sm font-bold text-text-primary">{{ item.quantity }} Unit</span>
+                                <p class="text-xs text-text-secondary">Diterima</p>
                             </div>
                         </div>
                     </div>
