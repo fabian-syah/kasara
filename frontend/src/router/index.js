@@ -205,6 +205,8 @@ const routes = [
                 meta: {
                     title: 'Laporan',
                     menu: 'reports',
+                }
+            },
             {
                 path: 'reports',
                 name: 'Reports',
