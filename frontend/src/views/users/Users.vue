@@ -118,11 +118,11 @@ async function fetchData() {
   isLoading.value = true;
   try {
     const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
-      usersApi.index(),
-      branchesApi.index(),
-      warehousesApi.index(),
-      onlineShopsApi.index(),
-      distributorsApi.index()
+      usersApi.list(),
+      branchesApi.list(),
+      warehousesApi.list(),
+      onlineShopsApi.list(),
+      distributorsApi.list()
     ]);
 
     users.value = usersRes.data.data || [];
