@@ -204,11 +204,11 @@ async function saveProfile() {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="label">Nama Lengkap</label>
-                                <input v-model="form.full_name" type="text" class="input" required />
+                                <input v-model="form.full_name" type="text" class="input" disabled />
                             </div>
                             <div>
                                 <label class="label">Username</label>
-                                <input v-model="form.username" type="text" class="input" required />
+                                <input v-model="form.username" type="text" class="input" disabled />
                             </div>
                             <div>
                                 <label class="label">Email</label>
