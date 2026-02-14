@@ -429,9 +429,16 @@ function getPlacementName(user) {
                 {{ formatLastSeen(user.last_seen, user.timezone) }}
               </td>
               <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
-                  <div :class="`w-2 h-2 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-red-500'}`"></div>
-                  <span class="text-sm" :class="user.is_active ? 'text-emerald-400' : 'text-red-400'">
+                <div class="flex items-center gap-3">
+                  <button @click="toggleStatus(user)"
+                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
+                    :class="user.is_active ? 'bg-emerald-500' : 'bg-surface-600'" title="Klik untuk mengubah status">
+                    <span class="sr-only">Toggle status</span>
+                    <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                      :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
+                  </button>
+                  <span class="text-sm font-medium"
+                    :class="user.is_active ? 'text-emerald-400' : 'text-text-secondary'">
                     {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
                   </span>
                 </div>
@@ -483,10 +490,16 @@ function getPlacementName(user) {
           </div>
           <div class="text-right">
             <p class="text-text-secondary text-xs mb-1">Status</p>
-            <div class="inline-flex items-center gap-1.5">
-              <div :class="`w-1.5 h-1.5 rounded-full ${user.is_active ? 'bg-emerald-500' : 'bg-red-500'}`"></div>
-              <span :class="user.is_active ? 'text-emerald-400' : 'text-red-400'">{{ user.is_active ? 'Aktif' :
-                'Nonaktif' }}</span>
+            <div class="flex items-center justify-end gap-2">
+              <span class="text-xs" :class="user.is_active ? 'text-emerald-400' : 'text-text-secondary'">
+                {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
+              </span>
+              <button @click="toggleStatus(user)"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
+                :class="user.is_active ? 'bg-emerald-500' : 'bg-surface-600'">
+                <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                  :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
+              </button>
             </div>
           </div>
         </div>
