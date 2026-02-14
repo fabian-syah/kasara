@@ -53,6 +53,7 @@ const activeTab = ref("active");
 const searchQuery = ref("");
 const selectedRole = ref("");
 const selectedBranch = ref("");
+const selectedAccountType = ref(""); // New filter
 const showModal = ref(false);
 const editingUser = ref(null);
 const showPassword = ref(false);
@@ -196,6 +197,15 @@ const filteredUsers = computed(() => {
 
   if (selectedBranch.value) {
     result = result.filter(u => u.branch_id === selectedBranch.value || u.branch?.name === selectedBranch.value);
+  }
+
+  // Account Type Filter
+  if (selectedAccountType.value) {
+    if (selectedAccountType.value === 'main') {
+      result = result.filter(u => !u.roles?.some(r => r.name === 'inventory'));
+    } else if (selectedAccountType.value === 'inventory') {
+      result = result.filter(u => u.roles?.some(r => r.name === 'inventory'));
+    }
   }
 
   return result;
@@ -358,6 +368,13 @@ function getPlacementName(user) {
           <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="input pl-10 w-full" />
         </div>
         <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <!-- Account Type Filter -->
+          <select v-model="selectedAccountType" class="input w-full sm:w-40 font-medium">
+            <option value="">Semua Tipe</option>
+            <option value="main">Akun Utama (Login)</option>
+            <option value="inventory">Akun Inventory</option>
+          </select>
+
           <select v-model="selectedRole" class="input w-full sm:w-48">
             <option value="">Semua Role</option>
             <option v-for="role in rolesList" :key="role.value" :value="role.value">{{ role.label }}</option>
@@ -537,7 +554,7 @@ function getPlacementName(user) {
               <div v-if="user.created_by_user" class="mt-1 flex items-center gap-1">
                 <span class="text-[10px] text-text-secondary">Milik:</span>
                 <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{ user.created_by_user.full_name
-                  }}</span>
+                }}</span>
               </div>
             </div>
           </div>
