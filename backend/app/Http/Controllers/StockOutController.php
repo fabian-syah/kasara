@@ -311,26 +311,32 @@ class StockOutController extends Controller
 
             // Create stock out record
             // Pastikan destinationType diambil dari request dengan benar
-            $destinationType = $request->destination_type; // ini nilainya 'branch', 'warehouse', dll
+            // --- Tambahkan logika ini tepat sebelum StockOut::create ---
+            $destinationType = $request->destination_type;
+            $destinationId = $request->destination_id;
 
+            // Membuat record stock out
             $stockOut = StockOut::create([
                 'receipt_id' => StockOut::generateReceiptId(),
                 'category' => $request->category,
+                'sub_category' => $request->sub_category, // Ambil sub_category jika kategori adalah 'keluar'
                 'user_id' => Auth::id(),
                 'inventory_user_id' => $request->inventory_user_id,
                 'selling_price' => $totalSellingPrice,
 
-                // FIX: Pastikan kolom destination_type dan destination_id terisi
-                'destination_type' => $destinationType,
-                'destination_id' => $request->destination_id,
+                // FIX: Mapping lokasi tujuan agar terbaca di History & Akun Gudang
+                'destination_type' => ($request->category === 'pindah_cabang') ? $destinationType : null,
+                'destination_id' => ($request->category === 'pindah_cabang') ? $destinationId : null,
 
-                // Default status untuk pindah cabang harus 'pending' agar muncul di menu konfirmasi
+                // Status: Jika pindah cabang harus 'pending' supaya muncul di menu Transfer Masuk tujuan
                 'status' => ($request->category === 'pindah_cabang') ? 'pending' : 'received',
 
                 'receiver_name' => $request->receiver_name,
                 'transfer_notes' => $request->transfer_notes,
+
                 // Kesalahan Input
                 'deletion_reason' => $request->deletion_reason,
+
                 // Retur
                 'retur_officer' => $request->retur_officer,
                 'retur_seal' => $request->retur_seal,
@@ -340,7 +346,7 @@ class StockOutController extends Controller
                 'return_destination_id' => $request->return_destination_id,
                 'proof_image' => $proofImagePath,
 
-                // Shopee
+                // Shopee / Orderan Online
                 'shopee_items_data' => $shopeeItemsData,
                 'shopee_receiver' => $request->shopee_receiver,
                 'shopee_phone' => $request->shopee_phone,
@@ -363,7 +369,7 @@ class StockOutController extends Controller
                 'giveaway_notes' => $request->giveaway_notes,
 
                 'notes' => $request->notes,
-                'non_hp_items' => $request->non_hp_items, // Stored as JSON too
+                'non_hp_items' => $request->non_hp_items, // Data JSON Non-HP
             ]);
 
             // Create StockOutNonHpItem records
