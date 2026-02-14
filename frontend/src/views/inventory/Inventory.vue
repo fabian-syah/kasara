@@ -429,12 +429,28 @@ const isSomeSelected = computed(() => {
 function toggleSelectAll() {
   if (isAllSelected.value) {
     filteredProducts.value.forEach(item => {
-      const idx = selectedItems.value.findIndex(i => i.id === item.id);
+      // Ensure strict matching with ID and Type
+      const itemType = item.type || activeTab.value;
+      const idx = selectedItems.value.findIndex(i => i.id === item.id && i.type === itemType);
       if (idx !== -1) selectedItems.value.splice(idx, 1);
     });
   } else {
     filteredProducts.value.forEach(item => {
-      if (!isSelected(item)) selectedItems.value.push(item);
+      // Ensure usage of toggleSelect logic for consistency
+      // But we can manually do it here to avoid toggle behavior
+      if (!item.type) {
+        item.type = activeTab.value;
+      }
+
+      if (!isSelected(item)) {
+        // Init properties
+        if (item.type === 'non-hp' && !item.out_quantity) {
+          item.out_quantity = 1;
+        }
+        item.selling_price = item.selling_price || 0;
+
+        selectedItems.value.push(item);
+      }
     });
   }
 }
