@@ -208,7 +208,9 @@ const fetchProductMatch = debounce(async (brandId, typeName) => {
             return dbBrand === selBrand && dbName === selName;
         });
 
-        if (!found && matches.length > 0) found = matches[0];
+        // REMOVED: if (!found && matches.length > 0) found = matches[0];
+        // Strict match is better. If not found, selectedProduct remains null, 
+        // which triggers "create new product" logic in submitStockIn or allows user to verify.
 
         if (found) {
             selectedProduct.value = found.id;
@@ -441,9 +443,16 @@ async function submitStockIn() {
     try {
         let productId = selectedProduct.value;
         if (!productId && selectedTypeName.value) {
-            let fallback = products.value.find(p =>
-                p.name.toLowerCase().includes(selectedTypeName.value.toLowerCase())
-            );
+            const brandObj = brands.value.find(b => b.id === selectedBrand.value);
+            const brandName = brandObj ? brandObj.name.toLowerCase().trim() : "";
+            const targetName = selectedTypeName.value.toLowerCase().trim();
+
+            // Fallback 1: Local Search (Strict)
+            let fallback = products.value.find(p => {
+                const pBrand = (p.brand || "").toLowerCase().trim();
+                const pName = p.name.toLowerCase().trim();
+                return pBrand === brandName && pName === targetName;
+            });
 
             if (!fallback) {
                 try {
@@ -451,16 +460,26 @@ async function submitStockIn() {
                         type: 'hp',
                         name: selectedTypeName.value
                     });
+
+                    // Fallback 2: API Search (Strict Validation)
                     if (resp.data.length > 0) {
-                        fallback = resp.data[0];
-                    } else {
+                        fallback = resp.data.find(p => {
+                            const pBrand = (p.brand || "").toLowerCase().trim();
+                            const pName = p.name.toLowerCase().trim();
+                            // Allow exact match OR if database name contains the target name AND brand matches
+                            // But strict brand match is mandatory
+                            return pBrand === brandName && pName === targetName;
+                        });
+                    }
+
+                    if (!fallback) {
                         // AUTO CREATE PRODUCT
-                        const brandObj = brands.value.find(b => b.id === selectedBrand.value);
-                        const brandName = brandObj ? brandObj.name : "Unknown";
+                        const brandObjRaw = brands.value.find(b => b.id === selectedBrand.value);
+                        const brandNameRaw = brandObjRaw ? brandObjRaw.name : "Unknown";
 
                         const createResp = await productsApi.create({
                             name: selectedTypeName.value,
-                            brand: brandName,
+                            brand: brandNameRaw,
                             type: itemType.value,
                             brand_id: !selectedProduct.value ? selectedBrand.value : null,
                             type_name: !selectedProduct.value ? selectedTypeName.value : null,
