@@ -620,6 +620,7 @@ class StockOutController extends Controller
                         'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                         'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
                         'destination_branch' => $out->destinationBranch?->name,
+                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
                         'receiver_name' => $out->receiver_name,
                         'customer_name' => $out->customer_name,
                         'processed_by' => $out->user?->name ?? $out->user?->username,
@@ -660,22 +661,48 @@ class StockOutController extends Controller
             ->where('status', 'pending');
 
         // Filter by Destination
-        if ($user->branch_id) {
-            $query->where('destination_type', 'branch')
-                ->where('destination_id', $user->branch_id);
-        } elseif ($user->warehouse_id) {
-            $query->where('destination_type', 'warehouse')
-                ->where('destination_id', $user->warehouse_id);
-        } elseif ($user->online_shop_id) {
-            $query->where('destination_type', 'online_shop')
-                ->where('destination_id', $user->online_shop_id);
-        } elseif ($user->hasRole('gudang') || $user->hasRole('inventory')) {
-            // If user has role but no specific ID assigned (Super Admin / Manager looking at all?)
-            // Or maybe they should see everything? Let's restrict to assigned location for now.
-            // If no location assigned, maybe they can't see anything?
-            // Let's allow if they are explicitly warehouse role but accessing generic view? 
-            // Better to stick to strict location check for "Incoming".
-            // If they are super admin, showing all might be confusing.
+        $locationFound = false;
+
+        // Branch
+        $branchIds = $user->getAccessibleBranchIds();
+        if (!empty($branchIds)) {
+            $query->orWhere(function ($q) use ($branchIds) {
+                $q->where('destination_type', 'branch')
+                    ->whereIn('destination_id', $branchIds);
+            });
+            $locationFound = true;
+        }
+
+        // Warehouse
+        $warehouseIds = $user->getAccessibleWarehouseIds();
+        if (!empty($warehouseIds)) {
+            $query->orWhere(function ($q) use ($warehouseIds) {
+                $q->where('destination_type', 'warehouse')
+                    ->whereIn('destination_id', $warehouseIds);
+            });
+            $locationFound = true;
+        }
+
+        // Online Shop
+        $onlineShopIds = $user->getAccessibleOnlineShopIds();
+        if (!empty($onlineShopIds)) {
+            $query->orWhere(function ($q) use ($onlineShopIds) {
+                $q->where('destination_type', 'online_shop')
+                    ->whereIn('destination_id', $onlineShopIds);
+            });
+            $locationFound = true;
+        }
+
+        // If no location assigned but has role, maybe allow viewing all?
+        // CURRENT LOGIC: If no specific location is assigned, they see NOTHING.
+        // This is safer. If they are 'gudang' they MUST have a warehouse assigned to see incoming for it.
+        if (!$locationFound) {
+            // Optional: if super admin, show all?
+            if ($user->hasRole('super_admin')) {
+                // No filter, show all
+            } else {
+                return response()->json(['data' => []]);
+            }
         }
 
         $transfers = $query->latest()->get();

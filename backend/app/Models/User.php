@@ -100,6 +100,17 @@ class User extends Authenticatable
         return array_unique(array_merge($ids, $extras));
     }
 
+    // Helper to get all accessible warehouse IDs
+    public function getAccessibleWarehouseIds()
+    {
+        $ids = [];
+        if ($this->warehouse_id)
+            $ids[] = $this->warehouse_id;
+
+        $extras = $this->placements()->where('model_type', 'warehouse')->pluck('model_id')->toArray();
+        return array_unique(array_merge($ids, $extras));
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
