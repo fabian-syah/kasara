@@ -46,7 +46,9 @@ onMounted(async () => {
     }
 });
 
-function handlePhotoChange(event) {
+const isUploadingPhoto = ref(false);
+
+async function handlePhotoChange(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -55,33 +57,48 @@ function handlePhotoChange(event) {
         return;
     }
 
-    photoFile.value = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        photoPreview.value = e.target.result;
-    };
-    reader.readAsDataURL(file);
+    // Immediate Upload
+    isUploadingPhoto.value = true;
+    const formData = new FormData();
+    formData.append("photo", file);
+    formData.append("_method", "PUT"); // Ensure method spoofing if needed, though updateProfile handles it
+
+    try {
+        // Use the correct API method: updateProfile
+        const res = await usersApi.updateProfile(user.value.id, formData);
+
+        toast.success("Foto profil berhasil diperbarui!");
+
+        // Update local state
+        user.value.photo = res.data.data.photo;
+        photoPreview.value = null; // Clear preview to use actual URL
+
+        // Update Auth Store immediately to reflect in Header/Sidebar
+        authStore.user.photo = res.data.data.photo;
+        // Optionally fetch fresh user to be sure
+        // await authStore.fetchUser(); 
+
+    } catch (error) {
+        console.error("Upload photo error", error);
+        toast.error("Gagal mengupload foto.");
+    } finally {
+        isUploadingPhoto.value = false;
+        // Reset input
+        event.target.value = '';
+    }
 }
 
 async function saveProfile() {
     isSaving.value = true;
     try {
         const formData = new FormData();
-        formData.append("_method", "PUT"); // Laravel method spoofing for file upload via POST if needed, but here we use POST or modify API to accept multipart on PUT
-        // Actually, for file upload with PUT in Laravel/PHP, it's tricky. Best to use POST with _method=PUT or just standard update logic.
-        // Let's assume axios client handles it or we send as JSON if no file.
-        // WAIT: File upload MUST be FormData. And PHP has issues reading $_FILES on PUT requests sometimes.
-        // Strategy: Use POST with _method: 'PUT' if uploading file.
+        formData.append("_method", "PUT");
 
         formData.append("full_name", form.value.full_name);
         formData.append("username", form.value.username);
         formData.append("email", form.value.email || "");
         formData.append("phone", form.value.phone || "");
         formData.append("address", form.value.address || "");
-
-        if (photoFile.value) {
-            formData.append("photo", photoFile.value);
-        }
 
         if (form.value.new_password) {
             if (form.value.new_password !== form.value.confirm_password) {
@@ -92,48 +109,7 @@ async function saveProfile() {
             formData.append("password", form.value.new_password);
         }
 
-        // We need to use a custom call because the generic usersApi.update might pass JSON
-        // We'll use the ID from user.value.id
-        // Assuming usersApi.update can handle FormData if we pass it? 
-        // Standard axios: put(url, data, config).
-        // To be safe with Laravel & Files: POST with _method=PUT
-
-        // Let's try sending as standard update first. If photo is present, we might need special handling.
-        // Or simply: usersApi.update(id, formData) but headers need 'Content-Type': 'multipart/form-data'
-
-        const config = {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        };
-
-        // Since standard REST PUT with files is flaky in PHP, we append _method if utilizing a POST endpoint masquerading as PUT,
-        // but our route is likely resource controller `PUT /users/{id}`.
-        // Laravel *can* handle PUT file uploads if using `x-www-form-urlencoded`? No.
-        // Workaround: POST to /users/{id}?_method=PUT
-
-        await usersApi.postUpdate(user.value.id, formData); // We need to check if usersApi has this or use raw axios
-
-        // If usersApi doesn't support this specifically, we might fail.
-        // Let's fallback to JSON if no photo, and standard update if photo.
-        // Actually, let's just inspect `users` api in `src/api/axios.js` later. 
-        // For now, I'll assume I can pass FormData to the update method and it handles it, or I modify the API call.
-
-        // Temporary fix: I will assume I need to implement `postUpdate` or similiar in api/axios or just use a direct axios call here?
-        // Let's rely on `usersApi.update` but passing formData. Note: Laravel might ignore files on PUT.
-        // Safer to use keys:
-
-        // await usersApi.update(user.value.id, formData); 
-
-        // Actually, let's look at `axios.js` in next step if this fails. 
-        // For now I will write the component.
-
-        // I'll use a direct axios import to be safe for now for the form data part
-        // import axios from "../../api/axios"; // default export is axios instance? 
-        // Let's check imports.
-
-        // Re-using the import:
-        // import { users as usersApi } from ...
-        // I'll try to use it.
-
+        // Use updateProfile for text data too as it handles the POST/PUT spoofing correctly
         const res = await usersApi.updateProfile(user.value.id, formData);
 
         toast.success("Profil berhasil diperbarui!");
@@ -172,14 +148,20 @@ async function saveProfile() {
                 <div class="card flex flex-col items-center p-6">
                     <div class="relative group">
                         <div
-                            class="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-200 dark:border-surface-700 shadow-xl">
-                            <img :src="photoPreview || (user.photo ? `/storage/${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff`)"
+                            class="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-200 dark:border-surface-700 shadow-xl relative">
+                            <div v-if="isUploadingPhoto"
+                                class="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                                <Loader2 class="animate-spin text-white" :size="32" />
+                            </div>
+                            <img :src="user.photo ? `/storage/${user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff`"
                                 class="w-full h-full object-cover" alt="Profile Photo" />
                         </div>
                         <label
-                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full">
+                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
+                            :class="{ 'pointer-events-none': isUploadingPhoto }">
                             <Camera class="text-white" :size="32" />
-                            <input type="file" class="hidden" accept="image/*" @change="handlePhotoChange" />
+                            <input type="file" class="hidden" accept="image/*" @change="handlePhotoChange"
+                                :disabled="isUploadingPhoto" />
                         </label>
                     </div>
                     <p class="mt-4 text-xs text-text-secondary">Klik foto untuk mengubah</p>
