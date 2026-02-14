@@ -12,7 +12,9 @@ import api, {
   products as productsApi,
   users as usersApi,
   branches as branchesApi,
-  warehouses as warehousesApi
+  warehouses as warehousesApi,
+  onlineShops as onlineShopsApi,
+  distributors as distributorsApi
 } from "../../api/axios";
 import { formatCurrency, formatNumber } from "../../utils/formatters";
 
@@ -204,6 +206,8 @@ onMounted(() => {
   fetchCurrentWarehouse();
   fetchBranches();
   fetchWarehouses();
+  fetchOnlineShops();
+  fetchDistributors();
 
   // Fetch Product Types for capacity lookup
   productTypesApi.list().then(res => {
@@ -480,6 +484,8 @@ function selectStockOutCategory(category) {
 
 function resetStockOutForm() {
   stockOutForm.value = {
+    destination_type: 'branch',
+    destination_id: null,
     destination_branch_id: null,
     sub_category: '',
     receiver_name: '',
@@ -625,7 +631,7 @@ const canSubmitStockOut = computed(() => {
 
   switch (selectedStockOutCategory.value) {
     case 'pindah_cabang':
-      return stockOutForm.value.destination_branch_id && stockOutForm.value.receiver_name;
+      return stockOutForm.value.destination_type && stockOutForm.value.destination_id && stockOutForm.value.receiver_name;
     case 'kesalahan_input':
       return stockOutForm.value.deletion_reason.length >= 5;
     case 'retur':
@@ -681,6 +687,11 @@ async function submitStockOut() {
     hpItems.forEach(item => {
       formData.append('product_detail_ids[]', item.id);
     });
+
+    if (selectedStockOutCategory.value === 'pindah_cabang') {
+      formData.append('destination_type', stockOutForm.value.destination_type);
+      formData.append('destination_id', stockOutForm.value.destination_id);
+    }
 
     if (selectedInventoryUser.value) {
       formData.append('inventory_user_id', selectedInventoryUser.value.id);
@@ -822,6 +833,27 @@ async function fetchBranches() {
     branches.value = response.data.data || response.data;
   } catch (e) {
     console.error("Gagal memuat cabang", e);
+  }
+}
+
+const onlineShops = ref([]);
+const distributors = ref([]);
+
+async function fetchOnlineShops() {
+  try {
+    const response = await onlineShopsApi.list();
+    onlineShops.value = response.data.data || response.data;
+  } catch (e) {
+    console.error("Gagal load online shops", e);
+  }
+}
+
+async function fetchDistributors() {
+  try {
+    const response = await distributorsApi.list();
+    distributors.value = response.data.data || response.data;
+  } catch (e) {
+    console.error("Gagal load distributors", e);
   }
 }
 
@@ -1334,13 +1366,78 @@ function getStockStatus(product) {
           <div v-else class="space-y-4">
             <!-- Pindah Cabang Form -->
             <template v-if="selectedStockOutCategory === 'pindah_cabang'">
-              <div>
-                <label class="label">Cabang Tujuan *</label>
-                <select v-model="stockOutForm.destination_branch_id" class="input">
-                  <option :value="null">-- Pilih Cabang --</option>
-                  <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
-                </select>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="label">Tipe Tujuan *</label>
+                  <select v-model="stockOutForm.destination_type" class="input">
+                    <option value="branch">Cabang / Store</option>
+                    <option value="warehouse">Gudang</option>
+                    <option value="online_shop">Online Shop</option>
+                    <option value="distributor">Distributor</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="label">Tujuan *</label>
+                  <select v-model="stockOutForm.destination_id" class="input"
+                    :disabled="!stockOutForm.destination_type">
+                    <option :value="null">-- Pilih Tujuan --</option>
+                    <template v-if="stockOutForm.destination_type === 'branch'">
+                      <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                    </template>
+                    <template v-if="stockOutForm.destination_type === 'warehouse'">
+                      <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                    </template>
+                    <template v-if="stockOutForm.destination_type === 'online_shop'">
+                      <option v-for="o in onlineShops" :key="o.id" :value="o.id">{{ o.name }} ({{ o.platform }})
+                      </option>
+                    </template>
+                    <template v-if="stockOutForm.destination_type === 'distributor'">
+                      <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                    </template>
+                  </select>
+                </div>
               </div>
+
+              <!-- Items Summary for Pindah Cabang -->
+              <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600 mb-4">
+                <p class="text-xs uppercase font-bold text-text-secondary mb-3">
+                  Item yang dikirim ({{ selectedItems.length }})
+                </p>
+
+                <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"
+                    class="bg-surface-800 p-3 rounded-xl border border-surface-600 space-y-3">
+
+                    <!-- Header -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
+                        <div>
+                          <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
+                          <p class="text-[10px] text-text-secondary">{{ item.product?.brand }} {{ item.product?.type
+                          }}</p>
+                        </div>
+                      </div>
+                      <span v-if="item.type !== 'non-hp'"
+                        class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
+                        {{ item.imei }}
+                      </span>
+                    </div>
+
+                    <!-- Quantity for Non-HP -->
+                    <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2">
+                      <label class="text-[10px] text-text-secondary block mb-1">Qty Kirim</label>
+                      <div class="flex items-center gap-2">
+                        <input type="number" v-model="item.out_quantity"
+                          class="w-full text-sm p-2 rounded-lg bg-surface-900 border border-surface-600 text-center"
+                          min="1" :max="item.quantity" placeholder="1">
+                        <span class="text-xs text-text-secondary">/{{ item.quantity }} Pcs</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label class="label">Nama Penerima *</label>
                 <input v-model="stockOutForm.receiver_name" class="input" placeholder="Nama yang menerima barang" />
