@@ -126,6 +126,9 @@ export const users = {
     get: (id) => api.get(`/users/${id}`),
     create: (data) => api.post('/users', data),
     update: (id, data) => api.put(`/users/${id}`, data),
+    updateProfile: (id, data) => api.post(`/users/${id}?_method=PUT`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
     delete: (id) => api.delete(`/users/${id}`)
 }
 

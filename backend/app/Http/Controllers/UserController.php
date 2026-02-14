@@ -165,6 +165,21 @@ class UserController extends Controller
         // For now trusting frontend to send nulls for others, or we explicitly nullify others?
         // Let's rely on payload.
 
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($user->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->photo)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo);
+            }
+            $path = $request->file('photo')->store('profile-photos', 'public');
+            $validated['photo'] = $path;
+        }
+
+        if ($request->filled('password')) {
+            $validated['password'] = Hash::make($request->password);
+        } else {
+            unset($validated['password']);
+        }
+
         $user->update($validated);
 
         if (isset($validated['role'])) {

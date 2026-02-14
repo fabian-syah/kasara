@@ -10,15 +10,33 @@ import {
     Sun,
     Moon,
     Bell,
-    X
+    Bell,
+    X,
+    Settings,
+    ChevronDown,
+    LogOut,
+    User
 } from "lucide-vue-next";
+import { useRouter } from "vue-router";
 
 const emit = defineEmits(['toggle-mobile-menu']);
+const router = useRouter();
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 
 const isThemeMenuOpen = ref(false);
+const isUserMenuOpen = ref(false);
+
+function closeMenus() {
+    isThemeMenuOpen.value = false;
+    isUserMenuOpen.value = false;
+}
+
+async function handleLogout() {
+    await authStore.logout();
+    router.push("/login");
+}
 
 // User info
 const userName = computed(() => authStore.user?.name || "Guest");
@@ -121,20 +139,66 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
             <div class="h-8 w-px bg-surface-700"></div>
 
-            <!-- User Avatar -->
-            <div class="flex items-center gap-3">
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-semibold text-text-primary leading-none">
-                        {{ userName }}
-                    </p>
-                    <p class="text-[10px] text-primary-500 font-medium uppercase mt-1">
-                        {{ userRole }}
-                    </p>
-                </div>
-                <img :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    userName
-                )}&background=${themeStore.isDark ? '3b82f6' : '0f172a'
-                    }&color=fff`" class="w-9 h-9 rounded-xl border-2 border-surface-700 shadow-lg" :alt="userName" />
+            <!-- User Avatar & Dropdown -->
+            <div class="relative">
+                <button @click="isUserMenuOpen = !isUserMenuOpen"
+                    class="flex items-center gap-3 hover:bg-surface-700/50 p-1.5 rounded-xl transition-colors focus:outline-none">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-semibold text-text-primary leading-none">
+                            {{ userName }}
+                        </p>
+                        <p class="text-[10px] text-primary-500 font-medium uppercase mt-1">
+                            {{ userRole }}
+                        </p>
+                    </div>
+                    <img :src="authStore.user?.photo ? `/storage/${authStore.user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff`"
+                        class="w-9 h-9 rounded-xl border-2 border-surface-700 shadow-lg object-cover" :alt="userName" />
+                    <ChevronDown :size="16" class="text-text-secondary transition-transform duration-200"
+                        :class="{ 'rotate-180': isUserMenuOpen }" />
+                </button>
+
+                <!-- Dropdown -->
+                <transition enter-active-class="transition duration-100 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-75 ease-in"
+                    leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
+                    <div v-if="isUserMenuOpen"
+                        class="absolute right-0 top-full mt-2 w-56 bg-surface-800 border border-surface-700 rounded-xl shadow-xl z-50 overflow-hidden">
+
+                        <!-- Mobile User Info in Dropdown -->
+                        <div class="block sm:hidden px-4 py-3 border-b border-surface-700 bg-surface-900/50">
+                            <p class="text-sm font-semibold text-text-primary truncate">{{ userName }}</p>
+                            <p class="text-xs text-text-secondary truncate">{{ authStore.user?.email }}</p>
+                        </div>
+
+                        <div class="p-1">
+                            <router-link to="/settings" @click="isUserMenuOpen = false"
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors">
+                                <Settings :size="16" />
+                                <span>Pengaturan Profil</span>
+                            </router-link>
+                            <button @click="themeStore.toggleDarkMode"
+                                class="w-full flex md:hidden items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-700 rounded-lg transition-colors">
+                                <component :is="themeStore.isDark ? Sun : Moon" :size="16" />
+                                <span>{{ themeStore.isDark ? 'Mode Terang' : 'Mode Gelap' }}</span>
+                            </button>
+                        </div>
+
+                        <div class="h-px bg-surface-700 my-1"></div>
+
+                        <div class="p-1">
+                            <button @click="handleLogout"
+                                class="flex w-full items-center gap-3 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <LogOut :size="16" />
+                                <span>Keluar</span>
+                            </button>
+                        </div>
+                    </div>
+                </transition>
+            </div>
+
+            <!-- Overlay for closing dropdown -->
+            <div v-if="isUserMenuOpen || isThemeMenuOpen" @click="closeMenus" class="fixed inset-0 z-40 bg-transparent">
             </div>
         </div>
     </header>
