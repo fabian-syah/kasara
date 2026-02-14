@@ -187,7 +187,7 @@ function isGroupActive(items) {
             <template v-for="item in visibleMenuItems" :key="item.id">
                 <!-- Dropdown Menu -->
                 <div v-if="item.items" class="space-y-1">
-                    <button @click="toggleMenu(item.id)"
+                    <button @click.prevent="toggleMenu(item.id)" type="button"
                         class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border border-transparent hover:bg-surface-700 hover:text-text-primary"
                         :class="[
                             isGroupActive(item.items) ? 'text-primary-500' : 'text-text-secondary'
