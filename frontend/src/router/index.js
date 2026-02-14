@@ -453,4 +453,22 @@ router.afterEach((to) => {
         : 'APEX POS'
 })
 
+// Handle chunk load errors (e.g., after deployment)
+router.onError((error, to) => {
+    if (error.message.includes('Failed to fetch dynamically imported module') || error.message.includes('Importing a module script failed')) {
+        if (!to?.path) return
+
+        // Prevent infinite reload loop
+        const targetPath = to.fullPath
+        const reloadKey = `reload-${targetPath}`
+        const lastReload = sessionStorage.getItem(reloadKey)
+        const now = Date.now()
+
+        if (!lastReload || now - parseInt(lastReload) > 10000) {
+            sessionStorage.setItem(reloadKey, now.toString())
+            window.location.assign(targetPath)
+        }
+    }
+})
+
 export default router
