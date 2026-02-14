@@ -535,8 +535,23 @@ class StockOutController extends Controller
                     'imei' => $detail->imei,
                     'product_name' => $detail->product?->name,
                     'status' => $detail->status,
+                    'placement_type' => $detail->placement_type,
+                    'placement_id' => $detail->placement_id,
+                    // Resolving placement name for display (Same logic as StockOut)
+                    'placement_name' => match ($detail->placement_type) {
+                        'branch' => \App\Models\Branch::find($detail->placement_id)?->name ?? 'Unknown Branch',
+                        'warehouse' => \App\Models\Warehouse::find($detail->placement_id)?->name ?? 'Unknown Warehouse',
+                        'online_shop' => \App\Models\OnlineShop::find($detail->placement_id)?->name ?? 'Unknown Shop',
+                        default => $detail->placement_type . ' #' . $detail->placement_id
+                    },
                     // Pastikan format string untuk sorting
                     'created_at' => $detail->created_at->toDateTimeString(),
+                    'distributor' => $detail->distributor?->name,
+                    'input_by' => $detail->user?->name,
+                    'ram' => $detail->ram,
+                    'storage' => $detail->storage,
+                    'selling_price' => $detail->selling_price,
+                    'condition' => $detail->condition,
                 ];
             }
 
