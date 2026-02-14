@@ -149,6 +149,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/incoming-history',
+                name: 'incoming_transfer_history',
+                component: () => import('../views/inventory/IncomingTransferHistory.vue'),
+                meta: {
+                    title: 'Riwayat Transfer Masuk',
+                    menu: 'inventory',
+                    permissions: ['inventory.view']
+                }
+            },
+            {
                 path: 'retur-items',
                 name: 'ReturItems',
                 component: () => import('../views/inventory/ReturItems.vue'),

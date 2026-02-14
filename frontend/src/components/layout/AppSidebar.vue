@@ -91,7 +91,15 @@ const menuItems = [
     { id: "audit", path: "/audit", label: "Audit", icon: ClipboardCheck },
 
     // Incoming Transfer (Barang Masuk)
-    { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Transfer Masuk", icon: ArrowDownRight },
+    {
+        id: "incoming_group",
+        label: "Barang Masuk",
+        icon: ArrowDownRight,
+        items: [
+            { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Konfirmasi Masuk" },
+            { id: "incoming_transfer_history", path: "/inventory/incoming-history", label: "Riwayat Masuk" },
+        ]
+    },
 
     // Admin Produk Reports (Moved to Online Shop section conceptually or renamed)
     // The user wants it for "toko_online" role.

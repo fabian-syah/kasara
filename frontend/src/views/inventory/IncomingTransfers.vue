@@ -98,8 +98,8 @@ async function submitConfirmation() {
     isSubmitting.value = true;
     try {
         const payload = {
-            accepted_items: form.value.accepted_items,
-            non_hp_quantities: form.value.non_hp_quantities
+            items: form.value.accepted_items,
+            non_hp_items: form.value.non_hp_quantities
         };
 
         const response = await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
@@ -199,7 +199,7 @@ onMounted(fetchPending);
                             <p class="text-sm text-text-secondary flex items-center gap-1">
                                 <User :size="12" />
                                 Dari: <span class="text-text-primary font-medium">{{ transfer.user?.name || 'Unknown'
-                                    }}</span>
+                                }}</span>
                             </p>
                         </div>
                     </div>
@@ -220,7 +220,7 @@ onMounted(fetchPending);
                     <div class="flex gap-4">
                         <div v-if="transfer.items && transfer.items.length > 0">
                             <p class="text-xs uppercase font-bold text-text-secondary mb-1">HP ({{ transfer.items.length
-                                }})</p>
+                            }})</p>
                             <div class="flex flex-wrap gap-2">
                                 <span v-for="item in transfer.items.slice(0, 3)" :key="item.id"
                                     class="text-xs bg-surface-700 px-2 py-1 rounded text-text-secondary font-mono">

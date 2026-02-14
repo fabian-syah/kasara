@@ -91,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Transfer confirmation (Pindah Cabang)
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);
+    Route::get('/transfers/history', [\App\Http\Controllers\StockOutController::class, 'historyIncoming']); // NEW
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
     // Route::get('/transfers/history', [\App\Http\Controllers\StockTransferController::class, 'history']);
 

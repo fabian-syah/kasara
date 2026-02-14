@@ -731,7 +731,7 @@ class StockOutController extends Controller
     public function confirm(Request $request, $id)
     {
         $request->validate([
-            'items' => 'required|array', // List of Accepted Item IDs (HP)
+            'items' => 'nullable|array', // List of Accepted Item IDs (HP)
             'non_hp_items' => 'nullable|array', // List of Accepted Quantities
         ]);
 
@@ -744,7 +744,7 @@ class StockOutController extends Controller
             }
 
             // 1. Process HP Items
-            $acceptedItemIds = $request->items;
+            $acceptedItemIds = $request->items ?? [];
             foreach ($stockOut->items as $item) {
                 if (in_array($item->id, $acceptedItemIds)) {
                     // Accepted: Status Available, Placement Updated (Already set to destination in store, just update status)
@@ -849,6 +849,91 @@ class StockOutController extends Controller
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 500);
         }
+    }
+
+    // History of Incoming Transfers (Completed)
+    public function historyIncoming(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user)
+            return response()->json(['message' => 'Unauthorized'], 401);
+
+        $query = StockOut::with(['items.product', 'nonHpItems', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+            ->where('category', 'pindah_cabang')
+            ->whereIn('status', ['received', 'rejected']);
+
+        // Filter by Destination
+        $query->where(function ($q) use ($user) {
+            $hasFilter = false;
+
+            // Branch
+            $branchIds = $user->getAccessibleBranchIds();
+            if (!empty($branchIds)) {
+                $q->orWhere(function ($sub) use ($branchIds) {
+                    $sub->where('destination_type', 'branch')
+                        ->whereIn('destination_id', $branchIds);
+                });
+                $hasFilter = true;
+            }
+
+            // Warehouse
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            if (!empty($warehouseIds)) {
+                $q->orWhere(function ($sub) use ($warehouseIds) {
+                    $sub->where('destination_type', 'warehouse')
+                        ->whereIn('destination_id', $warehouseIds);
+                });
+                $hasFilter = true;
+            }
+
+            // Online Shop
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            if (!empty($onlineShopIds)) {
+                $q->orWhere(function ($sub) use ($onlineShopIds) {
+                    $sub->where('destination_type', 'online_shop')
+                        ->whereIn('destination_id', $onlineShopIds);
+                });
+                $hasFilter = true;
+            }
+
+            // If no specific location assigned, restrict access unless Super Admin
+            if (!$hasFilter) {
+                if ($user->hasRole('super_admin')) {
+                    $q->orWhereRaw('1 = 1');
+                } else {
+                    $q->whereRaw('0 = 1');
+                }
+            }
+        });
+
+        // Search
+        if ($request->has('q') && !empty($request->q)) {
+            $q = $request->q;
+            $query->where(function ($sub) use ($q) {
+                $sub->where('receipt_id', 'like', "%$q%")
+                    ->orWhere('receiver_name', 'like', "%$q%")
+                    ->orWhere('shopee_tracking_no', 'like', "%$q%");
+            });
+        }
+
+        $transfers = $query->latest()->paginate(20);
+
+        // Enrich Non-HP Items
+        foreach ($transfers as $transfer) {
+            if ($transfer->non_hp_items) {
+                $nonHpItems = is_string($transfer->non_hp_items) ? json_decode($transfer->non_hp_items, true) : $transfer->non_hp_items;
+                $pIds = array_column($nonHpItems, 'product_id');
+                if (!empty($pIds)) {
+                    $products = Product::whereIn('id', $pIds)->pluck('name', 'id');
+                    foreach ($nonHpItems as &$item) {
+                        $item['product_name'] = $products[$item['product_id']] ?? 'Unknown';
+                    }
+                    $transfer->non_hp_items = $nonHpItems;
+                }
+            }
+        }
+
+        return response()->json($transfers);
     }
 
     // Helper: Get status based on category
