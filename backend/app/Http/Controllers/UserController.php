@@ -12,7 +12,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = User::with(['branch', 'warehouse', 'onlineShop', 'distributor', 'roles', 'createdBy']);
+        $query = User::with(['branch', 'warehouse', 'onlineShop', 'distributor', 'roles', 'createdBy', 'createdUsers']);
 
         // Jika bukan super_admin, filter berdasarkan placement user login
         if (!$user->hasRole('super_admin')) {

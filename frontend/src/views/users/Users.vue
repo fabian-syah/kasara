@@ -401,13 +401,47 @@ function getPlacementName(user) {
             </tr>
             <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-surface-800/50 transition-colors">
               <td class="px-6 py-4">
-                <div class="flex items-center gap-3">
-                  <img
-                    :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=3b82f6&color=fff`"
-                    class="w-10 h-10 rounded-xl object-cover" :alt="user.full_name" />
+                <div class="flex items-center gap-4">
+                  <div class="relative">
+                    <img
+                      :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=3b82f6&color=fff`"
+                      class="w-12 h-12 rounded-xl object-cover shadow-sm" :alt="user.full_name" />
+                    <!-- Status Indicator Dot -->
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-800"
+                      :class="user.is_active ? 'bg-emerald-500' : 'bg-red-500'"></div>
+                  </div>
+
                   <div>
-                    <p class="font-medium text-text-primary">{{ user.full_name }}</p>
-                    <p class="text-xs text-text-secondary font-mono">{{ user.username }}</p>
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
+                      <!-- Account Type Badge -->
+                      <span v-if="user.roles?.some(r => r.name === 'inventory')"
+                        class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                        Inventory
+                      </span>
+                      <span v-else
+                        class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        Login / Main
+                      </span>
+                    </div>
+
+                    <p class="text-xs text-text-secondary font-mono mb-1">{{ user.username }}</p>
+
+                    <!-- Relationship Info -->
+                    <div v-if="user.created_users && user.created_users.length > 0" class="flex flex-wrap gap-1 mt-1.5">
+                      <span class="text-[10px] text-text-secondary mr-1">Memiliki:</span>
+                      <span v-for="child in user.created_users" :key="child.id"
+                        class="px-1.5 py-0.5 rounded text-[10px] bg-surface-100 dark:bg-surface-700 text-text-primary border border-surface-200 dark:border-surface-600">
+                        {{ child.full_name }}
+                      </span>
+                    </div>
+                    <div v-if="user.created_by_user" class="flex items-center gap-1 mt-1.5">
+                      <span class="text-[10px] text-text-secondary">Milik Akun:</span>
+                      <span
+                        class="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">
+                        {{ user.created_by_user.full_name }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -469,16 +503,46 @@ function getPlacementName(user) {
       <div v-for="user in filteredUsers" :key="user.id" class="card space-y-4">
         <div class="flex justify-between items-start gap-3">
           <div class="flex items-center gap-3">
-            <img
-              :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=3b82f6&color=fff`"
-              class="w-10 h-10 rounded-xl" />
+            <div class="relative">
+              <img
+                :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=3b82f6&color=fff`"
+                class="w-12 h-12 rounded-xl shadow-sm" />
+              <div class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-surface-800"
+                :class="user.is_active ? 'bg-emerald-500' : 'bg-red-500'"></div>
+            </div>
             <div>
-              <p class="font-medium text-text-primary">{{ user.full_name }}</p>
-              <p class="text-xs text-text-secondary">{{ user.username }}</p>
+              <div class="flex items-center gap-2">
+                <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
+                <span v-if="user.roles?.some(r => r.name === 'inventory')"
+                  class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
+                  INV
+                </span>
+                <span v-else
+                  class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  MAIN
+                </span>
+              </div>
+              <p class="text-xs text-text-secondary font-mono">{{ user.username }}</p>
+
+              <!-- Mobile Relationship -->
+              <div v-if="user.created_users?.length" class="mt-1">
+                <p class="text-[10px] text-text-secondary">Akun Inventory:</p>
+                <div class="flex flex-wrap gap-1 mt-0.5">
+                  <span v-for="child in user.created_users" :key="child.id"
+                    class="text-[10px] bg-surface-100 dark:bg-surface-700 px-1.5 rounded text-text-primary">
+                    {{ child.full_name }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="user.created_by_user" class="mt-1 flex items-center gap-1">
+                <span class="text-[10px] text-text-secondary">Milik:</span>
+                <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{ user.created_by_user.full_name
+                  }}</span>
+              </div>
             </div>
           </div>
           <span v-if="user.roles && user.roles.length"
-            class="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
+            class="text-xs px-2 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg border border-surface-200 dark:border-surface-700">
             {{ ROLE_LABELS[user.roles[0].name] || user.roles[0].name }}
           </span>
         </div>
