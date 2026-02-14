@@ -232,10 +232,8 @@ function isGroupActive(items) {
         <!-- User Section -->
         <div class="p-4 bg-surface-900 border-t border-surface-700">
             <div class="flex items-center gap-3 mb-4 px-2">
-                <img :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    userName
-                )}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff`"
-                    class="w-10 h-10 rounded-xl border-2 border-surface-700" :alt="userName" />
+                <img :src="authStore.user?.photo ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `/storage/${authStore.user.photo}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff`"
+                    class="w-10 h-10 rounded-xl border-2 border-surface-700 object-cover" :alt="userName" />
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-text-primary truncate">
                         {{ userName }}

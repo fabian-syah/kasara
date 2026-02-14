@@ -150,8 +150,9 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                             {{ userRole }}
                         </p>
                     </div>
-                    <img :src="authStore.user?.photo ? `/storage/${authStore.user.photo}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff`"
-                        class="w-9 h-9 rounded-xl border-2 border-surface-700 shadow-lg object-cover" :alt="userName" />
+                    <img :src="authStore.user?.photo ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `/storage/${authStore.user.photo}`) : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff`"
+                        class="w-full h-full object-cover rounded-xl border-2 border-surface-700 shadow-lg"
+                        :alt="userName" />
                     <ChevronDown :size="16" class="text-text-secondary transition-transform duration-200"
                         :class="{ 'rotate-180': isUserMenuOpen }" />
                 </button>
