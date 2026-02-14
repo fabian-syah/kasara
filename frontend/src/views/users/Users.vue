@@ -99,6 +99,108 @@ function resetForm() {
   showPassword.value = false;
 }
 
+// Format Date Helper
+function formatLastSeen(date, timezone) {
+  if (!date) return '-';
+  try {
+    return new Date(date).toLocaleString('id-ID', {
+      timeZone: timezone || 'Asia/Jakarta',
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {
+    return '-';
+  }
+}
+
+// API Fetch
+async function fetchData() {
+  isLoading.value = true;
+  try {
+    const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
+      usersApi.index(),
+      branchesApi.index(),
+      warehousesApi.index(),
+      onlineShopsApi.index(),
+      distributorsApi.index()
+    ]);
+
+    users.value = usersRes.data.data || [];
+    branches.value = branchesRes.data.data || [];
+    warehouses.value = warehousesRes.data.data || [];
+    onlineShops.value = onlineShopsRes.data.data || [];
+    distributors.value = distributorsRes.data.data || [];
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    toast.error("Gagal memuat data.");
+    users.value = []; // Ensure empty array on error
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  fetchData();
+});
+
+// Computed Logic for Placements
+const placementType = computed(() => {
+  const role = form.value.role;
+  if (!role) return 'branch';
+  if (['super_admin', 'admin_produk', 'analist'].includes(role)) return 'none';
+  if (role === 'audit') return 'audit';
+  if (['gudang', 'inventory'].includes(role)) return 'warehouse';
+  if (['toko_online', 'leader_shopee'].includes(role)) return 'online_shop';
+  if (role === 'distribution') return 'distributor';
+  return 'branch';
+});
+
+const placementLabel = computed(() => {
+  const type = placementType.value;
+  if (type === 'audit') return 'Pengaturan Akses Audit';
+  if (type === 'warehouse') return 'Lokasi Gudang';
+  if (type === 'online_shop') return 'Toko Online';
+  if (type === 'distributor') return 'Distributor';
+  if (type === 'branch') return 'Lokasi Cabang';
+  return '';
+});
+
+// Strict Filtered Users
+const filteredUsers = computed(() => {
+  if (!users.value) return [];
+  let result = users.value;
+
+  // Account Type Filter
+  if (selectedAccountType.value) {
+    if (selectedAccountType.value === 'main') {
+      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
+    } else if (selectedAccountType.value === 'inventory') {
+      result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
+    }
+  }
+
+  // Search Filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(u =>
+      (u.full_name && u.full_name.toLowerCase().includes(query)) ||
+      (u.username && u.username.toLowerCase().includes(query))
+    );
+  }
+
+  // Role Filter
+  if (selectedRole.value) {
+    result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
+  }
+
+  // Branch Filter
+  if (selectedBranch.value) {
+    result = result.filter(u => u && u.branch_id == selectedBranch.value);
+  }
+
+  return result;
+});
+
 // Computed Stats
 const stats = computed(() => {
   const safeUsers = users.value || [];
@@ -230,6 +332,11 @@ function getPlacementName(user) {
   if (user.online_shop) return `Online: ${user.online_shop.name}`;
   if (user.distributor) return `Dist: ${user.distributor.name}`;
   return '-';
+}
+
+function getUserRoleName(user) {
+  if (!user || !user.roles || !user.roles.length) return 'No Role';
+  return ROLE_LABELS[user.roles[0].name] || user.roles[0].name;
 }
 </script>
 
@@ -366,9 +473,9 @@ function getPlacementName(user) {
                 </div>
               </td>
               <td class="px-6 py-4">
-                <span v-if="user.roles?.length"
+                <span v-if="user && user.roles && user.roles.length"
                   class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  {{ ROLE_LABELS[user.roles[0].name] || user.roles[0].name }}
+                  {{ getUserRoleName(user) }}
                 </span>
                 <span v-else class="text-xs text-text-secondary italic">No Role</span>
               </td>
@@ -461,9 +568,9 @@ function getPlacementName(user) {
               </div>
             </div>
           </div>
-          <span v-if="user.roles?.length"
+          <span v-if="user && user.roles && user.roles.length"
             class="text-xs px-2 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg border border-surface-200 dark:border-surface-700">
-            {{ ROLE_LABELS[user.roles[0].name] || user.roles[0].name }}
+            {{ getUserRoleName(user) }}
           </span>
         </div>
 
