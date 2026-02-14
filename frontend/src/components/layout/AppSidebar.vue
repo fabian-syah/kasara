@@ -49,11 +49,13 @@ const expandedMenus = ref({
 });
 
 const toggleMenu = (id) => {
+    console.log('Toggling menu:', id, 'Current state:', expandedMenus.value[id]);
     if (expandedMenus.value[id] === undefined) {
         expandedMenus.value[id] = true;
     } else {
         expandedMenus.value[id] = !expandedMenus.value[id];
     }
+    console.log('New state:', expandedMenus.value[id]);
 };
 
 // Menu configuration
