@@ -72,6 +72,34 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'created_by');
     }
 
+    // Multi-placement relationship
+    public function placements()
+    {
+        return $this->hasMany(UserPlacement::class);
+    }
+
+    // Helper to get all accessible branch IDs (including primary and extra)
+    public function getAccessibleBranchIds()
+    {
+        $ids = [];
+        if ($this->branch_id)
+            $ids[] = $this->branch_id;
+
+        $extras = $this->placements()->where('model_type', 'branch')->pluck('model_id')->toArray();
+        return array_unique(array_merge($ids, $extras));
+    }
+
+    // Helper to get all accessible online shop IDs
+    public function getAccessibleOnlineShopIds()
+    {
+        $ids = [];
+        if ($this->online_shop_id)
+            $ids[] = $this->online_shop_id;
+
+        $extras = $this->placements()->where('model_type', 'online_shop')->pluck('model_id')->toArray();
+        return array_unique(array_merge($ids, $extras));
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *

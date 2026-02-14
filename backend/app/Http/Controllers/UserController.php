@@ -58,17 +58,32 @@ class UserController extends Controller
             }
             // Untuk Branch/Warehouse/Gudang, kita tetap pakai logic placement sharing
             else {
-                if ($user->branch_id) {
-                    $query->where('branch_id', $user->branch_id);
-                }
-                if ($user->warehouse_id) {
-                    $query->where('warehouse_id', $user->warehouse_id);
-                }
-                if ($user->online_shop_id) {
-                    $query->where('online_shop_id', $user->online_shop_id);
-                }
-                if ($user->distributor_id) {
-                    $query->where('distributor_id', $user->distributor_id);
+                if ($user->hasRole('audit')) {
+                    $branchIds = $user->getAccessibleBranchIds();
+                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
+                    $query->where(function ($q) use ($branchIds, $onlineShopIds) {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('online_shop_id', $onlineShopIds);
+                        // Show all if empty? No, show nothing if no access
+                        if (empty($branchIds) && empty($onlineShopIds))
+                            $q->whereRaw('0=1');
+                    });
+                } else {
+                    if ($user->branch_id) {
+                        $query->where('branch_id', $user->branch_id);
+                    }
+                    if ($user->warehouse_id) {
+                        $query->where('warehouse_id', $user->warehouse_id);
+                    }
+                    if ($user->online_shop_id) {
+                        $query->where('online_shop_id', $user->online_shop_id);
+                    }
+                    if ($user->distributor_id) {
+                        $query->where('distributor_id', $user->distributor_id);
+                    }
                 }
             }
         }
@@ -122,9 +137,27 @@ class UserController extends Controller
                 $user->assignRole($request->role);
             }
 
+            // Handle Placements (Audit)
+            if ($request->role === 'audit') {
+                $placements = [];
+                if ($request->selected_branches && is_array($request->selected_branches)) {
+                    foreach ($request->selected_branches as $id) {
+                        $placements[] = ['model_type' => 'branch', 'model_id' => $id];
+                    }
+                }
+                if ($request->selected_online_shops && is_array($request->selected_online_shops)) {
+                    foreach ($request->selected_online_shops as $id) {
+                        $placements[] = ['model_type' => 'online_shop', 'model_id' => $id];
+                    }
+                }
+                if (!empty($placements)) {
+                    $user->placements()->createMany($placements);
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor')
+                'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements')
             ], 201);
 
         } catch (\Exception $e) {
@@ -182,11 +215,35 @@ class UserController extends Controller
 
         $user->update($validated);
 
+        $user->update($validated);
+
         if (isset($validated['role'])) {
             $user->syncRoles([$validated['role']]);
         }
 
-        return response()->json(['success' => true, 'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor')]);
+        // Handle Placements (Audit)
+        if ($request->role === 'audit' || $user->hasRole('audit')) {
+            // Only update if array is present (to avoid clearing if not sent)
+            if ($request->has('selected_branches') || $request->has('selected_online_shops')) {
+                $user->placements()->delete();
+                $placements = [];
+                if ($request->selected_branches && is_array($request->selected_branches)) {
+                    foreach ($request->selected_branches as $id) {
+                        $placements[] = ['model_type' => 'branch', 'model_id' => $id];
+                    }
+                }
+                if ($request->selected_online_shops && is_array($request->selected_online_shops)) {
+                    foreach ($request->selected_online_shops as $id) {
+                        $placements[] = ['model_type' => 'online_shop', 'model_id' => $id];
+                    }
+                }
+                if (!empty($placements)) {
+                    $user->placements()->createMany($placements);
+                }
+            }
+        }
+
+        return response()->json(['success' => true, 'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements')]);
     }
 
     public function destroy(User $user)

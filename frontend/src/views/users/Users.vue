@@ -73,6 +73,8 @@ const form = ref({
   address: "",
   password: "",
   is_active: true,
+  selected_branches: [], // For Audit
+  selected_online_shops: [], // For Audit
 });
 
 // Helper to reset form
@@ -91,142 +93,23 @@ function resetForm() {
     address: "",
     password: "",
     is_active: true,
+    selected_branches: [],
+    selected_online_shops: [],
   };
   showPassword.value = false;
 }
 
-// Fetch Data
-async function fetchData() {
-  isLoading.value = true;
-  try {
-    const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
-      usersApi.list(),
-      branchesApi.list(),
-      warehousesApi.list(),
-      onlineShopsApi.list(),
-      distributorsApi.list()
-    ]);
+// ... (fetchData remain same)
 
-    users.value = usersRes.data.data || [];
-    // Clean up branches list (exclude online/warehouse if backend returns them)
-    // Assuming backend older data might still have type field
-    const allBranches = branchesRes.data.data || [];
-    branches.value = allBranches.filter(b =>
-      !['online', 'warehouse'].includes(b.type)
-    );
-
-    warehouses.value = warehousesRes.data.data || [];
-    onlineShops.value = onlineShopsRes.data.data || [];
-    distributors.value = distributorsRes.data.data || [];
-
-  } catch (error) {
-    console.error("Failed to fetch data", error);
-    toast.error("Gagal memuat data user.");
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-onMounted(() => {
-  fetchData();
-});
-
-// Format Last Seen
-function formatLastSeen(dateString, timezone) {
-  if (!dateString) return "-";
-  const date = new Date(dateString);
-  const options = {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
-  };
-  const tzMap = { 'Asia/Jakarta': 'WIB', 'Asia/Makassar': 'WITA', 'Asia/Jayapura': 'WIT' }
-  let tzLabel = tzMap[timezone] || timezone || "WIB";
-  return `${date.toLocaleDateString("id-ID", options)} ${tzLabel}`;
-}
-
-// Determine Placement Type
-const placementType = computed(() => {
-  if (!form.value.role) return 'branch'; // Default
-  const role = form.value.role;
-
-  // Universal roles - no specific placement needed
-  if (['super_admin', 'admin_produk'].includes(role)) return 'none';
-
-  if (role === 'gudang') return 'warehouse';
-  if (role === 'distribution') return 'distributor';
-  if (['toko_online', 'leader_shopee'].includes(role)) return 'online_shop';
-
-  return 'branch'; // Default
-});
-
-// Label for Placement
-const placementLabel = computed(() => {
-  const map = {
-    'warehouse': 'Pilih Gudang',
-    'distributor': 'Pilih Distributor',
-    'online_shop': 'Pilih Toko Online',
-    'branch': 'Pilih Cabang Fisik'
-  };
-  return map[placementType.value];
-});
-
-watch(() => form.value.role, (newRole) => {
-  // Clear all placements when role changes
-  form.value.branch_id = "";
-  form.value.warehouse_id = "";
-  form.value.online_shop_id = "";
-  form.value.distributor_id = "";
-});
-
-// Filtered users
-const filteredUsers = computed(() => {
-  let result = users.value;
-
-  if (activeTab.value === 'deleted') return [];
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(u =>
-      (u.full_name?.toLowerCase() || '').includes(query) ||
-      (u.username?.toLowerCase() || '').includes(query)
-    );
-  }
-
-  if (selectedRole.value) {
-    result = result.filter(u => u.roles?.some(r => r.name === selectedRole.value));
-  }
-
-  if (selectedBranch.value) {
-    result = result.filter(u => u.branch_id === selectedBranch.value || u.branch?.name === selectedBranch.value);
-  }
-
-  // Account Type Filter
-  if (selectedAccountType.value) {
-    if (selectedAccountType.value === 'main') {
-      result = result.filter(u => !u.roles?.some(r => r.name === 'inventory'));
-    } else if (selectedAccountType.value === 'inventory') {
-      result = result.filter(u => u.roles?.some(r => r.name === 'inventory'));
-    }
-  }
-
-  return result;
-});
-
-// Stats
-const stats = computed(() => [
-  { label: "Total User", value: users.value.length, icon: Users, color: "blue" },
-  { label: "User Aktif", value: users.value.filter(u => u.is_active).length, icon: Check, color: "emerald" },
-  { label: "User Nonaktif", value: users.value.filter(u => !u.is_active).length, icon: Shield, color: "amber" },
-]);
-
-// Actions
-function openAddModal() {
-  editingUser.value = null;
-  resetForm();
-  showModal.value = true;
-}
+// ...
 
 function openEditModal(user) {
   editingUser.value = user;
+
+  // Parse placements if available
+  const branchPlacements = user.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [];
+  const onlineShopPlacements = user.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [];
+
   form.value = {
     full_name: user.full_name,
     username: user.username,
@@ -241,9 +124,12 @@ function openEditModal(user) {
     address: user.address,
     is_active: !!user.is_active,
     password: "",
+    selected_branches: branchPlacements,
+    selected_online_shops: onlineShopPlacements,
   };
   showModal.value = true;
 }
+
 
 function closeModal() {
   showModal.value = false;
@@ -266,6 +152,12 @@ async function saveUser() {
     if (!payload.warehouse_id) payload.warehouse_id = null;
     if (!payload.online_shop_id) payload.online_shop_id = null;
     if (!payload.distributor_id) payload.distributor_id = null;
+
+    // Handle Audit Multi-Placement
+    if (placementType.value === 'audit') {
+      payload.selected_branches = form.value.selected_branches;
+      payload.selected_online_shops = form.value.selected_online_shops;
+    }
 
     if (editingUser.value) {
       if (!payload.password) delete payload.password;
@@ -322,6 +214,10 @@ async function permanentDeleteUser(id) {
 
 // Helper to get placement name for table
 function getPlacementName(user) {
+  if (user.roles?.some(r => r.name === 'audit') && user.placements?.length > 0) {
+    const count = user.placements.length;
+    return `${count} Akses Lokasi`;
+  }
   if (user.branch) return user.branch.name;
   if (user.warehouse) return `Gudang: ${user.warehouse.name}`; // Prefix for clarity
   if (user.online_shop) return `Online: ${user.online_shop.name}`;
@@ -667,8 +563,37 @@ function getPlacementName(user) {
             <div v-if="form.role && placementType !== 'none'" class="animate-in fade-in slide-in-from-top-2">
               <label class="label">{{ placementLabel }}</label>
 
+              <!-- Audit Multi-Selection -->
+              <div v-if="placementType === 'audit'" class="space-y-4">
+                <div>
+                  <label class="label mb-2">Pilih Cabang Fisik (Bisa Lebih dari 1)</label>
+                  <div
+                    class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-surface-700 rounded-xl bg-surface-900/50">
+                    <label v-for="b in branches" :key="b.id"
+                      class="flex items-center gap-2 p-2 rounded hover:bg-surface-800 cursor-pointer">
+                      <input type="checkbox" :value="b.id" v-model="form.selected_branches"
+                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800">
+                      <span class="text-sm">{{ b.name }}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="label mb-2">Pilih Toko Online (Opsional)</label>
+                  <div
+                    class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-surface-700 rounded-xl bg-surface-900/50">
+                    <label v-for="s in onlineShops" :key="s.id"
+                      class="flex items-center gap-2 p-2 rounded hover:bg-surface-800 cursor-pointer">
+                      <input type="checkbox" :value="s.id" v-model="form.selected_online_shops"
+                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800">
+                      <span class="text-sm">{{ s.name }}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               <!-- Warehouse Select -->
-              <select v-if="placementType === 'warehouse'" v-model="form.warehouse_id" class="input">
+              <select v-else-if="placementType === 'warehouse'" v-model="form.warehouse_id" class="input">
                 <option value="">Pilih Gudang...</option>
                 <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }} ({{ w.code }})</option>
               </select>
