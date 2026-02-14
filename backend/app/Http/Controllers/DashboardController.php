@@ -243,7 +243,7 @@ class DashboardController extends Controller
         }
 
         // Refetch todaySales with relationships for aggregation
-        $todaySalesWithRelations = \App\Models\StockOut::with(['items.product', 'user']) // Load necessary relations
+        $todaySalesWithRelations = \App\Models\StockOut::with(['items.product', 'user', 'inventoryUser']) // Load necessary relations
             ->whereIn('category', ['shopee', 'orderan_online'])
             ->whereDate('created_at', now());
 
@@ -336,7 +336,10 @@ class DashboardController extends Controller
         // 5. CS Performance (Today)
         $csPerformance = [];
         foreach ($todaySalesWithRelations as $sale) {
-            $csName = $sale->user->name ?? 'Unknown'; // Or full_name
+            // Use inventory_user relationship if available, otherwise fallback to user (creator)
+            // inventory_user_id is the one selected in the form
+            $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
+
             if (!isset($csPerformance[$csName])) {
                 $csPerformance[$csName] = [
                     'name' => $csName,
