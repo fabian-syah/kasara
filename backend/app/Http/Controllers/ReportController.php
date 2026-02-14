@@ -22,14 +22,16 @@ class ReportController extends Controller
 
         $report = $brands->map(function ($brand) use ($user, $isOnlineShop) {
             // HP Items (ProductDetail)
+            // Join with products to filter by brand NAME (string column)
+            // We use 'products.brand' because the schema uses string, not brand_id
             $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                ->where('products.brand_id', $brand->id)
-                ->where('product_details.status', 'available');
+                ->where('products.brand', $brand->name)
+                ->where('product_details.status', 'available')
+                ->whereNull('products.deleted_at');
 
             if ($isOnlineShop && $user->online_shop_id) {
-                // Assuming ProductDetail needs placement filtering for Online Shop?
-                // Actually ProductDetail usually tracks specific items.
-                // If the item is in "Online Shop" placement.
+                // Determine placement by actual column data
+                // ProductDetail has placement_type and placement_id
                 $hpQuery->where('product_details.placement_type', 'online_shop')
                     ->where('product_details.placement_id', $user->online_shop_id);
             }
@@ -43,7 +45,8 @@ class ReportController extends Controller
 
             // Non-HP Items (Inventory)
             $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
-                ->where('products.brand_id', $brand->id);
+                ->where('products.brand', $brand->name)
+                ->whereNull('products.deleted_at');
 
             if ($isOnlineShop && $user->online_shop_id) {
                 $nonHpQuery->where('inventories.placement_type', 'online_shop')
@@ -75,12 +78,25 @@ class ReportController extends Controller
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
 
         // Type Report - Focus on HP (Product Types)
-        $types = ProductType::with(['brand'])->orderBy('name')->get();
+        // Since 'products' table doesn't have product_type_id, we'll iterate over Products themselves
+        // or loop over ProductType and try to match match names?
+        // Safer to loop over Products that are of type 'hp' and distinct names?
+        // OR loop over ProductType and assume Product Name matches ProductType Name.
 
-        $report = $types->map(function ($type) use ($user, $isOnlineShop) {
+        // Let's try iterating over Products first as it's the source of truth for stock
+        // Grouping by Name as "Type"
+
+        $products = Product::where('type', 'hp')
+            ->select('name', 'brand')
+            ->distinct()
+            ->orderBy('name')
+            ->get();
+
+        $report = $products->map(function ($product) use ($user, $isOnlineShop) {
             $query = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                ->where('products.product_type_id', $type->id)
-                ->where('product_details.status', 'available');
+                ->where('products.name', $product->name) // Match by Name
+                ->where('product_details.status', 'available')
+                ->whereNull('products.deleted_at');
 
             if ($isOnlineShop && $user->online_shop_id) {
                 $query->where('product_details.placement_type', 'online_shop')
@@ -97,10 +113,11 @@ class ReportController extends Controller
             if ($new == 0 && $second == 0)
                 return null;
 
+            // Generate a ID for frontend key, maybe use name or hash
             return [
-                'id' => $type->id,
-                'name' => $type->name,
-                'brand_name' => $type->brand->name ?? '-',
+                'id' => md5($product->name),
+                'name' => $product->name,
+                'brand_name' => $product->brand ?? '-',
                 'new' => $new,
                 'second' => $second,
                 'total' => $new + $second,
