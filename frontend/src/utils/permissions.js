@@ -198,7 +198,7 @@ export const ROLE_MENUS = {
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_scan', 'shopee_history', 'inventory', 'track'],
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_scan', 'shopee_history', 'reports', 'inventory', 'track'],
     [ROLES.LEADER_SHOPEE]: ['dashboard', 'online_analysis', 'shopee_history', 'track']
 }
 
