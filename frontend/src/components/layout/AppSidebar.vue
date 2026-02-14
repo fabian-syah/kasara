@@ -49,13 +49,12 @@ const expandedMenus = ref({
 });
 
 const toggleMenu = (id) => {
-    console.log('Toggling menu:', id, 'Current state:', expandedMenus.value[id]);
-    if (expandedMenus.value[id] === undefined) {
-        expandedMenus.value[id] = true;
-    } else {
-        expandedMenus.value[id] = !expandedMenus.value[id];
-    }
-    console.log('New state:', expandedMenus.value[id]);
+    // Gunakan spread operator atau pastikan key sudah ada agar reaktif
+    expandedMenus.value = {
+        ...expandedMenus.value,
+        [id]: !expandedMenus.value[id]
+    };
+    console.log('New state for', id, ':', expandedMenus.value[id]);
 };
 
 // Menu configuration
@@ -201,14 +200,7 @@ function isGroupActive(items) {
                     <!-- Submenu Items -->
                     <div v-show="expandedMenus[item.id] || isGroupActive(item.items)" class="pl-4 space-y-1">
                         <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
-                            class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent"
-                            :class="isActiveRoute(subitem.path)
-                                ? 'bg-primary-500/10 text-primary-600 border-primary-500/20'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'
-                                ">
-                            <div class="w-1.5 h-1.5 rounded-full"
-                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-surface-600'"></div>
-                            <span>{{ subitem.label }}</span>
+                            @click="emit('close-mobile-menu')" class="flex items-center gap-3 ...">
                         </router-link>
                     </div>
                 </div>
