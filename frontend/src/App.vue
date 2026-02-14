@@ -1,3 +1,10 @@
+<script setup>
+import UpdateNotification from './components/UpdateNotification.vue';
+</script>
+
 <template>
-  <router-view />
+  <div>
+    <router-view />
+    <UpdateNotification />
+  </div>
 </template>
