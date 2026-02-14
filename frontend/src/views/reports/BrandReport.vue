@@ -7,11 +7,14 @@ import { Download } from 'lucide-vue-next';
 const reports = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
+const filterType = ref('all');
 
 const fetchReports = async () => {
     isLoading.value = true;
     try {
-        const response = await api.get('/reports/brand');
+        const response = await api.get('/reports/brand', {
+            params: { type: filterType.value }
+        });
         reports.value = response.data;
     } catch (error) {
         console.error('Failed to fetch brand report:', error);
@@ -48,6 +51,12 @@ onMounted(() => {
 
             <!-- Search & Actions -->
             <div class="flex items-center gap-3">
+                <select v-model="filterType" @change="fetchReports"
+                    class="bg-surface-800 text-text-primary border border-surface-600 rounded-lg px-3 py-2 focus:outline-none focus:border-primary-500">
+                    <option value="all">Semua Tipe</option>
+                    <option value="hp">HP (IMEI)</option>
+                    <option value="non-hp">Non-HP (Aksesoris)</option>
+                </select>
                 <input v-model="searchQuery" type="text" placeholder="Cari brand..." class="input max-w-xs" />
             </div>
         </div>

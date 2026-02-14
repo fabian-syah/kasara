@@ -16,47 +16,50 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
+        $filterType = $request->query('type', 'all'); // all, hp, non-hp
 
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
 
-        $report = $brands->map(function ($brand) use ($user, $isOnlineShop) {
-            // HP Items (ProductDetail)
-            // Join with products to filter by brand NAME (string column)
-            // We use 'products.brand' because the schema uses string, not brand_id
-            $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                ->where('products.brand', $brand->name)
-                ->where('product_details.status', 'available')
-                ->whereNull('products.deleted_at');
+        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $filterType) {
+            $hpNew = 0;
+            $hpSecond = 0;
+            $nonHpNew = 0;
 
-            if ($isOnlineShop && $user->online_shop_id) {
-                // Determine placement by actual column data
-                // ProductDetail has placement_type and placement_id
-                $hpQuery->where('product_details.placement_type', 'online_shop')
-                    ->where('product_details.placement_id', $user->online_shop_id);
+            // HP Items (ProductDetail) - Only if filter is 'all' or 'hp'
+            if ($filterType === 'all' || $filterType === 'hp') {
+                $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+                    ->where('products.brand', $brand->name)
+                    ->where('product_details.status', 'available')
+                    ->whereNull('products.deleted_at');
+
+                if ($isOnlineShop && $user->online_shop_id) {
+                    $hpQuery->where('product_details.placement_type', 'online_shop')
+                        ->where('product_details.placement_id', $user->online_shop_id);
+                }
+
+                $hpStats = $hpQuery->select('product_details.condition', DB::raw('count(*) as count'))
+                    ->groupBy('product_details.condition')
+                    ->pluck('count', 'condition');
+
+                $hpNew = $hpStats['new'] ?? 0;
+                $hpSecond = $hpStats['second'] ?? 0;
             }
 
-            $hpStats = $hpQuery->select('product_details.condition', DB::raw('count(*) as count'))
-                ->groupBy('product_details.condition')
-                ->pluck('count', 'condition');
+            // Non-HP Items (Inventory) - Only if filter is 'all' or 'non-hp'
+            if ($filterType === 'all' || $filterType === 'non-hp') {
+                $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
+                    ->where('products.brand', $brand->name)
+                    ->whereNull('products.deleted_at');
 
-            $hpNew = $hpStats['new'] ?? 0;
-            $hpSecond = $hpStats['second'] ?? 0;
+                if ($isOnlineShop && $user->online_shop_id) {
+                    $nonHpQuery->where('inventories.placement_type', 'online_shop')
+                        ->where('inventories.placement_id', $user->online_shop_id);
+                }
 
-            // Non-HP Items (Inventory)
-            $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
-                ->where('products.brand', $brand->name)
-                ->whereNull('products.deleted_at');
-
-            if ($isOnlineShop && $user->online_shop_id) {
-                $nonHpQuery->where('inventories.placement_type', 'online_shop')
-                    ->where('inventories.placement_id', $user->online_shop_id);
+                $nonHpCount = $nonHpQuery->sum('inventories.quantity');
+                $nonHpNew = $nonHpCount;
             }
-
-            $nonHpCount = $nonHpQuery->sum('inventories.quantity');
-
-            // Assume Non-HP is 'new'
-            $nonHpNew = $nonHpCount;
 
             return [
                 'id' => $brand->id,
@@ -76,48 +79,69 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
+        $filterType = $request->query('type', 'hp'); // Default to hp for Type Report usually, but allow 'all' or 'non-hp'
 
-        // Type Report - Focus on HP (Product Types)
-        // Since 'products' table doesn't have product_type_id, we'll iterate over Products themselves
-        // or loop over ProductType and try to match match names?
-        // Safer to loop over Products that are of type 'hp' and distinct names?
-        // OR loop over ProductType and assume Product Name matches ProductType Name.
-
-        // Let's try iterating over Products first as it's the source of truth for stock
-        // Grouping by Name as "Type"
-
-        $products = Product::where('type', 'hp')
-            ->select('name', 'brand')
+        // Base Product Query
+        $productQuery = Product::query()
+            ->select('name', 'brand', 'type')
             ->distinct()
-            ->orderBy('name')
-            ->get();
+            ->orderBy('brand') // Order by Brand first
+            ->orderBy('name');
+
+        if ($filterType === 'hp') {
+            $productQuery->where('type', 'hp');
+        } elseif ($filterType === 'non-hp') {
+            $productQuery->where('type', 'non-hp');
+        }
+
+        $products = $productQuery->get();
 
         $report = $products->map(function ($product) use ($user, $isOnlineShop) {
-            $query = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                ->where('products.name', $product->name) // Match by Name
-                ->where('product_details.status', 'available')
-                ->whereNull('products.deleted_at');
+            $new = 0;
+            $second = 0;
 
-            if ($isOnlineShop && $user->online_shop_id) {
-                $query->where('product_details.placement_type', 'online_shop')
-                    ->where('product_details.placement_id', $user->online_shop_id);
+            if ($product->type === 'hp') {
+                // Count from ProductDetail
+                $query = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+                    ->where('products.name', $product->name)
+                    ->where('product_details.status', 'available')
+                    ->whereNull('products.deleted_at');
+
+                if ($isOnlineShop && $user->online_shop_id) {
+                    $query->where('product_details.placement_type', 'online_shop')
+                        ->where('product_details.placement_id', $user->online_shop_id);
+                }
+
+                $stats = $query->select('product_details.condition', DB::raw('count(*) as count'))
+                    ->groupBy('product_details.condition')
+                    ->pluck('count', 'condition');
+
+                $new = $stats['new'] ?? 0;
+                $second = $stats['second'] ?? 0;
+
+            } else {
+                // Count from Inventory
+                $query = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
+                    ->where('products.name', $product->name)
+                    ->whereNull('products.deleted_at');
+
+                if ($isOnlineShop && $user->online_shop_id) {
+                    $query->where('inventories.placement_type', 'online_shop')
+                        ->where('inventories.placement_id', $user->online_shop_id);
+                }
+
+                $new = $query->sum('inventories.quantity'); // Assume Non-HP is new
+                $second = 0;
             }
-
-            $stats = $query->select('product_details.condition', DB::raw('count(*) as count'))
-                ->groupBy('product_details.condition')
-                ->pluck('count', 'condition');
-
-            $new = $stats['new'] ?? 0;
-            $second = $stats['second'] ?? 0;
 
             if ($new == 0 && $second == 0)
                 return null;
 
-            // Generate a ID for frontend key, maybe use name or hash
             return [
                 'id' => md5($product->name),
                 'name' => $product->name,
                 'brand_name' => $product->brand ?? '-',
+                'type' => $product->type, // 'hp' or 'non-hp'
                 'new' => $new,
                 'second' => $second,
                 'total' => $new + $second,
