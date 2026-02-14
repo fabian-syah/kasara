@@ -11,6 +11,11 @@ use Illuminate\Validation\Rule;
 use App\Models\Inventory;
 use App\Models\InventoryLog;
 use App\Models\Product;
+use App\Models\StockOutNonHpItem;
+use App\Models\Branch;
+use App\Models\Warehouse;
+use App\Models\OnlineShop;
+use App\Models\Distributor;
 
 class StockOutController extends Controller
 {
@@ -96,10 +101,10 @@ class StockOutController extends Controller
                     'pindah_cabang',
                     'kesalahan_input',
                     'retur',
-                    'orderan_online', // Renamed from shopee
-                    'shopee', // Kept for legacy compatibility if needed
+                    'orderan_online',
+                    'shopee',
                     'giveaway',
-                    'keluar', // New generic out category
+                    'keluar',
                     'hadiah',
                     'brand_ambassador',
                     'event',
@@ -115,7 +120,8 @@ class StockOutController extends Controller
             'non_hp_items.*.quantity' => 'required|integer|min:1',
 
             // Pindah Cabang
-            'destination_branch_id' => 'required_if:category,pindah_cabang|nullable|exists:branches,id',
+            'destination_type' => 'required_if:category,pindah_cabang|nullable|in:branch,warehouse,online_shop,distributor',
+            'destination_id' => 'required_if:category,pindah_cabang|nullable|integer',
             'receiver_name' => 'required_if:category,pindah_cabang|nullable|string|max:255',
             'transfer_notes' => 'nullable|string',
 
@@ -196,10 +202,10 @@ class StockOutController extends Controller
 
                     // === SPECIAL HANDLER FOR HP BULK STOCK OUT (e.g. Kesalahan Input) ===
                     if ($product->type === 'hp') {
+                        // ... (keep existing HP bulk logic) ...
                         $hpQuery = ProductDetail::where('product_id', $product->id)
                             ->where('status', 'available');
 
-                        // Placement Filter
                         if ($user->branch_id) {
                             $hpQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
                         } elseif ($user->warehouse_id) {
@@ -219,8 +225,6 @@ class StockOutController extends Controller
                         foreach ($itemsToRemove as $detail) {
                             $detail->delete();
                         }
-
-                        // Skip standard Inventory decrement
                         continue;
                     }
                     // === END HP HANDLER ===
@@ -272,34 +276,37 @@ class StockOutController extends Controller
             // For Shopee, store per-item data (Model casts to JSON automatically)
             $shopeeItemsData = null;
             if ($request->category === 'shopee' && $request->shopee_items) {
-                $shopeeItemsData = $request->shopee_items; // Don't json_encode - Model 'array' cast handles it
+                $shopeeItemsData = $request->shopee_items;
             }
 
             // Calculate Total Selling Price
             $totalSellingPrice = 0;
             if ($request->category === 'shopee') {
-                // Sum HP items
                 if ($request->shopee_items) {
                     foreach ($request->shopee_items as $item) {
                         $totalSellingPrice += ($item['selling_price'] ?? 0);
                     }
                 }
-                // Sum Non-HP items
                 if ($request->non_hp_items) {
                     foreach ($request->non_hp_items as $item) {
-                        // Assuming quantity * unit price, or total price passed? 
-                        // User said "SRP per satu produk", implies unit price.
-                        // So total = unit_price * quantity?
-                        // Or just "per satu produk" means input for that line.
-                        // Let's assume input is TOTAL for that line or UNIT?
-                        // Usually "SRP" is per unit.
-                        // But let's assume valid total for that row = price * qty
                         $unitPrice = $item['selling_price'] ?? 0;
                         $totalSellingPrice += ($unitPrice * $item['quantity']);
                     }
                 }
             } else {
                 $totalSellingPrice = $request->selling_price;
+            }
+
+            // Map Destination Type
+            $destinationType = null;
+            if ($request->category === 'pindah_cabang') {
+                $destinationType = match ($request->destination_type) {
+                    'branch' => 'branch', // Stored as simple string or mapped in model? 
+                    'warehouse' => 'warehouse',
+                    'online_shop' => 'online_shop',
+                    'distributor' => 'distributor',
+                    default => null
+                };
             }
 
             // Create stock out record
@@ -310,7 +317,12 @@ class StockOutController extends Controller
                 'inventory_user_id' => $request->inventory_user_id,
                 'selling_price' => $totalSellingPrice,
                 // Pindah Cabang
-                'destination_branch_id' => $request->destination_branch_id,
+                // 'destination_branch_id' => $request->destination_branch_id, // Deprecated if using polymorphic
+                'destination_type' => $destinationType,
+                'destination_id' => $request->destination_id,
+                'status' => ($request->category === 'pindah_cabang') ? 'pending' : 'received', // Default received for other types? Or null? status column matches enum: pending, received, partial, rejected. 
+                // For non-transfer, maybe status is irrelevant or 'completed'/'received'. Let's say 'received' as it's done.
+
                 'receiver_name' => $request->receiver_name,
                 'transfer_notes' => $request->transfer_notes,
                 // Kesalahan Input
@@ -324,7 +336,7 @@ class StockOutController extends Controller
                 'return_destination_id' => $request->return_destination_id,
                 'proof_image' => $proofImagePath,
 
-                // Shopee (per-item data stored as JSON)
+                // Shopee
                 'shopee_items_data' => $shopeeItemsData,
                 'shopee_receiver' => $request->shopee_receiver,
                 'shopee_phone' => $request->shopee_phone,
@@ -346,9 +358,26 @@ class StockOutController extends Controller
                 'giveaway_postal_code' => $request->giveaway_postal_code,
                 'giveaway_notes' => $request->giveaway_notes,
 
-                'notes' => $request->notes, // Generic notes
-                'non_hp_items' => $request->non_hp_items, // Stored as JSON
+                'notes' => $request->notes,
+                'non_hp_items' => $request->non_hp_items, // Stored as JSON too
             ]);
+
+            // Create StockOutNonHpItem records
+            if ($request->non_hp_items) {
+                foreach ($request->non_hp_items as $item) {
+                    $prod = Product::find($item['product_id']);
+                    // Exclude HP type (handled by deletion above)
+                    if ($prod && $prod->type !== 'hp') {
+                        StockOutNonHpItem::create([
+                            'stock_out_id' => $stockOut->id,
+                            'product_id' => $item['product_id'],
+                            'quantity' => $item['quantity'],
+                            'received_quantity' => 0,
+                            'returned_quantity' => 0,
+                        ]);
+                    }
+                }
+            }
 
             // Attach items and update status
             $newStatus = $this->getStatusByCategory($request->category);
@@ -368,10 +397,21 @@ class StockOutController extends Controller
                     }
                 }
 
-                // If pindah_cabang, move location immediately
+                // If pindah_cabang, move location immediately BUT set status to in_transit
                 if ($request->category === 'pindah_cabang') {
-                    $updateData['placement_type'] = 'branch';
-                    $updateData['placement_id'] = $request->destination_branch_id;
+                    $updateData['status'] = 'in_transit'; // OTW
+
+                    // Update Placement to Destination
+                    if ($request->destination_type === 'branch') {
+                        $updateData['placement_type'] = 'branch';
+                        $updateData['placement_id'] = $request->destination_id;
+                    } elseif ($request->destination_type === 'warehouse') {
+                        $updateData['placement_type'] = 'warehouse';
+                        $updateData['placement_id'] = $request->destination_id;
+                    } elseif ($request->destination_type === 'online_shop') {
+                        $updateData['placement_type'] = 'online_shop';
+                        $updateData['placement_id'] = $request->destination_id;
+                    }
                 }
 
                 // If retur, move item to the warehouse

@@ -129,11 +129,22 @@ class StockOut extends Model
 
     public function scopePending($query)
     {
-        return $query->whereNull('confirmed_at');
+        return $query->where('status', 'pending');
     }
 
     public function scopeConfirmed($query)
     {
-        return $query->whereNotNull('confirmed_at');
+        return $query->where('status', 'received');
+    }
+
+    // Relationships
+    public function destination()
+    {
+        return $this->morphTo();
+    }
+
+    public function nonHpItems()
+    {
+        return $this->hasMany(StockOutNonHpItem::class);
     }
 }

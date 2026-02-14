@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../../composables/useToast";
-import { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi } from "../../api/axios";
+import { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
 import api from "../../api/axios";
 import { Html5Qrcode } from "html5-qrcode";
 import {
@@ -43,7 +43,15 @@ const inventoryItems = ref([]);
 const selectedItems = ref([]);
 const branches = ref([]);
 const warehouses = ref([]);
+const onlineShops = ref([]);
+const distributors = ref([]);
 const currentBranch = ref(null);
+
+// Non-HP State
+const nonHpInventory = ref([]);
+const selectedNonHpItems = ref([]); // [{ product_id, quantity, product, selling_price }]
+const showNonHpModal = ref(false);
+const newNonHpItem = ref({ product_id: null, quantity: 1, selling_price: 0 });
 
 // Categories
 const allCategories = [
@@ -80,7 +88,9 @@ function selectCategory(category) {
 
 // Form Fields
 const form = ref({
-    destination_branch_id: null,
+    destination_type: 'branch', // Default branch
+    destination_branch_id: null, // Legacy/Specific
+    destination_id: null, // Polymorphic ID
     receiver_name: '',
     transfer_notes: '',
     deletion_reason: '',
@@ -133,6 +143,91 @@ async function fetchWarehouses() {
     } catch (e) {
         console.error("Gagal memuat gudang", e);
     }
+}
+
+async function fetchOnlineShops() {
+    try {
+        const response = await onlineShopsApi.list();
+        onlineShops.value = response.data.data || response.data;
+    } catch (e) {
+        console.error("Gagal memuat online shop", e);
+    }
+}
+
+async function fetchDistributors() {
+    try {
+        const response = await distributorsApi.list();
+        distributors.value = response.data.data || response.data;
+    } catch (e) {
+        console.error("Gagal memuat distributor", e);
+    }
+}
+
+async function fetchNonHpInventory() {
+    try {
+        const response = await inventoryApi.list({ type: 'non-hp', status: 'available' });
+        nonHpInventory.value = response.data.data || response.data;
+    } catch (e) {
+        console.error("Gagal memuat inventory non-hp", e);
+    }
+}
+
+// Watchers
+watch(() => form.value.destination_type, (newType) => {
+    form.value.destination_id = null;
+    if (newType === 'branch') fetchBranches(); // Already fetched usually
+    if (newType === 'warehouse') fetchWarehouses();
+    if (newType === 'online_shop') fetchOnlineShops();
+    if (newType === 'distributor') fetchDistributors();
+});
+
+watch(selectedCategory, (newCat) => {
+    if (newCat === 'pindah_cabang') {
+        // Ensure data is loaded
+        if (form.value.destination_type === 'branch' && branches.value.length === 0) fetchBranches();
+    }
+    // Load Non-HP inventory when form opens
+    if (newCat) {
+        fetchNonHpInventory();
+    }
+});
+
+function addNonHpItem() {
+    if (!newNonHpItem.value.product_id) return;
+
+    const product = nonHpInventory.value.find(p => p.product_id === newNonHpItem.value.product_id);
+    if (!product) return;
+
+    // Check if enough stock
+    if (newNonHpItem.value.quantity > product.quantity) {
+        toast.error(`Stok tidak cukup via ${product.placement_type}. Tersedia: ${product.quantity}`);
+        return;
+    }
+
+    // Check if already added
+    const existing = selectedNonHpItems.value.find(i => i.product_id === newNonHpItem.value.product_id);
+    if (existing) {
+        if (existing.quantity + newNonHpItem.value.quantity > product.quantity) {
+            toast.error(`Total quantity melebihi stok tersedia`);
+            return;
+        }
+        existing.quantity += newNonHpItem.value.quantity;
+    } else {
+        selectedNonHpItems.value.push({
+            product_id: newNonHpItem.value.product_id,
+            quantity: newNonHpItem.value.quantity,
+            product: product.product,
+            selling_price: newNonHpItem.value.selling_price
+        });
+    }
+
+    // Reset
+    newNonHpItem.value = { product_id: null, quantity: 1, selling_price: 0 };
+    showNonHpModal.value = false;
+}
+
+function removeNonHpItem(index) {
+    selectedNonHpItems.value.splice(index, 1);
 }
 
 const proofImageFile = ref(null);
@@ -248,6 +343,7 @@ function resetForm() {
         selling_price: null,
     };
     selectedCategory.value = null;
+    selectedNonHpItems.value = [];
 }
 
 function closeForm() {
@@ -333,7 +429,7 @@ const canSubmit = computed(() => {
 
     switch (selectedCategory.value) {
         case 'pindah_cabang':
-            return form.value.destination_branch_id && form.value.receiver_name;
+            return form.value.destination_id && form.value.receiver_name;
         case 'kesalahan_input':
             return form.value.deletion_reason.length >= 5;
         case 'retur':
@@ -362,6 +458,15 @@ async function submitStockOut() {
         Object.keys(form.value).forEach(key => {
             if (key !== 'proof_image' && form.value[key] !== null && form.value[key] !== '') {
                 formData.append(key, form.value[key]);
+            }
+        });
+
+        // Non-HP Items
+        selectedNonHpItems.value.forEach((item, index) => {
+            formData.append(`non_hp_items[${index}][product_id]`, item.product_id);
+            formData.append(`non_hp_items[${index}][quantity]`, item.quantity);
+            if (item.selling_price) {
+                formData.append(`non_hp_items[${index}][selling_price]`, item.selling_price);
             }
         });
 
@@ -535,7 +640,7 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                    }}</span>
+                                        }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[
@@ -587,12 +692,35 @@ onMounted(() => {
                 </div>
 
                 <div v-if="selectedCategory === 'pindah_cabang'" class="space-y-4">
-                    <div>
-                        <label class="label">Cabang Tujuan *</label>
-                        <select v-model="form.destination_branch_id" class="input">
-                            <option :value="null">-- Pilih Cabang --</option>
-                            <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
-                        </select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Tipe Tujuan *</label>
+                            <select v-model="form.destination_type" class="input">
+                                <option value="branch">Cabang / Store</option>
+                                <option value="warehouse">Gudang</option>
+                                <option value="online_shop">Online Shop</option>
+                                <option value="distributor">Distributor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Tujuan *</label>
+                            <select v-model="form.destination_id" class="input" :disabled="!form.destination_type">
+                                <option :value="null">-- Pilih Tujuan --</option>
+                                <template v-if="form.destination_type === 'branch'">
+                                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                </template>
+                                <template v-if="form.destination_type === 'warehouse'">
+                                    <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                                </template>
+                                <template v-if="form.destination_type === 'online_shop'">
+                                    <option v-for="o in onlineShops" :key="o.id" :value="o.id">{{ o.name }} ({{
+                                        o.platform }})</option>
+                                </template>
+                                <template v-if="form.destination_type === 'distributor'">
+                                    <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                                </template>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="label">Nama Penerima *</label>
@@ -735,13 +863,75 @@ onMounted(() => {
                 </div>
 
                 <div class="mt-6 pt-6 border-t border-surface-700">
-                    <p class="text-xs uppercase font-bold text-text-secondary mb-3">Barang yang akan dikeluarkan ({{
+                    <p class="text-xs uppercase font-bold text-text-secondary mb-3">Barang HP ({{
                         selectedItems.length }})</p>
                     <div class="flex flex-wrap gap-2">
                         <div v-for="item in selectedItems" :key="item.id"
                             class="bg-surface-700 px-3 py-2 rounded-xl text-sm flex items-center gap-2">
                             <Smartphone :size="14" />
                             <span class="font-mono text-xs">{{ item.imei }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Non-HP Items Section -->
+                <div class="mt-6 pt-6 border-t border-surface-700">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs uppercase font-bold text-text-secondary">Barang Non-HP ({{
+                            selectedNonHpItems.length }})</p>
+                        <button @click="showNonHpModal = true"
+                            class="text-primary-400 text-xs font-bold hover:underline">
+                            + Tambah Barang Non-HP
+                        </button>
+                    </div>
+
+                    <!-- List Selected Non-HP -->
+                    <div v-if="selectedNonHpItems.length > 0" class="space-y-2">
+                        <div v-for="(item, idx) in selectedNonHpItems" :key="idx"
+                            class="flex items-center justify-between bg-surface-700 p-3 rounded-xl">
+                            <div>
+                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <p class="text-xs text-text-secondary">{{ item.quantity }} Unit</p>
+                            </div>
+                            <button @click="removeNonHpItem(idx)" class="text-red-400 hover:text-red-300">
+                                <X :size="16" />
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else
+                        class="text-center py-4 bg-surface-700/30 rounded-xl text-text-secondary text-xs italic">
+                        Belum ada barang non-HP dipilih
+                    </div>
+
+                    <!-- Non HP Modal -->
+                    <div v-if="showNonHpModal"
+                        class="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4">
+                        <div class="bg-surface-800 rounded-2xl w-full max-w-md p-6 border border-surface-700">
+                            <h3 class="font-bold text-lg text-white mb-4">Tambah Barang Non-HP</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="label">Pilih Produk</label>
+                                    <select v-model="newNonHpItem.product_id" class="input">
+                                        <option :value="null">-- Pilih Produk --</option>
+                                        <option v-for="inv in nonHpInventory" :key="inv.id" :value="inv.product_id">
+                                            {{ inv.product?.name }} (Sisa: {{ inv.quantity }})
+                                        </option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="label">Jumlah</label>
+                                    <input v-model="newNonHpItem.quantity" type="number" min="1" class="input" />
+                                </div>
+                                <div v-if="selectedCategory === 'shopee'">
+                                    <label class="label">Harga Jual (per unit)</label>
+                                    <input v-model="newNonHpItem.selling_price" type="number" min="0" class="input" />
+                                </div>
+                                <div class="flex justify-end gap-2 mt-6">
+                                    <button @click="showNonHpModal = false"
+                                        class="btn btn-secondary px-4">Batal</button>
+                                    <button @click="addNonHpItem" class="btn btn-primary px-4">Tambah</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
