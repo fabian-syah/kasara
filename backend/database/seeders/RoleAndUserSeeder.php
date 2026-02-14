@@ -39,7 +39,7 @@ class RoleAndUserSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['username' => 'admin'],
             [
-                'full_name' => 'Fabian Syah',
+                'name' => 'Fabian Syah',
                 'email' => 'admin@apexpos.com',
                 'password' => Hash::make('password123'),
                 'is_active' => true,
