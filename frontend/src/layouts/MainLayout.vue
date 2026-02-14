@@ -4,6 +4,7 @@ import { useRoute } from "vue-router";
 import { useThemeStore } from "../store/theme";
 import AppSidebar from "../components/layout/AppSidebar.vue";
 import AppHeader from "../components/layout/AppHeader.vue";
+import AppFooter from "../components/layout/Footer.vue";
 import {
   Heart,
   Cloud,
@@ -53,12 +54,15 @@ watch(
       </div>
 
       <!-- Page Content -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pt-6 relative z-10">
+      <div class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 pt-6 relative z-10 flex flex-col">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
           </transition>
         </router-view>
+
+        <!-- Developer Footer -->
+        <AppFooter class="mt-8" />
       </div>
     </main>
   </div>
