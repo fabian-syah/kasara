@@ -57,6 +57,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/history/out', [InventoryController::class, 'stockOutHistory']);
     Route::get('/inventory/history/in/export', [InventoryController::class, 'exportStockInHistory']);
     Route::get('/inventory/history/out/export', [InventoryController::class, 'exportStockOutHistory']);
+
+    // DEBUG ROUTE
+    Route::get('/debug-stock/{receipt}', function ($receipt) {
+        $stockOut = \App\Models\StockOut::with(['destination'])->where('receipt_id', $receipt)->first();
+        if (!$stockOut)
+            return response()->json(['error' => 'Not found']);
+        return response()->json([
+            'id' => $stockOut->id,
+            'receipt_id' => $stockOut->receipt_id,
+            'category' => $stockOut->category,
+            'destination_type' => $stockOut->destination_type,
+            'destination_id' => $stockOut->destination_id,
+            'destination_relation' => $stockOut->destination,
+            'morph_map' => \Illuminate\Database\Eloquent\Relations\Relation::morphMap(),
+            'user' => auth()->user()
+        ]);
+    });
+
     Route::post('/inventory/stock-in', [InventoryController::class, 'stockIn']);
     Route::put('/inventory/{id}', [InventoryController::class, 'update']);
     Route::patch('/inventory/{id}/status', [InventoryController::class, 'updateStatus']);
