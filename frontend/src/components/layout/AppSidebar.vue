@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../store/auth";
 import { useThemeStore } from "../../store/theme";
@@ -31,7 +31,6 @@ import {
     ArrowDownRight,
     DollarSign
 } from "lucide-vue-next";
-import { ref } from 'vue';
 
 const props = defineProps({
     isMobileMenuOpen: Boolean,
@@ -45,10 +44,16 @@ const authStore = useAuthStore();
 const themeStore = useThemeStore();
 
 // Navigation state
-const expandedMenus = ref({});
+const expandedMenus = ref({
+    reports: false,
+});
 
 const toggleMenu = (id) => {
-    expandedMenus.value[id] = !expandedMenus.value[id];
+    if (expandedMenus.value[id] === undefined) {
+        expandedMenus.value[id] = true;
+    } else {
+        expandedMenus.value[id] = !expandedMenus.value[id];
+    }
 };
 
 // Menu configuration
