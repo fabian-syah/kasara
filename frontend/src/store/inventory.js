@@ -20,7 +20,50 @@ export const useInventoryStore = defineStore('inventory', () => {
     // Mock data for demo
     // ... (keep mockProducts and mockCategories as is, they are not used in main flow but good for valid js)
 
-    // ... (keep Getters)
+    // Getters
+    const filteredProducts = computed(() => {
+        let result = [...products.value]
+
+        // Filter by search
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase()
+            result = result.filter(item =>
+                item.imei?.toLowerCase().includes(query) ||
+                item.product?.name?.toLowerCase().includes(query) ||
+                item.product?.sku?.toLowerCase().includes(query) ||
+                item.product?.brand?.toLowerCase().includes(query)
+            )
+        }
+
+        // Filter by category
+        if (selectedCategory.value) {
+            result = result.filter(item => item.product?.category === selectedCategory.value)
+        }
+
+        // Sort
+        result.sort((a, b) => {
+            let comparison = 0
+            if (sortBy.value === 'name') {
+                const nameA = a.product?.name || '';
+                const nameB = b.product?.name || '';
+                comparison = nameA.localeCompare(nameB)
+            } else if (sortBy.value === 'price') {
+                comparison = (a.selling_price || 0) - (b.selling_price || 0)
+            }
+            return sortOrder.value === 'asc' ? comparison : -comparison
+        })
+
+        return result
+    })
+
+    const lowStockProducts = computed(() => []) // Not applicable for granular items
+    const outOfStockProducts = computed(() => []) // Not applicable
+
+    const totalProducts = computed(() => products.value.length)
+
+    const totalValue = computed(() =>
+        products.value.reduce((total, item) => total + parseFloat(item.selling_price || 0), 0)
+    )
 
     // Actions
     async function fetchProducts(params = {}) {
