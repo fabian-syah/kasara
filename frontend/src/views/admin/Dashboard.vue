@@ -174,8 +174,8 @@ async function fetchDashboardData() {
         change: 0,
         trend: 'neutral'
       }));
-      recentTransactions.value = response.data.recentTransactions;
-      ranking.value = response.data.ranking;
+      recentTransactions.value = response.data.recentTransactions || [];
+      ranking.value = response.data.ranking || { my_rank: '-', leaderboard: [] };
       // Optional fields for online_shop and toko_offline might differ slightly, handle gracefully
       brandSales.value = response.data.brandSales || [];
       typeSales.value = response.data.typeSales || [];
@@ -420,7 +420,7 @@ const getColorClasses = (color) => {
                   <span class="font-mono text-text-secondary">#{{ user.rank }}</span>
                 </td>
               </tr>
-              <tr v-if="ranking.leaderboard.length === 0">
+              <tr v-if="!ranking?.leaderboard || ranking.leaderboard.length === 0">
                 <td colspan="4" class="py-8 text-center text-text-secondary italic">
                   Belum ada data penjualan akun inventory hari ini
                 </td>

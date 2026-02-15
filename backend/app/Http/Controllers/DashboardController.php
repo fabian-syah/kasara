@@ -7,7 +7,13 @@ use App\Models\Brand;
 use App\Models\ProductType;
 use App\Models\ProductPrice;
 use App\Models\Category;
+use App\Models\StockOut;
+use App\Models\ProductDetail;
+use App\Models\Inventory;
+use App\Models\Product;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -15,7 +21,6 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Check for specific role logic
         if ($user->hasRole('admin_produk') || $user->hasRole('Admin Produk') || $user->hasRole('ADMIN PRODUK')) {
             return $this->getAdminProdukStats();
         }
@@ -28,7 +33,6 @@ class DashboardController extends Controller
             return $this->getTokoOfflineStats($user);
         }
 
-        // Default stats
         return response()->json([
             'role' => 'general',
             'message' => 'Dashboard standart (static attributes)'
@@ -37,13 +41,11 @@ class DashboardController extends Controller
 
     private function getAdminProdukStats()
     {
-        // 1. Counts
         $brandCount = Brand::count();
         $typeCount = ProductType::count();
         $priceCount = ProductPrice::count();
         $categoryCount = Category::count();
 
-        // 2. Recent Updates
         $recentTypes = ProductType::with(['brand'])
             ->latest()
             ->take(5)
@@ -88,10 +90,26 @@ class DashboardController extends Controller
     private function getTokoOfflineStats($user)
     {
         $categories = ['penjualan_offline'];
-        $todaySalesQuery = \App\Models\StockOut::whereIn('category', $categories)
+        return $this->getAggregatedStats($user, $categories, 'toko_offline');
+    }
+
+    private function getOnlineShopStats($user)
+    {
+        $categories = ['shopee', 'orderan_online'];
+        return $this->getAggregatedStats($user, $categories, 'online_shop');
+    }
+
+    private function getAggregatedStats($user, $categories, $role)
+    {
+        $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
+            ->whereIn('category', $categories)
             ->whereDate('created_at', now());
 
-        if ($user->branch_id) {
+        if ($role === 'online_shop' && $user->online_shop_id) {
+            $todaySalesQuery->whereHas('user', function ($q) use ($user) {
+                $q->where('online_shop_id', $user->online_shop_id);
+            });
+        } elseif ($role === 'toko_offline' && $user->branch_id) {
             $todaySalesQuery->whereHas('user', function ($q) use ($user) {
                 $q->where('branch_id', $user->branch_id);
             });
@@ -100,58 +118,98 @@ class DashboardController extends Controller
         }
 
         $todaySales = $todaySalesQuery->get();
+
         $totalRevenue = 0;
         $productsSold = 0;
+        $typeSales = [];
+        $brandConditionSales = [];
+        $csPerformance = [];
 
+        // Pre-fetch Non-HP Product Info
+        $nonHpProductIds = [];
         foreach ($todaySales as $sale) {
-            foreach ($sale->items as $item) {
-                $totalRevenue += $item->selling_price;
-                $productsSold++;
-            }
             if ($sale->non_hp_items) {
                 foreach ($sale->non_hp_items as $item) {
-                    $totalRevenue += ($item['selling_price'] ?? 0) * ($item['quantity'] ?? 1);
-                    $productsSold += ($item['quantity'] ?? 1);
+                    if (isset($item['product_id']))
+                        $nonHpProductIds[] = $item['product_id'];
+                }
+            }
+        }
+        $nonHpProducts = empty($nonHpProductIds) ? collect() : Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
+
+        foreach ($todaySales as $sale) {
+            $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
+            if (!isset($csPerformance[$csName])) {
+                $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0];
+            }
+
+            // HP Items
+            foreach ($sale->items as $item) {
+                $price = $item->selling_price;
+                $totalRevenue += $price;
+                $productsSold++;
+                $csPerformance[$csName]['hp_count']++;
+                $csPerformance[$csName]['total_sales'] += $price;
+
+                // Type Stats
+                $typeName = $item->product->name ?? 'Unknown';
+                $typeSales[$typeName] = ($typeSales[$typeName] ?? 0) + 1;
+
+                // Brand Condition Stats
+                $brand = $item->product->brand ?? 'Unknown';
+                $cond = ($item->condition === 'new') ? 'New' : 'Second';
+                $key = "$brand $cond";
+                $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + 1;
+            }
+
+            // Non-HP Items
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    $pid = $item['product_id'] ?? null;
+                    if ($pid && isset($nonHpProducts[$pid])) {
+                        $product = $nonHpProducts[$pid];
+                        $qty = (int) ($item['quantity'] ?? 1);
+                        $price = (float) ($item['selling_price'] ?? 0) * $qty;
+
+                        $totalRevenue += $price;
+                        $productsSold += $qty;
+                        $csPerformance[$csName]['non_hp_count'] += $qty;
+                        $csPerformance[$csName]['total_sales'] += $price;
+
+                        $typeSales[$product->name] = ($typeSales[$product->name] ?? 0) + $qty;
+                        $key = ($product->brand ?? 'Unknown') . " New";
+                        $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + $qty;
+                    }
                 }
             }
         }
 
-        $hpStock = \App\Models\ProductDetail::where('placement_type', 'branch')
-            ->where('placement_id', $user->branch_id)
-            ->where('status', 'available')
-            ->count();
+        // Stock
+        $placementType = ($role === 'online_shop') ? 'online_shop' : 'branch';
+        $placementId = ($role === 'online_shop') ? $user->online_shop_id : $user->branch_id;
 
-        $nonHpStock = \App\Models\Inventory::where('placement_type', 'branch')
-            ->where('placement_id', $user->branch_id)
-            ->sum('quantity');
+        $hpStock = ProductDetail::where('placement_type', $placementType)->where('placement_id', $placementId)->where('status', 'available')->count();
+        $nonHpStock = Inventory::where('placement_type', $placementType)->where('placement_id', $placementId)->sum('quantity');
 
-        $recentTransactions = \App\Models\StockOut::with(['items.product', 'user'])
-            ->whereIn('category', $categories)
-            ->whereHas('user', function ($q) use ($user) {
-                if ($user->branch_id) {
-                    $q->where('branch_id', $user->branch_id);
-                } else {
-                    $q->where('id', $user->id);
-                }
-            })
-            ->latest()
-            ->take(10)
-            ->get()
-            ->map(function ($trx) {
-                return [
-                    'id' => $trx->receipt_id,
-                    'customer' => $trx->customer_name ?? 'Guest',
-                    'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
-                    'time' => $trx->created_at->diffForHumans(),
-                    'datetime' => $trx->created_at->format('d M H:i'),
-                    'status' => 'success'
-                ];
-            });
+        // Recent Trx
+        $recentTransactions = $todaySales->take(10)->map(function ($trx) {
+            return [
+                'id' => $trx->receipt_id,
+                'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? $trx->customer_name ?? 'Guest',
+                'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
+                'time' => $trx->created_at->diffForHumans(),
+                'datetime' => $trx->created_at->format('d M H:i'),
+                'status' => 'success'
+            ];
+        });
 
-        $rankingData = $this->getRankingData($user, $categories);
+        // Format and Sort
+        $typeSalesData = collect($typeSales)->map(fn($v, $k) => ['name' => $k, 'count' => $v])->sortByDesc('count')->values()->take(5);
+        $brandSalesData = collect($brandConditionSales)->map(fn($v, $k) => ['name' => $k, 'count' => $v])->sortByDesc('count')->values();
+        $csPerformanceData = collect($csPerformance)->sortByDesc('total_sales')->values();
 
         return response()->json([
-            'role' => 'toko_offline',
+            'role' => $role,
             'stats' => [
                 ['id' => 'revenue', 'label' => 'Pendapatan Hari Ini', 'value' => $totalRevenue, 'isCurrency' => true, 'icon' => 'DollarSign', 'color' => 'emerald'],
                 ['id' => 'transactions', 'label' => 'Total Transaksi', 'value' => $todaySales->count(), 'icon' => 'ShoppingCart', 'color' => 'blue'],
@@ -159,17 +217,20 @@ class DashboardController extends Controller
                 ['id' => 'stock', 'label' => 'Total Stok Fisik', 'value' => $hpStock + $nonHpStock, 'sub' => "HP: $hpStock | Acc: $nonHpStock", 'icon' => 'Box', 'color' => 'amber'],
             ],
             'recentTransactions' => $recentTransactions,
-            'ranking' => $rankingData
+            'typeSales' => $typeSalesData,
+            'brandSales' => $brandSalesData,
+            'csPerformance' => $csPerformanceData,
+            'ranking' => $this->getRankingData($user, $categories)
         ]);
     }
 
     private function getRankingData($user, $categories)
     {
-        $todayRanking = \DB::table('stock_outs')
+        $todayRanking = DB::table('stock_outs')
             ->whereIn('category', $categories)
             ->whereDate('created_at', now())
             ->whereNotNull('inventory_user_id')
-            ->select('inventory_user_id', \DB::raw('count(*) as total_units'))
+            ->select('inventory_user_id', DB::raw('count(*) as total_units'))
             ->groupBy('inventory_user_id')
             ->orderByDesc('total_units')
             ->get();
@@ -180,23 +241,14 @@ class DashboardController extends Controller
             $globalRanking[$row->inventory_user_id] = $rank++;
         }
 
-        $leaderboardQuery = \App\Models\User::role('inventory')
-            ->select('id', 'name', 'photo_inventory');
-
-        if ($user->online_shop_id) {
+        $leaderboardQuery = User::role('inventory')->select('id', 'name', 'photo_inventory');
+        if ($user->online_shop_id)
             $leaderboardQuery->where('online_shop_id', $user->online_shop_id);
-        } elseif ($user->branch_id) {
+        elseif ($user->branch_id)
             $leaderboardQuery->where('branch_id', $user->branch_id);
-        }
 
-        $leaderboardUsers = $leaderboardQuery->get();
-
-        $leaderboard = $leaderboardUsers->map(function ($u) use ($globalRanking, $categories) {
-            $units = \App\Models\StockOut::where('inventory_user_id', $u->id)
-                ->whereIn('category', $categories)
-                ->whereDate('created_at', now())
-                ->count();
-
+        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories) {
+            $units = StockOut::where('inventory_user_id', $u->id)->whereIn('category', $categories)->whereDate('created_at', now())->count();
             return [
                 'id' => $u->id,
                 'name' => $u->name,
@@ -210,83 +262,5 @@ class DashboardController extends Controller
             'my_rank' => '-',
             'leaderboard' => $leaderboard
         ];
-    }
-
-    private function getOnlineShopStats($user)
-    {
-        $categories = ['shopee', 'orderan_online'];
-        $todaySalesQuery = \App\Models\StockOut::whereIn('category', $categories)
-            ->whereDate('created_at', now());
-
-        if ($user->online_shop_id) {
-            $todaySalesQuery->whereHas('user', function ($q) use ($user) {
-                $q->where('online_shop_id', $user->online_shop_id);
-            });
-        } else {
-            $todaySalesQuery->where('user_id', $user->id);
-        }
-
-        $todaySales = $todaySalesQuery->get();
-        $totalRevenue = 0;
-        $productsSold = 0;
-
-        foreach ($todaySales as $sale) {
-            foreach ($sale->items as $item) {
-                $totalRevenue += $item->selling_price;
-                $productsSold++;
-            }
-            if ($sale->non_hp_items) {
-                foreach ($sale->non_hp_items as $item) {
-                    $totalRevenue += ($item['selling_price'] ?? 0) * ($item['quantity'] ?? 1);
-                    $productsSold += ($item['quantity'] ?? 1);
-                }
-            }
-        }
-
-        $hpStock = \App\Models\ProductDetail::where('placement_type', 'online_shop')
-            ->where('placement_id', $user->online_shop_id)
-            ->where('status', 'available')
-            ->count();
-
-        $nonHpStock = \App\Models\Inventory::where('placement_type', 'online_shop')
-            ->where('placement_id', $user->online_shop_id)
-            ->sum('quantity');
-
-        $recentTransactions = \App\Models\StockOut::with(['items.product', 'user'])
-            ->whereIn('category', $categories)
-            ->whereHas('user', function ($q) use ($user) {
-                if ($user->online_shop_id) {
-                    $q->where('online_shop_id', $user->online_shop_id);
-                } else {
-                    $q->where('id', $user->id);
-                }
-            })
-            ->latest()
-            ->take(10)
-            ->get()
-            ->map(function ($trx) {
-                return [
-                    'id' => $trx->receipt_id,
-                    'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? 'Guest',
-                    'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
-                    'time' => $trx->created_at->diffForHumans(),
-                    'datetime' => $trx->created_at->format('d M H:i'),
-                    'status' => 'success'
-                ];
-            });
-
-        $rankingData = $this->getRankingData($user, $categories);
-
-        return response()->json([
-            'role' => 'online_shop',
-            'stats' => [
-                ['id' => 'revenue', 'label' => 'Pendapatan Hari Ini', 'value' => $totalRevenue, 'isCurrency' => true, 'icon' => 'DollarSign', 'color' => 'emerald'],
-                ['id' => 'transactions', 'label' => 'Total Transaksi', 'value' => $todaySales->count(), 'icon' => 'ShoppingCart', 'color' => 'blue'],
-                ['id' => 'sold', 'label' => 'Produk Terjual', 'value' => $productsSold, 'icon' => 'Package', 'color' => 'violet'],
-                ['id' => 'stock', 'label' => 'Total Stok Fisik', 'value' => $hpStock + $nonHpStock, 'sub' => "HP: $hpStock | Acc: $nonHpStock", 'icon' => 'Box', 'color' => 'amber'],
-            ],
-            'recentTransactions' => $recentTransactions,
-            'ranking' => $rankingData
-        ]);
     }
 }
