@@ -380,7 +380,7 @@ const getColorClasses = (color) => {
         <div class="card">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-lg font-semibold text-text-primary">
-              Top 5 Produk Laris (Sepanjang Masa)
+              Top 5 Produk Laris
             </h2>
           </div>
           <div class="overflow-x-auto">
