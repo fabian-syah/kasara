@@ -120,7 +120,7 @@ function toggleFilter(filterSet, value) {
 // Fetch Filter Options
 async function fetchFilterOptions() {
   try {
-    const response = await axiosInstance.get('/inventory/filter-options');
+    const response = await api.get('/inventory/filter-options');
     productOptions.value = response.data.products;
     capacityOptions.value = response.data.capacities;
   } catch (error) {
