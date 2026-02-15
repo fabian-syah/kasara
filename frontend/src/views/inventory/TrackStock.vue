@@ -236,6 +236,15 @@ function formatCurrency(value) {
                                         <span
                                             class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-0.5 rounded">KELUAR</span>
                                         {{ result.id }}
+                                        <span v-if="result.category === 'pindah_cabang'"
+                                            class="text-xs font-bold px-2 py-0.5 rounded capitalize" :class="{
+                                                'bg-yellow-500/20 text-yellow-500': result.status === 'pending',
+                                                'bg-green-500/20 text-green-500': result.status === 'received',
+                                                'bg-red-500/20 text-red-500': result.status === 'rejected'
+                                            }">
+                                            {{ result.status === 'pending' ? 'Menunggu' : (result.status === 'rejected'
+                                            ? 'Ditolak' : 'Selesai') }}
+                                        </span>
                                     </p>
                                     <p class="text-sm text-text-secondary">{{ categoryLabels[result.category] }}</p>
                                 </div>
@@ -304,7 +313,7 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                }}</span>
+                                                    }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>

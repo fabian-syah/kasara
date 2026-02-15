@@ -651,6 +651,7 @@ class StockOutController extends Controller
                         'processed_by' => $out->inventoryUser
                             ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name)
                             : ($out->user?->name ?? $out->user?->username),
+                        'status' => $out->status, // Add status
                         'created_at' => $out->created_at->toDateTimeString(),
                     ];
                 } catch (\Exception $e) {
@@ -865,8 +866,22 @@ class StockOutController extends Controller
                 }
             }
 
+            // Determine Final Status
+            // Check if ANY item was accepted
+            $totalAccepted = count($acceptedItemIds);
+
+            if ($request->non_hp_items) {
+                foreach ($request->non_hp_items as $submittedItem) {
+                    $totalAccepted += ($submittedItem['received_quantity'] ?? 0);
+                }
+            }
+
+            // If nothing accepted -> Rejected
+            // Else -> Received (Partially or Fully)
+            $finalStatus = ($totalAccepted > 0) ? 'received' : 'rejected';
+
             $stockOut->update([
-                'status' => 'received',
+                'status' => $finalStatus,
                 'confirmed_at' => now(),
                 'confirmed_by' => Auth::id()
             ]);
