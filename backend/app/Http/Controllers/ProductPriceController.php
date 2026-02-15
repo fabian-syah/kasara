@@ -31,22 +31,18 @@ class ProductPriceController extends Controller
             });
         }
 
-        // Search by type name or brand name (Symbol-neutral)
+        // Multi-field Search (Brand + Type + Capacity) - Symbol & Space Neutral
         if ($request->filled('search')) {
             $search = $request->search;
-            // Normalize search: remove non-alphanumeric
             $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
 
             $query->whereHas('productType', function ($q) use ($cleanSearch, $search) {
-                // Try normal ILIKE first for better performance on simple cases
-                $q->where(function ($sq) use ($cleanSearch, $search) {
-                    $sq->where('name', 'ilike', "%{$search}%")
-                        ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
-                        ->orWhereHas('brand', function ($b) use ($cleanSearch, $search) {
-                            $b->where('name', 'ilike', "%{$search}%")
-                                ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]);
-                        });
-                });
+                $q->join('brands', 'product_types.brand_id', '=', 'brands.id')
+                    ->where(function ($sq) use ($cleanSearch, $search) {
+                        $sq->whereRaw("REGEXP_REPLACE(brands.name || product_types.name || COALESCE(product_types.storage, '') || COALESCE(product_types.ram, ''), '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
+                            ->orWhere('product_types.name', 'ilike', "%{$search}%")
+                            ->orWhere('brands.name', 'ilike', "%{$search}%");
+                    });
             });
         }
 

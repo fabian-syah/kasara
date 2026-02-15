@@ -527,8 +527,7 @@ class InventoryController extends Controller
                 $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
 
                 $query->where(function ($q) use ($search, $cleanSearch) {
-                    $q->whereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$search}%")
-                        ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
+                    $q->whereHas('product', fn($pq) => $pq->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
                         ->orWhere('description', 'ilike', "%{$search}%");
                 });
             }
@@ -540,8 +539,7 @@ class InventoryController extends Controller
 
                 $query->where(function ($q) use ($search, $cleanSearch) {
                     $q->where('imei', 'ilike', "%{$search}%")
-                        ->orWhereHas('product', fn($sq) => $sq->where('name', 'ilike', "%{$search}%")
-                            ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]));
+                        ->orWhereHas('product', fn($sq) => $sq->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]));
                 });
             }
         }
@@ -609,8 +607,7 @@ class InventoryController extends Controller
             $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
 
             $query->where(function ($q) use ($search, $cleanSearch) {
-                $q->whereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$search}%")
-                    ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
+                $q->whereHas('product', fn($pq) => $pq->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
                     ->orWhere('description', 'ilike', "%{$search}%");
             });
         }

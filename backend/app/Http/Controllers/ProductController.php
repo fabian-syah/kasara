@@ -20,8 +20,9 @@ class ProductController extends Controller
             $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
 
             $query->where(function ($q) use ($search, $cleanSearch) {
-                $q->where('name', 'ilike', '%' . $search . '%')
-                    ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
+                // Concatenated Brand + Name search
+                $q->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
+                    ->orWhere('name', 'ilike', '%' . $search . '%')
                     ->orWhere('sku', 'ilike', '%' . $search . '%');
             });
         }

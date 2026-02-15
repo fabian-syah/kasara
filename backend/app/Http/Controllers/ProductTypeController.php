@@ -31,16 +31,13 @@ class ProductTypeController extends Controller
             $search = $request->search;
             $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
 
-            $query->where(function ($q) use ($search, $cleanSearch) {
-                // Try normal ILIKE first
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
-                    // Case-insensitive search for Brand Name
-                    ->orWhereHas('brand', function ($qBrand) use ($search, $cleanSearch) {
-                        $qBrand->where('name', 'ilike', "%{$search}%")
-                            ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]);
-                    });
-            });
+            $query->join('brands', 'product_types.brand_id', '=', 'brands.id')
+                ->where(function ($q) use ($search, $cleanSearch) {
+                    $q->whereRaw("REGEXP_REPLACE(brands.name || product_types.name || COALESCE(product_types.storage, '') || COALESCE(product_types.ram, ''), '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
+                        ->orWhere('product_types.name', 'ilike', "%{$search}%")
+                        ->orWhere('brands.name', 'ilike', "%{$search}%");
+                })
+                ->select('product_types.*');
         }
 
         return response()->json([
