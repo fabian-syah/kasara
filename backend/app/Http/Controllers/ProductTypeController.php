@@ -27,9 +27,16 @@ class ProductTypeController extends Controller
             }
         }
 
-        if ($request->has('search')) {
-            $search = $request->search;
-            $query->where('name', 'like', "%{$search}%");
+        if ($request->filled('search')) {
+            $search = strtolower($request->search);
+            $query->where(function ($q) use ($search) {
+                // Case-insensitive search for Product Type Name
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                    // Case-insensitive search for Brand Name
+                    ->orWhereHas('brand', function ($qBrand) use ($search) {
+                        $qBrand->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    });
+            });
         }
 
         return response()->json([
