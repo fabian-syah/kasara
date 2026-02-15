@@ -1061,42 +1061,93 @@ class InventoryController extends Controller
     // Get Filter Options for Faceted Search
     public function getFilterOptions(Request $request)
     {
-        // Get all unique product names currently in inventory
-        $productNames = Inventory::where('quantity', '>', 0)
-            ->whereHas('product')
-            ->join('products', 'inventories.product_id', '=', 'products.id')
-            ->distinct()
-            ->pluck('products.name')
-            ->sort()
-            ->values();
+        $user = Auth::user();
+        $type = $request->type ?? 'hp';
 
-        // Get all unique capacities (RAM/Storage) from ProductDetail (HP) currently in inventory
-        // We only care about HP items for capacity
-        // Join inventories to ensure we only show options for items in stock
-        // Note: strict join might be too heavy, but accurate. 
-        // Lighter approach: Get all verified ProductDetails that are "in_stock" (not sold/mutasi)
-        // But Inventory model handles quantity. For HP, Inventory usually maps to Product (SKU), 
-        // and ProductDetail is the specific item.
-        // Actually, `Inventory` for HP items aggregates quantity by placement.
-        // The specific items are in `product_details` with status 'ready'.
+        $productNames = [];
+        $capacities = [];
 
-        $capacities = ProductDetail::where('status', 'ready')
-            ->select('ram', 'storage')
-            ->distinct()
-            ->get()
-            ->map(function ($item) {
-                if ($item->ram && $item->storage) {
-                    return "{$item->ram}/{$item->storage}";
-                }
-                return $item->storage ?: $item->ram;
-            })
-            ->filter()
-            ->unique()
-            ->sort(function ($a, $b) {
-                // Natural sort attempts
-                return strnatcmp($a, $b);
-            })
-            ->values();
+        // Common Restriction Logic (Same as Index)
+        $applyLocationFilter = function ($query, $tablePrefix = '') use ($user) {
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+            if (!$user->hasRole($unrestrictedRoles)) {
+                $query->where(function ($q) use ($user, $tablePrefix) {
+                    $hasConstraint = false;
+                    $colType = $tablePrefix ? $tablePrefix . '.placement_type' : 'placement_type';
+                    $colId = $tablePrefix ? $tablePrefix . '.placement_id' : 'placement_id';
+
+                    if ($user->branch_id) {
+                        $q->orWhere(function ($sub) use ($colType, $colId, $user) {
+                            $sub->where($colType, 'branch')
+                                ->where($colId, $user->branch_id);
+                        });
+                        $hasConstraint = true;
+                    }
+                    if ($user->warehouse_id) {
+                        $q->orWhere(function ($sub) use ($colType, $colId, $user) {
+                            $sub->where($colType, 'warehouse')
+                                ->where($colId, $user->warehouse_id);
+                        });
+                        $hasConstraint = true;
+                    }
+                    if ($user->online_shop_id) {
+                        $q->orWhere(function ($sub) use ($colType, $colId, $user) {
+                            $sub->where($colType, 'online_shop')
+                                ->where($colId, $user->online_shop_id);
+                        });
+                        $hasConstraint = true;
+                    }
+
+                    if (!$hasConstraint) {
+                        // If user has no placement assigned but is restricted role, show nothing??
+                        // Or if no placement, maybe they see nothing.
+                        // In index, we don't have a fallback "0=1" if no constraint found but restricted role.
+                        // We'll assume if no placement, it won't match any orWhere.
+                        // Actually index logic doesn't have "0=1" fallback in the snippet I saw?
+                        // Wait, previous snippet had: if (!$hasConstraint) { $q->whereRaw('0 = 1'); }
+                        // I should include that.
+                        $q->whereRaw('0 = 1');
+                    }
+                });
+            }
+        };
+
+        if ($type === 'hp') {
+            // HP: Query ProductDetail
+            $query = ProductDetail::where('status', '!=', 'sold')
+                ->join('products', 'product_details.product_id', '=', 'products.id');
+
+            // Apply location filter to ProductDetail (no prefix needed for placement columns on product_details table? 
+            // Wait, ProductDetail has placement_type/id directly? Yes.)
+            $applyLocationFilter($query, 'product_details');
+
+            $productNames = (clone $query)->distinct()->pluck('products.name')->sort()->values();
+
+            $capacities = (clone $query)
+                ->select('product_details.ram', 'product_details.storage')
+                ->distinct()
+                ->get()
+                ->map(function ($item) {
+                    if ($item->ram && $item->storage)
+                        return "{$item->ram}/{$item->storage}";
+                    return $item->storage ?: $item->ram;
+                })
+                ->filter()
+                ->unique()
+                ->sort(function ($a, $b) {
+                    return strnatcmp($a, $b); })
+                ->values();
+
+        } else {
+            // Non-HP: Query Inventory
+            $query = Inventory::where('quantity', '>', 0)
+                ->join('products', 'inventories.product_id', '=', 'products.id');
+
+            $applyLocationFilter($query, 'inventories');
+
+            $productNames = $query->distinct()->pluck('products.name')->sort()->values();
+            // No capacities for non-hp
+        }
 
         return response()->json([
             'products' => $productNames,

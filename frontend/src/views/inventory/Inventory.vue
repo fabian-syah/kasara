@@ -120,7 +120,9 @@ function toggleFilter(filterSet, value) {
 // Fetch Filter Options
 async function fetchFilterOptions() {
   try {
-    const response = await api.get('/inventory/filter-options');
+    const response = await api.get('/inventory/filter-options', {
+      params: { type: activeTab.value }
+    });
     productOptions.value = response.data.products;
     capacityOptions.value = response.data.capacities;
   } catch (error) {
@@ -137,6 +139,7 @@ const activeTab = ref("hp"); // 'hp' or 'non-hp'
 watch(activeTab, () => {
   // Use inventoryStore action if possible, or direct API
   loadInventory();
+  fetchFilterOptions(); // Re-fetch options for new tab
 });
 
 async function loadInventory(page = 1) {
