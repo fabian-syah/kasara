@@ -127,24 +127,33 @@ const filteredBrands = computed(() => {
 const uniqueTypeNames = computed(() => Array.from(new Set(filteredTypes.value.map(t => t.name))));
 
 const availableSpecs = computed(() => {
-    if (!selectedTypeName.value) return { rams: [], storages: [] };
+    if (!selectedTypeName.value) return { rams: [], storages: [], combinations: [] };
     const matching = allowedTypes.value.filter(t => t.name === selectedTypeName.value);
 
-    const ramSet = new Set();
-    const storageSet = new Set();
+    const combinationsSet = new Set();
 
     matching.forEach(t => {
-        if (t.ram) {
-            t.ram.split(/[,/]+/).forEach(s => ramSet.add(s.trim()));
-        }
-        if (t.storage) {
-            t.storage.split(/[,/]+/).forEach(s => storageSet.add(s.trim()));
-        }
+        const rams = t.ram ? t.ram.split(/[,/]+/).map(s => s.trim()) : [""];
+        const storages = t.storage ? t.storage.split(/[,/]+/).map(s => s.trim()) : [""];
+
+        rams.forEach(r => {
+            storages.forEach(s => {
+                if (r && s) combinationsSet.add(`${r}/${s}`);
+                else if (r || s) combinationsSet.add(r || s);
+            });
+        });
+    });
+
+    const sortedCombinations = Array.from(combinationsSet).sort((a, b) => {
+        const getFirstNum = (str) => {
+            const m = str.match(/\d+/);
+            return m ? parseInt(m[0]) : 0;
+        };
+        return getFirstNum(a) - getFirstNum(b);
     });
 
     return {
-        rams: Array.from(ramSet).sort((a, b) => parseInt(a) - parseInt(b)),
-        storages: Array.from(storageSet).sort((a, b) => parseInt(a) - parseInt(b))
+        combinations: sortedCombinations
     };
 });
 
@@ -242,8 +251,21 @@ watch([selectedBrand, selectedTypeName], ([newBrand, newType]) => {
     fetchProductMatch(newBrand, newType);
 });
 
-watch(selectedBrand, () => { selectedTypeName.value = ""; selectedRam.value = ""; selectedStorage.value = ""; });
-watch(selectedTypeName, () => { selectedRam.value = ""; selectedStorage.value = ""; });
+watch(selectedBrand, () => { selectedTypeName.value = ""; selectedRam.value = ""; selectedStorage.value = ""; selectedCapacity.value = ""; });
+watch(selectedTypeName, () => { selectedRam.value = ""; selectedStorage.value = ""; selectedCapacity.value = ""; });
+
+// Capacity handling: Use selectedCapacity for UI, and internal refs for logic
+const selectedCapacity = ref("");
+watch(selectedCapacity, (val) => {
+    if (val && val.includes('/')) {
+        const parts = val.split('/');
+        selectedRam.value = parts[0].trim();
+        selectedStorage.value = parts[1].trim();
+    } else {
+        selectedRam.value = "";
+        selectedStorage.value = val ? val.trim() : "";
+    }
+});
 
 // Sanitize IMEI Input (Numeric Only + Whitespace)
 watch(bulkImeiText, (val) => {
@@ -284,7 +306,7 @@ const canSubmit = computed(() => {
     if (!selectedTypeName.value) return false;
 
     if (itemType.value === 'hp') {
-        if (!selectedStorage.value) return false;
+        if (!selectedCapacity.value) return false;
         // Check if we have at least one valid IMEI in the bulk text
         if (parsedImeis.value.length === 0) return false;
         // Check prices - Selling Price is REQUIRED (Visual * added)
@@ -522,6 +544,7 @@ async function submitStockIn() {
         };
 
         if (itemType.value === 'hp') {
+            payload.ram = selectedRam.value;
             payload.storage = selectedStorage.value;
             // Generate Array from Bulk Text
             payload.imeis = parsedImeis.value.map(imei => ({
@@ -786,10 +809,10 @@ onMounted(fetchInitialData);
 
                     <!-- Kapasitas (HP Only) -->
                     <div v-if="itemType === 'hp'"><label class="label text-[10px] uppercase">Kapasitas</label><select
-                            v-model="selectedStorage" :disabled="!selectedTypeName"
+                            v-model="selectedCapacity" :disabled="!selectedTypeName"
                             class="input bg-surface-900 disabled:opacity-30">
                             <option value="">-- Semua --</option>
-                            <option v-for="s in availableSpecs.storages" :key="s" :value="s">{{ s }}</option>
+                            <option v-for="c in availableSpecs.combinations" :key="c" :value="c">{{ c }}</option>
                         </select>
                     </div>
 
