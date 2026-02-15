@@ -350,6 +350,11 @@ watch(searchQuery, debounce((newVal) => {
   debouncedSearch.value = newVal;
 }, 300));
 
+// Fix: Reset page to 1 when search changes
+watch(debouncedSearch, () => {
+  loadInventory(1);
+});
+
 // Stock Out Categories
 const stockOutCategories = ref([
   { id: 'orderan_online', name: 'Orderan Online', icon: 'ShoppingBag', color: 'orange', role: 'toko_online' },
@@ -811,18 +816,6 @@ const stats = computed(() => [
     icon: TrendingUp,
     color: "emerald",
   },
-  {
-    label: "Stok Menipis",
-    value: inventoryStore.lowStockProducts.length,
-    icon: AlertTriangle,
-    color: "amber",
-  },
-  {
-    label: "Habis",
-    value: inventoryStore.outOfStockProducts.length,
-    icon: TrendingDown,
-    color: "red",
-  },
 ]);
 
 
@@ -1041,24 +1034,6 @@ function getStockStatus(product) {
             </option>
           </select>
 
-          <!-- Category Filter -->
-          <select v-model="selectedCategory" class="input w-full md:w-48">
-            <option value="">Semua Kategori</option>
-            <option v-for="cat in categories" :key="cat.id" :value="cat.name">
-              {{ cat.name }}
-            </option>
-          </select>
-
-
-          <!-- Stock Status Filter -->
-          <select v-model="selectedStockStatus" @change="loadInventory(1)" class="input w-full md:w-48 bg-surface-800">
-            <option value="all">Semua Status</option>
-            <option value="available">Tersedia</option>
-            <option value="low">Menipis</option>
-            <option value="out">Habis</option>
-            <option value="returned">Retur</option>
-          </select>
-
           <!-- Brand Filter (New) -->
           <select v-model="selectedBrand" @change="loadInventory(1)" class="input w-full md:w-48 bg-surface-800">
             <option value="">Semua Brand</option>
@@ -1113,7 +1088,6 @@ function getStockStatus(product) {
                     @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
               </th>
-              <th>SKU</th>
               <th>Produk</th>
 
               <template v-if="activeTab === 'hp'">
@@ -1160,9 +1134,6 @@ function getStockStatus(product) {
                   <input type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)"
                     class="checkbox border-surface-400" />
                 </label>
-              </td>
-              <td class="font-mono text-sm text-text-secondary hidden md:table-cell">
-                {{ item.product?.sku || '-' }}
               </td>
               <td>
                 <div class="flex items-center gap-3">
