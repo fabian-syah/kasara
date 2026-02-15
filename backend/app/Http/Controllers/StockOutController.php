@@ -907,6 +907,69 @@ class StockOutController extends Controller
                 }
             }
 
+            // Determine User for Confirmation (Inventory Account or Logged In User)
+            $confirmingUserId = Auth::id();
+            if ($request->has('inventory_user_id') && $request->inventory_user_id) {
+                // Verify ownership/validity
+                $invUser = \App\Models\User::where('id', $request->inventory_user_id)
+                    ->where('created_by', Auth::id())
+                    ->whereHas('roles', function ($q) {
+                        $q->where('name', 'inventory');
+                    })
+                    ->first();
+
+                if ($invUser) {
+                    $confirmingUserId = $invUser->id;
+                }
+            }
+
+            // Log Logic for Non-HP Items (Override User ID)
+            if ($request->non_hp_items) {
+                foreach ($request->non_hp_items as $submittedItem) {
+                    // ... (existing logic to find record) ...
+                    $record = StockOutNonHpItem::where('stock_out_id', $stockOut->id)
+                        ->where('product_id', $submittedItem['product_id'])
+                        ->first();
+
+                    if ($record) {
+                        $acceptedQty = $submittedItem['received_quantity'];
+                        $record->update(['received_quantity' => $acceptedQty]);
+
+                        // Add to Inventory at Destination
+                        $destUser = \App\Models\User::find($confirmingUserId); // Use confirming user for location
+                        // Fallback to Auth user location if inventory account doesn't specific location (though it should inherit)
+                        // Actually inventory account created by createAccount inherits location fields.
+
+                        $locationField = $destUser->branch_id ? 'branch_id' : ($destUser->warehouse_id ? 'warehouse_id' : 'online_shop_id');
+                        $locationId = $destUser->branch_id ?? $destUser->warehouse_id ?? $destUser->online_shop_id;
+                        $placementType = $destUser->branch_id ? 'branch' : ($destUser->warehouse_id ? 'warehouse' : 'online_shop');
+
+                        if ($acceptedQty > 0) {
+                            $inventory = Inventory::firstOrCreate(
+                                [
+                                    'product_id' => $submittedItem['product_id'],
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $locationId,
+                                ],
+                                ['quantity' => 0]
+                            );
+                            $inventory->increment('quantity', $acceptedQty);
+
+                            // Log In
+                            InventoryLog::create([
+                                'product_id' => $submittedItem['product_id'],
+                                'type' => 'in',
+                                'quantity' => $acceptedQty,
+                                'balance_after' => $inventory->quantity,
+                                'description' => "Transfer Masuk (Ref: {$stockOut->receipt_id})",
+                                'user_id' => $confirmingUserId, // Use Inventory Account
+                                $locationField => $locationId
+                            ]);
+                        }
+                    }
+                }
+            }
+
             // If nothing accepted -> Rejected
             // Else -> Received (Partially or Fully)
             $finalStatus = ($totalAccepted > 0) ? 'received' : 'rejected';
@@ -914,7 +977,7 @@ class StockOutController extends Controller
             $stockOut->update([
                 'status' => $finalStatus,
                 'confirmed_at' => now(),
-                'confirmed_by' => Auth::id()
+                'confirmed_by' => $confirmingUserId
             ]);
 
             DB::commit();

@@ -860,4 +860,17 @@ class InventoryController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    // Get My Inventory Accounts
+    public function getMyInventoryUsers()
+    {
+        $user = Auth::user();
+        $inventoryUsers = \App\Models\User::role('inventory')
+            ->where('created_by', $user->id)
+            ->where('is_active', true)
+            ->select('id', 'name', 'full_name', 'username', 'code_id')
+            ->get();
+
+        return response()->json($inventoryUsers);
+    }
 }

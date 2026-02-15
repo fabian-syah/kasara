@@ -46,6 +46,24 @@ const destinationIcon = {
     distributor: Truck
 };
 
+// Inventory Accounts
+const inventoryAccounts = ref([]);
+const selectedInventoryAccount = ref("");
+
+// Fetch Inventory Accounts
+async function fetchInventoryAccounts() {
+    try {
+        const response = await api.get('/inventory/my-accounts');
+        inventoryAccounts.value = response.data || [];
+        // Auto-select first if available
+        if (inventoryAccounts.value.length > 0) {
+            selectedInventoryAccount.value = inventoryAccounts.value[0].id;
+        }
+    } catch (e) {
+        console.error("Failed to fetch inventory accounts", e);
+    }
+}
+
 // Fetch pending transfers
 async function fetchPending() {
     isLoading.value = true;
@@ -63,6 +81,15 @@ async function fetchPending() {
 // Open Confirm Modal
 function openConfirmModal(transfer) {
     selectedTransfer.value = transfer;
+
+    // Reset selection if not set (or keep previous selection for convenience, but better reset/default)
+    if (inventoryAccounts.value.length > 0 && !selectedInventoryAccount.value) {
+        selectedInventoryAccount.value = inventoryAccounts.value[0].id;
+    }
+    // Reset selection if not set (or keep previous selection for convenience, but better reset/default)
+    if (inventoryAccounts.value.length > 0 && !selectedInventoryAccount.value) {
+        selectedInventoryAccount.value = inventoryAccounts.value[0].id;
+    }
 
     // Initialize form
     const accepted = [];
@@ -99,7 +126,8 @@ async function submitConfirmation() {
     try {
         const payload = {
             items: form.value.accepted_items,
-            non_hp_items: form.value.non_hp_quantities
+            non_hp_items: form.value.non_hp_quantities,
+            inventory_user_id: selectedInventoryAccount.value
         };
 
         const response = await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
@@ -138,7 +166,10 @@ function formatDate(dateString) {
     });
 }
 
-onMounted(fetchPending);
+onMounted(() => {
+    fetchPending();
+    fetchInventoryAccounts();
+});
 </script>
 
 <template>
@@ -199,7 +230,7 @@ onMounted(fetchPending);
                             <p class="text-sm text-text-secondary flex items-center gap-1">
                                 <User :size="12" />
                                 Dari: <span class="text-text-primary font-medium">{{ transfer.user?.name || 'Unknown'
-                                }}</span>
+                                    }}</span>
                             </p>
                         </div>
                     </div>
@@ -220,7 +251,7 @@ onMounted(fetchPending);
                     <div class="flex gap-4">
                         <div v-if="transfer.items && transfer.items.length > 0">
                             <p class="text-xs uppercase font-bold text-text-secondary mb-1">HP ({{ transfer.items.length
-                            }})</p>
+                                }})</p>
                             <div class="flex flex-wrap gap-2">
                                 <span v-for="item in transfer.items.slice(0, 3)" :key="item.id"
                                     class="text-xs bg-surface-700 px-2 py-1 rounded text-text-secondary font-mono">
@@ -263,8 +294,26 @@ onMounted(fetchPending);
                     </button>
                 </div>
 
+
                 <!-- Modal Body -->
                 <div class="p-6 overflow-y-auto flex-1 space-y-8">
+
+                    <!-- Account Selection -->
+                    <div v-if="inventoryAccounts.length > 0"
+                        class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
+                        <label class="block text-sm font-medium text-text-primary mb-2">Konfirmasi Menggunakan
+                            Akun:</label>
+                        <select v-model="selectedInventoryAccount"
+                            class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            <option value="" disabled>Pilih Akun Inventory</option>
+                            <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
+                                {{ acc.full_name }} ({{ acc.code_id }})
+                            </option>
+                        </select>
+                        <p class="text-xs text-text-secondary mt-2">
+                            Stok akan tercatat diterima oleh akun ini.
+                        </p>
+                    </div>
 
                     <!-- HP Items -->
                     <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
