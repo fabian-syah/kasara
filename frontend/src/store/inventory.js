@@ -60,7 +60,7 @@ export const useInventoryStore = defineStore('inventory', () => {
     const lowStockProducts = computed(() => []) // Not applicable for granular items
     const outOfStockProducts = computed(() => []) // Not applicable
 
-    const totalProducts = computed(() => products.value.length)
+    const totalProducts = computed(() => pagination.value.total)
 
     const totalValue = computed(() => stateTotalValue.value)
 
