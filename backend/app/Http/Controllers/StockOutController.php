@@ -818,15 +818,33 @@ class StockOutController extends Controller
                 }
             }
 
+            // Calculate Destination Location from Confirming User
+            $destUser = \App\Models\User::find($confirmingUserId);
+            $destPlacementType = null;
+            $destPlacementId = null;
+
+            if ($destUser->branch_id) {
+                $destPlacementType = 'branch';
+                $destPlacementId = $destUser->branch_id;
+            } elseif ($destUser->warehouse_id) {
+                $destPlacementType = 'warehouse';
+                $destPlacementId = $destUser->warehouse_id;
+            } elseif ($destUser->online_shop_id) {
+                $destPlacementType = 'online_shop';
+                $destPlacementId = $destUser->online_shop_id;
+            }
+
             // 1. Process HP Items
             $acceptedItemIds = $request->items ?? [];
             foreach ($stockOut->items as $item) {
                 if (in_array($item->id, $acceptedItemIds)) {
-                    // Accepted: Status Available, Placement Updated (Already set to destination in store, just update status)
-                    // Update user_id to the confirming user (Inventory Account)
+                    // Accepted: Status Available, Placement Updated to Receiver's Location
+                    // This ensures even if 'store' logic missed placement update, 'confirm' fixes it.
                     $item->update([
                         'status' => 'available',
-                        'user_id' => $confirmingUserId
+                        'user_id' => $confirmingUserId,
+                        'placement_type' => $destPlacementType,
+                        'placement_id' => $destPlacementId
                     ]);
                 } else {
                     // Rejected: Return to Sender
@@ -866,11 +884,11 @@ class StockOutController extends Controller
                         $record->update(['received_quantity' => $acceptedQty]);
 
                         // Add to Inventory at Destination
-                        $destUser = \App\Models\User::find($confirmingUserId); // Use confirming user for location
+                        // Used $destUser calculated above
 
                         $locationField = $destUser->branch_id ? 'branch_id' : ($destUser->warehouse_id ? 'warehouse_id' : 'online_shop_id');
                         $locationId = $destUser->branch_id ?? $destUser->warehouse_id ?? $destUser->online_shop_id;
-                        $placementType = $destUser->branch_id ? 'branch' : ($destUser->warehouse_id ? 'warehouse' : 'online_shop');
+                        $placementType = $destPlacementType; // Use calculated type
 
                         if ($acceptedQty > 0) {
                             $inventory = Inventory::firstOrCreate(
