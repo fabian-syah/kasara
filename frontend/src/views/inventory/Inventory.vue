@@ -246,7 +246,7 @@ const { user } = storeToRefs(authStore);
 
 onMounted(() => {
   document.addEventListener('click', (e) => {
-    // If click is not inside a filter group, close dropdown
+    // If click is not inside a th with group class, close dropdown
     if (!e.target.closest('.group')) {
       activeFilterDropdown.value = null;
     }

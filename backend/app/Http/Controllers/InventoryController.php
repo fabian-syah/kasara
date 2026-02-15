@@ -99,6 +99,20 @@ class InventoryController extends Controller
                 $query->where('placement_type', $request->placement_type);
             }
 
+            // --- COLUMN FILTERS (NEW) ---
+            // 1. Filter by Product Name (Type) - Supports Array
+            if ($request->filled('product_name_filter')) {
+                $pNames = $request->product_name_filter;
+                if (is_string($pNames))
+                    $pNames = explode(',', $pNames);
+                if (is_array($pNames) && count($pNames) > 0) {
+                    $query->whereHas('product', function ($q) use ($pNames) {
+                        $q->whereIn('name', $pNames);
+                    });
+                }
+            }
+
+
             $items = $query->latest()->paginate(20);
 
             // Transform
@@ -238,27 +252,46 @@ class InventoryController extends Controller
             }
 
             // --- COLUMN FILTERS (NEW) ---
-            // 1. Filter by Product Name (Type)
+            // 1. Filter by Product Name (Type) - Supports Array
             if ($request->filled('product_name_filter')) {
-                $pName = $request->product_name_filter;
-                $query->whereHas('product', function ($q) use ($pName) {
-                    $q->where('name', 'ilike', "%{$pName}%");
-                });
+                $pNames = $request->product_name_filter;
+                if (is_string($pNames))
+                    $pNames = explode(',', $pNames);
+                if (is_array($pNames) && count($pNames) > 0) {
+                    $query->whereHas('product', function ($q) use ($pNames) {
+                        $q->whereIn('name', $pNames);
+                    });
+                }
             }
 
-            // 2. Filter by Capacity (RAM or Storage)
+            // 2. Filter by Capacity (RAM or Storage) - Supports Array
             if ($request->filled('capacity_filter')) {
-                $cap = $request->capacity_filter;
-                $query->where(function ($q) use ($cap) {
-                    $q->where('ram', 'ilike', "%{$cap}%")
-                        ->orWhere('storage', 'ilike', "%{$cap}%");
-                });
+                $caps = $request->capacity_filter;
+                if (is_string($caps))
+                    $caps = explode(',', $caps);
+                if (is_array($caps) && count($caps) > 0) {
+                    $query->where(function ($q) use ($caps) {
+                        foreach ($caps as $cap) {
+                            $parts = explode('/', $cap);
+                            if (count($parts) === 2) {
+                                $q->orWhere(function ($sub) use ($parts) {
+                                    $sub->where('ram', $parts[0])
+                                        ->where('storage', $parts[1]);
+                                });
+                            } else {
+                                $q->orWhere('ram', $cap)
+                                    ->orWhere('storage', $cap);
+                            }
+                        }
+                    });
+                }
             }
 
-            // 3. Filter by Condition (Specific Header Filter)
+            // 3. Filter by Condition (Specific Header Filter) Removed from UI but keeping for compatibility if needed
             if ($request->filled('condition_filter') && $request->condition_filter !== 'all') {
                 $query->where('condition', $request->condition_filter);
             }
+
 
             $items = $query->latest()->paginate(20);
 
@@ -1108,8 +1141,11 @@ class InventoryController extends Controller
         if ($type === 'hp') {
             // HP: Query ProductDetail
             // Use distinct on product_id to get product names
-            $query = ProductDetail::where('status', '!=', 'sold')
-                ->join('products', 'product_details.product_id', '=', 'products.id');
+            $query = ProductDetail::where('product_details.status', '!=', 'sold')
+                ->join('products', 'product_details.product_id', '=', 'products.id')
+                ->whereNull('products.deleted_at') // Disambiguate
+                ->whereNull('product_details.deleted_at'); // Disambiguate
+
 
             $applyLocationFilter($query, 'product_details');
 
@@ -1135,7 +1171,8 @@ class InventoryController extends Controller
                 ->filter()
                 ->unique()
                 ->sort(function ($a, $b) {
-                    return strnatcmp($a, $b); })
+                    return strnatcmp($a, $b);
+                })
                 ->values();
 
         } else {
