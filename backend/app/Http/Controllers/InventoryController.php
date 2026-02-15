@@ -34,7 +34,7 @@ class InventoryController extends Controller
             // Filter by Branch/Placement
             // Filter by Branch/Placement
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-            if (!in_array($user->role, $unrestrictedRoles)) {
+            if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user) {
                     $hasConstraint = false;
                     if ($user->branch_id) {
@@ -124,7 +124,7 @@ class InventoryController extends Controller
 
             // If user is NOT in unrestricted roles AND has a placement, lock them to their placement
             // If user is NOT in unrestricted roles AND has a placement, lock them to their placement
-            if (!in_array($user->role, $unrestrictedRoles)) {
+            if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user) {
                     $hasConstraint = false;
                     if ($user->branch_id) {
@@ -249,7 +249,7 @@ class InventoryController extends Controller
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
         // PLACEMENT FILTER (Same logic as index)
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-        if (!in_array($user->role, $unrestrictedRoles)) {
+        if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user, $type) {
                 $hasConstraint = false;
 
@@ -331,7 +331,7 @@ class InventoryController extends Controller
         // PLACEMENT FILTER
         // PLACEMENT FILTER
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-        if (!in_array($user->role, $unrestrictedRoles)) {
+        if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user) {
                 $hasConstraint = false;
 

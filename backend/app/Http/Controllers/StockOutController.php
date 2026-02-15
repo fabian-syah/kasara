@@ -43,7 +43,7 @@ class StockOutController extends Controller
         // LOCATION FILTER (ISOLATION)
         // Only show stock outs created by users in the same location
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-        if ($user && !in_array($user->role, $unrestrictedRoles)) {
+        if ($user && !$user->hasRole($unrestrictedRoles)) {
             $query->whereHas('user', function ($q) use ($user) {
                 if ($user->branch_id) {
                     $q->where('branch_id', $user->branch_id);
@@ -489,7 +489,7 @@ class StockOutController extends Controller
 
         // LOCATION FILTER (ISOLATION)
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-        if ($user && !in_array($user->role, $unrestrictedRoles)) {
+        if ($user && !$user->hasRole($unrestrictedRoles)) {
             $query->whereHas('user', function ($q) use ($user) {
                 if ($user->branch_id) {
                     $q->where('branch_id', $user->branch_id);
