@@ -101,10 +101,12 @@ const brandList = ref([]);
 // Column Filters (Faceted)
 const filterProduct = ref([])
 const filterCapacity = ref([])
+const filterBrand = ref([])
 
 // Filter Options
 const productOptions = ref([])
 const capacityOptions = ref([])
+const brandOptions = ref([])
 
 // Dropdown Visibility State
 const activeFilterDropdown = ref(null); // 'product', 'capacity', or null
@@ -141,6 +143,7 @@ async function fetchFilterOptions() {
     });
     productOptions.value = response.data.products;
     capacityOptions.value = response.data.capacities;
+    brandOptions.value = response.data.brands;
   } catch (error) {
     console.error("Failed to fetch filter options", error);
   }
@@ -166,6 +169,7 @@ async function loadInventory(page = 1) {
     search: debouncedSearch.value,
     product_name_filter: filterProduct.value.length > 0 ? filterProduct.value : null,
     capacity_filter: filterCapacity.value.length > 0 ? filterCapacity.value : null,
+    brand_filter: filterBrand.value.length > 0 ? filterBrand.value : null,
     // condition_filter: filterCondition.value !== 'all' ? filterCondition.value : '', // Removed
     category: selectedCategory.value,
     brand: selectedBrand.value,
@@ -1099,13 +1103,6 @@ function getStockStatus(product) {
             </option>
           </select>
 
-          <!-- Brand Filter (New) -->
-          <select v-model="selectedBrand" @change="loadInventory(1)" class="input w-full md:w-48 bg-surface-800">
-            <option value="">Semua Brand</option>
-            <option v-for="brand in brandList" :key="brand.id" :value="brand.name">
-              {{ brand.name }}
-            </option>
-          </select>
 
           <!-- Condition Filter (New - Only for HP) -->
           <select v-if="activeTab === 'hp'" v-model="selectedCondition" @change="loadInventory(1)"
@@ -1153,10 +1150,31 @@ function getStockStatus(product) {
                     @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
               </th>
-              <!-- For Non-HP, stick to standard header or add filters if needed later. User asked "type, capacity, condition" which are HP specific mostly. Product name spans both. -->
-              <th v-if="activeTab !== 'hp'">Produk</th>
 
               <template v-if="activeTab === 'hp'">
+                <!-- Filterable Brand Column (Faceted) -->
+                <th class="min-w-[120px] relative group" @click.stop>
+                  <div class="flex items-center justify-between cursor-pointer" @click="toggleFilterDropdown('brand')">
+                    <span>Merek</span>
+                    <Filter :size="14" :class="filterBrand.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                  </div>
+                  <!-- Dropdown -->
+                  <div v-if="activeFilterDropdown === 'brand'"
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
+                    <div v-for="option in brandOptions" :key="option"
+                      class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                      @click.stop="toggleFilter(filterBrand, option)">
+                      <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                        :class="filterBrand.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                        <Check v-if="filterBrand.includes(option)" :size="10" class="text-white" />
+                      </div>
+                      <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                    </div>
+                    <div v-if="brandOptions.length === 0" class="text-xs text-text-secondary text-center py-2">No
+                      options</div>
+                  </div>
+                </th>
+
                 <!-- Filterable Product Column (Faceted) -->
                 <th class="min-w-[150px] relative group" @click.stop>
                   <div class="flex items-center justify-between cursor-pointer"
@@ -1205,25 +1223,18 @@ function getStockStatus(product) {
                   </div>
                 </th>
 
-                <!-- Condition Removed -->
-                <!-- <th class="hidden lg:table-cell min-w-[120px]">
-                    <div class="flex flex-col gap-2">
-                        <span>Kondisi</span>
-                        ....
-                    </div>
-                </th> -->
                 <th class="hidden lg:table-cell">Kondisi</th>
-
                 <th>IMEI</th>
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th class="hidden xl:table-cell">Distributor</th>
-                <!-- Harga Modal Removed -->
                 <th>Harga Jual</th>
                 <th>Status</th>
               </template>
 
               <!-- Non-HP Columns -->
               <template v-else>
+                <th>Merek</th>
+                <th>Produk</th>
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th>Stok</th>
                 <th class="hidden xl:table-cell">Distributor / Supplier</th>
@@ -1256,7 +1267,10 @@ function getStockStatus(product) {
                     class="checkbox border-surface-400" />
                 </label>
               </td>
-              <td>
+              <td class="text-sm text-text-secondary whitespace-nowrap">
+                {{ item.product?.brand || '-' }}
+              </td>
+              <td class="min-w-[200px]">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 bg-surface-700 rounded-lg flex items-center justify-center">
                     <Smartphone v-if="activeTab === 'hp'" :size="16" class="text-text-secondary" />
@@ -1264,7 +1278,6 @@ function getStockStatus(product) {
                   </div>
                   <div>
                     <p class="font-medium text-text-primary">{{ item.product?.name }}</p>
-                    <p class="text-xs text-text-secondary">{{ item.product?.brand }}</p>
                   </div>
                 </div>
               </td>

@@ -99,7 +99,6 @@ class InventoryController extends Controller
                 $query->where('placement_type', $request->placement_type);
             }
 
-            // --- COLUMN FILTERS (NEW) ---
             // 1. Filter by Product Name (Type) - Supports Array
             if ($request->filled('product_name_filter')) {
                 $pNames = $request->product_name_filter;
@@ -108,6 +107,18 @@ class InventoryController extends Controller
                 if (is_array($pNames) && count($pNames) > 0) {
                     $query->whereHas('product', function ($q) use ($pNames) {
                         $q->whereIn('name', $pNames);
+                    });
+                }
+            }
+
+            // 2. Filter by Brand - Supports Array
+            if ($request->filled('brand_filter')) {
+                $brands = $request->brand_filter;
+                if (is_string($brands))
+                    $brands = explode(',', $brands);
+                if (is_array($brands) && count($brands) > 0) {
+                    $query->whereHas('product', function ($q) use ($brands) {
+                        $q->whereIn('brand', $brands);
                     });
                 }
             }
@@ -286,10 +297,16 @@ class InventoryController extends Controller
                     });
                 }
             }
-
-            // 3. Filter by Condition (Specific Header Filter) Removed from UI but keeping for compatibility if needed
-            if ($request->filled('condition_filter') && $request->condition_filter !== 'all') {
-                $query->where('condition', $request->condition_filter);
+            // 3. Filter by Brand - Supports Array
+            if ($request->filled('brand_filter')) {
+                $brands = $request->brand_filter;
+                if (is_string($brands))
+                    $brands = explode(',', $brands);
+                if (is_array($brands) && count($brands) > 0) {
+                    $query->whereHas('product', function ($q) use ($brands) {
+                        $q->whereIn('brand', $brands);
+                    });
+                }
             }
 
 
@@ -1188,6 +1205,15 @@ class InventoryController extends Controller
                 })
                 ->values();
 
+            // Brands
+            $brands = (clone $query)
+                ->select('products.brand')
+                ->distinct()
+                ->pluck('products.brand')
+                ->filter()
+                ->sort()
+                ->values();
+
         } else {
             // Non-HP: Query Inventory
             $query = Inventory::where('quantity', '>', 0)
@@ -1195,17 +1221,26 @@ class InventoryController extends Controller
 
             $applyLocationFilter($query, 'inventories');
 
-            $productNames = $query
+            $productNames = (clone $query)
                 ->select('products.name')
                 ->distinct()
                 ->pluck('products.name')
+                ->sort()
+                ->values();
+
+            $brands = (clone $query)
+                ->select('products.brand')
+                ->distinct()
+                ->pluck('products.brand')
+                ->filter()
                 ->sort()
                 ->values();
         }
 
         return response()->json([
             'products' => $productNames,
-            'capacities' => $capacities
+            'capacities' => $capacities,
+            'brands' => $brands
         ]);
     }
 }
