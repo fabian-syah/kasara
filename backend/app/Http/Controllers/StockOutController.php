@@ -796,6 +796,8 @@ class StockOutController extends Controller
                         $item->update(['placement_type' => 'branch', 'placement_id' => $sender->branch_id, 'status' => 'available']);
                     } elseif ($sender->warehouse_id) {
                         $item->update(['placement_type' => 'warehouse', 'placement_id' => $sender->warehouse_id, 'status' => 'available']);
+                    } elseif ($sender->online_shop_id) {
+                        $item->update(['placement_type' => 'online_shop', 'placement_id' => $sender->online_shop_id, 'status' => 'available']);
                     }
                 }
             }
@@ -846,7 +848,6 @@ class StockOutController extends Controller
                             // Return to sender... similar logic to HP items.
                             // Need to find sender's inventory and increment.
                             $sender = $stockOut->user;
-                            $senderLocationField = $sender->branch_id ? 'branch_id' : ($sender->warehouse_id ? 'warehouse_id' : 'online_shop_id');
                             $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id;
                             $senderType = $sender->branch_id ? 'branch' : ($sender->warehouse_id ? 'warehouse' : 'online_shop');
 
