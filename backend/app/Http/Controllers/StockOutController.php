@@ -372,6 +372,7 @@ class StockOutController extends Controller
                 'shopee_district' => $request->shopee_district,
                 'shopee_village' => $request->shopee_village,
                 'shopee_postal_code' => $request->shopee_postal_code,
+                'shopee_tracking_no' => $request->shopee_tracking_no,
 
                 // Giveaway
                 'giveaway_receiver' => $request->giveaway_receiver,

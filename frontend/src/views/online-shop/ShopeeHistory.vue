@@ -83,7 +83,9 @@ const formatAddress = (stockOut, detailAddress) => {
     const parts = [];
     if (detailAddress) parts.push(detailAddress);
 
-    // District & Village moved to manual detail address
+    // Add regions if available
+    if (stockOut.shopee_village) parts.push(stockOut.shopee_village);
+    if (stockOut.shopee_district) parts.push(stockOut.shopee_district);
     if (stockOut.shopee_city) parts.push(stockOut.shopee_city);
     if (stockOut.shopee_province) parts.push(stockOut.shopee_province);
     if (stockOut.shopee_postal_code) parts.push(stockOut.shopee_postal_code);
@@ -171,7 +173,7 @@ onMounted(() => {
                                 </span>
                                 <span
                                     class="font-mono bg-surface-800 px-1.5 rounded text-xs text-text-primary border border-surface-700">
-                                    {{ item.shopee_items_data?.[0]?.tracking_no || '-' }}
+                                    {{ item.shopee_items_data?.[0]?.tracking_no || item.shopee_tracking_no || '-' }}
                                 </span>
                             </div>
                             <div v-if="item.shopee_address"

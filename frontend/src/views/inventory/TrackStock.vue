@@ -243,7 +243,7 @@ function formatCurrency(value) {
                                                 'bg-red-500/20 text-red-500': result.status === 'rejected'
                                             }">
                                             {{ result.status === 'pending' ? 'Menunggu' : (result.status === 'rejected'
-                                            ? 'Ditolak' : 'Selesai') }}
+                                                ? 'Ditolak' : 'Selesai') }}
                                         </span>
                                     </p>
                                     <p class="text-sm text-text-secondary">{{ categoryLabels[result.category] }}</p>
@@ -313,12 +313,12 @@ function formatCurrency(value) {
                                             <span>
                                                 <span class="text-text-secondary text-xs">Penerima:</span>
                                                 <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                    }}</span>
+                                                }}</span>
                                             </span>
                                             <span>
                                                 <span class="text-text-secondary text-xs">No. Resi:</span>
                                                 <span class="text-text-primary font-mono ml-1">{{ shopeeItem.tracking_no
-                                                    || '-' }}</span>
+                                                    || result.shopee_tracking_no || '-' }}</span>
                                             </span>
                                             <span v-if="shopeeItem.phone">
                                                 <span class="text-text-secondary text-xs">WA:</span>
