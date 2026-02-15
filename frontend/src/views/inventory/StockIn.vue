@@ -130,61 +130,67 @@ const availableSpecs = computed(() => {
     if (!selectedTypeName.value) return { rams: [], storages: [], combinations: [] };
     const matching = allowedTypes.value.filter(t => t.name === selectedTypeName.value);
 
-    // Heuristic Strategy:
-    // 1. Collect ALL potential capacity numbers from both 'ram' and 'storage' fields.
-    // 2. Classify them: Small (<= 24) = RAM, Large (> 24) = Storage.
-    // 3. Fallback: If only small numbers found, treat as RAM (undefined storage).
-    //    If only large numbers found, treat as Storage (undefined RAM).
-    // 4. Combine them.
+    // LOGIC:
+    // 1. Iterate each matching ProductType row.
+    // 2. Check each row for EXPLICIT pairs (e.g. "4/64", "4 / 128").
+    // 3. If explicit pairs found, use ONLY those for that row.
+    // 4. If NO explicit pairs, fall back to Heuristic Combinatorial (collect nums, classify <=32 vs >32).
 
-    const potentialRams = new Set();
-    const potentialStorages = new Set();
-    const allValues = new Set();
-
-    const extractNumbers = (str) => {
-        if (!str) return [];
-        // Extract all distinct numbers (e.g. "4/64" -> [4, 64], "4GB" -> [4])
-        const matches = str.match(/\d+/g);
-        return matches ? matches.map(Number) : [];
-    };
+    const validCombinations = new Set();
 
     matching.forEach(t => {
-        const nums = [
-            ...extractNumbers(t.ram),
-            ...extractNumbers(t.storage)
-        ];
+        const rawRam = t.ram || "";
+        const rawStorage = t.storage || "";
+        const combinedRaw = rawRam + " " + rawStorage;
 
-        nums.forEach(n => {
-            if (n > 0) allValues.add(n);
-        });
-    });
+        // 1. Explicit Pair Regex (looks for "digit / digit")
+        const pairRegex = /(\d+)\s*[\/-]\s*(\d+)/g;
+        const matches = combinedRaw.match(pairRegex);
 
-    // Classify
-    allValues.forEach(n => {
-        if (n <= 32) potentialRams.add(n); // Assume <= 32 is RAM (e.g. 2, 3, 4, 6, 8, 12, 16, 24, 32)
-        else potentialStorages.add(n);     // Assume > 32 is Storage (e.g. 64, 128, 256, 512, 1000)
-    });
-
-    const combinations = [];
-
-    // Case 1: We have both RAM and Storage candidates
-    if (potentialRams.size > 0 && potentialStorages.size > 0) {
-        potentialRams.forEach(r => {
-            potentialStorages.forEach(s => {
-                combinations.push(`${r}/${s}`);
+        if (matches && matches.length > 0) {
+            // Found explicit pairs! Trust specific definitions.
+            matches.forEach(m => {
+                // Normalize "4 / 64" or "4-64" to "4/64"
+                const parts = m.split(/[\/-]/);
+                const r = parseInt(parts[0]);
+                const s = parseInt(parts[1]);
+                validCombinations.add(`${r}/${s}`);
             });
-        });
-    }
-    // Case 2: Only Storage (e.g. SD Card or old data with missing RAM)
-    else if (potentialStorages.size > 0) {
-        potentialStorages.forEach(s => combinations.push(String(s)));
-    }
-    // Case 3: Only RAM (Unlikely for HP, but possible)
-    else if (potentialRams.size > 0) {
-        potentialRams.forEach(r => combinations.push(String(r)));
-    }
+        } else {
+            // 2. Fallback: Heuristic Combinatorial (for rows with "4" in RAM and "64" in Storage)
+            const extractNumbers = (str) => {
+                if (!str) return [];
+                // Extract all distinct numbers (e.g. "4/64" -> [4, 64], "4GB" -> [4])
+                const matches = str.match(/\d+/g);
+                return matches ? matches.map(Number) : [];
+            };
 
-    const sortedCombinations = combinations.sort((a, b) => {
+            const nums = [
+                ...extractNumbers(rawRam),
+                ...extractNumbers(rawStorage)
+            ];
+
+            const rams = new Set();
+            const storages = new Set();
+
+            nums.forEach(n => {
+                if (n > 0) {
+                    if (n <= 32) rams.add(n); // <=32 = RAM
+                    else storages.add(n);     // >32 = Storage
+                }
+            });
+
+            if (rams.size > 0 && storages.size > 0) {
+                rams.forEach(r => storages.forEach(s => validCombinations.add(`${r}/${s}`)));
+            } else if (storages.size > 0) {
+                storages.forEach(s => validCombinations.add(String(s)));
+            } else if (rams.size > 0) {
+                rams.forEach(r => validCombinations.add(String(r)));
+            }
+        }
+    });
+
+    const sortedCombinations = Array.from(validCombinations).sort((a, b) => {
         const parse = (str) => {
             const parts = String(str).split('/');
             return {
@@ -690,7 +696,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -834,7 +840,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
