@@ -126,7 +126,17 @@ class InventoryController extends Controller
                 return $item;
             });
 
-            return response()->json($items);
+            // Calculate Total Value (Global, not just current page)
+            $totalValueQuery = clone $query;
+            // Using join to get product price. Ensure to account for soft deletes if Product uses it.
+            $totalValue = $totalValueQuery->join('products', 'inventories.product_id', '=', 'products.id')
+                ->whereNull('products.deleted_at')
+                ->sum(DB::raw('inventories.quantity * products.price'));
+
+            $response = $items->toArray();
+            $response['total_value'] = $totalValue;
+
+            return response()->json($response);
 
         } else {
             // ============================================
@@ -245,7 +255,14 @@ class InventoryController extends Controller
                 return $item;
             });
 
-            return response()->json($items);
+            // Calculate Total Value (Global)
+            $totalValueQuery = clone $query;
+            $totalValue = $totalValueQuery->sum('selling_price');
+
+            $response = $items->toArray();
+            $response['total_value'] = $totalValue;
+
+            return response()->json($response);
 
         }
     }

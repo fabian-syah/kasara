@@ -16,6 +16,7 @@ export const useInventoryStore = defineStore('inventory', () => {
         total: 0,
         per_page: 20
     })
+    const stateTotalValue = ref(0)
 
     // Mock data for demo
     // ... (keep mockProducts and mockCategories as is, they are not used in main flow but good for valid js)
@@ -61,9 +62,7 @@ export const useInventoryStore = defineStore('inventory', () => {
 
     const totalProducts = computed(() => products.value.length)
 
-    const totalValue = computed(() =>
-        products.value.reduce((total, item) => total + parseFloat(item.selling_price || 0), 0)
-    )
+    const totalValue = computed(() => stateTotalValue.value)
 
     // Actions
     async function fetchProducts(params = {}) {
@@ -83,6 +82,8 @@ export const useInventoryStore = defineStore('inventory', () => {
                     from: response.data.from,
                     to: response.data.to
                 }
+                // Set Global Total Value from Backend
+                stateTotalValue.value = response.data.total_value || 0
             } else {
                 products.value = response.data
                 // Reset pagination if array returned (should not happen with standard Laravel paginate)
