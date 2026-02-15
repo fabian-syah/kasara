@@ -483,8 +483,23 @@ class StockOutController extends Controller
     // Get Shopee History
     public function shopeeHistory(Request $request)
     {
+        $user = Auth::user();
         $query = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn('category', ['shopee', 'orderan_online']);
+
+        // LOCATION FILTER (ISOLATION)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+        if ($user && !in_array($user->role, $unrestrictedRoles)) {
+            $query->whereHas('user', function ($q) use ($user) {
+                if ($user->branch_id) {
+                    $q->where('branch_id', $user->branch_id);
+                } elseif ($user->warehouse_id) {
+                    $q->where('warehouse_id', $user->warehouse_id);
+                } elseif ($user->online_shop_id) {
+                    $q->where('online_shop_id', $user->online_shop_id);
+                }
+            });
+        }
 
         if ($request->has('q') && !empty($request->q)) {
             $search = $request->q;
