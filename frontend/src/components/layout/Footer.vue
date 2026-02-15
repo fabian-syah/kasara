@@ -3,7 +3,7 @@ import { Instagram } from 'lucide-vue-next';
 </script>
 
 <template>
-    <footer class="w-full py-4 px-6 mt-auto bg-surface-900/50 backdrop-blur-sm border-t border-surface-800">
+    <footer class="bg-linear-to-tr from-surface-900 to-surface-800 text-white mt-auto border-t border-surface-700/50">
         <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-xs text-text-secondary">
                 &copy; {{ new Date().getFullYear() }} APEX POS. created by <span

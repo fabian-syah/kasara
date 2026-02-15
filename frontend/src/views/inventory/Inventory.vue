@@ -72,6 +72,8 @@ import { debounce } from "../../utils/debounce";
 const searchQuery = ref("");
 const debouncedSearch = ref("");
 const selectedCategory = ref('');
+const selectedBrand = ref('');
+const selectedCondition = ref('all');
 const selectedStockStatus = ref('all');
 // Month Filter
 const currentDate = new Date();
@@ -95,6 +97,7 @@ const monthOptions = [
 const selectedMonth = ref(monthOptions[0].value);
 
 const typeList = ref([]);
+const brandList = ref([]);
 const capacityOptions = ref([]);
 const showStockInModal = ref(false);
 
@@ -114,6 +117,8 @@ async function loadInventory(page = 1) {
     page: page,
     search: debouncedSearch.value,
     category: selectedCategory.value,
+    brand: selectedBrand.value,
+    condition: selectedCondition.value !== 'all' ? selectedCondition.value : null,
     status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : null
     // Add other filters as needed
   });
@@ -225,6 +230,11 @@ onMounted(() => {
   productTypesApi.list().then(res => {
     typeList.value = res.data.data;
   }).catch(err => console.error("Failed to load types", err));
+
+  // Fetch Brands
+  brandsApi.list().then(res => {
+    brandList.value = res.data.data || res.data;
+  }).catch(err => console.error("Failed to load brands", err));
 
   fetchProvinces();
 });
@@ -389,27 +399,14 @@ async function fetchInventoryUsers() {
 
 // Filtered items (Granular)
 const filteredProducts = computed(() => {
+  // Rely on Server Side Filtering
+  // The API already filtered based on search, category, brand, etc.
   let items = inventoryStore.products;
 
-  if (debouncedSearch.value) {
-    const query = debouncedSearch.value.toLowerCase();
-    items = items.filter(
-      (item) =>
-        item.imei?.toLowerCase().includes(query) ||
-        item.product?.name?.toLowerCase().includes(query) ||
-        item.product?.sku?.toLowerCase().includes(query) ||
-        item.product?.brand?.toLowerCase().includes(query)
-    );
-  }
-
-  if (selectedCategory.value) {
-    items = items.filter((item) => item.product?.category === selectedCategory.value);
-  }
-
-  // Hide Non-HP items with 0 stock
-  if (activeTab.value === 'non-hp') {
-    items = items.filter((item) => (item.quantity || 0) > 0);
-  }
+  // Only keep the Non-HP 0 quantity filter if needed visually, 
+  // but backend also filters quantity > 0 for index.
+  // We can keep it or remove it. Backend index() for non-hp does `where('quantity', '>', 0)`.
+  // So we can just return items.
 
   return items;
 });
@@ -1052,23 +1049,40 @@ function getStockStatus(product) {
             </option>
           </select>
 
-          <!-- Stock Filter -->
-          <div class="flex w-full md:w-auto rounded-xl bg-surface-800 p-1 overflow-x-auto">
-            <button v-for="filter in [
-              { id: 'all', label: 'Semua' },
-              { id: 'low', label: 'Menipis' },
-              { id: 'out', label: 'Habis' },
-            ]" :key="filter.id" @click="selectedStockStatus = filter.id"
-              class="px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap" :class="selectedStockStatus === filter.id
-                ? 'bg-blue-600 text-white'
-                : 'text-text-secondary hover:text-text-primary'
-                ">
-              {{ filter.label }}
-            </button>
-          </div>
+
+          <!-- Stock Status Filter -->
+          <select v-model="selectedStockStatus" @change="loadInventory(1)" class="input w-full md:w-48 bg-surface-800">
+            <option value="all">Semua Status</option>
+            <option value="available">Tersedia</option>
+            <option value="low">Menipis</option>
+            <option value="out">Habis</option>
+            <option value="returned">Retur</option>
+          </select>
+
+          <!-- Brand Filter (New) -->
+          <select v-model="selectedBrand" @change="loadInventory(1)" class="input w-full md:w-48 bg-surface-800">
+            <option value="">Semua Brand</option>
+            <option v-for="brand in brandList" :key="brand.id" :value="brand.name">
+              {{ brand.name }}
+            </option>
+          </select>
+
+          <!-- Condition Filter (New - Only for HP) -->
+          <select v-if="activeTab === 'hp'" v-model="selectedCondition" @change="loadInventory(1)"
+            class="input w-full md:w-48 bg-surface-800">
+            <option value="all">Semua Kondisi</option>
+            <option value="new">Baru</option>
+            <option value="second">Bekas</option>
+          </select>
+
+          <button @click="loadInventory(1)"
+            class="btn btn-primary w-full md:w-auto flex items-center justify-center gap-2">
+            <Filter :size="16" />
+            Filter
+          </button>
 
           <!-- Export -->
-          <button class="btn btn-secondary w-full md:w-auto mt-2 md:mt-0">
+          <button class="btn btn-secondary w-full md:w-auto">
             <Download :size="16" />
             Export
           </button>

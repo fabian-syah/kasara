@@ -70,12 +70,27 @@ class InventoryController extends Controller
                     ->where('placement_id', $request->branch_id);
             }
 
-            // Search
+            // Search (Multi-keyword)
             if ($request->search) {
                 $search = $request->search;
-                $query->whereHas('product', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%");
+                $keywords = explode(' ', $search);
+
+                $query->where(function ($q) use ($keywords) {
+                    foreach ($keywords as $keyword) {
+                        $q->whereHas('product', function ($sq) use ($keyword) {
+                            $sq->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('sku', 'like', "%{$keyword}%")
+                                ->orWhere('brand', 'like', "%{$keyword}%");
+                        });
+                    }
+                });
+            }
+
+            // Filter by Brand (via Product)
+            if ($request->has('brand') && $request->brand != 'all' && $request->brand != '') {
+                $brand = $request->brand;
+                $query->whereHas('product', function ($q) use ($brand) {
+                    $q->where('brand', $brand);
                 });
             }
 
@@ -163,13 +178,36 @@ class InventoryController extends Controller
 
             if ($request->search) {
                 $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('imei', 'like', "%{$search}%")
-                        ->orWhereHas('product', function ($sq) use ($search) {
-                            $sq->where('name', 'like', "%{$search}%")
-                                ->orWhere('sku', 'like', "%{$search}%");
+                $keywords = explode(' ', $search);
+
+                $query->where(function ($q) use ($keywords) {
+                    foreach ($keywords as $keyword) {
+                        $q->where(function ($sub) use ($keyword) {
+                            $sub->where('imei', 'like', "%{$keyword}%")
+                                ->orWhere('ram', 'like', "%{$keyword}%")
+                                ->orWhere('storage', 'like', "%{$keyword}%")
+                                ->orWhere('condition', 'like', "%{$keyword}%") // Search condition too
+                                ->orWhereHas('product', function ($sq) use ($keyword) {
+                                    $sq->where('name', 'like', "%{$keyword}%")
+                                        ->orWhere('sku', 'like', "%{$keyword}%")
+                                        ->orWhere('brand', 'like', "%{$keyword}%");
+                                });
                         });
+                    }
                 });
+            }
+
+            // Filter by Brand (via Product)
+            if ($request->has('brand') && $request->brand != 'all' && $request->brand != '') {
+                $brand = $request->brand;
+                $query->whereHas('product', function ($q) use ($brand) {
+                    $q->where('brand', $brand);
+                });
+            }
+
+            // Filter by Condition
+            if ($request->has('condition') && $request->condition != 'all' && $request->condition != '') {
+                $query->where('condition', $request->condition);
             }
 
             // Filter by Status (Default available)
@@ -225,9 +263,19 @@ class InventoryController extends Controller
             // SEARCH
             if ($request->search) {
                 $search = $request->search;
-                $query->whereHas('product', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%");
-                })->orWhere('description', 'like', "%{$search}%");
+                $keywords = explode(' ', $search);
+
+                $query->where(function ($q) use ($keywords) {
+                    foreach ($keywords as $keyword) {
+                        $q->where(function ($sub) use ($keyword) {
+                            $sub->whereHas('product', function ($sq) use ($keyword) {
+                                $sq->where('name', 'like', "%{$keyword}%")
+                                    ->orWhere('brand', 'like', "%{$keyword}%");
+                            })
+                                ->orWhere('description', 'like', "%{$keyword}%");
+                        });
+                    }
+                });
             }
         } else {
             // HP (Product Details created) - This is logically Stock In too
@@ -236,11 +284,18 @@ class InventoryController extends Controller
             // SEARCH
             if ($request->search) {
                 $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('imei', 'like', "%{$search}%")
-                        ->orWhereHas('product', function ($sq) use ($search) {
-                            $sq->where('name', 'like', "%{$search}%");
+                $keywords = explode(' ', $search);
+
+                $query->where(function ($q) use ($keywords) {
+                    foreach ($keywords as $keyword) {
+                        $q->where(function ($sub) use ($keyword) {
+                            $sub->where('imei', 'like', "%{$keyword}%")
+                                ->orWhereHas('product', function ($sq) use ($keyword) {
+                                    $sq->where('name', 'like', "%{$keyword}%")
+                                        ->orWhere('brand', 'like', "%{$keyword}%");
+                                });
                         });
+                    }
                 });
             }
         }
@@ -323,9 +378,19 @@ class InventoryController extends Controller
         // SEARCH
         if ($request->search) {
             $search = $request->search;
-            $query->whereHas('product', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%");
-            })->orWhere('description', 'like', "%{$search}%");
+            $keywords = explode(' ', $search);
+
+            $query->where(function ($q) use ($keywords) {
+                foreach ($keywords as $keyword) {
+                    $q->where(function ($sub) use ($keyword) {
+                        $sub->whereHas('product', function ($sq) use ($keyword) {
+                            $sq->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('brand', 'like', "%{$keyword}%");
+                        })
+                            ->orWhere('description', 'like', "%{$keyword}%");
+                    });
+                }
+            });
         }
 
         // PLACEMENT FILTER
