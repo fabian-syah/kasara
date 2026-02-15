@@ -331,7 +331,7 @@ async function onProvinceChange(id) {
   const name = p ? p.name : "";
   console.log("Province Selected:", id, p, name);
 
-  if (selectedStockOutCategory.value === 'shopee') {
+  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_province = name;
   } else if (selectedStockOutCategory.value === 'giveaway') {
     stockOutForm.value.giveaway_province = name;
@@ -355,7 +355,7 @@ async function onCityChange(id) {
   const name = c ? c.name : "";
   console.log("City Selected:", id, c, name);
 
-  if (selectedStockOutCategory.value === 'shopee') {
+  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_city = name;
   } else if (selectedStockOutCategory.value === 'giveaway') {
     stockOutForm.value.giveaway_city = name;
@@ -378,7 +378,7 @@ async function onDistrictChange(id) {
   const name = d ? d.name : "";
   console.log("District Selected:", id, d, name);
 
-  if (selectedStockOutCategory.value === 'shopee') {
+  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_district = name;
   } else if (selectedStockOutCategory.value === 'giveaway') {
     stockOutForm.value.giveaway_district = name;
@@ -398,7 +398,7 @@ function onVillageChange(id) {
   const name = v ? v.name : "";
   console.log("Village Selected:", id, v, name);
 
-  if (selectedStockOutCategory.value === 'shopee') {
+  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_village = name;
   } else if (selectedStockOutCategory.value === 'giveaway') {
     stockOutForm.value.giveaway_village = name;
