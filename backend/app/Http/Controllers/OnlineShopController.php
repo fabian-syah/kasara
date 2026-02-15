@@ -12,7 +12,7 @@ class OnlineShopController extends Controller
         $query = OnlineShop::query();
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'ilike', '%' . $request->search . '%');
         }
 
         return response()->json([

@@ -524,14 +524,14 @@ class InventoryController extends Controller
             $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
             if ($request->search) {
                 $search = $request->search;
-                $query->whereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%"))->orWhere('description', 'like', "%{$search}%");
+                $query->whereHas('product', fn($q) => $q->where('name', 'ilike', "%{$search}%"))->orWhere('description', 'ilike', "%{$search}%");
             }
         } else {
             $query = ProductDetail::with(['product', 'distributor', 'user']);
             if ($request->search) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
-                    $q->where('imei', 'like', "%{$search}%")->orWhereHas('product', fn($sq) => $sq->where('name', 'like', "%{$search}%"));
+                    $q->where('imei', 'ilike', "%{$search}%")->orWhereHas('product', fn($sq) => $sq->where('name', 'ilike', "%{$search}%"));
                 });
             }
         }
@@ -596,7 +596,7 @@ class InventoryController extends Controller
 
         if ($request->search) {
             $search = $request->search;
-            $query->whereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%"))->orWhere('description', 'like', "%{$search}%");
+            $query->whereHas('product', fn($q) => $q->where('name', 'ilike', "%{$search}%"))->orWhere('description', 'ilike', "%{$search}%");
         }
 
         if ($request->date) {

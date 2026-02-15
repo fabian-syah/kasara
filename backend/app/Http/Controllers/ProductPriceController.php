@@ -35,9 +35,9 @@ class ProductPriceController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('productType', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+                $q->where('name', 'ilike', "%{$search}%")
                     ->orWhereHas('brand', function ($b) use ($search) {
-                        $b->where('name', 'like', "%{$search}%");
+                        $b->where('name', 'ilike', "%{$search}%");
                     });
             });
         }

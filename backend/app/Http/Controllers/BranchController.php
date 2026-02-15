@@ -17,8 +17,8 @@ class BranchController extends Controller
         }
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
-                ->orWhere('code', 'like', '%' . $request->search . '%');
+            $query->where('name', 'ilike', '%' . $request->search . '%')
+                ->orWhere('code', 'ilike', '%' . $request->search . '%');
         }
 
         return response()->json([

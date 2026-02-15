@@ -14,9 +14,9 @@ class DistributorController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where('name', 'like', "%{$search}%")
-                ->orWhere('code', 'like', "%{$search}%")
-                ->orWhere('contact_person', 'like', "%{$search}%");
+            $query->where('name', 'ilike', "%{$search}%")
+                ->orWhere('code', 'ilike', "%{$search}%")
+                ->orWhere('contact_person', 'ilike', "%{$search}%");
         }
 
         return response()->json([
