@@ -16,8 +16,14 @@ class ProductController extends Controller
         $query = Product::query();
 
         if ($request->search) {
-            $query->where('name', 'ilike', '%' . $request->search . '%')
-                ->orWhere('sku', 'ilike', '%' . $request->search . '%');
+            $search = $request->search;
+            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+
+            $query->where(function ($q) use ($search, $cleanSearch) {
+                $q->where('name', 'ilike', '%' . $search . '%')
+                    ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
+                    ->orWhere('sku', 'ilike', '%' . $search . '%');
+            });
         }
 
         if ($request->brand) {

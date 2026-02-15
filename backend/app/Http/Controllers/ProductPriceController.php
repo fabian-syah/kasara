@@ -31,14 +31,22 @@ class ProductPriceController extends Controller
             });
         }
 
-        // Search by type name or brand name
+        // Search by type name or brand name (Symbol-neutral)
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('productType', function ($q) use ($search) {
-                $q->where('name', 'ilike', "%{$search}%")
-                    ->orWhereHas('brand', function ($b) use ($search) {
-                        $b->where('name', 'ilike', "%{$search}%");
-                    });
+            // Normalize search: remove non-alphanumeric
+            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+
+            $query->whereHas('productType', function ($q) use ($cleanSearch, $search) {
+                // Try normal ILIKE first for better performance on simple cases
+                $q->where(function ($sq) use ($cleanSearch, $search) {
+                    $sq->where('name', 'ilike', "%{$search}%")
+                        ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
+                        ->orWhereHas('brand', function ($b) use ($cleanSearch, $search) {
+                            $b->where('name', 'ilike', "%{$search}%")
+                                ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]);
+                        });
+                });
             });
         }
 

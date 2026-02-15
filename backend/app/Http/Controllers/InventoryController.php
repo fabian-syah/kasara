@@ -524,14 +524,24 @@ class InventoryController extends Controller
             $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
             if ($request->search) {
                 $search = $request->search;
-                $query->whereHas('product', fn($q) => $q->where('name', 'ilike', "%{$search}%"))->orWhere('description', 'ilike', "%{$search}%");
+                $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+
+                $query->where(function ($q) use ($search, $cleanSearch) {
+                    $q->whereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$search}%")
+                        ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
+                        ->orWhere('description', 'ilike', "%{$search}%");
+                });
             }
         } else {
             $query = ProductDetail::with(['product', 'distributor', 'user']);
             if ($request->search) {
                 $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('imei', 'ilike', "%{$search}%")->orWhereHas('product', fn($sq) => $sq->where('name', 'ilike', "%{$search}%"));
+                $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+
+                $query->where(function ($q) use ($search, $cleanSearch) {
+                    $q->where('imei', 'ilike', "%{$search}%")
+                        ->orWhereHas('product', fn($sq) => $sq->where('name', 'ilike', "%{$search}%")
+                            ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]));
                 });
             }
         }
@@ -596,7 +606,13 @@ class InventoryController extends Controller
 
         if ($request->search) {
             $search = $request->search;
-            $query->whereHas('product', fn($q) => $q->where('name', 'ilike', "%{$search}%"))->orWhere('description', 'ilike', "%{$search}%");
+            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+
+            $query->where(function ($q) use ($search, $cleanSearch) {
+                $q->whereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$search}%")
+                    ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
+                    ->orWhere('description', 'ilike', "%{$search}%");
+            });
         }
 
         if ($request->date) {

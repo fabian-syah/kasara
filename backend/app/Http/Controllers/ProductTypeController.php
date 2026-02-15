@@ -28,13 +28,17 @@ class ProductTypeController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = strtolower($request->search);
-            $query->where(function ($q) use ($search) {
-                // Case-insensitive search for Product Type Name
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+            $search = $request->search;
+            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+
+            $query->where(function ($q) use ($search, $cleanSearch) {
+                // Try normal ILIKE first
+                $q->where('name', 'ilike', "%{$search}%")
+                    ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
                     // Case-insensitive search for Brand Name
-                    ->orWhereHas('brand', function ($qBrand) use ($search) {
-                        $qBrand->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    ->orWhereHas('brand', function ($qBrand) use ($search, $cleanSearch) {
+                        $qBrand->where('name', 'ilike', "%{$search}%")
+                            ->orWhereRaw("REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]);
                     });
             });
         }
