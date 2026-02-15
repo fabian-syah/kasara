@@ -1058,4 +1058,49 @@ class InventoryController extends Controller
 
         return response()->json($inventoryUsers);
     }
+    // Get Filter Options for Faceted Search
+    public function getFilterOptions(Request $request)
+    {
+        // Get all unique product names currently in inventory
+        $productNames = Inventory::where('quantity', '>', 0)
+            ->whereHas('product')
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->distinct()
+            ->pluck('products.name')
+            ->sort()
+            ->values();
+
+        // Get all unique capacities (RAM/Storage) from ProductDetail (HP) currently in inventory
+        // We only care about HP items for capacity
+        // Join inventories to ensure we only show options for items in stock
+        // Note: strict join might be too heavy, but accurate. 
+        // Lighter approach: Get all verified ProductDetails that are "in_stock" (not sold/mutasi)
+        // But Inventory model handles quantity. For HP, Inventory usually maps to Product (SKU), 
+        // and ProductDetail is the specific item.
+        // Actually, `Inventory` for HP items aggregates quantity by placement.
+        // The specific items are in `product_details` with status 'ready'.
+
+        $capacities = ProductDetail::where('status', 'ready')
+            ->select('ram', 'storage')
+            ->distinct()
+            ->get()
+            ->map(function ($item) {
+                if ($item->ram && $item->storage) {
+                    return "{$item->ram}/{$item->storage}";
+                }
+                return $item->storage ?: $item->ram;
+            })
+            ->filter()
+            ->unique()
+            ->sort(function ($a, $b) {
+                // Natural sort attempts
+                return strnatcmp($a, $b);
+            })
+            ->values();
+
+        return response()->json([
+            'products' => $productNames,
+            'capacities' => $capacities
+        ]);
+    }
 }

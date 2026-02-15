@@ -98,7 +98,36 @@ const selectedMonth = ref(monthOptions[0].value);
 
 const typeList = ref([]);
 const brandList = ref([]);
-const capacityOptions = ref([]);
+// Column Filters (Faceted)
+const filterProduct = ref([])
+const filterCapacity = ref([])
+
+// Filter Options
+const productOptions = ref([])
+const capacityOptions = ref([])
+
+// Toggle filter values
+function toggleFilter(filterSet, value) {
+  const index = filterSet.indexOf(value);
+  if (index === -1) {
+    filterSet.push(value);
+  } else {
+    filterSet.splice(index, 1);
+  }
+  loadInventory(1); // Trigger reload
+}
+
+// Fetch Filter Options
+async function fetchFilterOptions() {
+  try {
+    const response = await axiosInstance.get('/inventory/filter-options');
+    productOptions.value = response.data.products;
+    capacityOptions.value = response.data.capacities;
+  } catch (error) {
+    console.error("Failed to fetch filter options", error);
+  }
+}
+
 const showStockInModal = ref(false);
 
 // Tab Switch
@@ -116,9 +145,9 @@ async function loadInventory(page = 1) {
     type: activeTab.value,
     page: page,
     search: debouncedSearch.value,
-    product_name_filter: filterProduct.value,
-    capacity_filter: filterCapacity.value,
-    condition_filter: filterCondition.value !== 'all' ? filterCondition.value : '',
+    product_name_filter: filterProduct.value.length > 0 ? filterProduct.value : null,
+    capacity_filter: filterCapacity.value.length > 0 ? filterCapacity.value : null,
+    // condition_filter: filterCondition.value !== 'all' ? filterCondition.value : '', // Removed
     category: selectedCategory.value,
     brand: selectedBrand.value,
     condition: selectedCondition.value !== 'all' ? selectedCondition.value : null,
@@ -348,23 +377,13 @@ function onVillageChange(id) {
   }
 }
 
-// Column Filters
-const filterProduct = ref('')
-const filterCapacity = ref('')
-const filterCondition = ref('all')
 
-// Debounced watchers for column filters
-watch(filterProduct, debounce(() => {
-  loadInventory(1)
-}, 500))
+onMounted(() => {
+  loadInventory();
+  fetchInventoryUsers();
+  fetchFilterOptions(); // Fetch options on mount
+});
 
-watch(filterCapacity, debounce(() => {
-  loadInventory(1)
-}, 500))
-
-watch(filterCondition, () => {
-  loadInventory(1)
-})
 // Watcher untuk debounce search
 watch(searchQuery, debounce((newVal) => {
   debouncedSearch.value = newVal;
@@ -1112,35 +1131,61 @@ function getStockStatus(product) {
               <th v-if="activeTab !== 'hp'">Produk</th>
 
               <template v-if="activeTab === 'hp'">
-                <!-- Filterable Product & Capacity Columns -->
-                <th class="min-w-[200px]">
-                  <div class="flex flex-col gap-2">
+                <!-- Filterable Product Column (Faceted) -->
+                <th class="min-w-[150px] relative group">
+                  <div class="flex items-center justify-between cursor-pointer">
                     <span>Produk</span>
-                    <input v-model="filterProduct" type="text" placeholder="Filter Type..."
-                      class="input text-xs py-1 px-2 border-surface-600 bg-surface-700/50 focus:bg-surface-700"
-                      @click.stop />
+                    <Filter :size="14" :class="filterProduct.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                  </div>
+                  <!-- Dropdown -->
+                  <div
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 hidden group-hover:block p-2 max-h-60 overflow-y-auto">
+                    <div v-for="option in productOptions" :key="option"
+                      class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                      @click="toggleFilter(filterProduct, option)">
+                      <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                        :class="filterProduct.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                        <Check v-if="filterProduct.includes(option)" :size="10" class="text-white" />
+                      </div>
+                      <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                    </div>
+                    <div v-if="productOptions.length === 0" class="text-xs text-text-secondary text-center py-2">No
+                      options</div>
                   </div>
                 </th>
-                <th class="hidden lg:table-cell min-w-[120px]">
-                  <div class="flex flex-col gap-2">
+
+                <!-- Filterable Capacity Column (Faceted) -->
+                <th class="hidden lg:table-cell min-w-[120px] relative group">
+                  <div class="flex items-center justify-between cursor-pointer">
                     <span>Kapasitas</span>
-                    <input v-model="filterCapacity" type="text" placeholder="RAM/Storage..."
-                      class="input text-xs py-1 px-2 border-surface-600 bg-surface-700/50 focus:bg-surface-700"
-                      @click.stop />
+                    <Filter :size="14" :class="filterCapacity.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                  </div>
+                  <!-- Dropdown -->
+                  <div
+                    class="absolute left-0 top-full mt-2 w-40 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 hidden group-hover:block p-2 max-h-60 overflow-y-auto">
+                    <div v-for="option in capacityOptions" :key="option"
+                      class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                      @click="toggleFilter(filterCapacity, option)">
+                      <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                        :class="filterCapacity.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                        <Check v-if="filterCapacity.includes(option)" :size="10" class="text-white" />
+                      </div>
+                      <span class="text-sm text-text-primary">{{ option }}</span>
+                    </div>
+                    <div v-if="capacityOptions.length === 0" class="text-xs text-text-secondary text-center py-2">No
+                      options</div>
                   </div>
                 </th>
-                <th class="hidden lg:table-cell min-w-[120px]">
-                  <div class="flex flex-col gap-2">
-                    <span>Kondisi</span>
-                    <select v-model="filterCondition"
-                      class="input text-xs py-1 px-2 border-surface-600 bg-surface-700/50 focus:bg-surface-700"
-                      @click.stop>
-                      <option value="all">Semua</option>
-                      <option value="Baru">Baru</option>
-                      <option value="Bekas">Bekas</option>
-                    </select>
-                  </div>
-                </th>
+
+                <!-- Condition Removed -->
+                <!-- <th class="hidden lg:table-cell min-w-[120px]">
+                    <div class="flex flex-col gap-2">
+                        <span>Kondisi</span>
+                        ....
+                    </div>
+                </th> -->
+                <th class="hidden lg:table-cell">Kondisi</th>
+
                 <th>IMEI</th>
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th class="hidden xl:table-cell">Distributor</th>
