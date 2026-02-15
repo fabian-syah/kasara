@@ -156,7 +156,7 @@ class StockOutController extends Controller
         ];
 
         // Shopee: Per-item validation
-        if ($request->category === 'shopee') {
+        if ($request->category === 'shopee' || $request->category === 'orderan_online') {
             // Shopee specific Items validation
             if ($request->has('shopee_items')) {
                 $rules['shopee_items'] = 'nullable|array';
@@ -291,13 +291,13 @@ class StockOutController extends Controller
 
             // For Shopee, store per-item data (Model casts to JSON automatically)
             $shopeeItemsData = null;
-            if ($request->category === 'shopee' && $request->shopee_items) {
+            if (($request->category === 'shopee' || $request->category === 'orderan_online') && $request->shopee_items) {
                 $shopeeItemsData = $request->shopee_items;
             }
 
             // Calculate Total Selling Price
             $totalSellingPrice = 0;
-            if ($request->category === 'shopee') {
+            if ($request->category === 'shopee' || $request->category === 'orderan_online') {
                 if ($request->shopee_items) {
                     foreach ($request->shopee_items as $item) {
                         $totalSellingPrice += ($item['selling_price'] ?? 0);

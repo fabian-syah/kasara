@@ -606,7 +606,7 @@ function resetStockOutForm() {
     shopee_postal_code: '',
     shopee_notes: '',
     shopee_tracking_no: '',
-    selling_price: null, // Ensure selling_price is reset
+    selling_price: null,
     giveaway_receiver: '',
     giveaway_phone: '',
     giveaway_address: '',
@@ -820,6 +820,7 @@ async function submitStockOut() {
       formData.append('shopee_district', stockOutForm.value.shopee_district);
       formData.append('shopee_village', stockOutForm.value.shopee_village);
       formData.append('shopee_postal_code', stockOutForm.value.shopee_postal_code);
+      formData.append('shopee_tracking_no', stockOutForm.value.shopee_tracking_no);
       // formData.append('selling_price', stockOutForm.value.selling_price); // Not used anymore for Shopee
     } else if (selectedStockOutCategory.value === 'keluar') {
       formData.append('notes', stockOutForm.value.notes);
@@ -1837,7 +1838,29 @@ function getStockStatus(product) {
                   </div>
                 </div>
 
-                <!-- District & Village Removed -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="label">Kecamatan *</label>
+                    <select :value="selectedRegionIds.district" @change="e => onDistrictChange(e.target.value)"
+                      class="input" :disabled="!selectedRegionIds.city">
+                      <option value="">-- Pilih Kecamatan --</option>
+                      <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.name }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="label">Kelurahan / Desa *</label>
+                    <select :value="selectedRegionIds.village" @change="e => onVillageChange(e.target.value)"
+                      class="input" :disabled="!selectedRegionIds.district">
+                      <option value="">-- Pilih Kelurahan --</option>
+                      <option v-for="v in villages" :key="v.id" :value="v.id">{{ v.name }}</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="label">Kode Pos</label>
+                  <input v-model="stockOutForm.shopee_postal_code" class="input" placeholder="Kode Pos" />
+                </div>
 
                 <div>
                   <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
