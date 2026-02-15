@@ -125,7 +125,8 @@ class StockOutController extends Controller
                     'brand_ambassador',
                     'event',
                     'promo',
-                    'inventaris'
+                    'inventaris',
+                    'penjualan_offline'
                 ])
             ],
             'sub_category' => 'required_if:category,keluar|nullable|string',

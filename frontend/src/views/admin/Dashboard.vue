@@ -18,6 +18,10 @@ import {
   Database,
   Tags,
   Box,
+  Award,
+  Trophy,
+  Medal,
+  User
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
@@ -28,12 +32,15 @@ const recentTransactions = ref([]);
 const brandSales = ref([]);
 const typeSales = ref([]);
 const csPerformance = ref([]);
+const ranking = ref({ my_rank: '-', leaderboard: [] });
 
 // Determine initial role immediately to prevent flash of wrong dashboard
 if (authStore.hasRole('admin_produk')) {
   dashboardRole.value = 'admin_produk';
 } else if (authStore.hasRole('online_shop') || authStore.hasRole('toko_online') || authStore.user?.online_shop_id) {
   dashboardRole.value = 'online_shop';
+} else if (authStore.hasRole('toko_offline') || authStore.hasRole('offline_shop') || authStore.user?.branch_id) {
+  dashboardRole.value = 'toko_offline';
 }
 
 // Stats data (Initial static data for general, overwritten for other roles)
@@ -159,8 +166,8 @@ async function fetchDashboardData() {
       }));
       recentTypes.value = response.data.recent_types;
       recentPrices.value = response.data.recent_prices;
-    } else if (response.data.role === 'online_shop') {
-      dashboardRole.value = 'online_shop';
+    } else if (response.data.role === 'online_shop' || response.data.role === 'toko_offline') {
+      dashboardRole.value = response.data.role;
       stats.value = response.data.stats.map(s => ({
         ...s,
         icon: resolveIcon(s.icon),
@@ -168,9 +175,11 @@ async function fetchDashboardData() {
         trend: 'neutral'
       }));
       recentTransactions.value = response.data.recentTransactions;
-      brandSales.value = response.data.brandSales;
-      typeSales.value = response.data.typeSales;
-      csPerformance.value = response.data.csPerformance;
+      ranking.value = response.data.ranking;
+      // Optional fields for online_shop and toko_offline might differ slightly, handle gracefully
+      brandSales.value = response.data.brandSales || [];
+      typeSales.value = response.data.typeSales || [];
+      csPerformance.value = response.data.csPerformance || [];
     } else {
       dashboardRole.value = 'general';
       // Logic for other roles or keep static
@@ -326,8 +335,104 @@ const getColorClasses = (color) => {
       </div>
     </div>
 
-    <!-- Main Content Grid (Online Shop) -->
-    <div class="grid grid-cols-1 gap-6" v-if="dashboardRole === 'online_shop'">
+    <!-- Ranking & Leaderboard (Online & Offline) -->
+    <div v-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'"
+      class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- User Ranking Card -->
+      <div class="card overflow-hidden group border-2 border-primary-500/20">
+        <div
+          class="absolute -right-4 -top-4 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl group-hover:bg-primary-500/20 transition-all duration-500">
+        </div>
+        <div class="relative z-10">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center text-primary-500">
+              <Trophy :size="20" />
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-text-primary">Peringkat Penjualan</h2>
+              <p class="text-xs text-text-secondary">Global Ranking hari ini</p>
+            </div>
+          </div>
+
+          <div class="flex items-end justify-between">
+            <div class="space-y-1">
+              <p class="text-sm text-text-secondary font-medium">Berdasarkan Total Unit</p>
+              <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-black text-text-primary">GLOBAL</span>
+                <span class="text-emerald-500 flex items-center text-xs font-bold">
+                  <TrendingUp :size="12" class="mr-1" /> Live Ranking
+                </span>
+              </div>
+            </div>
+            <div class="text-right">
+              <Award :size="48" class="text-amber-500 opacity-20" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard Table -->
+      <div class="lg:col-span-2 card">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-2">
+            <Medal :size="18" class="text-amber-500" />
+            <h2 class="text-lg font-semibold text-text-primary">Leaderboard
+              {{ dashboardRole === 'online_shop' ? 'Shop' : 'Cabang' }}</h2>
+          </div>
+          <span
+            class="text-[10px] px-2 py-0.5 rounded bg-surface-700 text-text-secondary uppercase tracking-wider font-bold">Today</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead>
+              <tr class="text-xs text-text-secondary uppercase">
+                <th class="pb-4 font-bold">Rank</th>
+                <th class="pb-4 font-bold">Akun Inventory</th>
+                <th class="pb-4 font-bold text-center">Unit Terjual</th>
+                <th class="pb-4 font-bold text-right">Global Rank</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-700">
+              <tr v-for="(user, idx) in ranking.leaderboard" :key="user.id"
+                class="group hover:bg-surface-700/30 transition-colors">
+                <td class="py-3">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center font-bold"
+                    :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : (idx === 2 ? 'bg-amber-700 text-white' : 'text-text-secondary bg-surface-700'))">
+                    {{ idx + 1 }}
+                  </div>
+                </td>
+                <td class="py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-700 shrink-0 border border-surface-600">
+                      <img v-if="user.photo" :src="user.photo" class="w-full h-full object-cover" />
+                      <User v-else :size="16" class="m-2 text-text-secondary" />
+                    </div>
+                    <span class="font-medium text-text-primary group-hover:text-primary-400 transition-colors">{{
+                      user.name }}</span>
+                  </div>
+                </td>
+                <td class="py-3 text-center">
+                  <span class="font-bold text-text-primary">{{ user.units }}</span>
+                  <span class="text-[10px] text-text-secondary ml-1">Unit</span>
+                </td>
+                <td class="py-3 text-right">
+                  <span class="font-mono text-text-secondary">#{{ user.rank }}</span>
+                </td>
+              </tr>
+              <tr v-if="ranking.leaderboard.length === 0">
+                <td colspan="4" class="py-8 text-center text-text-secondary italic">
+                  Belum ada data penjualan akun inventory hari ini
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid (Online Shop or Offline) -->
+    <div class="grid grid-cols-1 gap-6" v-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'">
       <div class="card">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-lg font-semibold text-text-primary">
