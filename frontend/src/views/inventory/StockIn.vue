@@ -130,26 +130,48 @@ const availableSpecs = computed(() => {
     if (!selectedTypeName.value) return { rams: [], storages: [], combinations: [] };
     const matching = allowedTypes.value.filter(t => t.name === selectedTypeName.value);
 
-    const combinationsSet = new Set();
+    const allRams = new Set();
+    const allStorages = new Set();
 
     matching.forEach(t => {
-        const rams = t.ram ? t.ram.split(/[,/]+/).map(s => s.trim()) : [""];
-        const storages = t.storage ? t.storage.split(/[,/]+/).map(s => s.trim()) : [""];
-
-        rams.forEach(r => {
-            storages.forEach(s => {
-                if (r && s) combinationsSet.add(`${r}/${s}`);
-                else if (r || s) combinationsSet.add(r || s);
+        if (t.ram) {
+            t.ram.split(/[,/]+/).forEach(r => {
+                const trimmed = r.trim();
+                if (trimmed) allRams.add(trimmed);
             });
-        });
+        }
+        if (t.storage) {
+            t.storage.split(/[,/]+/).forEach(s => {
+                const trimmed = s.trim();
+                if (trimmed) allStorages.add(trimmed);
+            });
+        }
     });
 
-    const sortedCombinations = Array.from(combinationsSet).sort((a, b) => {
-        const getFirstNum = (str) => {
-            const m = str.match(/\d+/);
-            return m ? parseInt(m[0]) : 0;
+    const combinations = [];
+    if (allRams.size > 0 && allStorages.size > 0) {
+        allRams.forEach(r => {
+            allStorages.forEach(s => {
+                combinations.push(`${r}/${s}`);
+            });
+        });
+    } else {
+        allRams.forEach(r => combinations.push(r));
+        allStorages.forEach(s => combinations.push(s));
+    }
+
+    const sortedCombinations = combinations.sort((a, b) => {
+        const parse = (str) => {
+            const parts = String(str).split('/');
+            return {
+                ram: parseInt(parts[0]) || 0,
+                storage: parseInt(parts[1]) || 0
+            };
         };
-        return getFirstNum(a) - getFirstNum(b);
+        const pa = parse(a);
+        const pb = parse(b);
+        if (pa.ram !== pb.ram) return pa.ram - pb.ram;
+        return pa.storage - pb.storage;
     });
 
     return {
@@ -644,7 +666,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -788,7 +810,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
