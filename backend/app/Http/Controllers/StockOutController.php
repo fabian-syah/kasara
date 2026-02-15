@@ -932,7 +932,7 @@ class StockOutController extends Controller
         if (!$user)
             return response()->json(['message' => 'Unauthorized'], 401);
 
-        $query = StockOut::with(['items.product', 'nonHpItems', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+        $query = StockOut::with(['items.product', 'nonHpItems', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
             ->where('category', 'pindah_cabang')
             ->whereIn('status', ['received', 'rejected']);
 

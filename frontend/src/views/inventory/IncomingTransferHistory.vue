@@ -168,8 +168,10 @@ onMounted(() => fetchHistory(1));
                                 </span>
                             </div>
                             <p class="text-xs text-text-secondary mt-0.5">
-                                Dari: <span class="text-text-primary font-medium">{{ transfer.user?.name || 'Unknown'
-                                    }}</span>
+                                Dari: <span class="text-text-primary font-medium">
+                                    {{ transfer.inventory_user?.full_name || transfer.inventory_user?.name ||
+                                        transfer.user?.name || 'Unknown' }}
+                                </span>
                                 <span class="mx-1">•</span>
                                 {{ formatDate(transfer.confirmed_at || transfer.updated_at) }}
                             </p>
@@ -183,7 +185,8 @@ onMounted(() => fetchHistory(1));
                                 i.quantity, 0) || 0)}} Unit
                         </p>
                         <p class="text-xs text-text-secondary">
-                            Diterima oleh: {{ transfer.confirmed_by_user?.name || 'Unknown' }}
+                            Diterima oleh: {{ transfer.confirmed_by?.full_name || transfer.confirmed_by?.name ||
+                                'Unknown' }}
                         </p>
                     </div>
                 </div>
@@ -239,7 +242,8 @@ onMounted(() => fetchHistory(1));
                     <div class="grid grid-cols-2 gap-4 bg-surface-900/50 p-4 rounded-xl border border-surface-700">
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Pengirim</p>
-                            <p class="font-medium text-text-primary">{{ selectedTransfer.user?.name }}</p>
+                            <p class="font-medium text-text-primary">{{ selectedTransfer.inventory_user?.full_name ||
+                                selectedTransfer.inventory_user?.name || selectedTransfer.user?.name || 'Unknown' }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Diterima Tanggal</p>
@@ -258,6 +262,13 @@ onMounted(() => fetchHistory(1));
                             <p class="font-medium text-text-primary">
                                 {{(selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc,
                                     i) => acc + i.quantity, 0) || 0)}} Unit
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-text-secondary mb-1">Diterima Oleh</p>
+                            <p class="font-medium text-text-primary">
+                                {{ selectedTransfer.confirmed_by?.full_name || selectedTransfer.confirmed_by?.name ||
+                                'Unknown' }}
                             </p>
                         </div>
                     </div>
