@@ -1838,34 +1838,10 @@ function getStockStatus(product) {
                   </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="label">Kecamatan *</label>
-                    <select :value="selectedRegionIds.district" @change="e => onDistrictChange(e.target.value)"
-                      class="input" :disabled="!selectedRegionIds.city">
-                      <option value="">-- Pilih Kecamatan --</option>
-                      <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.name }}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="label">Kelurahan / Desa *</label>
-                    <select :value="selectedRegionIds.village" @change="e => onVillageChange(e.target.value)"
-                      class="input" :disabled="!selectedRegionIds.district">
-                      <option value="">-- Pilih Kelurahan --</option>
-                      <option v-for="v in villages" :key="v.id" :value="v.id">{{ v.name }}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="label">Kode Pos</label>
-                  <input v-model="stockOutForm.shopee_postal_code" class="input" placeholder="Kode Pos" />
-                </div>
-
                 <div>
                   <label class="label">Detail Alamat (Jalan, No. Rumah, RT/RW) *</label>
                   <textarea v-model="stockOutForm.shopee_address" class="input" rows="3"
-                    placeholder="Nama Jalan, No. Rumah, RT/RW, Kecamatan, Kelurahan..."></textarea>
+                    placeholder="Nama Jalan, No. Rumah, RT/RW..."></textarea>
                 </div>
 
                 <div>

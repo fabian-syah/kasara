@@ -728,7 +728,7 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                    }}</span>
+                                        }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[
@@ -913,31 +913,6 @@ onMounted(() => {
                                 <option v-for="c in cities" :key="c.id" :value="c.id">{{ c.name }}</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="label">Kecamatan *</label>
-                            <select :value="selectedRegionIds.district" @change="e => onDistrictChange(e.target.value)"
-                                class="input bg-surface-800" :disabled="!selectedRegionIds.city">
-                                <option value="">-- Pilih Kecamatan --</option>
-                                <option v-for="d in districts" :key="d.id" :value="d.id">{{ d.name }}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="label">Kelurahan / Desa *</label>
-                            <select :value="selectedRegionIds.village" @change="e => onVillageChange(e.target.value)"
-                                class="input bg-surface-800" :disabled="!selectedRegionIds.district">
-                                <option value="">-- Pilih Kelurahan --</option>
-                                <option v-for="v in villages" :key="v.id" :value="v.id">{{ v.name }}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="label">Kode Pos</label>
-                        <input v-model="form.shopee_postal_code" class="input bg-surface-800"
-                            placeholder="Contoh: 12345" />
                     </div>
 
                     <div>
