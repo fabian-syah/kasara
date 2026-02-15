@@ -130,34 +130,58 @@ const availableSpecs = computed(() => {
     if (!selectedTypeName.value) return { rams: [], storages: [], combinations: [] };
     const matching = allowedTypes.value.filter(t => t.name === selectedTypeName.value);
 
-    const allRams = new Set();
-    const allStorages = new Set();
+    // Heuristic Strategy:
+    // 1. Collect ALL potential capacity numbers from both 'ram' and 'storage' fields.
+    // 2. Classify them: Small (<= 24) = RAM, Large (> 24) = Storage.
+    // 3. Fallback: If only small numbers found, treat as RAM (undefined storage).
+    //    If only large numbers found, treat as Storage (undefined RAM).
+    // 4. Combine them.
+
+    const potentialRams = new Set();
+    const potentialStorages = new Set();
+    const allValues = new Set();
+
+    const extractNumbers = (str) => {
+        if (!str) return [];
+        // Extract all distinct numbers (e.g. "4/64" -> [4, 64], "4GB" -> [4])
+        const matches = str.match(/\d+/g);
+        return matches ? matches.map(Number) : [];
+    };
 
     matching.forEach(t => {
-        if (t.ram) {
-            t.ram.split(/[,/]+/).forEach(r => {
-                const trimmed = r.trim();
-                if (trimmed) allRams.add(trimmed);
-            });
-        }
-        if (t.storage) {
-            t.storage.split(/[,/]+/).forEach(s => {
-                const trimmed = s.trim();
-                if (trimmed) allStorages.add(trimmed);
-            });
-        }
+        const nums = [
+            ...extractNumbers(t.ram),
+            ...extractNumbers(t.storage)
+        ];
+
+        nums.forEach(n => {
+            if (n > 0) allValues.add(n);
+        });
+    });
+
+    // Classify
+    allValues.forEach(n => {
+        if (n <= 32) potentialRams.add(n); // Assume <= 32 is RAM (e.g. 2, 3, 4, 6, 8, 12, 16, 24, 32)
+        else potentialStorages.add(n);     // Assume > 32 is Storage (e.g. 64, 128, 256, 512, 1000)
     });
 
     const combinations = [];
-    if (allRams.size > 0 && allStorages.size > 0) {
-        allRams.forEach(r => {
-            allStorages.forEach(s => {
+
+    // Case 1: We have both RAM and Storage candidates
+    if (potentialRams.size > 0 && potentialStorages.size > 0) {
+        potentialRams.forEach(r => {
+            potentialStorages.forEach(s => {
                 combinations.push(`${r}/${s}`);
             });
         });
-    } else {
-        allRams.forEach(r => combinations.push(r));
-        allStorages.forEach(s => combinations.push(s));
+    }
+    // Case 2: Only Storage (e.g. SD Card or old data with missing RAM)
+    else if (potentialStorages.size > 0) {
+        potentialStorages.forEach(s => combinations.push(String(s)));
+    }
+    // Case 3: Only RAM (Unlikely for HP, but possible)
+    else if (potentialRams.size > 0) {
+        potentialRams.forEach(r => combinations.push(String(r)));
     }
 
     const sortedCombinations = combinations.sort((a, b) => {
@@ -165,7 +189,7 @@ const availableSpecs = computed(() => {
             const parts = String(str).split('/');
             return {
                 ram: parseInt(parts[0]) || 0,
-                storage: parseInt(parts[1]) || 0
+                storage: parts[1] ? parseInt(parts[1]) : 0
             };
         };
         const pa = parse(a);
@@ -666,7 +690,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -810,7 +834,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
