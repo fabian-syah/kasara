@@ -116,6 +116,9 @@ async function loadInventory(page = 1) {
     type: activeTab.value,
     page: page,
     search: debouncedSearch.value,
+    product_name_filter: filterProduct.value,
+    capacity_filter: filterCapacity.value,
+    condition_filter: filterCondition.value !== 'all' ? filterCondition.value : '',
     category: selectedCategory.value,
     brand: selectedBrand.value,
     condition: selectedCondition.value !== 'all' ? selectedCondition.value : null,
@@ -345,6 +348,23 @@ function onVillageChange(id) {
   }
 }
 
+// Column Filters
+const filterProduct = ref('')
+const filterCapacity = ref('')
+const filterCondition = ref('all')
+
+// Debounced watchers for column filters
+watch(filterProduct, debounce(() => {
+  loadInventory(1)
+}, 500))
+
+watch(filterCapacity, debounce(() => {
+  loadInventory(1)
+}, 500))
+
+watch(filterCondition, () => {
+  loadInventory(1)
+})
 // Watcher untuk debounce search
 watch(searchQuery, debounce((newVal) => {
   debouncedSearch.value = newVal;
@@ -1088,11 +1108,39 @@ function getStockStatus(product) {
                     @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
               </th>
-              <th>Produk</th>
+              <!-- For Non-HP, stick to standard header or add filters if needed later. User asked "type, capacity, condition" which are HP specific mostly. Product name spans both. -->
+              <th v-if="activeTab !== 'hp'">Produk</th>
 
               <template v-if="activeTab === 'hp'">
-                <th class="hidden lg:table-cell">Kapasitas</th>
-                <th class="hidden lg:table-cell">Kondisi</th>
+                <!-- Filterable Product & Capacity Columns -->
+                <th class="min-w-[200px]">
+                  <div class="flex flex-col gap-2">
+                    <span>Produk</span>
+                    <input v-model="filterProduct" type="text" placeholder="Filter Type..."
+                      class="input text-xs py-1 px-2 border-surface-600 bg-surface-700/50 focus:bg-surface-700"
+                      @click.stop />
+                  </div>
+                </th>
+                <th class="hidden lg:table-cell min-w-[120px]">
+                  <div class="flex flex-col gap-2">
+                    <span>Kapasitas</span>
+                    <input v-model="filterCapacity" type="text" placeholder="RAM/Storage..."
+                      class="input text-xs py-1 px-2 border-surface-600 bg-surface-700/50 focus:bg-surface-700"
+                      @click.stop />
+                  </div>
+                </th>
+                <th class="hidden lg:table-cell min-w-[120px]">
+                  <div class="flex flex-col gap-2">
+                    <span>Kondisi</span>
+                    <select v-model="filterCondition"
+                      class="input text-xs py-1 px-2 border-surface-600 bg-surface-700/50 focus:bg-surface-700"
+                      @click.stop>
+                      <option value="all">Semua</option>
+                      <option value="Baru">Baru</option>
+                      <option value="Bekas">Bekas</option>
+                    </select>
+                  </div>
+                </th>
                 <th>IMEI</th>
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th class="hidden xl:table-cell">Distributor</th>

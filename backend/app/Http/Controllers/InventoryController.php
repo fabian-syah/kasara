@@ -237,6 +237,29 @@ class InventoryController extends Controller
                 $query->where('placement_type', $request->placement_type);
             }
 
+            // --- COLUMN FILTERS (NEW) ---
+            // 1. Filter by Product Name (Type)
+            if ($request->filled('product_name_filter')) {
+                $pName = $request->product_name_filter;
+                $query->whereHas('product', function ($q) use ($pName) {
+                    $q->where('name', 'ilike', "%{$pName}%");
+                });
+            }
+
+            // 2. Filter by Capacity (RAM or Storage)
+            if ($request->filled('capacity_filter')) {
+                $cap = $request->capacity_filter;
+                $query->where(function ($q) use ($cap) {
+                    $q->where('ram', 'ilike', "%{$cap}%")
+                        ->orWhere('storage', 'ilike', "%{$cap}%");
+                });
+            }
+
+            // 3. Filter by Condition (Specific Header Filter)
+            if ($request->filled('condition_filter') && $request->condition_filter !== 'all') {
+                $query->where('condition', $request->condition_filter);
+            }
+
             $items = $query->latest()->paginate(20);
 
             // Transform results to include placement name
