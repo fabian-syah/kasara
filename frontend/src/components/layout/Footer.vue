@@ -1,23 +1,22 @@
-<script setup>
-import { Instagram } from 'lucide-vue-next';
-</script>
-
 <template>
-  <footer class="w-full py-4 px-6 mt-auto bg-surface-900/50 backdrop-blur-sm border-t border-surface-800">
-    <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-      <div class="text-xs text-text-secondary">
-        &copy; {{ new Date().getFullYear() }} APEX POS. created by <span class="font-bold text-text-primary">Bian</span>
-      </div>
+    <footer class="w-full py-6 px-6 mt-auto">
+        <div class="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-primary-500/50 animate-pulse"></span>
+                <div class="text-[10px] text-surface-500 font-mono tracking-widest uppercase">
+                    {{ new Date().getFullYear() }} &copy; APEX POS SYSTEM v2.0
+                </div>
+            </div>
 
-      <a href="https://instagram.com/mcisreal_" target="_blank" rel="noopener noreferrer"
-        class="group flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-800 hover:bg-surface-700 transition-all duration-300 border border-surface-700 hover:border-pink-500/50 hover:shadow-[0_0_15px_rgba(236,72,153,0.3)]">
-        <div class="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 group-hover:scale-110 transition-transform duration-300">
-          <Instagram :size="14" class="text-white" />
+            <div class="flex items-center gap-1 text-xs text-surface-400">
+                <span>Created with</span>
+                <span class="text-red-500 animate-pulse">❤️</span>
+                <span>by</span>
+                <a href="https://instagram.com/mcisreal_" target="_blank" rel="noopener noreferrer"
+                    class="ml-1 font-bold bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent hover:scale-105 transition-transform cursor-pointer">
+                    Bian
+                </a>
+            </div>
         </div>
-        <span class="text-xs font-medium text-text-secondary group-hover:text-pink-400 transition-colors">
-          @mcisreal_
-        </span>
-      </a>
-    </div>
-  </footer>
+    </footer>
 </template>

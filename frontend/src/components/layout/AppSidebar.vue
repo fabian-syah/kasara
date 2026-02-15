@@ -157,118 +157,195 @@ function isGroupActive(items) {
 </script>
 
 <template>
-    <aside
-        class="fixed inset-y-0 left-0 z-100 w-64 bg-surface-800 border-r border-surface-700 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0"
+    <aside class="fixed inset-y-0 left-0 z-50 w-72 flex flex-col transition-transform duration-300 lg:translate-x-0"
         :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
-        <!-- Logo -->
-        <div class="p-6 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div
-                    class="w-10 h-10 bg-primary-600 rounded-xl shadow-lg shadow-primary-500/20 flex items-center justify-center text-white font-black text-xl">
-                    A
-                </div>
-                <span class="text-xl font-bold tracking-tight text-text-primary">
-                    APEX<span class="text-primary-500">POS</span>
-                </span>
+
+        <!-- Glass Background with Gradient Blob -->
+        <div class="absolute inset-0 bg-surface-900/90 backdrop-blur-xl border-r border-white/5 overflow-hidden">
+            <div
+                class="absolute top-0 left-0 w-full h-96 bg-primary-500/10 blur-[100px] rounded-full -translate-y-1/2 -translate-x-1/2 pointer-events-none">
             </div>
-            <!-- Close Button (Mobile Only) -->
-            <button @click="emit('close-mobile-menu')" class="lg:hidden text-text-secondary hover:text-text-primary">
-                <X :size="24" />
-            </button>
+            <div
+                class="absolute bottom-0 right-0 w-full h-96 bg-purple-500/10 blur-[100px] rounded-full translate-y-1/2 translate-x-1/2 pointer-events-none">
+            </div>
         </div>
 
-        <!-- Branch Indicator -->
-        <div class="mx-4 px-4 py-3 bg-surface-900 rounded-xl border border-surface-700 mb-4">
-            <div class="flex items-center gap-2 text-xs text-text-secondary mb-1">
-                <Building2 :size="12" />
-                <span>CABANG AKTIF</span>
-            </div>
-            <p class="text-sm font-medium text-text-primary truncate">
-                {{ userBranch }}
-            </p>
-        </div>
-
-        <!-- Navigation -->
-        <nav class="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-            <p class="px-4 text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-2">
-                Menu Utama
-            </p>
-
-            <div v-for="item in visibleMenuItems" :key="item.id">
-                <!-- Dropdown Menu -->
-                <div v-if="item.items" class="space-y-1">
-                    <button @click.prevent="toggleMenu(item.id)" type="button"
-                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border border-transparent hover:bg-surface-700 hover:text-text-primary"
-                        :class="[
-                            isGroupActive(item.items) ? 'text-primary-500' : 'text-text-secondary'
-                        ]">
-                        <component :is="item.icon" :size="18" />
-                        <span>{{ item.label }}</span>
-                        <ChevronDown :size="16" class="ml-auto transition-transform duration-200"
-                            :class="{ 'rotate-180': expandedMenus[item.id] || isGroupActive(item.items) }" />
-                    </button>
-
-                    <!-- Submenu Items -->
-                    <div v-show="expandedMenus[item.id] || isGroupActive(item.items)" class="pl-4 space-y-1">
-                        <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
-                            class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent"
-                            :class="isActiveRoute(subitem.path)
-                                ? 'bg-primary-500/10 text-primary-600 border-primary-500/20'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'
-                                ">
-                            <div class="w-1.5 h-1.5 rounded-full"
-                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-surface-600'"></div>
-                            <span>{{ subitem.label }}</span>
-                        </router-link>
+        <div class="relative flex flex-col h-full z-10">
+            <!-- Logo Section -->
+            <div class="p-8 pb-4 flex items-center justify-between">
+                <div class="flex items-center gap-4 group cursor-pointer">
+                    <div class="relative w-12 h-12 flex items-center justify-center">
+                        <div
+                            class="absolute inset-0 bg-gradient-to-tr from-primary-500 to-purple-600 rounded-2xl rotate-6 opacity-50 group-hover:rotate-12 transition-transform duration-500 blur-sm">
+                        </div>
+                        <div
+                            class="relative w-full h-full bg-surface-800 rounded-2xl border border-white/10 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            </div>
+                            <span
+                                class="text-2xl font-black bg-gradient-to-br from-white to-white/50 bg-clip-text text-transparent">A</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-bold tracking-tight text-white leading-none">
+                            APEX<span
+                                class="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400">POS</span>
+                        </span>
+                        <span
+                            class="text-[10px] font-medium text-surface-400 tracking-[0.2em] uppercase mt-1">Management</span>
                     </div>
                 </div>
-
-                <!-- Regular Link -->
-                <router-link v-else :to="item.path"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border"
-                    :class="isActiveRoute(item.path)
-                        ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20'
-                        : 'text-text-secondary border-transparent hover:bg-surface-700 hover:text-text-primary'
-                        ">
-                    <component :is="item.icon" :size="18" class="transition-colors" :class="isActiveRoute(item.path)
-                        ? 'text-primary-600 dark:text-primary-400'
-                        : 'text-text-secondary group-hover:text-primary-500'
-                        " />
-                    <span>{{ item.label }}</span>
-                    <ChevronRight :size="14" class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                </router-link>
+                <!-- Close Button (Mobile Only) -->
+                <button @click="emit('close-mobile-menu')"
+                    class="lg:hidden p-2 text-surface-400 hover:text-white transition-colors">
+                    <X :size="20" />
+                </button>
             </div>
-        </nav>
 
-        <!-- User Section -->
-        <div class="p-4 bg-surface-900 border-t border-surface-700">
-            <div class="flex items-center gap-3 mb-4 px-2">
-                <img :src="authStore.user?.photo
-                    ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
-                    class="w-10 h-10 rounded-xl border-2 border-surface-700 object-cover" :alt="userName"
-                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-text-primary truncate">
-                        {{ userName }}
-                    </p>
-                    <p class="text-[10px] text-primary-500 font-medium uppercase tracking-wide">
-                        {{ userRole }}
-                    </p>
+            <!-- Branch Indicator Card -->
+            <div class="px-6 mb-6">
+                <div
+                    class="relative p-0.5 rounded-2xl bg-gradient-to-r from-white/10 to-transparent overflow-hidden group">
+                    <div
+                        class="relative bg-surface-800/50 backdrop-blur-sm p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+                                <Building2 :size="16" />
+                            </div>
+                            <span class="text-xs font-semibold text-surface-400 uppercase tracking-wider">Cabang
+                                Aktif</span>
+                        </div>
+                        <p class="text-sm font-medium text-white truncate pl-1">
+                            {{ userBranch }}
+                        </p>
+                        <!-- Glow effect -->
+                        <div
+                            class="absolute -right-4 -top-4 w-12 h-12 bg-emerald-500/20 blur-xl rounded-full group-hover:bg-emerald-500/30 transition-all duration-500">
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button @click="handleLogout"
-                class="flex items-center gap-3 w-full p-3 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-300">
-                <LogOut :size="18" />
-                <span class="font-medium">Keluar</span>
-            </button>
+
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar pb-6">
+                <p
+                    class="px-4 py-2 text-[10px] font-bold text-surface-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <span class="w-8 h-[1px] bg-surface-700"></span>
+                    Menu Utama
+                </p>
+
+                <div v-for="item in visibleMenuItems" :key="item.id">
+                    <!-- Dropdown Menu -->
+                    <div v-if="item.items" class="space-y-1 mb-1">
+                        <button @click.prevent="toggleMenu(item.id)" type="button"
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 group border border-transparent relative overflow-hidden"
+                            :class="[
+                                isGroupActive(item.items)
+                                    ? 'text-white'
+                                    : 'text-surface-400 hover:text-white hover:bg-white/5'
+                            ]">
+                            <!-- Active Background -->
+                            <div v-if="isGroupActive(item.items)"
+                                class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-transparent border-l-2 border-primary-500">
+                            </div>
+
+                            <component :is="item.icon" :size="20"
+                                class="relative z-10 transition-transform duration-300 group-hover:scale-110"
+                                :class="isGroupActive(item.items) ? 'text-primary-400' : 'text-surface-500 group-hover:text-white'" />
+                            <span class="relative z-10">{{ item.label }}</span>
+                            <div
+                                class="relative z-10 ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-surface-800/50 group-hover:bg-surface-800 transition-colors">
+                                <ChevronDown :size="12" class="transition-transform duration-300"
+                                    :class="{ 'rotate-180': expandedMenus[item.id] || isGroupActive(item.items) }" />
+                            </div>
+                        </button>
+
+                        <!-- Submenu Items -->
+                        <div v-show="expandedMenus[item.id] || isGroupActive(item.items)"
+                            class="pl-4 space-y-1 border-l border-white/5 ml-6 overflow-hidden transition-all duration-300">
+                            <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
+                                class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 relative group/sub"
+                                :class="isActiveRoute(subitem.path)
+                                    ? 'text-white font-medium'
+                                    : 'text-surface-400 hover:text-white'
+                                    ">
+                                <div class="absolute left-0 w-1 h-1 rounded-full transition-all duration-300"
+                                    :class="isActiveRoute(subitem.path) ? 'bg-primary-500 w-1.5 h-1.5 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-surface-700 group-hover/sub:bg-surface-500'">
+                                </div>
+                                <span
+                                    class="pl-2 relative z-10 transition-transform duration-300 group-hover/sub:translate-x-1">{{
+                                    subitem.label }}</span>
+                            </router-link>
+                        </div>
+                    </div>
+
+                    <!-- Regular Link -->
+                    <router-link v-else :to="item.path"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 group border border-transparent relative overflow-hidden mb-1"
+                        :class="isActiveRoute(item.path)
+                            ? 'text-white'
+                            : 'text-surface-400 hover:text-white hover:bg-white/5'
+                            ">
+                        <!-- Active Gradient Background -->
+                        <div v-if="isActiveRoute(item.path)"
+                            class="absolute inset-0 bg-gradient-to-r from-primary-500/20 to-purple-500/5 border-l-2 border-primary-500">
+                        </div>
+
+                        <component :is="item.icon" :size="20"
+                            class="relative z-10 transition-transform duration-300 group-hover:scale-110" :class="isActiveRoute(item.path)
+                                ? 'text-primary-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]'
+                                : 'text-surface-500 group-hover:text-white'
+                                " />
+                        <span class="relative z-10">{{ item.label }}</span>
+
+                        <!-- Hover Arrow -->
+                        <ChevronRight :size="14"
+                            class="relative z-10 ml-auto opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-surface-400" />
+                    </router-link>
+                </div>
+            </nav>
+
+            <!-- User Section -->
+            <div class="p-4 border-t border-white/5 bg-black/20 backdrop-blur-sm">
+                <div
+                    class="p-3 rounded-2xl bg-surface-800/50 border border-white/5 hover:border-white/10 transition-all duration-300 group cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <img :src="authStore.user?.photo
+                                ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
+                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
+                                class="w-10 h-10 rounded-xl object-cover ring-2 ring-white/5 group-hover:ring-primary-500/50 transition-all duration-300"
+                                :alt="userName"
+                                @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
+                            <div
+                                class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-surface-900">
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p
+                                class="text-sm font-bold text-white truncate group-hover:text-primary-400 transition-colors">
+                                {{ userName }}
+                            </p>
+                            <p class="text-[10px] text-surface-400 font-medium uppercase tracking-wide truncate">
+                                {{ userRole }}
+                            </p>
+                        </div>
+                        <button @click="handleLogout"
+                            class="p-2 rounded-lg hover:bg-red-500/20 text-surface-400 hover:text-red-400 transition-colors"
+                            title="Keluar">
+                            <LogOut :size="16" />
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </aside>
 </template>
 
 <style scoped>
 .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -276,7 +353,11 @@ function isGroupActive(items) {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #1e293b;
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 </style>
