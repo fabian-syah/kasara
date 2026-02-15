@@ -22,6 +22,7 @@ class StockOutController extends Controller
     // List all stock outs
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product']);
 
         if ($request->category) {
@@ -37,6 +38,21 @@ class StockOutController extends Controller
             $query->whereHas('items');
         } elseif ($request->type === 'non-hp') {
             $query->whereNotNull('non_hp_items');
+        }
+
+        // LOCATION FILTER (ISOLATION)
+        // Only show stock outs created by users in the same location
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+        if ($user && !in_array($user->role, $unrestrictedRoles)) {
+            $query->whereHas('user', function ($q) use ($user) {
+                if ($user->branch_id) {
+                    $q->where('branch_id', $user->branch_id);
+                } elseif ($user->warehouse_id) {
+                    $q->where('warehouse_id', $user->warehouse_id);
+                } elseif ($user->online_shop_id) {
+                    $q->where('online_shop_id', $user->online_shop_id);
+                }
+            });
         }
 
         // DATE FILTER

@@ -218,13 +218,13 @@ class InventoryController extends Controller
                 }
             } elseif ($user->warehouse_id) {
                 if ($type === 'non-hp') {
-                    // No warehouse_id in InventoryLog
+                    $query->where('warehouse_id', $user->warehouse_id);
                 } else {
                     $query->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
                 }
             } elseif ($user->online_shop_id) {
                 if ($type === 'non-hp') {
-                    // No online_shop_id in InventoryLog
+                    $query->where('online_shop_id', $user->online_shop_id);
                 } else {
                     $query->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
                 }
@@ -272,6 +272,10 @@ class InventoryController extends Controller
         if (!in_array($user->role, $unrestrictedRoles)) {
             if ($user->branch_id) {
                 $query->where('branch_id', $user->branch_id);
+            } elseif ($user->warehouse_id) {
+                $query->where('warehouse_id', $user->warehouse_id);
+            } elseif ($user->online_shop_id) {
+                $query->where('online_shop_id', $user->online_shop_id);
             }
         }
 
