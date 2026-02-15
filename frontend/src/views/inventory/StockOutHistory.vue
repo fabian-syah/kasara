@@ -318,11 +318,11 @@ const formatCurrency = (value) => {
                         <tr>
                             <th class="px-6 py-4 whitespace-nowrap">Tanggal / ID</th>
                             <th class="px-6 py-4 whitespace-nowrap">Kategori</th>
-                            <th class="px-6 py-4 whitespace-nowrap">Tujuan / Penerima</th>
+                            <th class="px-6 py-4 whitespace-nowrap hidden md:table-cell">Tujuan / Penerima</th>
                             <th class="px-6 py-4 whitespace-nowrap">Item</th>
                             <th class="px-6 py-4 whitespace-nowrap">Quantity / Info</th>
                             <!-- <th class="px-6 py-4 whitespace-nowrap">Deskripsi / Catatan</th> -->
-                            <th class="px-6 py-4 whitespace-nowrap">Admin / Inventory</th>
+                            <th class="px-6 py-4 whitespace-nowrap hidden lg:table-cell">Admin / Inventory</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700/50">
@@ -354,7 +354,7 @@ const formatCurrency = (value) => {
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 hidden md:table-cell">
                                     <div class="flex items-center gap-2">
                                         <Truck v-if="item.category === 'pindah_cabang'" :size="16"
                                             class="text-text-secondary" />
@@ -410,7 +410,7 @@ const formatCurrency = (value) => {
                                         </span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 hidden lg:table-cell">
                                     <div class="flex flex-col">
                                         <div class="flex items-center gap-2 text-sm font-bold text-white">
                                             <User :size="14" class="text-primary-400" />
@@ -441,7 +441,7 @@ const formatCurrency = (value) => {
                                 </td>
 
                                 <!-- Col 3: Tujuan / Penerima -->
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 hidden md:table-cell">
                                     <div class="flex items-center gap-2">
                                         <Truck v-if="item.category === 'pindah_cabang'" :size="16"
                                             class="text-text-secondary" />
@@ -504,7 +504,7 @@ const formatCurrency = (value) => {
                                 </td>
 
                                 <!-- Col 6: Admin / Inventory -->
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 hidden lg:table-cell">
                                     <div class="flex flex-col">
                                         <div class="flex items-center gap-2 text-sm font-bold text-white">
                                             <User :size="14" class="text-primary-400" />

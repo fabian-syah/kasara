@@ -253,9 +253,9 @@ onMounted(() => {
                             <th class="px-6 py-4">Produk</th>
                             <th class="px-6 py-4" v-if="activeTab === 'hp'">IMEI / Detail</th>
                             <th class="px-6 py-4" v-else>Quantity / Info</th>
-                            <th class="px-6 py-4">Sumber / Distributor</th>
-                            <th class="px-6 py-4">Catatan</th>
-                            <th class="px-6 py-4">Diinput Oleh</th>
+                            <th class="px-6 py-4 hidden md:table-cell">Sumber / Distributor</th>
+                            <th class="px-6 py-4 hidden lg:table-cell">Catatan</th>
+                            <th class="px-6 py-4 hidden lg:table-cell">Diinput Oleh</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700/50">
@@ -269,7 +269,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                        }}</div>
+                                    }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>
@@ -299,7 +299,7 @@ onMounted(() => {
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 hidden md:table-cell">
                                 <div v-if="activeTab === 'hp'">
                                     {{ item.distributor ? item.distributor.name : (item.supplier_name || '-') }}
                                     <div class="text-xs text-text-secondary">
@@ -315,7 +315,7 @@ onMounted(() => {
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 hidden lg:table-cell">
                                 <span v-if="item.notes"
                                     class="text-xs text-text-secondary italic max-w-[200px] block truncate"
                                     :title="item.notes">
@@ -324,7 +324,7 @@ onMounted(() => {
                                 <span v-else class="text-text-secondary/30">-</span>
                             </td>
 
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4 hidden lg:table-cell">
                                 <div class="flex items-center gap-2">
                                     <User :size="14" class="text-text-secondary" />
                                     <span>{{ item.user ? item.user.name : '-' }}</span>

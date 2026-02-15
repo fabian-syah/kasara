@@ -1103,11 +1103,11 @@ function getStockStatus(product) {
               <th>Produk</th>
 
               <template v-if="activeTab === 'hp'">
-                <th>Kapasitas</th>
-                <th>Kondisi</th>
+                <th class="hidden lg:table-cell">Kapasitas</th>
+                <th class="hidden lg:table-cell">Kondisi</th>
                 <th>IMEI</th>
-                <th>Lokasi</th>
-                <th>Distributor</th>
+                <th class="hidden md:table-cell">Lokasi</th>
+                <th class="hidden xl:table-cell">Distributor</th>
                 <!-- Harga Modal Removed -->
                 <th>Harga Jual</th>
                 <th>Status</th>
@@ -1115,13 +1115,13 @@ function getStockStatus(product) {
 
               <!-- Non-HP Columns -->
               <template v-else>
-                <th>Lokasi</th>
+                <th class="hidden md:table-cell">Lokasi</th>
                 <th>Stok</th>
-                <th>Distributor / Supplier</th>
+                <th class="hidden xl:table-cell">Distributor / Supplier</th>
               </template>
 
-              <th>Catatan</th>
-              <th>Akun Inventory</th>
+              <th class="hidden 2xl:table-cell">Catatan</th>
+              <th class="hidden xl:table-cell">Akun Inventory</th>
               <th class="text-center">Aksi</th>
             </tr>
           </thead>
@@ -1147,7 +1147,7 @@ function getStockStatus(product) {
                     class="checkbox border-surface-400" />
                 </label>
               </td>
-              <td class="font-mono text-sm text-text-secondary">
+              <td class="font-mono text-sm text-text-secondary hidden md:table-cell">
                 {{ item.product?.sku || '-' }}
               </td>
               <td>
@@ -1165,13 +1165,13 @@ function getStockStatus(product) {
 
               <!-- HP Specific Columns -->
               <template v-if="activeTab === 'hp'">
-                <td class="text-sm">
+                <td class="text-sm hidden lg:table-cell">
                   <span class="bg-surface-800 px-3 py-1 rounded-lg text-text-secondary" v-if="item.storage">{{
                     item.storage
                   }}</span>
                   <span v-else class="text-text-secondary">-</span>
                 </td>
-                <td class="text-sm">
+                <td class="text-sm hidden lg:table-cell">
                   <span class="badge"
                     :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'">
                     {{ item.condition === 'new' ? 'Baru' : 'Bekas' }}
@@ -1180,7 +1180,7 @@ function getStockStatus(product) {
                 <td class="font-mono text-sm">
                   <div class="bg-surface-700/50 px-2 py-1 rounded w-fit text-text-primary">{{ item.imei }}</div>
                 </td>
-                <td class="text-sm text-text-secondary">
+                <td class="text-sm text-text-secondary hidden md:table-cell">
                   <div v-if="item.placement_name" class="font-medium text-text-primary">
                     {{ item.placement_name }}
                     <span class="text-[10px] text-text-secondary block capitalize">
@@ -1193,7 +1193,7 @@ function getStockStatus(product) {
                     }}</span>
                   </div>
                 </td>
-                <td class="text-sm text-text-secondary">
+                <td class="text-sm text-text-secondary hidden xl:table-cell">
                   {{ item.distributor?.name || item.supplier_name || '-' }}
                 </td>
                 <!-- Cost Price Removed -->
@@ -1210,7 +1210,7 @@ function getStockStatus(product) {
 
               <!-- Non-HP Specific Columns -->
               <template v-else>
-                <td class="text-sm text-text-secondary">
+                <td class="text-sm text-text-secondary hidden md:table-cell">
                   <div v-if="item.placement_name" class="font-medium text-text-primary">
                     {{ item.placement_name }}
                     <span class="text-[10px] text-text-secondary block capitalize">
@@ -1226,19 +1226,19 @@ function getStockStatus(product) {
                   <span class="text-lg font-bold text-text-primary">{{ item.quantity }}</span>
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
                 </td>
-                <td class="text-sm text-text-secondary">
+                <td class="text-sm text-text-secondary hidden xl:table-cell">
                   {{ item.latest_supplier || item.latest_distributor || '-' }}
                 </td>
               </template>
 
-              <td class="max-w-[200px]">
+              <td class="max-w-[200px] hidden 2xl:table-cell">
                 <span v-if="item.notes" class="text-xs text-text-secondary italic block truncate" :title="item.notes">
                   {{ item.notes }}
                 </span>
                 <span v-else class="text-text-secondary/30">-</span>
               </td>
 
-              <td>
+              <td class="hidden xl:table-cell">
                 <div class="flex flex-col">
                   <!-- For Non-HP, user info might not be directly on item, but typically 'updated_by' or similar. 
                              Inventory model doesn't strictly track owner like ProductDetail does. 
