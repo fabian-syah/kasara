@@ -348,12 +348,54 @@ class DashboardController extends Controller
             }
         }
 
-        // Format Type Sales
+        // 6. Top 5 Products All-Time (Per Shop/Branch)
+        $allTimeSalesQuery = \App\Models\StockOut::whereIn('category', ['shopee', 'orderan_online']);
+
+        if ($user->online_shop_id) {
+            $allTimeSalesQuery->whereHas('user', function ($q) use ($user) {
+                $q->where('online_shop_id', $user->online_shop_id);
+            });
+        } else {
+            $allTimeSalesQuery->where('user_id', $user->id);
+        }
+
+        $allTimeSalesIds = $allTimeSalesQuery->pluck('id');
+
+        // Aggregrate HP
+        $hpAgg = \DB::table('stock_out_items')
+            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+            ->join('products', 'product_details.product_id', '=', 'products.id')
+            ->whereIn('stock_out_items.stock_out_id', $allTimeSalesIds)
+            ->select('products.name', \DB::raw('count(*) as total'))
+            ->groupBy('products.name')
+            ->get();
+
+        // Aggregate Non-HP
+        $nonHpAgg = \DB::table('stock_out_non_hp_items')
+            ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+            ->whereIn('stock_out_non_hp_items.stock_out_id', $allTimeSalesIds)
+            ->select('products.name', \DB::raw('sum(quantity) as total'))
+            ->groupBy('products.name')
+            ->get();
+
+        $combinedSales = [];
+        foreach ($hpAgg as $item) {
+            if (!isset($combinedSales[$item->name]))
+                $combinedSales[$item->name] = 0;
+            $combinedSales[$item->name] += $item->total;
+        }
+        foreach ($nonHpAgg as $item) {
+            if (!isset($combinedSales[$item->name]))
+                $combinedSales[$item->name] = 0;
+            $combinedSales[$item->name] += $item->total;
+        }
+
         $typeSalesData = [];
-        foreach ($typeSales as $name => $count) {
+        foreach ($combinedSales as $name => $count) {
             $typeSalesData[] = ['name' => $name, 'count' => $count];
         }
         usort($typeSalesData, fn($a, $b) => $b['count'] <=> $a['count']);
+        $typeSalesData = array_slice($typeSalesData, 0, 5);
 
         // Format Brand Condition Sales
         $brandConditionData = [];
