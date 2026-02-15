@@ -106,6 +106,22 @@ const filterCapacity = ref([])
 const productOptions = ref([])
 const capacityOptions = ref([])
 
+// Dropdown Visibility State
+const activeFilterDropdown = ref(null); // 'product', 'capacity', or null
+
+function toggleFilterDropdown(filterName) {
+  if (activeFilterDropdown.value === filterName) {
+    activeFilterDropdown.value = null;
+  } else {
+    activeFilterDropdown.value = filterName;
+  }
+}
+
+// Close dropdown when removing all filters or clicking outside (handled by template click.stop)
+function closeFilterDropdown() {
+  activeFilterDropdown.value = null;
+}
+
 // Toggle filter values
 function toggleFilter(filterSet, value) {
   const index = filterSet.indexOf(value);
@@ -229,7 +245,16 @@ const branches = ref([]);
 const { user } = storeToRefs(authStore);
 
 onMounted(() => {
+  document.addEventListener('click', (e) => {
+    // If click is not inside a filter group, close dropdown
+    if (!e.target.closest('.group')) {
+      activeFilterDropdown.value = null;
+    }
+  });
+
   loadInventory(); // Use new loader
+  fetchInventoryUsers();
+  fetchFilterOptions(); // Fetch options on mount
 
   // Real-time Updates
   if (window.Echo) {
@@ -381,10 +406,11 @@ function onVillageChange(id) {
 }
 
 
-onMounted(() => {
-  loadInventory();
-  fetchInventoryUsers();
-  fetchFilterOptions(); // Fetch options on mount
+onUnmounted(() => {
+  document.removeEventListener('click', (e) => { }); // Cleanup
+  if (html5QrCode) {
+    html5QrCode.stop().catch(() => { });
+  }
 });
 
 // Watcher untuk debounce search
@@ -450,7 +476,7 @@ const filteredProducts = computed(() => {
   // The API already filtered based on search, category, brand, etc.
   let items = inventoryStore.products;
 
-  // Only keep the Non-HP 0 quantity filter if needed visually, 
+  // Only keep the Non-HP 0 quantity filter if needed visually,
   // but backend also filters quantity > 0 for index.
   // We can keep it or remove it. Backend index() for non-hp does `where('quantity', '>', 0)`.
   // So we can just return items.
@@ -745,7 +771,7 @@ async function submitStockOut() {
 
     // Add Non-HP Items
     nonHpItems.forEach((item, index) => {
-      formData.append(`non_hp_items[${index}][product_id]`, item.product_id || item.id); // Inventory item.id is usually inventory ID, but product_id is needed. 
+      formData.append(`non_hp_items[${index}][product_id]`, item.product_id || item.id); // Inventory item.id is usually inventory ID, but product_id is needed.
       // Wait, item from inventoryStore.products has product_id if it is inventory record AND id if it is inventory record.
       // For Non-HP, item structure: { id: 1, product_id: 2, quantity: 10, ... }
       formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || 1);
@@ -838,11 +864,7 @@ async function submitStockOut() {
 }
 
 // Cleanup
-onUnmounted(() => {
-  if (html5QrCode) {
-    html5QrCode.stop().catch(() => { });
-  }
-});
+
 
 // Stats
 const stats = computed(() => [
@@ -1135,17 +1157,18 @@ function getStockStatus(product) {
 
               <template v-if="activeTab === 'hp'">
                 <!-- Filterable Product Column (Faceted) -->
-                <th class="min-w-[150px] relative group">
-                  <div class="flex items-center justify-between cursor-pointer">
+                <th class="min-w-[150px] relative group" @click.stop>
+                  <div class="flex items-center justify-between cursor-pointer"
+                    @click="toggleFilterDropdown('product')">
                     <span>Produk</span>
                     <Filter :size="14" :class="filterProduct.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
                   </div>
                   <!-- Dropdown -->
-                  <div
-                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 hidden group-hover:block p-2 max-h-60 overflow-y-auto">
+                  <div v-if="activeFilterDropdown === 'product'"
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
                     <div v-for="option in productOptions" :key="option"
                       class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
-                      @click="toggleFilter(filterProduct, option)">
+                      @click.stop="toggleFilter(filterProduct, option)">
                       <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
                         :class="filterProduct.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
                         <Check v-if="filterProduct.includes(option)" :size="10" class="text-white" />
@@ -1158,17 +1181,18 @@ function getStockStatus(product) {
                 </th>
 
                 <!-- Filterable Capacity Column (Faceted) -->
-                <th class="hidden lg:table-cell min-w-[120px] relative group">
-                  <div class="flex items-center justify-between cursor-pointer">
+                <th class="hidden lg:table-cell min-w-[120px] relative group" @click.stop>
+                  <div class="flex items-center justify-between cursor-pointer"
+                    @click="toggleFilterDropdown('capacity')">
                     <span>Kapasitas</span>
                     <Filter :size="14" :class="filterCapacity.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
                   </div>
                   <!-- Dropdown -->
-                  <div
-                    class="absolute left-0 top-full mt-2 w-40 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 hidden group-hover:block p-2 max-h-60 overflow-y-auto">
+                  <div v-if="activeFilterDropdown === 'capacity'"
+                    class="absolute left-0 top-full mt-2 w-40 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
                     <div v-for="option in capacityOptions" :key="option"
                       class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
-                      @click="toggleFilter(filterCapacity, option)">
+                      @click.stop="toggleFilter(filterCapacity, option)">
                       <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
                         :class="filterCapacity.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
                         <Check v-if="filterCapacity.includes(option)" :size="10" class="text-white" />

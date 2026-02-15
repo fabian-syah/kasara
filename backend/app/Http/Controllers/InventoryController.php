@@ -1099,14 +1099,7 @@ class InventoryController extends Controller
                     }
 
                     if (!$hasConstraint) {
-                        // If user has no placement assigned but is restricted role, show nothing??
-                        // Or if no placement, maybe they see nothing.
-                        // In index, we don't have a fallback "0=1" if no constraint found but restricted role.
-                        // We'll assume if no placement, it won't match any orWhere.
-                        // Actually index logic doesn't have "0=1" fallback in the snippet I saw?
-                        // Wait, previous snippet had: if (!$hasConstraint) { $q->whereRaw('0 = 1'); }
-                        // I should include that.
-                        $q->whereRaw('0 = 1');
+                        $q->whereRaw('1 = 0'); // Corrected from 0=1 to standard false
                     }
                 });
             }
@@ -1114,24 +1107,31 @@ class InventoryController extends Controller
 
         if ($type === 'hp') {
             // HP: Query ProductDetail
+            // Use distinct on product_id to get product names
             $query = ProductDetail::where('status', '!=', 'sold')
                 ->join('products', 'product_details.product_id', '=', 'products.id');
 
-            // Apply location filter to ProductDetail (no prefix needed for placement columns on product_details table? 
-            // Wait, ProductDetail has placement_type/id directly? Yes.)
             $applyLocationFilter($query, 'product_details');
 
-            $productNames = (clone $query)->distinct()->pluck('products.name')->sort()->values();
+            $productNames = (clone $query)
+                ->select('products.name')
+                ->distinct()
+                ->pluck('products.name')
+                ->sort()
+                ->values();
 
-            $capacities = (clone $query)
+            // For capacities, we need RAM and Storage
+            // We use select distinct to avoid fetching full objects
+            $capacitiesRaw = (clone $query)
                 ->select('product_details.ram', 'product_details.storage')
                 ->distinct()
-                ->get()
-                ->map(function ($item) {
-                    if ($item->ram && $item->storage)
-                        return "{$item->ram}/{$item->storage}";
-                    return $item->storage ?: $item->ram;
-                })
+                ->get();
+
+            $capacities = $capacitiesRaw->map(function ($item) {
+                if ($item->ram && $item->storage)
+                    return "{$item->ram}/{$item->storage}";
+                return $item->storage ?: $item->ram;
+            })
                 ->filter()
                 ->unique()
                 ->sort(function ($a, $b) {
@@ -1145,8 +1145,12 @@ class InventoryController extends Controller
 
             $applyLocationFilter($query, 'inventories');
 
-            $productNames = $query->distinct()->pluck('products.name')->sort()->values();
-            // No capacities for non-hp
+            $productNames = $query
+                ->select('products.name')
+                ->distinct()
+                ->pluck('products.name')
+                ->sort()
+                ->values();
         }
 
         return response()->json([
