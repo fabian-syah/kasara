@@ -383,7 +383,8 @@ const getColorClasses = (color) => {
             class="text-[10px] px-2 py-0.5 rounded bg-surface-700 text-text-secondary uppercase tracking-wider font-bold">Today</span>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- Leaderboard Table (Hidden on Mobile) -->
+        <div class="hidden md:block overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead>
               <tr class="text-xs text-text-secondary uppercase">
@@ -428,6 +429,37 @@ const getColorClasses = (color) => {
             </tbody>
           </table>
         </div>
+
+        <!-- Leaderboard (Mobile Only Card View) -->
+        <div class="md:hidden space-y-3">
+          <div v-for="(user, idx) in ranking.leaderboard" :key="user.id"
+            class="p-3 rounded-xl bg-surface-700/30 border border-surface-700 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0"
+                :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : (idx === 2 ? 'bg-amber-700 text-white' : 'text-text-secondary bg-surface-700'))">
+                {{ idx + 1 }}
+              </div>
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-700 shrink-0 border border-surface-600">
+                  <img v-if="user.photo" :src="user.photo" class="w-full h-full object-cover" />
+                  <User v-else :size="14" class="m-2 text-text-secondary" />
+                </div>
+                <div class="truncate">
+                  <p class="font-medium text-text-primary text-sm truncate">{{ user.name }}</p>
+                  <p class="text-[10px] text-text-secondary font-mono">#{{ user.rank }} Global</p>
+                </div>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="font-bold text-text-primary">{{ user.units }}</p>
+              <p class="text-[10px] text-text-secondary">Unit</p>
+            </div>
+          </div>
+          <div v-if="!ranking?.leaderboard || ranking.leaderboard.length === 0"
+            class="py-8 text-center text-text-secondary italic text-sm">
+            Belum ada data penjualan akun inventory hari ini
+          </div>
+        </div>
       </div>
     </div>
 
@@ -444,7 +476,8 @@ const getColorClasses = (color) => {
             <ArrowUpRight :size="14" />
           </router-link>
         </div>
-        <div class="overflow-x-auto">
+        <!-- Recent Transactions (Desktop Table) -->
+        <div class="hidden md:block overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
               <tr>
@@ -476,6 +509,32 @@ const getColorClasses = (color) => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Recent Transactions (Mobile Card List) -->
+        <div class="md:hidden space-y-3">
+          <div v-for="trx in recentTransactions" :key="trx.id"
+            class="p-4 rounded-xl bg-surface-700/30 border border-surface-700 space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-[10px] text-primary-400 font-mono mb-0.5">#{{ trx.id }}</p>
+                <p class="font-bold text-text-primary">{{ trx.customer }}</p>
+              </div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 uppercase">
+                Sukses
+              </span>
+            </div>
+            <p class="text-xs text-text-secondary truncate">
+              <Package :size="12" class="inline mr-1" /> {{ trx.items }}
+            </p>
+            <div class="flex justify-between items-end pt-2 border-t border-surface-700/50">
+              <div class="text-[10px] text-text-secondary">
+                <p>{{ trx.datetime }}</p>
+                <p>{{ trx.time }}</p>
+              </div>
+              <p class="font-bold text-emerald-400">{{ formatCurrency(trx.total) }}</p>
+            </div>
+          </div>
         </div>
       </div>
 

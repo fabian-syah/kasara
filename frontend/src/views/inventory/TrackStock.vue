@@ -103,18 +103,17 @@ function formatCurrency(value) {
         </div>
 
         <!-- Search Box -->
-        <div class="card p-4">
-            <form @submit.prevent="search" class="flex gap-3">
+        <div class="card p-3 sm:p-4">
+            <form @submit.prevent="search" class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-1">
                     <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
-                    <input v-model="query" type="text"
-                        placeholder="Ketik IMEI, ID Resi (O03FEB-K9Z), atau No. Resi Shopee..."
-                        class="input pl-12 h-14 text-lg" />
+                    <input v-model="query" type="text" placeholder="Ketik IMEI, Resi, atau Kode..."
+                        class="input pl-12 h-14 text-base sm:text-lg" />
                 </div>
                 <button type="submit" :disabled="isLoading || query.length < 3"
-                    class="btn btn-primary px-8 h-14 rounded-2xl font-bold disabled:opacity-30">
+                    class="btn btn-primary h-14 px-8 rounded-2xl font-bold disabled:opacity-30">
                     <Loader2 v-if="isLoading" :size="20" class="animate-spin" />
-                    <span v-else>Cari</span>
+                    <span v-else>Cari Barang</span>
                 </button>
             </form>
         </div>
@@ -145,27 +144,30 @@ function formatCurrency(value) {
                             class="card p-6 border-l-4 transition-all relative"
                             :class="result.is_arrival ? 'border-l-indigo-500 bg-indigo-500/5' : 'border-l-green-500'">
                             <!-- Header -->
-                            <div class="flex items-start justify-between mb-4">
+                            <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center"
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                                         :class="result.is_arrival ? 'bg-indigo-500/20 text-indigo-500' : 'bg-green-500/20 text-green-500'">
                                         <ArrowUpRight v-if="!result.is_arrival" :size="24" />
                                         <MapPin v-else :size="24" />
                                     </div>
-                                    <div>
-                                        <p class="font-bold text-text-primary flex items-center gap-2">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2 mb-1">
                                             <span v-if="!result.is_arrival"
-                                                class="text-green-500 text-xs font-bold bg-green-500/20 px-2 py-0.5 rounded">MASUK
+                                                class="text-green-400 text-[10px] font-bold bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded uppercase tracking-wider">MASUK
                                                 (STOK)</span>
                                             <span v-else
-                                                class="text-indigo-400 text-xs font-bold bg-indigo-500/20 px-2 py-0.5 rounded">MASUK
+                                                class="text-indigo-400 text-[10px] font-bold bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded uppercase tracking-wider">MASUK
                                                 (TRANSFER)</span>
-                                            {{ result.product_name }}
-                                        </p>
-                                        <p class="text-sm text-text-secondary font-mono">{{ result.imei }}</p>
+                                            <p class="font-bold text-text-primary text-base truncate">{{
+                                                result.product_name }}</p>
+                                        </div>
+                                        <p class="text-sm text-text-secondary font-mono tracking-tight">{{ result.imei
+                                            }}</p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-text-secondary text-sm">
+                                <div
+                                    class="flex items-center gap-2 text-text-secondary text-xs sm:text-sm bg-surface-900/50 px-3 py-1.5 rounded-lg border border-surface-700/50">
                                     <Calendar :size="14" />
                                     {{ formatDate(result.created_at) }}
                                 </div>
@@ -235,23 +237,25 @@ function formatCurrency(value) {
                                 'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category), // Warna Oranye Shopee
                             }">
 
-                            <div class="flex items-start justify-between mb-4">
+                            <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" :class="{
                                         'bg-blue-500/20 text-blue-500': result.category === 'pindah_cabang',
                                         'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
                                         'bg-purple-500/20 text-purple-500': result.category === 'retur',
-                                        'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category), // Warna Oranye Shopee
+                                        'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                     }">
                                         <component :is="categoryIcons[result.category]" :size="24" />
                                     </div>
-                                    <div>
-                                        <p class="font-bold text-text-primary flex items-center gap-2">
+                                    <div class="min-w-0">
+                                        <div class="flex flex-wrap items-center gap-2 mb-1">
                                             <span
-                                                class="text-red-400 text-xs font-bold bg-red-500/20 px-2 py-0.5 rounded">KELUAR</span>
-                                            {{ result.id }}
+                                                class="text-red-400 text-[10px] font-bold bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider">KELUAR</span>
+                                            <p class="font-bold text-text-primary text-base truncate">{{ result.id }}
+                                            </p>
                                             <span v-if="result.category === 'pindah_cabang'"
-                                                class="text-xs font-bold px-2 py-0.5 rounded capitalize" :class="{
+                                                class="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"
+                                                :class="{
                                                     'bg-yellow-500/20 text-yellow-500': result.status === 'pending',
                                                     'bg-green-500/20 text-green-500': result.status === 'received',
                                                     'bg-red-500/20 text-red-500': result.status === 'rejected'
@@ -260,11 +264,12 @@ function formatCurrency(value) {
                                                     'rejected'
                                                     ? 'Ditolak' : 'Selesai') }}
                                             </span>
-                                        </p>
+                                        </div>
                                         <p class="text-sm text-text-secondary">{{ categoryLabels[result.category] }}</p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-text-secondary text-sm">
+                                <div
+                                    class="flex items-center gap-2 text-text-secondary text-xs sm:text-sm bg-surface-900/50 px-3 py-1.5 rounded-lg border border-surface-700/50">
                                     <Calendar :size="14" />
                                     {{ formatDate(result.created_at) }}
                                 </div>

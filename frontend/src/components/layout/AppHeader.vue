@@ -46,14 +46,14 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
     <header
         class="h-16 border-b border-surface-700 flex items-center justify-between px-4 lg:px-8 bg-surface-800/50 backdrop-blur-sm z-20 transition-colors duration-300">
         <!-- Left Side: Hamburger & Search -->
-        <div class="flex items-center gap-4 flex-1">
+        <div class="flex items-center gap-2 sm:gap-4 flex-1">
             <button @click="emit('toggle-mobile-menu')"
-                class="lg:hidden p-2 text-text-secondary hover:text-text-primary">
+                class="lg:hidden p-2 text-text-secondary hover:text-text-primary transition-colors shrink-0">
                 <Menu :size="24" />
             </button>
 
             <!-- Search -->
-            <div class="relative w-full max-w-[140px] sm:max-w-xs md:max-w-md group transition-all duration-300">
+            <div class="relative w-full max-w-[160px] xs:max-w-xs md:max-w-md group transition-all duration-300">
                 <Search
                     class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors"
                     :size="18" />

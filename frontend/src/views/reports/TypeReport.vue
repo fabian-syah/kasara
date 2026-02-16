@@ -58,8 +58,8 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="card overflow-hidden p-0">
+        <!-- Table (Desktop) -->
+        <div class="card overflow-hidden p-0 hidden md:block">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
@@ -111,6 +111,47 @@ onMounted(() => {
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Card View (Mobile) -->
+        <div class="md:hidden space-y-4">
+            <div v-if="isLoading" class="text-center py-8 text-text-secondary">
+                <div class="flex justify-center items-center gap-2">
+                    <div class="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin">
+                    </div>
+                    Memuat data...
+                </div>
+            </div>
+            <div v-else-if="filteredReports.length === 0" class="text-center py-8 text-text-secondary card">
+                Tidak ada data ditemukan
+            </div>
+            <div v-else v-for="report in filteredReports" :key="report.id"
+                class="card bg-surface-800 border-surface-700 space-y-3">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-[10px] text-text-secondary uppercase font-bold tracking-wider mb-0.5">{{
+                            report.brand_name }}</p>
+                        <h3 class="font-bold text-text-primary text-lg">{{ report.name }}</h3>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-text-secondary uppercase font-bold tracking-wider">Total</p>
+                        <p class="text-primary-400 font-bold">{{ formatNumber(report.total) }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-3 border-t border-surface-700/50">
+                    <div class="bg-surface-900/50 p-2 rounded-lg text-center">
+                        <p class="text-[10px] text-text-secondary uppercase mb-1">Stok Baru</p>
+                        <p class="text-emerald-400 font-bold" v-if="report.new > 0">{{ formatNumber(report.new) }}</p>
+                        <p class="text-text-disabled font-medium" v-else>-</p>
+                    </div>
+                    <div class="bg-surface-900/50 p-2 rounded-lg text-center">
+                        <p class="text-[10px] text-text-secondary uppercase mb-1">Stok Bekas</p>
+                        <p class="text-amber-400 font-bold" v-if="report.second > 0">{{ formatNumber(report.second) }}
+                        </p>
+                        <p class="text-text-disabled font-medium" v-else>-</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
