@@ -20,7 +20,7 @@ const goTo = (path) => {
 
 <template>
     <footer
-        class="relative mt-auto pt-20 pb-10 border-t border-surface-700/80 bg-surface-900/80 backdrop-blur-2xl overflow-hidden shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.5)]">
+        class="relative mt-auto pt-10 pb-8 border-t border-surface-700/80 bg-surface-900/80 backdrop-blur-2xl overflow-hidden shadow-[0_-15px_40px_-15px_rgba(0,0,0,0.5)]">
         <!-- Abstract Background Glows -->
         <div
             class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[500px] h-[500px] bg-primary-500/[0.08] blur-[140px] rounded-full pointer-events-none">
@@ -30,7 +30,7 @@ const goTo = (path) => {
         </div>
 
         <div class="container mx-auto px-6 relative z-10">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-10">
                 <!-- Brand Section -->
                 <div class="space-y-6">
                     <div class="flex items-center gap-3">
