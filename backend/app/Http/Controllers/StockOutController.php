@@ -513,6 +513,17 @@ class StockOutController extends Controller
             });
         }
 
+        // DATE FILTERS
+        if ($request->has('date') && !empty($request->date)) {
+            $query->whereDate('created_at', $request->date);
+        }
+        if ($request->has('month') && !empty($request->month)) {
+            $query->whereMonth('created_at', $request->month);
+        }
+        if ($request->has('year') && !empty($request->year)) {
+            $query->whereYear('created_at', $request->year);
+        }
+
         $history = $query->latest()->paginate(20);
 
         // Enrich non_hp_items with product names

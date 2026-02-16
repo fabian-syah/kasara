@@ -30,6 +30,7 @@ const pagination = ref({
 });
 
 const search = ref("");
+const filterType = ref("this_month"); // yesterday, today, this_month, all
 let searchTimeout = null;
 
 // Flattened data for table
@@ -92,7 +93,12 @@ const fetchData = async (page = 1) => {
             params: {
                 page,
                 q: search.value,
-                per_page: 20
+                per_page: 20,
+                // Add filter params
+                date: filterType.value === 'today' ? new Date().toISOString().split('T')[0]
+                    : (filterType.value === 'yesterday' ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : null),
+                month: filterType.value === 'this_month' ? new Date().getMonth() + 1 : null,
+                year: filterType.value === 'this_month' ? new Date().getFullYear() : null
             }
         });
 
@@ -123,13 +129,24 @@ const handleSearch = () => {
 watch(search, handleSearch);
 
 // Formatters
-const formatDate = (dateString) => {
+const formatDate = (dateString, showTime = true) => {
     if (!dateString) return "-";
-    return new Date(dateString).toLocaleDateString("id-ID", {
+    const date = new Date(dateString);
+    const datePart = date.toLocaleDateString("id-ID", {
         day: "2-digit",
         month: "short",
         year: "numeric"
     });
+
+    if (showTime) {
+        const timePart = date.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+        });
+        return `${datePart} ${timePart}`;
+    }
+    return datePart;
 };
 
 const formatCurrency = (value) => {
@@ -158,11 +175,25 @@ onMounted(() => {
                 <p class="text-text-secondary mt-1">Daftar transaksi penjualan online terperinci</p>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Date Filters -->
+                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
+                    <button v-for="btn in [
+                        { id: 'today', label: 'Hari Ini' },
+                        { id: 'yesterday', label: 'Kemarin' },
+                        { id: 'this_month', label: 'Bulan Ini' },
+                        { id: 'all', label: 'Semua' }
+                    ]" :key="btn.id" @click="filterType = btn.id; fetchData(1)"
+                        class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                        :class="filterType === btn.id ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        {{ btn.label }}
+                    </button>
+                </div>
+
                 <!-- Search -->
                 <div class="relative w-full md:w-64">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
-                    <input v-model="search" type="text" placeholder="Cari Nota atau Nama..."
+                    <input v-model="search" type="text" placeholder="Cari..."
                         class="pl-10 w-full bg-surface-800 border-surface-700 rounded-xl focus:ring-primary-500 focus:border-primary-500 transition-all text-text-primary h-11" />
                 </div>
             </div>
@@ -207,23 +238,24 @@ onMounted(() => {
                                     {{ order.receipt_id }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-xs text-text-secondary align-top">
+                            <td
+                                class="px-6 py-4 whitespace-nowrap text-center text-[10px] text-text-secondary align-top font-mono">
                                 {{ formatDate(order.created_at) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-text-primary align-top">
                                 {{ order.customer_name }}
                             </td>
-                            <td class="px-6 py-4 text-text-secondary space-y-4">
+                            <td class="px-6 py-4 text-text-secondary space-y-5">
                                 <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center">
                                     {{ item.brand }}
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-text-primary font-semibold space-y-4">
+                            <td class="px-6 py-4 text-text-primary font-semibold space-y-5">
                                 <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center">
                                     {{ item.type }}
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-center space-y-4">
+                            <td class="px-6 py-4 text-center space-y-5">
                                 <div v-for="(item, idx) in order.items" :key="idx"
                                     class="h-6 flex items-center justify-center">
                                     <span v-if="item.kapasitas !== '-'"
@@ -233,7 +265,7 @@ onMounted(() => {
                                     <span v-else class="text-text-secondary">-</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 space-y-4">
+                            <td class="px-6 py-4 space-y-5">
                                 <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center gap-2">
                                     <component :is="item.is_hp ? Smartphone : Package" :size="12"
                                         :class="item.is_hp ? 'text-blue-400' : 'text-amber-400'" />
@@ -243,12 +275,12 @@ onMounted(() => {
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right align-top space-y-4">
+                            <td class="px-6 py-4 text-right align-top space-y-5">
                                 <div v-for="(item, idx) in order.items" :key="idx"
                                     class="h-6 flex items-center justify-end font-bold text-emerald-400 text-xs">
                                     {{ formatCurrency(item.price) }}
                                 </div>
-                                <div v-if="order.items.length > 1" class="pt-1.5 border-t border-surface-700/50 mt-1">
+                                <div v-if="order.items.length > 1" class="pt-2 border-t border-surface-700/50 mt-2">
                                     <div class="text-[9px] text-text-secondary leading-none mb-0.5">TOTAL</div>
                                     <div class="font-black text-emerald-400 text-sm">
                                         {{ formatCurrency(order.total_price) }}
@@ -262,7 +294,7 @@ onMounted(() => {
                                         {{ order.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
                                     <span class="text-text-secondary text-xs truncate max-w-[80px]">{{ order.petugas
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
