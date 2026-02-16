@@ -69,12 +69,14 @@ const menuItems = [
     { id: "shopee_history", path: "/online-shop/history", label: "History Orderan Online", icon: Receipt },
     {
         id: "reports",
-        label: "Laporan Stok",
+        label: "Pusat Laporan",
         icon: BarChart3,
         items: [
-            { id: "report_sales", path: "/reports/sales", label: "Laporan Penjualan" },
-            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand Stok" },
-            { id: "report_type", path: "/reports/type", label: "Laporan Tipe Stok" },
+            { id: "report_sales", path: "/reports/sales", label: "Laporan Penjualan (Laku)" },
+            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand (Stok)" },
+            { id: "report_type", path: "/reports/type", label: "Laporan Tipe (Stok)" },
+            { id: "stock_in_history", path: "/inventory/history/in", label: "Riwayat Stok Masuk" },
+            { id: "stock_out_history", path: "/inventory/history/out", label: "Riwayat Stok Keluar" },
         ]
     },
 

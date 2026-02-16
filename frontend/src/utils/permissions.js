@@ -177,7 +177,8 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.INVENTORY_VIEW,
         PERMISSIONS.INVENTORY_STOCK_IN,
         PERMISSIONS.INVENTORY_MANAGE, // Allow confirming transfers
-        PERMISSIONS.USERS_VIEW // Needed to select target account for stock in
+        PERMISSIONS.USERS_VIEW, // Needed to select target account for stock in
+        PERMISSIONS.REPORTS_VIEW
     ],
 
     [ROLES.LEADER_SHOPEE]: [
