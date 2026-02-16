@@ -42,7 +42,7 @@ class ProductTypeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $query->latest('product_types.created_at')->paginate(20)
+            'data' => $query->latest('product_types.created_at')->get()
         ]);
     }
 
