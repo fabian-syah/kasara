@@ -8,6 +8,8 @@ use App\Models\ProductType;
 use App\Models\ProductDetail;
 use App\Models\Inventory;
 use App\Models\Product;
+use App\Models\StockOut;
+use App\Models\StockOutNonHpItem;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
@@ -167,5 +169,120 @@ class ReportController extends Controller
         }
 
         return response()->json($report->values());
+    }
+    public function getSalesReport(Request $request)
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        // Categories considered as "Sales"
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+
+        // Base query for StockOut
+        $query = StockOut::whereIn('category', $salesCategories);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        $stockOuts = $query->with(['items.product', 'nonHpItems.product', 'user'])->get();
+
+        // 1. Brand Stats
+        $brandStats = [];
+        // 2. Product Stats
+        $productStats = [];
+        // 3. CS Stats
+        $csStats = [];
+
+        foreach ($stockOuts as $so) {
+            // CS Stats initialization
+            $userId = $so->user_id;
+            if (!isset($csStats[$userId])) {
+                $csStats[$userId] = [
+                    'name' => $so->user->name ?? 'Unknown',
+                    'hp_count' => 0,
+                    'acc_count' => 0,
+                    'omset' => 0
+                ];
+            }
+            $csStats[$userId]['omset'] += $so->selling_price;
+
+            // Process HP Items
+            foreach ($so->items as $item) {
+                $brandName = $item->product->brand ?? 'Unknown';
+                $condition = $item->condition ?? 'new';
+
+                // Brand Stats
+                if (!isset($brandStats[$brandName])) {
+                    $brandStats[$brandName] = ['brand' => $brandName, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
+                }
+                if ($condition === 'second') {
+                    $brandStats[$brandName]['hp_second']++;
+                } else {
+                    $brandStats[$brandName]['hp_new']++;
+                }
+
+                // Product Stats
+                $specArr = [];
+                if ($item->ram)
+                    $specArr[] = $item->ram;
+                if ($item->storage)
+                    $specArr[] = $item->storage;
+                $specs = implode('/', $specArr);
+                $productKey = $item->product->name . '|' . $specs . '|' . $condition;
+
+                if (!isset($productStats[$productKey])) {
+                    $productStats[$productKey] = [
+                        'name' => $item->product->name,
+                        'brand' => $brandName,
+                        'specs' => $specs,
+                        'condition' => $condition,
+                        'total' => 0,
+                        'is_hp' => true
+                    ];
+                }
+                $productStats[$productKey]['total']++;
+
+                // CS Stats - HP
+                $csStats[$userId]['hp_count']++;
+            }
+
+            // Process Non-HP Items
+            foreach ($so->nonHpItems as $nhp) {
+                $brandName = $nhp->product->brand ?? 'Unknown';
+
+                // Brand Stats
+                if (!isset($brandStats[$brandName])) {
+                    $brandStats[$brandName] = ['brand' => $brandName, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
+                }
+                $brandStats[$brandName]['non_hp'] += $nhp->quantity;
+
+                // Product Stats
+                $productKey = 'NHP|' . $nhp->product->name;
+                if (!isset($productStats[$productKey])) {
+                    $productStats[$productKey] = [
+                        'name' => $nhp->product->name,
+                        'brand' => $brandName,
+                        'specs' => '-',
+                        'condition' => 'new',
+                        'total' => 0,
+                        'is_hp' => false
+                    ];
+                }
+                $productStats[$productKey]['total'] += $nhp->quantity;
+
+                // CS Stats - Acc
+                $csStats[$userId]['acc_count'] += $nhp->quantity;
+            }
+        }
+
+        return response()->json([
+            'brands' => array_values($brandStats),
+            'products' => array_values($productStats),
+            'cs' => array_values($csStats)
+        ]);
     }
 }

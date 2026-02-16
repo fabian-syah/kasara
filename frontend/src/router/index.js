@@ -69,6 +69,16 @@ const routes = [
                 }
             },
             {
+                path: 'reports/sales',
+                name: 'SalesReport',
+                component: () => import('../views/reports/SalesReport.vue'),
+                meta: {
+                    title: 'Laporan Penjualan',
+                    menu: 'reports',
+                    permissions: ['reports.view']
+                }
+            },
+            {
                 path: 'inventory',
                 name: 'Inventory',
                 component: Inventory,

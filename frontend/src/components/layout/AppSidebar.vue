@@ -72,8 +72,9 @@ const menuItems = [
         label: "Laporan Stok",
         icon: BarChart3,
         items: [
-            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand" },
-            { id: "report_type", path: "/reports/type", label: "Laporan Tipe" },
+            { id: "report_sales", path: "/reports/sales", label: "Laporan Penjualan" },
+            { id: "report_brand", path: "/reports/brand", label: "Laporan Brand Stok" },
+            { id: "report_type", path: "/reports/type", label: "Laporan Tipe Stok" },
         ]
     },
 

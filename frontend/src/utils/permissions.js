@@ -188,18 +188,18 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit', 'reports', 'settings', 'warehouses', 'distributors', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'track'],
-    [ROLES.ANALIST]: ['dashboard', 'reports', 'track'],
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit', 'reports', 'report_sales', 'settings', 'warehouses', 'distributors', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'track'],
+    [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'track'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
     [ROLES.AUDIT]: ['dashboard', 'audit', 'transactions', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
-    [ROLES.LEADER]: ['dashboard', 'transactions', 'reports', 'track'],
+    [ROLES.LEADER]: ['dashboard', 'transactions', 'reports', 'report_sales', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'reports', 'track'],
     [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'inventory', 'incoming_group', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales', 'online_scan', 'shopee_history', 'reports', 'inventory', 'incoming_group', 'track'],
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales', 'online_scan', 'shopee_history', 'reports', 'report_sales', 'inventory', 'incoming_group', 'track'],
     [ROLES.LEADER_SHOPEE]: ['dashboard', 'online_analysis', 'shopee_history', 'track']
 }
 
