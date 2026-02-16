@@ -26,15 +26,18 @@ const filters = ref({
     start_date: '',
     end_date: '',
     branch_id: '',
-    account_type: 'sales'
+    online_shop_id: ''
 });
 
-const branches = ref([]);
+const filterOptions = ref({
+    branches: [],
+    online_shops: []
+});
 
 const fetchFilters = async () => {
     try {
         const response = await api.get('/reports/filters');
-        branches.value = response.data.branches;
+        filterOptions.value = response.data;
     } catch (error) {
         console.error('Error fetching filters:', error);
     }
@@ -123,37 +126,30 @@ const filteredProducts = computed(() => {
                         class="bg-transparent text-xs text-text-primary outline-none px-2" />
                 </div>
 
-                <!-- Branch Selector -->
-                <div v-if="branches.length > 1"
-                    class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700">
+                <!-- Branch Selector (Admins Only) -->
+                <div v-if="filterOptions.branches.length > 0"
+                    class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
                     <Building2 class="w-4 h-4 text-text-secondary ml-1" />
                     <select v-model="filters.branch_id" @change="fetchReport"
                         class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
                         <option value="">Semua Cabang</option>
-                        <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                        <option v-for="branch in filterOptions.branches" :key="branch.id" :value="branch.id">
                             {{ branch.name }}
                         </option>
                     </select>
                 </div>
 
-                <!-- Account Mode -->
-                <div class="flex items-center gap-1 bg-surface-800 p-1 rounded-lg border border-surface-700">
-                    <button @click="filters.account_type = 'sales'; fetchReport()" :class="[
-                        'px-3 py-1 text-xs font-medium rounded-md transition-all',
-                        filters.account_type === 'sales'
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                            : 'text-text-secondary hover:text-text-primary'
-                    ]">
-                        CS/Kasir
-                    </button>
-                    <button @click="filters.account_type = 'inventory'; fetchReport()" :class="[
-                        'px-3 py-1 text-xs font-medium rounded-md transition-all',
-                        filters.account_type === 'inventory'
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20'
-                            : 'text-text-secondary hover:text-text-primary'
-                    ]">
-                        Petugas Stok
-                    </button>
+                <!-- Online Shop Selector (Admins Only) -->
+                <div v-if="filterOptions.online_shops.length > 0"
+                    class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
+                    <Smartphone class="w-4 h-4 text-text-secondary ml-1" />
+                    <select v-model="filters.online_shop_id" @change="fetchReport"
+                        class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
+                        <option value="">Semua Online Shop</option>
+                        <option v-for="shop in filterOptions.online_shops" :key="shop.id" :value="shop.id">
+                            {{ shop.name }}
+                        </option>
+                    </select>
                 </div>
 
                 <button @click="fetchReport" class="btn btn-primary btn-sm">
@@ -304,7 +300,7 @@ const filteredProducts = computed(() => {
                         <tr class="bg-surface-800">
                             <th
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider rounded-tl-xl border-b border-surface-700">
-                                Customer Service</th>
+                                Petugas Stok</th>
                             <th @click="toggleSort('hp_count')"
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700 cursor-pointer hover:bg-surface-700 transition-colors group">
                                 <div class="flex items-center gap-2">

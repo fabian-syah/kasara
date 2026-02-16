@@ -188,19 +188,38 @@ class ReportController extends Controller
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $branchId = $request->query('branch_id');
-        $accountType = $request->query('account_type', 'sales'); // sales or inventory
-        $csUserIdField = ($accountType === 'inventory') ? 'inventory_user_id' : 'user_id';
+        $onlineShopId = $request->query('online_shop_id');
+
+        // Group CS stats by Petugas Stok (inventory_user_id) as requested
+        $csUserIdField = 'inventory_user_id';
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
 
-        // Role-based branch scoping
+        // Role-based scoping and strict isolation
         $user = $request->user();
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
 
-        // If restricted and no branchId provided, use user's branch
-        if ($isRestricted && !$branchId) {
-            $branchId = $user->branch_id;
+        // Final filter values
+        $filterBranchId = $branchId;
+        $filterOnlineShopId = $onlineShopId;
+
+        if ($isRestricted) {
+            // Strict enforcement: if user has a branch, they can ONLY see that branch
+            // If user has an online shop, they can ONLY see that shop
+            $filterBranchId = $user->branch_id;
+            $filterOnlineShopId = $user->online_shop_id;
         }
+
+        // Helper to apply strict user-based filters to any query joined with users
+        $applyIsolation = function ($query) use ($filterBranchId, $filterOnlineShopId) {
+            if ($filterBranchId) {
+                $query->where('users.branch_id', $filterBranchId);
+            }
+            if ($filterOnlineShopId) {
+                $query->where('users.online_shop_id', $filterOnlineShopId);
+            }
+            return $query;
+        };
 
         // 1. CS STATS (Aggregation by User)
         $csQuery = StockOut::whereIn('category', $salesCategories)
@@ -215,8 +234,7 @@ class ReportController extends Controller
             $csQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $csQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        if ($branchId)
-            $csQuery->where('users.branch_id', $branchId);
+        $csQuery = $applyIsolation($csQuery);
 
         $csBase = $csQuery->groupBy('users.id', 'users.name')->get();
 
@@ -229,8 +247,7 @@ class ReportController extends Controller
             $hpCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $hpCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        if ($branchId)
-            $hpCountsQuery->where('users.branch_id', $branchId);
+        $hpCountsQuery = $applyIsolation($hpCountsQuery);
 
         $hpCountsPerUser = $hpCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('COUNT(*) as hp_count'))
             ->groupBy("stock_outs.{$csUserIdField}")
@@ -245,8 +262,7 @@ class ReportController extends Controller
             $accCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $accCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        if ($branchId)
-            $accCountsQuery->where('users.branch_id', $branchId);
+        $accCountsQuery = $applyIsolation($accCountsQuery);
 
         $accCountsPerUser = $accCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('SUM(quantity) as acc_count'))
             ->groupBy("stock_outs.{$csUserIdField}")
@@ -273,8 +289,7 @@ class ReportController extends Controller
             $hpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $hpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        if ($branchId)
-            $hpBaseQuery->where('users.branch_id', $branchId);
+        $hpBaseQuery = $applyIsolation($hpBaseQuery);
 
         $hpBrandStats = (clone $hpBaseQuery)->select(
             'products.brand',
@@ -294,8 +309,7 @@ class ReportController extends Controller
             $nhpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $nhpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        if ($branchId)
-            $nhpBaseQuery->where('users.branch_id', $branchId);
+        $nhpBaseQuery = $applyIsolation($nhpBaseQuery);
 
         $nhpBrandStats = (clone $nhpBaseQuery)->select(
             'products.brand',
@@ -381,13 +395,15 @@ class ReportController extends Controller
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
 
         if ($isRestricted) {
-            $branches = \App\Models\Branch::where('id', $user->branch_id)->get(['id', 'name']);
-        } else {
-            $branches = \App\Models\Branch::orderBy('name')->get(['id', 'name']);
+            return response()->json([
+                'branches' => [],
+                'online_shops' => []
+            ]);
         }
 
         return response()->json([
-            'branches' => $branches
+            'branches' => \App\Models\Branch::orderBy('name')->get(['id', 'name']),
+            'online_shops' => \App\Models\OnlineShop::orderBy('name')->get(['id', 'name'])
         ]);
     }
 }
