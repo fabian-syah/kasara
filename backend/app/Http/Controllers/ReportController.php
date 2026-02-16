@@ -174,115 +174,162 @@ class ReportController extends Controller
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
-
-        // Categories considered as "Sales"
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
 
-        // Base query for StockOut
-        $query = StockOut::whereIn('category', $salesCategories);
+        // 1. CS STATS (Aggregation by User)
+        $csQuery = StockOut::whereIn('category', $salesCategories)
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->select(
+                'users.id',
+                'users.name',
+                DB::raw('SUM(stock_outs.selling_price) as omset')
+            );
 
-        if ($startDate) {
-            $query->whereDate('created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->whereDate('created_at', '<=', $endDate);
-        }
+        if ($startDate)
+            $csQuery->whereDate('stock_outs.created_at', '>=', $startDate);
+        if ($endDate)
+            $csQuery->whereDate('stock_outs.created_at', '<=', $endDate);
 
-        $stockOuts = $query->with(['items.product', 'nonHpItems.product', 'user'])->get();
+        $csBase = $csQuery->groupBy('users.id', 'users.name')->get();
 
-        // 1. Brand Stats
-        $brandStats = [];
-        // 2. Product Stats
-        $productStats = [];
-        // 3. CS Stats
-        $csStats = [];
+        // Get counts for HP per User
+        $hpCountsQuery = DB::table('stock_out_items')
+            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+            ->whereIn('stock_outs.category', $salesCategories);
+        if ($startDate)
+            $hpCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
+        if ($endDate)
+            $hpCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+        $hpCountsPerUser = $hpCountsQuery->select('stock_outs.user_id', DB::raw('COUNT(*) as hp_count'))
+            ->groupBy('stock_outs.user_id')
+            ->pluck('hp_count', 'user_id');
 
-        foreach ($stockOuts as $so) {
-            // CS Stats initialization
-            $userId = $so->user_id;
-            if (!isset($csStats[$userId])) {
-                $csStats[$userId] = [
-                    'name' => $so->user->name ?? 'Unknown',
-                    'hp_count' => 0,
-                    'acc_count' => 0,
-                    'omset' => 0
-                ];
+        // Get counts for Non-HP per User
+        $accCountsQuery = DB::table('stock_out_non_hp_items')
+            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+            ->whereIn('stock_outs.category', $salesCategories);
+        if ($startDate)
+            $accCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
+        if ($endDate)
+            $accCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+        $accCountsPerUser = $accCountsQuery->select('stock_outs.user_id', DB::raw('SUM(quantity) as acc_count'))
+            ->groupBy('stock_outs.user_id')
+            ->pluck('acc_count', 'user_id');
+
+        $csStats = $csBase->map(function ($user) use ($hpCountsPerUser, $accCountsPerUser) {
+            return [
+                'name' => $user->name,
+                'hp_count' => (int) ($hpCountsPerUser[$user->id] ?? 0),
+                'acc_count' => (int) ($accCountsPerUser[$user->id] ?? 0),
+                'omset' => (float) $user->omset
+            ];
+        });
+
+        // 2. BRAND STATS (Aggregated)
+        // HP Brand Stats Base Query
+        $hpBaseQuery = DB::table('stock_out_items')
+            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+            ->join('products', 'product_details.product_id', '=', 'products.id')
+            ->whereIn('stock_outs.category', $salesCategories);
+        if ($startDate)
+            $hpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
+        if ($endDate)
+            $hpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+
+        $hpBrandStats = (clone $hpBaseQuery)->select(
+            'products.brand',
+            'product_details.condition',
+            DB::raw('COUNT(*) as count')
+        )
+            ->groupBy('products.brand', 'product_details.condition')
+            ->get();
+
+        // Non-HP Brand Stats
+        $nhpBaseQuery = DB::table('stock_out_non_hp_items')
+            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+            ->whereIn('stock_outs.category', $salesCategories);
+        if ($startDate)
+            $nhpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
+        if ($endDate)
+            $nhpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+
+        $nhpBrandStats = (clone $nhpBaseQuery)->select(
+            'products.brand',
+            DB::raw('SUM(quantity) as count')
+        )
+            ->groupBy('products.brand')
+            ->get();
+
+        $brandStatsMap = [];
+        foreach ($hpBrandStats as $s) {
+            if (!isset($brandStatsMap[$s->brand])) {
+                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
             }
-            $csStats[$userId]['omset'] += $so->selling_price;
+            if ($s->condition === 'second')
+                $brandStatsMap[$s->brand]['hp_second'] += $s->count;
+            else
+                $brandStatsMap[$s->brand]['hp_new'] += $s->count;
+        }
+        foreach ($nhpBrandStats as $s) {
+            if (!isset($brandStatsMap[$s->brand])) {
+                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
+            }
+            $brandStatsMap[$s->brand]['non_hp'] += $s->count;
+        }
 
-            // Process HP Items
-            foreach ($so->items as $item) {
-                $brandName = $item->product->brand ?? 'Unknown';
-                $condition = $item->condition ?? 'new';
-
-                // Brand Stats
-                if (!isset($brandStats[$brandName])) {
-                    $brandStats[$brandName] = ['brand' => $brandName, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
-                }
-                if ($condition === 'second') {
-                    $brandStats[$brandName]['hp_second']++;
-                } else {
-                    $brandStats[$brandName]['hp_new']++;
-                }
-
-                // Product Stats
+        // 3. PRODUCT STATS (Aggregated)
+        // HP Product Stats
+        $hpProductStatsData = (clone $hpBaseQuery)->select(
+            'products.name',
+            'products.brand',
+            'product_details.ram',
+            'product_details.storage',
+            'product_details.condition',
+            DB::raw('COUNT(*) as total')
+        )
+            ->groupBy('products.name', 'products.brand', 'product_details.ram', 'product_details.storage', 'product_details.condition')
+            ->get()
+            ->map(function ($p) {
                 $specArr = [];
-                if ($item->ram)
-                    $specArr[] = $item->ram;
-                if ($item->storage)
-                    $specArr[] = $item->storage;
-                $specs = implode('/', $specArr);
-                $productKey = $item->product->name . '|' . $specs . '|' . $condition;
+                if ($p->ram)
+                    $specArr[] = $p->ram;
+                if ($p->storage)
+                    $specArr[] = $p->storage;
+                return [
+                    'name' => $p->name,
+                    'brand' => $p->brand,
+                    'specs' => implode('/', $specArr) ?: '-',
+                    'condition' => $p->condition,
+                    'total' => $p->total,
+                    'is_hp' => true
+                ];
+            });
 
-                if (!isset($productStats[$productKey])) {
-                    $productStats[$productKey] = [
-                        'name' => $item->product->name,
-                        'brand' => $brandName,
-                        'specs' => $specs,
-                        'condition' => $condition,
-                        'total' => 0,
-                        'is_hp' => true
-                    ];
-                }
-                $productStats[$productKey]['total']++;
-
-                // CS Stats - HP
-                $csStats[$userId]['hp_count']++;
-            }
-
-            // Process Non-HP Items
-            foreach ($so->nonHpItems as $nhp) {
-                $brandName = $nhp->product->brand ?? 'Unknown';
-
-                // Brand Stats
-                if (!isset($brandStats[$brandName])) {
-                    $brandStats[$brandName] = ['brand' => $brandName, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
-                }
-                $brandStats[$brandName]['non_hp'] += $nhp->quantity;
-
-                // Product Stats
-                $productKey = 'NHP|' . $nhp->product->name;
-                if (!isset($productStats[$productKey])) {
-                    $productStats[$productKey] = [
-                        'name' => $nhp->product->name,
-                        'brand' => $brandName,
-                        'specs' => '-',
-                        'condition' => 'new',
-                        'total' => 0,
-                        'is_hp' => false
-                    ];
-                }
-                $productStats[$productKey]['total'] += $nhp->quantity;
-
-                // CS Stats - Acc
-                $csStats[$userId]['acc_count'] += $nhp->quantity;
-            }
-        }
+        // Non-HP Product Stats
+        $nhpProductStatsData = (clone $nhpBaseQuery)->select(
+            'products.name',
+            'products.brand',
+            DB::raw('SUM(quantity) as total')
+        )
+            ->groupBy('products.name', 'products.brand')
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'name' => $p->name,
+                    'brand' => $p->brand,
+                    'specs' => '-',
+                    'condition' => 'new',
+                    'total' => $p->total,
+                    'is_hp' => false
+                ];
+            });
 
         return response()->json([
-            'brands' => array_values($brandStats),
-            'products' => array_values($productStats),
-            'cs' => array_values($csStats)
+            'brands' => array_values($brandStatsMap),
+            'products' => $hpProductStatsData->concat($nhpProductStatsData),
+            'cs' => array_values($csStats->toArray())
         ]);
     }
 }
