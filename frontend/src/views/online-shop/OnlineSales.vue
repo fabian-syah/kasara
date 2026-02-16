@@ -272,7 +272,7 @@ onMounted(() => {
                                     class="flex items-start gap-2 min-h-[24px]">
                                     <component :is="item.is_hp ? Smartphone : Package" :size="12"
                                         :class="item.is_hp ? 'text-blue-400' : 'text-amber-400'" class="mt-1" />
-                                    <span class="font-mono text-[11px] break-all"
+                                    <span class="font-mono text-[11px] whitespace-nowrap"
                                         :class="item.is_hp ? 'text-text-primary' : 'text-text-secondary'">
                                         {{ item.identifier }}
                                     </span>
@@ -299,7 +299,7 @@ onMounted(() => {
                                         {{ order.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
                                     <span class="text-text-secondary text-xs truncate max-w-[80px]">{{ order.petugas
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
