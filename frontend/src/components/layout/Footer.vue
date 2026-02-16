@@ -20,13 +20,13 @@ const goTo = (path) => {
 
 <template>
     <footer
-        class="relative mt-auto pt-16 pb-8 border-t border-surface-700/50 bg-surface-900/50 backdrop-blur-xl overflow-hidden">
+        class="relative mt-auto pt-20 pb-10 border-t border-surface-700/80 bg-surface-900/80 backdrop-blur-2xl overflow-hidden shadow-[0_-20px_50px_-20px_rgba(0,0,0,0.5)]">
         <!-- Abstract Background Glows -->
         <div
-            class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-primary-500/5 blur-[120px] rounded-full pointer-events-none">
+            class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[500px] h-[500px] bg-primary-500/[0.08] blur-[140px] rounded-full pointer-events-none">
         </div>
         <div
-            class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/5 blur-[120px] rounded-full pointer-events-none">
+            class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-indigo-500/[0.08] blur-[140px] rounded-full pointer-events-none">
         </div>
 
         <div class="container mx-auto px-6 relative z-10">
