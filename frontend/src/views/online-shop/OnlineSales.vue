@@ -40,6 +40,7 @@ const groupedSales = computed(() => {
         // HP Items
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => {
+                const detailFromJSON = shopeeData.find(si => si.product_detail_id === item.id);
                 // Improved Parsing: Handle "Rp 2.750.00.0,00" or "2.750.000"
                 let price = detailFromJSON?.selling_price || item.selling_price || 0;
                 if (typeof price === 'string') {
@@ -284,7 +285,7 @@ onMounted(() => {
                                         {{ order.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
                                     <span class="text-text-secondary text-xs truncate max-w-[80px]">{{ order.petugas
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
