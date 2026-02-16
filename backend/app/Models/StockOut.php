@@ -121,12 +121,13 @@ class StockOut extends Model
 
     public function scopeSearch($query, $search)
     {
+        $search = strtolower($search);
         return $query->where(function ($q) use ($search) {
-            $q->where('receipt_id', 'like', "%{$search}%")
-                ->orWhere('receiver_name', 'like', "%{$search}%")
-                ->orWhere('customer_name', 'like', "%{$search}%")
-                ->orWhere('shopee_receiver', 'like', "%{$search}%")
-                ->orWhere('shopee_tracking_no', 'like', "%{$search}%");
+            $q->whereRaw('LOWER(receipt_id) LIKE ?', ["%{$search}%"])
+                ->orWhereRaw('LOWER(receiver_name) LIKE ?', ["%{$search}%"])
+                ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$search}%"])
+                ->orWhereRaw('LOWER(shopee_receiver) LIKE ?', ["%{$search}%"])
+                ->orWhereRaw('LOWER(shopee_tracking_no) LIKE ?', ["%{$search}%"]);
         });
     }
 

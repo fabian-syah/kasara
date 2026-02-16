@@ -77,10 +77,11 @@ class InventoryController extends Controller
 
                 $query->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
-                        $q->whereHas('product', function ($sq) use ($keyword) {
-                            $sq->where('name', 'like', "%{$keyword}%")
-                                ->orWhere('sku', 'like', "%{$keyword}%")
-                                ->orWhere('brand', 'like', "%{$keyword}%");
+                        $lowKeyword = strtolower($keyword);
+                        $q->whereHas('product', function ($sq) use ($lowKeyword) {
+                            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                         });
                     }
                 });
@@ -217,20 +218,19 @@ class InventoryController extends Controller
 
                 $query->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
-                        $q->where(function ($sub) use ($keyword) {
-                            $sub->orWhere('ram', 'like', "%{$keyword}%")
-                                ->orWhere('storage', 'like', "%{$keyword}%")
-                                ->orWhere('condition', 'like', "%{$keyword}%")
-                                ->orWhereHas('product', function ($sq) use ($keyword) {
-                                    $sq->where('name', 'like', "%{$keyword}%")
-                                        ->orWhere('sku', 'like', "%{$keyword}%")
-                                        ->orWhere('brand', 'like', "%{$keyword}%");
+                        $lowKeyword = strtolower($keyword);
+                        $q->where(function ($sub) use ($lowKeyword) {
+                            $sub->orWhereRaw('LOWER(ram) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(storage) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(condition) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereHas('product', function ($sq) use ($lowKeyword) {
+                                    $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                        ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$lowKeyword}%"])
+                                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                                 });
 
-                            // Only search IMEI if keyword is long enough (3+ chars) to avoid noise
-                            // e.g. "15" shouldn't match "...9915..." in IMEI, but "356" might be a valid IMEI start
-                            if (strlen($keyword) >= 3) {
-                                $sub->orWhere('imei', 'like', "%{$keyword}%"); // IMEI usually numeric, like/like same for numbers but safe to use like
+                            if (strlen($lowKeyword) >= 3) {
+                                $sub->orWhereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"]);
                             }
                         });
                     }
@@ -362,12 +362,13 @@ class InventoryController extends Controller
 
                 $query->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
-                        $q->where(function ($sub) use ($keyword) {
-                            $sub->whereHas('product', function ($sq) use ($keyword) {
-                                $sq->where('name', 'like', "%{$keyword}%")
-                                    ->orWhere('brand', 'like', "%{$keyword}%");
+                        $lowKeyword = strtolower($keyword);
+                        $q->where(function ($sub) use ($lowKeyword) {
+                            $sub->whereHas('product', function ($sq) use ($lowKeyword) {
+                                $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                             })
-                                ->orWhere('description', 'like', "%{$keyword}%");
+                                ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                         });
                     }
                 });
@@ -383,11 +384,12 @@ class InventoryController extends Controller
 
                 $query->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
-                        $q->where(function ($sub) use ($keyword) {
-                            $sub->where('imei', 'like', "%{$keyword}%")
-                                ->orWhereHas('product', function ($sq) use ($keyword) {
-                                    $sq->where('name', 'like', "%{$keyword}%")
-                                        ->orWhere('brand', 'like', "%{$keyword}%");
+                        $lowKeyword = strtolower($keyword);
+                        $q->where(function ($sub) use ($lowKeyword) {
+                            $sub->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereHas('product', function ($sq) use ($lowKeyword) {
+                                    $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                                 });
                         });
                     }
@@ -477,12 +479,13 @@ class InventoryController extends Controller
 
             $query->where(function ($q) use ($keywords) {
                 foreach ($keywords as $keyword) {
-                    $q->where(function ($sub) use ($keyword) {
-                        $sub->whereHas('product', function ($sq) use ($keyword) {
-                            $sq->where('name', 'like', "%{$keyword}%")
-                                ->orWhere('brand', 'like', "%{$keyword}%");
+                    $lowKeyword = strtolower($keyword);
+                    $q->where(function ($sub) use ($lowKeyword) {
+                        $sub->whereHas('product', function ($sq) use ($lowKeyword) {
+                            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                         })
-                            ->orWhere('description', 'like', "%{$keyword}%");
+                            ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                     });
                 }
             });
@@ -540,24 +543,24 @@ class InventoryController extends Controller
         if ($type === 'non-hp') {
             $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
             if ($request->search) {
-                $search = "%{$request->search}%";
-                $query->where(function ($q) use ($search) {
-                    $q->whereHas('product', function ($pq) use ($search) {
-                        $pq->where('name', 'like', $search)
-                            ->orWhere('brand', 'like', $search);
+                $lowKeyword = strtolower($request->search);
+                $query->where(function ($q) use ($lowKeyword) {
+                    $q->whereHas('product', function ($pq) use ($lowKeyword) {
+                        $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                     })
-                        ->orWhere('description', 'like', $search);
+                        ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                 });
             }
         } else {
             $query = ProductDetail::with(['product', 'distributor', 'user']);
             if ($request->search) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('imei', 'like', "%{$search}%")
-                        ->orWhereHas('product', function ($sq) use ($search) {
-                            $sq->where('name', 'like', "%{$search}%")
-                                ->orWhere('brand', 'like', "%{$search}%");
+                $lowKeyword = strtolower($request->search);
+                $query->where(function ($q) use ($lowKeyword) {
+                    $q->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"])
+                        ->orWhereHas('product', function ($sq) use ($lowKeyword) {
+                            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                         });
                 });
             }
@@ -622,14 +625,14 @@ class InventoryController extends Controller
         $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
 
         if ($request->search) {
-            $search = "%{$request->search}%";
+            $lowKeyword = strtolower($request->search);
 
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('product', function ($pq) use ($search) {
-                    $pq->where('name', 'like', $search)
-                        ->orWhere('brand', 'like', $search);
+            $query->where(function ($q) use ($lowKeyword) {
+                $q->whereHas('product', function ($pq) use ($lowKeyword) {
+                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                 })
-                    ->orWhere('description', 'like', $search);
+                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
             });
         }
 

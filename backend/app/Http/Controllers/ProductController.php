@@ -16,11 +16,11 @@ class ProductController extends Controller
         $query = Product::query();
 
         if ($request->search) {
-            $search = "%{$request->search}%";
+            $search = strtolower($request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', $search)
-                    ->orWhere('brand', 'like', $search)
-                    ->orWhere('sku', 'like', $search);
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$search}%"]);
             });
         }
 

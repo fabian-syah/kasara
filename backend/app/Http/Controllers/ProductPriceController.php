@@ -33,15 +33,15 @@ class ProductPriceController extends Controller
 
         // Multi-field Search (Brand + Type + Capacity) - Symbol & Space Neutral
         if ($request->filled('search')) {
-            $search = "%{$request->search}%";
+            $search = strtolower($request->search);
 
             $query->whereHas('productType', function ($q) use ($search) {
                 $q->where(function ($sq) use ($search) {
-                    $sq->where('name', 'like', $search)
-                        ->orWhere('storage', 'like', $search)
-                        ->orWhere('ram', 'like', $search)
+                    $sq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(storage) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(ram) LIKE ?', ["%{$search}%"])
                         ->orWhereHas('brand', function ($bq) use ($search) {
-                            $bq->where('name', 'like', $search);
+                            $bq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
                         });
                 });
             });

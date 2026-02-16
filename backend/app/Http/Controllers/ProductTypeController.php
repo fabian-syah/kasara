@@ -28,11 +28,11 @@ class ProductTypeController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = "%{$request->search}%";
+            $search = strtolower($request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('product_types.name', 'like', $search)
+                $q->whereRaw('LOWER(product_types.name) LIKE ?', ["%{$search}%"])
                     ->orWhereHas('brand', function ($bq) use ($search) {
-                        $bq->where('name', 'like', $search);
+                        $bq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
                     });
             });
         }
