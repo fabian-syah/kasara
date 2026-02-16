@@ -245,19 +245,21 @@ onMounted(() => {
                             <td class="px-6 py-4 whitespace-nowrap font-medium text-text-primary align-top">
                                 {{ order.customer_name }}
                             </td>
-                            <td class="px-6 py-4 text-text-secondary space-y-5">
-                                <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center">
+                            <td class="px-6 py-4 text-text-secondary space-y-6">
+                                <div v-for="(item, idx) in order.items" :key="idx"
+                                    class="flex items-start min-h-[24px]">
                                     {{ item.brand }}
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-text-primary font-semibold space-y-5">
-                                <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center">
+                            <td class="px-6 py-4 text-text-primary font-semibold space-y-6">
+                                <div v-for="(item, idx) in order.items" :key="idx"
+                                    class="flex items-start min-h-[24px]">
                                     {{ item.type }}
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-center space-y-5">
+                            <td class="px-6 py-4 text-center space-y-6">
                                 <div v-for="(item, idx) in order.items" :key="idx"
-                                    class="h-6 flex items-center justify-center">
+                                    class="flex items-center justify-center min-h-[24px]">
                                     <span v-if="item.kapasitas !== '-'"
                                         class="px-2 py-0.5 rounded bg-surface-700 text-[10px] text-text-primary border border-surface-600">
                                         {{ item.kapasitas }}
@@ -265,23 +267,26 @@ onMounted(() => {
                                     <span v-else class="text-text-secondary">-</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 space-y-5">
-                                <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center gap-2">
+                            <td class="px-6 py-4 space-y-6">
+                                <div v-for="(item, idx) in order.items" :key="idx"
+                                    class="flex items-start gap-2 min-h-[24px]">
                                     <component :is="item.is_hp ? Smartphone : Package" :size="12"
-                                        :class="item.is_hp ? 'text-blue-400' : 'text-amber-400'" />
-                                    <span class="font-mono text-[11px]"
+                                        :class="item.is_hp ? 'text-blue-400' : 'text-amber-400'" class="mt-1" />
+                                    <span class="font-mono text-[11px] break-all"
                                         :class="item.is_hp ? 'text-text-primary' : 'text-text-secondary'">
                                         {{ item.identifier }}
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right align-top space-y-5">
+                            <td class="px-6 py-4 text-right align-top space-y-6">
                                 <div v-for="(item, idx) in order.items" :key="idx"
-                                    class="h-6 flex items-center justify-end font-bold text-emerald-400 text-xs">
+                                    class="flex items-center justify-end font-bold text-emerald-400 text-xs min-h-[24px]">
                                     {{ formatCurrency(item.price) }}
                                 </div>
                                 <div v-if="order.items.length > 1" class="pt-2 border-t border-surface-700/50 mt-2">
-                                    <div class="text-[9px] text-text-secondary leading-none mb-0.5">TOTAL</div>
+                                    <div
+                                        class="text-[9px] text-text-secondary leading-none mb-0.5 uppercase tracking-tighter">
+                                        Total Receipt</div>
                                     <div class="font-black text-emerald-400 text-sm">
                                         {{ formatCurrency(order.total_price) }}
                                     </div>
@@ -294,7 +299,7 @@ onMounted(() => {
                                         {{ order.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
                                     <span class="text-text-secondary text-xs truncate max-w-[80px]">{{ order.petugas
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
