@@ -681,9 +681,9 @@ class StockOutController extends Controller
                 }
             }
 
-            // Sort chronologically (Oldest first for timeline flow)
+            // Sort chronologically (Newest first for timeline flow)
             usort($allEvents, function ($a, $b) {
-                return $a['timestamp'] - $b['timestamp'];
+                return $b['timestamp'] - $a['timestamp'];
             });
 
             return response()->json([
