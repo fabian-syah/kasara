@@ -75,7 +75,7 @@ const routes = [
                 meta: {
                     title: 'Laporan Penjualan',
                     menu: 'reports',
-                    permissions: ['reports.view']
+                    permissions: ['inventory.view', 'reports.view']
                 }
             },
             {
@@ -94,7 +94,7 @@ const routes = [
                 component: () => import('../views/inventory/StockInHistory.vue'),
                 meta: {
                     title: 'Daftar Stok Masuk',
-                    menu: 'inventory',
+                    menu: 'reports',
                     permissions: ['inventory.view']
                 }
             },
@@ -104,7 +104,7 @@ const routes = [
                 component: () => import('../views/inventory/StockOutHistory.vue'),
                 meta: {
                     title: 'Daftar Stok Keluar',
-                    menu: 'inventory',
+                    menu: 'reports',
                     permissions: ['inventory.view']
                 }
             },
