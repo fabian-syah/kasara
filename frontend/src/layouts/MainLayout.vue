@@ -55,7 +55,7 @@ watch(
 
       <!-- Page Content Wrapper -->
       <div class="flex-1 overflow-y-auto custom-scrollbar relative z-10 flex flex-col">
-        <div class="p-4 md:p-8 pt-6 pb-12 flex-1 flex flex-col">
+        <div class="p-4 md:p-8 pt-6 flex-1 flex flex-col">
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
               <component :is="Component" />
