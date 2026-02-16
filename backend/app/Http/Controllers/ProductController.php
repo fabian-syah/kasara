@@ -16,14 +16,11 @@ class ProductController extends Controller
         $query = Product::query();
 
         if ($request->search) {
-            $search = $request->search;
-            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
-
-            $query->where(function ($q) use ($search, $cleanSearch) {
-                // Concatenated Brand + Name search
-                $q->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
-                    ->orWhere('name', 'ilike', '%' . $search . '%')
-                    ->orWhere('sku', 'ilike', '%' . $search . '%');
+            $search = "%{$request->search}%";
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', $search)
+                    ->orWhere('brand', 'like', $search)
+                    ->orWhere('sku', 'like', $search);
             });
         }
 

@@ -33,16 +33,17 @@ class ProductPriceController extends Controller
 
         // Multi-field Search (Brand + Type + Capacity) - Symbol & Space Neutral
         if ($request->filled('search')) {
-            $search = $request->search;
-            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+            $search = "%{$request->search}%";
 
-            $query->whereHas('productType', function ($q) use ($cleanSearch, $search) {
-                $q->join('brands', 'product_types.brand_id', '=', 'brands.id')
-                    ->where(function ($sq) use ($cleanSearch, $search) {
-                        $sq->whereRaw("REGEXP_REPLACE(brands.name || product_types.name || COALESCE(product_types.storage, '') || COALESCE(product_types.ram, ''), '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
-                            ->orWhere('product_types.name', 'ilike', "%{$search}%")
-                            ->orWhere('brands.name', 'ilike', "%{$search}%");
-                    });
+            $query->whereHas('productType', function ($q) use ($search) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('name', 'like', $search)
+                        ->orWhere('storage', 'like', $search)
+                        ->orWhere('ram', 'like', $search)
+                        ->orWhereHas('brand', function ($bq) use ($search) {
+                            $bq->where('name', 'like', $search);
+                        });
+                });
             });
         }
 

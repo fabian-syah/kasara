@@ -78,9 +78,9 @@ class InventoryController extends Controller
                 $query->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
                         $q->whereHas('product', function ($sq) use ($keyword) {
-                            $sq->where('name', 'ilike', "%{$keyword}%")
-                                ->orWhere('sku', 'ilike', "%{$keyword}%")
-                                ->orWhere('brand', 'ilike', "%{$keyword}%");
+                            $sq->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('sku', 'like', "%{$keyword}%")
+                                ->orWhere('brand', 'like', "%{$keyword}%");
                         });
                     }
                 });
@@ -218,19 +218,19 @@ class InventoryController extends Controller
                 $query->where(function ($q) use ($keywords) {
                     foreach ($keywords as $keyword) {
                         $q->where(function ($sub) use ($keyword) {
-                            $sub->orWhere('ram', 'ilike', "%{$keyword}%")
-                                ->orWhere('storage', 'ilike', "%{$keyword}%")
-                                ->orWhere('condition', 'ilike', "%{$keyword}%")
+                            $sub->orWhere('ram', 'like', "%{$keyword}%")
+                                ->orWhere('storage', 'like', "%{$keyword}%")
+                                ->orWhere('condition', 'like', "%{$keyword}%")
                                 ->orWhereHas('product', function ($sq) use ($keyword) {
-                                    $sq->where('name', 'ilike', "%{$keyword}%")
-                                        ->orWhere('sku', 'ilike', "%{$keyword}%")
-                                        ->orWhere('brand', 'ilike', "%{$keyword}%");
+                                    $sq->where('name', 'like', "%{$keyword}%")
+                                        ->orWhere('sku', 'like', "%{$keyword}%")
+                                        ->orWhere('brand', 'like', "%{$keyword}%");
                                 });
 
                             // Only search IMEI if keyword is long enough (3+ chars) to avoid noise
                             // e.g. "15" shouldn't match "...9915..." in IMEI, but "356" might be a valid IMEI start
                             if (strlen($keyword) >= 3) {
-                                $sub->orWhere('imei', 'like', "%{$keyword}%"); // IMEI usually numeric, like/ilike same for numbers but safe to use like
+                                $sub->orWhere('imei', 'like', "%{$keyword}%"); // IMEI usually numeric, like/like same for numbers but safe to use like
                             }
                         });
                     }
@@ -364,10 +364,10 @@ class InventoryController extends Controller
                     foreach ($keywords as $keyword) {
                         $q->where(function ($sub) use ($keyword) {
                             $sub->whereHas('product', function ($sq) use ($keyword) {
-                                $sq->where('name', 'ilike', "%{$keyword}%")
-                                    ->orWhere('brand', 'ilike', "%{$keyword}%");
+                                $sq->where('name', 'like', "%{$keyword}%")
+                                    ->orWhere('brand', 'like', "%{$keyword}%");
                             })
-                                ->orWhere('description', 'ilike', "%{$keyword}%");
+                                ->orWhere('description', 'like', "%{$keyword}%");
                         });
                     }
                 });
@@ -386,8 +386,8 @@ class InventoryController extends Controller
                         $q->where(function ($sub) use ($keyword) {
                             $sub->where('imei', 'like', "%{$keyword}%")
                                 ->orWhereHas('product', function ($sq) use ($keyword) {
-                                    $sq->where('name', 'ilike', "%{$keyword}%")
-                                        ->orWhere('brand', 'ilike', "%{$keyword}%");
+                                    $sq->where('name', 'like', "%{$keyword}%")
+                                        ->orWhere('brand', 'like', "%{$keyword}%");
                                 });
                         });
                     }
@@ -479,10 +479,10 @@ class InventoryController extends Controller
                 foreach ($keywords as $keyword) {
                     $q->where(function ($sub) use ($keyword) {
                         $sub->whereHas('product', function ($sq) use ($keyword) {
-                            $sq->where('name', 'ilike', "%{$keyword}%")
-                                ->orWhere('brand', 'ilike', "%{$keyword}%");
+                            $sq->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('brand', 'like', "%{$keyword}%");
                         })
-                            ->orWhere('description', 'ilike', "%{$keyword}%");
+                            ->orWhere('description', 'like', "%{$keyword}%");
                     });
                 }
             });
@@ -540,23 +540,25 @@ class InventoryController extends Controller
         if ($type === 'non-hp') {
             $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
             if ($request->search) {
-                $search = $request->search;
-                $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
-
-                $query->where(function ($q) use ($search, $cleanSearch) {
-                    $q->whereHas('product', fn($pq) => $pq->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
-                        ->orWhere('description', 'ilike', "%{$search}%");
+                $search = "%{$request->search}%";
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('product', function ($pq) use ($search) {
+                        $pq->where('name', 'like', $search)
+                            ->orWhere('brand', 'like', $search);
+                    })
+                        ->orWhere('description', 'like', $search);
                 });
             }
         } else {
             $query = ProductDetail::with(['product', 'distributor', 'user']);
             if ($request->search) {
                 $search = $request->search;
-                $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
-
-                $query->where(function ($q) use ($search, $cleanSearch) {
-                    $q->where('imei', 'ilike', "%{$search}%")
-                        ->orWhereHas('product', fn($sq) => $sq->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]));
+                $query->where(function ($q) use ($search) {
+                    $q->where('imei', 'like', "%{$search}%")
+                        ->orWhereHas('product', function ($sq) use ($search) {
+                            $sq->where('name', 'like', "%{$search}%")
+                                ->orWhere('brand', 'like', "%{$search}%");
+                        });
                 });
             }
         }
@@ -620,12 +622,14 @@ class InventoryController extends Controller
         $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
 
         if ($request->search) {
-            $search = $request->search;
-            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
+            $search = "%{$request->search}%";
 
-            $query->where(function ($q) use ($search, $cleanSearch) {
-                $q->whereHas('product', fn($pq) => $pq->whereRaw("REGEXP_REPLACE(COALESCE(brand, '') || name, '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"]))
-                    ->orWhere('description', 'ilike', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('product', function ($pq) use ($search) {
+                    $pq->where('name', 'like', $search)
+                        ->orWhere('brand', 'like', $search);
+                })
+                    ->orWhere('description', 'like', $search);
             });
         }
 

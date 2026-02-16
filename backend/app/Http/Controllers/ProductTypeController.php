@@ -28,16 +28,13 @@ class ProductTypeController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $cleanSearch = preg_replace('/[^a-zA-Z0-9]/', '', $search);
-
-            $query->join('brands', 'product_types.brand_id', '=', 'brands.id')
-                ->where(function ($q) use ($search, $cleanSearch) {
-                    $q->whereRaw("REGEXP_REPLACE(brands.name || product_types.name || COALESCE(product_types.storage, '') || COALESCE(product_types.ram, ''), '[^a-zA-Z0-9]', '', 'g') ilike ?", ["%{$cleanSearch}%"])
-                        ->orWhere('product_types.name', 'ilike', "%{$search}%")
-                        ->orWhere('brands.name', 'ilike', "%{$search}%");
-                })
-                ->select('product_types.*');
+            $search = "%{$request->search}%";
+            $query->where(function ($q) use ($search) {
+                $q->where('product_types.name', 'like', $search)
+                    ->orWhereHas('brand', function ($bq) use ($search) {
+                        $bq->where('name', 'like', $search);
+                    });
+            });
         }
 
         return response()->json([

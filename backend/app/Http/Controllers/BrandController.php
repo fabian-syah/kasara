@@ -13,8 +13,8 @@ class BrandController extends Controller
 
         if ($request->has('search')) {
             $search = $request->search;
-            $query->where('name', 'ilike', "%{$search}%")
-                ->orWhere('description', 'ilike', "%{$search}%");
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%");
         }
 
         return response()->json([
