@@ -123,7 +123,7 @@ function formatCurrency(value) {
         <div v-if="hasSearched" class="space-y-4">
             <div v-if="isLoading" class="text-center py-12 text-text-secondary">
                 <Loader2 :size="32" class="animate-spin mx-auto mb-2" />
-                Mencari...
+                Mencari.....
             </div>
 
             <div v-else-if="results.length === 0" class="text-center py-12 text-text-secondary">
@@ -220,7 +220,7 @@ function formatCurrency(value) {
                                 <div v-if="(result.ram || result.storage) && !result.is_arrival">
                                     <p class="text-text-secondary text-xs">RAM / Storage</p>
                                     <p class="text-text-primary">{{ result.ram || '-' }}GB / {{ result.storage || '-'
-                                    }}GB
+                                        }}GB
                                     </p>
                                 </div>
                             </div>
@@ -331,7 +331,7 @@ function formatCurrency(value) {
                                                 <span>
                                                     <span class="text-text-secondary text-xs">Penerima:</span>
                                                     <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                    }}</span>
+                                                        }}</span>
                                                 </span>
                                                 <span>
                                                     <span class="text-text-secondary text-xs">No. Resi:</span>
@@ -355,7 +355,7 @@ function formatCurrency(value) {
                                         <div>
                                             <p class="text-text-secondary text-xs">No. Resi Shopee</p>
                                             <p class="text-text-primary font-mono">{{ result.shopee_tracking_no || '-'
-                                            }}
+                                                }}
                                             </p>
                                         </div>
                                     </template>
