@@ -3,7 +3,7 @@ import axios from 'axios'
 // Create axios instance with default config
 // Create axios instance with default config
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://api.stokps.com/api',
+    baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://api.stokps.com/api',
     timeout: 30000,
     withCredentials: true, // TAMBAHKAN INI agar cookie session bisa ikut terkirim
     headers: {

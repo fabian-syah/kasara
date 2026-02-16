@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
+import api from '../../api/axios';
 import { formatCurrency, formatNumber } from '../../utils/formatters';
 import {
     BarChart3,
@@ -32,7 +32,7 @@ const activeTab = ref('brand'); // brand, product, cs
 const fetchReport = async () => {
     loading.value = true;
     try {
-        const response = await axios.get('/reports/sales', { params: filters.value });
+        const response = await api.get('/reports/sales', { params: filters.value });
         stats.value = response.data;
     } catch (error) {
         console.error('Error fetching sales report:', error);
@@ -221,7 +221,7 @@ const filteredProducts = computed(() => {
                                 <td class="px-6 py-4 border-b border-surface-800 text-center">
                                     <span
                                         class="px-2 py-0.5 bg-surface-700 text-[10px] rounded border border-surface-600 text-text-secondary">{{
-                                        p.specs }}</span>
+                                            p.specs }}</span>
                                 </td>
                                 <td class="px-6 py-4 border-b border-surface-800 text-center">
                                     <span v-if="p.condition === 'new'"
