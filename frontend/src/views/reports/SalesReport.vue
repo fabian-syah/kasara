@@ -10,9 +10,9 @@ import {
     ArrowUpDown,
     ArrowUp,
     ArrowDown,
-    Filter,
     Search,
-    Download
+    Download,
+    Building2
 } from 'lucide-vue-next';
 
 const loading = ref(true);
@@ -24,8 +24,21 @@ const stats = ref({
 
 const filters = ref({
     start_date: '',
-    end_date: ''
+    end_date: '',
+    branch_id: '',
+    account_type: 'sales'
 });
+
+const branches = ref([]);
+
+const fetchFilters = async () => {
+    try {
+        const response = await api.get('/reports/filters');
+        branches.value = response.data.branches;
+    } catch (error) {
+        console.error('Error fetching filters:', error);
+    }
+};
 
 const activeTab = ref('brand'); // brand, product, cs
 
@@ -42,6 +55,7 @@ const fetchReport = async () => {
 };
 
 onMounted(() => {
+    fetchFilters();
     fetchReport();
 });
 
@@ -91,7 +105,13 @@ const filteredProducts = computed(() => {
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-text-primary tracking-tight">Laporan Penjualan</h1>
-                <p class="text-text-secondary text-sm">Rekapitulasi penjualan barang laku (All Time)</p>
+                <p class="text-text-secondary text-sm">
+                    {{
+                        filters.start_date && filters.end_date
+                            ? `Periode ${filters.start_date} s/d ${filters.end_date}`
+                            : 'Rekapitulasi penjualan barang laku (Semua Waktu)'
+                    }}
+                </p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -102,6 +122,40 @@ const filteredProducts = computed(() => {
                     <input type="date" v-model="filters.end_date"
                         class="bg-transparent text-xs text-text-primary outline-none px-2" />
                 </div>
+
+                <!-- Branch Selector -->
+                <div v-if="branches.length > 1"
+                    class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700">
+                    <Building2 class="w-4 h-4 text-text-secondary ml-1" />
+                    <select v-model="filters.branch_id" @change="fetchReport"
+                        class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
+                        <option value="">Semua Cabang</option>
+                        <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                            {{ branch.name }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Account Mode -->
+                <div class="flex items-center gap-1 bg-surface-800 p-1 rounded-lg border border-surface-700">
+                    <button @click="filters.account_type = 'sales'; fetchReport()" :class="[
+                        'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                        filters.account_type === 'sales'
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+                            : 'text-text-secondary hover:text-text-primary'
+                    ]">
+                        CS/Kasir
+                    </button>
+                    <button @click="filters.account_type = 'inventory'; fetchReport()" :class="[
+                        'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                        filters.account_type === 'inventory'
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/20'
+                            : 'text-text-secondary hover:text-text-primary'
+                    ]">
+                        Petugas Stok
+                    </button>
+                </div>
+
                 <button @click="fetchReport" class="btn btn-primary btn-sm">
                     <Filter :size="14" />
                     Filter

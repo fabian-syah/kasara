@@ -18,12 +18,13 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
+        $isBranch = $user->branch_id && !$user->hasRole('super_admin') && !$user->hasRole('analist');
         $filterType = $request->query('type', 'all'); // all, hp, non-hp
 
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
 
-        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $filterType) {
+        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType) {
             $hpNew = 0;
             $hpSecond = 0;
             $nonHpNew = 0;
@@ -38,6 +39,9 @@ class ReportController extends Controller
                 if ($isOnlineShop && $user->online_shop_id) {
                     $hpQuery->where('product_details.placement_type', 'online_shop')
                         ->where('product_details.placement_id', $user->online_shop_id);
+                } elseif ($isBranch) {
+                    $hpQuery->where('product_details.placement_type', 'branch')
+                        ->where('product_details.placement_id', $user->branch_id);
                 }
 
                 $hpStats = $hpQuery->select('product_details.condition', DB::raw('count(*) as count'))
@@ -57,6 +61,9 @@ class ReportController extends Controller
                 if ($isOnlineShop && $user->online_shop_id) {
                     $nonHpQuery->where('inventories.placement_type', 'online_shop')
                         ->where('inventories.placement_id', $user->online_shop_id);
+                } elseif ($isBranch) {
+                    $nonHpQuery->where('inventories.placement_type', 'branch')
+                        ->where('inventories.placement_id', $user->branch_id);
                 }
 
                 $nonHpCount = $nonHpQuery->sum('inventories.quantity');
@@ -81,6 +88,7 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
+        $isBranch = $user->branch_id && !$user->hasRole('super_admin') && !$user->hasRole('analist');
         $filterType = $request->query('type', 'hp'); // Default to hp
 
         $report = collect();
@@ -96,6 +104,9 @@ class ReportController extends Controller
             if ($isOnlineShop && $user->online_shop_id) {
                 $hpQuery->where('product_details.placement_type', 'online_shop')
                     ->where('product_details.placement_id', $user->online_shop_id);
+            } elseif ($isBranch) {
+                $hpQuery->where('product_details.placement_type', 'branch')
+                    ->where('product_details.placement_id', $user->branch_id);
             }
 
             $hpStats = $hpQuery->selectRaw("
@@ -112,12 +123,11 @@ class ReportController extends Controller
                 ->get();
 
             $formattedHp = $hpStats->map(function ($item) {
-                // Buat nama spesifik (Ex: iPhone 11 4GB/64GB)
                 $specWithRam = $item->ram ? "{$item->ram}/{$item->storage}" : $item->storage;
                 $displayName = $item->storage ? "{$item->product_name} ({$specWithRam})" : $item->product_name;
 
                 return [
-                    'id' => md5($displayName . $item->brand_name . 'hp'), // Unique ID
+                    'id' => md5($displayName . $item->brand_name . 'hp'),
                     'name' => $displayName,
                     'brand_name' => $item->brand_name ?? '-',
                     'type' => 'hp',
@@ -141,6 +151,9 @@ class ReportController extends Controller
             if ($isOnlineShop && $user->online_shop_id) {
                 $nonHpQuery->where('inventories.placement_type', 'online_shop')
                     ->where('inventories.placement_id', $user->online_shop_id);
+            } elseif ($isBranch) {
+                $nonHpQuery->where('inventories.placement_type', 'branch')
+                    ->where('inventories.placement_id', $user->branch_id);
             }
 
             $nonHpStats = $nonHpQuery->selectRaw('
@@ -159,7 +172,7 @@ class ReportController extends Controller
                     'name' => $item->product_name,
                     'brand_name' => $item->brand_name ?? '-',
                     'type' => 'non-hp',
-                    'new' => (int) $item->total_qty, // Asumsi barang baru semua untuk aksesoris
+                    'new' => (int) $item->total_qty,
                     'second' => 0,
                     'total' => (int) $item->total_qty
                 ];
@@ -174,11 +187,24 @@ class ReportController extends Controller
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $branchId = $request->query('branch_id');
+        $accountType = $request->query('account_type', 'sales'); // sales or inventory
+        $csUserIdField = ($accountType === 'inventory') ? 'inventory_user_id' : 'user_id';
+
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+
+        // Role-based branch scoping
+        $user = $request->user();
+        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+
+        // If restricted and no branchId provided, use user's branch
+        if ($isRestricted && !$branchId) {
+            $branchId = $user->branch_id;
+        }
 
         // 1. CS STATS (Aggregation by User)
         $csQuery = StockOut::whereIn('category', $salesCategories)
-            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->select(
                 'users.id',
                 'users.name',
@@ -189,32 +215,42 @@ class ReportController extends Controller
             $csQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $csQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+        if ($branchId)
+            $csQuery->where('users.branch_id', $branchId);
 
         $csBase = $csQuery->groupBy('users.id', 'users.name')->get();
 
         // Get counts for HP per User
         $hpCountsQuery = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
         if ($startDate)
             $hpCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $hpCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        $hpCountsPerUser = $hpCountsQuery->select('stock_outs.user_id', DB::raw('COUNT(*) as hp_count'))
-            ->groupBy('stock_outs.user_id')
-            ->pluck('hp_count', 'user_id');
+        if ($branchId)
+            $hpCountsQuery->where('users.branch_id', $branchId);
+
+        $hpCountsPerUser = $hpCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('COUNT(*) as hp_count'))
+            ->groupBy("stock_outs.{$csUserIdField}")
+            ->pluck('hp_count', $csUserIdField);
 
         // Get counts for Non-HP per User
         $accCountsQuery = DB::table('stock_out_non_hp_items')
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
         if ($startDate)
             $accCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $accCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
-        $accCountsPerUser = $accCountsQuery->select('stock_outs.user_id', DB::raw('SUM(quantity) as acc_count'))
-            ->groupBy('stock_outs.user_id')
-            ->pluck('acc_count', 'user_id');
+        if ($branchId)
+            $accCountsQuery->where('users.branch_id', $branchId);
+
+        $accCountsPerUser = $accCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('SUM(quantity) as acc_count'))
+            ->groupBy("stock_outs.{$csUserIdField}")
+            ->pluck('acc_count', $csUserIdField);
 
         $csStats = $csBase->map(function ($user) use ($hpCountsPerUser, $accCountsPerUser) {
             return [
@@ -226,16 +262,19 @@ class ReportController extends Controller
         });
 
         // 2. BRAND STATS (Aggregated)
-        // HP Brand Stats Base Query
+        // Join with users to filter by branch
         $hpBaseQuery = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
         if ($startDate)
             $hpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $hpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+        if ($branchId)
+            $hpBaseQuery->where('users.branch_id', $branchId);
 
         $hpBrandStats = (clone $hpBaseQuery)->select(
             'products.brand',
@@ -249,11 +288,14 @@ class ReportController extends Controller
         $nhpBaseQuery = DB::table('stock_out_non_hp_items')
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
         if ($startDate)
             $nhpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
         if ($endDate)
             $nhpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+        if ($branchId)
+            $nhpBaseQuery->where('users.branch_id', $branchId);
 
         $nhpBrandStats = (clone $nhpBaseQuery)->select(
             'products.brand',
@@ -330,6 +372,22 @@ class ReportController extends Controller
             'brands' => array_values($brandStatsMap),
             'products' => $hpProductStatsData->concat($nhpProductStatsData),
             'cs' => array_values($csStats->toArray())
+        ]);
+    }
+
+    public function getReportFilters(Request $request)
+    {
+        $user = $request->user();
+        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+
+        if ($isRestricted) {
+            $branches = \App\Models\Branch::where('id', $user->branch_id)->get(['id', 'name']);
+        } else {
+            $branches = \App\Models\Branch::orderBy('name')->get(['id', 'name']);
+        }
+
+        return response()->json([
+            'branches' => $branches
         ]);
     }
 }
