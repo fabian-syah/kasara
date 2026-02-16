@@ -554,31 +554,31 @@ class StockOutController extends Controller
                 return response()->json(['message' => 'Query minimal 3 karakter'], 422);
             }
 
-            $results = [];
+            $allEvents = [];
 
-            // 1. Search STOCK IN - Pakai Exact Match (Hapus LIKE)
+            // 1. Search STOCK IN (Registration Events)
             $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
-                ->where('imei', $query) // Harus persis sama
+                ->where('imei', $query)
                 ->get();
 
             foreach ($productDetails as $detail) {
-                $results[] = [
+                $allEvents[] = [
                     'type' => 'stock_in',
+                    'sub_type' => 'registration',
                     'id' => 'IN-' . $detail->id,
                     'imei' => $detail->imei,
                     'product_name' => $detail->product?->name,
                     'status' => $detail->status,
                     'placement_type' => $detail->placement_type,
                     'placement_id' => $detail->placement_id,
-                    // Resolving placement name for display (Same logic as StockOut)
                     'placement_name' => match ($detail->placement_type) {
                         'branch' => \App\Models\Branch::find($detail->placement_id)?->name ?? 'Unknown Branch',
                         'warehouse' => \App\Models\Warehouse::find($detail->placement_id)?->name ?? 'Unknown Warehouse',
                         'online_shop' => \App\Models\OnlineShop::find($detail->placement_id)?->name ?? 'Unknown Shop',
                         default => $detail->placement_type . ' #' . $detail->placement_id
                     },
-                    // Pastikan format string untuk sorting
                     'created_at' => $detail->created_at->toDateTimeString(),
+                    'timestamp' => $detail->created_at->timestamp,
                     'distributor' => $detail->distributor?->name,
                     'input_by' => $detail->user?->name,
                     'ram' => $detail->ram,
@@ -588,125 +588,112 @@ class StockOutController extends Controller
                 ];
             }
 
-            // 2. Search STOCK OUT - Pakai Exact Match untuk IMEI dan Resi
-            $stockOuts = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
-                ->where('receipt_id', $query) // Exact Match ID Resi Internal
-                ->orWhere('shopee_tracking_no', $query) // Exact Match No Resi Shopee
+            // 2. Search STOCK OUT (Execution & Arrival Events)
+            $stockOuts = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
+                ->where('receipt_id', $query)
+                ->orWhere('shopee_tracking_no', $query)
                 ->orWhereHas('items', function ($q) use ($query) {
-                    $q->where('imei', $query); // Exact Match IMEI
+                    $q->where('imei', $query);
                 })
-                // Opsional: Jika masih ingin mencari di dalam JSON Shopee tapi secara spesifik
-                // Kita bisa biarkan ini jika query-nya memang nomor resi lengkap
                 ->orWhere('shopee_items_data', 'like', "%\"{$query}\"%")
                 ->get()
                 ->unique('id');
 
             foreach ($stockOuts as $out) {
-                try {
-                    $shopeeItems = $out->shopee_items_data; // Restore assignment!
-                    if (is_string($shopeeItems))
-                        $shopeeItems = json_decode($shopeeItems, true); // Safety
-                    $shopeeItems = $shopeeItems ?? [];
+                // Determine shopee info
+                $shopeeItems = is_string($out->shopee_items_data) ? json_decode($out->shopee_items_data, true) : ($out->shopee_items_data ?? []);
+                $shopeeTrackingNos = [];
+                $shopeeReceivers = [];
 
-                    $shopeeReceivers = [];
-                    $shopeeTrackingNos = [];
+                foreach ($shopeeItems as $item) {
+                    $tNo = is_array($item) ? ($item['tracking_no'] ?? null) : ($item->tracking_no ?? null);
+                    if ($tNo)
+                        $shopeeTrackingNos[] = $tNo;
+                    $rec = is_array($item) ? ($item['receiver'] ?? null) : ($item->receiver ?? null);
+                    if ($rec)
+                        $shopeeReceivers[] = $rec;
+                }
 
-                    // 1. Extract from Shopee Items (IMEI)
-                    if (count($shopeeItems) > 0) {
-                        \Illuminate\Support\Facades\Log::info("Track {$out->receipt_id} - Shopee Items: " . json_encode($shopeeItems));
-                        foreach ($shopeeItems as $item) {
-                            $tNo = is_array($item) ? ($item['tracking_no'] ?? null) : ($item->tracking_no ?? null);
-                            if (!empty($tNo))
-                                $shopeeTrackingNos[] = $tNo;
+                if (empty($shopeeReceivers) && $out->shopee_receiver)
+                    $shopeeReceivers[] = $out->shopee_receiver;
+                if (empty($shopeeTrackingNos) && $out->shopee_tracking_no)
+                    $shopeeTrackingNos[] = $out->shopee_tracking_no;
 
-                            $rec = is_array($item) ? ($item['receiver'] ?? null) : ($item->receiver ?? null);
-                            if (!empty($rec))
-                                $shopeeReceivers[] = $rec;
-                        }
+                $mergedItems = $out->items->map(fn($i) => [
+                    'type' => 'hp',
+                    'imei' => $i->imei,
+                    'product_name' => $i->product?->name,
+                    'quantity' => 1,
+                ])->toArray();
+
+                // Non-HP enrich
+                $nonHpItems = is_string($out->non_hp_items) ? json_decode($out->non_hp_items, true) : ($out->non_hp_items ?? []);
+                if (!empty($nonHpItems)) {
+                    $productIds = array_column($nonHpItems, 'product_id');
+                    $products = \App\Models\Product::whereIn('id', $productIds)->pluck('name', 'id');
+                    foreach ($nonHpItems as $nhp) {
+                        $mergedItems[] = [
+                            'type' => 'non-hp',
+                            'product_name' => $products[$nhp['product_id']] ?? 'Unknown Product',
+                            'quantity' => $nhp['quantity'] ?? 1,
+                            'tracking_no' => $nhp['tracking_no'] ?? null,
+                        ];
                     }
+                }
 
-                    // 2. Extract from Non-HP Items
-                    $nonHpItems = $out->non_hp_items ?? [];
-                    if (is_string($nonHpItems))
-                        $nonHpItems = json_decode($nonHpItems, true); // Safety
+                // Event 1: The STOCK OUT itself
+                $allEvents[] = [
+                    'type' => 'stock_out',
+                    'sub_type' => 'departure',
+                    'id' => $out->receipt_id,
+                    'category' => $out->category,
+                    'items' => $mergedItems,
+                    'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                    'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                    'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
+                    'receiver_name' => $out->receiver_name,
+                    'customer_name' => $out->customer_name,
+                    'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                    'status' => $out->status,
+                    'created_at' => $out->created_at->toDateTimeString(),
+                    'timestamp' => $out->created_at->timestamp,
+                ];
 
-                    if (!empty($nonHpItems)) {
-                        foreach ($nonHpItems as $item) {
-                            $tNo = is_array($item) ? ($item['tracking_no'] ?? null) : ($item->tracking_no ?? null);
-                            if (!empty($tNo))
-                                $shopeeTrackingNos[] = $tNo;
-                        }
-                    }
-
-                    if (empty($shopeeReceivers) && $out->shopee_receiver) {
-                        $shopeeReceivers[] = $out->shopee_receiver;
-                    }
-                    if (empty($shopeeTrackingNos) && $out->shopee_tracking_no) {
-                        $shopeeTrackingNos[] = $out->shopee_tracking_no;
-                    }
-
-                    // Prepare Items List (Merge HP and Non-HP)
-                    $mergedItems = $out->items->map(fn($i) => [
-                        'type' => 'hp',
-                        'imei' => $i->imei,
-                        'product_name' => $i->product?->name,
-                        'quantity' => 1,
-                    ])->toArray();
-
-                    // Enrich Non-HP Items with Product Name
-                    if (!empty($nonHpItems)) {
-                        $productIds = array_column($nonHpItems, 'product_id');
-                        if (!empty($productIds)) {
-                            $products = \App\Models\Product::whereIn('id', $productIds)->pluck('name', 'id');
-                            foreach ($nonHpItems as $item) {
-                                $mergedItems[] = [
-                                    'type' => 'non-hp',
-                                    'imei' => '-',
-                                    'product_name' => $products[$item['product_id']] ?? 'Unknown Product',
-                                    'quantity' => $item['quantity'] ?? 1,
-                                    'tracking_no' => $item['tracking_no'] ?? null,
-                                ];
-                            }
-                        }
-                    }
-
-                    $results[] = [
-                        'type' => 'stock_out',
-                        'id' => $out->receipt_id,
-                        'category' => $out->category,
-                        'items' => $mergedItems,
-                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
-                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
-                        'destination_branch' => $out->destinationBranch?->name,
-                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
-                        'receiver_name' => $out->receiver_name,
-                        'customer_name' => $out->customer_name,
-                        'processed_by' => $out->inventoryUser
-                            ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name)
-                            : ($out->user?->name ?? $out->user?->username),
-                        'status' => $out->status, // Add status
-                        'created_at' => $out->created_at->toDateTimeString(),
+                // Event 2: The ARRIVAL (if confirmed)
+                if ($out->category === 'pindah_cabang' && $out->status === 'received' && $out->confirmed_at) {
+                    $allEvents[] = [
+                        'type' => 'stock_in',
+                        'sub_type' => 'arrival',
+                        'id' => $out->receipt_id, // Link to same receipt
+                        'imei' => $query, // Contextual imei
+                        'product_name' => $out->items->first()?->product?->name ?? 'Mixed Items',
+                        'status' => 'available',
+                        'placement_type' => $out->destination_type,
+                        'placement_id' => $out->destination_id,
+                        'placement_name' => $out->destination?->name ?? 'Destination',
+                        'created_at' => $out->confirmed_at->toDateTimeString(),
+                        'timestamp' => $out->confirmed_at->timestamp,
+                        'input_by' => $out->confirmedBy?->name ?? 'Unknown',
+                        'condition' => $out->items->first()?->condition ?? '-',
+                        'selling_price' => $out->items->first()?->selling_price ?? 0,
+                        'is_arrival' => true,
                     ];
-                } catch (\Exception $e) {
-                    continue;
                 }
             }
 
-            // Urutkan: Terbaru di paling atas (Status keluar biasanya paling baru)
-            usort($results, function ($a, $b) {
-                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            // Sort chronologically (Oldest first for timeline flow)
+            usort($allEvents, function ($a, $b) {
+                return $a['timestamp'] - $b['timestamp'];
             });
 
             return response()->json([
                 'query' => $query,
-                'count' => count($results),
-                'data' => $results
+                'count' => count($allEvents),
+                'data' => array_values($allEvents)
             ]);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error: ' . $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
