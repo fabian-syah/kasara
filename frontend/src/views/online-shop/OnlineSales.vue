@@ -35,17 +35,25 @@ let searchTimeout = null;
 const groupedSales = computed(() => {
     return rawHistory.value.map(order => {
         const items = [];
+        const shopeeData = Array.isArray(order.shopee_items_data) ? order.shopee_items_data : [];
 
         // HP Items
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => {
+                const detailFromJSON = shopeeData.find(si => si.product_detail_id === item.id);
+                // Ensure price is a number and handle formatting dots if any
+                let price = detailFromJSON?.selling_price || item.selling_price || 0;
+                if (typeof price === 'string') {
+                    price = parseFloat(price.replace(/\./g, '')) || 0;
+                }
+
                 items.push({
                     brand: item.product?.brand || '-',
                     type: item.product?.name || '-',
                     kapasitas: item.storage || '-',
                     identifier: item.imei,
                     is_hp: true,
-                    price: item.selling_price || 0
+                    price: price
                 });
             });
         }
@@ -53,13 +61,18 @@ const groupedSales = computed(() => {
         // Non-HP Items
         if (order.non_hp_items && order.non_hp_items.length > 0) {
             order.non_hp_items.forEach(item => {
+                let price = item.selling_price || 0;
+                if (typeof price === 'string') {
+                    price = parseFloat(price.replace(/\./g, '')) || 0;
+                }
+
                 items.push({
                     brand: '-',
                     type: item.product_name || '-',
                     kapasitas: '-',
                     identifier: `${item.quantity} Pcs`,
                     is_hp: false,
-                    price: item.selling_price || 0
+                    price: price
                 });
             });
         }
@@ -72,7 +85,7 @@ const groupedSales = computed(() => {
             petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
             notes: order.notes || order.shopee_notes || '-',
             created_at: order.created_at,
-            total_price: order.selling_price || items.reduce((sum, i) => sum + i.price, 0)
+            total_price: items.reduce((sum, i) => sum + i.price, 0) || order.selling_price || 0
         };
     });
 });
@@ -236,12 +249,16 @@ onMounted(() => {
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right align-top">
-                                <div class="font-bold text-emerald-400">
-                                    {{ formatCurrency(order.total_price) }}
+                            <td class="px-6 py-4 text-right align-top space-y-4">
+                                <div v-for="(item, idx) in order.items" :key="idx"
+                                    class="h-6 flex items-center justify-end font-bold text-emerald-400 text-xs">
+                                    {{ formatCurrency(item.price) }}
                                 </div>
-                                <div v-if="order.items.length > 1" class="text-[10px] text-text-secondary mt-1">
-                                    ({{ order.items.length }} Item)
+                                <div v-if="order.items.length > 1" class="pt-1.5 border-t border-surface-700/50 mt-1">
+                                    <div class="text-[9px] text-text-secondary leading-none mb-0.5">TOTAL</div>
+                                    <div class="font-black text-emerald-400 text-sm">
+                                        {{ formatCurrency(order.total_price) }}
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
@@ -251,7 +268,7 @@ onMounted(() => {
                                         {{ order.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
                                     <span class="text-text-secondary text-xs truncate max-w-[80px]">{{ order.petugas
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
