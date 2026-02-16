@@ -231,6 +231,40 @@ const stockOutForm = ref({
   notes: '',
 });
 
+// Modal Searcher State
+const modalSearchQuery = ref("");
+const modalSearchResults = ref([]);
+const isSearchingInModal = ref(false);
+
+async function searchInModal() {
+  if (modalSearchQuery.value.length < 2) {
+    modalSearchResults.value = [];
+    return;
+  }
+  isSearchingInModal.value = true;
+  try {
+    const response = await inventoryStore.fetchProducts({
+      search: modalSearchQuery.value,
+      per_page: 5,
+      type: activeTab.value // Match current tab for searching
+    }, true); // Pass true to indicate we want a return, not just state update
+    modalSearchResults.value = response.data;
+  } catch (e) {
+    console.error("Modal search failed", e);
+  } finally {
+    isSearchingInModal.value = false;
+  }
+}
+
+function addItemFromModal(item) {
+  if (!isSelected(item)) {
+    toggleSelect(item);
+    toast.success(`${item.product?.name || 'Item'} ditambahkan`);
+  } else {
+    toast.info("Item sudah ada di daftar");
+  }
+}
+
 // Barcode Scanner
 const isScanning = ref(false);
 const scannerContainerId = 'barcode-scanner-container-modal';
@@ -569,6 +603,8 @@ function closeStockOutModal() {
   showStockOutModal.value = false;
   selectedStockOutCategory.value = null;
   selectedInventoryUser.value = null; // Reset user
+  modalSearchQuery.value = "";
+  modalSearchResults.value = [];
   resetStockOutForm();
 }
 
@@ -825,6 +861,8 @@ async function submitStockOut() {
       formData.append('shopee_village', stockOutForm.value.shopee_village);
       formData.append('shopee_postal_code', stockOutForm.value.shopee_postal_code);
       formData.append('shopee_tracking_no', stockOutForm.value.shopee_tracking_no);
+      // Ensure notes are sent to the transaction level
+      formData.append('notes', stockOutForm.value.shopee_notes);
       // formData.append('selling_price', stockOutForm.value.selling_price); // Not used anymore for Shopee
     } else if (selectedStockOutCategory.value === 'keluar') {
       formData.append('notes', stockOutForm.value.notes);
@@ -1768,6 +1806,39 @@ function getStockStatus(product) {
                   <p class="text-xs uppercase font-bold text-text-secondary mb-3">
                     Item yang dikirim ({{ selectedItems.length }})
                   </p>
+
+                  <!-- Modal Product Searcher -->
+                  <div class="mb-4 relative">
+                    <div class="relative">
+                      <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="16" />
+                      <input v-model="modalSearchQuery" @input="searchInModal" type="text"
+                        placeholder="Tambah produk lain (Ketik SKU/Nama)..."
+                        class="w-full text-sm pl-10 pr-4 py-2 rounded-xl bg-surface-800 border border-surface-600 focus:border-primary-500 transition-colors" />
+                      <div v-if="isSearchingInModal" class="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 :size="14" class="animate-spin text-primary-500" />
+                      </div>
+                    </div>
+
+                    <!-- Search Results -->
+                    <div v-if="modalSearchResults.length > 0"
+                      class="absolute z-50 left-0 right-0 mt-1 bg-surface-800 border border-surface-600 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+                      <div v-for="res in modalSearchResults" :key="res.id" @click="addItemFromModal(res)"
+                        class="p-3 hover:bg-surface-700 cursor-pointer border-b border-surface-700 last:border-0 flex items-center justify-between group">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded bg-surface-900 flex items-center justify-center">
+                            <Smartphone v-if="res.product?.type === 'hp'" :size="14" class="text-text-secondary" />
+                            <Box v-else :size="14" class="text-text-secondary" />
+                          </div>
+                          <div>
+                            <p class="text-xs font-bold text-white">{{ res.product?.name }}</p>
+                            <p class="text-[10px] text-text-secondary">{{ res.imei || res.product?.sku }}</p>
+                          </div>
+                        </div>
+                        <Plus :size="14"
+                          class="text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  </div>
 
                   <div class="space-y-3 max-h-80 overflow-y-auto pr-1">
                     <div v-for="(item, idx) in selectedItems" :key="item.id + (item.type || '')"

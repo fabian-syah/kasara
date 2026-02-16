@@ -49,7 +49,7 @@ const flattenedSales = computed(() => {
                     is_hp: true,
                     price: item.selling_price || order.selling_price,
                     petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
-                    notes: order.notes || '-',
+                    notes: order.notes || (order.shopee_items_data?.find(si => si.product_detail_id === item.id)?.notes) || order.shopee_notes || '-',
                     created_at: order.created_at
                 });
             });
@@ -69,7 +69,7 @@ const flattenedSales = computed(() => {
                     is_hp: false,
                     price: item.selling_price,
                     petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
-                    notes: order.notes || '-',
+                    notes: order.notes || (order.non_hp_items?.find(ni => ni.product_id === item.product_id)?.notes) || order.shopee_notes || '-',
                     created_at: order.created_at
                 });
             });
@@ -240,7 +240,7 @@ onMounted(() => {
                                         {{ sale.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
                                     <span class="text-text-secondary text-xs truncate max-w-[100px]">{{ sale.petugas
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4">

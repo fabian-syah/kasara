@@ -416,8 +416,8 @@ class StockOutController extends Controller
 
                 $updateData = ['status' => $newStatus];
 
-                // Update selling price if applicable (Shopee - HP items)
-                if ($request->category === 'shopee') {
+                // Update selling price if applicable (Shopee/Orderan Online - HP items)
+                if ($request->category === 'shopee' || $request->category === 'orderan_online') {
                     // Find the selling price for this specific item from shopee_items array
                     $itemData = collect($request->shopee_items)->firstWhere('product_detail_id', $detail->id);
                     if ($itemData && isset($itemData['selling_price'])) {
@@ -601,7 +601,7 @@ class StockOutController extends Controller
 
             foreach ($stockOuts as $out) {
                 // Determine shopee info
-                $shopeeItems = is_string($out->shopee_items_data) ? json_decode($out->shopee_items_data, true) : ($out->shopee_items_data ?? []);
+                $shopeeItems = is_array($out->shopee_items_data) ? $out->shopee_items_data : (is_string($out->shopee_items_data) ? json_decode($out->shopee_items_data, true) : []);
                 $shopeeTrackingNos = [];
                 $shopeeReceivers = [];
 
@@ -627,7 +627,7 @@ class StockOutController extends Controller
                 ])->toArray();
 
                 // Non-HP enrich
-                $nonHpItems = is_string($out->non_hp_items) ? json_decode($out->non_hp_items, true) : ($out->non_hp_items ?? []);
+                $nonHpItems = is_array($out->non_hp_items) ? $out->non_hp_items : (is_string($out->non_hp_items) ? json_decode($out->non_hp_items, true) : []);
                 if (!empty($nonHpItems)) {
                     $productIds = array_column($nonHpItems, 'product_id');
                     $products = \App\Models\Product::whereIn('id', $productIds)->pluck('name', 'id');
