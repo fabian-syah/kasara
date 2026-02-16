@@ -32,50 +32,49 @@ const search = ref("");
 let searchTimeout = null;
 
 // Flattened data for table
-const flattenedSales = computed(() => {
-    const rows = [];
-    rawHistory.value.forEach(order => {
-        // Handle HP Items (IMEI)
+const groupedSales = computed(() => {
+    return rawHistory.value.map(order => {
+        const items = [];
+
+        // HP Items
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => {
-                rows.push({
-                    id: `${order.id}-hp-${item.id}`,
-                    receipt_id: order.receipt_id,
-                    customer_name: order.shopee_receiver || order.customer_name || '-',
+                items.push({
                     brand: item.product?.brand || '-',
                     type: item.product?.name || '-',
                     kapasitas: item.storage || '-',
                     identifier: item.imei,
                     is_hp: true,
-                    price: item.selling_price || order.selling_price,
-                    petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
-                    notes: order.notes || (order.shopee_items_data?.find(si => si.product_detail_id === item.id)?.notes) || order.shopee_notes || '-',
-                    created_at: order.created_at
+                    price: item.selling_price || 0
                 });
             });
         }
 
-        // Handle Non-HP Items
+        // Non-HP Items
         if (order.non_hp_items && order.non_hp_items.length > 0) {
-            order.non_hp_items.forEach((item, idx) => {
-                rows.push({
-                    id: `${order.id}-nhp-${idx}`,
-                    receipt_id: order.receipt_id,
-                    customer_name: order.shopee_receiver || order.customer_name || '-',
-                    brand: '-', // Non-HP might not have explicit brand in this JSON structure
+            order.non_hp_items.forEach(item => {
+                items.push({
+                    brand: '-',
                     type: item.product_name || '-',
                     kapasitas: '-',
                     identifier: `${item.quantity} Pcs`,
                     is_hp: false,
-                    price: item.selling_price,
-                    petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
-                    notes: order.notes || (order.non_hp_items?.find(ni => ni.product_id === item.product_id)?.notes) || order.shopee_notes || '-',
-                    created_at: order.created_at
+                    price: item.selling_price || 0
                 });
             });
         }
+
+        return {
+            id: order.id,
+            receipt_id: order.receipt_id,
+            customer_name: order.shopee_receiver || order.customer_name || '-',
+            items: items,
+            petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
+            notes: order.notes || order.shopee_notes || '-',
+            created_at: order.created_at,
+            total_price: order.selling_price || items.reduce((sum, i) => sum + i.price, 0)
+        };
     });
-    return rows;
 });
 
 // Fetch data
@@ -187,65 +186,78 @@ onMounted(() => {
                                 <span class="animate-pulse">Memuat data...</span>
                             </td>
                         </tr>
-                        <tr v-else-if="flattenedSales.length === 0">
+                        <tr v-else-if="groupedSales.length === 0">
                             <td colspan="10" class="px-6 py-12 text-center text-text-secondary">
                                 <ClipboardList :size="48" class="mx-auto mb-2 opacity-20" />
                                 <p>Tidak ada data penjualan ditemukan</p>
                             </td>
                         </tr>
-                        <tr v-for="sale in flattenedSales" :key="sale.id"
-                            class="hover:bg-surface-700/30 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap">
+                        <tr v-for="order in groupedSales" :key="order.id"
+                            class="hover:bg-surface-700/30 transition-colors group border-b border-surface-700">
+                            <td class="px-6 py-4 whitespace-nowrap align-top">
                                 <span
                                     class="font-mono font-bold text-primary-400 bg-primary-500/10 px-2 py-1 rounded text-xs border border-primary-500/20">
-                                    {{ sale.receipt_id }}
+                                    {{ order.receipt_id }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-xs text-text-secondary">
-                                {{ formatDate(sale.created_at) }}
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-xs text-text-secondary align-top">
+                                {{ formatDate(order.created_at) }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap font-medium text-text-primary">
-                                {{ sale.customer_name }}
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-text-primary align-top">
+                                {{ order.customer_name }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-text-secondary">
-                                {{ sale.brand }}
+                            <td class="px-6 py-4 text-text-secondary space-y-4">
+                                <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center">
+                                    {{ item.brand }}
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-text-primary font-semibold">
-                                {{ sale.type }}
+                            <td class="px-6 py-4 text-text-primary font-semibold space-y-4">
+                                <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center">
+                                    {{ item.type }}
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span v-if="sale.kapasitas !== '-'"
-                                    class="px-2 py-0.5 rounded bg-surface-700 text-xs text-text-primary border border-surface-600">
-                                    {{ sale.kapasitas }}
-                                </span>
-                                <span v-else class="text-text-secondary">-</span>
+                            <td class="px-6 py-4 text-center space-y-4">
+                                <div v-for="(item, idx) in order.items" :key="idx"
+                                    class="h-6 flex items-center justify-center">
+                                    <span v-if="item.kapasitas !== '-'"
+                                        class="px-2 py-0.5 rounded bg-surface-700 text-[10px] text-text-primary border border-surface-600">
+                                        {{ item.kapasitas }}
+                                    </span>
+                                    <span v-else class="text-text-secondary">-</span>
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center gap-2">
-                                    <component :is="sale.is_hp ? Smartphone : Package" :size="14"
-                                        :class="sale.is_hp ? 'text-blue-400' : 'text-amber-400'" />
-                                    <span class="font-mono text-xs"
-                                        :class="sale.is_hp ? 'text-text-primary' : 'text-text-secondary'">
-                                        {{ sale.identifier }}
+                            <td class="px-6 py-4 space-y-4">
+                                <div v-for="(item, idx) in order.items" :key="idx" class="h-6 flex items-center gap-2">
+                                    <component :is="item.is_hp ? Smartphone : Package" :size="12"
+                                        :class="item.is_hp ? 'text-blue-400' : 'text-amber-400'" />
+                                    <span class="font-mono text-[11px]"
+                                        :class="item.is_hp ? 'text-text-primary' : 'text-text-secondary'">
+                                        {{ item.identifier }}
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-emerald-400">
-                                {{ formatCurrency(sale.price) }}
+                            <td class="px-6 py-4 text-right align-top">
+                                <div class="font-bold text-emerald-400">
+                                    {{ formatCurrency(order.total_price) }}
+                                </div>
+                                <div v-if="order.items.length > 1" class="text-[10px] text-text-secondary mt-1">
+                                    ({{ order.items.length }} Item)
+                                </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 align-top">
                                 <div class="flex items-center gap-2">
                                     <div
                                         class="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-[10px] text-primary-400 font-bold border border-surface-600">
-                                        {{ sale.petugas.substring(0, 1).toUpperCase() }}
+                                        {{ order.petugas.substring(0, 1).toUpperCase() }}
                                     </div>
-                                    <span class="text-text-secondary text-xs truncate max-w-[100px]">{{ sale.petugas
+                                    <span class="text-text-secondary text-xs truncate max-w-[80px]">{{ order.petugas
                                     }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <p class="text-xs text-text-secondary truncate max-w-[150px]" :title="sale.notes">
-                                    {{ sale.notes }}
+                            <td class="px-6 py-4 align-top">
+                                <p class="text-[11px] text-text-secondary leading-relaxed max-w-[150px]"
+                                    :title="order.notes">
+                                    {{ order.notes }}
                                 </p>
                             </td>
                         </tr>
@@ -257,7 +269,7 @@ onMounted(() => {
             <div
                 class="p-4 border-t border-surface-700 bg-surface-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div class="text-sm text-text-secondary">
-                    Menampilkan <span class="text-text-primary font-bold">{{ flattenedSales.length }}</span> baris data
+                    Menampilkan <span class="text-text-primary font-bold">{{ groupedSales.length }}</span> baris data
                 </div>
                 <div class="flex items-center gap-3">
                     <button @click="fetchData(pagination.currentPage - 1)"
