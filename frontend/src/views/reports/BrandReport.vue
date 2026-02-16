@@ -7,7 +7,7 @@ import { Download } from 'lucide-vue-next';
 const reports = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
-const filterType = ref('all');
+const filterType = ref('hp');
 
 const fetchReports = async () => {
     isLoading.value = true;
