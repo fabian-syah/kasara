@@ -95,7 +95,7 @@ class DashboardController extends Controller
 
     private function getOnlineShopStats($user)
     {
-        $categories = ['shopee', 'orderan_online'];
+        $categories = ['shopee', 'orderan_online', 'giveaway'];
         return $this->getAggregatedStats($user, $categories, 'online_shop');
     }
 
@@ -212,8 +212,8 @@ class DashboardController extends Controller
             'role' => $role,
             'stats' => [
                 ['id' => 'revenue', 'label' => 'Pendapatan Hari Ini', 'value' => $totalRevenue, 'isCurrency' => true, 'icon' => 'DollarSign', 'color' => 'emerald'],
-                ['id' => 'transactions', 'label' => 'Total Transaksi', 'value' => $todaySales->count(), 'icon' => 'ShoppingCart', 'color' => 'blue'],
-                ['id' => 'sold', 'label' => 'Produk Terjual', 'value' => $productsSold, 'icon' => 'Package', 'color' => 'violet'],
+                ['id' => 'transactions', 'label' => 'Total Transaksi (Hari Ini)', 'value' => $todaySales->count(), 'icon' => 'ShoppingCart', 'color' => 'blue'],
+                ['id' => 'sold', 'label' => 'Produk Terjual (Hari Ini)', 'value' => $productsSold, 'icon' => 'Package', 'color' => 'violet'],
                 ['id' => 'stock', 'label' => 'Total Stok Fisik', 'value' => $hpStock + $nonHpStock, 'sub' => "HP: $hpStock | Acc: $nonHpStock", 'icon' => 'Box', 'color' => 'amber'],
             ],
             'recentTransactions' => $recentTransactions,
