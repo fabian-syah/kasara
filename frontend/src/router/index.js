@@ -354,20 +354,25 @@ const routes = [
                 }
             },
             {
+                path: 'online-shop/sales',
+                name: 'OnlineSales',
+                component: () => import('../views/online-shop/OnlineSales.vue'),
+                meta: {
+                    title: 'Penjualan Online',
+                    menu: 'online_sales',
+                    permissions: ['online.orders']
+                }
+            },
+            {
                 path: 'online-shop/history',
                 name: 'ShopeeHistory',
                 component: () => import('../views/online-shop/ShopeeHistory.vue'),
                 meta: {
                     title: 'History Shopee',
                     menu: 'shopee_history',
-                    // Using existing permissions - TOKO_ONLINE has online.scan and inventory.stock_in
-                    // We can reuse online.scan or add a new one. Or just allow for users with TOKO_ONLINE role.
-                    // For now, let's reuse 'online.scan' as it's part of the online operations.
                     permissions: ['online.scan', 'online.analysis']
                 }
             },
-
-            // System Administration
             {
                 path: 'system-status',
                 name: 'SystemStatus',

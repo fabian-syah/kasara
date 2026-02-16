@@ -12,6 +12,7 @@ import {
     Users,
     Receipt,
     ClipboardCheck,
+    ClipboardList,
     BarChart3,
     Settings,
     X,
@@ -62,6 +63,7 @@ const menuItems = [
     { id: "dashboard", path: "/", label: "Dashboard", icon: LayoutDashboard },
 
     // Online Shop Modules
+    { id: "online_sales", path: "/online-shop/sales", label: "Penjualan Online", icon: ClipboardList },
     { id: "online_scan", path: "/online-shop/scan", label: "Scan Pesanan", icon: ScanBarcode },
     { id: "online_analysis", path: "/online-shop/analysis", label: "Analisa Shopee", icon: LineChart },
     { id: "shopee_history", path: "/online-shop/history", label: "History Orderan Online", icon: Receipt },
