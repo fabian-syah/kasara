@@ -15,6 +15,7 @@ import {
     ClipboardList,
     Download
 } from "lucide-vue-next";
+import { formatNumber, parseCurrency } from "../../utils/formatters";
 
 const toast = useToast();
 
@@ -41,22 +42,7 @@ const groupedSales = computed(() => {
         if (order.items && order.items.length > 0) {
             order.items.forEach(item => {
                 const detailFromJSON = shopeeData.find(si => si.product_detail_id === item.id);
-                // Improved Parsing: Handle "Rp 2.750.00.0,00" or "2.750.000"
-                let price = detailFromJSON?.selling_price || item.selling_price || 0;
-                if (typeof price === 'string') {
-                    // 1. Remove "Rp" and whitespace
-                    let clean = price.replace(/Rp\s?/g, '').trim();
-                    // 2. If there's a comma (decimal in ID), convert it to dot temporarily (but we usually don't need decimals for IDR)
-                    // and remove the thousands separator (dot)
-                    if (clean.includes(',')) {
-                        // "2.750.000,00" -> "2750000.00"
-                        clean = clean.replace(/\./g, '').replace(',', '.');
-                    } else {
-                        // "2.750.000" -> "2750000"
-                        clean = clean.replace(/\./g, '');
-                    }
-                    price = parseFloat(clean) || 0;
-                }
+                let price = parseCurrency(detailFromJSON?.selling_price || item.selling_price || 0);
 
                 items.push({
                     brand: item.product?.brand || '-',
@@ -72,16 +58,7 @@ const groupedSales = computed(() => {
         // Non-HP Items
         if (order.non_hp_items && order.non_hp_items.length > 0) {
             order.non_hp_items.forEach(item => {
-                let price = item.selling_price || 0;
-                if (typeof price === 'string') {
-                    let clean = price.replace(/Rp\s?/g, '').trim();
-                    if (clean.includes(',')) {
-                        clean = clean.replace(/\./g, '').replace(',', '.');
-                    } else {
-                        clean = clean.replace(/\./g, '');
-                    }
-                    price = parseFloat(clean) || 0;
-                }
+                let price = parseCurrency(item.selling_price || 0);
 
                 items.push({
                     brand: '-',

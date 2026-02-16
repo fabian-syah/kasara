@@ -29,7 +29,65 @@ export function formatCurrency(amount, options = {}) {
  * @returns {string} Formatted number string
  */
 export function formatNumber(num) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    if (num === null || num === undefined) return '0'
+    const n = typeof num === 'string' ? parseFloat(num) : num
+    if (isNaN(n)) return '0'
+    // For IDR, we usually show 0 decimals
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+/**
+ * Parse a currency string (IDR) into a number
+ * Handles thousands separators (.) and decimals (, or .)
+ * @param {string|number} val - Value to parse
+ * @returns {number} Parsed number
+ */
+export function parseCurrency(val) {
+    if (typeof val === 'number') return val
+    if (!val) return 0
+
+    // Remove Rp and whitespace
+    let clean = val.toString().replace(/Rp\s?/g, '').trim()
+
+    // Normalize decimals: if it has digits at the end preceded by a dot or comma
+    // e.g. "2.750.000.00" -> "2750000"
+    // e.g. "2.750.000,00" -> "2750000"
+
+    // If it ends with ,00 or .00, strip it
+    clean = clean.replace(/[.,]00$/, '')
+
+    // Also handle general decimals if they are 1-2 digits
+    // but ONLY if there's a dot/comma before them and at least one other dot before (indicating thousands)
+    // or if it's just a simple decimal like "100.5"
+    if (clean.includes(',') && clean.includes('.')) {
+        // Standard ID: 1.234.567,89
+        clean = clean.replace(/\./g, '').replace(',', '.')
+    } else if (clean.includes(',')) {
+        // Check if comma is decimal or thousand
+        const parts = clean.split(',')
+        if (parts.length === 2 && parts[1].length <= 2) {
+            clean = parts[0].replace(/\D/g, '') + '.' + parts[1]
+        } else {
+            clean = clean.replace(/\D/g, '')
+        }
+    } else if (clean.includes('.')) {
+        // "2.750.000" or "2750000.00" (already handled trailing 00 above)
+        const parts = clean.split('.')
+        // If there are multiple dots, they are thousands
+        if (parts.length > 2) {
+            clean = clean.replace(/\./g, '')
+        } else if (parts.length === 2 && parts[1].length <= 2) {
+            // 100.50
+            clean = parts[0] + '.' + parts[1]
+        } else {
+            clean = clean.replace(/\./g, '')
+        }
+    } else {
+        clean = clean.replace(/\D/g, '')
+    }
+
+    const result = parseFloat(clean)
+    return isNaN(result) ? 0 : Math.round(result) // Round for IDR
 }
 
 /**

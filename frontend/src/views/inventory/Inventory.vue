@@ -16,7 +16,7 @@ import api, {
   onlineShops as onlineShopsApi,
   distributors as distributorsApi
 } from "../../api/axios";
-import { formatCurrency, formatNumber } from "../../utils/formatters";
+import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatters";
 
 // ... (existing code)
 
@@ -1879,9 +1879,9 @@ function getStockStatus(product) {
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
                             <input type="text" :value="item.selling_price ? formatNumber(item.selling_price) : ''"
                               @input="e => {
-                                const val = e.target.value.replace(/\D/g, '');
-                                item.selling_price = val ? parseInt(val) : 0;
-                                e.target.value = formatNumber(item.selling_price);
+                                const val = parseCurrency(e.target.value);
+                                item.selling_price = val;
+                                e.target.value = formatNumber(val);
                               }"
                               class="w-full text-sm p-2 pl-9 rounded-lg bg-surface-900 border border-surface-600 focus:outline-none focus:border-emerald-500 transition-colors"
                               placeholder="0">

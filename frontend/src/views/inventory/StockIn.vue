@@ -26,6 +26,7 @@ import {
     AlertTriangle
 } from "lucide-vue-next";
 import { debounce } from "../../utils/debounce";
+import { parseCurrency } from "../../utils/formatters";
 
 const toast = useToast();
 const router = useRouter();
@@ -336,19 +337,16 @@ const canNext = computed(() => {
 
 // CARI DAN GANTI LOGIKA INI DI StockIn.vue
 const costPriceDisplay = computed({
-    get: () => batchDetails.value.cost_price ? formatRupiah(batchDetails.value.cost_price).replace('Rp', '').trim() : '',
+    get: () => batchDetails.value.cost_price ? formatNumber(batchDetails.value.cost_price) : '',
     set: (val) => {
-        // Remove non-numeric chars
-        const num = parseInt(val.replace(/[^\d]/g, ''));
-        batchDetails.value.cost_price = isNaN(num) ? 0 : num;
+        batchDetails.value.cost_price = parseCurrency(val);
     }
 });
 
 const sellingPriceDisplay = computed({
-    get: () => batchDetails.value.selling_price ? formatRupiah(batchDetails.value.selling_price).replace('Rp', '').trim() : '',
+    get: () => batchDetails.value.selling_price ? formatNumber(batchDetails.value.selling_price) : '',
     set: (val) => {
-        const num = parseInt(val.replace(/[^\d]/g, ''));
-        batchDetails.value.selling_price = isNaN(num) ? 0 : num;
+        batchDetails.value.selling_price = parseCurrency(val);
     }
 });
 
