@@ -4,7 +4,6 @@ import { useRoute } from "vue-router";
 import { useThemeStore } from "../store/theme";
 import AppSidebar from "../components/layout/AppSidebar.vue";
 import AppHeader from "../components/layout/AppHeader.vue";
-import AppFooter from "../components/layout/Footer.vue";
 import {
   Heart,
   Cloud,
@@ -62,9 +61,6 @@ watch(
             </transition>
           </router-view>
         </div>
-
-        <!-- Developer Footer -->
-        <AppFooter />
       </div>
     </main>
   </div>
