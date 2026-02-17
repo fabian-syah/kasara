@@ -70,6 +70,10 @@ const filteredRolesOptions = computed(() => {
   const user = currentUser.value;
   if (!user) return [];
 
+  // Debugging user placements
+  console.log('Current User for Filtering:', user);
+  console.log('Placements:', user.placements);
+
   // Determine Access
   // Note: currentUser might not have full placements array depending on how it was fetched (login vs fetchUser)
   // But usually branch_id/etc are present.
@@ -463,8 +467,7 @@ function getUserRoleName(user) {
               </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Status
               </th>
-              <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider"
-                v-if="!isAudit">Aksi
+              <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Aksi
               </th>
             </tr>
           </thead>
@@ -539,10 +542,9 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <button @click="toggleStatus(user)" :disabled="isAudit"
+                  <button @click="toggleStatus(user)"
                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
-                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600', isAudit ? 'opacity-50 cursor-not-allowed' : '']"
-                    title="Klik untuk mengubah status">
+                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600']" title="Klik untuk mengubah status">
                     <span class="sr-only">Toggle status</span>
                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                       :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
@@ -553,7 +555,7 @@ function getUserRoleName(user) {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4" v-if="!isAudit">
+              <td class="px-6 py-4">
                 <div class="flex justify-end gap-2">
                   <button @click="openEditModal(user)"
                     class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors" title="Edit">

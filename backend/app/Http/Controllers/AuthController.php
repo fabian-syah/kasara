@@ -46,7 +46,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'token' => $token,
-                'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop'),
+                'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements'),
                 'theme_color' => $user->theme_color,
             ]);
         }
@@ -83,7 +83,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'user' => $request->user()->load('branch', 'roles', 'warehouse', 'onlineShop'),
+            'user' => $request->user()->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements'),
         ]);
     }
 
