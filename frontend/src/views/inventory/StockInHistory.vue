@@ -15,6 +15,10 @@ const props = defineProps({
     isEmbedded: {
         type: Boolean,
         default: false
+    },
+    branchId: {
+        type: [Number, String],
+        default: null
     }
 });
 
@@ -80,6 +84,7 @@ const fetchData = async (page = 1) => {
             page,
             type: activeTab.value,
             search: searchQuery.value,
+            branch_id: props.branchId || undefined
         };
 
         const dateParam = getDateParam();
@@ -136,6 +141,10 @@ const exportExcel = async () => {
 };
 
 watch([activeTab, searchQuery, filterMode, selectedMonth, selectedDate], () => {
+    fetchData(1);
+});
+
+watch(() => props.branchId, () => {
     fetchData(1);
 });
 

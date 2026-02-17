@@ -34,17 +34,31 @@ class AuditController extends Controller
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
 
-        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds) {
-            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds) {
-                $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                    if (!empty($branchIds)) {
-                        $sub->orWhereIn('branch_id', $branchIds);
-                    }
-                    if (!empty($onlineShopIds)) {
-                        // Similar logic to UserController: Match online shop if branch is null OR just match online shop?
-                        // For sales, we want to capture ALL sales relevant to the placement.
-                        // If a user has branch_id but sells for online_shop, we should capture it if we audit online_shop.
-                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+        // Filter by specific branch if requested (and allowed)
+        $requestedBranchId = $request->branch_id;
+
+        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $requestedBranchId) {
+            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId) {
+                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId) {
+                    // If a specific branch is requested, we only filter by that
+                    if ($requestedBranchId) {
+                        // verify if user has access to this branch (unless super_admin/audit has global access which might be implied by branchIds being empty/all?)
+                        // For now assuming the frontend filter only shows allowed branches.
+                        // But strictly: if $branchIds is not empty, ensure $requestedBranchId is in it.
+                        if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                            $sub->where('branch_id', $requestedBranchId);
+                        } else {
+                            // Requested branch not in allowed list
+                            $sub->whereRaw('1=0');
+                        }
+                    } else {
+                        // No specific branch requested, show all accessible
+                        if (!empty($branchIds)) {
+                            $sub->orWhereIn('branch_id', $branchIds);
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        }
                     }
                 });
             });

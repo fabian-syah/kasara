@@ -29,6 +29,10 @@ const props = defineProps({
   isEmbedded: {
     type: Boolean,
     default: false
+  },
+  branchId: {
+    type: [Number, String],
+    default: null
   }
 });
 const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
@@ -169,24 +173,59 @@ watch(activeTab, () => {
 
 async function loadInventory(page = 1) {
   // Use inventoryStore action if possible, or direct API
-  await inventoryStore.fetchProducts({
-    type: activeTab.value,
-    page: page,
-    search: debouncedSearch.value,
-    product_name_filter: filterProduct.value.length > 0 ? filterProduct.value : null,
-    capacity_filter: filterCapacity.value.length > 0 ? filterCapacity.value : null,
-    brand_filter: filterBrand.value.length > 0 ? filterBrand.value : null,
-    // condition_filter: filterCondition.value !== 'all' ? filterCondition.value : '', // Removed
-    category: selectedCategory.value,
-    brand: selectedBrand.value,
-    condition: selectedCondition.value !== 'all' ? selectedCondition.value : null,
-    status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : null
-    // Add other filters as needed
-  });
+  isLoading.value = true;
+  try {
+    const params = {
+      page: page,
+      search: debouncedSearch.value,
+      type: activeTab.value, // 'hp' or 'non-hp'
+      branch_id: props.branchId || undefined, // Add branch_id filter
+      // Add other filters
+      product: filterProduct.value.join(','),
+      capacity: filterCapacity.value.join(','),
+      brand: filterBrand.value.join(','),
+      condition: selectedCondition.value !== 'all' ? selectedCondition.value : undefined,
+      stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : undefined,
+    };
+
+    const response = await inventoryApi.list(params);
+    inventoryItems.value = response.data.data;
+    pagination.value = {
+      current_page: response.data.current_page,
+      last_page: response.data.last_page,
+      total: response.data.total,
+      from: response.data.from,
+      to: response.data.to
+    };
+  } catch (error) {
+    console.error("Error loading inventory:", error);
+    toast.error("Gagal memuat data inventory");
+  } finally {
+    isLoading.value = false;
+  }
 }
 
+// Watchers
+watch([debouncedSearch, selectedCondition, selectedStockStatus, filterProduct, filterCapacity, filterBrand], () => {
+  loadInventory(1);
+});
+
+watch(() => props.branchId, () => {
+  loadInventory(1);
+});
+
+// Tab Change
+watch(activeTab, () => {
+  // Reset filters on tab change? Maybe.
+  // filterProduct.value = []
+  // filterCapacity.value = []
+  // filterBrand.value = []
+  loadInventory(1);
+  fetchFilterOptions();
+})
+
 function changePage(page) {
-  if (page >= 1 && page <= inventoryStore.pagination.last_page) {
+  if (page >= 1 && page <= pagination.value.last_page) {
     loadInventory(page);
   }
 }

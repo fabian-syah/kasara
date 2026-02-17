@@ -55,6 +55,13 @@ class StockOutController extends Controller
             });
         }
 
+        // AUDIT BRANCH FILTER
+        if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('branch_id', $request->branch_id);
+            });
+        }
+
         // DATE FILTER
         if ($request->category !== 'recap_harian') {
             if ($request->month && $request->year) {

@@ -3,6 +3,17 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Audit Penjualan</h1>
 
+            <!-- Branch Filter (Only for Audit/Super Admin) -->
+            <div v-if="canFilterBranch" class="min-w-[200px]">
+                <select v-model="filters.branch_id" @change="fetchData"
+                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                    <option :value="null">Semua Cabang</option>
+                    <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                        {{ branch.name }}
+                    </option>
+                </select>
+            </div>
+
             <!-- Date Filter -->
             <div
                 class="flex items-center gap-2 bg-white dark:bg-surface-800 p-2 rounded-lg border border-gray-200 dark:border-surface-700 shadow-sm">
@@ -78,7 +89,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{
                                     formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                                     {{
@@ -173,7 +184,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                                }}</td>
+                            }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
@@ -189,9 +200,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import axios from '../../api/axios'
+import { useAuthStore } from '../../store/auth'
+
+const authStore = useAuthStore()
 
 const tabs = [
     { id: 'daily', name: 'Penjualan Harian' },
@@ -209,7 +223,16 @@ const data = ref({
 
 const filters = ref({
     start_date: new Date().toISOString().slice(0, 10), // Today
-    end_date: new Date().toISOString().slice(0, 10)
+    end_date: new Date().toISOString().slice(0, 10),
+    branch_id: null
+})
+
+const branches = ref([])
+
+const canFilterBranch = computed(() => {
+    // Only Audit, Super Admin, Owner can filter branches
+    const role = authStore.userRole;
+    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
 })
 
 const formatCurrency = (value) => {
@@ -231,11 +254,31 @@ const formatDate = (dateString) => {
     })
 }
 
+const fetchBranches = async () => {
+    try {
+        const response = await axios.get('/branches')
+        // branches.value = response.data.data || response.data
+        // Adjust based on API structure
+        if (Array.isArray(response.data)) {
+            branches.value = response.data;
+        } else if (response.data.data) {
+            branches.value = response.data.data;
+        }
+    } catch (error) {
+        console.error('Error fetching branches:', error)
+    }
+}
+
 const fetchData = async () => {
     loading.value = true
     try {
         const response = await axios.get('/audit/sales', {
-            params: filters.value
+            params: {
+                ...filters.value,
+                // If branch_id is null, send it as empty or don't send? 
+                // Backend expects branch_id if specific.
+                branch_id: filters.value.branch_id || undefined
+            }
         })
         data.value = response.data
     } catch (error) {
@@ -245,13 +288,17 @@ const fetchData = async () => {
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     // Set start date to first day of month by default for better view? 
     // User usually wants to see daily sales for current day or month. 
     // Let's set start date to first day of current month.
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     filters.value.start_date = firstDay.toISOString().slice(0, 10);
+
+    if (canFilterBranch.value) {
+        await fetchBranches()
+    }
 
     fetchData()
 })

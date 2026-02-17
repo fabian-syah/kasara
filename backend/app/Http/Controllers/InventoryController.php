@@ -444,6 +444,18 @@ class InventoryController extends Controller
             });
         }
 
+        // AUDIT BRANCH FILTER
+        if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
+            $query->where(function ($q) use ($request, $type) {
+                if ($type === 'non-hp') {
+                    $q->where('branch_id', $request->branch_id);
+                } else {
+                    $q->where('placement_type', 'branch')
+                        ->where('placement_id', $request->branch_id);
+                }
+            });
+        }
+
         // DATE FILTER
         if ($request->date) {
             $query->whereDate('created_at', $request->date);
