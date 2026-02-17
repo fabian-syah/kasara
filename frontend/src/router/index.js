@@ -145,7 +145,7 @@ const routes = [
                 meta: {
                     title: 'Lacak Barang',
                     menu: 'track',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {

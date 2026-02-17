@@ -84,7 +84,7 @@ class AuditController extends Controller
             return [
                 'date' => $trx->created_at->toDateTimeString(),
                 'order_no' => $trx->receipt_id,
-                'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
+                'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? $trx->shopee_receiver ?? $trx->giveaway_receiver ?? '-',
                 'customer_phone' => $trx->customer_phone ?? '-',
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
