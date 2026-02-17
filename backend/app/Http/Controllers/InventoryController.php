@@ -19,6 +19,24 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+
+        // SUPER DEBUG (Will appear in Network Tab -> Response)
+        if ($request->has('debug')) {
+            $onlineShopIds = array_filter([$user->online_shop_id]);
+            $accessibleOnline = $user->getAccessibleOnlineShopIds() ?: [];
+            $allOnlineIds = array_unique(array_merge($onlineShopIds, (is_array($accessibleOnline) ? $accessibleOnline : [])));
+
+            return response()->json([
+                'diagnostic' => [
+                    'username' => $user->username,
+                    'roles' => $user->getRoleNames(),
+                    'all_online_shop_ids' => $allOnlineIds,
+                    'hp_count_in_db' => \App\Models\ProductDetail::where('placement_type', 'online_shop')->whereIn('placement_id', $allOnlineIds)->count(),
+                    'hp_available_count' => \App\Models\ProductDetail::where('placement_type', 'online_shop')->whereIn('placement_id', $allOnlineIds)->whereIn('status', ['available', 'booking', 'returned'])->count(),
+                ]
+            ]);
+        }
+
         $type = $request->type ?? 'hp';
 
         // 1. Definisikan ID Online Shop yang bisa diakses user ini
