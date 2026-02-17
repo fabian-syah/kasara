@@ -220,11 +220,25 @@ const routes = [
                 meta: { title: 'Audit Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
             },
             {
-                path: 'audit/inventory',
-                name: 'AuditInventory',
-                component: () => import('../views/audit/Inventory.vue'),
-                meta: { title: 'Audit Inventory', menu: 'audit_inventory', permissions: ['audit.view'] }
+                path: 'audit/profit',
+                name: 'AuditProfit',
+                component: () => import('../views/audit/Profit.vue'),
+                meta: { title: 'Audit Profit', menu: 'audit_profit', permissions: ['audit.view'] }
             },
+            {
+                path: 'audit/stock-in',
+                name: 'AuditStockIn',
+                component: () => import('../views/inventory/StockInHistory.vue'),
+                meta: { title: 'Audit Barang Masuk', menu: 'audit_stock_in', permissions: ['audit.view'] }
+            },
+            {
+                path: 'audit/stock-out',
+                name: 'AuditStockOut',
+                component: () => import('../views/inventory/StockOutHistory.vue'),
+                meta: { title: 'Audit Barang Keluar', menu: 'audit_stock_out', permissions: ['audit.view'] }
+            },
+            // Legacy /analysis route kept for backward compatibility if needed, or removed.
+            // Keeping it but pointing to BranchAnalysis (which is presently under construction)
             {
                 path: 'audit/analysis',
                 name: 'AuditAnalysis',

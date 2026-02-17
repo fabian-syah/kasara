@@ -93,12 +93,17 @@ const menuItems = [
         label: "Transaksi",
         icon: Receipt,
     },
-    { id: "audit", path: "/audit", label: "Audit", icon: ClipboardCheck },
-
-    // Audit Specific Menus
-    { id: "audit_sales", path: "/audit/sales", label: "Penjualan", icon: Receipt },
-    { id: "audit_inventory", path: "/audit/inventory", label: "Inventory", icon: Package },
-    { id: "audit_analysis", path: "/audit/analysis", label: "Analisa Cabang", icon: BarChart3 },
+    {
+        id: "audit",
+        label: "Audit",
+        icon: ClipboardCheck,
+        items: [
+            { id: "audit_sales", path: "/audit/sales", label: "Audit Penjualan" },
+            { id: "audit_profit", path: "/audit/profit", label: "Audit Profit" },
+            { id: "audit_stock_in", path: "/audit/stock-in", label: "Audit Barang Masuk" },
+            { id: "audit_stock_out", path: "/audit/stock-out", label: "Audit Barang Keluar" },
+        ]
+    },
 
     // Incoming Transfer (Barang Masuk)
     {
