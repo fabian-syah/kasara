@@ -192,7 +192,7 @@ export const ROLE_MENUS = {
     [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit', 'reports', 'report_sales', 'settings', 'warehouses', 'distributors', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'track'],
     [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'track'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
-    [ROLES.AUDIT]: ['dashboard', 'audit_sales', 'audit_inventory', 'audit_analysis', 'users', 'track'],
+    [ROLES.AUDIT]: ['dashboard', 'audit', 'users', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
     [ROLES.LEADER]: ['dashboard', 'transactions', 'reports', 'report_sales', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
