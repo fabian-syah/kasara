@@ -18,17 +18,8 @@ class InventoryController extends Controller
     // Filtered by branch - only super_admin can see all
     public function index(Request $request)
     {
+        \Illuminate\Support\Facades\Log::info("!!! INVENTORY INDEX HIT !!!", ['all_params' => $request->all()]);
         $user = Auth::user();
-        \Illuminate\Support\Facades\Log::info("Inventory Index Request Diagnostic", [
-            'user_id' => $user->id,
-            'roles' => $user->getRoleNames(),
-            'params' => $request->all(),
-            'counts' => [
-                'hp_total' => \App\Models\ProductDetail::count(),
-                'hp_available' => \App\Models\ProductDetail::where('status', 'available')->count(),
-                'non_hp_total' => \App\Models\Inventory::count(),
-            ]
-        ]);
         $type = $request->type ?? 'hp'; // Default to HP (ProductDetail)
 
         if ($type === 'non-hp') {
