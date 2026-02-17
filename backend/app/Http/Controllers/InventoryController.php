@@ -21,49 +21,45 @@ class InventoryController extends Controller
         $user = Auth::user();
         $type = $request->type ?? 'hp';
 
-        // 1. Ambil semua ID akses lokasi (Toko Online, Cabang, Gudang)
-        $osIds = $user->getAccessibleOnlineShopIds() ?: [];
-        $bIds = $user->getAccessibleBranchIds() ?: [];
-        $wIds = $user->getAccessibleWarehouseIds() ?: [];
+        // 1. Accessibility
+        $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);
+        $bIds = (array) ($user->getAccessibleBranchIds() ?: []);
+        $wIds = (array) ($user->getAccessibleWarehouseIds() ?: []);
 
-        // Gabungkan dengan ID utama jika belum masuk
-        if ($user->online_shop_id && !in_array($user->online_shop_id, $osIds))
+        if ($user->online_shop_id)
             $osIds[] = $user->online_shop_id;
-        if ($user->branch_id && !in_array($user->branch_id, $bIds))
+        if ($user->branch_id)
             $bIds[] = $user->branch_id;
-        if ($user->warehouse_id && !in_array($user->warehouse_id, $wIds))
+        if ($user->warehouse_id)
             $wIds[] = $user->warehouse_id;
+
+        $osIds = array_unique(array_filter($osIds));
+        $bIds = array_unique(array_filter($bIds));
+        $wIds = array_unique(array_filter($wIds));
 
         $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
 
-        // 2. Inisialisasi Query berdasarkan tipe
+        // 2. Base Query
         if ($type === 'non-hp') {
             $query = Inventory::with(['product', 'user'])->where('quantity', '>', 0);
         } else {
-            // Eager load relationships
             $query = ProductDetail::with(['product', 'distributor', 'user']);
         }
 
-        // 3. FILTER KEAMANAN (Akses Lokasi)
+        // 3. Security Filter
         if (!$unrestricted) {
             $query->where(function ($q) use ($osIds, $bIds, $wIds) {
                 $hasConstraint = false;
                 if (!empty($osIds)) {
-                    $q->orWhere(function ($sq) use ($osIds) {
-                        $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds);
-                    });
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds));
                     $hasConstraint = true;
                 }
                 if (!empty($bIds)) {
-                    $q->orWhere(function ($sq) use ($bIds) {
-                        $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds);
-                    });
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds));
                     $hasConstraint = true;
                 }
                 if (!empty($wIds)) {
-                    $q->orWhere(function ($sq) use ($wIds) {
-                        $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds);
-                    });
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds));
                     $hasConstraint = true;
                 }
                 if (!$hasConstraint)
@@ -71,58 +67,30 @@ class InventoryController extends Controller
             });
         }
 
-        // DEBUG MODE (Will appear in Network Response)
-        if ($request->has('debug')) {
-            return response()->json([
-                'diagnostic' => [
-                    'username' => $user->username,
-                    'roles' => $user->getRoleNames(),
-                    'accessible_os' => $osIds,
-                    'accessible_branches' => $bIds,
-                    'accessible_warehouses' => $wIds,
-                    'hp_count_in_db' => ProductDetail::where('placement_type', 'online_shop')->whereIn('placement_id', $osIds)->count(),
-                    'query_sql' => $query->toSql(),
-                    'query_bindings' => $query->getBindings(),
-                ]
-            ]);
-        }
-
-        // 4. FILTER SPESIFIK DARI FRONTEND
-        if ($request->filled('branch_id')) {
-            $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
-        }
-        if ($request->filled('warehouse_id')) {
-            $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
-        }
-        if ($request->filled('online_shop_id')) {
+        // 4. Frontend Filters
+        if ($request->filled('online_shop_id'))
             $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
-        }
+        if ($request->filled('branch_id'))
+            $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
+        if ($request->filled('warehouse_id'))
+            $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
 
-        // Faceted Filters (Brand, Capacity, Product)
         if ($request->filled('brand')) {
             $brands = explode(',', $request->brand);
             $query->whereHas('product', fn($q) => $q->whereIn('brand', $brands));
         }
-        if ($request->filled('capacity')) {
-            $caps = explode(',', $request->capacity); // e.g. "128GB,256GB"
-            $query->whereIn('storage', $caps);
-        }
-        if ($request->filled('product')) {
-            $products = explode(',', $request->product);
-            $query->whereHas('product', fn($q) => $q->whereIn('name', $products));
-        }
 
-        // 5. STATUS & SEARCH
         if ($type === 'hp') {
+            if ($request->filled('capacity'))
+                $query->whereIn('storage', explode(',', $request->capacity));
+            if ($request->filled('condition') && $request->condition !== 'all')
+                $query->where('condition', $request->condition);
+
             $status = $request->status ?? $request->stock_status;
             if ($status && $status !== 'all') {
                 $query->where('status', $status);
             } else {
                 $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
-            }
-
-            if ($request->filled('condition') && $request->condition !== 'all') {
-                $query->where('condition', $request->condition);
             }
         }
 
@@ -131,25 +99,34 @@ class InventoryController extends Controller
             $query->where(function ($q) use ($s, $type) {
                 if ($type === 'hp')
                     $q->where('imei', 'like', "%$s%");
-                $q->orWhereHas('product', function ($pq) use ($s) {
-                    $pq->where('name', 'like', "%$s%")->orWhere('brand', 'like', "%$s%")->orWhere('sku', 'like', "%$s%");
-                });
+                $q->orWhereHas('product', fn($pq) => $pq->where('name', 'like', "%$s%")->orWhere('brand', 'like', "%$s%"));
             });
         }
 
-        // 6. EKSEKUSI & PAGINASI
+        // 5. Diagnostics
+        if ($request->has('debug')) {
+            return response()->json([
+                'diagnostic' => [
+                    'os_ids' => $osIds,
+                    'hp_count' => ($type === 'hp') ? (clone $query)->count() : 0,
+                    'sql' => $query->toSql(),
+                    'bindings' => $query->getBindings()
+                ]
+            ]);
+        }
+
+        // 6. Pagination & Response
         $items = $query->latest()->paginate(20);
 
-        // Transform results
         $items->getCollection()->transform(function ($item) {
-            $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' ID: ' . $item->placement_id);
+            $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id);
             return $item;
         });
 
-        $response = $items->toArray();
-        $response['total_value'] = (clone $query)->sum($type === 'non-hp' ? DB::raw('quantity * cost_price') : 'selling_price');
+        $res = $items->toArray();
+        $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0; // Simplified for safety
 
-        return response()->json($response);
+        return response()->json($res);
     }
 
     // Stock In History
