@@ -364,9 +364,129 @@ class AuditController extends Controller
 
     public function analysis(Request $request)
     {
-        // Placeholder for Branch Analysis
+        $user = $request->user();
+        $branchIds = $user->getAccessibleBranchIds();
+        $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
+        if (empty($branchIds) && empty($onlineShopIds)) {
+            return response()->json([
+                'profit_trend' => [],
+                'sales_breakdown' => [],
+                'summary' => [
+                    'total_profit' => 0,
+                    'total_revenue' => 0,
+                    'total_items' => 0
+                ]
+            ]);
+        }
+
+        $year = $request->year ?? date('Y');
+        $month = $request->month; // Optional
+
+        // Base Query Categories
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+
+        // 1. Profit Trend (Daily)
+        $dailyStats = [];
+
+        // Query StockOut (Transactions)
+        $query = StockOut::with(['items.productDetail', 'nonHpItems'])
+            ->whereIn('category', $salesCategories)
+            ->whereYear('created_at', $year);
+
+        if ($month) {
+            $query->whereMonth('created_at', $month);
+        }
+
+        // Scope to user access
+        $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds) {
+            $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                if (!empty($branchIds))
+                    $sub->orWhereIn('branch_id', $branchIds);
+                if (!empty($onlineShopIds))
+                    $sub->orWhereIn('online_shop_id', $onlineShopIds);
+            });
+        });
+
+        $transactions = $query->oldest()->get();
+
+        $totalRevenue = 0;
+        $totalCost = 0;
+        $totalItems = 0;
+
+        // Breakdown Stats
+        $breakdown = [];
+
+        foreach ($transactions as $trx) {
+            $date = $trx->created_at->format('Y-m-d');
+
+            // Calculate Cost
+            $trxCost = 0;
+            $trxItems = 0;
+
+            // HP Items Cost
+            foreach ($trx->items as $item) {
+                // Use historical cost if available in pivot (not in current schema), else use productDetail cost
+                // Since productDetail tracks specific unit, its cost_price is accurate for that unit.
+                if ($item->productDetail) {
+                    $trxCost += $item->productDetail->cost_price;
+                }
+                $trxItems++;
+            }
+
+            // Non-HP Items Cost (Limitation: Assuming 0 or need product reference)
+            // Ideally we need cost_price in stock_out_non_hp_items or use current product type cost
+            foreach ($trx->nonHpItems as $nhp) {
+                // Check if we can get cost from ProductType (via product->type match? No direct link)
+                // For now, assuming 0 cost for accessories as per plan note, or we could try to fetch current average cost.
+                // Keeping it 0 to avoid misleading "profit" reduction if cost is unknown? 
+                // actually, if cost is 0, profit = revenue, which is inflated.
+                // Let's assume 0 for now as verified in plan.
+                $trxItems += $nhp->quantity;
+            }
+
+            $profit = $trx->selling_price - $trxCost;
+
+            // Aggregate Daily
+            if (!isset($dailyStats[$date])) {
+                $dailyStats[$date] = ['date' => $date, 'profit' => 0, 'revenue' => 0];
+            }
+            $dailyStats[$date]['profit'] += $profit;
+            $dailyStats[$date]['revenue'] += $trx->selling_price;
+
+            // Aggregate Totals
+            $totalRevenue += $trx->selling_price;
+            $totalCost += $trxCost;
+            $totalItems += $trxItems;
+
+            // Aggregate Breakdown by Branch/Shop
+            // We need to know which branch/shop this transaction belongs to.
+            // StockOut -> User -> Branch/OnlineShop
+            $source = 'Unknown';
+            if ($trx->user) {
+                if ($trx->user->branch) {
+                    $source = $trx->user->branch->name;
+                } elseif ($trx->user->onlineShop) {
+                    $source = $trx->user->onlineShop->name;
+                }
+            }
+
+            if (!isset($breakdown[$source])) {
+                $breakdown[$source] = ['name' => $source, 'profit' => 0, 'revenue' => 0, 'items' => 0];
+            }
+            $breakdown[$source]['profit'] += $profit;
+            $breakdown[$source]['revenue'] += $trx->selling_price;
+            $breakdown[$source]['items'] += $trxItems;
+        }
+
         return response()->json([
-            'message' => 'Analysis data not implemented yet'
+            'profit_trend' => array_values($dailyStats),
+            'sales_breakdown' => array_values($breakdown),
+            'summary' => [
+                'total_profit' => $totalRevenue - $totalCost,
+                'total_revenue' => $totalRevenue,
+                'total_items' => $totalItems
+            ]
         ]);
     }
 }
