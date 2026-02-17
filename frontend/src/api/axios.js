@@ -147,7 +147,8 @@ export const warehouses = {
     get: (id) => api.get(`/warehouses/${id}`),
     create: (data) => api.post('/warehouses', data),
     update: (id, data) => api.put(`/warehouses/${id}`, data),
-    delete: (id) => api.delete(`/warehouses/${id}`)
+    delete: (id) => api.delete(`/warehouses/${id}`),
+    toggleReturn: (id) => api.post(`/warehouses/${id}/toggle-return`)
 }
 
 export const onlineShops = {
