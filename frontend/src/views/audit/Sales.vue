@@ -90,7 +90,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{
                                     formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                                     {{
@@ -185,7 +185,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                                }}</td>
+                            }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
@@ -259,17 +259,21 @@ const formatDate = (dateString) => {
 
 const fetchBranches = async () => {
     try {
-        const [branchRes, shopRes] = await Promise.all([
+        const [branchRes, shopRes, userRes] = await Promise.all([
             axios.get('/branches'),
-            axios.get('/online-shops')
+            axios.get('/online-shops'),
+            axios.get('/user')
         ])
 
         const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
         const allLocations = [...allBranches, ...allShops];
 
-        const user = authStore.user;
+        const user = userRes.data.user || userRes.data.data || userRes.data;
         const role = (authStore.userRole || '').toLowerCase();
+
+        console.log('[DEBUG] Fresh User Data:', user);
+        console.log('[DEBUG] All Available Shops:', allShops);
 
         // Define unrestricted roles
         const isGlobalRole = ['super_admin', 'owner'].includes(role);
@@ -292,6 +296,9 @@ const fetchBranches = async () => {
         allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
 
+        console.log('[DEBUG] Allowed Branch IDs:', allowedBranchIds);
+        console.log('[DEBUG] Allowed Shop IDs:', allowedShopIds);
+
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
         // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
@@ -303,6 +310,8 @@ const fetchBranches = async () => {
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
                 return false;
             });
+
+            console.log('[DEBUG] Filtered Locations:', locations.value);
 
             // Auto-select first if needed
             if (locations.value.length === 1 && selectedLocationKey.value === 'all') {

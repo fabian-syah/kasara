@@ -249,17 +249,21 @@ const pieChartOptions = {
 
 const fetchBranches = async () => {
     try {
-        const [branchRes, shopRes] = await Promise.all([
+        const [branchRes, shopRes, userRes] = await Promise.all([
             axios.get('/branches'),
-            axios.get('/online-shops')
+            axios.get('/online-shops'),
+            axios.get('/user')
         ])
 
         const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
         const allLocations = [...allBranches, ...allShops];
 
-        const user = authStore.user;
+        const user = userRes.data.user || userRes.data.data || userRes.data;
         const role = (authStore.userRole || '').toLowerCase();
+
+        console.log('[DEBUG-PROFIT] Fresh User Data:', user);
+        console.log('[DEBUG-PROFIT] All Available Shops:', allShops);
 
         // Define unrestricted roles
         const isGlobalRole = ['super_admin', 'owner'].includes(role);

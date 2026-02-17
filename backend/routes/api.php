@@ -32,7 +32,7 @@ Route::get('/inventory/fix-data', [InventoryController::class, 'fixMergedImeis']
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/verify-password', [AuthController::class, 'verifyPassword']);
-    Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/user', [AuthController::class, 'me']);
 
     // ... users, branches, etc ...
     Route::apiResource('users', UserController::class);
