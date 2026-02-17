@@ -135,10 +135,21 @@ const canFilterBranch = computed(() => {
 const fetchBranches = async () => {
     try {
         const response = await axios.get('/branches')
+        let allBranches = [];
         if (Array.isArray(response.data)) {
-            branches.value = response.data;
+            allBranches = response.data;
         } else if (response.data.data) {
-            branches.value = response.data.data;
+            allBranches = response.data.data;
+        }
+
+        // If user has a specific branch assigned, filter the list
+        if (authStore.user?.branch_id) {
+            branches.value = allBranches.filter(b => b.id == authStore.user.branch_id);
+            if (branches.value.length > 0) {
+                selectedBranchId.value = branches.value[0].id; // Auto-select
+            }
+        } else {
+            branches.value = allBranches;
         }
     } catch (error) {
         console.error('Error fetching branches:', error)

@@ -95,9 +95,11 @@ class InventoryController extends Controller
                 });
             }
 
-            // Filter by Placement Type
-            if ($request->has('placement_type')) {
-                $query->where('placement_type', $request->placement_type);
+            if ($request->has('branch_id')) {
+                $query->where(function ($q) use ($request) {
+                    $q->where('placement_type', 'branch')
+                        ->where('placement_id', $request->branch_id);
+                });
             }
 
             // 1. Filter by Product Name (Type) - Supports Array
@@ -208,8 +210,10 @@ class InventoryController extends Controller
 
             // Optional: filter by specific branch (for super_admin or admin_produk viewing specific branch)
             if ($request->has('branch_id')) {
-                $query->where('placement_type', 'branch')
-                    ->where('placement_id', $request->branch_id);
+                $query->where(function ($q) use ($request) {
+                    $q->where('placement_type', 'branch')
+                        ->where('placement_id', $request->branch_id);
+                });
             }
 
             if ($request->search) {

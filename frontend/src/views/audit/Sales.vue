@@ -257,12 +257,21 @@ const formatDate = (dateString) => {
 const fetchBranches = async () => {
     try {
         const response = await axios.get('/branches')
-        // branches.value = response.data.data || response.data
-        // Adjust based on API structure
+        let allBranches = [];
         if (Array.isArray(response.data)) {
-            branches.value = response.data;
+            allBranches = response.data;
         } else if (response.data.data) {
-            branches.value = response.data.data;
+            allBranches = response.data.data;
+        }
+
+        // Filter based on user assignment
+        if (authStore.user?.branch_id) {
+            branches.value = allBranches.filter(b => b.id == authStore.user.branch_id);
+            if (branches.value.length > 0) {
+                filters.value.branch_id = branches.value[0].id;
+            }
+        } else {
+            branches.value = allBranches;
         }
     } catch (error) {
         console.error('Error fetching branches:', error)
