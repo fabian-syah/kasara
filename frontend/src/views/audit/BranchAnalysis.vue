@@ -291,7 +291,6 @@ const formatNumber = (val) => {
 };
 
 onMounted(() => {
-    console.log('Branch Analysis Component - FORCE UPDATE');
     fetchData();
 });
 </script>
