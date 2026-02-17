@@ -88,7 +88,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Loader2, Package, ArrowDownLeft, ArrowUpRight } from 'lucide-vue-next'
-import axios from '@/utils/axios'
+import axios from '@/api/axios'
 
 const loading = ref(false)
 const data = ref({

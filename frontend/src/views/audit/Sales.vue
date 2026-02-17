@@ -74,7 +74,7 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             <tr v-for="(item, index) in data.daily_sales" :key="index" class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{
                                     item.order_no }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -150,7 +150,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ item.cs_name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{{ item.total_sales
-                                }}</td>
+                            }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
@@ -167,7 +167,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
-import axios from '@/utils/axios'
+import axios from '@/api/axios'
 
 const tabs = [
     { id: 'daily', name: 'Penjualan Harian' },

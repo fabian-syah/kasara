@@ -70,7 +70,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Loader2, Search } from 'lucide-vue-next'
-import axios from '@/utils/axios'
+import axios from '@/api/axios'
 
 const searchQuery = ref('')
 const loading = ref(false)
