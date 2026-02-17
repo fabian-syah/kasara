@@ -140,8 +140,7 @@ export const branches = {
     create: (data) => api.post('/branches', data),
     update: (id, data) => api.put(`/branches/${id}`, data),
     delete: (id) => api.delete(`/branches/${id}`),
-    toggleStatus: (id) => api.post(`/branches/${id}/toggle-status`),
-    toggleReturn: (id) => api.post(`/branches/${id}/toggle-return`)
+    toggleStatus: (id) => api.post(`/branches/${id}/toggle-status`)
 }
 
 export const warehouses = {

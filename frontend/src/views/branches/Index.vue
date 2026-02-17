@@ -79,7 +79,6 @@ const handleSaved = () => {
 };
 
 const togglingStatus = ref({});
-const togglingReturn = ref({});
 
 const handleToggleStatus = async (branch) => {
     if (togglingStatus.value[branch.id]) return;
@@ -94,26 +93,12 @@ const handleToggleStatus = async (branch) => {
         togglingStatus.value[branch.id] = false;
     }
 };
-
-const handleToggleReturn = async (branch) => {
-    if (togglingReturn.value[branch.id]) return;
-    togglingReturn.value[branch.id] = true;
-    try {
-        await api.toggleReturn(branch.id);
-        toast.success(`Status retur ${branch.name} berhasil diubah`);
-        fetchBranches();
-    } catch (error) {
-        toast.error('Gagal mengubah status retur');
-    } finally {
-        togglingReturn.value[branch.id] = false;
-    }
-};
 </script>
 
 <template>
-    <div class="space-y-6 animate-in fade-in duration-500">
+    <div class="space-y-6 animate-in fade-in duration-500 pb-20 lg:pb-0">
         <!-- Page Header -->
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                     <Building2 class="text-primary-500" :size="28" />
@@ -122,7 +107,8 @@ const handleToggleReturn = async (branch) => {
                 <p class="text-text-secondary mt-1">Kelola data warehouse dan toko fisik</p>
             </div>
 
-            <button @click="openCreateModal" class="btn btn-primary shadow-lg shadow-primary-500/20">
+            <button @click="openCreateModal"
+                class="btn btn-primary shadow-lg shadow-primary-500/20 w-full sm:w-auto justify-center">
                 <Plus :size="20" />
                 <span>Tambah Cabang</span>
             </button>
@@ -138,13 +124,13 @@ const handleToggleReturn = async (branch) => {
         </div>
 
         <!-- Loading State -->
-        <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div v-for="i in 6" :key="i"
                 class="h-48 bg-surface-800 rounded-2xl animate-pulse border border-surface-700"></div>
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="branchesList.length === 0" class="text-center py-20">
+        <div v-else-if="branchesList.length === 0" class="text-center py-20 px-4">
             <div class="w-20 h-20 bg-surface-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 class="text-surface-600" :size="40" />
             </div>
@@ -158,78 +144,64 @@ const handleToggleReturn = async (branch) => {
         </div>
 
         <!-- Branch Grid -->
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div v-for="branch in handleSearch" :key="branch.id"
-                class="group bg-surface-800 rounded-2xl border border-surface-700 p-5 hover:border-primary-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/5 relative overflow-hidden">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="w-12 h-12 rounded-xl bg-surface-900 border border-surface-700 flex items-center justify-center text-primary-500 font-bold text-lg shadow-inner">
-                            {{ branch.code.substring(0, 2).toUpperCase() }}
+                class="group bg-surface-800 rounded-2xl border border-surface-700 p-5 hover:border-primary-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/5 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-12 h-12 rounded-xl bg-surface-900 border border-surface-700 flex items-center justify-center text-primary-500 font-bold text-lg shadow-inner shrink-0">
+                                {{ branch.code.substring(0, 2).toUpperCase() }}
+                            </div>
+                            <div class="min-w-0">
+                                <h3
+                                    class="font-bold text-white text-lg leading-tight group-hover:text-primary-500 transition-colors truncate">
+                                    {{ branch.name }}
+                                </h3>
+                                <p
+                                    class="text-xs font-mono text-text-secondary bg-surface-900 px-1.5 py-0.5 rounded inline-block mt-1">
+                                    {{ branch.code }}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h3
-                                class="font-bold text-white text-lg leading-tight group-hover:text-primary-500 transition-colors">
-                                {{ branch.name }}
-                            </h3>
-                            <p
-                                class="text-xs font-mono text-text-secondary bg-surface-900 px-1.5 py-0.5 rounded inline-block mt-1">
-                                {{ branch.code }}
-                            </p>
+                        <div class="flex gap-1 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button @click="openEditModal(branch)"
+                                class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors">
+                                <Edit :size="18" />
+                            </button>
+                            <button @click="handleDelete(branch.id)"
+                                class="p-2 hover:bg-surface-700 rounded-lg text-red-400 transition-colors">
+                                <Trash2 :size="18" />
+                            </button>
                         </div>
                     </div>
-                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button @click="openEditModal(branch)"
-                            class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors">
-                            <Edit :size="18" />
-                        </button>
-                        <button @click="handleDelete(branch.id)"
-                            class="p-2 hover:bg-surface-700 rounded-lg text-red-400 transition-colors">
-                            <Trash2 :size="18" />
-                        </button>
+
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-start gap-2.5 text-sm text-text-secondary">
+                            <MapPin :size="16" class="mt-0.5 shrink-0" />
+                            <span class="line-clamp-2">{{ branch.address || 'Alamat belum diatur' }}</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 text-sm text-text-secondary">
+                            <Clock :size="16" />
+                            <span>{{ branch.timezone || 'WIB' }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="space-y-3 mb-4">
-                    <div class="flex items-start gap-2.5 text-sm text-text-secondary">
-                        <MapPin :size="16" class="mt-0.5 shrink-0" />
-                        <span class="line-clamp-2">{{ branch.address || 'Alamat belum diatur' }}</span>
-                    </div>
-                    <div class="flex items-center gap-2.5 text-sm text-text-secondary">
-                        <Clock :size="16" />
-                        <span>{{ branch.timezone || 'WIB' }}</span>
-                    </div>
-                </div>
+                <div class="pt-4 border-t border-surface-700 flex justify-between items-center gap-2">
+                    <span
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border shrink-0"
+                        :class="branch.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'">
+                        <component :is="branch.is_active ? CheckCircle : XCircle" :size="12" />
+                        {{ branch.is_active ? 'Aktif' : 'Nonaktif' }}
+                    </span>
 
-                <div class="pt-4 border-t border-surface-700 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border"
-                            :class="branch.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'">
-                            <component :is="branch.is_active ? CheckCircle : XCircle" :size="12" />
-                            {{ branch.is_active ? 'Aktif' : 'Nonaktif' }}
-                        </span>
-
-                        <span v-if="branch.can_accept_returns"
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-blue-500/10 text-blue-400 border-blue-500/20">
-                            <RotateCcw :size="12" />
-                            Retur ON
-                        </span>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <button @click="handleToggleReturn(branch)" :disabled="togglingReturn[branch.id]"
-                            class="text-xs font-medium transition-colors"
-                            :class="branch.can_accept_returns ? 'text-emerald-500 hover:text-emerald-400' : 'text-surface-400 hover:text-text-primary'">
-                            {{ togglingReturn[branch.id] ? '...' : (branch.can_accept_returns ? 'Matikan Retur' :
-                            'Aktifkan Retur') }}
-                        </button>
-
-                        <button @click="handleToggleStatus(branch)" :disabled="togglingStatus[branch.id]"
-                            class="text-xs font-medium transition-colors"
-                            :class="branch.is_active ? 'text-red-400 hover:text-red-300' : 'text-emerald-500 hover:text-emerald-400'">
-                            {{ togglingStatus[branch.id] ? '...' : (branch.is_active ? 'Nonaktifkan' : 'Aktifkan') }}
-                        </button>
-                    </div>
+                    <button @click="handleToggleStatus(branch)" :disabled="togglingStatus[branch.id]"
+                        class="text-xs font-medium transition-all px-3 py-1.5 rounded-lg border border-transparent hover:border-current"
+                        :class="branch.is_active ? 'text-red-400 bg-red-400/5 hover:bg-red-400/10' : 'text-emerald-500 bg-emerald-500/5 hover:bg-emerald-500/10'">
+                        {{ togglingStatus[branch.id] ? '...' : (branch.is_active ? 'Set Nonaktif' : 'Set Aktif') }}
+                    </button>
                 </div>
             </div>
         </div>

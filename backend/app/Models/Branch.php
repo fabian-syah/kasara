@@ -17,12 +17,10 @@ class Branch extends Model
         'url',
         'api_key',
         'api_secret',
-        'can_accept_returns',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'can_accept_returns' => 'boolean',
     ];
 
     public function scopeOnline($query)

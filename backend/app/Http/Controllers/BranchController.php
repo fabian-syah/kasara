@@ -81,21 +81,6 @@ class BranchController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function toggleReturn(Branch $branch)
-    {
-        $newValue = !$branch->can_accept_returns;
-
-        $branch->update([
-            'can_accept_returns' => $newValue
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $branch,
-            'message' => 'Status terima retur berhasil diubah'
-        ]);
-    }
-
     public function toggleStatus(Branch $branch)
     {
         $newValue = !$branch->is_active;
