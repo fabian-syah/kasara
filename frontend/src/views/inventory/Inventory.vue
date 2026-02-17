@@ -984,13 +984,6 @@ const canToggleReturn = computed(() => {
   return authStore.hasRole(allowedRoles);
 });
 
-const categories = computed(() => inventoryStore.categories);
-
-const canToggleReturn = computed(() => {
-  const allowedRoles = ['super_admin'];
-  return authStore.hasRole(allowedRoles);
-});
-
 function getStockStatus(product) {
   if (product.stock === 0)
     return { label: "Habis", class: "bg-red-500/20 text-red-400" };
