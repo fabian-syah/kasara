@@ -193,7 +193,8 @@ async function fetchData() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await authStore.fetchUser(); // Force refresh user data (placements)
   fetchData();
 });
 
@@ -414,6 +415,20 @@ function getUserRoleName(user) {
         <UserPlus :size="18" />
         <span>Tambah User</span>
       </button>
+    </div>
+
+    <!-- DEBUG BLOCK FOR AUDIT -->
+    <div v-if="isAudit" class="bg-surface-800 p-4 rounded-lg border border-red-500/50 mb-4 text-xs font-mono">
+      <p class="text-red-400 font-bold mb-2">DEBUG MODE (Audit)</p>
+      <p>Role: {{ currentUser?.roles?.length ? currentUser.roles[0].name : currentUser?.role }}</p>
+      <p>Online Shop ID: {{ currentUser?.online_shop_id }}</p>
+      <p>Has Online Access (Computed): {{!!currentUser?.online_shop_id || (currentUser?.placements?.some(p =>
+        p.model_type === 'online_shop' || p.model_type.includes('OnlineShop')) ?? false) }}</p>
+      <div class="mt-2">
+        <p class="font-bold">Placements Raw:</p>
+        <pre
+          class="bg-black/50 p-2 rounded mt-1 overflow-x-auto text-[10px]">{{ JSON.stringify(currentUser?.placements, null, 2) }}</pre>
+      </div>
     </div>
 
     <!-- Stats -->
