@@ -25,6 +25,12 @@ import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatt
 
 import { Html5Qrcode } from "html5-qrcode";
 const router = useRouter();
+const props = defineProps({
+  isEmbedded: {
+    type: Boolean,
+    default: false
+  }
+});
 const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
 const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 import {
@@ -1000,7 +1006,7 @@ function getStockStatus(product) {
 <template>
   <div class="space-y-6 animate-in">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+    <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <div>
         <h1 class="text-2xl font-bold text-text-primary tracking-tight">Inventory</h1>
         <p class="text-text-secondary mt-1">Kelola stok produk di semua cabang</p>
@@ -1037,7 +1043,7 @@ function getStockStatus(product) {
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div v-if="!isEmbedded" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
         <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
           'bg-blue-600': stat.color === 'blue',

@@ -11,6 +11,13 @@ import { formatDate } from '../../utils/formatters';
 const router = useRouter();
 const toast = useToast();
 
+const props = defineProps({
+    isEmbedded: {
+        type: Boolean,
+        default: false
+    }
+});
+
 const loading = ref(false);
 const exporting = ref(false);
 const items = ref([]);
@@ -217,7 +224,7 @@ const formatCurrency = (value) => {
 <template>
     <div class="space-y-6 animate-in">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div class="flex items-center gap-3">
                 <button @click="router.push({ name: 'Inventory' })"
                     class="p-2 hover:bg-surface-800 rounded-xl transition-colors">
