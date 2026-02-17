@@ -18,395 +18,91 @@ class InventoryController extends Controller
     // Filtered by branch - only super_admin can see all
     public function index(Request $request)
     {
-        \Illuminate\Support\Facades\Log::info("!!! INVENTORY INDEX HIT !!!", ['all_params' => $request->all()]);
         $user = Auth::user();
-        $type = $request->type ?? 'hp'; // Default to HP (ProductDetail)
+        $type = $request->type ?? 'hp';
+
+        // 1. Definisikan ID Online Shop yang bisa diakses user ini
+        $onlineShopIds = array_filter([$user->online_shop_id]);
+        $accessibleOnline = $user->getAccessibleOnlineShopIds() ?: [];
+        $allOnlineIds = array_unique(array_merge($onlineShopIds, (is_array($accessibleOnline) ? $accessibleOnline : [])));
 
         if ($type === 'non-hp') {
-            // ============================================
-            // NON-HP (Quantity Based)
-            // ============================================
-            // ============================================
-            // NON-HP (Quantity Based)
-            // ============================================
-            $query = Inventory::with(['product', 'user'])
-                ->where('quantity', '>', 0); // Hide items with 0 stock
+            $query = Inventory::with(['product', 'user'])->where('quantity', '>', 0);
 
-            // Filter by Branch/Placement
-            // Filter by Branch/Placement
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
             if (!$user->hasRole($unrestrictedRoles)) {
-                $query->where(function ($q) use ($user) {
-                    // Ambil ID dari helper
-                    $branchIds = $user->getAccessibleBranchIds();
-                    $warehouseIds = $user->getAccessibleWarehouseIds();
-                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
-
-                    $hasConstraint = false;
-                    if (!empty($branchIds)) {
-                        $q->orWhere(function ($sub) use ($branchIds) {
-                            $sub->where('placement_type', 'branch')
-                                ->whereIn('placement_id', $branchIds);
-                        });
-                        $hasConstraint = true;
-                    }
-                    if (!empty($warehouseIds)) {
-                        $q->orWhere(function ($sub) use ($warehouseIds) {
-                            $sub->where('placement_type', 'warehouse')
-                                ->whereIn('placement_id', $warehouseIds);
-                        });
-                        $hasConstraint = true;
-                    }
-
-                    // Gabungkan ID Online Shop dari Placement (Helper) dan user->online_shop_id
-                    $allOnlineShopIds = is_array($onlineShopIds) ? $onlineShopIds : [];
-                    if ($user->online_shop_id) {
-                        $allOnlineShopIds[] = $user->online_shop_id;
-                    }
-                    $allOnlineShopIds = array_unique($allOnlineShopIds);
-
-                    if (!empty($allOnlineShopIds)) {
-                        $q->orWhere(function ($sub) use ($allOnlineShopIds) {
-                            $sub->where('placement_type', 'online_shop')
-                                ->whereIn('placement_id', $allOnlineShopIds);
-                        });
-                        $hasConstraint = true;
-                    }
-
-                    if (!$hasConstraint) {
-                        $q->whereRaw('0 = 1');
-                    }
-                });
-            }
-            if ($request->has('branch_id')) {
-                $query->where('placement_type', 'branch')
-                    ->where('placement_id', $request->branch_id);
-            }
-
-            // Search (Multi-keyword)
-            if ($request->search) {
-                $search = $request->search;
-                $keywords = explode(' ', $search);
-
-                $query->where(function ($q) use ($keywords) {
-                    foreach ($keywords as $keyword) {
-                        $lowKeyword = strtolower($keyword);
-                        $q->whereHas('product', function ($sq) use ($lowKeyword) {
-                            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                        });
-                    }
-                });
-            }
-
-            // Filter by Brand (via Product)
-            if ($request->filled('brand') && $request->brand != 'all') {
-                $brand = $request->brand;
-                $query->whereHas('product', function ($q) use ($brand) {
-                    $q->where('brand', $brand);
-                });
-            }
-
-            if ($request->filled('branch_id')) {
-                $query->where('placement_type', 'branch')
-                    ->where('placement_id', $request->branch_id);
-            }
-            if ($request->filled('warehouse_id')) {
-                $query->where('placement_type', 'warehouse')
-                    ->where('placement_id', $request->warehouse_id);
-            }
-            if ($request->filled('online_shop_id')) {
-                $query->where('placement_type', 'online_shop')
-                    ->where('placement_id', $request->online_shop_id);
-            }
-
-            // 1. Filter by Product Name (Type) - Supports Array
-            if ($request->filled('product_name_filter')) {
-                $pNames = $request->product_name_filter;
-                if (is_string($pNames))
-                    $pNames = explode(',', $pNames);
-                if (is_array($pNames) && count($pNames) > 0) {
-                    $query->whereHas('product', function ($q) use ($pNames) {
-                        $q->whereIn('name', $pNames);
+                $query->where(function ($q) use ($user, $allOnlineIds) {
+                    $q->where(function ($sq) use ($allOnlineIds) {
+                        $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $allOnlineIds);
                     });
-                }
+                    // Fallback akses branch jika ada
+                    if ($bIds = $user->getAccessibleBranchIds())
+                        $q->orWhere('placement_type', 'branch')->whereIn('placement_id', $bIds);
+                });
             }
-
-            // 2. Filter by Brand - Supports Array
-            if ($request->filled('brand_filter')) {
-                $brands = $request->brand_filter;
-                if (is_string($brands))
-                    $brands = explode(',', $brands);
-                if (is_array($brands) && count($brands) > 0) {
-                    $query->whereHas('product', function ($q) use ($brands) {
-                        $q->whereIn('brand', $brands);
-                    });
-                }
-            }
-
-
-            $items = $query->latest()->paginate(20);
-
-            // Transform
-            $items->getCollection()->transform(function ($item) {
-                // Accessor for placement_name should be added to Inventory model or done here
-                // Inventory model typically doesn't have placement relation defined yet in typical setup, let's allow basic mapping
-                if ($item->placement_type == 'branch') {
-                    $item->placement_name = \App\Models\Branch::find($item->placement_id)?->name;
-                } elseif ($item->placement_type == 'warehouse') {
-                    $item->placement_name = \App\Models\Warehouse::find($item->placement_id)?->name;
-                } elseif ($item->placement_type == 'online_shop') {
-                    $item->placement_name = \App\Models\OnlineShop::find($item->placement_id)?->name;
-                }
-
-                // Add Last Supplier Info
-                $lastLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                    ->where('user_id', $item->user_id)
-                    ->where('type', 'in')
-                    ->latest()
-                    ->first();
-
-                $item->latest_supplier = $lastLog ? ($lastLog->supplier_name ?? ($lastLog->distributor ? $lastLog->distributor->name : null)) : null;
-                $item->notes = $lastLog ? $lastLog->notes : null;
-
-                return $item;
-            });
-
-            // Calculate Total Value (Global, not just current page)
-            $totalValueQuery = clone $query;
-            // Using join to get product price. Ensure to account for soft deletes if Product uses it.
-            $totalValue = $totalValueQuery->join('products', 'inventories.product_id', '=', 'products.id')
-                ->whereNull('products.deleted_at')
-                ->sum(DB::raw('inventories.quantity * products.price'));
-
-            $response = $items->toArray();
-            $response['total_value'] = $totalValue;
-
-            return response()->json($response);
+            return response()->json($query->latest()->paginate(20));
 
         } else {
-            // ============================================
-            // HP (IMEI Based) - Existing Logic
-            // ============================================
+            // HP / UNIT BASED
+            // Gunakan WITH saja, hindari JOIN manual yang berisiko memotong data jika product_id bermasalah
             $query = ProductDetail::with(['product', 'distributor', 'user']);
 
-            // BRANCH FILTER:
+            // A. FILTER LOKASI (FIX TOKO ONLINE)
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-
-            // If user is NOT in unrestricted roles AND has a placement, lock them to their placement
-            // If user is NOT in unrestricted roles AND has a placement, lock them to their placement
             if (!$user->hasRole($unrestrictedRoles)) {
-                $query->where(function ($q) use ($user) {
-                    $branchIds = $user->getAccessibleBranchIds();
-                    $warehouseIds = $user->getAccessibleWarehouseIds();
-                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
-
+                $query->where(function ($q) use ($user, $allOnlineIds) {
                     $hasConstraint = false;
-                    if (!empty($branchIds)) {
-                        $q->orWhere(function ($sub) use ($branchIds) {
-                            $sub->where('placement_type', 'branch')
-                                ->whereIn('placement_id', $branchIds);
-                        });
-                        $hasConstraint = true;
-                    }
-                    if (!empty($warehouseIds)) {
-                        $q->orWhere(function ($sub) use ($warehouseIds) {
-                            $sub->where('placement_type', 'warehouse')
-                                ->whereIn('placement_id', $warehouseIds);
+
+                    if (!empty($allOnlineIds)) {
+                        $q->orWhere(function ($sq) use ($allOnlineIds) {
+                            $sq->where('placement_type', 'online_shop')
+                                ->whereIn('placement_id', $allOnlineIds);
                         });
                         $hasConstraint = true;
                     }
 
-                    // Gabungkan ID dari helper dan ID langsung dari user profile
-                    $allOnlineShopIds = is_array($onlineShopIds) ? $onlineShopIds : [];
-                    if ($user->online_shop_id) {
-                        $allOnlineShopIds[] = $user->online_shop_id;
-                    }
-                    $allOnlineShopIds = array_unique($allOnlineShopIds);
-
-                    if (!empty($allOnlineShopIds)) {
-                        $q->orWhere(function ($sub) use ($allOnlineShopIds) {
-                            $sub->where('placement_type', 'online_shop')
-                                ->whereIn('placement_id', $allOnlineShopIds);
-                        });
+                    if ($bIds = $user->getAccessibleBranchIds()) {
+                        $q->orWhere('placement_type', 'branch')->whereIn('placement_id', $bIds);
                         $hasConstraint = true;
                     }
 
-                    if (!$hasConstraint) {
-                        $q->whereRaw('0 = 1');
-                    }
+                    if (!$hasConstraint)
+                        $q->whereRaw('1 = 0');
                 });
             }
 
-            // Optional: filter by specific location
-            if ($request->filled('branch_id')) {
-                $query->where('placement_type', 'branch')
-                    ->where('placement_id', $request->branch_id);
-            }
-            if ($request->filled('warehouse_id')) {
-                $query->where('placement_type', 'warehouse')
-                    ->where('placement_id', $request->warehouse_id);
-            }
-            if ($request->filled('online_shop_id')) {
-                $query->where('placement_type', 'online_shop')
-                    ->where('placement_id', $request->online_shop_id);
-            }
-
-            if ($request->search) {
-                $search = $request->search;
-                $keywords = explode(' ', $search);
-
-                $query->where(function ($q) use ($keywords) {
-                    foreach ($keywords as $keyword) {
-                        $lowKeyword = strtolower($keyword);
-                        $q->where(function ($sub) use ($lowKeyword) {
-                            $sub->orWhereRaw('LOWER(ram) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(storage) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(condition) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereHas('product', function ($sq) use ($lowKeyword) {
-                                    $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                        ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$lowKeyword}%"])
-                                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                                });
-
-                            if (strlen($lowKeyword) >= 3) {
-                                $sub->orWhereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"]);
-                            }
-                        });
-                    }
-                });
-            }
-
-            // Filter by Brand (via Product)
-            if ($request->filled('brand') && $request->brand != 'all') {
-                $brand = $request->brand;
-                $query->whereHas('product', function ($q) use ($brand) {
-                    $q->where('brand', $brand);
-                });
-            }
-
-            // Filter by Condition
-            if ($request->has('condition') && $request->condition != 'all' && $request->condition != '') {
-                $query->where('condition', $request->condition);
-            }
-
-            // Filter by Status
+            // B. FILTER STATUS (Penyebab Utama Kamu Kosong)
             $status = $request->status ?? $request->stock_status;
             if ($status && $status !== 'all') {
                 $query->where('status', $status);
-            } else if (!$status || $status === 'all') {
-                // Jika tidak ada filter status, atau pilih 'Semua', 
-                // tampilkan status yang umum (available, booking, returned)
-                // tujuannya agar item yang sedang dibooking tetap muncul di list
-                $query->whereIn('status', ['available', 'booking', 'returned']);
+            } else {
+                // TAMPILKAN SEMUA STATUS YANG MASIH ADA DI INVENTORY
+                $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
             }
 
-            // Filter by placement type (branch/warehouse/online_shop)
-            if ($request->has('placement_type')) {
-                $query->where('placement_type', $request->placement_type);
-            }
-
-            // --- COLUMN FILTERS (NEW) ---
-            // 1. Filter by Product Name (Type) - Supports Array
-            if ($request->filled('product_name_filter')) {
-                $pNames = $request->product_name_filter;
-                if (is_string($pNames))
-                    $pNames = explode(',', $pNames);
-                if (is_array($pNames) && count($pNames) > 0) {
-                    $query->whereHas('product', function ($q) use ($pNames) {
-                        $q->whereIn('name', $pNames);
-                    });
-                }
-            }
-
-            // 2. Filter by Capacity (RAM or Storage) - Supports Array
-            if ($request->filled('capacity_filter')) {
-                $caps = $request->capacity_filter;
-                if (is_string($caps))
-                    $caps = explode(',', $caps);
-                if (is_array($caps) && count($caps) > 0) {
-                    $query->where(function ($q) use ($caps) {
-                        foreach ($caps as $cap) {
-                            $parts = explode('/', $cap);
-                            if (count($parts) === 2) {
-                                $q->orWhere(function ($sub) use ($parts) {
-                                    $sub->where('ram', $parts[0])
-                                        ->where('storage', $parts[1]);
-                                });
-                            } else {
-                                $q->orWhere('ram', $cap)
-                                    ->orWhere('storage', $cap);
-                            }
-                        }
-                    });
-                }
-            }
-            // 3. Filter by Brand - Supports Array
-            if ($request->filled('brand_filter')) {
-                $brands = $request->brand_filter;
-                if (is_string($brands))
-                    $brands = explode(',', $brands);
-                if (is_array($brands) && count($brands) > 0) {
-                    $query->whereHas('product', function ($q) use ($brands) {
-                        $q->whereIn('brand', $brands);
-                    });
-                }
-            }
-
-
-            if ($request->has('debug')) {
-                return response()->json([
-                    'debug_info' => [
-                        'user_id' => $user->id,
-                        'online_shop_id' => $user->online_shop_id,
-                        'accessible_online_shops' => $user->getAccessibleOnlineShopIds(),
-                        'all_accessible_online_shops' => array_unique(array_merge(
-                            (is_array($user->getAccessibleOnlineShopIds()) ? $user->getAccessibleOnlineShopIds() : []),
-                            [$user->online_shop_id]
-                        )),
-                        'params' => $request->all(),
-                        'sql' => $query->toSql(),
-                        'bindings' => $query->getBindings(),
-                        'raw_count' => \App\Models\ProductDetail::count(),
-                    ]
-                ]);
+            // C. SEARCH
+            if ($request->search) {
+                $s = $request->search;
+                $query->where(function ($q) use ($s) {
+                    $q->where('imei', 'like', "%$s%")
+                        ->orWhereHas('product', function ($pq) use ($s) {
+                            $pq->where('name', 'like', "%$s%")->orWhere('brand', 'like', "%$s%");
+                        });
+                });
             }
 
             $items = $query->latest()->paginate(20);
 
-            // Transform results to include placement name
+            // Tambahkan Metadata Placement Name
             $items->getCollection()->transform(function ($item) {
-                $item->placement_name = $item->placement ? $item->placement->name : null;
-
-                // For returned items, include proof_image and return details
-                if ($item->status === 'returned') {
-                    $returnStockOut = $item->latestReturnStockOut();
-                    if ($returnStockOut) {
-                        $item->proof_image = $returnStockOut->proof_image
-                            ? asset('storage/' . $returnStockOut->proof_image)
-                            : null;
-                        $item->customer_name = $returnStockOut->customer_name;
-                        $item->retur_issue = $returnStockOut->retur_issue;
-                        $item->retur_officer = $returnStockOut->retur_officer;
-                        $item->return_date = $returnStockOut->created_at;
-                    }
-                }
-
+                $item->placement_name = $item->placement ? $item->placement->name : 'Unknown';
                 return $item;
             });
 
-            // Calculate Total Value (Global)
-            \Illuminate\Support\Facades\Log::info("HP Final Query SQL: " . $query->toSql(), $query->getBindings());
-
-            $totalValueQuery = clone $query;
-            $totalValue = $totalValueQuery->sum('selling_price');
-
             $response = $items->toArray();
-            $response['total_value'] = $totalValue;
+            $response['total_value'] = (clone $query)->sum('selling_price');
 
             return response()->json($response);
-
         }
     }
 
