@@ -4,16 +4,20 @@
 
         <!-- Header Controls -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
                 <select v-model="selectedYear" @change="fetchData"
-                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:max-w-xs sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                    class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
                     <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
                 </select>
                 <select v-model="selectedMonth" @change="fetchData"
-                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:max-w-xs sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                    class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
                     <option :value="null">Semua Bulan</option>
                     <option v-for="(name, index) in months" :key="index" :value="index + 1">{{ name }}</option>
                 </select>
+                <!-- Date Filter -->
+                <input type="date" v-model="selectedDate" @change="fetchData"
+                    class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700" />
+
                 <button @click="fetchData" :disabled="loading"
                     class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50">
                     <Loader2 v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
@@ -36,8 +40,14 @@
                                 <dt class="text-sm font-medium text-gray-500 truncate dark:text-gray-400">Total Profit
                                     (Est)
                                 </dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">{{
-                                    formatCurrency(summary.total_profit) }}</dd>
+                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {{ formatCurrency(summary.total_profit) }}
+                                    <span v-if="comparison" class="text-xs ml-2"
+                                        :class="comparison.profit_diff >= 0 ? 'text-green-500' : 'text-red-500'">
+                                        {{ comparison.profit_diff >= 0 ? '+' : '' }}{{ comparison.percentage }}% (Rp {{
+                                            formatNumber(comparison.profit_diff) }})
+                                    </span>
+                                </dd>
                             </dl>
                         </div>
                     </div>
@@ -55,8 +65,14 @@
                             <dl>
                                 <dt class="text-sm font-medium text-gray-500 truncate dark:text-gray-400">Total Omset
                                 </dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">{{
-                                    formatCurrency(summary.total_revenue) }}</dd>
+                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {{ formatCurrency(summary.total_revenue) }}
+                                    <span v-if="comparison" class="text-xs ml-2"
+                                        :class="comparison.revenue_diff >= 0 ? 'text-green-500' : 'text-red-500'">
+                                        {{ comparison.revenue_diff >= 0 ? '+' : '' }}{{
+                                            formatNumber(comparison.revenue_diff) }}
+                                    </span>
+                                </dd>
                             </dl>
                         </div>
                     </div>
@@ -100,7 +116,7 @@
             <div
                 class="bg-white dark:bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
                 <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Kontribusi Sales per
-                    Cabang/Shop</h3>
+                    Cabang/Shop (by CS)</h3>
                 <div class="h-80 relative flex justify-center">
                     <Pie v-if="chartData.breakdown" :data="chartData.breakdown" :options="pieChartOptions" />
                     <div v-else class="flex items-center justify-center h-full text-gray-500">Tidak ada data</div>
@@ -144,6 +160,7 @@ const loading = ref(false);
 
 const selectedYear = ref(new Date().getFullYear());
 const selectedMonth = ref(null); // All months by default
+const selectedDate = ref(null);
 
 const years = [2024, 2025, 2026];
 const months = [
@@ -157,63 +174,38 @@ const summary = ref({
     total_items: 0
 });
 
+const comparison = ref(null);
+
 const chartData = ref({
     trend: null,
     breakdown: null
 });
 
-const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            position: 'top',
-        }
-    },
-    scales: {
-        y: {
-            beginAtZero: true,
-            ticks: {
-                callback: function (value) {
-                    if (value >= 1000000) return 'Rp ' + (value / 1000000).toFixed(1) + ' jt';
-                    if (value >= 1000) return 'Rp ' + (value / 1000).toFixed(0) + ' k';
-                    return value;
-                }
-            }
-        }
+// ... inside fetchAnalysis ...
+try {
+    const params = {
+        year: selectedYear.value,
+    };
+    if (selectedDate.value) {
+        params.date = selectedDate.value;
+    } else if (selectedMonth.value) {
+        params.month = selectedMonth.value;
     }
-};
 
-const pieChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            position: 'right',
-        }
-    }
-};
+    const response = await api.get('/audit/analysis', { params });
+    const data = response.data;
 
-const fetchAnalysis = async () => {
-    loading.value = true;
-    try {
-        const params = {
-            year: selectedYear.value,
-        };
-        if (selectedMonth.value) params.month = selectedMonth.value;
+    summary.value = data.summary;
+    comparison.value = data.comparison || null;
+    processCharts(data);
 
-        const response = await api.get('/audit/analysis', { params });
-        const data = response.data;
-
-        summary.value = data.summary;
-        processCharts(data);
-
-    } catch (error) {
-        console.error("Failed to fetch analysis:", error);
-        toast.error("Gagal memuat data analisa");
-    } finally {
-        loading.value = false;
-    }
+} catch (error) {
+    // ...
+    console.error("Failed to fetch analysis:", error);
+    toast.error("Gagal memuat data analisa");
+} finally {
+    loading.value = false;
+}
 };
 
 const processCharts = (data) => {

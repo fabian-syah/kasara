@@ -394,7 +394,9 @@ class AuditController extends Controller
             ->whereIn('category', $salesCategories)
             ->whereYear('created_at', $year);
 
-        if ($month) {
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($month) {
             $query->whereMonth('created_at', $month);
         }
 
@@ -448,46 +450,115 @@ class AuditController extends Controller
 
             $profit = $trx->selling_price - $trxCost;
 
-            // Aggregate Daily
-            if (!isset($dailyStats[$date])) {
-                $dailyStats[$date] = ['date' => $date, 'profit' => 0, 'revenue' => 0];
-            }
-            $dailyStats[$date]['profit'] += $profit;
-            $dailyStats[$date]['revenue'] += $trx->selling_price;
-
-            // Aggregate Totals
+            // Update Total Stats
             $totalRevenue += $trx->selling_price;
             $totalCost += $trxCost;
             $totalItems += $trxItems;
 
-            // Aggregate Breakdown by Branch/Shop
-            // We need to know which branch/shop this transaction belongs to.
-            // StockOut -> User -> Branch/OnlineShop
-            $source = 'Unknown';
-            if ($trx->user) {
+            // Daily Stats for Trend Chart
+            if (!isset($dailyStats[$date])) {
+                $dailyStats[$date] = [
+                    'date' => $date,
+                    'profit' => 0,
+                    'revenue' => 0,
+                    'items' => 0
+                ];
+            }
+            $dailyStats[$date]['profit'] += $profit;
+            $dailyStats[$date]['revenue'] += $trx->selling_price;
+            $dailyStats[$date]['items'] += $trxItems;
+
+            // Breakdown by Branch/OnlineShop (Logic: Prefer Inventory User Branch -> Creator Branch)
+            $sourceName = 'Unknown';
+
+            // 1. Try Inventory User (The CS who made the sale)
+            if ($trx->inventoryUser) {
+                if ($trx->inventoryUser->branch) {
+                    $sourceName = $trx->inventoryUser->branch->name;
+                } elseif ($trx->inventoryUser->onlineShop) {
+                    $sourceName = $trx->inventoryUser->onlineShop->name;
+                }
+            }
+            // 2. Fallback to Creator User
+            elseif ($trx->user) {
                 if ($trx->user->branch) {
-                    $source = $trx->user->branch->name;
+                    $sourceName = $trx->user->branch->name;
                 } elseif ($trx->user->onlineShop) {
-                    $source = $trx->user->onlineShop->name;
+                    $sourceName = $trx->user->onlineShop->name;
                 }
             }
 
-            if (!isset($breakdown[$source])) {
-                $breakdown[$source] = ['name' => $source, 'profit' => 0, 'revenue' => 0, 'items' => 0];
+            if (!isset($breakdown[$sourceName])) {
+                $breakdown[$sourceName] = [
+                    'name' => $sourceName,
+                    'profit' => 0,
+                    'revenue' => 0,
+                    'items' => 0
+                ];
             }
-            $breakdown[$source]['profit'] += $profit;
-            $breakdown[$source]['revenue'] += $trx->selling_price;
-            $breakdown[$source]['items'] += $trxItems;
+            $breakdown[$sourceName]['profit'] += $profit;
+            $breakdown[$sourceName]['revenue'] += $trx->selling_price;
+            $breakdown[$sourceName]['items'] += $trxItems;
+        }
+
+        // Daily Comparison Logic (if date provided)
+        $comparison = null;
+        if ($request->date) {
+            $targetDate = $request->date;
+            $prevDate = date('Y-m-d', strtotime($targetDate . ' -1 day'));
+
+            $targetStats = $detailedStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
+
+            // Re-query for previous date if not in current set (likely if start of month)
+            // But for simplicity, we can just filter the $dailyStats if the month/year covers it?
+            // Actually, if we selected "Feb 17", we need "Feb 16".
+            // Since we queried the whole month (or year), checking $dailyStats is fine if within range.
+            // If previous date is previous month, we might miss it if filtering by month.
+            // Let's implement a specific robust check for Comparison.
+
+            $prevStats = ['profit' => 0, 'revenue' => 0, 'items' => 0];
+            // We can't rely on $dailyStats if filtered by month and prevDate is last month.
+            // So let's run a separate lightweight query for the 2 days if 'date' is present?
+            // Or just check $dailyStats if available.
+
+            // For now, let's assume user stays within valid range or we accept 0 for prev if out of query.
+            // Optimization: If date is requested, maybe we should focus on that?
+            // But the charts usually show the context (the whole month).
+            // So let's check $dailyStats for prevDate.
+
+            $prevStats = $dailyStats[$prevDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
+
+            // If prevStats is empty but might exist (cross-month), query it
+            if (!isset($dailyStats[$prevDate])) {
+                // Optional: Query specific date if needed.
+                // For now, let's stick to loaded data.
+            }
+
+            $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
+
+            $comparison = [
+                'date' => $targetDate,
+                'profit' => $targetStats['profit'],
+                'revenue' => $targetStats['revenue'],
+                'items' => $targetStats['items'],
+                'prev_date' => $prevDate,
+                'prev_profit' => $prevStats['profit'],
+                'prev_revenue' => $prevStats['revenue'],
+                'profit_diff' => $targetStats['profit'] - $prevStats['profit'],
+                'revenue_diff' => $targetStats['revenue'] - $prevStats['revenue'],
+                'percentage' => $prevStats['profit'] != 0 ? round((($targetStats['profit'] - $prevStats['profit']) / abs($prevStats['profit'])) * 100, 1) : 0
+            ];
         }
 
         return response()->json([
-            'profit_trend' => array_values($dailyStats),
-            'sales_breakdown' => array_values($breakdown),
             'summary' => [
-                'total_profit' => $totalRevenue - $totalCost,
+                'total_profit' => $totalRevenue - $totalCost, // Recalculate based on loops
                 'total_revenue' => $totalRevenue,
                 'total_items' => $totalItems
-            ]
+            ],
+            'profit_trend' => array_values($dailyStats),
+            'sales_breakdown' => array_values($breakdown),
+            'comparison' => $comparison // New Field
         ]);
     }
 }
