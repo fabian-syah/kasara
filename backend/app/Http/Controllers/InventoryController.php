@@ -110,22 +110,22 @@ class InventoryController extends Controller
             }
 
             // Filter by Brand (via Product)
-            if ($request->has('brand') && $request->brand != 'all' && $request->brand != '') {
+            if ($request->filled('brand') && $request->brand != 'all') {
                 $brand = $request->brand;
                 $query->whereHas('product', function ($q) use ($brand) {
                     $q->where('brand', $brand);
                 });
             }
 
-            if ($request->has('branch_id')) {
+            if ($request->filled('branch_id')) {
                 $query->where('placement_type', 'branch')
                     ->where('placement_id', $request->branch_id);
             }
-            if ($request->has('warehouse_id')) {
+            if ($request->filled('warehouse_id')) {
                 $query->where('placement_type', 'warehouse')
                     ->where('placement_id', $request->warehouse_id);
             }
-            if ($request->has('online_shop_id')) {
+            if ($request->filled('online_shop_id')) {
                 $query->where('placement_type', 'online_shop')
                     ->where('placement_id', $request->online_shop_id);
             }
@@ -249,15 +249,15 @@ class InventoryController extends Controller
             }
 
             // Optional: filter by specific location
-            if ($request->has('branch_id')) {
+            if ($request->filled('branch_id')) {
                 $query->where('placement_type', 'branch')
                     ->where('placement_id', $request->branch_id);
             }
-            if ($request->has('warehouse_id')) {
+            if ($request->filled('warehouse_id')) {
                 $query->where('placement_type', 'warehouse')
                     ->where('placement_id', $request->warehouse_id);
             }
-            if ($request->has('online_shop_id')) {
+            if ($request->filled('online_shop_id')) {
                 $query->where('placement_type', 'online_shop')
                     ->where('placement_id', $request->online_shop_id);
             }
@@ -288,7 +288,7 @@ class InventoryController extends Controller
             }
 
             // Filter by Brand (via Product)
-            if ($request->has('brand') && $request->brand != 'all' && $request->brand != '') {
+            if ($request->filled('brand') && $request->brand != 'all') {
                 $brand = $request->brand;
                 $query->whereHas('product', function ($q) use ($brand) {
                     $q->where('brand', $brand);
