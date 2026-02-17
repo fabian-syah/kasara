@@ -40,8 +40,8 @@ class InventoryController extends Controller
         if ($type === 'non-hp') {
             $query = Inventory::with(['product', 'user'])->where('quantity', '>', 0);
         } else {
-            // Eager load placement untuk performa (morphTo di ProductDetail)
-            $query = ProductDetail::with(['product', 'distributor', 'user', 'placement']);
+            // Eager load relationships
+            $query = ProductDetail::with(['product', 'distributor', 'user']);
         }
 
         // 3. FILTER KEAMANAN (Akses Lokasi)
