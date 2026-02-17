@@ -93,7 +93,7 @@ const filteredRolesOptions = computed(() => {
   ) ?? false);
 
   return rolesList.filter(r => {
-    // 1. Hide Super Admin & Admin Produk & Audit itself (usually audit doesn't create other audits)
+    // 1. Hide Super Admin & Admin Produk & Audit itself & Analist
     if (['super_admin', 'audit', 'analist', 'admin_produk'].includes(r.value)) return false;
 
     // 2. Hide Warehouse roles if no warehouse access
@@ -417,20 +417,6 @@ function getUserRoleName(user) {
       </button>
     </div>
 
-    <!-- DEBUG BLOCK FOR AUDIT -->
-    <div v-if="isAudit" class="bg-surface-800 p-4 rounded-lg border border-red-500/50 mb-4 text-xs font-mono">
-      <p class="text-red-400 font-bold mb-2">DEBUG MODE (Audit)</p>
-      <p>Role: {{ currentUser?.roles?.length ? currentUser.roles[0].name : currentUser?.role }}</p>
-      <p>Online Shop ID: {{ currentUser?.online_shop_id }}</p>
-      <p>Has Online Access (Computed): {{!!currentUser?.online_shop_id || (currentUser?.placements?.some(p =>
-        p.model_type === 'online_shop' || p.model_type.includes('OnlineShop')) ?? false) }}</p>
-      <div class="mt-2">
-        <p class="font-bold">Placements Raw:</p>
-        <pre
-          class="bg-black/50 p-2 rounded mt-1 overflow-x-auto text-[10px]">{{ JSON.stringify(currentUser?.placements, null, 2) }}</pre>
-      </div>
-    </div>
-
     <!-- Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
@@ -492,7 +478,8 @@ function getUserRoleName(user) {
               </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Status
               </th>
-              <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Aksi
+              <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider"
+                v-if="!isAudit">Aksi
               </th>
             </tr>
           </thead>
@@ -567,9 +554,10 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <button @click="toggleStatus(user)"
+                  <button @click="toggleStatus(user)" :disabled="isAudit"
                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
-                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600']" title="Klik untuk mengubah status">
+                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600', isAudit ? 'opacity-50 cursor-not-allowed' : '']"
+                    title="Klik untuk mengubah status">
                     <span class="sr-only">Toggle status</span>
                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                       :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
@@ -580,7 +568,7 @@ function getUserRoleName(user) {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-4" v-if="!isAudit">
                 <div class="flex justify-end gap-2">
                   <button @click="openEditModal(user)"
                     class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors" title="Edit">
