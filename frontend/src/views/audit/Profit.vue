@@ -138,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { Loader2, DollarSign, TrendingUp, ShoppingBag } from 'lucide-vue-next';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
@@ -384,5 +384,11 @@ onMounted(async () => {
         await fetchBranches()
     }
     fetchData();
+});
+// Watch for user changes (e.g. on page reload if store initializes late)
+watch(() => authStore.user, async (newUser) => {
+    if (newUser && canFilterBranch.value) {
+        await fetchBranches();
+    }
 });
 </script>
