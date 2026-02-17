@@ -193,8 +193,7 @@ async function fetchData() {
   }
 }
 
-onMounted(async () => {
-  await authStore.fetchUser(); // Force refresh user data (placements)
+onMounted(() => {
   fetchData();
 });
 
