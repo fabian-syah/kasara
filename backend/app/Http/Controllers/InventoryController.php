@@ -72,6 +72,13 @@ class InventoryController extends Controller
                         });
                         $hasConstraint = true;
                     }
+                    if ($user->online_shop_id) {
+                        $q->orWhere(function ($sub) use ($user) {
+                            $sub->where('placement_type', 'online_shop')
+                                ->where('placement_id', $user->online_shop_id);
+                        });
+                        $hasConstraint = true;
+                    }
 
                     if (!$hasConstraint) {
                         $q->whereRaw('0 = 1');
@@ -288,8 +295,7 @@ class InventoryController extends Controller
             if ($status && $status !== 'all') {
                 $query->where('status', $status);
             } elseif (!$status) {
-                // Default to available if no status filter provided
-                $query->where('status', 'available');
+                $query->where('status', 'available'); // Ini bisa menyebabkan data lain (seperti booking) hilang
             }
 
             // Filter by placement type (branch/warehouse/online_shop)
