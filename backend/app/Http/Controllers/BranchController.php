@@ -39,6 +39,7 @@ class BranchController extends Controller
             'url' => 'nullable|url',
             'api_key' => 'nullable|string',
             'api_secret' => 'nullable|string',
+            'is_active' => 'boolean',
         ]);
 
         $branch = Branch::create($validated);
@@ -88,16 +89,25 @@ class BranchController extends Controller
             'can_accept_returns' => $newValue
         ]);
 
-        // If Super Admin, apply purely universal (all branches follow the toggle)
-        $user = request()->user();
-        if ($user && $user->hasRole('super_admin')) {
-            Branch::query()->update(['can_accept_returns' => $newValue]);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $branch,
+            'message' => 'Status terima retur berhasil diubah'
+        ]);
+    }
+
+    public function toggleStatus(Branch $branch)
+    {
+        $newValue = !$branch->is_active;
+
+        $branch->update([
+            'is_active' => $newValue
+        ]);
 
         return response()->json([
             'success' => true,
             'data' => $branch,
-            'message' => 'Status terima retur berhasil diubah' . ($user->hasRole('super_admin') ? ' untuk semua cabang' : '')
+            'message' => 'Status aktif cabang berhasil diubah'
         ]);
     }
 }

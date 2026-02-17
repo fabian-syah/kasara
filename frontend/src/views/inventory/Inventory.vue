@@ -946,7 +946,9 @@ async function fetchWarehouses() {
 async function fetchBranches() {
   try {
     const response = await branchesApi.list();
-    branches.value = response.data.data || response.data;
+    const allBranches = response.data.data || response.data;
+    // Filter to only active branches
+    branches.value = allBranches.filter(b => b.is_active);
   } catch (e) {
     console.error("Gagal memuat cabang", e);
   }

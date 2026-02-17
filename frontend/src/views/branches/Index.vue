@@ -10,7 +10,8 @@ import {
     Edit,
     Trash2,
     CheckCircle,
-    XCircle
+    XCircle,
+    RotateCcw
 } from 'lucide-vue-next';
 import { branches as api } from '../../api/axios';
 import BranchModal from './BranchModal.vue';
@@ -75,6 +76,37 @@ const handleDelete = async (id) => {
 const handleSaved = () => {
     showModal.value = false;
     fetchBranches();
+};
+
+const togglingStatus = ref({});
+const togglingReturn = ref({});
+
+const handleToggleStatus = async (branch) => {
+    if (togglingStatus.value[branch.id]) return;
+    togglingStatus.value[branch.id] = true;
+    try {
+        await api.toggleStatus(branch.id);
+        toast.success(`Status aktif ${branch.name} berhasil diubah`);
+        fetchBranches();
+    } catch (error) {
+        toast.error('Gagal mengubah status aktif');
+    } finally {
+        togglingStatus.value[branch.id] = false;
+    }
+};
+
+const handleToggleReturn = async (branch) => {
+    if (togglingReturn.value[branch.id]) return;
+    togglingReturn.value[branch.id] = true;
+    try {
+        await api.toggleReturn(branch.id);
+        toast.success(`Status retur ${branch.name} berhasil diubah`);
+        fetchBranches();
+    } catch (error) {
+        toast.error('Gagal mengubah status retur');
+    } finally {
+        togglingReturn.value[branch.id] = false;
+    }
 };
 </script>
 
@@ -170,19 +202,34 @@ const handleSaved = () => {
                 </div>
 
                 <div class="pt-4 border-t border-surface-700 flex justify-between items-center">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border"
-                        :class="branch.is_active
-                            ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                            : 'bg-red-500/10 text-red-500 border-red-500/20'">
-                        <component :is="branch.is_active ? CheckCircle : XCircle" :size="12" />
-                        {{ branch.is_active ? 'Aktif' : 'Nonaktif' }}
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border"
+                            :class="branch.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'">
+                            <component :is="branch.is_active ? CheckCircle : XCircle" :size="12" />
+                            {{ branch.is_active ? 'Aktif' : 'Nonaktif' }}
+                        </span>
 
-                    <span class="text-xs text-surface-500">
-                        {{ new Date(branch.created_at).toLocaleDateString('id-ID', {
-                            day: 'numeric', month: 'short',
-                        year: 'numeric' }) }}
-                    </span>
+                        <span v-if="branch.can_accept_returns"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                            <RotateCcw :size="12" />
+                            Retur ON
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button @click="handleToggleReturn(branch)" :disabled="togglingReturn[branch.id]"
+                            class="text-xs font-medium transition-colors"
+                            :class="branch.can_accept_returns ? 'text-emerald-500 hover:text-emerald-400' : 'text-surface-400 hover:text-text-primary'">
+                            {{ togglingReturn[branch.id] ? '...' : (branch.can_accept_returns ? 'Matikan Retur' :
+                            'Aktifkan Retur') }}
+                        </button>
+
+                        <button @click="handleToggleStatus(branch)" :disabled="togglingStatus[branch.id]"
+                            class="text-xs font-medium transition-colors"
+                            :class="branch.is_active ? 'text-red-400 hover:text-red-300' : 'text-emerald-500 hover:text-emerald-400'">
+                            {{ togglingStatus[branch.id] ? '...' : (branch.is_active ? 'Nonaktifkan' : 'Aktifkan') }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
