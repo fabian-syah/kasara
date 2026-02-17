@@ -18,7 +18,8 @@ const form = ref({
     name: '',
     address: '',
     timezone: 'WIB',
-    is_active: true
+    is_active: true,
+    can_accept_returns: false
 });
 
 const timezones = [
@@ -36,7 +37,8 @@ watch(() => props.warehouse, (newVal) => {
             name: newVal.name,
             address: newVal.address,
             timezone: newVal.timezone || 'WIB',
-            is_active: !!newVal.is_active
+            is_active: !!newVal.is_active,
+            can_accept_returns: !!newVal.can_accept_returns
         };
     } else {
         form.value = {
@@ -44,7 +46,8 @@ watch(() => props.warehouse, (newVal) => {
             name: '',
             address: '',
             timezone: 'WIB',
-            is_active: true
+            is_active: true,
+            can_accept_returns: false
         };
     }
 }, { immediate: true });
@@ -108,6 +111,23 @@ const save = async () => {
                     <label class="label">Alamat</label>
                     <textarea v-model="form.address" class="input w-full" rows="3"
                         placeholder="Alamat lengkap..."></textarea>
+                </div>
+
+                <div
+                    class="flex items-center justify-between p-4 bg-surface-900/50 rounded-xl border border-surface-700">
+                    <div>
+                        <p class="text-sm font-bold text-white">Terima Retur</p>
+                        <p class="text-xs text-text-secondary">Izinkan gudang ini menerima pengembalian barang</p>
+                    </div>
+                    <button type="button" @click="form.can_accept_returns = !form.can_accept_returns" :class="[
+                        form.can_accept_returns ? 'bg-emerald-500' : 'bg-surface-700',
+                        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none'
+                    ]">
+                        <span aria-hidden="true" :class="[
+                            form.can_accept_returns ? 'translate-x-5' : 'translate-x-0',
+                            'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                        ]"></span>
+                    </button>
                 </div>
             </div>
 

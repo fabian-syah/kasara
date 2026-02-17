@@ -9,7 +9,8 @@ import {
     Edit,
     Trash2,
     CheckCircle,
-    XCircle
+    XCircle,
+    RotateCcw
 } from 'lucide-vue-next';
 import { warehouses as api } from '../../api/axios';
 import WarehouseModal from './WarehouseModal.vue';
@@ -72,6 +73,21 @@ const handleDelete = async (id) => {
 const handleSaved = () => {
     showModal.value = false;
     fetchBranches();
+};
+
+const togglingReturn = ref({});
+const handleToggleReturn = async (branch) => {
+    if (togglingReturn.value[branch.id]) return;
+    togglingReturn.value[branch.id] = true;
+    try {
+        await api.toggleReturn(branch.id);
+        toast.success(`Status retur ${branch.name} berhasil diubah`);
+        fetchBranches();
+    } catch (error) {
+        toast.error('Gagal mengubah status retur');
+    } finally {
+        togglingReturn.value[branch.id] = false;
+    }
 };
 </script>
 
@@ -148,11 +164,29 @@ const handleSaved = () => {
                 </div>
 
                 <div class="pt-4 border-t border-surface-700 flex justify-between items-center">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border"
-                        :class="branch.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'">
-                        <component :is="branch.is_active ? CheckCircle : XCircle" :size="12" />
-                        {{ branch.is_active ? 'Aktif' : 'Nonaktif' }}
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border"
+                            :class="branch.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'">
+                            <component :is="branch.is_active ? CheckCircle : XCircle" :size="12" />
+                            {{ branch.is_active ? 'Aktif' : 'Nonaktif' }}
+                        </span>
+
+                        <span v-if="branch.can_accept_returns"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                            <RotateCcw :size="12" />
+                            Retur ON
+                        </span>
+                    </div>
+
+                    <button @click="handleToggleReturn(branch)" :disabled="togglingReturn[branch.id]"
+                        class="text-xs font-medium transition-colors"
+                        :class="branch.can_accept_returns ? 'text-emerald-500 hover:text-emerald-400' : 'text-surface-400 hover:text-text-primary'">
+                        {{
+                            togglingReturn[branch.id]
+                                ? '...'
+                                : (branch.can_accept_returns ? 'Matikan Retur' : 'Aktifkan Retur')
+                        }}
+                    </button>
                 </div>
             </div>
         </div>

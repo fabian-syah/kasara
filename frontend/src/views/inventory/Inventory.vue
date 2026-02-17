@@ -609,14 +609,7 @@ function closeStockOutModal() {
 }
 
 function selectStockOutCategory(category) {
-  if (category.id === 'retur' && warehouses.value.length > 0) {
-    if (!warehouses.value[0].can_accept_returns) {
-      toast.error("Gudang sedang tidak menerima retur");
-      return;
-    }
-  }
   selectedStockOutCategory.value = category.id;
-
   // Initialize per-item forms for Shopee
 }
 
@@ -984,40 +977,12 @@ async function fetchDistributors() {
 
 
 
-const currentWarehouse = ref(null);
+const categories = computed(() => inventoryStore.categories);
 
-async function fetchCurrentWarehouse() {
-  if (canToggleReturn.value) {
-    try {
-      const response = await api.get('/warehouses');
-      const warehouseList = response.data.data || response.data;
-      if (Array.isArray(warehouseList) && warehouseList.length > 0) {
-        currentWarehouse.value = warehouseList[0];
-      }
-    } catch (e) {
-      console.error("Gagal load info warehouse", e);
-    }
-  }
-}
-
-async function toggleReturn() {
-  if (!currentWarehouse.value || isTogglingReturn.value) return;
-
-  isTogglingReturn.value = true;
-  try {
-    const response = await api.post(`/warehouses/${currentWarehouse.value.id}/toggle-return`);
-    const updated = response.data.data;
-    if (currentWarehouse.value.id === updated.id) {
-      currentWarehouse.value.can_accept_returns = updated.can_accept_returns;
-    }
-    const status = updated.can_accept_returns ? 'ON' : 'OFF';
-    toast.success(`Terima Retur (Gudang) berhasil diubah ke ${status}`);
-  } catch (e) {
-    toast.error("Gagal mengubah status retur gudang");
-  } finally {
-    isTogglingReturn.value = false;
-  }
-}
+const canToggleReturn = computed(() => {
+  const allowedRoles = ['super_admin'];
+  return authStore.hasRole(allowedRoles);
+});
 
 const categories = computed(() => inventoryStore.categories);
 
@@ -1048,22 +1013,6 @@ function getStockStatus(product) {
         <p class="text-text-secondary mt-1">Kelola stok produk di semua cabang</p>
       </div>
       <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
-        <!-- Return Toggle -->
-        <div v-if="currentWarehouse && canToggleReturn"
-          class="flex items-center gap-2 bg-surface-800 p-2 rounded-xl border border-surface-700 mr-2">
-          <span class="text-sm font-medium text-text-secondary pl-2">Terima Retur</span>
-          <button @click="toggleReturn" :disabled="isTogglingReturn" :class="[
-            currentWarehouse.can_accept_returns ? 'bg-emerald-500' : 'bg-surface-600',
-            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none'
-          ]">
-            <span aria-hidden="true" :class="[
-              currentWarehouse.can_accept_returns ? 'translate-x-5' : 'translate-x-0',
-              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
-            ]"></span>
-          </button>
-        </div>
-
-
         <!-- History Buttons -->
         <button class="btn btn-secondary" @click="router.push({ name: 'StockInHistory' })" title="Riwayat Masuk">
           <Calendar :size="16" />
@@ -1766,7 +1715,8 @@ function getStockStatus(product) {
                   <label class="label">Pilih Gudang *</label>
                   <select v-model="stockOutForm.return_destination_id" class="input">
                     <option :value="null">-- Pilih Gudang Retur --</option>
-                    <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                    <option v-for="w in warehouses.filter(w => w.can_accept_returns)" :key="w.id" :value="w.id">{{
+                      w.name }}</option>
                   </select>
                 </div>
               </div>

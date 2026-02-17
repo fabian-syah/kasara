@@ -32,6 +32,7 @@ class WarehouseController extends Controller
             'address' => 'nullable|string',
             'timezone' => 'required|in:WIB,WITA,WIT',
             'is_active' => 'boolean',
+            'can_accept_returns' => 'boolean',
         ]);
 
         $warehouse = Warehouse::create($validated);
@@ -55,6 +56,7 @@ class WarehouseController extends Controller
             'address' => 'nullable|string',
             'timezone' => 'required|in:WIB,WITA,WIT',
             'is_active' => 'boolean',
+            'can_accept_returns' => 'boolean',
         ]);
 
         $warehouse->update($validated);
@@ -76,16 +78,10 @@ class WarehouseController extends Controller
             'can_accept_returns' => $newValue
         ]);
 
-        // If Super Admin, apply universal (all warehouses follow the toggle)
-        $user = request()->user();
-        if ($user && $user->hasRole('super_admin')) {
-            Warehouse::query()->update(['can_accept_returns' => $newValue]);
-        }
-
         return response()->json([
             'success' => true,
             'data' => $warehouse,
-            'message' => 'Status terima retur gudang berhasil diubah' . ($user->hasRole('super_admin') ? ' untuk semua gudang' : '')
+            'message' => 'Status terima retur gudang berhasil diubah'
         ]);
     }
 }
