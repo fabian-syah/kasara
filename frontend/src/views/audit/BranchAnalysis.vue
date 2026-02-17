@@ -205,7 +205,6 @@ try {
     toast.error("Gagal memuat data analisa");
 } finally {
     loading.value = false;
-}
 };
 
 const processCharts = (data) => {
