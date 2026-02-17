@@ -19,6 +19,16 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        \Illuminate\Support\Facades\Log::info("Inventory Index Request Diagnostic", [
+            'user_id' => $user->id,
+            'roles' => $user->getRoleNames(),
+            'params' => $request->all(),
+            'counts' => [
+                'hp_total' => \App\Models\ProductDetail::count(),
+                'hp_available' => \App\Models\ProductDetail::where('status', 'available')->count(),
+                'non_hp_total' => \App\Models\Inventory::count(),
+            ]
+        ]);
         $type = $request->type ?? 'hp'; // Default to HP (ProductDetail)
 
         if ($type === 'non-hp') {
@@ -99,10 +109,16 @@ class InventoryController extends Controller
             }
 
             if ($request->has('branch_id')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('placement_type', 'branch')
-                        ->where('placement_id', $request->branch_id);
-                });
+                $query->where('placement_type', 'branch')
+                    ->where('placement_id', $request->branch_id);
+            }
+            if ($request->has('warehouse_id')) {
+                $query->where('placement_type', 'warehouse')
+                    ->where('placement_id', $request->warehouse_id);
+            }
+            if ($request->has('online_shop_id')) {
+                $query->where('placement_type', 'online_shop')
+                    ->where('placement_id', $request->online_shop_id);
             }
 
             // 1. Filter by Product Name (Type) - Supports Array
@@ -215,12 +231,18 @@ class InventoryController extends Controller
                 });
             }
 
-            // Optional: filter by specific branch (for super_admin or admin_produk viewing specific branch)
+            // Optional: filter by specific location
             if ($request->has('branch_id')) {
-                $query->where(function ($q) use ($request) {
-                    $q->where('placement_type', 'branch')
-                        ->where('placement_id', $request->branch_id);
-                });
+                $query->where('placement_type', 'branch')
+                    ->where('placement_id', $request->branch_id);
+            }
+            if ($request->has('warehouse_id')) {
+                $query->where('placement_type', 'warehouse')
+                    ->where('placement_id', $request->warehouse_id);
+            }
+            if ($request->has('online_shop_id')) {
+                $query->where('placement_type', 'online_shop')
+                    ->where('placement_id', $request->online_shop_id);
             }
 
             if ($request->search) {
@@ -261,10 +283,12 @@ class InventoryController extends Controller
                 $query->where('condition', $request->condition);
             }
 
-            // Filter by Status (Default available)
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            } else {
+            // Filter by Status (Handle alias stock_status from frontend)
+            $status = $request->status ?? $request->stock_status;
+            if ($status && $status !== 'all') {
+                $query->where('status', $status);
+            } elseif (!$status) {
+                // Default to available if no status filter provided
                 $query->where('status', 'available');
             }
 
@@ -410,40 +434,41 @@ class InventoryController extends Controller
 
         // PLACEMENT FILTER (Same logic as index)
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-        // PLACEMENT FILTER (Same logic as index)
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user, $type) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
                 $hasConstraint = false;
-
-                if ($user->branch_id) {
-                    $q->orWhere(function ($sub) use ($user, $type) {
+                if (!empty($branchIds)) {
+                    $q->orWhere(function ($sub) use ($branchIds, $type) {
                         if ($type === 'non-hp') {
-                            $sub->where('branch_id', $user->branch_id);
+                            $sub->whereIn('branch_id', $branchIds);
                         } else {
-                            $sub->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                            $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds);
                         }
                     });
                     $hasConstraint = true;
                 }
 
-                if ($user->warehouse_id) {
-                    $q->orWhere(function ($sub) use ($user, $type) {
+                if (!empty($warehouseIds)) {
+                    $q->orWhere(function ($sub) use ($warehouseIds, $type) {
                         if ($type === 'non-hp') {
-                            $sub->where('warehouse_id', $user->warehouse_id);
+                            $sub->whereIn('warehouse_id', $warehouseIds);
                         } else {
-                            $sub->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
+                            $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds);
                         }
                     });
                     $hasConstraint = true;
                 }
 
-                if ($user->online_shop_id) {
-                    $q->orWhere(function ($sub) use ($user, $type) {
+                if (!empty($onlineShopIds)) {
+                    $q->orWhere(function ($sub) use ($onlineShopIds, $type) {
                         if ($type === 'non-hp') {
-                            $sub->where('online_shop_id', $user->online_shop_id);
+                            $sub->whereIn('online_shop_id', $onlineShopIds);
                         } else {
-                            $sub->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                            $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
                         }
                     });
                     $hasConstraint = true;
@@ -515,22 +540,24 @@ class InventoryController extends Controller
         }
 
         // PLACEMENT FILTER
-        // PLACEMENT FILTER
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user) {
-                $hasConstraint = false;
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
 
-                if ($user->branch_id) {
-                    $q->orWhere('branch_id', $user->branch_id);
+                $hasConstraint = false;
+                if (!empty($branchIds)) {
+                    $q->orWhereIn('branch_id', $branchIds);
                     $hasConstraint = true;
                 }
-                if ($user->warehouse_id) {
-                    $q->orWhere('warehouse_id', $user->warehouse_id);
+                if (!empty($warehouseIds)) {
+                    $q->orWhereIn('warehouse_id', $warehouseIds);
                     $hasConstraint = true;
                 }
-                if ($user->online_shop_id) {
-                    $q->orWhere('online_shop_id', $user->online_shop_id);
+                if (!empty($onlineShopIds)) {
+                    $q->orWhereIn('online_shop_id', $onlineShopIds);
                     $hasConstraint = true;
                 }
 
@@ -1165,34 +1192,38 @@ class InventoryController extends Controller
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user, $tablePrefix) {
+                    $branchIds = $user->getAccessibleBranchIds();
+                    $warehouseIds = $user->getAccessibleWarehouseIds();
+                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
                     $hasConstraint = false;
                     $colType = $tablePrefix ? $tablePrefix . '.placement_type' : 'placement_type';
                     $colId = $tablePrefix ? $tablePrefix . '.placement_id' : 'placement_id';
 
-                    if ($user->branch_id) {
-                        $q->orWhere(function ($sub) use ($colType, $colId, $user) {
+                    if (!empty($branchIds)) {
+                        $q->orWhere(function ($sub) use ($colType, $colId, $branchIds) {
                             $sub->where($colType, 'branch')
-                                ->where($colId, $user->branch_id);
+                                ->whereIn($colId, $branchIds);
                         });
                         $hasConstraint = true;
                     }
-                    if ($user->warehouse_id) {
-                        $q->orWhere(function ($sub) use ($colType, $colId, $user) {
+                    if (!empty($warehouseIds)) {
+                        $q->orWhere(function ($sub) use ($colType, $colId, $warehouseIds) {
                             $sub->where($colType, 'warehouse')
-                                ->where($colId, $user->warehouse_id);
+                                ->whereIn($colId, $warehouseIds);
                         });
                         $hasConstraint = true;
                     }
-                    if ($user->online_shop_id) {
-                        $q->orWhere(function ($sub) use ($colType, $colId, $user) {
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($colType, $colId, $onlineShopIds) {
                             $sub->where($colType, 'online_shop')
-                                ->where($colId, $user->online_shop_id);
+                                ->whereIn($colId, $onlineShopIds);
                         });
                         $hasConstraint = true;
                     }
 
                     if (!$hasConstraint) {
-                        $q->whereRaw('1 = 0'); // Corrected from 0=1 to standard false
+                        $q->whereRaw('0 = 1');
                     }
                 });
             }
