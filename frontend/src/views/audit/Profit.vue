@@ -5,6 +5,17 @@
         <!-- Header Controls -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-2 flex-wrap">
+                <!-- Branch Filter -->
+                <div v-if="canFilterBranch" class="min-w-[200px]">
+                    <select v-model="selectedBranchId" @change="fetchData"
+                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                        <option :value="null">Semua Cabang</option>
+                        <option v-for="branch in branches" :key="branch.id" :value="branch.id">
+                            {{ branch.name }}
+                        </option>
+                    </select>
+                </div>
+
                 <select v-model="selectedYear" @change="fetchData"
                     class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
                     <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
@@ -130,6 +141,8 @@
 import { ref, onMounted, computed } from 'vue';
 import { Loader2, DollarSign, TrendingUp, ShoppingBag } from 'lucide-vue-next';
 import api from '../../api/axios';
+import { useAuthStore } from '../../store/auth';
+import axios from '../../api/axios'; // Ensure we have axios for branch fetch if api helper doesn't support generic
 import { useToast } from '../../composables/useToast';
 import {
     Chart as ChartJS,
@@ -156,11 +169,14 @@ ChartJS.register(
 );
 
 const toast = useToast();
+const authStore = useAuthStore();
 const loading = ref(false);
 
 const selectedYear = ref(new Date().getFullYear());
 const selectedMonth = ref(null); // All months by default
 const selectedDate = ref(null);
+const selectedBranchId = ref(null);
+const branches = ref([]);
 
 const years = [2024, 2025, 2026];
 const months = [
@@ -180,6 +196,12 @@ const chartData = ref({
     trend: null,
     breakdown: null
 });
+
+const canFilterBranch = computed(() => {
+    // Only Audit, Super Admin, Owner can filter branches
+    const role = authStore.userRole;
+    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+})
 
 const lineChartOptions = {
     responsive: true,
@@ -213,11 +235,61 @@ const pieChartOptions = {
     }
 };
 
+const fetchBranches = async () => {
+    try {
+        const response = await axios.get('/branches')
+        let allBranches = [];
+        if (Array.isArray(response.data)) {
+            allBranches = response.data;
+        } else if (response.data.data) {
+            allBranches = response.data.data;
+        }
+
+        const user = authStore.user;
+        const role = authStore.userRole; // String
+
+        // Define unrestricted roles
+        const isUnrestricted = ['super_admin', 'owner'].some(r => role.includes(r));
+
+        if (isUnrestricted) {
+            branches.value = allBranches;
+        } else {
+            // Collect allowed IDs from branch_id and placements
+            let allowedIds = [];
+            if (user?.branch_id) allowedIds.push(user.branch_id);
+
+            if (user?.placements && Array.isArray(user.placements)) {
+                const placementIds = user.placements
+                    .filter(p => p.model_type === 'branch')
+                    .map(p => p.model_id);
+                allowedIds = [...allowedIds, ...placementIds];
+            }
+
+            // Deduplicate
+            allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+
+            if (allowedIds.length > 0) {
+                branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+
+                // Auto-select first if needed
+                if (branches.value.length > 0) {
+                    selectedBranchId.value = branches.value[0].id;
+                }
+            } else {
+                branches.value = [];
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching branches:', error)
+    }
+}
+
 const fetchAnalysis = async () => {
     loading.value = true;
     try {
         const params = {
             year: selectedYear.value,
+            branch_id: selectedBranchId.value || undefined
         };
         if (selectedDate.value) {
             params.date = selectedDate.value;
@@ -314,7 +386,10 @@ const formatNumber = (val) => {
     return new Intl.NumberFormat('id-ID').format(val);
 };
 
-onMounted(() => {
+onMounted(async () => {
+    if (canFilterBranch.value) {
+        await fetchBranches()
+    }
     fetchData();
 });
 </script>

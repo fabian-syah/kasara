@@ -415,12 +415,26 @@ class AuditController extends Controller
         }
 
         // Scope to user access
-        $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds) {
-            $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                if (!empty($branchIds))
-                    $sub->orWhereIn('branch_id', $branchIds);
-                if (!empty($onlineShopIds))
-                    $sub->orWhereIn('online_shop_id', $onlineShopIds);
+        // Filter by specific branch if requested
+        $requestedBranchId = $request->branch_id;
+
+        // Scope to user access and specific branch
+        $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId) {
+            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId) {
+                if ($requestedBranchId) {
+                    // Check access
+                    if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                        $sub->where('branch_id', $requestedBranchId);
+                    } else {
+                        // No access
+                        $sub->whereRaw('1=0');
+                    }
+                } else {
+                    if (!empty($branchIds))
+                        $sub->orWhereIn('branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                }
             });
         });
 
