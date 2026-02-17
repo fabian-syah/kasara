@@ -66,22 +66,24 @@ class InventoryController extends Controller
                         });
                         $hasConstraint = true;
                     }
-                    if (!empty($onlineShopIds) || $user->online_shop_id) {
-                        $q->orWhere(function ($sub) use ($onlineShopIds, $user) {
-                            $sub->where('placement_type', 'online_shop');
 
-                            // Gabungkan ID dari helper dan ID langsung dari user profile
-                            $ids = is_array($onlineShopIds) ? $onlineShopIds : [];
-                            if ($user->online_shop_id)
-                                $ids[] = $user->online_shop_id;
+                    // Gabungkan ID Online Shop dari Placement (Helper) dan user->online_shop_id
+                    $allOnlineShopIds = is_array($onlineShopIds) ? $onlineShopIds : [];
+                    if ($user->online_shop_id) {
+                        $allOnlineShopIds[] = $user->online_shop_id;
+                    }
+                    $allOnlineShopIds = array_unique($allOnlineShopIds);
 
-                            $sub->whereIn('placement_id', array_unique($ids));
+                    if (!empty($allOnlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($allOnlineShopIds) {
+                            $sub->where('placement_type', 'online_shop')
+                                ->whereIn('placement_id', $allOnlineShopIds);
                         });
                         $hasConstraint = true;
                     }
 
                     if (!$hasConstraint) {
-                        $q->whereRaw('0 = 1'); // Jika tidak punya akses ke mana pun, baru kosongkan
+                        $q->whereRaw('0 = 1');
                     }
                 });
             }
@@ -224,10 +226,18 @@ class InventoryController extends Controller
                         });
                         $hasConstraint = true;
                     }
-                    if (!empty($onlineShopIds)) {
-                        $q->orWhere(function ($sub) use ($onlineShopIds) {
+
+                    // Gabungkan ID dari helper dan ID langsung dari user profile
+                    $allOnlineShopIds = is_array($onlineShopIds) ? $onlineShopIds : [];
+                    if ($user->online_shop_id) {
+                        $allOnlineShopIds[] = $user->online_shop_id;
+                    }
+                    $allOnlineShopIds = array_unique($allOnlineShopIds);
+
+                    if (!empty($allOnlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($allOnlineShopIds) {
                             $sub->where('placement_type', 'online_shop')
-                                ->whereIn('placement_id', $onlineShopIds);
+                                ->whereIn('placement_id', $allOnlineShopIds);
                         });
                         $hasConstraint = true;
                     }
@@ -290,12 +300,15 @@ class InventoryController extends Controller
                 $query->where('condition', $request->condition);
             }
 
-            // Filter by Status (Handle alias stock_status from frontend)
+            // Filter by Status
             $status = $request->status ?? $request->stock_status;
             if ($status && $status !== 'all') {
                 $query->where('status', $status);
-            } elseif (!$status) {
-                $query->where('status', 'available'); // Ini bisa menyebabkan data lain (seperti booking) hilang
+            } else if (!$status || $status === 'all') {
+                // Jika tidak ada filter status, atau pilih 'Semua', 
+                // tampilkan status yang umum (available, booking, returned)
+                // tujuannya agar item yang sedang dibooking tetap muncul di list
+                $query->whereIn('status', ['available', 'booking', 'returned']);
             }
 
             // Filter by placement type (branch/warehouse/online_shop)
@@ -375,6 +388,8 @@ class InventoryController extends Controller
             });
 
             // Calculate Total Value (Global)
+            \Illuminate\Support\Facades\Log::info("HP Final Query SQL: " . $query->toSql(), $query->getBindings());
+
             $totalValueQuery = clone $query;
             $totalValue = $totalValueQuery->sum('selling_price');
 
