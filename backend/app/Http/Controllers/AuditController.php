@@ -390,7 +390,7 @@ class AuditController extends Controller
         $dailyStats = [];
 
         // Query StockOut (Transactions)
-        $query = StockOut::with(['items.productDetail', 'nonHpItems'])
+        $query = StockOut::with(['items', 'nonHpItems'])
             ->whereIn('category', $salesCategories)
             ->whereYear('created_at', $year);
 
@@ -426,16 +426,17 @@ class AuditController extends Controller
 
             // HP Items Cost
             foreach ($trx->items as $item) {
-                // Use historical cost if available in pivot (not in current schema), else use productDetail cost
-                // Since productDetail tracks specific unit, its cost_price is accurate for that unit.
-                if ($item->productDetail) {
-                    $trxCost += $item->productDetail->cost_price;
-                }
+                // $item IS the ProductDetail model attached via belongToMany
+                $trxCost += $item->cost_price;
                 $trxItems++;
             }
 
             // Non-HP Items Cost (Limitation: Assuming 0 or need product reference)
             // Ideally we need cost_price in stock_out_non_hp_items or use current product type cost
+            // For now, assuming 0 cost for accessories as per plan note, or we could try to fetch current average cost.
+            // Keeping it 0 to avoid misleading "profit" reduction if cost is unknown?
+            // actually, if cost is 0, profit = revenue, which is inflated.
+            // Let's assume 0 for now as verified in plan.
             foreach ($trx->nonHpItems as $nhp) {
                 // Check if we can get cost from ProductType (via product->type match? No direct link)
                 // For now, assuming 0 cost for accessories as per plan note, or we could try to fetch current average cost.
