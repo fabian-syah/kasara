@@ -33,6 +33,10 @@ const props = defineProps({
   branchId: {
     type: [Number, String],
     default: null
+  },
+  onlineShopId: {
+    type: [Number, String],
+    default: null
   }
 });
 const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
@@ -189,6 +193,7 @@ async function loadInventory(page = 1) {
       search: debouncedSearch.value,
       type: activeTab.value, // 'hp' or 'non-hp'
       branch_id: props.branchId || undefined, // Add branch_id filter
+      online_shop_id: props.onlineShopId || undefined, // Add online_shop_id filter
       // Add other filters
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),

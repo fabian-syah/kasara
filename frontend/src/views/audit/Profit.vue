@@ -5,13 +5,14 @@
         <!-- Header Controls -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-2 flex-wrap">
-                <!-- Branch Filter -->
+                <!-- Location Filter (Branch + Online Shop) -->
                 <div v-if="canFilterBranch" class="min-w-[200px]">
-                    <select v-model="selectedBranchId" @change="fetchData"
+                    <select v-model="selectedLocationKey" @change="fetchData"
                         class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
-                        <option :value="null">Semua Cabang</option>
-                        <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                            {{ branch.name }}
+                        <option value="all">Semua Cabang/Toko</option>
+                        <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                            :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                            {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
                         </option>
                     </select>
                 </div>
@@ -175,8 +176,19 @@ const loading = ref(false);
 const selectedYear = ref(new Date().getFullYear());
 const selectedMonth = ref(null); // All months by default
 const selectedDate = ref(null);
-const selectedBranchId = ref(null);
-const branches = ref([]);
+
+const locations = ref([])
+const selectedLocationKey = ref('all')
+
+const selectedBranchId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
+
+const selectedOnlineShopId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
 
 const years = [2024, 2025, 2026];
 const months = [
@@ -237,8 +249,14 @@ const pieChartOptions = {
 
 const fetchBranches = async () => {
     try {
-        const response = await axios.get('/branches')
-        const allBranches = response.data.data || response.data || [];
+        const [branchRes, shopRes] = await Promise.all([
+            axios.get('/branches'),
+            axios.get('/online-shops')
+        ])
+
+        const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
+        const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
+        const allLocations = [...allBranches, ...allShops];
 
         const user = authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
@@ -246,34 +264,46 @@ const fetchBranches = async () => {
         // Define unrestricted roles
         const isGlobalRole = ['super_admin', 'owner'].includes(role);
 
-        // Collect allowed IDs from branch_id and placements
-        let allowedIds = [];
-        if (user?.branch_id) allowedIds.push(user.branch_id);
+        // Collect allowed IDs
+        let allowedBranchIds = [];
+        if (user?.branch_id) allowedBranchIds.push(user.branch_id);
+
+        let allowedShopIds = [];
+        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
 
         if (user?.placements && Array.isArray(user.placements)) {
-            const placementIds = user.placements
-                .filter(p => p.model_type === 'branch')
-                .map(p => p.model_id);
-            allowedIds = [...allowedIds, ...placementIds];
+            user.placements.forEach(p => {
+                if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
+                if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+            });
         }
 
-        // Deduplicate and ensure comparisons work (ids are usually numbers)
-        allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+        // Deduplicate
+        allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
+        allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
         // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
-        if (isGlobalRole || (role === 'audit' && allowedIds.length === 0)) {
-            branches.value = allBranches;
-        } else if (allowedIds.length > 0) {
-            branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+            locations.value = allLocations;
+        } else if (hasAnyRestriction) {
+            locations.value = allLocations.filter(loc => {
+                if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+                if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                return false;
+            });
+
             // Auto-select first if needed
-            if (branches.value.length > 0 && !selectedBranchId.value) {
-                selectedBranchId.value = branches.value[0].id;
+            if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+                const loc = locations.value[0];
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
         } else {
-            branches.value = [];
+            locations.value = [];
         }
     } catch (error) {
-        console.error('Error fetching branches:', error)
+        console.error('Error fetching locations:', error)
     }
 }
 
@@ -282,7 +312,8 @@ const fetchAnalysis = async () => {
     try {
         const params = {
             year: selectedYear.value,
-            branch_id: selectedBranchId.value || undefined
+            branch_id: selectedBranchId.value || undefined,
+            online_shop_id: selectedOnlineShopId.value || undefined
         };
         if (selectedDate.value) {
             params.date = selectedDate.value;

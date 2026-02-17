@@ -19,6 +19,10 @@ const props = defineProps({
     branchId: {
         type: [Number, String],
         default: null
+    },
+    onlineShopId: {
+        type: [Number, String],
+        default: null
     }
 });
 
@@ -84,7 +88,8 @@ const fetchData = async (page = 1) => {
             page,
             type: activeTab.value,
             search: searchQuery.value,
-            branch_id: props.branchId || undefined
+            branch_id: props.branchId || undefined,
+            online_shop_id: props.onlineShopId || undefined
         };
 
         const dateParam = getDateParam();
@@ -285,7 +290,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                        }}</div>
+                                    }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>

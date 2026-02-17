@@ -3,13 +3,14 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Audit Penjualan</h1>
 
-            <!-- Branch Filter (Only for Audit/Super Admin) -->
+            <!-- Location Filter (Branch + Online Shop) -->
             <div v-if="canFilterBranch" class="min-w-[200px]">
-                <select v-model="filters.branch_id" @change="fetchData"
-                    class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
-                    <option :value="null">Semua Cabang</option>
-                    <option v-for="branch in branches" :key="branch.id" :value="branch.id">
-                        {{ branch.name }}
+                <select v-model="selectedLocationKey" @change="fetchData"
+                    class="block w-full rounded-2xl border-0 py-2.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-200 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
+                    <option value="all">Semua Cabang/Toko</option>
+                    <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                        :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                        {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
                     </option>
                 </select>
             </div>
@@ -85,11 +86,11 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
-                            <tr v-for="(item, index) in data.daily_sales" :key="index"
+                            <tr v-for="(item, index) in salesRecords.daily_sales" :key="index"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{
                                     formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                                     {{
@@ -118,7 +119,7 @@
                                     {{
                                         formatCurrency(item.grand_total) }}</td>
                             </tr>
-                            <tr v-if="data.daily_sales.length === 0">
+                            <tr v-if="salesRecords.daily_sales.length === 0">
                                 <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tidak
                                     ada data penjualan
                                 </td>
@@ -143,7 +144,7 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
-                        <tr v-for="(item, index) in data.brand_sales" :key="index"
+                        <tr v-for="(item, index) in salesRecords.brand_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
                                 item.brand }}
@@ -151,7 +152,7 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.qty }}</td>
                         </tr>
-                        <tr v-if="data.brand_sales.length === 0">
+                        <tr v-if="salesRecords.brand_sales.length === 0">
                             <td colspan="2" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tidak ada
                                 data brand</td>
                         </tr>
@@ -177,18 +178,18 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
-                        <tr v-for="(item, index) in data.cs_sales" :key="index"
+                        <tr v-for="(item, index) in salesRecords.cs_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
                                 item.cs_name }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                            }}</td>
+                                }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
-                        <tr v-if="data.cs_sales.length === 0">
+                        <tr v-if="salesRecords.cs_sales.length === 0">
                             <td colspan="3" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">Tidak ada
                                 data CS</td>
                         </tr>
@@ -215,7 +216,7 @@ const tabs = [
 
 const currentTab = ref('daily')
 const loading = ref(false)
-const data = ref({
+const salesRecords = ref({
     daily_sales: [],
     brand_sales: [],
     cs_sales: []
@@ -227,7 +228,8 @@ const filters = ref({
     branch_id: null
 })
 
-const branches = ref([])
+const locations = ref([])
+const selectedLocationKey = ref('all')
 
 const canFilterBranch = computed(() => {
     // Only Audit, Super Admin, Owner can filter branches
@@ -257,8 +259,14 @@ const formatDate = (dateString) => {
 
 const fetchBranches = async () => {
     try {
-        const response = await axios.get('/branches')
-        const allBranches = response.data.data || response.data || [];
+        const [branchRes, shopRes] = await Promise.all([
+            axios.get('/branches'),
+            axios.get('/online-shops')
+        ])
+
+        const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
+        const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
+        const allLocations = [...allBranches, ...allShops];
 
         const user = authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
@@ -266,51 +274,67 @@ const fetchBranches = async () => {
         // Define unrestricted roles
         const isGlobalRole = ['super_admin', 'owner'].includes(role);
 
-        // Collect allowed IDs from branch_id and placements
-        let allowedIds = [];
-        if (user?.branch_id) allowedIds.push(user.branch_id);
+        // Collect allowed IDs
+        let allowedBranchIds = [];
+        if (user?.branch_id) allowedBranchIds.push(user.branch_id);
+
+        let allowedShopIds = [];
+        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
 
         if (user?.placements && Array.isArray(user.placements)) {
-            const placementIds = user.placements
-                .filter(p => p.model_type === 'branch')
-                .map(p => p.model_id);
-            allowedIds = [...allowedIds, ...placementIds];
+            user.placements.forEach(p => {
+                if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
+                if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+            });
         }
 
-        // Deduplicate and ensure comparisons work (ids are usually numbers)
-        allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+        // Deduplicate
+        allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
+        allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
         // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
-        if (isGlobalRole || (role === 'audit' && allowedIds.length === 0)) {
-            branches.value = allBranches;
-        } else if (allowedIds.length > 0) {
-            branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+            locations.value = allLocations;
+        } else if (hasAnyRestriction) {
+            locations.value = allLocations.filter(loc => {
+                if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+                if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                return false;
+            });
+
             // Auto-select first if needed
-            if (branches.value.length > 0 && !filters.value.branch_id) {
-                filters.value.branch_id = branches.value[0].id;
+            if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+                const loc = locations.value[0];
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
         } else {
-            branches.value = [];
+            locations.value = [];
         }
     } catch (error) {
-        console.error('Error fetching branches:', error)
+        console.error('Error fetching locations:', error)
     }
 }
 
 const fetchData = async () => {
     loading.value = true
     try {
-        const response = await axios.get('/audit/sales', {
-            params: {
-                ...filters.value,
-                // If branch_id is null, send it as empty or don't send? 
-                // Backend expects branch_id if specific.
-                branch_id: filters.value.branch_id || undefined
-            }
-        })
-        data.value = response.data
+        // Map selected location key to specific filter params
+        const params = { ...filters.value };
+        if (selectedLocationKey.value === 'all') {
+            params.branch_id = undefined;
+            params.online_shop_id = undefined;
+        } else {
+            const [type, id] = selectedLocationKey.value.split(':');
+            params.branch_id = type === 'B' ? id : undefined;
+            params.online_shop_id = type === 'S' ? id : undefined;
+        }
+
+        const response = await axios.get('/audit/sales', { params })
+        salesRecords.value = response.data
     } catch (error) {
-        console.error('Error fetching sales data:', error)
+        console.error('Error fetching sales:', error)
     } finally {
         loading.value = false
     }

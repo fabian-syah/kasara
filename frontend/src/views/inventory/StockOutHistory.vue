@@ -19,6 +19,10 @@ const props = defineProps({
     branchId: {
         type: [Number, String],
         default: null
+    },
+    onlineShopId: {
+        type: [Number, String],
+        default: null
     }
 });
 
@@ -84,7 +88,8 @@ const fetchData = async (page = 1) => {
         const params = {
             page,
             search: searchQuery.value,
-            branch_id: props.branchId || undefined
+            branch_id: props.branchId || undefined,
+            online_shop_id: props.onlineShopId || undefined
         };
 
         const dateParam = getDateParam();

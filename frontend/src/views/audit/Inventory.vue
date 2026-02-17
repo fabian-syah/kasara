@@ -1,6 +1,20 @@
 <template>
     <div class="space-y-6">
-        <h1 v-if="!isEmbedded" class="text-2xl font-bold tracking-tight text-text-primary">Audit Inventory</h1>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <h1 v-if="!isEmbedded" class="text-2xl font-bold tracking-tight text-text-primary">Audit Inventory</h1>
+
+            <!-- Location Filter -->
+            <div v-if="canFilterBranch" class="min-w-[200px]">
+                <select v-model="selectedLocationKey"
+                    class="block w-full rounded-2xl border-0 py-2.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-200 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
+                    <option value="all">Semua Cabang/Toko</option>
+                    <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                        :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                        {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
+                    </option>
+                </select>
+            </div>
+        </div>
 
         <div v-if="loading" class="flex justify-center py-12">
             <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
@@ -88,9 +102,12 @@
 
         <!-- Render Component based on Active Tab -->
         <div class="mt-6">
-            <Inventory v-if="activeTab === 'stock'" :is-embedded="true" :branch-id="selectedBranchId" />
-            <StockInHistory v-if="activeTab === 'in'" :is-embedded="true" :branch-id="selectedBranchId" />
-            <StockOutHistory v-if="activeTab === 'out'" :is-embedded="true" :branch-id="selectedBranchId" />
+            <Inventory v-if="activeTab === 'stock'" :is-embedded="true" :branch-id="selectedBranchId"
+                :online-shop-id="selectedOnlineShopId" />
+            <StockInHistory v-if="activeTab === 'in'" :is-embedded="true" :branch-id="selectedBranchId"
+                :online-shop-id="selectedOnlineShopId" />
+            <StockOutHistory v-if="activeTab === 'out'" :is-embedded="true" :branch-id="selectedBranchId"
+                :online-shop-id="selectedOnlineShopId" />
         </div>
     </div>
 </template>
@@ -115,8 +132,18 @@ const stats = ref({
     total_out: 0
 })
 
-const selectedBranchId = ref(null)
-const branches = ref([])
+const locations = ref([])
+const selectedLocationKey = ref('all')
+
+const selectedBranchId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
+
+const selectedOnlineShopId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
 
 const canFilterBranch = computed(() => {
     // Only Audit, Super Admin, Owner can filter branches
@@ -126,8 +153,14 @@ const canFilterBranch = computed(() => {
 
 const fetchBranches = async () => {
     try {
-        const response = await axios.get('/branches')
-        const allBranches = response.data.data || response.data || [];
+        const [branchRes, shopRes] = await Promise.all([
+            axios.get('/branches'),
+            axios.get('/online-shops')
+        ])
+
+        const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
+        const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
+        const allLocations = [...allBranches, ...allShops];
 
         const user = authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
@@ -135,34 +168,46 @@ const fetchBranches = async () => {
         // Define unrestricted roles
         const isGlobalRole = ['super_admin', 'owner'].includes(role);
 
-        // Collect allowed IDs from branch_id and placements
-        let allowedIds = [];
-        if (user?.branch_id) allowedIds.push(user.branch_id);
+        // Collect allowed IDs
+        let allowedBranchIds = [];
+        if (user?.branch_id) allowedBranchIds.push(user.branch_id);
+
+        let allowedShopIds = [];
+        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
 
         if (user?.placements && Array.isArray(user.placements)) {
-            const placementIds = user.placements
-                .filter(p => p.model_type === 'branch')
-                .map(p => p.model_id);
-            allowedIds = [...allowedIds, ...placementIds];
+            user.placements.forEach(p => {
+                if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
+                if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+            });
         }
 
-        // Deduplicate and ensure comparisons work (ids are usually numbers)
-        allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+        // Deduplicate
+        allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
+        allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
         // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
-        if (isGlobalRole || (role === 'audit' && allowedIds.length === 0)) {
-            branches.value = allBranches;
-        } else if (allowedIds.length > 0) {
-            branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+            locations.value = allLocations;
+        } else if (hasAnyRestriction) {
+            locations.value = allLocations.filter(loc => {
+                if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+                if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                return false;
+            });
+
             // Auto-select first if needed
-            if (branches.value.length > 0 && !selectedBranchId.value) {
-                selectedBranchId.value = branches.value[0].id;
+            if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+                const loc = locations.value[0];
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
         } else {
-            branches.value = [];
+            locations.value = [];
         }
     } catch (error) {
-        console.error('Error fetching branches:', error)
+        console.error('Error fetching locations:', error)
     }
 }
 
@@ -171,7 +216,8 @@ const fetchStats = async () => {
     try {
         const response = await axios.get('/audit/inventory', {
             params: {
-                branch_id: selectedBranchId.value || undefined
+                branch_id: selectedBranchId.value || undefined,
+                online_shop_id: selectedOnlineShopId.value || undefined
             }
         })
         stats.value = response.data
@@ -182,9 +228,9 @@ const fetchStats = async () => {
     }
 }
 
-watch(selectedBranchId, () => {
+watch(selectedLocationKey, () => {
     fetchStats();
-    // Child components will react to prop change automatically if setup correctly
+    // Child components will react to prop change automatically
 })
 
 onMounted(async () => {
