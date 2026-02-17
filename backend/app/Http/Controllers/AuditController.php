@@ -125,11 +125,17 @@ class AuditController extends Controller
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories)
             ->whereBetween('stock_outs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->where(function ($q) use ($branchIds, $onlineShopIds) {
-                if (!empty($branchIds))
-                    $q->orWhereIn('users.branch_id', $branchIds);
-                if (!empty($onlineShopIds))
-                    $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+            ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                if ($requestedBranchId) {
+                    $q->where('users.branch_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $q->where('users.online_shop_id', $requestedOnlineShopId);
+                } else {
+                    if (!empty($branchIds))
+                        $q->orWhereIn('users.branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                }
             })
             ->select('products.brand', DB::raw('count(*) as count'))
             ->groupBy('products.brand')
@@ -148,11 +154,17 @@ class AuditController extends Controller
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories)
             ->whereBetween('stock_outs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->where(function ($q) use ($branchIds, $onlineShopIds) {
-                if (!empty($branchIds))
-                    $q->orWhereIn('users.branch_id', $branchIds);
-                if (!empty($onlineShopIds))
-                    $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+            ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                if ($requestedBranchId) {
+                    $q->where('users.branch_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $q->where('users.online_shop_id', $requestedOnlineShopId);
+                } else {
+                    if (!empty($branchIds))
+                        $q->orWhereIn('users.branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                }
             })
             ->select('products.brand', DB::raw('sum(quantity) as count'))
             ->groupBy('products.brand')
