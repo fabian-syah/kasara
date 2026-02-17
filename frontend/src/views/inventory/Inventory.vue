@@ -200,7 +200,7 @@ async function loadInventory(page = 1) {
       brand: filterBrand.value.join(','),
       condition: selectedCondition.value !== 'all' ? selectedCondition.value : undefined,
       stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : undefined,
-      status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : 'available',
+      status: selectedStockStatus.value === 'all' ? undefined : selectedStockStatus.value,
     };
 
     const response = await inventoryApi.list(params);

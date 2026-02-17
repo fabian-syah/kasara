@@ -46,6 +46,7 @@ class InventoryController extends Controller
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user) {
+                    // Ambil ID dari helper
                     $branchIds = $user->getAccessibleBranchIds();
                     $warehouseIds = $user->getAccessibleWarehouseIds();
                     $onlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -65,23 +66,22 @@ class InventoryController extends Controller
                         });
                         $hasConstraint = true;
                     }
-                    if (!empty($onlineShopIds)) {
-                        $q->orWhere(function ($sub) use ($onlineShopIds) {
-                            $sub->where('placement_type', 'online_shop')
-                                ->whereIn('placement_id', $onlineShopIds);
-                        });
-                        $hasConstraint = true;
-                    }
-                    if ($user->online_shop_id) {
-                        $q->orWhere(function ($sub) use ($user) {
-                            $sub->where('placement_type', 'online_shop')
-                                ->where('placement_id', $user->online_shop_id);
+                    if (!empty($onlineShopIds) || $user->online_shop_id) {
+                        $q->orWhere(function ($sub) use ($onlineShopIds, $user) {
+                            $sub->where('placement_type', 'online_shop');
+
+                            // Gabungkan ID dari helper dan ID langsung dari user profile
+                            $ids = is_array($onlineShopIds) ? $onlineShopIds : [];
+                            if ($user->online_shop_id)
+                                $ids[] = $user->online_shop_id;
+
+                            $sub->whereIn('placement_id', array_unique($ids));
                         });
                         $hasConstraint = true;
                     }
 
                     if (!$hasConstraint) {
-                        $q->whereRaw('0 = 1');
+                        $q->whereRaw('0 = 1'); // Jika tidak punya akses ke mana pun, baru kosongkan
                     }
                 });
             }
