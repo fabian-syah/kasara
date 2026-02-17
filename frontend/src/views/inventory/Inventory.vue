@@ -79,6 +79,15 @@ const toast = useToast();
 import { debounce } from "../../utils/debounce";
 
 // Local state
+const isLoading = ref(false);
+const inventoryItems = ref([]);
+const pagination = ref({
+  current_page: 1,
+  last_page: 1,
+  total: 0,
+  from: 0,
+  to: 0
+});
 const searchQuery = ref("");
 const debouncedSearch = ref("");
 const selectedCategory = ref('');

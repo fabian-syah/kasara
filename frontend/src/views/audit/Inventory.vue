@@ -25,7 +25,7 @@
                                 <dd>
                                     <div class="text-lg font-medium"
                                         :class="activeTab === 'stock' ? 'text-white' : 'text-text-primary'">{{
-                                            data.stock }}</div>
+                                            stats.total_stock }}</div>
                                     <p class="text-xs mt-1"
                                         :class="activeTab === 'stock' ? 'text-gray-400' : 'text-text-secondary'">
                                         Melihat semua stok barang
