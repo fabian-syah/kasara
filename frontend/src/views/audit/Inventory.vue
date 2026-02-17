@@ -105,6 +105,7 @@ import Inventory from '../inventory/Inventory.vue'
 import StockInHistory from '../inventory/StockInHistory.vue'
 import StockOutHistory from '../inventory/StockOutHistory.vue'
 import { useAuthStore } from '../../store/auth'
+import { watch } from 'vue'
 
 const authStore = useAuthStore()
 
@@ -128,55 +129,47 @@ const branches = ref([])
 
 const canFilterBranch = computed(() => {
     // Only Audit, Super Admin, Owner can filter branches
-    const role = authStore.userRole;
+    const role = (authStore.userRole || '').toLowerCase();
     return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
 })
 
 const fetchBranches = async () => {
     try {
         const response = await axios.get('/branches')
-        let allBranches = [];
-        if (Array.isArray(response.data)) {
-            allBranches = response.data;
-        } else if (response.data.data) {
-            allBranches = response.data.data;
-        }
+        const allBranches = response.data.data || response.data || [];
 
         const user = authStore.user;
-        const role = authStore.userRole; // String
+        const role = (authStore.userRole || '').toLowerCase();
 
         // Define unrestricted roles
-        const isUnrestricted = ['super_admin', 'owner'].some(r => role.includes(r));
+        const isGlobalRole = ['super_admin', 'owner'].includes(role);
 
-        if (isUnrestricted) {
-            branches.value = allBranches;
-        } else {
-            // Collect allowed IDs from branch_id and placements
-            let allowedIds = [];
-            if (user?.branch_id) allowedIds.push(user.branch_id);
+        // Collect allowed IDs from branch_id and placements
+        let allowedIds = [];
+        if (user?.branch_id) allowedIds.push(user.branch_id);
 
-            if (user?.placements && Array.isArray(user.placements)) {
-                const placementIds = user.placements
-                    .filter(p => p.model_type === 'branch')
-                    .map(p => p.model_id);
-                allowedIds = [...allowedIds, ...placementIds];
-            }
-
-            // Deduplicate
-            allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
-
-            if (allowedIds.length > 0) {
-                branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
-
-                // Auto-select first if needed
-                if (branches.value.length > 0) {
-                    selectedBranchId.value = branches.value[0].id;
-                }
-            } else {
-                branches.value = [];
-            }
+        if (user?.placements && Array.isArray(user.placements)) {
+            const placementIds = user.placements
+                .filter(p => p.model_type === 'branch')
+                .map(p => p.model_id);
+            allowedIds = [...allowedIds, ...placementIds];
         }
 
+        // Deduplicate and ensure comparisons work (ids are usually numbers)
+        allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+
+        // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
+        if (isGlobalRole || (role === 'audit' && allowedIds.length === 0)) {
+            branches.value = allBranches;
+        } else if (allowedIds.length > 0) {
+            branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+            // Auto-select first if needed
+            if (branches.value.length > 0 && !selectedBranchId.value) {
+                selectedBranchId.value = branches.value[0].id;
+            }
+        } else {
+            branches.value = [];
+        }
     } catch (error) {
         console.error('Error fetching branches:', error)
     }
@@ -197,8 +190,6 @@ const fetchStats = async () => {
         loading.value = false
     }
 }
-
-import { watch } from 'vue';
 
 watch(selectedBranchId, () => {
     fetchStats();
