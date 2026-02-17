@@ -185,16 +185,14 @@ watch(activeTab, () => {
 });
 
 async function loadInventory(page = 1) {
-  // Use inventoryStore action if possible, or direct API
   isLoading.value = true;
   try {
     const params = {
       page: page,
       search: debouncedSearch.value,
-      type: activeTab.value, // 'hp' or 'non-hp'
-      branch_id: props.branchId || undefined, // Add branch_id filter
-      online_shop_id: props.onlineShopId || undefined, // Add online_shop_id filter
-      // Add other filters
+      type: activeTab.value,
+      branch_id: props.branchId || undefined,
+      online_shop_id: props.onlineShopId || undefined,
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
@@ -203,15 +201,13 @@ async function loadInventory(page = 1) {
       status: selectedStockStatus.value === 'all' ? undefined : selectedStockStatus.value,
     };
 
-    const response = await inventoryApi.list(params);
-    inventoryItems.value = response.data.data;
-    pagination.value = {
-      current_page: response.data.current_page,
-      last_page: response.data.last_page,
-      total: response.data.total,
-      from: response.data.from,
-      to: response.data.to
-    };
+    // Use store action to populate both inventoryStore.products AND pagination
+    await inventoryStore.fetchProducts(params);
+
+    // Sync local ref for components that still rely on it (if any)
+    inventoryItems.value = inventoryStore.products;
+    pagination.value = inventoryStore.pagination;
+
   } catch (error) {
     console.error("Error loading inventory:", error);
     toast.error("Gagal memuat data inventory");

@@ -40,7 +40,8 @@ class InventoryController extends Controller
         if ($type === 'non-hp') {
             $query = Inventory::with(['product', 'user'])->where('quantity', '>', 0);
         } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user']);
+            // Eager load placement untuk performa (morphTo di ProductDetail)
+            $query = ProductDetail::with(['product', 'distributor', 'user', 'placement']);
         }
 
         // 3. FILTER KEAMANAN (Akses Lokasi)
@@ -70,7 +71,23 @@ class InventoryController extends Controller
             });
         }
 
-        // 4. FILTER SPESIFIK DARI FRONTEND (Opsional)
+        // DEBUG MODE (Will appear in Network Response)
+        if ($request->has('debug')) {
+            return response()->json([
+                'diagnostic' => [
+                    'username' => $user->username,
+                    'roles' => $user->getRoleNames(),
+                    'accessible_os' => $osIds,
+                    'accessible_branches' => $bIds,
+                    'accessible_warehouses' => $wIds,
+                    'hp_count_in_db' => ProductDetail::where('placement_type', 'online_shop')->whereIn('placement_id', $osIds)->count(),
+                    'query_sql' => $query->toSql(),
+                    'query_bindings' => $query->getBindings(),
+                ]
+            ]);
+        }
+
+        // 4. FILTER SPESIFIK DARI FRONTEND
         if ($request->filled('branch_id')) {
             $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
         }
@@ -81,6 +98,20 @@ class InventoryController extends Controller
             $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
         }
 
+        // Faceted Filters (Brand, Capacity, Product)
+        if ($request->filled('brand')) {
+            $brands = explode(',', $request->brand);
+            $query->whereHas('product', fn($q) => $q->whereIn('brand', $brands));
+        }
+        if ($request->filled('capacity')) {
+            $caps = explode(',', $request->capacity); // e.g. "128GB,256GB"
+            $query->whereIn('storage', $caps);
+        }
+        if ($request->filled('product')) {
+            $products = explode(',', $request->product);
+            $query->whereHas('product', fn($q) => $q->whereIn('name', $products));
+        }
+
         // 5. STATUS & SEARCH
         if ($type === 'hp') {
             $status = $request->status ?? $request->stock_status;
@@ -88,6 +119,10 @@ class InventoryController extends Controller
                 $query->where('status', $status);
             } else {
                 $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
+            }
+
+            if ($request->filled('condition') && $request->condition !== 'all') {
+                $query->where('condition', $request->condition);
             }
         }
 
