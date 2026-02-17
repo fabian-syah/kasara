@@ -89,7 +89,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{
                                     formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
                                     {{
@@ -184,7 +184,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                            }}</td>
+                                }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
@@ -254,6 +254,7 @@ const formatDate = (dateString) => {
     })
 }
 
+
 const fetchBranches = async () => {
     try {
         const response = await axios.get('/branches')
@@ -264,14 +265,40 @@ const fetchBranches = async () => {
             allBranches = response.data.data;
         }
 
-        // Filter based on user assignment
-        if (authStore.user?.branch_id) {
-            branches.value = allBranches.filter(b => b.id == authStore.user.branch_id);
-            if (branches.value.length > 0) {
-                filters.value.branch_id = branches.value[0].id;
-            }
-        } else {
+        const user = authStore.user;
+        const role = authStore.userRole; // String
+
+        // Define unrestricted roles
+        const isUnrestricted = ['super_admin', 'owner'].some(r => role.includes(r));
+
+        if (isUnrestricted) {
             branches.value = allBranches;
+        } else {
+            // Collect allowed IDs from branch_id and placements
+            let allowedIds = [];
+            if (user?.branch_id) allowedIds.push(user.branch_id);
+
+            if (user?.placements && Array.isArray(user.placements)) {
+                const placementIds = user.placements
+                    .filter(p => p.model_type === 'branch')
+                    .map(p => p.model_id);
+                allowedIds = [...allowedIds, ...placementIds];
+            }
+
+            // Deduplicate and ensure comparisons work (ids are usually numbers)
+            allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+
+            if (allowedIds.length > 0) {
+                branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+
+                // Auto-select first if needed
+                if (branches.value.length > 0) {
+                    filters.value.branch_id = branches.value[0].id;
+                }
+            } else {
+                // No access? 
+                branches.value = [];
+            }
         }
     } catch (error) {
         console.error('Error fetching branches:', error)

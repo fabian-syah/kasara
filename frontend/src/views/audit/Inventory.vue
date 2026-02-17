@@ -142,15 +142,41 @@ const fetchBranches = async () => {
             allBranches = response.data.data;
         }
 
-        // If user has a specific branch assigned, filter the list
-        if (authStore.user?.branch_id) {
-            branches.value = allBranches.filter(b => b.id == authStore.user.branch_id);
-            if (branches.value.length > 0) {
-                selectedBranchId.value = branches.value[0].id; // Auto-select
-            }
-        } else {
+        const user = authStore.user;
+        const role = authStore.userRole; // String
+
+        // Define unrestricted roles
+        const isUnrestricted = ['super_admin', 'owner'].some(r => role.includes(r));
+
+        if (isUnrestricted) {
             branches.value = allBranches;
+        } else {
+            // Collect allowed IDs from branch_id and placements
+            let allowedIds = [];
+            if (user?.branch_id) allowedIds.push(user.branch_id);
+
+            if (user?.placements && Array.isArray(user.placements)) {
+                const placementIds = user.placements
+                    .filter(p => p.model_type === 'branch')
+                    .map(p => p.model_id);
+                allowedIds = [...allowedIds, ...placementIds];
+            }
+
+            // Deduplicate
+            allowedIds = [...new Set(allowedIds.map(id => Number(id)))];
+
+            if (allowedIds.length > 0) {
+                branches.value = allBranches.filter(b => allowedIds.includes(Number(b.id)));
+
+                // Auto-select first if needed
+                if (branches.value.length > 0) {
+                    selectedBranchId.value = branches.value[0].id;
+                }
+            } else {
+                branches.value = [];
+            }
         }
+
     } catch (error) {
         console.error('Error fetching branches:', error)
     }
