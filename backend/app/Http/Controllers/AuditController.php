@@ -34,31 +34,34 @@ class AuditController extends Controller
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
 
-        // Filter by specific branch if requested (and allowed)
+        // Filter by specific location if requested (and allowed)
         $requestedBranchId = $request->branch_id;
+        $requestedOnlineShopId = $request->online_shop_id;
 
-        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $requestedBranchId) {
-            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId) {
-                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId) {
-                    // If a specific branch is requested, we only filter by that
+        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                     if ($requestedBranchId) {
-                        // verify if user has access to this branch (unless super_admin/audit has global access which might be implied by branchIds being empty/all?)
-                        // For now assuming the frontend filter only shows allowed branches.
-                        // But strictly: if $branchIds is not empty, ensure $requestedBranchId is in it.
                         if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
                             $sub->where('branch_id', $requestedBranchId);
                         } else {
-                            // Requested branch not in allowed list
+                            $sub->whereRaw('1=0');
+                        }
+                    } elseif ($requestedOnlineShopId) {
+                        if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
+                            $sub->where('online_shop_id', $requestedOnlineShopId);
+                        } else {
                             $sub->whereRaw('1=0');
                         }
                     } else {
-                        // No specific branch requested, show all accessible
+                        // Show all accessible
                         if (!empty($branchIds)) {
                             $sub->orWhereIn('branch_id', $branchIds);
                         }
                         if (!empty($onlineShopIds)) {
                             $sub->orWhereIn('online_shop_id', $onlineShopIds);
                         }
+                        // Default fallback if no assignments? Handled by initial check
                     }
                 });
             });
@@ -197,6 +200,32 @@ class AuditController extends Controller
         $user = $request->user();
         $branchIds = $user->getAccessibleBranchIds();
         $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
+        if (empty($branchIds) && empty($onlineShopIds)) {
+            return response()->json([
+                'stock' => 0,
+                'stock_hp' => 0,
+                'stock_non_hp' => 0,
+                'in' => 0,
+                'in_hp' => 0,
+                'in_non_hp' => 0,
+                'out' => 0,
+                'out_hp' => 0,
+                'out_non_hp' => 0,
+            ]);
+        }
+
+        $requestedBranchId = $request->branch_id;
+        $requestedOnlineShopId = $request->online_shop_id;
+
+        // Filter assignments based on request
+        if ($requestedBranchId) {
+            $branchIds = (empty($branchIds) || in_array($requestedBranchId, $branchIds)) ? [$requestedBranchId] : [];
+            $onlineShopIds = [];
+        } elseif ($requestedOnlineShopId) {
+            $onlineShopIds = (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) ? [$requestedOnlineShopId] : [];
+            $branchIds = [];
+        }
 
         if (empty($branchIds) && empty($onlineShopIds)) {
             return response()->json([
