@@ -22,6 +22,9 @@
                                 <dd>
                                     <div class="text-lg font-medium text-gray-900 dark:text-white">{{ data.stock }}
                                     </div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {{ data.stock_hp }} IMEI | {{ data.stock_non_hp }} Non-IMEI
+                                    </div>
                                 </dd>
                             </dl>
                         </div>
@@ -50,6 +53,9 @@
                                 </dt>
                                 <dd>
                                     <div class="text-lg font-medium text-gray-900 dark:text-white">{{ data.in }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {{ data.in_hp }} IMEI | {{ data.in_non_hp }} Non-IMEI
+                                    </div>
                                 </dd>
                             </dl>
                         </div>
@@ -66,7 +72,7 @@
 
             <!-- Card Out -->
             <div class="bg-white dark:bg-surface-800 overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow cursor-pointer"
-                @click="$router.push('/stock-outs')">
+                @click="$router.push('/inventory/history/out')">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -78,6 +84,9 @@
                                 </dt>
                                 <dd>
                                     <div class="text-lg font-medium text-gray-900 dark:text-white">{{ data.out }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {{ data.out_hp }} IMEI | {{ data.out_non_hp }} Non-IMEI
+                                    </div>
                                 </dd>
                             </dl>
                         </div>
@@ -103,8 +112,14 @@ import axios from '../../api/axios'
 const loading = ref(false)
 const data = ref({
     stock: 0,
+    stock_hp: 0,
+    stock_non_hp: 0,
     in: 0,
-    out: 0
+    in_hp: 0,
+    in_non_hp: 0,
+    out: 0,
+    out_hp: 0,
+    out_non_hp: 0
 })
 
 const fetchData = async () => {

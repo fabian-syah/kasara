@@ -187,8 +187,14 @@ class AuditController extends Controller
         if (empty($branchIds) && empty($onlineShopIds)) {
             return response()->json([
                 'stock' => 0,
+                'stock_hp' => 0,
+                'stock_non_hp' => 0,
                 'in' => 0,
-                'out' => 0
+                'in_hp' => 0,
+                'in_non_hp' => 0,
+                'out' => 0,
+                'out_hp' => 0,
+                'out_non_hp' => 0,
             ]);
         }
 
@@ -223,40 +229,99 @@ class AuditController extends Controller
                 });
             }
         });
-        $nonHpStock = $nonHpStockQuery->sum('quantity');
+        $nonHpStock = (int) $nonHpStockQuery->sum('quantity');
 
         $totalStock = $hpStock + $nonHpStock;
 
         // 2. Stock In (Incoming Transfers that are Received)
-        $stockIn = StockOut::where('status', 'received')
-            ->where(function ($q) use ($branchIds, $onlineShopIds) {
-                if (!empty($branchIds)) {
-                    $q->orWhere(function ($sub) use ($branchIds) {
-                        $sub->where('destination_type', 'branch')->whereIn('destination_id', $branchIds);
-                    });
-                }
-                if (!empty($onlineShopIds)) {
-                    $q->orWhere(function ($sub) use ($onlineShopIds) {
-                        $sub->where('destination_type', 'online_shop')->whereIn('destination_id', $onlineShopIds);
-                    });
-                }
+        // We need to query the items within the transfers, not just the transfers themselves.
+
+        // Helper to scope StockOut (Transfers) by Destination
+        $scopeIn = function ($q) use ($branchIds, $onlineShopIds) {
+            $q->where('status', 'received')
+                ->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                    if (!empty($branchIds)) {
+                        $sub->orWhere(function ($deep) use ($branchIds) {
+                            $deep->where('destination_type', 'branch')->whereIn('destination_id', $branchIds);
+                        });
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $sub->orWhere(function ($deep) use ($onlineShopIds) {
+                            $deep->where('destination_type', 'online_shop')->whereIn('destination_id', $onlineShopIds);
+                        });
+                    }
+                });
+        };
+
+        // HP In
+        $inHp = DB::table('stock_out_items')
+            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+            ->where(function ($q) use ($scopeIn) {
+                $scopeIn($q);
             })
             ->count();
 
+        // Non-HP In
+        $inNonHp = DB::table('stock_out_non_hp_items')
+            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+            ->where(function ($q) use ($scopeIn) {
+                $scopeIn($q);
+            })
+            ->sum('quantity');
+
+        $totalIn = $inHp + $inNonHp;
+
+
         // 3. Stock Out (Sales + Transfers Out)
-        $stockOut = StockOut::whereHas('user', function ($q) use ($branchIds, $onlineShopIds) {
-            $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                if (!empty($branchIds))
-                    $sub->orWhereIn('branch_id', $branchIds);
-                if (!empty($onlineShopIds))
-                    $sub->orWhereIn('online_shop_id', $onlineShopIds);
+        // Helper to scope StockOut by Source
+        $scopeOut = function ($q) use ($branchIds, $onlineShopIds) {
+            $q->whereHas('user', function ($u) use ($branchIds, $onlineShopIds) {
+                $u->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                    if (!empty($branchIds))
+                        $sub->orWhereIn('branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                });
             });
-        })->count();
+        };
+
+        // HP Out
+        $outHp = DB::table('stock_out_items')
+            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+            // Join users to check source branch/shop
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->where(function ($q) use ($branchIds, $onlineShopIds) {
+                if (!empty($branchIds))
+                    $q->orWhereIn('users.branch_id', $branchIds);
+                if (!empty($onlineShopIds))
+                    $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+            })
+            ->count();
+
+        // Non-HP Out
+        $outNonHp = DB::table('stock_out_non_hp_items')
+            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->where(function ($q) use ($branchIds, $onlineShopIds) {
+                if (!empty($branchIds))
+                    $q->orWhereIn('users.branch_id', $branchIds);
+                if (!empty($onlineShopIds))
+                    $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+            })
+            ->sum('quantity');
+
+        $totalOut = $outHp + $outNonHp;
 
         return response()->json([
             'stock' => $totalStock,
-            'in' => $stockIn,
-            'out' => $stockOut
+            'stock_hp' => $hpStock,
+            'stock_non_hp' => $nonHpStock,
+            'in' => $totalIn,
+            'in_hp' => $inHp,
+            'in_non_hp' => (int) $inNonHp,
+            'out' => $totalOut,
+            'out_hp' => $outHp,
+            'out_non_hp' => (int) $outNonHp
         ]);
     }
 

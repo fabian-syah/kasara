@@ -85,7 +85,7 @@ const routes = [
                 meta: {
                     title: 'Inventory',
                     menu: 'inventory',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {
@@ -95,7 +95,7 @@ const routes = [
                 meta: {
                     title: 'Daftar Stok Masuk',
                     menu: 'reports',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {
@@ -105,7 +105,7 @@ const routes = [
                 meta: {
                     title: 'Daftar Stok Keluar',
                     menu: 'reports',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {
