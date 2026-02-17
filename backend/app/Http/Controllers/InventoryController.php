@@ -19,109 +19,102 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-
-        // SUPER DEBUG (Will appear in Network Tab -> Response)
-        if ($request->has('debug')) {
-            $onlineShopIds = array_filter([$user->online_shop_id]);
-            $accessibleOnline = $user->getAccessibleOnlineShopIds() ?: [];
-            $allOnlineIds = array_unique(array_merge($onlineShopIds, (is_array($accessibleOnline) ? $accessibleOnline : [])));
-
-            return response()->json([
-                'diagnostic' => [
-                    'username' => $user->username,
-                    'roles' => $user->getRoleNames(),
-                    'all_online_shop_ids' => $allOnlineIds,
-                    'hp_count_in_db' => \App\Models\ProductDetail::where('placement_type', 'online_shop')->whereIn('placement_id', $allOnlineIds)->count(),
-                    'hp_available_count' => \App\Models\ProductDetail::where('placement_type', 'online_shop')->whereIn('placement_id', $allOnlineIds)->whereIn('status', ['available', 'booking', 'returned'])->count(),
-                ]
-            ]);
-        }
-
         $type = $request->type ?? 'hp';
 
-        // 1. Definisikan ID Online Shop yang bisa diakses user ini
-        $onlineShopIds = array_filter([$user->online_shop_id]);
-        $accessibleOnline = $user->getAccessibleOnlineShopIds() ?: [];
-        $allOnlineIds = array_unique(array_merge($onlineShopIds, (is_array($accessibleOnline) ? $accessibleOnline : [])));
+        // 1. Ambil semua ID akses lokasi (Toko Online, Cabang, Gudang)
+        $osIds = $user->getAccessibleOnlineShopIds() ?: [];
+        $bIds = $user->getAccessibleBranchIds() ?: [];
+        $wIds = $user->getAccessibleWarehouseIds() ?: [];
 
+        // Gabungkan dengan ID utama jika belum masuk
+        if ($user->online_shop_id && !in_array($user->online_shop_id, $osIds))
+            $osIds[] = $user->online_shop_id;
+        if ($user->branch_id && !in_array($user->branch_id, $bIds))
+            $bIds[] = $user->branch_id;
+        if ($user->warehouse_id && !in_array($user->warehouse_id, $wIds))
+            $wIds[] = $user->warehouse_id;
+
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
+
+        // 2. Inisialisasi Query berdasarkan tipe
         if ($type === 'non-hp') {
             $query = Inventory::with(['product', 'user'])->where('quantity', '>', 0);
-
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-            if (!$user->hasRole($unrestrictedRoles)) {
-                $query->where(function ($q) use ($user, $allOnlineIds) {
-                    $q->where(function ($sq) use ($allOnlineIds) {
-                        $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $allOnlineIds);
-                    });
-                    // Fallback akses branch jika ada
-                    if ($bIds = $user->getAccessibleBranchIds())
-                        $q->orWhere('placement_type', 'branch')->whereIn('placement_id', $bIds);
-                });
-            }
-            return response()->json($query->latest()->paginate(20));
-
         } else {
-            // HP / UNIT BASED
-            // Gunakan WITH saja, hindari JOIN manual yang berisiko memotong data jika product_id bermasalah
             $query = ProductDetail::with(['product', 'distributor', 'user']);
+        }
 
-            // A. FILTER LOKASI (FIX TOKO ONLINE)
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
-            if (!$user->hasRole($unrestrictedRoles)) {
-                $query->where(function ($q) use ($user, $allOnlineIds) {
-                    $hasConstraint = false;
+        // 3. FILTER KEAMANAN (Akses Lokasi)
+        if (!$unrestricted) {
+            $query->where(function ($q) use ($osIds, $bIds, $wIds) {
+                $hasConstraint = false;
+                if (!empty($osIds)) {
+                    $q->orWhere(function ($sq) use ($osIds) {
+                        $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds);
+                    });
+                    $hasConstraint = true;
+                }
+                if (!empty($bIds)) {
+                    $q->orWhere(function ($sq) use ($bIds) {
+                        $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds);
+                    });
+                    $hasConstraint = true;
+                }
+                if (!empty($wIds)) {
+                    $q->orWhere(function ($sq) use ($wIds) {
+                        $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds);
+                    });
+                    $hasConstraint = true;
+                }
+                if (!$hasConstraint)
+                    $q->whereRaw('0 = 1');
+            });
+        }
 
-                    if (!empty($allOnlineIds)) {
-                        $q->orWhere(function ($sq) use ($allOnlineIds) {
-                            $sq->where('placement_type', 'online_shop')
-                                ->whereIn('placement_id', $allOnlineIds);
-                        });
-                        $hasConstraint = true;
-                    }
+        // 4. FILTER SPESIFIK DARI FRONTEND (Opsional)
+        if ($request->filled('branch_id')) {
+            $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
+        }
+        if ($request->filled('online_shop_id')) {
+            $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
+        }
 
-                    if ($bIds = $user->getAccessibleBranchIds()) {
-                        $q->orWhere('placement_type', 'branch')->whereIn('placement_id', $bIds);
-                        $hasConstraint = true;
-                    }
-
-                    if (!$hasConstraint)
-                        $q->whereRaw('1 = 0');
-                });
-            }
-
-            // B. FILTER STATUS (Penyebab Utama Kamu Kosong)
+        // 5. STATUS & SEARCH
+        if ($type === 'hp') {
             $status = $request->status ?? $request->stock_status;
             if ($status && $status !== 'all') {
                 $query->where('status', $status);
             } else {
-                // TAMPILKAN SEMUA STATUS YANG MASIH ADA DI INVENTORY
                 $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
             }
-
-            // C. SEARCH
-            if ($request->search) {
-                $s = $request->search;
-                $query->where(function ($q) use ($s) {
-                    $q->where('imei', 'like', "%$s%")
-                        ->orWhereHas('product', function ($pq) use ($s) {
-                            $pq->where('name', 'like', "%$s%")->orWhere('brand', 'like', "%$s%");
-                        });
-                });
-            }
-
-            $items = $query->latest()->paginate(20);
-
-            // Tambahkan Metadata Placement Name
-            $items->getCollection()->transform(function ($item) {
-                $item->placement_name = $item->placement ? $item->placement->name : 'Unknown';
-                return $item;
-            });
-
-            $response = $items->toArray();
-            $response['total_value'] = (clone $query)->sum('selling_price');
-
-            return response()->json($response);
         }
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s, $type) {
+                if ($type === 'hp')
+                    $q->where('imei', 'like', "%$s%");
+                $q->orWhereHas('product', function ($pq) use ($s) {
+                    $pq->where('name', 'like', "%$s%")->orWhere('brand', 'like', "%$s%")->orWhere('sku', 'like', "%$s%");
+                });
+            });
+        }
+
+        // 6. EKSEKUSI & PAGINASI
+        $items = $query->latest()->paginate(20);
+
+        // Transform results
+        $items->getCollection()->transform(function ($item) {
+            $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' ID: ' . $item->placement_id);
+            return $item;
+        });
+
+        $response = $items->toArray();
+        $response['total_value'] = (clone $query)->sum($type === 'non-hp' ? DB::raw('quantity * cost_price') : 'selling_price');
+
+        return response()->json($response);
     }
 
     // Stock In History
