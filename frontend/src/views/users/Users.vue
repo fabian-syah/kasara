@@ -4,6 +4,7 @@ import { ROLE_LABELS, ROLES } from "../../utils/permissions";
 import { formatDate } from "../../utils/formatters";
 import { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useAuthStore } from "../../store/auth"; // Import Auth Store
 import {
   Search,
   Plus,
@@ -23,6 +24,7 @@ import {
 
 // Toast
 const toast = useToast();
+const authStore = useAuthStore(); // Init Store
 
 // State
 const users = ref([]);
@@ -57,6 +59,44 @@ const selectedAccountType = ref(""); // New filter
 const showModal = ref(false);
 const editingUser = ref(null);
 const showPassword = ref(false);
+
+const isAudit = computed(() => authStore.userRole === 'audit');
+const currentUser = computed(() => authStore.user);
+
+// Filtered Roles List for Add/Edit Modal
+const filteredRolesOptions = computed(() => {
+  if (!isAudit.value) return rolesList;
+
+  const user = currentUser.value;
+  if (!user) return [];
+
+  // Determine Access
+  // Note: currentUser might not have full placements array depending on how it was fetched (login vs fetchUser)
+  // But usually branch_id/etc are present.
+  const hasBranchAccess = !!user.branch_id || (user.placements?.some(p => p.model_type === 'branch') ?? false);
+  const hasWarehouseAccess = !!user.warehouse_id || (user.placements?.some(p => p.model_type === 'warehouse') ?? false);
+  const hasOnlineAccess = !!user.online_shop_id || (user.placements?.some(p => p.model_type === 'online_shop') ?? false);
+  const hasDistributorAccess = !!user.distributor_id || (user.placements?.some(p => p.model_type === 'distributor') ?? false);
+
+  return rolesList.filter(r => {
+    // 1. Hide Super Admin & Admin Produk & Audit itself (usually audit doesn't create other audits)
+    if (['super_admin', 'audit', 'analist', 'admin_produk'].includes(r.value)) return false;
+
+    // 2. Hide Warehouse roles if no warehouse access
+    if (!hasWarehouseAccess && ['gudang', 'inventory', 'head_gudang'].includes(r.value)) return false;
+
+    // 3. Hide Branch roles if no branch access
+    if (!hasBranchAccess && ['sales', 'inventory_kasir', 'security', 'leader'].includes(r.value)) return false;
+
+    // 4. Hide Online Shop roles if no online access
+    if (!hasOnlineAccess && ['toko_online', 'leader_shopee'].includes(r.value)) return false;
+
+    // 5. Hide Distributor roles if no distributor access
+    if (!hasDistributorAccess && ['distribution'].includes(r.value)) return false;
+
+    return true;
+  });
+});
 
 // Form
 const form = ref({
@@ -423,7 +463,8 @@ function getUserRoleName(user) {
               </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Status
               </th>
-              <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Aksi
+              <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider"
+                v-if="!isAudit">Aksi
               </th>
             </tr>
           </thead>
@@ -498,9 +539,10 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <button @click="toggleStatus(user)"
+                  <button @click="toggleStatus(user)" :disabled="isAudit"
                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
-                    :class="user.is_active ? 'bg-emerald-500' : 'bg-surface-600'" title="Klik untuk mengubah status">
+                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600', isAudit ? 'opacity-50 cursor-not-allowed' : '']"
+                    title="Klik untuk mengubah status">
                     <span class="sr-only">Toggle status</span>
                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                       :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
@@ -511,7 +553,7 @@ function getUserRoleName(user) {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4">
+              <td class="px-6 py-4" v-if="!isAudit">
                 <div class="flex justify-end gap-2">
                   <button @click="openEditModal(user)"
                     class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors" title="Edit">
@@ -570,7 +612,8 @@ function getUserRoleName(user) {
               </div>
               <div v-if="user.created_by_user" class="mt-1 flex items-center gap-1">
                 <span class="text-[10px] text-text-secondary">Milik:</span>
-                <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{ user.created_by_user.full_name
+                <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{
+                  user.created_by_user.full_name
                 }}</span>
               </div>
             </div>
@@ -669,7 +712,8 @@ function getUserRoleName(user) {
                 <label class="label">Role</label>
                 <select v-model="form.role" class="input" required>
                   <option value="">Pilih Role</option>
-                  <option v-for="role in rolesList" :key="role.value" :value="role.value">{{ role.label }}</option>
+                  <option v-for="role in filteredRolesOptions" :key="role.value" :value="role.value">{{ role.label
+                  }}</option>
                 </select>
               </div>
               <div>
