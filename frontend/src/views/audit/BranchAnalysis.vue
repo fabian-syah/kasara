@@ -180,31 +180,31 @@ const chartData = ref({
     trend: null,
     breakdown: null
 });
+const fetchAnalysis = async () => {
+    loading.value = true;
+    try {
+        const params = {
+            year: selectedYear.value,
+        };
+        if (selectedDate.value) {
+            params.date = selectedDate.value;
+        } else if (selectedMonth.value) {
+            params.month = selectedMonth.value;
+        }
 
-// ... inside fetchAnalysis ...
-try {
-    const params = {
-        year: selectedYear.value,
-    };
-    if (selectedDate.value) {
-        params.date = selectedDate.value;
-    } else if (selectedMonth.value) {
-        params.month = selectedMonth.value;
+        const response = await api.get('/audit/analysis', { params });
+        const data = response.data;
+
+        summary.value = data.summary;
+        comparison.value = data.comparison || null;
+        processCharts(data);
+
+    } catch (error) {
+        console.error("Failed to fetch analysis:", error);
+        toast.error("Gagal memuat data analisa");
+    } finally {
+        loading.value = false;
     }
-
-    const response = await api.get('/audit/analysis', { params });
-    const data = response.data;
-
-    summary.value = data.summary;
-    comparison.value = data.comparison || null;
-    processCharts(data);
-
-} catch (error) {
-    // ...
-    console.error("Failed to fetch analysis:", error);
-    toast.error("Gagal memuat data analisa");
-} finally {
-    loading.value = false;
 };
 
 const processCharts = (data) => {
