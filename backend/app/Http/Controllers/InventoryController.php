@@ -355,6 +355,24 @@ class InventoryController extends Controller
             }
 
 
+            if ($request->has('debug')) {
+                return response()->json([
+                    'debug_info' => [
+                        'user_id' => $user->id,
+                        'online_shop_id' => $user->online_shop_id,
+                        'accessible_online_shops' => $user->getAccessibleOnlineShopIds(),
+                        'all_accessible_online_shops' => array_unique(array_merge(
+                            (is_array($user->getAccessibleOnlineShopIds()) ? $user->getAccessibleOnlineShopIds() : []),
+                            [$user->online_shop_id]
+                        )),
+                        'params' => $request->all(),
+                        'sql' => $query->toSql(),
+                        'bindings' => $query->getBindings(),
+                        'raw_count' => \App\Models\ProductDetail::count(),
+                    ]
+                ]);
+            }
+
             $items = $query->latest()->paginate(20);
 
             // Transform results to include placement name
