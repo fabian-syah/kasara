@@ -210,13 +210,26 @@ const routes = [
             },
             {
                 path: 'audit',
-                name: 'Audit',
-                component: Audit,
-                meta: {
-                    title: 'Audit',
-                    menu: 'audit',
-                    permissions: ['audit.view']
-                }
+                redirect: '/audit/sales', // Redirect to sales by default
+                meta: { title: 'Audit', menu: 'audit', permissions: ['audit.view'] }
+            },
+            {
+                path: 'audit/sales',
+                name: 'AuditSales',
+                component: () => import('../views/audit/Sales.vue'),
+                meta: { title: 'Audit Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
+            },
+            {
+                path: 'audit/inventory',
+                name: 'AuditInventory',
+                component: () => import('../views/audit/Inventory.vue'),
+                meta: { title: 'Audit Inventory', menu: 'audit_inventory', permissions: ['audit.view'] }
+            },
+            {
+                path: 'audit/analysis',
+                name: 'AuditAnalysis',
+                component: () => import('../views/audit/BranchAnalysis.vue'),
+                meta: { title: 'Analisa Cabang', menu: 'audit_analysis', permissions: ['audit.view'] }
             },
             {
                 path: 'reports',

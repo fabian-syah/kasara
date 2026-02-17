@@ -95,6 +95,11 @@ const menuItems = [
     },
     { id: "audit", path: "/audit", label: "Audit", icon: ClipboardCheck },
 
+    // Audit Specific Menus
+    { id: "audit_sales", path: "/audit/sales", label: "Penjualan", icon: Receipt },
+    { id: "audit_inventory", path: "/audit/inventory", label: "Inventory", icon: Package },
+    { id: "audit_analysis", path: "/audit/analysis", label: "Analisa Cabang", icon: BarChart3 },
+
     // Incoming Transfer (Barang Masuk)
     {
         id: "incoming_group",
