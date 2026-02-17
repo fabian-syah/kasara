@@ -317,8 +317,6 @@ onMounted(() => {
         inventoryStore.handleStockOut(e.stockOut);
       });
   }
-  fetchCurrentBranch();
-  fetchCurrentWarehouse();
   fetchBranches();
   fetchWarehouses();
   fetchOnlineShops();
