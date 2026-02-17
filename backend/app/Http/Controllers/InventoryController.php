@@ -1127,6 +1127,7 @@ class InventoryController extends Controller
     // FIXER: Split merged IMEIs (Temporary Tool)
     public function fixMergedImeis()
     {
+        \Illuminate\Support\Facades\Log::info("!!! PUBLIC DIAGNOSTIC HIT !!!", ['time' => now()->toDateTimeString()]);
         $details = ProductDetail::where(function ($q) {
             $q->where('imei', 'like', "%\n%")
                 ->orWhere('imei', 'like', "% %")
