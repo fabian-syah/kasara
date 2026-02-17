@@ -1169,7 +1169,7 @@ class InventoryController extends Controller
             }
             DB::commit();
             return response()->json([
-                'message' => 'Fixer executed v2 (Safe Mode)',
+                'message' => 'Fixer ANTIGRAVITY VERSION 1.0',
                 'corrupted_rows_removed' => $fixedCount,
                 'new_valid_rows_created' => $newRowsCount
             ]);
