@@ -36,31 +36,34 @@ class InventoryController extends Controller
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user) {
+                    $branchIds = $user->getAccessibleBranchIds();
+                    $warehouseIds = $user->getAccessibleWarehouseIds();
+                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
                     $hasConstraint = false;
-                    if ($user->branch_id) {
-                        $q->orWhere(function ($sub) use ($user) {
+                    if (!empty($branchIds)) {
+                        $q->orWhere(function ($sub) use ($branchIds) {
                             $sub->where('placement_type', 'branch')
-                                ->where('placement_id', $user->branch_id);
+                                ->whereIn('placement_id', $branchIds);
                         });
                         $hasConstraint = true;
                     }
-                    if ($user->warehouse_id) {
-                        $q->orWhere(function ($sub) use ($user) {
+                    if (!empty($warehouseIds)) {
+                        $q->orWhere(function ($sub) use ($warehouseIds) {
                             $sub->where('placement_type', 'warehouse')
-                                ->where('placement_id', $user->warehouse_id);
+                                ->whereIn('placement_id', $warehouseIds);
                         });
                         $hasConstraint = true;
                     }
-                    if ($user->online_shop_id) {
-                        $q->orWhere(function ($sub) use ($user) {
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($onlineShopIds) {
                             $sub->where('placement_type', 'online_shop')
-                                ->where('placement_id', $user->online_shop_id);
+                                ->whereIn('placement_id', $onlineShopIds);
                         });
                         $hasConstraint = true;
                     }
 
                     if (!$hasConstraint) {
-                        // User has restrictions but no location assigned? Block access.
                         $q->whereRaw('0 = 1');
                     }
                 });
@@ -179,25 +182,29 @@ class InventoryController extends Controller
             // If user is NOT in unrestricted roles AND has a placement, lock them to their placement
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user) {
+                    $branchIds = $user->getAccessibleBranchIds();
+                    $warehouseIds = $user->getAccessibleWarehouseIds();
+                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
                     $hasConstraint = false;
-                    if ($user->branch_id) {
-                        $q->orWhere(function ($sub) use ($user) {
+                    if (!empty($branchIds)) {
+                        $q->orWhere(function ($sub) use ($branchIds) {
                             $sub->where('placement_type', 'branch')
-                                ->where('placement_id', $user->branch_id);
+                                ->whereIn('placement_id', $branchIds);
                         });
                         $hasConstraint = true;
                     }
-                    if ($user->warehouse_id) {
-                        $q->orWhere(function ($sub) use ($user) {
+                    if (!empty($warehouseIds)) {
+                        $q->orWhere(function ($sub) use ($warehouseIds) {
                             $sub->where('placement_type', 'warehouse')
-                                ->where('placement_id', $user->warehouse_id);
+                                ->whereIn('placement_id', $warehouseIds);
                         });
                         $hasConstraint = true;
                     }
-                    if ($user->online_shop_id) {
-                        $q->orWhere(function ($sub) use ($user) {
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($onlineShopIds) {
                             $sub->where('placement_type', 'online_shop')
-                                ->where('placement_id', $user->online_shop_id);
+                                ->whereIn('placement_id', $onlineShopIds);
                         });
                         $hasConstraint = true;
                     }
