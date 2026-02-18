@@ -32,7 +32,8 @@ const checkVersion = async () => {
             clearInterval(checkInterval.value); // Stop checking once update found
         }
     } catch (error) {
-        console.error('Error checking for updates:', error);
+        // Silent error for periodic version checks to avoid cluttering console 
+        // especially during network changes/drops
     } finally {
         isChecking.value = false;
     }
