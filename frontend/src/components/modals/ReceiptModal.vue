@@ -1,6 +1,6 @@
 <template>
     <transition name="fade">
-        <div v-if="isOpen"
+        <div v-if="isOpen" id="receipt-modal-print-wrapper"
             class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white print:static"
             @click.self="close">
             <div
@@ -141,6 +141,44 @@ const formatCurrency = (value) => {
 };
 </script>
 
+<style>
+/* Unscoped Global Styles for Printing */
+@media print {
+
+    /* Hide everything by default */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Target the specific modal wrapper by ID */
+    #receipt-modal-print-wrapper,
+    #receipt-modal-print-wrapper * {
+        visibility: visible;
+    }
+
+    #receipt-modal-print-wrapper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: white;
+        z-index: 999999;
+        display: block !important;
+    }
+
+    /* Reset some styles for the inner card if needed */
+    #receipt-modal-print-wrapper>div {
+        max-width: none !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+}
+</style>
+
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
@@ -152,41 +190,14 @@ const formatCurrency = (value) => {
     opacity: 0;
 }
 
+/* Scoped print utilities that don't need to be global but help with layout */
 @media print {
-
-    /* Hide everything else */
-    body * {
-        visibility: hidden;
-    }
-
-    /* Show only the receipt modal content */
-    .fixed {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: white;
-        padding: 0;
-        display: block !important;
-        visibility: visible;
-        z-index: 99999;
-        /* Ensure high z-index for print too */
-    }
-
-    /* Ensure internal content is visible */
-    .fixed * {
-        visibility: visible;
-    }
-
-    /* Reset helper classes */
     .print\:hidden {
         display: none !important;
     }
 
     .print\:block {
         display: block !important;
-        /* Ensure display:block wins over other styles if any */
     }
 
     .print\:text-black {
@@ -210,7 +221,6 @@ const formatCurrency = (value) => {
         padding-bottom: 0 !important;
     }
 
-    /* Important to override p-0 if it was used */
     .print\:pt-10 {
         padding-top: 2.5rem !important;
     }
@@ -229,6 +239,10 @@ const formatCurrency = (value) => {
 
     .print\:mb-4 {
         margin-bottom: 1rem !important;
+    }
+
+    .print\:bg-white {
+        background-color: white !important;
     }
 }
 </style>
