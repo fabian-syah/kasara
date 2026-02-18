@@ -292,6 +292,16 @@ const routes = [
                     menu: 'settings'
                 }
             },
+            {
+                path: 'settings/payments',
+                name: 'PaymentMethods',
+                component: () => import('../views/settings/PaymentMethods.vue'),
+                meta: {
+                    title: 'Pengaturan Pembayaran',
+                    menu: 'payment_methods',
+                    permissions: ['super_admin'] // Only super admin
+                }
+            },
 
             // Master Data Routes (Super Admin)
             {

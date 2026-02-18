@@ -118,4 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/track', [\App\Http\Controllers\AuditController::class, 'track']);
         Route::get('/analysis', [\App\Http\Controllers\AuditController::class, 'analysis']);
     });
+
+    // Settings
+    Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);
 });

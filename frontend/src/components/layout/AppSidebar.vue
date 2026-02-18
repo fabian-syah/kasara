@@ -142,6 +142,7 @@ const menuItems = [
     { id: "retur_items", path: "/retur-items", label: "Retur Masuk", icon: ArrowDownRight },
 
     { id: "settings", path: "/settings", label: "Pengaturan", icon: Settings },
+    { id: "payment_methods", path: "/settings/payments", label: "Pembayaran", icon: DollarSign },
 ];
 
 // User info
