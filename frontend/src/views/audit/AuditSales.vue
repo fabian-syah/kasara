@@ -8,41 +8,49 @@
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white">Penjualan</h2>
 
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    <!-- Period Filter -->
-                    <select v-model="selectedPeriod"
-                        class="bg-white dark:bg-surface-800 border-gray-200 dark:border-surface-600 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
-                        <option value="daily">Harian</option>
-                        <option value="monthly">Bulanan</option>
-                    </select>
-
-                    <!-- Date Picker -->
-                    <div class="relative">
-                        <input type="date" v-model="filters.start_date"
-                            class="bg-white dark:bg-surface-800 border-gray-200 dark:border-surface-600 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 pl-3 pr-8" />
+                    <!-- Period Filter (Modern UI) -->
+                    <div class="relative min-w-[140px]">
+                        <select v-model="selectedPeriod"
+                            class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            <option value="daily">Harian</option>
+                            <option value="monthly">Bulanan</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
 
-                    <!-- Branch Filter -->
-                    <select v-if="canFilterBranch" v-model="selectedLocationKey" @change="fetchData"
-                        class="bg-white dark:bg-surface-800 border-gray-200 dark:border-surface-600 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 min-w-[150px]">
-                        <option value="all">Semua Cabang/Toko</option>
-                        <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                            :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
-                            {{ loc.name }}
-                        </option>
-                    </select>
+                    <!-- Date Picker (Modern UI) -->
+                    <div class="relative group">
+                        <div
+                            class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
+                            <Calendar :size="18"
+                                class="text-gray-500 dark:text-gray-400 group-hover:text-primary-500" />
+                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[100px]">
+                                {{ formattedDateDisplay }}
+                            </span>
+                        </div>
+                        <input type="date" v-model="filters.start_date" @change="handleDateChange"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                    </div>
 
-                    <!-- Status Filter (Dummy for UI match) -->
-                    <select
-                        class="bg-white dark:bg-surface-800 border-gray-200 dark:border-surface-600 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
-                        <option value="all">Semua Status</option>
-                        <option value="lunas">Lunas</option>
-                        <option value="pending">Pending</option>
-                    </select>
+                    <!-- Branch Filter (Modern UI) -->
+                    <div v-if="canFilterBranch" class="relative min-w-[200px]">
+                        <select v-model="selectedLocationKey" @change="fetchData"
+                            class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            <option value="all">Semua Cabang/Toko</option>
+                            <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                                :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                                {{ loc.name }}
+                            </option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
 
                     <!-- Export Button -->
                     <button
-                        class="flex items-center gap-2 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-                        <Download :size="16" />
+                        class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 dark:shadow-none hover:transform hover:-translate-y-0.5 transition-all">
+                        <Download :size="18" />
                         <span>Export</span>
                     </button>
                 </div>
@@ -50,68 +58,86 @@
 
             <!-- Table -->
             <div
-                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                class="bg-white dark:bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-surface-700/50">
+                        <thead
+                            class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
-                                <th class="px-6 py-3 font-medium">No</th>
-                                <th class="px-6 py-3 font-medium">Waktu Pesanan</th>
-                                <th class="px-6 py-3 font-medium">Nomor Pesanan</th>
-                                <th class="px-6 py-3 font-medium">Nama</th>
-                                <th class="px-6 py-3 font-medium">No HP</th>
-                                <th class="px-6 py-3 font-medium">Kategori</th>
-                                <th class="px-6 py-3 font-medium">Tipe</th>
-                                <th class="px-6 py-3 font-medium">Jumlah Barang</th>
-                                <th class="px-6 py-3 font-medium">Status Pembayaran</th>
-                                <th class="px-6 py-3 font-medium">Cash</th>
-                                <th class="px-6 py-3 font-medium">Transfer</th>
-                                <th class="px-6 py-3 font-medium">Debit</th>
-                                <th class="px-6 py-3 font-medium text-center">#</th>
+                                <th class="px-6 py-4">No</th>
+                                <th class="px-6 py-4">Waktu Pesanan</th>
+                                <th class="px-6 py-4">Nomor Pesanan</th>
+                                <th class="px-6 py-4">Nama</th>
+                                <th class="px-6 py-4">No HP</th>
+                                <th class="px-6 py-4">Kategori</th>
+                                <th class="px-6 py-4">Tipe</th>
+                                <th class="px-6 py-4">Jumlah Barang</th>
+                                <th class="px-6 py-4">Status Pembayaran</th>
+                                <th class="px-6 py-4">Cash</th>
+                                <th class="px-6 py-4">Transfer</th>
+                                <th class="px-6 py-4">Debit</th>
+                                <th class="px-6 py-4 text-center">#</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                            <tr v-if="loading" class="animate-pulse">
-                                <td colspan="13" class="px-6 py-4 text-center text-gray-400">Memuat data...</td>
+                            <tr v-if="loading">
+                                <td colspan="13" class="px-6 py-12">
+                                    <div class="flex flex-col items-center justify-center text-gray-500">
+                                        <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
+                                        <span class="text-sm font-medium">Memuat data penjualan...</span>
+                                    </div>
+                                </td>
                             </tr>
                             <tr v-else-if="salesRecords.daily_sales.length === 0">
-                                <td colspan="13" class="px-6 py-8 text-center text-gray-500">Tidak ada data penjualan
+                                <td colspan="13" class="px-6 py-12 text-center text-gray-500">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <div
+                                            class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
+                                            <FileText class="w-6 h-6 text-gray-400" />
+                                        </div>
+                                        <span class="font-medium text-gray-900 dark:text-white">Tidak ada data
+                                            penjualan</span>
+                                        <span class="text-xs mt-1">Belum ada transaksi pada tanggal ini</span>
+                                    </div>
                                 </td>
                             </tr>
                             <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
+                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white">{{ item.order_no }}</td>
+                                    }}</td>
+                                <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
                                 <td class="px-6 py-4">
                                     <span
-                                        class="px-2 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-800">
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.type }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white">{{ item.qty }}</td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{{ item.type }}</td>
+                                <td class="px-6 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
                                 <td class="px-6 py-4">
-                                    <span
-                                        class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
+                                        :class="item.status === 'Lunas'
+                                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                                            : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
                                         {{ item.status }}
                                     </span>
                                 </td>
                                 <!-- Backend doesn't split payment methods yet, hardcoding 0 or logic if available later -->
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">Rp 0</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">Rp 0</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400">Rp 0</td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4">
-                                    <div class="flex items-center justify-center gap-2">
+                                    <div
+                                        class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
-                                            class="p-1.5 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-lg text-black dark:text-white transition-colors">
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-surface-500 transition-all">
                                             <Eye :size="16" />
                                         </button>
                                         <button
-                                            class="p-1.5 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-lg text-black dark:text-white transition-colors">
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-surface-500 transition-all">
                                             <FileText :size="16" />
                                         </button>
                                     </div>
@@ -121,18 +147,19 @@
                     </table>
                 </div>
                 <!-- Pagination Dummy for UI -->
-                <div class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-2">
+                <div
+                    class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-2 bg-gray-50/50 dark:bg-surface-700/30">
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-gray-50 dark:hover:bg-surface-700 disabled:opacity-50">
-                        <ChevronLeft :size="16" />
+                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                        <ChevronLeft :size="18" />
                     </button>
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full border border-black dark:border-white bg-black dark:bg-white text-white dark:text-black font-medium text-xs">
+                        class="w-9 h-9 flex items-center justify-center rounded-xl bg-primary-600 text-white font-bold text-sm shadow-lg shadow-primary-500/20">
                         1
                     </button>
                     <button
-                        class="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-gray-50 dark:hover:bg-surface-700 disabled:opacity-50">
-                        <ChevronRight :size="16" />
+                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                        <ChevronRight :size="18" />
                     </button>
                 </div>
             </div>
@@ -144,24 +171,25 @@
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Laporan per Brand</h2>
 
             <div
-                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                class="bg-white dark:bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
                 <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-surface-700/50">
+                    <thead
+                        class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
                         <tr>
-                            <th class="px-6 py-3 font-medium w-16">No</th>
-                            <th class="px-6 py-3 font-medium">Brand</th>
-                            <th class="px-6 py-3 font-medium">Jumlah</th>
+                            <th class="px-6 py-4 w-16">No</th>
+                            <th class="px-6 py-4">Brand</th>
+                            <th class="px-6 py-4">Jumlah</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                         <tr v-if="salesRecords.brand_sales.length === 0">
-                            <td colspan="3" class="px-6 py-8 text-center text-gray-500">Tidak ada data brand</td>
+                            <td colspan="3" class="px-6 py-12 text-center text-gray-500">Tidak ada data brand</td>
                         </tr>
                         <tr v-else v-for="(item, index) in salesRecords.brand_sales" :key="index"
-                            class="hover:bg-gray-50 dark:hover:bg-surface-700/30">
+                            class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                             <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                             <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ item.brand }}</td>
-                            <td class="px-6 py-4 text-gray-900 dark:text-white">{{ item.qty }}</td>
+                            <td class="px-6 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -174,31 +202,33 @@
             <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Laporan per CS</h2>
 
             <div
-                class="bg-white dark:bg-surface-800 rounded-xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                class="bg-white dark:bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-surface-700/50">
+                        <thead
+                            class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
-                                <th class="px-6 py-3 font-medium w-16">No</th>
-                                <th class="px-6 py-3 font-medium">Nama CS</th>
-                                <th class="px-6 py-3 font-medium">Total Penjualan (Unit)</th>
-                                <th class="px-6 py-3 font-medium">Total Tukar Tambah</th>
-                                <th class="px-6 py-3 font-medium">Total Refund / Angkut Barang</th>
-                                <th class="px-6 py-3 font-medium">Grand Total Penjualan</th>
+                                <th class="px-6 py-4 w-16">No</th>
+                                <th class="px-6 py-4">Nama CS</th>
+                                <th class="px-6 py-4">Total Penjualan (Unit)</th>
+                                <th class="px-6 py-4">Total Tukar Tambah</th>
+                                <th class="px-6 py-4">Total Refund / Angkut Barang</th>
+                                <th class="px-6 py-4">Grand Total Penjualan</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="salesRecords.cs_sales.length === 0">
-                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">Tidak ada data CS</td>
+                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">Tidak ada data CS</td>
                             </tr>
                             <tr v-else v-for="(item, index) in salesRecords.cs_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30">
+                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ item.cs_name }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white pl-12">{{ item.total_sales }}</td>
+                                <td class="px-6 py-4 text-gray-900 dark:text-white pl-12 font-semibold">{{
+                                    item.total_sales }}</td>
                                 <td class="px-6 py-4 text-gray-500 pl-12">{{ item.total_trade_in || 0 }}</td>
                                 <td class="px-6 py-4 text-gray-500 pl-12">{{ item.total_refund || 0 }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{
+                                <td class="px-6 py-4 font-medium text-purple-600 dark:text-purple-400 font-mono">{{
                                     formatCurrency(item.grand_total) }}</td>
                             </tr>
                         </tbody>
@@ -211,7 +241,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 
@@ -235,6 +265,20 @@ const filters = ref({
 
 const locations = ref([])
 const selectedLocationKey = ref('all')
+
+const formattedDateDisplay = computed(() => {
+    if (!filters.value.start_date) return 'Pilih Tanggal';
+    const date = new Date(filters.value.start_date);
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+})
+
+const handleDateChange = () => {
+    // Force End Date to match Start Date if in daily mode
+    if (selectedPeriod.value === 'daily') {
+        filters.value.end_date = filters.value.start_date;
+    }
+    fetchData();
+}
 
 const canFilterBranch = computed(() => {
     // Only Audit, Super Admin, Owner can filter branches
