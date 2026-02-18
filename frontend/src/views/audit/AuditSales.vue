@@ -130,7 +130,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -157,7 +157,7 @@
                                 <td class="px-6 py-4">
                                     <div
                                         class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
+                                        <button @click="openReceipt(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-surface-500 transition-all">
                                             <Eye :size="16" />
                                         </button>
@@ -262,6 +262,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Receipt Modal -->
+    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" @close="showReceiptModal = false" />
 </template>
 
 <script setup>
@@ -269,12 +272,22 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
+import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 
 const authStore = useAuthStore()
 
 // Dropped Tabs Logic - Now displaying all sections vertically
 const loading = ref(false)
 const selectedPeriod = ref('daily') // For filter dropdown
+
+// Receipt Modal State
+const showReceiptModal = ref(false)
+const selectedTransaction = ref(null)
+
+const openReceipt = (item) => {
+    selectedTransaction.value = item;
+    showReceiptModal.value = true;
+}
 
 // Monthly Logic
 const months = [

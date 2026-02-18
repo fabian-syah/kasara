@@ -77,36 +77,43 @@ class AuditController extends Controller
         $scopeToAccess($dailySalesQuery);
 
         $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) {
-            // ... mapping logic (unchanged) ...
-            $itemSummary = '-';
-            $qty = 0;
+            // Build items list
+            $details = [];
 
-            if ($trx->items->isNotEmpty()) {
-                $first = $trx->items->first();
-                $itemSummary = $first->product->name ?? '-';
-                if ($trx->items->count() > 1)
-                    $itemSummary .= ' +' . ($trx->items->count() - 1) . ' items';
-                $qty += $trx->items->count();
+            // HP Items
+            foreach ($trx->items as $item) {
+                $details[] = [
+                    'name' => $item->product->name ?? 'Unknown HP',
+                    'qty' => 1,
+                    // If total items is 1, use selling_price, else 0
+                    'price' => ($trx->items->count() + $trx->nonHpItems->count() === 1) ? $trx->selling_price : 0
+                ];
             }
-            if ($trx->nonHpItems->isNotEmpty()) {
-                if ($itemSummary === '-') {
-                    $first = $trx->nonHpItems->first();
-                    $itemSummary = $first->product->name ?? '-';
-                    if ($trx->nonHpItems->count() > 1)
-                        $itemSummary .= ' +' . ($trx->nonHpItems->count() - 1) . ' items';
-                }
-                $qty += $trx->nonHpItems->sum('quantity');
+
+            // Non-HP Items
+            foreach ($trx->nonHpItems as $nhp) {
+                $isSingleItem = ($trx->items->count() === 0 && $trx->nonHpItems->count() === 1);
+                $details[] = [
+                    'name' => $nhp->product->name ?? 'Unknown Item',
+                    'qty' => $nhp->quantity,
+                    'price' => $isSingleItem ? $trx->selling_price : 0
+                ];
             }
+
+            // Calculate total qty
+            $qty = $trx->items->count() + $trx->nonHpItems->sum('quantity');
 
             return [
                 'date' => $trx->created_at->toDateTimeString(),
                 'order_no' => $trx->receipt_id,
                 'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? $trx->shopee_receiver ?? $trx->giveaway_receiver ?? '-',
-                'customer_phone' => $trx->customer_phone ?? '-',
+                'customer_phone' => $trx->customer_phone ?? $trx->shopee_phone ?? $trx->giveaway_phone ?? '-',
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'qty' => $qty,
+                'items' => $details, // Added for Receipt
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
+                'payment_method' => $trx->category === 'penjualan_offline' ? 'Offline' : 'Online',
                 'cash' => 0,
                 'transfer' => 0,
                 'debit' => 0,
@@ -594,30 +601,10 @@ class AuditController extends Controller
 
             $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
-            // Re-query for previous date if not in current set (likely if start of month)
-            // But for simplicity, we can just filter the $dailyStats if the month/year covers it?
-            // Actually, if we selected "Feb 17", we need "Feb 16".
-            // Since we queried the whole month (or year), checking $dailyStats is fine if within range.
-            // If previous date is previous month, we might miss it if filtering by month.
-            // Let's implement a specific robust check for Comparison.
-
-            $prevStats = ['profit' => 0, 'revenue' => 0, 'items' => 0];
-            // We can't rely on $dailyStats if filtered by month and prevDate is last month.
-            // So let's run a separate lightweight query for the 2 days if 'date' is present?
-            // Or just check $dailyStats if available.
-
-            // For now, let's assume user stays within valid range or we accept 0 for prev if out of query.
-            // Optimization: If date is requested, maybe we should focus on that?
-            // But the charts usually show the context (the whole month).
-            // So let's check $dailyStats for prevDate.
-
             $prevStats = $dailyStats[$prevDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
             // If prevStats is empty but might exist (cross-month), query it
-            if (!isset($dailyStats[$prevDate])) {
-                // Optional: Query specific date if needed.
-                // For now, let's stick to loaded data.
-            }
+            // For now, let's stick to loaded data.
 
             $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
