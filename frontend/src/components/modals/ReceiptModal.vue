@@ -1,10 +1,11 @@
 <template>
     <transition name="fade">
         <div v-if="isOpen" id="receipt-modal-print-wrapper"
-            class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white print:static"
+            class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white"
             @click.self="close">
             <div
                 class="bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none">
+
                 <!-- Receipt Header -->
                 <!-- Added print:pt-10 to push content down from header when printing -->
                 <div
@@ -157,15 +158,16 @@ const formatCurrency = (value) => {
     }
 
     #receipt-modal-print-wrapper {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        background: white;
-        z-index: 999999;
+        position: fixed !important;
+        /* Force fixed to snap to top */
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        z-index: 999999 !important;
         display: block !important;
     }
 
@@ -175,6 +177,7 @@ const formatCurrency = (value) => {
         width: 100% !important;
         box-shadow: none !important;
         border-radius: 0 !important;
+        margin: 0 !important;
     }
 }
 </style>
@@ -190,7 +193,7 @@ const formatCurrency = (value) => {
     opacity: 0;
 }
 
-/* Scoped print utilities that don't need to be global but help with layout */
+/* Scoped print utilities */
 @media print {
     .print\:hidden {
         display: none !important;
@@ -223,11 +226,10 @@ const formatCurrency = (value) => {
 
     .print\:pt-10 {
         padding-top: 2.5rem !important;
+        /* Keep top padding request */
     }
 
-    .print\:static {
-        position: static !important;
-    }
+    /* REMOVED print:static to avoid flow issues with hidden content */
 
     .print\:w-full {
         width: 100% !important;
