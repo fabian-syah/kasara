@@ -136,11 +136,6 @@ const handleDelete = async () => {
 
 onMounted(() => {
     fetchData();
-    // DEBUG: Force open modal to check visibility
-    setTimeout(() => {
-        showModal.value = true;
-        console.log('DEBUG: Forced showModal = true');
-    }, 1000);
 });
 </script>
 
