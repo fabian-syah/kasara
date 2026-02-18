@@ -79,24 +79,46 @@ class AuditController extends Controller
         $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) {
             // Build items list
             $details = [];
+            $calculatedTotal = 0;
 
-            // HP Items
+            // HP Items (ProductDetail)
             foreach ($trx->items as $item) {
+                // Try to get price from ProductDetail (specific unit price) or Product (base price)
+                // selling_price in ProductDetail is likely the intended list price for that unit
+                $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
+
                 $details[] = [
                     'name' => $item->product->name ?? 'Unknown HP',
                     'qty' => 1,
-                    // If total items is 1, use selling_price, else 0
-                    'price' => ($trx->items->count() + $trx->nonHpItems->count() === 1) ? $trx->selling_price : 0
+                    'price' => $price
                 ];
+                $calculatedTotal += $price;
             }
 
             // Non-HP Items
             foreach ($trx->nonHpItems as $nhp) {
-                $isSingleItem = ($trx->items->count() === 0 && $trx->nonHpItems->count() === 1);
+                // Non-HP items only have base product price from Product model
+                $unitPrice = $nhp->product->price ?? 0;
+                $lineTotal = $unitPrice * $nhp->quantity;
+
                 $details[] = [
                     'name' => $nhp->product->name ?? 'Unknown Item',
                     'qty' => $nhp->quantity,
-                    'price' => $isSingleItem ? $trx->selling_price : 0
+                    'price' => $unitPrice
+                ];
+                $calculatedTotal += $lineTotal;
+            }
+
+            // Adjustment Calculation
+            // If the sum of standard prices != actual transaction total, add an adjustment line
+            // This handles discounts, markups, or missing price data gracefully
+            if ($calculatedTotal != $trx->selling_price) {
+                $diff = $trx->selling_price - $calculatedTotal;
+                // If diff is negative, it's a discount. If positive, it's a markup/fee.
+                $details[] = [
+                    'name' => $diff > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
+                    'qty' => 1,
+                    'price' => $diff
                 ];
             }
 
@@ -526,17 +548,7 @@ class AuditController extends Controller
             }
 
             // Non-HP Items Cost (Limitation: Assuming 0 or need product reference)
-            // Ideally we need cost_price in stock_out_non_hp_items or use current product type cost
-            // For now, assuming 0 cost for accessories as per plan note, or we could try to fetch current average cost.
-            // Keeping it 0 to avoid misleading "profit" reduction if cost is unknown?
-            // actually, if cost is 0, profit = revenue, which is inflated.
-            // Let's assume 0 for now as verified in plan.
             foreach ($trx->nonHpItems as $nhp) {
-                // Check if we can get cost from ProductType (via product->type match? No direct link)
-                // For now, assuming 0 cost for accessories as per plan note, or we could try to fetch current average cost.
-                // Keeping it 0 to avoid misleading "profit" reduction if cost is unknown? 
-                // actually, if cost is 0, profit = revenue, which is inflated.
-                // Let's assume 0 for now as verified in plan.
                 $trxItems += $nhp->quantity;
             }
 
