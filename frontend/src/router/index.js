@@ -224,9 +224,9 @@ const routes = [
                 meta: { title: 'Audit', menu: 'audit', permissions: ['audit.view'] }
             },
             {
-                path: 'audit/sales', // Changed from audit/uc/sales
-                name: 'AuditSales',  // Changed from AuditSalesUC
-                component: () => import('../views/audit/Sales.vue'),
+                path: 'audit/sales',
+                name: 'AuditSales',
+                component: () => import('../views/audit/AuditSales.vue'),
                 meta: { title: 'Audit Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
             },
             {
