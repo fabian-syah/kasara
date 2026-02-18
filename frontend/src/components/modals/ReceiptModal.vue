@@ -1,20 +1,27 @@
 <template>
     <transition name="fade">
         <div v-if="isOpen"
-            class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white print:static"
+            class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white print:static"
             @click.self="close">
             <div
-                class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none">
+                class="bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none">
                 <!-- Receipt Header -->
                 <div class="p-6 text-center border-b border-dashed border-gray-300 print:p-0 print:mb-4">
-                    <div
-                        class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-3 print:hidden">
-                        <span class="font-bold text-lg">A</span>
+                    <!-- Modern Logo Implementation -->
+                    <div class="mb-4 flex justify-center">
+                        <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 object-contain"
+                            @error="handleImageError" v-show="!imageError">
+                        <!-- Fallback if logo missing -->
+                        <div v-if="imageError"
+                            class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <span class="font-bold text-lg">P</span>
+                        </div>
                     </div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-1">APEX POS</h2>
+
+                    <h2 class="text-xl font-bold text-gray-900 mb-1" v-if="imageError">PSTORE</h2>
                     <p class="text-xs text-gray-500 mb-4 print:text-black">Jl. Raya Example No. 123, Indonesia</p>
 
-                    <div class="flex flex-col gap-1 text-xs text-gray-600 print:text-black">
+                    <div class="flex flex-col gap-1 text-xs text-gray-600 print:text-black text-left">
                         <div class="flex justify-between">
                             <span>No Pesanan:</span>
                             <span class="font-mono font-bold">{{ transaction?.order_no || '-' }}</span>
@@ -41,14 +48,17 @@
                         <!-- Items Loop -->
                         <div v-for="(item, index) in (transaction?.items || [])" :key="index"
                             class="flex justify-between text-sm print:text-black">
-                            <div class="flex-1">
+                            <div class="flex-1 pr-4">
                                 <span class="font-medium text-gray-900 print:text-black block">{{ item.name }}</span>
-                                <span class="text-xs text-gray-500 print:text-black">{{ item.qty }} x {{
-                                    formatCurrency(item.price) }}</span>
+                                <span class="text-xs text-gray-500 print:text-black">
+                                    {{ item.qty }} x {{ formatCurrency(item.price) }}
+                                </span>
                             </div>
-                            <span class="font-semibold text-gray-900 print:text-black">{{ formatCurrency(item.qty *
-                                item.price) }}</span>
+                            <span class="font-semibold text-gray-900 print:text-black whitespace-nowrap">
+                                {{ formatCurrency(item.qty * item.price) }}
+                            </span>
                         </div>
+
                         <!-- Fallback if no detailed items (using grand total) -->
                         <div v-if="(!transaction?.items || transaction.items.length === 0)"
                             class="text-center text-gray-400 text-xs italic py-2">
@@ -87,7 +97,7 @@
                 <!-- Print Footer -->
                 <div class="hidden print:block text-center mt-6 pt-4 border-t border-dashed border-gray-300">
                     <p class="text-[10px] text-gray-500">Terima kasih atas kunjungan Anda!</p>
-                    <p class="text-[10px] text-gray-400 mt-1">Powred by APEX POS</p>
+                    <p class="text-[10px] text-gray-400 mt-1">Powered by PSTORE POS</p>
                 </div>
             </div>
         </div>
@@ -95,7 +105,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, ref } from 'vue';
 import { Printer } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -104,6 +114,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const imageError = ref(false);
 
 const close = () => {
     emit('close');
@@ -111,6 +122,10 @@ const close = () => {
 
 const printReceipt = () => {
     window.print();
+};
+
+const handleImageError = () => {
+    imageError.value = true;
 };
 
 const formatCurrency = (value) => {
@@ -151,7 +166,8 @@ const formatCurrency = (value) => {
         padding: 0;
         display: block !important;
         visibility: visible;
-        z-index: 9999;
+        z-index: 99999;
+        /* Ensure high z-index for print too */
     }
 
     /* Ensure internal content is visible */

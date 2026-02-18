@@ -81,43 +81,78 @@ class AuditController extends Controller
             $details = [];
             $calculatedTotal = 0;
 
-            // HP Items (ProductDetail)
+            // 1. HP Items (Prioritize ProductDetail selling_price, fallback to Product price)
+            // Note: selling_price in ProductDetail might be 0 if not set, check Product base price.
             foreach ($trx->items as $item) {
-                // Try to get price from ProductDetail (specific unit price) or Product (base price)
-                // selling_price in ProductDetail is likely the intended list price for that unit
                 $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
 
                 $details[] = [
                     'name' => $item->product->name ?? 'Unknown HP',
                     'qty' => 1,
-                    'price' => $price
+                    'price' => $price,
+                    // Flag to know this is fixed price
+                    'is_fixed' => true
                 ];
                 $calculatedTotal += $price;
             }
 
-            // Non-HP Items
-            foreach ($trx->nonHpItems as $nhp) {
-                // Non-HP items only have base product price from Product model
-                $unitPrice = $nhp->product->price ?? 0;
-                $lineTotal = $unitPrice * $nhp->quantity;
+            // 2. Non-HP Items (Collect them first)
+            $nonHpDetails = [];
+            $totalNonHpQty = 0;
 
-                $details[] = [
+            foreach ($trx->nonHpItems as $nhp) {
+                $nonHpDetails[] = [
                     'name' => $nhp->product->name ?? 'Unknown Item',
                     'qty' => $nhp->quantity,
-                    'price' => $unitPrice
+                    'is_fixed' => false
                 ];
-                $calculatedTotal += $lineTotal;
+                $totalNonHpQty += $nhp->quantity;
             }
 
-            // Adjustment Calculation
-            // If the sum of standard prices != actual transaction total, add an adjustment line
-            // This handles discounts, markups, or missing price data gracefully
-            if ($calculatedTotal != $trx->selling_price) {
+            // 3. Logic to Distribute Remaining Balance to Non-HP Items
+            // If we have a 'gap' between calculatedTotal (HP only so far) and trx->selling_price
+            $remainingBalance = $trx->selling_price - $calculatedTotal;
+
+            // If we have Non-HP items, they absorb the remaining balance
+            if (count($nonHpDetails) > 0 && $remainingBalance > 0) {
+                // Strategy: Distribute proportionally by quantity
+                // If totalNonHpQty is 0, logic fails, but loop above ensures it matches.
+
+                if ($totalNonHpQty > 0) {
+                    $pricePerUnit = $remainingBalance / $totalNonHpQty;
+
+                    foreach ($nonHpDetails as $nhp) {
+                        $details[] = [
+                            'name' => $nhp['name'],
+                            'qty' => $nhp['qty'],
+                            'price' => $pricePerUnit // Derived unit price
+                        ];
+                    }
+                    // We consumed the balance
+                    $calculatedTotal += $remainingBalance;
+                } else {
+                    // Fallback (should not happen for valid non-hp items)
+                    foreach ($nonHpDetails as $nhp) {
+                        $details[] = ['name' => $nhp['name'], 'qty' => $nhp['qty'], 'price' => 0];
+                    }
+                }
+            } else {
+                // If no balance to distribute (or negative?), or no items to give it to.
+                // Just add them with 0 price if they exist
+                foreach ($nonHpDetails as $nhp) {
+                    $details[] = ['name' => $nhp['name'], 'qty' => $nhp['qty'], 'price' => 0];
+                }
+            }
+
+            // 4. Final Adjustment Line
+            // If there's still a diff (e.g. no accessories to absorb it, or negative diff "discount")
+            // We only add this if the diff is significant (e.g. > 1 rupiah)
+            if (abs($calculatedTotal - $trx->selling_price) > 1) {
                 $diff = $trx->selling_price - $calculatedTotal;
-                // If diff is negative, it's a discount. If positive, it's a markup/fee.
                 $details[] = [
                     'name' => $diff > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
                     'qty' => 1,
+                    // If diff is negative (discount), it shows as negative price.
                     'price' => $diff
                 ];
             }
@@ -143,7 +178,7 @@ class AuditController extends Controller
             ];
         });
 
-        // 2. Report per Brand (HP + Non-HP)
+        // 2. Report per Brand (with scope)
         $brandStats = [];
 
         // HP
@@ -614,9 +649,6 @@ class AuditController extends Controller
             $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
             $prevStats = $dailyStats[$prevDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
-
-            // If prevStats is empty but might exist (cross-month), query it
-            // For now, let's stick to loaded data.
 
             $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
