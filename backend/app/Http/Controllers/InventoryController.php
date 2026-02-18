@@ -80,9 +80,31 @@ class InventoryController extends Controller
             $query->whereHas('product', fn($q) => $q->whereIn('brand', $brands));
         }
 
+        // NEW: Product Name Filter
+        if ($request->filled('product')) {
+            $products = explode(',', $request->product);
+            $query->whereHas('product', fn($q) => $q->whereIn('name', $products));
+        }
+
         if ($type === 'hp') {
-            if ($request->filled('capacity'))
-                $query->whereIn('storage', explode(',', $request->capacity));
+            // FIXED: Smart Capacity Filter (Handles RAM/Storage or just Storage)
+            if ($request->filled('capacity')) {
+                $caps = explode(',', $request->capacity);
+                $query->where(function ($q) use ($caps) {
+                    foreach ($caps as $cap) {
+                        $cap = trim($cap);
+                        if (str_contains($cap, '/')) {
+                            // Format: RAM/Storage (e.g. "8GB/128GB")
+                            [$ram, $storage] = explode('/', $cap);
+                            $q->orWhere(fn($sq) => $sq->where('ram', $ram)->where('storage', $storage));
+                        } else {
+                            // Fallback: Check storage usually
+                            $q->orWhere('storage', $cap);
+                        }
+                    }
+                });
+            }
+
             if ($request->filled('condition') && $request->condition !== 'all')
                 $query->where('condition', $request->condition);
 
