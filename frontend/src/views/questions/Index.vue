@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import {
-    Plus, Search, Edit2, Trash2, Save, X,
-    AlertCircle, CheckCircle2, HelpCircle
+    Plus, Search, Edit2, Trash2, X,
+    AlertCircle, HelpCircle
 } from 'lucide-vue-next';
 import { useAuthStore } from '../../store/auth';
 import { questions as questionsApi } from '../../api/axios';
@@ -59,6 +59,29 @@ const fetchData = async () => {
     }
 };
 
+const openCreateModal = () => {
+    console.log('Open Create Modal Clicked');
+    isEditing.value = false;
+    form.value = { category: '', content: '' };
+    showModal.value = true;
+    console.log('showModal:', showModal.value);
+};
+
+const openEditModal = (question) => {
+    isEditing.value = true;
+    selectedQuestion.value = question;
+    form.value = {
+        category: question.category,
+        content: question.content
+    };
+    showModal.value = true;
+};
+
+const openDeleteModal = (question) => {
+    selectedQuestion.value = question;
+    showDeleteModal.value = true;
+};
+
 const filteredQuestions = computed(() => {
     const list = questions.value || []; // Safety check
     if (!searchQuery.value) return list;
@@ -113,6 +136,11 @@ const handleDelete = async () => {
 
 onMounted(() => {
     fetchData();
+    // DEBUG: Force open modal to check visibility
+    setTimeout(() => {
+        showModal.value = true;
+        console.log('DEBUG: Forced showModal = true');
+    }, 1000);
 });
 </script>
 
@@ -189,78 +217,85 @@ onMounted(() => {
         </div>
 
         <!-- Create/Edit Modal -->
-        <div v-if="showModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
-            <div class="relative bg-surface-800 w-full max-w-lg rounded-2xl shadow-2xl border border-surface-700 p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-bold text-text-primary">
-                        {{ isEditing ? 'Edit Pertanyaan' : 'Tambah Pertanyaan' }}
-                    </h3>
-                    <button @click="showModal = false" class="text-text-secondary hover:text-text-primary">
-                        <X :size="24" />
-                    </button>
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1.5">Kategori</label>
-                        <select v-model="form.category"
-                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
-                            <option value="" disabled>Pilih Kategori</option>
-                            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-                        </select>
+        <Teleport to="body">
+            <div v-if="showModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
+                <!-- Removed 'animate-in fade-in zoom-in' classes to ensure visibility -->
+                <div
+                    class="relative bg-surface-800 w-full max-w-lg rounded-2xl shadow-2xl border border-surface-700 p-6 duration-200">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-text-primary">
+                            {{ isEditing ? 'Edit Pertanyaan' : 'Tambah Pertanyaan' }}
+                        </h3>
+                        <button @click="showModal = false" class="text-text-secondary hover:text-text-primary">
+                            <X :size="24" />
+                        </button>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-text-secondary mb-1.5">Isi Pertanyaan</label>
-                        <textarea v-model="form.content" rows="4"
-                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 placeholder:text-text-secondary"
-                            placeholder="Tuliskan pertanyaan disini..."></textarea>
-                    </div>
-                </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-1.5">Kategori</label>
+                            <select v-model="form.category"
+                                class="w-full bg-surface-900 border border-surface-700 rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
+                                <option value="" disabled>Pilih Kategori</option>
+                                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                            </select>
+                        </div>
 
-                <div class="flex justify-end gap-3 mt-8">
-                    <button @click="showModal = false"
-                        class="px-4 py-2 rounded-xl text-text-secondary hover:bg-surface-700 font-medium transition-colors">
-                        Batal
-                    </button>
-                    <button @click="handleSubmit" :disabled="submitLoading"
-                        class="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl font-medium transition-all">
-                        <div v-if="submitLoading"
-                            class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>{{ isEditing ? 'Simpan Perubahan' : 'Simpan' }}</span>
-                    </button>
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-1.5">Isi Pertanyaan</label>
+                            <textarea v-model="form.content" rows="4"
+                                class="w-full bg-surface-900 border border-surface-700 rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 placeholder:text-text-secondary"
+                                placeholder="Tuliskan pertanyaan disini..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 mt-8">
+                        <button @click="showModal = false"
+                            class="px-4 py-2 rounded-xl text-text-secondary hover:bg-surface-700 font-medium transition-colors">
+                            Batal
+                        </button>
+                        <button @click="handleSubmit" :disabled="submitLoading"
+                            class="flex items-center gap-2 px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-xl font-medium transition-all">
+                            <div v-if="submitLoading"
+                                class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>{{ isEditing ? 'Simpan Perubahan' : 'Simpan' }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
 
         <!-- Delete Confirmation Modal -->
-        <div v-if="showDeleteModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showDeleteModal = false"></div>
-            <div class="relative bg-surface-800 w-full max-w-md rounded-2xl shadow-2xl border border-surface-700 p-6">
-                <div class="flex flex-col items-center text-center mb-6">
-                    <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                        <AlertCircle class="text-red-500" :size="32" />
+        <Teleport to="body">
+            <div v-if="showDeleteModal" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showDeleteModal = false"></div>
+                <div
+                    class="relative bg-surface-800 w-full max-w-md rounded-2xl shadow-2xl border border-surface-700 p-6">
+                    <div class="flex flex-col items-center text-center mb-6">
+                        <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                            <AlertCircle class="text-red-500" :size="32" />
+                        </div>
+                        <h3 class="text-xl font-bold text-text-primary mb-2">Hapus Pertanyaan?</h3>
+                        <p class="text-text-secondary">
+                            Apakah Anda yakin ingin menghapus pertanyaan ini? Tindakan ini tidak dapat dibatalkan.
+                        </p>
                     </div>
-                    <h3 class="text-xl font-bold text-text-primary mb-2">Hapus Pertanyaan?</h3>
-                    <p class="text-text-secondary">
-                        Apakah Anda yakin ingin menghapus pertanyaan ini? Tindakan ini tidak dapat dibatalkan.
-                    </p>
-                </div>
 
-                <div class="flex gap-3">
-                    <button @click="showDeleteModal = false"
-                        class="flex-1 py-2.5 rounded-xl bg-surface-900 hover:bg-surface-700 text-text-secondary transition-colors font-medium border border-surface-700">
-                        Batal
-                    </button>
-                    <button @click="handleDelete" :disabled="submitLoading"
-                        class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors font-medium flex justify-center items-center gap-2">
-                        <div v-if="submitLoading"
-                            class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Hapus</span>
-                    </button>
+                    <div class="flex gap-3">
+                        <button @click="showDeleteModal = false"
+                            class="flex-1 py-2.5 rounded-xl bg-surface-900 hover:bg-surface-700 text-text-secondary transition-colors font-medium border border-surface-700">
+                            Batal
+                        </button>
+                        <button @click="handleDelete" :disabled="submitLoading"
+                            class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors font-medium flex justify-center items-center gap-2">
+                            <div v-if="submitLoading"
+                                class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Hapus</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
     </div>
 </template>
