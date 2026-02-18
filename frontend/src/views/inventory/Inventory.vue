@@ -225,6 +225,10 @@ watch(() => props.branchId, () => {
   loadInventory(1);
 });
 
+watch(() => props.onlineShopId, () => {
+  loadInventory(1);
+});
+
 // Tab Change
 watch(activeTab, () => {
   // Reset filters on tab change? Maybe.

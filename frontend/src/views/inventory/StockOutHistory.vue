@@ -160,6 +160,10 @@ watch(() => props.branchId, () => {
     fetchData(1);
 });
 
+watch(() => props.onlineShopId, () => {
+    fetchData(1);
+});
+
 onMounted(() => {
     fetchData();
 

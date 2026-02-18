@@ -153,6 +153,10 @@ watch(() => props.branchId, () => {
     fetchData(1);
 });
 
+watch(() => props.onlineShopId, () => {
+    fetchData(1);
+});
+
 onMounted(() => {
     fetchData();
 
@@ -290,7 +294,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div>
                                     <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                    }}</div>
+                                        }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
                                     </div>
                                 </div>

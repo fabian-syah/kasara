@@ -294,6 +294,8 @@ class AuditController extends Controller
         // Helper to scope StockOut (Transfers) by Destination
         $scopeIn = function ($q) use ($branchIds, $onlineShopIds) {
             $q->where('status', 'received')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
                 ->where(function ($sub) use ($branchIds, $onlineShopIds) {
                     if (!empty($branchIds)) {
                         $sub->orWhere(function ($deep) use ($branchIds) {
@@ -330,21 +332,24 @@ class AuditController extends Controller
         // 3. Stock Out (Sales + Transfers Out)
         // Helper to scope StockOut by Source
         $scopeOut = function ($q) use ($branchIds, $onlineShopIds) {
-            $q->whereHas('user', function ($u) use ($branchIds, $onlineShopIds) {
-                $u->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                    if (!empty($branchIds))
-                        $sub->orWhereIn('branch_id', $branchIds);
-                    if (!empty($onlineShopIds))
-                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+            $q->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->whereHas('user', function ($u) use ($branchIds, $onlineShopIds) {
+                    $u->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                        if (!empty($branchIds))
+                            $sub->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                    });
                 });
-            });
         };
 
         // HP Out
         $outHp = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-            // Join users to check source branch/shop
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->whereMonth('stock_outs.created_at', now()->month)
+            ->whereYear('stock_outs.created_at', now()->year)
             ->where(function ($q) use ($branchIds, $onlineShopIds) {
                 if (!empty($branchIds))
                     $q->orWhereIn('users.branch_id', $branchIds);
@@ -357,6 +362,8 @@ class AuditController extends Controller
         $outNonHp = DB::table('stock_out_non_hp_items')
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->whereMonth('stock_outs.created_at', now()->month)
+            ->whereYear('stock_outs.created_at', now()->year)
             ->where(function ($q) use ($branchIds, $onlineShopIds) {
                 if (!empty($branchIds))
                     $q->orWhereIn('users.branch_id', $branchIds);
