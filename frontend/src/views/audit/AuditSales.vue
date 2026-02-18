@@ -10,7 +10,7 @@
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                     <!-- Period Filter (Modern UI) -->
                     <div class="relative min-w-[140px]">
-                        <select v-model="selectedPeriod"
+                        <select v-model="selectedPeriod" @change="handlePeriodChange"
                             class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="daily">Harian</option>
                             <option value="monthly">Bulanan</option>
@@ -19,8 +19,8 @@
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
 
-                    <!-- Date Picker (Modern UI) -->
-                    <div class="relative group">
+                    <!-- Daily: Date Picker (Modern UI) -->
+                    <div v-if="selectedPeriod === 'daily'" class="relative group">
                         <div
                             class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
                             <Calendar :size="18"
@@ -30,7 +30,30 @@
                             </span>
                         </div>
                         <input type="date" v-model="filters.start_date" @change="handleDateChange"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                    </div>
+
+                    <!-- Monthly: Month & Year Selectors (Modern UI) -->
+                    <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2">
+                        <!-- Month Selector -->
+                        <div class="relative min-w-[140px]">
+                            <select v-model="selectedMonth" @change="handleMonthChange"
+                                class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                                <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
+                            </select>
+                            <ChevronDown :size="16"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        </div>
+
+                        <!-- Year Selector -->
+                        <div class="relative min-w-[100px]">
+                            <select v-model="selectedYear" @change="handleMonthChange"
+                                class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                            </select>
+                            <ChevronDown :size="16"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        </div>
                     </div>
 
                     <!-- Branch Filter (Modern UI) -->
@@ -97,7 +120,7 @@
                                         </div>
                                         <span class="font-medium text-gray-900 dark:text-white">Tidak ada data
                                             penjualan</span>
-                                        <span class="text-xs mt-1">Belum ada transaksi pada tanggal ini</span>
+                                        <span class="text-xs mt-1">Belum ada transaksi pada periode ini</span>
                                     </div>
                                 </td>
                             </tr>
@@ -105,7 +128,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -251,6 +274,17 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const selectedPeriod = ref('daily') // For filter dropdown
 
+// Monthly Logic
+const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i); // e.g. 2024 to 2028
+
+const selectedMonth = ref(new Date().getMonth() + 1);
+const selectedYear = ref(currentYear);
+
 const salesRecords = ref({
     daily_sales: [],
     brand_sales: [],
@@ -268,9 +302,27 @@ const selectedLocationKey = ref('all')
 
 const formattedDateDisplay = computed(() => {
     if (!filters.value.start_date) return 'Pilih Tanggal';
-    const date = new Date(filters.value.start_date);
-    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    if (selectedPeriod.value === 'daily') {
+        const date = new Date(filters.value.start_date);
+        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    } else { // monthly
+        const monthIndex = selectedMonth.value - 1;
+        const year = selectedYear.value;
+        return `${months[monthIndex]} ${year}`;
+    }
 })
+
+const handlePeriodChange = () => {
+    if (selectedPeriod.value === 'daily') {
+        const today = new Date().toISOString().slice(0, 10);
+        filters.value.start_date = today;
+        filters.value.end_date = today;
+    } else {
+        handleMonthChange(); // This will set start_date and end_date for the selected month
+    }
+    fetchData();
+}
 
 const handleDateChange = () => {
     // Force End Date to match Start Date if in daily mode
@@ -278,6 +330,28 @@ const handleDateChange = () => {
         filters.value.end_date = filters.value.start_date;
     }
     fetchData();
+}
+
+const handleMonthChange = () => {
+    // Calculate start and end of month
+    const year = selectedYear.value;
+    const month = selectedMonth.value; // 1-12
+
+    // Start Date: YYYY-MM-01
+    const startDate = new Date(year, month - 1, 1);
+    // End Date: Last day of month
+    const endDate = new Date(year, month, 0);
+
+    // Adjust for timezone offset if needed (but YYYY-MM-DD strings are safer)
+    // To safe ISO string (local time concept):
+    const pad = (n) => n < 10 ? '0' + n : n;
+
+    filters.value.start_date = `${year}-${pad(month)}-01`;
+    filters.value.end_date = `${year}-${pad(month)}-${pad(endDate.getDate())}`;
+
+    if (selectedPeriod.value === 'monthly') {
+        fetchData();
+    }
 }
 
 const canFilterBranch = computed(() => {
