@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StockOut; // Changed from Transaction
+use App\Models\StockOut;
 use App\Models\StockOutNonHpItem;
 use App\Models\Product;
-use App\Models\ProductDetail; // Added
+use App\Models\ProductDetail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +20,7 @@ class AuditController extends Controller
     {
         $user = $request->user();
         $branchIds = $user->getAccessibleBranchIds();
-        $onlineShopIds = $user->getAccessibleOnlineShopIds(); // Added
+        $onlineShopIds = $user->getAccessibleOnlineShopIds();
 
         if (empty($branchIds) && empty($onlineShopIds)) {
             return response()->json([
@@ -34,7 +34,7 @@ class AuditController extends Controller
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
 
-        // Filter by specific location if requested (and allowed)
+        // Filter by specific location
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
 
@@ -54,14 +54,12 @@ class AuditController extends Controller
                             $sub->whereRaw('1=0');
                         }
                     } else {
-                        // Show all accessible
                         if (!empty($branchIds)) {
                             $sub->orWhereIn('branch_id', $branchIds);
                         }
                         if (!empty($onlineShopIds)) {
                             $sub->orWhereIn('online_shop_id', $onlineShopIds);
                         }
-                        // Default fallback if no assignments? Handled by initial check
                     }
                 });
             });
@@ -70,6 +68,7 @@ class AuditController extends Controller
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
 
         // 1. Daily Sales
+        // Load nonHpItems relationship for Product details, but we will use JSON column for price
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
@@ -77,12 +76,10 @@ class AuditController extends Controller
         $scopeToAccess($dailySalesQuery);
 
         $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) {
-            // Build items list
             $details = [];
             $calculatedTotal = 0;
 
-            // 1. HP Items (Prioritize ProductDetail selling_price, fallback to Product price)
-            // Note: selling_price in ProductDetail might be 0 if not set, check Product base price.
+            // 1. HP Items
             foreach ($trx->items as $item) {
                 $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
 
@@ -90,46 +87,70 @@ class AuditController extends Controller
                     'name' => $item->product->name ?? 'Unknown HP',
                     'qty' => 1,
                     'price' => $price,
-                    // Flag to know this is fixed price
                     'is_fixed' => true
                 ];
                 $calculatedTotal += $price;
             }
 
             // 2. Non-HP Items
-            // Use Product base price as the standard price source.
-            foreach ($trx->nonHpItems as $nhp) {
-                $basePrice = $nhp->product->price ?? 0;
-                $lineTotal = $basePrice * $nhp->quantity;
+            // Priority: Use the JSON column `non_hp_items` which contains the historical `selling_price`
+            // Fallback: Use Relationship `nonHpItems` if JSON is empty (legacy data)
 
-                $details[] = [
-                    'name' => $nhp->product->name ?? 'Unknown Item',
-                    'qty' => $nhp->quantity,
-                    'price' => $basePrice,
-                    'is_fixed' => true
-                ];
+            $jsonItems = $trx->non_hp_items; // Accessor for JSON column
+            $hasJsonData = is_array($jsonItems) && count($jsonItems) > 0;
 
-                $calculatedTotal += $lineTotal;
+            if ($hasJsonData) {
+                // Map product IDs to Names using the eager-loaded relationship to avoid N+1 queries
+                $productMap = $trx->nonHpItems->pluck('product', 'product_id');
+                // Also fetch any prod not in relationship? Unlikely if integrity is kept.
+                // But if relationship is missing (e.g. deleted), we might need to fetch. 
+                // For now, rely on map.
+
+                foreach ($jsonItems as $itemData) {
+                    $pid = $itemData['product_id'] ?? null;
+                    $product = $productMap[$pid] ?? null;
+                    // Fallback name if product deleted
+                    $name = $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP');
+
+                    $price = $itemData['selling_price'] ?? 0;
+                    $qty = $itemData['quantity'] ?? 1;
+
+                    $details[] = [
+                        'name' => $name,
+                        'qty' => $qty,
+                        'price' => $price,
+                        'is_fixed' => true
+                    ];
+                    $calculatedTotal += ($price * $qty);
+                }
+            } else {
+                // FALLBACK: Use Relation + Base Price (Legacy)
+                foreach ($trx->nonHpItems as $nhp) {
+                    $basePrice = $nhp->product->price ?? 0;
+                    $details[] = [
+                        'name' => $nhp->product->name ?? 'Unknown Item',
+                        'qty' => $nhp->quantity,
+                        'price' => $basePrice,
+                        'is_fixed' => true
+                    ];
+                    $calculatedTotal += ($basePrice * $nhp->quantity);
+                }
             }
 
             // 3. Final Adjustment / Gap Handling
-            // If the sum of (HP Prices + Accessory Base Prices) != Transaction Total
-            // We add a separate line item for the difference.
             $remainingBalance = $trx->selling_price - $calculatedTotal;
 
             if (abs($remainingBalance) > 1) {
                 $details[] = [
                     'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
                     'qty' => 1,
-                    // If diff is negative (discount), it shows as negative price.
                     'price' => $remainingBalance
                 ];
             }
 
-            // 5. Determine Outlet Details (Name & Address)
-            // Logic to find source hierarchy: InventoryUser -> User -> Branch/Shop/Warehouse (implied)
+            // Outlet Details
             $outletName = 'APEX POS';
-            $outletAddress = 'Jl. Raya Example No. 123, Indonesia'; // System fallback matches user request "akalin"
+            $outletAddress = 'Jl. Raya Example No. 123, Indonesia';
 
             $sourceUser = $trx->inventoryUser ?? $trx->user;
 
@@ -144,17 +165,12 @@ class AuditController extends Controller
                     $shop = \App\Models\OnlineShop::find($sourceUser->online_shop_id);
                     if ($shop) {
                         $outletName = $shop->name;
-                        // Online shops don't have address. Fallback logic:
-                        // 1. Use Platform + URL if available
-                        // 2. Use "Toko Online" generic text
                         $addrParts = [];
                         if ($shop->platform)
                             $addrParts[] = ucfirst($shop->platform);
-                        // if ($shop->url) $addrParts[] = $shop->url;
                         $outletAddress = !empty($addrParts) ? implode(' - ', $addrParts) : 'Toko Online';
                     }
                 } elseif ($sourceUser->warehouse_id) {
-                    // If user is assigned to warehouse
                     $warehouse = \App\Models\Warehouse::find($sourceUser->warehouse_id);
                     if ($warehouse) {
                         $outletName = $warehouse->name;
@@ -163,9 +179,6 @@ class AuditController extends Controller
                 }
             }
 
-            // Calculate total qty
-            $qty = $trx->items->count() + $trx->nonHpItems->sum('quantity');
-
             return [
                 'date' => $trx->created_at->toDateTimeString(),
                 'order_no' => $trx->receipt_id,
@@ -173,15 +186,14 @@ class AuditController extends Controller
                 'customer_phone' => $trx->customer_phone ?? $trx->shopee_phone ?? $trx->giveaway_phone ?? '-',
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
-                'qty' => $qty,
-                'items' => $details, // Added for Receipt
+                'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
+                'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
                 'payment_method' => $trx->category === 'penjualan_offline' ? 'Offline' : 'Online',
                 'cash' => 0,
                 'transfer' => 0,
                 'debit' => 0,
                 'grand_total' => $trx->selling_price,
-                // New Fields for Dynamic Receipt
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress
             ];
@@ -362,8 +374,6 @@ class AuditController extends Controller
         $totalStock = $hpStock + $nonHpStock;
 
         // 2. Stock In (Incoming Transfers that are Received)
-        // We need to query the items within the transfers, not just the transfers themselves.
-
         // Helper to scope StockOut (Transfers) by Destination
         $scopeIn = function ($q) use ($branchIds, $onlineShopIds) {
             $q->where('stock_outs.status', 'received')
@@ -535,28 +545,22 @@ class AuditController extends Controller
             $query->whereMonth('created_at', $month);
         }
 
-        // Scope to user access
-        // Filter by specific location if requested (and allowed)
+        // Scope to user access & location filter
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
 
-        // Scope to user access and specific location
         $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 if ($requestedBranchId) {
-                    // Check access
                     if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
                         $sub->where('branch_id', $requestedBranchId);
                     } else {
-                        // No access
                         $sub->whereRaw('1=0');
                     }
                 } elseif ($requestedOnlineShopId) {
-                    // Check access
                     if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
                         $sub->where('online_shop_id', $requestedOnlineShopId);
                     } else {
-                        // No access
                         $sub->whereRaw('1=0');
                     }
                 } else {
@@ -586,7 +590,6 @@ class AuditController extends Controller
 
             // HP Items Cost
             foreach ($trx->items as $item) {
-                // $item IS the ProductDetail model attached via belongToMany
                 $trxCost += $item->cost_price;
                 $trxItems++;
             }
@@ -616,19 +619,16 @@ class AuditController extends Controller
             $dailyStats[$date]['revenue'] += $trx->selling_price;
             $dailyStats[$date]['items'] += $trxItems;
 
-            // Breakdown by Branch/OnlineShop (Logic: Prefer Inventory User Branch -> Creator Branch)
+            // Breakdown by Branch/OnlineShop
             $sourceName = 'Unknown';
 
-            // 1. Try Inventory User (The CS who made the sale)
             if ($trx->inventoryUser) {
                 if ($trx->inventoryUser->branch) {
                     $sourceName = $trx->inventoryUser->branch->name;
                 } elseif ($trx->inventoryUser->onlineShop) {
                     $sourceName = $trx->inventoryUser->onlineShop->name;
                 }
-            }
-            // 2. Fallback to Creator User
-            elseif ($trx->user) {
+            } elseif ($trx->user) {
                 if ($trx->user->branch) {
                     $sourceName = $trx->user->branch->name;
                 } elseif ($trx->user->onlineShop) {
@@ -656,10 +656,7 @@ class AuditController extends Controller
             $prevDate = date('Y-m-d', strtotime($targetDate . ' -1 day'));
 
             $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
-
             $prevStats = $dailyStats[$prevDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
-
-            $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
             $comparison = [
                 'date' => $targetDate,
@@ -677,13 +674,13 @@ class AuditController extends Controller
 
         return response()->json([
             'summary' => [
-                'total_profit' => $totalRevenue - $totalCost, // Recalculate based on loops
+                'total_profit' => $totalRevenue - $totalCost,
                 'total_revenue' => $totalRevenue,
                 'total_items' => $totalItems
             ],
             'profit_trend' => array_values($dailyStats),
             'sales_breakdown' => array_values($breakdown),
-            'comparison' => $comparison // New Field
+            'comparison' => $comparison
         ]);
     }
 }

@@ -6,7 +6,9 @@
             <div
                 class="bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none">
                 <!-- Receipt Header -->
-                <div class="p-6 text-center border-b border-dashed border-gray-300 print:p-0 print:mb-4">
+                <!-- Added print:pt-10 to push content down from header when printing -->
+                <div
+                    class="p-6 text-center border-b border-dashed border-gray-300 print:px-0 print:pb-0 print:pt-10 print:mb-4">
                     <!-- Modern Logo Implementation -->
                     <div class="mb-4 flex justify-center">
                         <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 object-contain"
@@ -184,6 +186,7 @@ const formatCurrency = (value) => {
 
     .print\:block {
         display: block !important;
+        /* Ensure display:block wins over other styles if any */
     }
 
     .print\:text-black {
@@ -196,6 +199,20 @@ const formatCurrency = (value) => {
 
     .print\:p-0 {
         padding: 0 !important;
+    }
+
+    .print\:px-0 {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .print\:pb-0 {
+        padding-bottom: 0 !important;
+    }
+
+    /* Important to override p-0 if it was used */
+    .print\:pt-10 {
+        padding-top: 2.5rem !important;
     }
 
     .print\:static {
