@@ -99,7 +99,7 @@ const menuItems = [
         label: "Audit",
         icon: ClipboardCheck,
         items: [
-            { id: "audit_sales_uc", path: "/audit/uc/sales", label: "Audit Penjualan" },
+            { id: "audit_sales", path: "/audit/sales", label: "Audit Penjualan" },
             { id: "audit_profit_uc", path: "/audit/uc/profit", label: "Audit Profit" },
             { id: "audit_stock_in_uc", path: "/audit/uc/stock-in", label: "Audit Barang Masuk" },
             { id: "audit_stock_out_uc", path: "/audit/uc/stock-out", label: "Audit Barang Keluar" },
