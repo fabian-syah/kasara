@@ -5,7 +5,6 @@ import {
     AlertCircle, CheckCircle2, HelpCircle
 } from 'lucide-vue-next';
 import { useAuthStore } from '../../store/auth';
-import { useAuthStore } from '../../store/auth';
 import { questions as questionsApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 
