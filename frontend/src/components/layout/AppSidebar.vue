@@ -30,7 +30,8 @@ import {
     Database,
     Search,
     ArrowDownRight,
-    DollarSign
+    DollarSign,
+    HelpCircle
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -134,6 +135,7 @@ const menuItems = [
     { id: "distributors", path: "/distributors", label: "Distributor", icon: Truck },
 
     // Lacak Barang
+    { id: "questions", path: "/questions", label: "Pertanyaan", icon: HelpCircle },
     { id: "track", path: "/track", label: "Lacak Barang", icon: Search },
 
     // Retur Masuk (Gudang)

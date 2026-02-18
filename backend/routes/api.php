@@ -12,6 +12,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DistributorController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ProductTypeController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\InventoryController;
 
 // ... (previous routes)
@@ -48,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('distributors', DistributorController::class);
     Route::apiResource('brands', BrandController::class);
     Route::apiResource('product-types', ProductTypeController::class);
+    Route::apiResource('questions', QuestionController::class);
     Route::post('/product-prices/lookup', [App\Http\Controllers\ProductPriceController::class, 'lookup']);
     Route::apiResource('product-prices', App\Http\Controllers\ProductPriceController::class);
 

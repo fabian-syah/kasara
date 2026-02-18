@@ -179,6 +179,16 @@ const routes = [
                 }
             },
             {
+                path: 'questions',
+                name: 'Questions',
+                component: () => import('../views/questions/Index.vue'),
+                meta: {
+                    title: 'Daftar Pertanyaan',
+                    menu: 'questions',
+                    permissions: ['questions.manage']
+                }
+            },
+            {
                 path: 'products',
                 name: 'Products',
                 component: Products,
