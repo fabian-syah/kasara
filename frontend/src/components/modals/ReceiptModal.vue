@@ -4,12 +4,12 @@
             class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white"
             @click.self="close">
             <div
-                class="bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-full print:max-w-none">
+                class="bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-[80mm] print:mx-auto">
 
                 <!-- Receipt Header -->
                 <!-- Added print:pt-10 to push content down from header when printing -->
                 <div
-                    class="p-6 text-center border-b border-dashed border-gray-300 print:px-0 print:pb-0 print:pt-10 print:mb-4">
+                    class="p-6 text-center border-b border-dashed border-gray-300 print:px-0 print:pb-0 print:pt-4 print:mb-4">
                     <!-- Modern Logo Implementation -->
                     <div class="mb-4 flex justify-center">
                         <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 object-contain"
@@ -173,16 +173,21 @@ const formatCurrency = (value) => {
         padding: 0 !important;
         background: white !important;
         z-index: 999999 !important;
-        display: block !important;
+        display: flex !important;
+        /* Use Flexbox for centering */
+        justify-content: center !important;
+        align-items: flex-start !important;
+        /* Align top, not center vertically for receipt */
     }
 
     /* Reset some styles for the inner card if needed */
     #receipt-modal-print-wrapper>div {
         max-width: none !important;
-        width: 100% !important;
+        /* Width is controlled by utility class print:w-[80mm] */
         box-shadow: none !important;
         border-radius: 0 !important;
-        margin: 0 !important;
+        margin-top: 20px !important;
+        /* Small top margin */
     }
 }
 </style>
@@ -229,19 +234,21 @@ const formatCurrency = (value) => {
         padding-bottom: 0 !important;
     }
 
+    .print\:pt-4 {
+        padding-top: 1rem !important;
+    }
+
     .print\:pt-10 {
         padding-top: 2.5rem !important;
-        /* Keep top padding request */
     }
 
-    /* REMOVED print:static to avoid flow issues with hidden content */
-
-    .print\:w-full {
-        width: 100% !important;
+    .print\:w-\[80mm\] {
+        width: 80mm !important;
     }
 
-    .print\:max-w-none {
-        max-width: none !important;
+    .print\:mx-auto {
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 
     .print\:mb-4 {
