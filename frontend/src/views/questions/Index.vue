@@ -48,14 +48,26 @@ const fetchData = async () => {
     loading.value = true;
     try {
         const response = await questionsApi.list();
-        questions.value = response.data;
+        // Ensure data is an array, default to empty array
+        questions.value = Array.isArray(response.data) ? response.data : [];
     } catch (error) {
         console.error('Error fetching questions:', error);
         toast.error('Gagal memuat data pertanyaan');
+        questions.value = []; // Safety fallback
     } finally {
         loading.value = false;
     }
 };
+
+const filteredQuestions = computed(() => {
+    const list = questions.value || []; // Safety check
+    if (!searchQuery.value) return list;
+    const query = searchQuery.value.toLowerCase();
+    return list.filter(q =>
+        (q.content && q.content.toLowerCase().includes(query)) ||
+        (q.category && q.category.toLowerCase().includes(query))
+    );
+});
 
 const handleSubmit = async () => {
     if (!form.value.category || !form.value.content) {
