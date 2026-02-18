@@ -26,7 +26,7 @@ import {
     AlertTriangle
 } from "lucide-vue-next";
 import { debounce } from "../../utils/debounce";
-import { parseCurrency } from "../../utils/formatters";
+import { parseCurrency, formatNumber } from "../../utils/formatters";
 
 const toast = useToast();
 const router = useRouter();
@@ -182,7 +182,11 @@ const availableSpecs = computed(() => {
             });
 
             if (rams.size > 0 && storages.size > 0) {
-                rams.forEach(r => storages.forEach(s => validCombinations.add(`${r}/${s}`)));
+                rams.forEach(r => storages.forEach(s => {
+                    // Logic: Omit "1/" if RAM is 1
+                    if (r === 1) validCombinations.add(String(s));
+                    else validCombinations.add(`${r}/${s}`);
+                }));
             } else if (storages.size > 0) {
                 storages.forEach(s => validCombinations.add(String(s)));
             } else if (rams.size > 0) {
@@ -694,7 +698,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -838,7 +842,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
