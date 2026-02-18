@@ -293,18 +293,18 @@ class AuditController extends Controller
 
         // Helper to scope StockOut (Transfers) by Destination
         $scopeIn = function ($q) use ($branchIds, $onlineShopIds) {
-            $q->where('status', 'received')
-                ->whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
+            $q->where('stock_outs.status', 'received')
+                ->whereMonth('stock_outs.created_at', now()->month)
+                ->whereYear('stock_outs.created_at', now()->year)
                 ->where(function ($sub) use ($branchIds, $onlineShopIds) {
                     if (!empty($branchIds)) {
                         $sub->orWhere(function ($deep) use ($branchIds) {
-                            $deep->where('destination_type', 'branch')->whereIn('destination_id', $branchIds);
+                            $deep->where('stock_outs.destination_type', 'branch')->whereIn('stock_outs.destination_id', $branchIds);
                         });
                     }
                     if (!empty($onlineShopIds)) {
                         $sub->orWhere(function ($deep) use ($onlineShopIds) {
-                            $deep->where('destination_type', 'online_shop')->whereIn('destination_id', $onlineShopIds);
+                            $deep->where('stock_outs.destination_type', 'online_shop')->whereIn('stock_outs.destination_id', $onlineShopIds);
                         });
                     }
                 });
@@ -324,7 +324,7 @@ class AuditController extends Controller
             ->where(function ($q) use ($scopeIn) {
                 $scopeIn($q);
             })
-            ->sum('quantity');
+            ->sum('stock_out_non_hp_items.quantity');
 
         $totalIn = $inHp + $inNonHp;
 
@@ -332,15 +332,15 @@ class AuditController extends Controller
         // 3. Stock Out (Sales + Transfers Out)
         // Helper to scope StockOut by Source
         $scopeOut = function ($q) use ($branchIds, $onlineShopIds) {
-            $q->whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->whereHas('user', function ($u) use ($branchIds, $onlineShopIds) {
-                    $u->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                        if (!empty($branchIds))
-                            $sub->orWhereIn('branch_id', $branchIds);
-                        if (!empty($onlineShopIds))
-                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
-                    });
+            $q->whereMonth('stock_outs.created_at', now()->month)
+                ->whereYear('stock_outs.created_at', now()->year)
+                ->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                    if (!empty($branchIds)) {
+                        $sub->whereIn('users.branch_id', $branchIds);
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
                 });
         };
 
@@ -370,7 +370,7 @@ class AuditController extends Controller
                 if (!empty($onlineShopIds))
                     $q->orWhereIn('users.online_shop_id', $onlineShopIds);
             })
-            ->sum('quantity');
+            ->sum('stock_out_non_hp_items.quantity');
 
         $totalOut = $outHp + $outNonHp;
 
@@ -592,7 +592,7 @@ class AuditController extends Controller
             $targetDate = $request->date;
             $prevDate = date('Y-m-d', strtotime($targetDate . ' -1 day'));
 
-            $targetStats = $detailedStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
+            $targetStats = $dailyStats[$targetDate] ?? ['profit' => 0, 'revenue' => 0, 'items' => 0];
 
             // Re-query for previous date if not in current set (likely if start of month)
             // But for simplicity, we can just filter the $dailyStats if the month/year covers it?
