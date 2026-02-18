@@ -1027,9 +1027,12 @@ class InventoryController extends Controller
                 ->get();
 
             $capacities = $capacitiesRaw->map(function ($item) {
-                if ($item->ram && $item->storage)
-                    return "{$item->ram}/{$item->storage}";
-                return $item->storage ?: $item->ram;
+                // Check for dummy RAM '1'
+                $ram = ($item->ram == '1') ? null : $item->ram;
+
+                if ($ram && $item->storage)
+                    return "{$ram}/{$item->storage}";
+                return $item->storage ?: $ram;
             })
                 ->filter()
                 ->unique()
