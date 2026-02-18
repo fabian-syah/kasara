@@ -6,7 +6,7 @@ import {
 } from 'lucide-vue-next';
 import { useAuthStore } from '../../store/auth';
 import axios from 'axios';
-import { useToast } from 'vue-toastification';
+import { useToast } from '../../composables/useToast';
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -199,7 +199,8 @@ onMounted(() => {
                         <p class="text-xs text-text-secondary">
                             Dibuat pada: {{ new Date(question.created_at).toLocaleDateString('id-ID', {
                                 day: 'numeric',
-                                month: 'long', year: 'numeric' }) }}
+                                month: 'long', year: 'numeric'
+                            }) }}
                         </p>
                     </div>
 
