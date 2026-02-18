@@ -96,77 +96,38 @@ class AuditController extends Controller
                 $calculatedTotal += $price;
             }
 
-            // 2. Non-HP Items (Collect them first)
-            $nonHpDetails = [];
-            $totalNonHpQty = 0;
-
+            // 2. Non-HP Items
+            // Use Product base price as the standard price source.
             foreach ($trx->nonHpItems as $nhp) {
-                $nonHpDetails[] = [
+                $basePrice = $nhp->product->price ?? 0;
+                $lineTotal = $basePrice * $nhp->quantity;
+
+                $details[] = [
                     'name' => $nhp->product->name ?? 'Unknown Item',
                     'qty' => $nhp->quantity,
-                    'is_fixed' => false
+                    'price' => $basePrice,
+                    'is_fixed' => true
                 ];
-                $totalNonHpQty += $nhp->quantity;
+
+                $calculatedTotal += $lineTotal;
             }
 
-            // 3. Logic to Distribute Remaining Balance to Non-HP Items
-            // If we have a 'gap' between calculatedTotal (HP only so far) and trx->selling_price
+            // 3. Final Adjustment / Gap Handling
+            // If the sum of (HP Prices + Accessory Base Prices) != Transaction Total
+            // We add a separate line item for the difference.
             $remainingBalance = $trx->selling_price - $calculatedTotal;
 
-            // If we have Non-HP items, they absorb the remaining balance
-            if (count($nonHpDetails) > 0 && $remainingBalance > 0) {
-                // Strategy: Distribute proportionally by quantity
-                // If totalNonHpQty is 0, logic fails, but loop above ensures it matches.
-
-                if ($totalNonHpQty > 0) {
-                    $pricePerUnit = $remainingBalance / $totalNonHpQty;
-
-                    foreach ($nonHpDetails as $nhp) {
-                        $details[] = [
-                            'name' => $nhp['name'],
-                            'qty' => $nhp['qty'],
-                            'price' => $pricePerUnit // Derived unit price
-                        ];
-                    }
-                    // We consumed the balance
-                    $calculatedTotal += $remainingBalance;
-                } else {
-                    // Fallback (should not happen for valid non-hp items)
-                    foreach ($nonHpDetails as $nhp) {
-                        $details[] = ['name' => $nhp['name'], 'qty' => $nhp['qty'], 'price' => 0];
-                    }
-                }
-            } else {
-                // If no balance to distribute (or negative?), or no items to give it to.
-                // Just add them with 0 price if they exist
-                foreach ($nonHpDetails as $nhp) {
-                    $details[] = ['name' => $nhp['name'], 'qty' => $nhp['qty'], 'price' => 0];
-                }
-            }
-
-            // 4. Final Adjustment Line
-            // If there's still a diff (e.g. no accessories to absorb it, or negative diff "discount")
-            // We only add this if the diff is significant (e.g. > 1 rupiah)
-            if (abs($calculatedTotal - $trx->selling_price) > 1) {
-                $diff = $trx->selling_price - $calculatedTotal;
+            if (abs($remainingBalance) > 1) {
                 $details[] = [
-                    'name' => $diff > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
+                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
                     'qty' => 1,
                     // If diff is negative (discount), it shows as negative price.
-                    'price' => $diff
+                    'price' => $remainingBalance
                 ];
             }
 
             // 5. Determine Outlet Details (Name & Address)
             // Logic to find source hierarchy: InventoryUser -> User -> Branch/Shop/Warehouse (implied)
-            // We need to fetch relationship if not loaded. Though with 'user' and 'inventoryUser' loaded we might need deeper loads.
-            // The map happens on a collection, so eager loading is preferred. The main query loads user and inventoryUser.
-            // But we need user.branch, user.onlineShop, etc.
-
-            // Re-load if relationship missing (inefficient but safe for single-item processing in loop, optimize later)
-            // Or better: Assume 'user' relationship has branch_id/online_shop_id and fetch if needed?
-            // Actually, simple way: 'user' relation is loaded. We can lazy load the specific branch/shop.
-
             $outletName = 'APEX POS';
             $outletAddress = 'Jl. Raya Example No. 123, Indonesia'; // System fallback matches user request "akalin"
 
