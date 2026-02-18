@@ -114,6 +114,17 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useAuthStore } from '../../store/auth'
+import axios from '../../api/axios'
+import {
+    Package,
+    ArrowDownUp,
+    LogOut,
+    Loader2
+} from 'lucide-vue-next'
+import Inventory from '../inventory/Inventory.vue'
+import StockInHistory from '../inventory/StockInHistory.vue'
+import StockOutHistory from '../inventory/StockOutHistory.vue'
 
 const authStore = useAuthStore()
 
