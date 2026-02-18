@@ -224,10 +224,16 @@ const routes = [
                 meta: { title: 'Audit', menu: 'audit', permissions: ['audit.view'] }
             },
             {
+                path: 'audit/report',
+                name: 'AuditReport',
+                component: () => import('../views/audit/AuditSales.vue'),
+                meta: { title: 'Audit Penjualan', menu: 'audit_sales_report', permissions: ['audit.view'] }
+            },
+            {
                 path: 'audit/sales',
                 name: 'AuditSales',
-                component: () => import('../views/audit/AuditSales.vue'),
-                meta: { title: 'Audit Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
+                component: () => import('../views/audit/Sales.vue'),
+                meta: { title: 'Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
             },
             {
                 path: 'audit/uc/profit',
