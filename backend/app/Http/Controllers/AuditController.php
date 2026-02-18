@@ -157,6 +157,51 @@ class AuditController extends Controller
                 ];
             }
 
+            // 5. Determine Outlet Details (Name & Address)
+            // Logic to find source hierarchy: InventoryUser -> User -> Branch/Shop/Warehouse (implied)
+            // We need to fetch relationship if not loaded. Though with 'user' and 'inventoryUser' loaded we might need deeper loads.
+            // The map happens on a collection, so eager loading is preferred. The main query loads user and inventoryUser.
+            // But we need user.branch, user.onlineShop, etc.
+
+            // Re-load if relationship missing (inefficient but safe for single-item processing in loop, optimize later)
+            // Or better: Assume 'user' relationship has branch_id/online_shop_id and fetch if needed?
+            // Actually, simple way: 'user' relation is loaded. We can lazy load the specific branch/shop.
+
+            $outletName = 'APEX POS';
+            $outletAddress = 'Jl. Raya Example No. 123, Indonesia'; // System fallback matches user request "akalin"
+
+            $sourceUser = $trx->inventoryUser ?? $trx->user;
+
+            if ($sourceUser) {
+                if ($sourceUser->branch_id) {
+                    $branch = \App\Models\Branch::find($sourceUser->branch_id);
+                    if ($branch) {
+                        $outletName = $branch->name;
+                        $outletAddress = $branch->address ?? 'Alamat Cabang Belum Diatur';
+                    }
+                } elseif ($sourceUser->online_shop_id) {
+                    $shop = \App\Models\OnlineShop::find($sourceUser->online_shop_id);
+                    if ($shop) {
+                        $outletName = $shop->name;
+                        // Online shops don't have address. Fallback logic:
+                        // 1. Use Platform + URL if available
+                        // 2. Use "Toko Online" generic text
+                        $addrParts = [];
+                        if ($shop->platform)
+                            $addrParts[] = ucfirst($shop->platform);
+                        // if ($shop->url) $addrParts[] = $shop->url;
+                        $outletAddress = !empty($addrParts) ? implode(' - ', $addrParts) : 'Toko Online';
+                    }
+                } elseif ($sourceUser->warehouse_id) {
+                    // If user is assigned to warehouse
+                    $warehouse = \App\Models\Warehouse::find($sourceUser->warehouse_id);
+                    if ($warehouse) {
+                        $outletName = $warehouse->name;
+                        $outletAddress = $warehouse->address ?? 'Alamat Gudang Belum Diatur';
+                    }
+                }
+            }
+
             // Calculate total qty
             $qty = $trx->items->count() + $trx->nonHpItems->sum('quantity');
 
@@ -174,7 +219,10 @@ class AuditController extends Controller
                 'cash' => 0,
                 'transfer' => 0,
                 'debit' => 0,
-                'grand_total' => $trx->selling_price
+                'grand_total' => $trx->selling_price,
+                // New Fields for Dynamic Receipt
+                'outlet_name' => $outletName,
+                'outlet_address' => $outletAddress
             ];
         });
 

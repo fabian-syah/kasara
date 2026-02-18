@@ -18,8 +18,10 @@
                         </div>
                     </div>
 
-                    <h2 class="text-xl font-bold text-gray-900 mb-1" v-if="imageError">PSTORE</h2>
-                    <p class="text-xs text-gray-500 mb-4 print:text-black">Jl. Raya Example No. 123, Indonesia</p>
+                    <h2 class="text-xl font-bold text-gray-900 mb-1" v-if="imageError">{{ transaction?.outlet_name ||
+                        'APEX POS' }}</h2>
+                    <p class="text-xs text-gray-500 mb-4 print:text-black">
+                        {{ transaction?.outlet_address || 'Jl. Raya Example No. 123, Indonesia' }}</p>
 
                     <div class="flex flex-col gap-1 text-xs text-gray-600 print:text-black text-left">
                         <div class="flex justify-between">
