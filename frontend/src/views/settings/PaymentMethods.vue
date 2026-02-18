@@ -128,7 +128,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { PlusIcon } from 'lucide-vue-next'; // Assumption: Lucide icons are available
-import axios from '@/api/axios'; // Assumption: axios instance location
+import axios from '../../api/axios'; // FIXED: Relative import path
 
 const plusIcon = PlusIcon;
 const paymentMethods = ref([]);
