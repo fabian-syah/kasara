@@ -223,12 +223,11 @@ const routes = [
                 redirect: '/audit/sales',
                 meta: { title: 'Audit', menu: 'audit', permissions: ['audit.view'] }
             },
-            // UC Routes for Dropdown
             {
-                path: 'audit/uc/sales',
-                name: 'AuditSalesUC',
-                component: () => import('../views/audit/UnderConstruction.vue'),
-                meta: { title: 'Audit Penjualan (Dev)', menu: 'audit_sales_uc', permissions: ['audit.view'] }
+                path: 'audit/sales', // Changed from audit/uc/sales
+                name: 'AuditSales',  // Changed from AuditSalesUC
+                component: () => import('../views/audit/Sales.vue'),
+                meta: { title: 'Audit Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
             },
             {
                 path: 'audit/uc/profit',
