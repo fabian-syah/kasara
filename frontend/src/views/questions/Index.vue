@@ -5,7 +5,8 @@ import {
     AlertCircle, CheckCircle2, HelpCircle
 } from 'lucide-vue-next';
 import { useAuthStore } from '../../store/auth';
-import axios from 'axios';
+import { useAuthStore } from '../../store/auth';
+import { questions as questionsApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 
 const authStore = useAuthStore();
@@ -44,14 +45,10 @@ const categories = [
     'Barang Keluar Inventaris'
 ];
 
-const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-
 const fetchData = async () => {
     loading.value = true;
     try {
-        const response = await axios.get(`${backendUrl}/questions`, {
-            headers: { Authorization: `Bearer ${authStore.token}` }
-        });
+        const response = await questionsApi.list();
         questions.value = response.data;
     } catch (error) {
         console.error('Error fetching questions:', error);
@@ -59,36 +56,6 @@ const fetchData = async () => {
     } finally {
         loading.value = false;
     }
-};
-
-const filteredQuestions = computed(() => {
-    if (!searchQuery.value) return questions.value;
-    const query = searchQuery.value.toLowerCase();
-    return questions.value.filter(q =>
-        q.content.toLowerCase().includes(query) ||
-        q.category.toLowerCase().includes(query)
-    );
-});
-
-const openCreateModal = () => {
-    isEditing.value = false;
-    form.value = { category: '', content: '' };
-    showModal.value = true;
-};
-
-const openEditModal = (question) => {
-    isEditing.value = true;
-    selectedQuestion.value = question;
-    form.value = {
-        category: question.category,
-        content: question.content
-    };
-    showModal.value = true;
-};
-
-const openDeleteModal = (question) => {
-    selectedQuestion.value = question;
-    showDeleteModal.value = true;
 };
 
 const handleSubmit = async () => {
@@ -100,20 +67,12 @@ const handleSubmit = async () => {
     submitLoading.value = true;
     try {
         if (isEditing.value) {
-            const response = await axios.put(
-                `${backendUrl}/questions/${selectedQuestion.value.id}`,
-                form.value,
-                { headers: { Authorization: `Bearer ${authStore.token}` } }
-            );
+            const response = await questionsApi.update(selectedQuestion.value.id, form.value);
             const index = questions.value.findIndex(q => q.id === selectedQuestion.value.id);
             if (index !== -1) questions.value[index] = response.data;
             toast.success('Pertanyaan berhasil diperbarui');
         } else {
-            const response = await axios.post(
-                `${backendUrl}/questions`,
-                form.value,
-                { headers: { Authorization: `Bearer ${authStore.token}` } }
-            );
+            const response = await questionsApi.create(form.value);
             questions.value.unshift(response.data);
             toast.success('Pertanyaan berhasil ditambahkan');
         }
@@ -129,9 +88,7 @@ const handleSubmit = async () => {
 const handleDelete = async () => {
     submitLoading.value = true;
     try {
-        await axios.delete(`${backendUrl}/questions/${selectedQuestion.value.id}`, {
-            headers: { Authorization: `Bearer ${authStore.token}` }
-        });
+        await questionsApi.delete(selectedQuestion.value.id);
         questions.value = questions.value.filter(q => q.id !== selectedQuestion.value.id);
         toast.success('Pertanyaan berhasil dihapus');
         showDeleteModal.value = false;

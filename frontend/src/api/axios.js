@@ -212,3 +212,10 @@ export const productPrices = {
     update: (id, data) => api.put(`/product-prices/${id}`, data),
     delete: (id) => api.delete(`/product-prices/${id}`)
 }
+
+export const questions = {
+    list: (params) => api.get('/questions', { params }),
+    create: (data) => api.post('/questions', data),
+    update: (id, data) => api.put(`/questions/${id}`, data),
+    delete: (id) => api.delete(`/questions/${id}`)
+}
