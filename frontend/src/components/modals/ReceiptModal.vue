@@ -102,7 +102,7 @@
                 <!-- Print Footer -->
                 <div class="hidden print:block text-center mt-6 pt-4 border-t border-dashed border-gray-300">
                     <p class="text-[10px] text-gray-500">Terima kasih atas kunjungan Anda!</p>
-                    <p class="text-[10px] text-gray-400 mt-1">Powered by PSTORE POS</p>
+                    <p class="text-[10px] text-gray-400 mt-1">Powered by PSTORE</p>
                 </div>
             </div>
         </div>
@@ -144,6 +144,11 @@ const formatCurrency = (value) => {
 
 <style>
 /* Unscoped Global Styles for Printing */
+@page {
+    size: auto;
+    margin: 0mm;
+}
+
 @media print {
 
     /* Hide everything by default */
