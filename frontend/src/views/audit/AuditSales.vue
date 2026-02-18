@@ -29,7 +29,9 @@
                                 {{ formattedDateDisplay }}
                             </span>
                         </div>
+                        <!-- Use showPicker() explicitly on click to ensure calendar opens consistently -->
                         <input type="date" v-model="filters.start_date" @change="handleDateChange"
+                            @click="$event.target.showPicker()"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                     </div>
 
@@ -128,7 +130,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -291,9 +293,16 @@ const salesRecords = ref({
     cs_sales: []
 })
 
+// Helper to get local YYYY-MM-DD
+const getTodayLocal = () => {
+    const d = new Date();
+    // Use sv-SE for YYYY-MM-DD format based on local time
+    return d.toLocaleDateString('sv-SE');
+}
+
 const filters = ref({
-    start_date: new Date().toISOString().slice(0, 10), // Today
-    end_date: new Date().toISOString().slice(0, 10),
+    start_date: getTodayLocal(), // Start with today in local time
+    end_date: getTodayLocal(),
     branch_id: null
 })
 
@@ -315,7 +324,7 @@ const formattedDateDisplay = computed(() => {
 
 const handlePeriodChange = () => {
     if (selectedPeriod.value === 'daily') {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = getTodayLocal();
         filters.value.start_date = today;
         filters.value.end_date = today;
     } else {
