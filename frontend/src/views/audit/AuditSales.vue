@@ -130,7 +130,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -155,14 +155,13 @@
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4">
-                                    <div
-                                        class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div class="flex items-center justify-center gap-2 transition-opacity">
                                         <button @click="openReceipt(item)"
-                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-surface-500 transition-all">
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
                                             <Eye :size="16" />
                                         </button>
                                         <button
-                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-surface-500 transition-all">
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
                                             <FileText :size="16" />
                                         </button>
                                     </div>
@@ -495,12 +494,8 @@ const fetchData = async () => {
 }
 
 onMounted(async () => {
-    // Set start date to first day of month by default for better view? 
-    // User usually wants to see daily sales for current day or month. 
-    // Let's set start date to first day of current month.
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    filters.value.start_date = firstDay.toISOString().slice(0, 10);
+    // Set start date to today by default as requested by user
+    filters.value.start_date = getTodayLocal();
 
     if (canFilterBranch.value) {
         await fetchBranches()
