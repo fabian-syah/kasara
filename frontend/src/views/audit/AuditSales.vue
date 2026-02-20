@@ -101,12 +101,13 @@
                                 <th class="px-6 py-4">Cash</th>
                                 <th class="px-6 py-4">Transfer</th>
                                 <th class="px-6 py-4">Debit</th>
+                                <th class="px-6 py-4 text-center">Cek Audit</th>
                                 <th class="px-6 py-4 text-center">#</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
-                                <td colspan="13" class="px-6 py-12">
+                                <td colspan="14" class="px-6 py-12">
                                     <div class="flex flex-col items-center justify-center text-gray-500">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data penjualan...</span>
@@ -114,7 +115,7 @@
                                 </td>
                             </tr>
                             <tr v-else-if="salesRecords.daily_sales.length === 0">
-                                <td colspan="13" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="14" class="px-6 py-12 text-center text-gray-500">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -130,7 +131,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -154,13 +155,22 @@
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
+                                    <span v-else-if="item.audit_score === 100"
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
+                                        ✅</span>
+                                    <span v-else
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
+                                        item.audit_score }}% ⚠️</span>
+                                </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-2 transition-opacity">
                                         <button @click="openReceipt(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
                                             <Eye :size="16" />
                                         </button>
-                                        <button
+                                        <button @click="openChecklist(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
                                             <FileText :size="16" />
                                         </button>
@@ -264,6 +274,69 @@
 
     <!-- Receipt Modal -->
     <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" @close="showReceiptModal = false" />
+
+    <!-- Audit Checklist Modal -->
+    <Teleport to="body">
+        <div v-if="showChecklistModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showChecklistModal = false"></div>
+            <div
+                class="relative bg-white dark:bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-gray-100 dark:border-surface-700">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Cek Audit</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">
+                        {{ checklistData?.category }} — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
+                        <span v-if="checklistData?.score !== undefined" class="font-semibold"
+                            :class="checklistData.score === 100 ? 'text-emerald-600' : 'text-amber-600'">
+                            ({{ checklistData.score }}%)
+                        </span>
+                    </p>
+                </div>
+
+                <!-- Questions -->
+                <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                    <div v-if="checklistLoading" class="flex items-center justify-center py-8">
+                        <Loader2 class="w-6 h-6 animate-spin text-primary-500" />
+                    </div>
+                    <div v-else-if="!checklistData?.questions?.length" class="text-center py-8 text-gray-500">
+                        Belum ada pertanyaan untuk kategori ini.
+                    </div>
+                    <div v-else v-for="(q, i) in checklistData.questions" :key="q.question_id"
+                        class="flex items-start gap-4 p-4 rounded-xl border transition-all"
+                        :class="q.answer === true ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5' : q.answer === false ? 'border-red-200 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5' : 'border-gray-200 dark:border-surface-600 bg-gray-50/50 dark:bg-surface-700/30'">
+                        <span class="text-sm font-bold text-gray-400 mt-0.5">{{ i + 1 }}.</span>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ q.content }}</p>
+                        </div>
+                        <div class="flex gap-2 flex-shrink-0">
+                            <button @click="setAnswer(i, true)"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                :class="q.answer === true ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-600'">
+                                Yes
+                            </button>
+                            <button @click="setAnswer(i, false)"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                :class="q.answer === false ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600'">
+                                No
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-3">
+                    <button @click="showChecklistModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-xl transition-colors">
+                        Tutup
+                    </button>
+                    <button @click="saveChecklist" :disabled="checklistSaving"
+                        class="px-5 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow-lg shadow-primary-500/20 transition-all disabled:opacity-50">
+                        {{ checklistSaving ? 'Menyimpan...' : 'Simpan' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <script setup>
@@ -286,6 +359,75 @@ const selectedTransaction = ref(null)
 const openReceipt = (item) => {
     selectedTransaction.value = item;
     showReceiptModal.value = true;
+}
+
+// Audit Checklist Modal State
+const showChecklistModal = ref(false)
+const checklistLoading = ref(false)
+const checklistSaving = ref(false)
+const checklistData = ref(null)
+const checklistStockOutId = ref(null)
+
+const openChecklist = async (item) => {
+    checklistStockOutId.value = item.id
+    showChecklistModal.value = true
+    checklistLoading.value = true
+    try {
+        const res = await axios.get(`/audit/checklist/${item.id}`)
+        checklistData.value = res.data
+    } catch (e) {
+        console.error('Failed to load checklist', e)
+        alert('Gagal memuat checklist: ' + (e.response?.data?.message || e.message))
+    } finally {
+        checklistLoading.value = false
+    }
+}
+
+const setAnswer = (index, value) => {
+    if (checklistData.value?.questions?.[index]) {
+        checklistData.value.questions[index].answer = value
+    }
+}
+
+const saveChecklist = async () => {
+    if (!checklistData.value?.questions) return
+
+    const answeredQuestions = checklistData.value.questions.filter(q => q.answer !== null)
+    if (answeredQuestions.length === 0) {
+        alert('Silakan jawab minimal 1 pertanyaan')
+        return
+    }
+
+    checklistSaving.value = true
+    try {
+        const payload = {
+            answers: answeredQuestions.map(q => ({
+                question_id: q.question_id,
+                answer: q.answer
+            }))
+        }
+        const res = await axios.post(`/audit/checklist/${checklistStockOutId.value}`, payload)
+
+        // Update the score in the table
+        const item = salesRecords.value.daily_sales.find(s => s.id === checklistStockOutId.value)
+        if (item) {
+            item.audit_score = res.data.score
+            item.audit_answered = res.data.answered
+            item.audit_total = res.data.total
+        }
+
+        // Update modal data
+        checklistData.value.score = res.data.score
+        checklistData.value.answered = res.data.answered
+        checklistData.value.total = res.data.total
+
+        alert('Checklist berhasil disimpan!')
+    } catch (e) {
+        console.error('Failed to save checklist', e)
+        alert('Gagal menyimpan: ' + (e.response?.data?.message || e.message))
+    } finally {
+        checklistSaving.value = false
+    }
 }
 
 // Monthly Logic

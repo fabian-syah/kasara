@@ -7,6 +7,8 @@ use App\Models\StockOutNonHpItem;
 use App\Models\Product;
 use App\Models\ProductDetail;
 use App\Models\User;
+use App\Models\AuditAnswer;
+use App\Models\Question;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -69,7 +71,7 @@ class AuditController extends Controller
 
         // 1. Daily Sales
         // Load nonHpItems relationship for Product details, but we will use JSON column for price
-        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser'])
+        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
 
@@ -179,7 +181,13 @@ class AuditController extends Controller
                 }
             }
 
+            // Audit score calculation
+            $totalQuestions = Question::where('category', $trx->category)->count();
+            $answeredCount = $trx->auditAnswers->count();
+            $auditScore = $totalQuestions > 0 ? round(($answeredCount / $totalQuestions) * 100) : null;
+
             return [
+                'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
                 'order_no' => $trx->receipt_id,
                 'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? $trx->shopee_receiver ?? $trx->giveaway_receiver ?? '-',
@@ -195,7 +203,10 @@ class AuditController extends Controller
                 'debit' => 0,
                 'grand_total' => $trx->selling_price,
                 'outlet_name' => $outletName,
-                'outlet_address' => $outletAddress
+                'outlet_address' => $outletAddress,
+                'audit_score' => $auditScore,
+                'audit_answered' => $answeredCount,
+                'audit_total' => $totalQuestions,
             ];
         });
 
@@ -683,4 +694,77 @@ class AuditController extends Controller
             'comparison' => $comparison
         ]);
     }
+
+    /**
+     * Get audit checklist questions + existing answers for a stock_out.
+     */
+    public function getChecklist($stockOutId)
+    {
+        $stockOut = StockOut::findOrFail($stockOutId);
+
+        $questions = Question::where('category', $stockOut->category)
+            ->orderBy('id')
+            ->get();
+
+        $answers = AuditAnswer::where('stock_out_id', $stockOutId)
+            ->pluck('answer', 'question_id');
+
+        $checklist = $questions->map(function ($q) use ($answers) {
+            return [
+                'question_id' => $q->id,
+                'content' => $q->content,
+                'answer' => $answers->has($q->id) ? (bool) $answers[$q->id] : null,
+            ];
+        });
+
+        return response()->json([
+            'stock_out_id' => (int) $stockOutId,
+            'category' => $stockOut->category,
+            'questions' => $checklist,
+            'total' => $questions->count(),
+            'answered' => $answers->count(),
+            'score' => $questions->count() > 0 ? round(($answers->count() / $questions->count()) * 100) : 0,
+        ]);
+    }
+
+    /**
+     * Save/update audit checklist answers.
+     */
+    public function saveChecklist(Request $request, $stockOutId)
+    {
+        $stockOut = StockOut::findOrFail($stockOutId);
+        $user = $request->user();
+
+        $request->validate([
+            'answers' => 'required|array',
+            'answers.*.question_id' => 'required|exists:questions,id',
+            'answers.*.answer' => 'required|boolean',
+        ]);
+
+        foreach ($request->answers as $item) {
+            AuditAnswer::updateOrCreate(
+                [
+                    'stock_out_id' => $stockOutId,
+                    'question_id' => $item['question_id'],
+                ],
+                [
+                    'answer' => $item['answer'],
+                    'auditor_id' => $user->id,
+                ]
+            );
+        }
+
+        // Return updated score
+        $totalQuestions = Question::where('category', $stockOut->category)->count();
+        $answeredCount = AuditAnswer::where('stock_out_id', $stockOutId)->count();
+        $score = $totalQuestions > 0 ? round(($answeredCount / $totalQuestions) * 100) : 0;
+
+        return response()->json([
+            'message' => 'Checklist berhasil disimpan',
+            'score' => $score,
+            'answered' => $answeredCount,
+            'total' => $totalQuestions,
+        ]);
+    }
 }
+

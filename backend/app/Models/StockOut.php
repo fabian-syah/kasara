@@ -151,4 +151,9 @@ class StockOut extends Model
     {
         return $this->hasMany(StockOutNonHpItem::class);
     }
+
+    public function auditAnswers()
+    {
+        return $this->hasMany(AuditAnswer::class);
+    }
 }
