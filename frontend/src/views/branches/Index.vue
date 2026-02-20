@@ -206,6 +206,7 @@ const handleToggleStatus = async (branch) => {
             </div>
         </div>
 
-        <BranchModal :show="showModal" :branch="selectedBranch" @close="showModal = false" @saved="handleSaved" />
+        <BranchModal :show="showModal" :branch="selectedBranch" :type="'physical'" @close="showModal = false"
+            @saved="handleSaved" />
     </div>
 </template>

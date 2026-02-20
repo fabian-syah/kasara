@@ -6,7 +6,8 @@ import { useToast } from '../../composables/useToast';
 
 const props = defineProps({
     show: Boolean,
-    branch: Object
+    branch: Object,
+    type: String
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -19,7 +20,8 @@ const form = ref({
     name: '',
     address: '',
     timezone: 'WIB',
-    is_active: true
+    is_active: true,
+    type: props.type || 'physical'
 });
 
 const timezones = [
@@ -38,7 +40,8 @@ watch(() => props.branch, (newVal) => {
             name: newVal.name,
             address: newVal.address,
             timezone: newVal.timezone || 'WIB',
-            is_active: !!newVal.is_active // Pastikan boolean
+            is_active: !!newVal.is_active, // Pastikan boolean
+            type: newVal.type || props.type || 'physical'
         };
     } else {
         resetForm();
@@ -52,7 +55,8 @@ function resetForm() {
         name: '',
         address: '',
         timezone: 'WIB',
-        is_active: true
+        is_active: true,
+        type: props.type || 'physical'
     };
 }
 
