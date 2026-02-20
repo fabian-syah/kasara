@@ -53,65 +53,60 @@
         </div>
 
         <!-- Modal -->
-        <div v-if="isModalOpen" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog"
-            aria-modal="true">
-            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <Teleport to="body">
+            <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <!-- Backdrop -->
-                <div class="fixed inset-0 bg-surface-900/80 transition-opacity backdrop-blur-sm" aria-hidden="true"
-                    @click="closeModal"></div>
-
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" @click="closeModal"></div>
 
                 <!-- Modal Panel -->
                 <div
-                    class="inline-block align-bottom card text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-surface-700 bg-surface-800">
-                    <div class="bg-surface-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <h3 class="text-lg leading-6 font-bold text-text-primary mb-4" id="modal-title">
+                    class="relative bg-surface-800 rounded-2xl border border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+                    <div class="bg-surface-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b border-surface-700">
+                        <h3 class="text-lg leading-6 font-bold text-text-primary" id="modal-title">
                             {{ isEditing ? 'Edit Metode Pembayaran' : 'Tambah Metode Pembayaran' }}
                         </h3>
+                    </div>
 
-                        <div class="mt-4 space-y-4">
-                            <!-- Nama Bank / Metode -->
-                            <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-1">Nama Bank /
-                                    Metode</label>
-                                <input v-model="form.name" type="text" class="input"
-                                    placeholder="Contoh: BCA, Mandiri, Cash">
-                            </div>
+                    <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <!-- Nama Bank / Metode -->
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-1">Nama Bank /
+                                Metode</label>
+                            <input v-model="form.name" type="text" class="input"
+                                placeholder="Contoh: BCA, Mandiri, Cash">
+                        </div>
 
-                            <!-- Checkbox Cash -->
-                            <div class="flex items-center">
-                                <input id="is_cash" v-model="form.is_cash" type="checkbox"
-                                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-600 rounded bg-surface-900">
-                                <label for="is_cash"
-                                    class="ml-2 block text-sm text-text-primary select-none cursor-pointer">
-                                    Ini adalah metode Tunai (Cash)
-                                </label>
-                            </div>
+                        <!-- Checkbox Cash -->
+                        <div class="flex items-center">
+                            <input id="is_cash" v-model="form.is_cash" type="checkbox"
+                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-600 rounded bg-surface-900">
+                            <label for="is_cash"
+                                class="ml-2 block text-sm text-text-primary select-none cursor-pointer">
+                                Ini adalah metode Tunai (Cash)
+                            </label>
+                        </div>
 
-                            <!-- Nomor Rekening (if not cash) -->
-                            <div v-if="!form.is_cash" class="animate-in fade-in slide-in-from-top-2 duration-200">
-                                <label class="block text-sm font-medium text-text-secondary mb-1">Nomor Rekening</label>
-                                <input v-model="form.account_number" type="text" class="input"
-                                    placeholder="Contoh: 1234567890">
-                            </div>
+                        <!-- Nomor Rekening (if not cash) -->
+                        <div v-if="!form.is_cash" class="animate-in fade-in slide-in-from-top-2 duration-200">
+                            <label class="block text-sm font-medium text-text-secondary mb-1">Nomor Rekening</label>
+                            <input v-model="form.account_number" type="text" class="input"
+                                placeholder="Contoh: 1234567890">
+                        </div>
 
-                            <!-- Atas Nama (if not cash) -->
-                            <div v-if="!form.is_cash" class="animate-in fade-in slide-in-from-top-2 duration-200">
-                                <label class="block text-sm font-medium text-text-secondary mb-1">Atas Nama</label>
-                                <input v-model="form.account_name" type="text" class="input"
-                                    placeholder="Contoh: John Doe">
-                            </div>
+                        <!-- Atas Nama (if not cash) -->
+                        <div v-if="!form.is_cash" class="animate-in fade-in slide-in-from-top-2 duration-200">
+                            <label class="block text-sm font-medium text-text-secondary mb-1">Atas Nama</label>
+                            <input v-model="form.account_name" type="text" class="input" placeholder="Contoh: John Doe">
+                        </div>
 
-                            <!-- Checkbox Active -->
-                            <div class="flex items-center">
-                                <input id="is_active" v-model="form.is_active" type="checkbox"
-                                    class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-600 rounded bg-surface-900">
-                                <label for="is_active"
-                                    class="ml-2 block text-sm text-text-primary select-none cursor-pointer">
-                                    Status Aktif
-                                </label>
-                            </div>
+                        <!-- Checkbox Active -->
+                        <div class="flex items-center">
+                            <input id="is_active" v-model="form.is_active" type="checkbox"
+                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-600 rounded bg-surface-900">
+                            <label for="is_active"
+                                class="ml-2 block text-sm text-text-primary select-none cursor-pointer">
+                                Status Aktif
+                            </label>
                         </div>
                     </div>
 
@@ -128,7 +123,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </Teleport>
     </div>
 </template>
 
