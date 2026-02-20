@@ -27,22 +27,24 @@ const form = ref({
 });
 
 const categories = [
-    'Penjualan Store',
-    'Penjualan Online',
-    'Barang Masuk Pindah Cabang',
-    'Barang Keluar Pindah Cabang',
-    'Barang Keluar Retur',
-    'Barang Keluar Salah Input',
-    'Barang Masuk Inventory',
-    'Barang Masuk Refund',
-    'Barang Masuk Angkat Barang',
-    'Barang Masuk Tukar Tambah',
-    'Barang Keluar Giveaway Customer',
-    'Barang Keluar Hadiah',
-    'Barang Keluar Brand Ambassador',
-    'Barang Keluar Event / Sponsorship',
-    'Barang Keluar Promo',
-    'Barang Keluar Inventaris'
+    { value: 'penjualan_offline', label: 'Penjualan Store' },
+    { value: 'orderan_online', label: 'Penjualan Online' },
+    { value: 'shopee', label: 'Shopee' },
+    { value: 'profit', label: 'Profit' },
+    { value: 'pindah_cabang_masuk', label: 'Barang Masuk Pindah Cabang' },
+    { value: 'pindah_cabang', label: 'Barang Keluar Pindah Cabang' },
+    { value: 'retur', label: 'Barang Keluar Retur' },
+    { value: 'kesalahan_input', label: 'Barang Keluar Salah Input' },
+    { value: 'barang_masuk', label: 'Barang Masuk Inventory' },
+    { value: 'refund', label: 'Barang Masuk Refund' },
+    { value: 'angkat_barang', label: 'Barang Masuk Angkat Barang' },
+    { value: 'tukar_tambah', label: 'Barang Masuk Tukar Tambah' },
+    { value: 'giveaway_customer', label: 'Barang Keluar Giveaway Customer' },
+    { value: 'hadiah', label: 'Barang Keluar Hadiah' },
+    { value: 'brand_ambassador', label: 'Barang Keluar Brand Ambassador' },
+    { value: 'event_sponsorship', label: 'Barang Keluar Event / Sponsorship' },
+    { value: 'promo', label: 'Barang Keluar Promo' },
+    { value: 'inventaris', label: 'Barang Keluar Inventaris' },
 ];
 
 const fetchData = async () => {
@@ -166,6 +168,11 @@ const groupedQuestions = computed(() => {
 
 const hasData = computed(() => Object.keys(groupedQuestions.value).length > 0);
 
+const categoryLabel = (value) => {
+    const found = categories.find(c => c.value === value);
+    return found ? found.label : value;
+};
+
 onMounted(() => {
     fetchData();
 });
@@ -222,7 +229,7 @@ onMounted(() => {
                                 <Folder :size="20" />
                             </div>
                             <div>
-                                <h3 class="font-bold text-text-primary text-base">{{ categoryName }}</h3>
+                                <h3 class="font-bold text-text-primary text-base">{{ categoryLabel(categoryName) }}</h3>
                                 <p class="text-xs text-text-secondary mt-0.5">{{ questionsInGroup.length }} Pertanyaan
                                 </p>
                             </div>
@@ -244,7 +251,8 @@ onMounted(() => {
                                 <p class="text-xs text-text-secondary">
                                     Dibuat: {{ new Date(question.created_at).toLocaleDateString('id-ID', {
                                         day:
-                                            'numeric', month: 'short', year: 'numeric' }) }}
+                                            'numeric', month: 'short', year: 'numeric'
+                                    }) }}
                                 </p>
                             </div>
 
@@ -286,7 +294,8 @@ onMounted(() => {
                         <select v-model="form.category"
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl px-3 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
                             <option value="" disabled>Pilih Kategori</option>
-                            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                            <option v-for="cat in categories" :key="cat.value" :value="cat.value">{{ cat.label }}
+                            </option>
                         </select>
                     </div>
 
