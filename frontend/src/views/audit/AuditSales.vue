@@ -130,7 +130,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -308,8 +308,10 @@ const salesRecords = ref({
 // Helper to get local YYYY-MM-DD
 const getTodayLocal = () => {
     const d = new Date();
-    // Use sv-SE for YYYY-MM-DD format based on local time
-    return d.toLocaleDateString('sv-SE');
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 const filters = ref({
@@ -402,22 +404,31 @@ const formatDate = (dateString) => {
 
 
 const fetchBranches = async () => {
+    if (loading.value) return; // Prevent concurrent fetches
+
     try {
-        const [branchRes, shopRes, userRes] = await Promise.all([
+        // Reduced requests: use authStore.user if available instead of fetching again
+        const requests = [
             axios.get('/branches'),
-            axios.get('/online-shops'),
-            axios.get('/user')
-        ])
+            axios.get('/online-shops')
+        ];
+
+        // Only fetch user if not available in store
+        if (!authStore.user) {
+            requests.push(axios.get('/user'));
+        }
+
+        const results = await Promise.all(requests);
+        const branchRes = results[0];
+        const shopRes = results[1];
+        const userRes = results[2];
 
         const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
         const allLocations = [...allBranches, ...allShops];
 
-        const user = userRes.data.user || userRes.data.data || userRes.data;
+        const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
-
-        console.log('[DEBUG] Fresh User Data:', user);
-        console.log('[DEBUG] All Available Shops:', allShops);
 
         // Define unrestricted roles
         const isGlobalRole = ['super_admin', 'owner'].includes(role);
@@ -440,9 +451,6 @@ const fetchBranches = async () => {
         allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
 
-        console.log('[DEBUG] Allowed Branch IDs:', allowedBranchIds);
-        console.log('[DEBUG] Allowed Shop IDs:', allowedShopIds);
-
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
         // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
@@ -454,8 +462,6 @@ const fetchBranches = async () => {
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
                 return false;
             });
-
-            console.log('[DEBUG] Filtered Locations:', locations.value);
 
             // Auto-select first if needed
             if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
@@ -494,10 +500,13 @@ const fetchData = async () => {
 }
 
 onMounted(async () => {
-    // Set start date to today by default as requested by user
-    filters.value.start_date = getTodayLocal();
+    // Optimization: Initialize filters
+    const today = getTodayLocal();
+    filters.value.start_date = today;
+    filters.value.end_date = today;
 
-    if (canFilterBranch.value) {
+    // Fetch locations if needed and not already loaded by watcher
+    if (canFilterBranch.value && locations.value.length === 0) {
         await fetchBranches()
     }
 
