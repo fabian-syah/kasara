@@ -17,11 +17,22 @@ class UpdateLastSeen
         if (Auth::check()) {
             $user = Auth::user();
 
-            // Pastikan kolom last_seen ada sebelum update
-            $user->timestamps = false; // Agar updated_at tidak ikut berubah
+            // 1. Update main user
+            $user->timestamps = false;
             $user->last_seen = now();
             $user->save();
+
+            // 2. Update sub-account if inventory_user_id is present
+            if ($request->has('inventory_user_id')) {
+                $subAccount = \App\Models\User::find($request->inventory_user_id);
+                if ($subAccount) {
+                    $subAccount->timestamps = false;
+                    $subAccount->last_seen = now();
+                    $subAccount->save();
+                }
+            }
         }
+
 
         return $response;
     }
