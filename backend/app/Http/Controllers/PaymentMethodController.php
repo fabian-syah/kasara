@@ -23,7 +23,7 @@ class PaymentMethodController extends Controller
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:50',
             'account_name' => 'nullable|string|max:255',
-            'is_cash' => 'boolean',
+            'category' => 'required|string|in:cash,edc,transfer',
             'is_active' => 'boolean',
         ]);
 
@@ -44,7 +44,7 @@ class PaymentMethodController extends Controller
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:50',
             'account_name' => 'nullable|string|max:255',
-            'is_cash' => 'boolean',
+            'category' => 'required|string|in:cash,edc,transfer',
             'is_active' => 'boolean',
         ]);
 

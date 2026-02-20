@@ -16,7 +16,7 @@
                         <th class="px-6 py-3">Nama Bank / Metode</th>
                         <th class="px-6 py-3">Nomor Rekening</th>
                         <th class="px-6 py-3">Atas Nama</th>
-                        <th class="px-6 py-3">Tipe</th>
+                        <th class="px-6 py-3">Kategori</th>
                         <th class="px-6 py-3">Status</th>
                         <th class="px-6 py-3 text-right">Aksi</th>
                     </tr>
@@ -27,9 +27,9 @@
                         <td class="px-6 py-4 text-text-secondary">{{ pm.account_number || '-' }}</td>
                         <td class="px-6 py-4 text-text-secondary">{{ pm.account_name || '-' }}</td>
                         <td class="px-6 py-4">
-                            <span class="badge" :class="pm.is_cash ? 'badge-success' : 'badge-info'">
-                                {{ pm.is_cash ? 'Tunai' : 'Transfer' }}
-                            </span>
+                            <span v-if="pm.category === 'cash'" class="badge badge-success">Tunai</span>
+                            <span v-else-if="pm.category === 'edc'" class="badge badge-warning">EDC</span>
+                            <span v-else class="badge badge-info text-blue-400">Transfer</span>
                         </td>
                         <td class="px-6 py-4">
                             <span class="badge cursor-pointer hover:opacity-80 transition-opacity"
@@ -76,25 +76,27 @@
                                 placeholder="Contoh: BCA, Mandiri, Cash">
                         </div>
 
-                        <!-- Checkbox Cash -->
-                        <div class="flex items-center">
-                            <input id="is_cash" v-model="form.is_cash" type="checkbox"
-                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-surface-600 rounded bg-surface-900">
-                            <label for="is_cash"
-                                class="ml-2 block text-sm text-text-primary select-none cursor-pointer">
-                                Ini adalah metode Tunai (Cash)
-                            </label>
+                        <!-- Kategori Select -->
+                        <div>
+                            <label class="block text-sm font-medium text-text-secondary mb-1">Kategori</label>
+                            <select v-model="form.category" class="input">
+                                <option value="cash">Tunai (Cash)</option>
+                                <option value="edc">EDC (Edisi)</option>
+                                <option value="transfer">Transfer</option>
+                            </select>
                         </div>
 
                         <!-- Nomor Rekening (if not cash) -->
-                        <div v-if="!form.is_cash" class="animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div v-if="form.category !== 'cash'"
+                            class="animate-in fade-in slide-in-from-top-2 duration-200">
                             <label class="block text-sm font-medium text-text-secondary mb-1">Nomor Rekening</label>
                             <input v-model="form.account_number" type="text" class="input"
                                 placeholder="Contoh: 1234567890">
                         </div>
 
                         <!-- Atas Nama (if not cash) -->
-                        <div v-if="!form.is_cash" class="animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div v-if="form.category !== 'cash'"
+                            class="animate-in fade-in slide-in-from-top-2 duration-200">
                             <label class="block text-sm font-medium text-text-secondary mb-1">Atas Nama</label>
                             <input v-model="form.account_name" type="text" class="input" placeholder="Contoh: John Doe">
                         </div>
@@ -141,7 +143,7 @@ const form = ref({
     name: '',
     account_number: '',
     account_name: '',
-    is_cash: false,
+    category: 'transfer',
     is_active: true
 });
 
@@ -158,10 +160,8 @@ const openModal = (pm = null) => {
     isModalOpen.value = true;
     if (pm) {
         isEditing.value = true;
-        // Ensure boolean conversion for checkboxes
         form.value = {
             ...pm,
-            is_cash: Boolean(pm.is_cash),
             is_active: Boolean(pm.is_active)
         };
     } else {
@@ -171,7 +171,7 @@ const openModal = (pm = null) => {
             name: '',
             account_number: '',
             account_name: '',
-            is_cash: false,
+            category: 'transfer',
             is_active: true
         };
     }
@@ -179,15 +179,13 @@ const openModal = (pm = null) => {
 
 const closeModal = () => {
     isModalOpen.value = false;
-    // Reset form after closing just in case
     setTimeout(() => {
-        form.value = { id: null, name: '', account_number: '', account_name: '', is_cash: false, is_active: true };
+        form.value = { id: null, name: '', account_number: '', account_name: '', category: 'transfer', is_active: true };
     }, 200);
 };
 
 const save = async () => {
     try {
-        // Validate
         if (!form.value.name) {
             alert('Nama metode harus diisi');
             return;
@@ -220,13 +218,10 @@ const deletePm = async (id) => {
 const toggleStatus = async (pm) => {
     try {
         const newVal = !pm.is_active;
-        // Optimistic update
         pm.is_active = newVal;
         await axios.put(`/payment-methods/${pm.id}`, { ...pm, is_active: newVal });
-        // No reload needed if successful
     } catch (e) {
         console.error(e);
-        // Revert on error
         pm.is_active = !pm.is_active;
         alert('Gagal mengubah status');
     }
