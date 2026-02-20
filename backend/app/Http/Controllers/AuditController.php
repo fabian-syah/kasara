@@ -183,8 +183,8 @@ class AuditController extends Controller
 
             // Audit score calculation
             $totalQuestions = Question::where('category', $trx->category)->count();
-            $answeredCount = $trx->auditAnswers->count();
-            $auditScore = $totalQuestions > 0 ? round(($answeredCount / $totalQuestions) * 100) : null;
+            $yesCount = $trx->auditAnswers->where('answer', true)->count();
+            $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
 
             return [
                 'id' => $trx->id,
@@ -205,8 +205,9 @@ class AuditController extends Controller
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress,
                 'audit_score' => $auditScore,
-                'audit_answered' => $answeredCount,
+                'audit_answered' => $trx->auditAnswers->count(),
                 'audit_total' => $totalQuestions,
+                'audit_yes' => $yesCount,
             ];
         });
 
@@ -723,7 +724,8 @@ class AuditController extends Controller
             'questions' => $checklist,
             'total' => $questions->count(),
             'answered' => $answers->count(),
-            'score' => $questions->count() > 0 ? round(($answers->count() / $questions->count()) * 100) : 0,
+            'yes_count' => $answers->filter(fn($v) => $v == true)->count(),
+            'score' => $questions->count() > 0 ? round(($answers->filter(fn($v) => $v == true)->count() / $questions->count()) * 100) : 0,
         ]);
     }
 
@@ -757,12 +759,14 @@ class AuditController extends Controller
         // Return updated score
         $totalQuestions = Question::where('category', $stockOut->category)->count();
         $answeredCount = AuditAnswer::where('stock_out_id', $stockOutId)->count();
-        $score = $totalQuestions > 0 ? round(($answeredCount / $totalQuestions) * 100) : 0;
+        $yesCount = AuditAnswer::where('stock_out_id', $stockOutId)->where('answer', true)->count();
+        $score = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0;
 
         return response()->json([
             'message' => 'Checklist berhasil disimpan',
             'score' => $score,
             'answered' => $answeredCount,
+            'yes_count' => $yesCount,
             'total' => $totalQuestions,
         ]);
     }

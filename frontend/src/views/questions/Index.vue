@@ -29,7 +29,7 @@ const form = ref({
 const categories = [
     { value: 'penjualan_offline', label: 'Penjualan Store' },
     { value: 'orderan_online', label: 'Penjualan Online' },
-    { value: 'shopee', label: 'Shopee' },
+    // { value: 'shopee', label: 'Shopee' },
     { value: 'profit', label: 'Profit' },
     { value: 'pindah_cabang_masuk', label: 'Barang Masuk Pindah Cabang' },
     { value: 'pindah_cabang', label: 'Barang Keluar Pindah Cabang' },
