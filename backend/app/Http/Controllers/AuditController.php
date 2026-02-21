@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductDetail;
 use App\Models\User;
 use App\Models\AuditAnswer;
+use App\Models\AuditProfit;
 use App\Models\Question;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -764,6 +765,295 @@ class AuditController extends Controller
 
         return response()->json([
             'message' => 'Checklist berhasil disimpan',
+            'score' => $score,
+            'answered' => $answeredCount,
+            'yes_count' => $yesCount,
+            'total' => $totalQuestions,
+        ]);
+    }
+
+    /**
+     * Get sales data with profit information for audit.
+     */
+    public function profit(Request $request)
+    {
+        $user = $request->user();
+        $branchIds = $user->getAccessibleBranchIds();
+        $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
+        if (empty($branchIds) && empty($onlineShopIds)) {
+            return response()->json([
+                'daily_sales' => [],
+                'brand_sales' => [],
+                'cs_sales' => []
+            ]);
+        }
+
+        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        $requestedBranchId = $request->branch_id;
+        $requestedOnlineShopId = $request->online_shop_id;
+
+        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                    if ($requestedBranchId) {
+                        if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                            $sub->where('branch_id', $requestedBranchId);
+                        } else {
+                            $sub->whereRaw('1=0');
+                        }
+                    } elseif ($requestedOnlineShopId) {
+                        if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
+                            $sub->where('online_shop_id', $requestedOnlineShopId);
+                        } else {
+                            $sub->whereRaw('1=0');
+                        }
+                    } else {
+                        if (!empty($branchIds)) {
+                            $sub->orWhereIn('branch_id', $branchIds);
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        }
+                    }
+                });
+            });
+        };
+
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+
+        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
+            ->whereIn('category', $salesCategories)
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        $scopeToAccess($dailySalesQuery);
+
+        $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) {
+            $details = [];
+            $calculatedTotal = 0;
+
+            // HP Items
+            foreach ($trx->items as $item) {
+                $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
+                $details[] = [
+                    'name' => $item->product->name ?? 'Unknown HP',
+                    'qty' => 1,
+                    'price' => $price,
+                    'is_fixed' => true
+                ];
+                $calculatedTotal += $price;
+            }
+
+            // Non-HP Items
+            $jsonItems = $trx->non_hp_items;
+            $hasJsonData = is_array($jsonItems) && count($jsonItems) > 0;
+
+            if ($hasJsonData) {
+                $productMap = $trx->nonHpItems->pluck('product', 'product_id');
+                foreach ($jsonItems as $itemData) {
+                    $pid = $itemData['product_id'] ?? null;
+                    $product = $productMap[$pid] ?? null;
+                    $name = $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP');
+                    $price = $itemData['selling_price'] ?? 0;
+                    $qty = $itemData['quantity'] ?? 1;
+                    $details[] = [
+                        'name' => $name,
+                        'qty' => $qty,
+                        'price' => $price,
+                        'is_fixed' => true
+                    ];
+                    $calculatedTotal += ($price * $qty);
+                }
+            } else {
+                foreach ($trx->nonHpItems as $nhp) {
+                    $basePrice = $nhp->product->price ?? 0;
+                    $details[] = [
+                        'name' => $nhp->product->name ?? 'Unknown Item',
+                        'qty' => $nhp->quantity,
+                        'price' => $basePrice,
+                        'is_fixed' => true
+                    ];
+                    $calculatedTotal += ($basePrice * $nhp->quantity);
+                }
+            }
+
+            // Gap handling
+            $remainingBalance = $trx->selling_price - $calculatedTotal;
+            if (abs($remainingBalance) > 1) {
+                $details[] = [
+                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
+                    'qty' => 1,
+                    'price' => $remainingBalance
+                ];
+            }
+
+            // Outlet Details
+            $outletName = 'APEX POS';
+            $sourceUser = $trx->inventoryUser ?? $trx->user;
+            if ($sourceUser) {
+                if ($sourceUser->branch_id) {
+                    $branch = \App\Models\Branch::find($sourceUser->branch_id);
+                    if ($branch)
+                        $outletName = $branch->name;
+                } elseif ($sourceUser->online_shop_id) {
+                    $shop = \App\Models\OnlineShop::find($sourceUser->online_shop_id);
+                    if ($shop)
+                        $outletName = $shop->name;
+                }
+            }
+
+            // Profit calculation
+            $hargaJual = $trx->selling_price;
+            $savedProfit = $trx->auditProfit;
+            $hargaModal = $savedProfit ? $savedProfit->harga_modal : null;
+            $defaultHargaModal = round($hargaJual * 0.95);
+            $effectiveHargaModal = $hargaModal ?? $defaultHargaModal;
+            $profit = $hargaJual - $effectiveHargaModal;
+
+            // Audit score using 'profit' category
+            $totalQuestions = Question::where('category', 'profit')->count();
+            $yesCount = $trx->auditAnswers->whereIn(
+                'question_id',
+                Question::where('category', 'profit')->pluck('id')
+            )->where('answer', true)->count();
+            $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
+
+            return [
+                'id' => $trx->id,
+                'date' => $trx->created_at->toDateTimeString(),
+                'order_no' => $trx->receipt_id,
+                'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? $trx->shopee_receiver ?? $trx->giveaway_receiver ?? '-',
+                'customer_phone' => $trx->customer_phone ?? $trx->shopee_phone ?? $trx->giveaway_phone ?? '-',
+                'category' => $trx->category,
+                'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
+                'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
+                'items' => $details,
+                'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
+                'harga_jual' => $hargaJual,
+                'harga_modal' => $hargaModal,
+                'default_harga_modal' => $defaultHargaModal,
+                'profit' => $profit,
+                'has_saved_modal' => $savedProfit !== null,
+                'outlet_name' => $outletName,
+                'audit_score' => $auditScore,
+                'audit_answered' => $trx->auditAnswers->whereIn(
+                    'question_id',
+                    Question::where('category', 'profit')->pluck('id')
+                )->count(),
+                'audit_total' => $totalQuestions,
+                'audit_yes' => $yesCount,
+            ];
+        });
+
+        return response()->json([
+            'daily_sales' => $dailySales,
+        ]);
+    }
+
+    /**
+     * Save/update auditor's harga modal for a stock_out.
+     */
+    public function saveProfitData(Request $request, $stockOutId)
+    {
+        $stockOut = StockOut::findOrFail($stockOutId);
+        $user = $request->user();
+
+        $request->validate([
+            'harga_modal' => 'required|numeric|min:0',
+        ]);
+
+        $auditProfit = AuditProfit::updateOrCreate(
+            ['stock_out_id' => $stockOutId],
+            [
+                'harga_modal' => $request->harga_modal,
+                'auditor_id' => $user->id,
+            ]
+        );
+
+        $profit = $stockOut->selling_price - $auditProfit->harga_modal;
+
+        return response()->json([
+            'message' => 'Harga modal berhasil disimpan',
+            'harga_modal' => $auditProfit->harga_modal,
+            'profit' => $profit,
+        ]);
+    }
+
+    /**
+     * Get audit checklist questions for profit category.
+     */
+    public function getProfitChecklist($stockOutId)
+    {
+        $stockOut = StockOut::findOrFail($stockOutId);
+
+        // Always use 'profit' category for profit checklist
+        $questions = Question::where('category', 'profit')
+            ->orderBy('id')
+            ->get();
+
+        $answers = AuditAnswer::where('stock_out_id', $stockOutId)
+            ->pluck('answer', 'question_id');
+
+        $checklist = $questions->map(function ($q) use ($answers) {
+            return [
+                'question_id' => $q->id,
+                'content' => $q->content,
+                'answer' => $answers->has($q->id) ? (bool) $answers[$q->id] : null,
+            ];
+        });
+
+        return response()->json([
+            'stock_out_id' => (int) $stockOutId,
+            'category' => 'profit',
+            'questions' => $checklist,
+            'total' => $questions->count(),
+            'answered' => $answers->count(),
+            'yes_count' => $answers->filter(fn($v) => $v == true)->count(),
+            'score' => $questions->count() > 0 ? round(($answers->filter(fn($v) => $v == true)->count() / $questions->count()) * 100) : 0,
+        ]);
+    }
+
+    /**
+     * Save profit checklist answers.
+     */
+    public function saveProfitChecklist(Request $request, $stockOutId)
+    {
+        $stockOut = StockOut::findOrFail($stockOutId);
+        $user = $request->user();
+
+        $request->validate([
+            'answers' => 'required|array',
+            'answers.*.question_id' => 'required|exists:questions,id',
+            'answers.*.answer' => 'required|boolean',
+        ]);
+
+        foreach ($request->answers as $item) {
+            AuditAnswer::updateOrCreate(
+                [
+                    'stock_out_id' => $stockOutId,
+                    'question_id' => $item['question_id'],
+                ],
+                [
+                    'answer' => $item['answer'],
+                    'auditor_id' => $user->id,
+                ]
+            );
+        }
+
+        // Return updated score using 'profit' category
+        $totalQuestions = Question::where('category', 'profit')->count();
+        $profitQuestionIds = Question::where('category', 'profit')->pluck('id');
+        $answeredCount = AuditAnswer::where('stock_out_id', $stockOutId)
+            ->whereIn('question_id', $profitQuestionIds)->count();
+        $yesCount = AuditAnswer::where('stock_out_id', $stockOutId)
+            ->whereIn('question_id', $profitQuestionIds)
+            ->where('answer', true)->count();
+        $score = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0;
+
+        return response()->json([
+            'message' => 'Checklist profit berhasil disimpan',
             'score' => $score,
             'answered' => $answeredCount,
             'yes_count' => $yesCount,

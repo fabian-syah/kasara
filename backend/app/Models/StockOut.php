@@ -156,4 +156,9 @@ class StockOut extends Model
     {
         return $this->hasMany(AuditAnswer::class);
     }
+
+    public function auditProfit()
+    {
+        return $this->hasOne(AuditProfit::class);
+    }
 }
