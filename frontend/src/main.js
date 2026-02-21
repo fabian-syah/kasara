@@ -6,7 +6,7 @@ import axios from 'axios' // TAMBAHKAN INI
 import './style.css'
 
 // Konfigurasi Dasar Axios
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
 axios.defaults.withCredentials = true; // Penting untuk Sanctum
 
 const app = createApp(App)
@@ -14,4 +14,10 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
+
+// Global error handler - prevents unhandled errors from crashing the entire app
+app.config.errorHandler = (err, instance, info) => {
+    console.error(`[Vue Error] ${info}:`, err)
+}
+
 app.mount('#app')

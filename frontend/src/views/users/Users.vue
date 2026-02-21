@@ -77,19 +77,19 @@ const filteredRolesOptions = computed(() => {
   // Determine Access
   // Robust check for model_type (handles 'App\Models\Branch' vs 'branch')
   const hasBranchAccess = !!user.branch_id || (user.placements?.some(p =>
-    p.model_type === 'branch' || p.model_type.includes('Branch')
+    p.model_type === 'branch' || p.model_type?.includes('Branch')
   ) ?? false);
 
   const hasWarehouseAccess = !!user.warehouse_id || (user.placements?.some(p =>
-    p.model_type === 'warehouse' || p.model_type.includes('Warehouse')
+    p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')
   ) ?? false);
 
   const hasOnlineAccess = !!user.online_shop_id || (user.placements?.some(p =>
-    p.model_type === 'online_shop' || p.model_type.includes('OnlineShop')
+    p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')
   ) ?? false);
 
   const hasDistributorAccess = !!user.distributor_id || (user.placements?.some(p =>
-    p.model_type === 'distributor' || p.model_type.includes('Distributor')
+    p.model_type === 'distributor' || p.model_type?.includes('Distributor')
   ) ?? false);
 
   return rolesList.filter(r => {
