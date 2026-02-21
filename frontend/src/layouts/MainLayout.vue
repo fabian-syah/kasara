@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onErrorCaptured } from "vue";
 import { useRoute } from "vue-router";
 import { useThemeStore } from "../store/theme";
 import AppSidebar from "../components/layout/AppSidebar.vue";
@@ -24,6 +24,12 @@ watch(
     isMobileMenuOpen.value = false;
   }
 );
+
+// Error boundary - prevent child component errors from crashing the entire layout
+onErrorCaptured((err, instance, info) => {
+  console.error(`[Layout Error] ${info}:`, err);
+  return false; // Prevent error from propagating further
+});
 </script>
 
 <template>
@@ -57,7 +63,7 @@ watch(
         <div class="p-4 md:p-8 pt-6 flex-1 flex flex-col">
           <router-view v-slot="{ Component }">
             <transition name="fade" mode="out-in">
-              <component :is="Component" />
+              <component :is="Component" :key="route.path" />
             </transition>
           </router-view>
         </div>
