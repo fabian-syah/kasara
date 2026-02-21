@@ -220,44 +220,33 @@ const routes = [
             },
             {
                 path: 'audit',
-                redirect: '/audit/sales',
+                redirect: '/audit/report',
                 meta: { title: 'Audit', menu: 'audit', permissions: ['audit.view'] }
             },
             {
                 path: 'audit/report',
-                name: 'AuditReport',
+                name: 'AuditSalesReport',
                 component: () => import('../views/audit/AuditSales.vue'),
                 meta: { title: 'Audit Penjualan', menu: 'audit_sales_report', permissions: ['audit.view'] }
             },
             {
                 path: 'audit/sales',
-                name: 'AuditSales',
+                name: 'AuditSalesTab',
                 component: () => import('../views/audit/Sales.vue'),
                 meta: { title: 'Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
             },
-            {
-                path: 'audit/uc/profit',
-                name: 'AuditProfitUC',
-                component: () => import('../views/audit/UnderConstruction.vue'),
-                meta: { title: 'Audit Profit (Dev)', menu: 'audit_profit_uc', permissions: ['audit.view'] }
-            },
-            {
-                path: 'audit/uc/stock-in',
-                name: 'AuditStockInUC',
-                component: () => import('../views/audit/UnderConstruction.vue'),
-                meta: { title: 'Audit Barang Masuk (Dev)', menu: 'audit_stock_in_uc', permissions: ['audit.view'] }
-            },
-            {
-                path: 'audit/uc/stock-out',
-                name: 'AuditStockOutUC',
-                component: () => import('../views/audit/UnderConstruction.vue'),
-                meta: { title: 'Audit Barang Keluar (Dev)', menu: 'audit_stock_out_uc', permissions: ['audit.view'] }
-            },
+            // Direct redirects for underscored versions
+            { path: 'audit/uc/profit', name: 'AuditProfitUC', component: () => import('../views/audit/UnderConstruction.vue'), meta: { title: 'Audit Profit (Dev)', menu: 'audit_profit_uc', permissions: ['audit.view'] } },
+            { path: 'audit/uc/profit_', redirect: 'audit/uc/profit' },
+            { path: 'audit/uc/stock-in', name: 'AuditStockInUC', component: () => import('../views/audit/UnderConstruction.vue'), meta: { title: 'Audit Barang Masuk (Dev)', menu: 'audit_stock_in_uc', permissions: ['audit.view'] } },
+            { path: 'audit/uc/stock_in', redirect: 'audit/uc/stock-in' },
+            { path: 'audit/uc/stock-out', name: 'AuditStockOutUC', component: () => import('../views/audit/UnderConstruction.vue'), meta: { title: 'Audit Barang Keluar (Dev)', menu: 'audit_stock_out_uc', permissions: ['audit.view'] } },
+            { path: 'audit/uc/stock_out', redirect: 'audit/uc/stock-out' },
 
             // Working Routes for Standalone Menus
             {
-                path: 'audit/sales',
-                name: 'AuditSales',
+                path: 'audit/sales-list', // Changed path to avoid conflict
+                name: 'AuditSalesList',
                 component: () => import('../views/audit/Sales.vue'),
                 meta: { title: 'Audit Penjualan', menu: 'audit_sales', permissions: ['audit.view'] }
             },
@@ -270,7 +259,7 @@ const routes = [
             {
                 path: 'audit/analysis',
                 name: 'AuditAnalysis',
-                component: () => import('../views/audit/Profit.vue'), // Pointing to Profit.vue to restore working functionality
+                component: () => import('../views/audit/Profit.vue'),
                 meta: { title: 'Analisa Cabang', menu: 'audit_analysis', permissions: ['audit.view'] }
             },
             {
