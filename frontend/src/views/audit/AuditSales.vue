@@ -96,6 +96,8 @@
                                 <th class="px-6 py-4">No HP</th>
                                 <th class="px-6 py-4">Kategori</th>
                                 <th class="px-6 py-4">Tipe</th>
+                                <th class="px-6 py-4">Brand</th>
+                                <th class="px-6 py-4">Nama Type</th>
                                 <th class="px-6 py-4">Jumlah Barang</th>
                                 <th class="px-6 py-4">Status Pembayaran</th>
                                 <th class="px-6 py-4">Cash</th>
@@ -131,7 +133,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -143,6 +145,10 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 font-medium">{{ item.type }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.brand_names }}
+                                </td>
+                                <td class="px-6 py-4 text-xs font-medium text-text-secondary">{{ item.product_names }}
+                                </td>
                                 <td class="px-6 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"

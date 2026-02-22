@@ -113,6 +113,8 @@
                                 <th class="px-4 py-4">Nama</th>
                                 <th class="px-4 py-4">Kategori</th>
                                 <th class="px-4 py-4">Tipe</th>
+                                <th class="px-4 py-4 text-left">Brand</th>
+                                <th class="px-4 py-4 text-left">Nama Type</th>
                                 <th class="px-4 py-4">Qty</th>
                                 <th class="px-4 py-4">Harga Jual</th>
                                 <th class="px-4 py-4">Harga Modal</th>
@@ -149,7 +151,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                }}</td>
+                                    }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -158,8 +160,11 @@
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 font-medium text-xs">{{ item.type
-                                }}</td>
+                                <td class="px-4 py-4 font-medium text-xs">{{ item.type }}</td>
+                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.brand_names }}
+                                </td>
+                                <td class="px-4 py-4 text-xs font-medium text-text-secondary">{{ item.product_names }}
+                                </td>
                                 <td class="px-4 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
                                 <!-- Harga Jual -->
                                 <td

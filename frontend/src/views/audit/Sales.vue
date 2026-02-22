@@ -75,6 +75,12 @@
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Tipe</th>
                                 <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Brand</th>
+                                <th scope="col"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Nama Type</th>
+                                <th scope="col"
                                     class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Jml</th>
                                 <th scope="col"
@@ -90,7 +96,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{{
                                     formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary font-medium">
                                     {{
                                         item.order_no }}</td>
@@ -103,6 +109,10 @@
                                     item.category }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{{
                                     item.type }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs font-semibold text-text-secondary">
+                                    {{ item.brand_names }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-text-secondary">
+                                    {{ item.product_names }}</td>
                                 <td
                                     class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right font-medium">
                                     {{ item.qty }}
@@ -183,7 +193,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                            }}</td>
+                                }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
