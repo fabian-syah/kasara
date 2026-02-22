@@ -177,10 +177,18 @@ const showStockInModal = ref(false);
 // Tab Switch
 const activeTab = ref("hp"); // 'hp' or 'non-hp'
 
-// Watch tab change to reload data
+// Watch tab change to reload data and reset filters
 watch(activeTab, () => {
-  // Use inventoryStore action if possible, or direct API
-  loadInventory();
+  // Reset search and filters on tab change
+  searchQuery.value = "";
+  debouncedSearch.value = "";
+  filterProduct.value = [];
+  filterCapacity.value = [];
+  filterBrand.value = [];
+  selectedCondition.value = 'all';
+  selectedStockStatus.value = 'all';
+
+  loadInventory(1);
   fetchFilterOptions(); // Re-fetch options for new tab
 });
 
@@ -229,15 +237,6 @@ watch(() => props.onlineShopId, () => {
   loadInventory(1);
 });
 
-// Tab Change
-watch(activeTab, () => {
-  // Reset filters on tab change? Maybe.
-  // filterProduct.value = []
-  // filterCapacity.value = []
-  // filterBrand.value = []
-  loadInventory(1);
-  fetchFilterOptions();
-})
 
 function changePage(page) {
   if (page >= 1 && page <= pagination.value.last_page) {
