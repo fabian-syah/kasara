@@ -119,6 +119,7 @@
 <script setup>
 import { defineProps, defineEmits, ref } from 'vue';
 import { Printer, Pencil } from 'lucide-vue-next';
+import { useEscapeKey } from '../../composables/useEscapeKey';
 
 const props = defineProps({
     isOpen: Boolean,
@@ -139,6 +140,10 @@ const close = () => {
 const printReceipt = () => {
     window.print();
 };
+
+useEscapeKey(() => {
+    if (props.isOpen) close();
+});
 
 const handleImageError = () => {
     imageError.value = true;

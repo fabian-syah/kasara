@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useCartStore } from "../../store/cart";
 import { useInventoryStore } from "../../store/inventory";
 import { formatCurrency } from "../../utils/formatters";
@@ -128,6 +129,11 @@ function closeSuccessModal() {
   showSuccessModal.value = false;
   lastTransaction.value = null;
 }
+
+useEscapeKey(() => {
+  if (showPaymentModal.value) showPaymentModal.value = false;
+  else if (showSuccessModal.value) closeSuccessModal();
+});
 
 // Quick amounts for cash payment
 function setQuickAmount(amount) {

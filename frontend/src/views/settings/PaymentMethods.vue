@@ -133,6 +133,7 @@
 import { ref, onMounted } from 'vue';
 import { PlusIcon } from 'lucide-vue-next';
 import axios from '../../api/axios';
+import { useEscapeKey } from '../../composables/useEscapeKey';
 
 const plusIcon = PlusIcon;
 const paymentMethods = ref([]);
@@ -183,6 +184,10 @@ const closeModal = () => {
         form.value = { id: null, name: '', account_number: '', account_name: '', category: 'transfer', is_active: true };
     }, 200);
 };
+
+useEscapeKey(() => {
+    if (isModalOpen.value) closeModal();
+});
 
 const save = async () => {
     try {

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
+import { useEscapeKey } from "../../composables/useEscapeKey";
 import { formatCurrency, formatDate } from "../../utils/formatters";
 import {
   Search,
@@ -160,6 +161,10 @@ function openDetail(item) {
   showDetailModal.value = true;
 }
 
+useEscapeKey(() => {
+  if (showDetailModal.value) showDetailModal.value = false;
+});
+
 function approveItem() {
   if (selectedItem.value) {
     selectedItem.value.status = "approved";
@@ -236,16 +241,16 @@ function rejectItem() {
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-start gap-4">
             <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="item.priority === 'high'
-                ? 'bg-red-500/20'
-                : item.priority === 'medium'
-                  ? 'bg-amber-500/20'
-                  : 'bg-slate-700'
+              ? 'bg-red-500/20'
+              : item.priority === 'medium'
+                ? 'bg-amber-500/20'
+                : 'bg-slate-700'
               ">
               <AlertTriangle :size="20" :class="item.priority === 'high'
-                  ? 'text-red-400'
-                  : item.priority === 'medium'
-                    ? 'text-amber-400'
-                    : 'text-slate-400'
+                ? 'text-red-400'
+                : item.priority === 'medium'
+                  ? 'text-amber-400'
+                  : 'text-slate-400'
                 " />
             </div>
             <div>

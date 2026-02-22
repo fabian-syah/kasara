@@ -133,7 +133,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -362,6 +362,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useEscapeKey } from '../../composables/useEscapeKey'
 import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
@@ -445,6 +446,10 @@ const openChecklist = async (item) => {
         checklistLoading.value = false
     }
 }
+
+useEscapeKey(() => {
+    if (showChecklistModal.value) showChecklistModal.value = false;
+});
 
 const setAnswer = (index, value) => {
     if (checklistData.value?.questions?.[index]) {

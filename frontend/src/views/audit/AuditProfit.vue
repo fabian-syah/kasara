@@ -151,7 +151,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                    }}</td>
+                                }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -360,6 +360,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue'
+import { useEscapeKey } from '../../composables/useEscapeKey'
 import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
@@ -392,6 +393,10 @@ const closeChecklist = () => {
     showChecklistModal.value = false
     checklistEditMode.value = false
 }
+
+useEscapeKey(() => {
+    if (showChecklistModal.value) closeChecklist();
+});
 
 const openChecklist = async (item) => {
     checklistStockOutId.value = item.id

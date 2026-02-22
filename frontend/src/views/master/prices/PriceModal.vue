@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { X, Save, DollarSign } from 'lucide-vue-next';
 import { productPrices as api, brands as brandsApi, productTypes as typesApi } from '../../../api/axios';
 import { useToast } from '../../../composables/useToast';
+import { useEscapeKey } from '../../../composables/useEscapeKey';
 
 const props = defineProps({
     show: Boolean,
@@ -169,6 +170,10 @@ const save = async () => {
         loading.value = false;
     }
 };
+
+useEscapeKey(() => {
+    if (props.show) emit('close');
+});
 </script>
 
 <template>

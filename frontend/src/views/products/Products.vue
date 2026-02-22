@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useInventoryStore } from "../../store/inventory";
 import { formatCurrency } from "../../utils/formatters";
+import { useEscapeKey } from "../../composables/useEscapeKey";
 import {
   Search,
   Plus,
@@ -92,6 +93,10 @@ function closeModal() {
   editingProduct.value = null;
 }
 
+useEscapeKey(() => {
+  if (showModal.value) closeModal();
+});
+
 function saveProduct() {
   if (editingProduct.value) {
     inventoryStore.updateProduct(editingProduct.value.id, form.value);
@@ -125,9 +130,7 @@ function deleteProduct(id) {
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div class="card flex items-center gap-4">
-        <div
-          class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center"
-        >
+        <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center">
           <Package :size="20" class="text-white" />
         </div>
         <div>
@@ -138,9 +141,7 @@ function deleteProduct(id) {
         </div>
       </div>
       <div class="card flex items-center gap-4">
-        <div
-          class="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center"
-        >
+        <div class="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center">
           <Layers :size="20" class="text-white" />
         </div>
         <div>
@@ -149,9 +150,7 @@ function deleteProduct(id) {
         </div>
       </div>
       <div class="card flex items-center gap-4">
-        <div
-          class="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center"
-        >
+        <div class="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center">
           <Tag :size="20" class="text-white" />
         </div>
         <div>
@@ -160,9 +159,7 @@ function deleteProduct(id) {
         </div>
       </div>
       <div class="card flex items-center gap-4">
-        <div
-          class="w-12 h-12 rounded-xl bg-amber-600 flex items-center justify-center"
-        >
+        <div class="w-12 h-12 rounded-xl bg-amber-600 flex items-center justify-center">
           <DollarSign :size="20" class="text-white" />
         </div>
         <div>
@@ -178,16 +175,8 @@ function deleteProduct(id) {
     <div class="card">
       <div class="flex items-center gap-4">
         <div class="relative flex-1">
-          <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-            :size="18"
-          />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari produk atau SKU..."
-            class="input pl-10"
-          />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" :size="18" />
+          <input v-model="searchQuery" type="text" placeholder="Cari produk atau SKU..." class="input pl-10" />
         </div>
         <select v-model="selectedCategory" class="input w-48">
           <option value="">Semua Kategori</option>
@@ -203,32 +192,18 @@ function deleteProduct(id) {
     </div>
 
     <!-- Products Grid -->
-    <div
-      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-    >
-      <div
-        v-for="product in filteredProducts"
-        :key="product.id"
-        class="card card-hover group"
-      >
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div v-for="product in filteredProducts" :key="product.id" class="card card-hover group">
         <!-- Image placeholder -->
         <div
-          class="h-32 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl mb-4 flex items-center justify-center relative overflow-hidden"
-        >
+          class="h-32 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl mb-4 flex items-center justify-center relative overflow-hidden">
           <Package :size="32" class="text-slate-500" />
           <div
-            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2"
-          >
-            <button
-              @click="openEditModal(product)"
-              class="p-2 bg-blue-600 rounded-lg"
-            >
+            class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <button @click="openEditModal(product)" class="p-2 bg-blue-600 rounded-lg">
               <Edit :size="16" class="text-white" />
             </button>
-            <button
-              @click="deleteProduct(product.id)"
-              class="p-2 bg-red-600 rounded-lg"
-            >
+            <button @click="deleteProduct(product.id)" class="p-2 bg-red-600 rounded-lg">
               <Trash2 :size="16" class="text-white" />
             </button>
           </div>
@@ -244,16 +219,12 @@ function deleteProduct(id) {
             <span class="text-blue-400 font-bold">{{
               formatCurrency(product.price)
             }}</span>
-            <span
-              class="badge"
-              :class="
-                product.stock > product.minStock
-                  ? 'badge-success'
-                  : product.stock > 0
+            <span class="badge" :class="product.stock > product.minStock
+                ? 'badge-success'
+                : product.stock > 0
                   ? 'badge-warning'
                   : 'badge-danger'
-              "
-            >
+              ">
               Stok: {{ product.stock }}
             </span>
           </div>
@@ -263,22 +234,13 @@ function deleteProduct(id) {
 
     <!-- Add/Edit Modal -->
     <Teleport to="body">
-      <div
-        v-if="showModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <div
-          class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          @click="closeModal"
-        ></div>
+      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeModal"></div>
 
         <div
-          class="relative bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
-        >
-          <button
-            @click="closeModal"
-            class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors"
-          >
+          class="relative bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <button @click="closeModal"
+            class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors">
             <X :size="20" />
           </button>
 
@@ -289,104 +251,48 @@ function deleteProduct(id) {
           <form @submit.prevent="saveProduct" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div class="col-span-2">
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >Nama Produk</label
-                >
-                <input
-                  v-model="form.name"
-                  type="text"
-                  class="input"
-                  placeholder="iPhone 15 Pro Max"
-                  required
-                />
+                <label class="block text-sm font-medium text-slate-400 mb-2">Nama Produk</label>
+                <input v-model="form.name" type="text" class="input" placeholder="iPhone 15 Pro Max" required />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >SKU</label
-                >
-                <input
-                  v-model="form.sku"
-                  type="text"
-                  class="input font-mono"
-                  placeholder="IPH15PM"
-                  required
-                />
+                <label class="block text-sm font-medium text-slate-400 mb-2">SKU</label>
+                <input v-model="form.sku" type="text" class="input font-mono" placeholder="IPH15PM" required />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >Brand</label
-                >
-                <input
-                  v-model="form.brand"
-                  type="text"
-                  class="input"
-                  placeholder="Apple"
-                  required
-                />
+                <label class="block text-sm font-medium text-slate-400 mb-2">Brand</label>
+                <input v-model="form.brand" type="text" class="input" placeholder="Apple" required />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >Kategori</label
-                >
+                <label class="block text-sm font-medium text-slate-400 mb-2">Kategori</label>
                 <select v-model="form.category" class="input" required>
                   <option value="">Pilih Kategori</option>
-                  <option
-                    v-for="cat in categories"
-                    :key="cat.id"
-                    :value="cat.name"
-                  >
+                  <option v-for="cat in categories" :key="cat.id" :value="cat.name">
                     {{ cat.name }}
                   </option>
                 </select>
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >Harga (Rp)</label
-                >
-                <input
-                  v-model.number="form.price"
-                  type="number"
-                  class="input"
-                  placeholder="21999000"
-                  required
-                />
+                <label class="block text-sm font-medium text-slate-400 mb-2">Harga (Rp)</label>
+                <input v-model.number="form.price" type="number" class="input" placeholder="21999000" required />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >Stok Awal</label
-                >
-                <input
-                  v-model.number="form.stock"
-                  type="number"
-                  class="input"
-                  placeholder="10"
-                />
+                <label class="block text-sm font-medium text-slate-400 mb-2">Stok Awal</label>
+                <input v-model.number="form.stock" type="number" class="input" placeholder="10" />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-slate-400 mb-2"
-                  >Min. Stok</label
-                >
-                <input
-                  v-model.number="form.minStock"
-                  type="number"
-                  class="input"
-                  placeholder="5"
-                />
+                <label class="block text-sm font-medium text-slate-400 mb-2">Min. Stok</label>
+                <input v-model.number="form.minStock" type="number" class="input" placeholder="5" />
               </div>
             </div>
 
             <div class="flex gap-3 pt-4">
-              <button
-                type="button"
-                @click="closeModal"
-                class="btn btn-secondary flex-1"
-              >
+              <button type="button" @click="closeModal" class="btn btn-secondary flex-1">
                 Batal
               </button>
               <button type="submit" class="btn btn-primary flex-1">
@@ -405,11 +311,13 @@ function deleteProduct(id) {
 .animate-in {
   animation: fadeIn 0.3s ease-out;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

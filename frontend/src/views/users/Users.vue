@@ -4,6 +4,7 @@ import { ROLE_LABELS, ROLES } from "../../utils/permissions";
 import { formatDate } from "../../utils/formatters";
 import { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useAuthStore } from "../../store/auth"; // Import Auth Store
 import {
   Search,
@@ -304,6 +305,10 @@ function closeModal() {
   editingUser.value = null;
   resetForm();
 }
+
+useEscapeKey(() => {
+  if (showModal.value) closeModal();
+});
 
 async function saveUser() {
   isSaving.value = true;

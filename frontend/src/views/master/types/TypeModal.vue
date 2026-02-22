@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { X, Save, Smartphone, Disc, Wrench, HardDrive, Cpu, Tag, DollarSign } from 'lucide-vue-next';
 import { productTypes as api, brands as brandsApi } from '../../../api/axios';
 import { useToast } from '../../../composables/useToast';
+import { useEscapeKey } from '../../../composables/useEscapeKey';
 
 const props = defineProps({
     show: Boolean,
@@ -125,6 +126,10 @@ const save = async () => {
         loading.value = false;
     }
 };
+
+useEscapeKey(() => {
+    if (props.show) emit('close');
+});
 
 // Helper for formatting
 const formatCurrency = (value) => {
