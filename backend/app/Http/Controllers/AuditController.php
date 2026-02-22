@@ -738,9 +738,11 @@ class AuditController extends Controller
             ]);
         }
 
-        // 2. Add current questions that haven't been answered yet
+        // 2. Add current questions that haven't been answered yet,
+        //    OR that were answered but the content has since been edited (new version = new question)
         foreach ($currentQuestions as $q) {
             if (!in_array($q->id, $answeredQuestionIds)) {
+                // Never answered — add as new
                 $checklist->push([
                     'question_id' => $q->id,
                     'content' => $q->content,
@@ -749,6 +751,27 @@ class AuditController extends Controller
                     'answered_at' => null,
                     'is_deleted' => false,
                 ]);
+            } else {
+                // Was answered — check if the question text was edited since the answer
+                $existingAns = $existingAnswers->firstWhere('question_id', $q->id);
+                if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $q->content) {
+                    // Question was edited: mark old answer as 'is_deleted' (old version) and add new version
+                    $checklist->push([
+                        'question_id' => $q->id,
+                        'content' => $q->content,
+                        'answer' => null,
+                        'notes' => null,
+                        'answered_at' => null,
+                        'is_deleted' => false,
+                    ]);
+                    // Mark the old answered version as edited
+                    $checklist->transform(function ($item) use ($q, $existingAns) {
+                        if ($item['question_id'] === $q->id && $item['content'] === $existingAns->question_content && $item['answer'] !== null) {
+                            $item['is_deleted'] = true;
+                        }
+                        return $item;
+                    });
+                }
             }
         }
 
@@ -1061,6 +1084,8 @@ class AuditController extends Controller
             ]);
         }
 
+        // 2. Add current questions that haven't been answered yet,
+        //    OR that were answered but the content has since been edited
         foreach ($currentQuestions as $q) {
             if (!in_array($q->id, $answeredQuestionIds)) {
                 $checklist->push([
@@ -1071,6 +1096,24 @@ class AuditController extends Controller
                     'answered_at' => null,
                     'is_deleted' => false,
                 ]);
+            } else {
+                $existingAns = $existingAnswers->firstWhere('question_id', $q->id);
+                if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $q->content) {
+                    $checklist->push([
+                        'question_id' => $q->id,
+                        'content' => $q->content,
+                        'answer' => null,
+                        'notes' => null,
+                        'answered_at' => null,
+                        'is_deleted' => false,
+                    ]);
+                    $checklist->transform(function ($item) use ($q, $existingAns) {
+                        if ($item['question_id'] === $q->id && $item['content'] === $existingAns->question_content && $item['answer'] !== null) {
+                            $item['is_deleted'] = true;
+                        }
+                        return $item;
+                    });
+                }
             }
         }
 
