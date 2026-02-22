@@ -1096,11 +1096,12 @@ class AuditController extends Controller
         $currentQuestions = Question::where('category', 'profit')->orderBy('id')->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
+        // Only get answers for profit questions (current IDs) or orphaned (null question_id)
+        // Do NOT use orWhereNotNull('question_content') — that pulls in answers from other categories
         $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)
             ->where(function ($q) use ($currentQuestionIds) {
                 $q->whereIn('question_id', $currentQuestionIds)
-                    ->orWhereNull('question_id')
-                    ->orWhereNotNull('question_content');
+                    ->orWhereNull('question_id');
             })->get();
 
         $checklist = collect();
