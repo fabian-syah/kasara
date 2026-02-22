@@ -182,9 +182,26 @@ class AuditController extends Controller
                 }
             }
 
-            // Audit score calculation
-            $totalQuestions = Question::where('category', $trx->category)->count();
-            $yesCount = $trx->auditAnswers->where('answer', true)->count();
+            // Audit score calculation (must match getChecklist logic for edited questions)
+            $currentQuestions = Question::where('category', $trx->category)->get();
+            $answers = $trx->auditAnswers;
+            $yesCount = $answers->where('answer', true)->count();
+            $totalQuestions = $currentQuestions->count();
+
+            // Count edited questions (answered but content changed) as additional unanswered
+            foreach ($currentQuestions as $cq) {
+                $existingAns = $answers->firstWhere('question_id', $cq->id);
+                if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $cq->content) {
+                    $totalQuestions++; // edited question = +1 unanswered
+                }
+            }
+            // Count orphaned answers (deleted questions) still in the total
+            foreach ($answers as $ans) {
+                if ($ans->question_id === null || !$currentQuestions->contains('id', $ans->question_id)) {
+                    $totalQuestions++;
+                }
+            }
+
             $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
 
             return [
@@ -982,12 +999,29 @@ class AuditController extends Controller
             $effectiveHargaModal = $hargaModal ?? $defaultHargaModal;
             $profit = $hargaJual - $effectiveHargaModal;
 
-            // Audit score using 'profit' category
-            $totalQuestions = Question::where('category', 'profit')->count();
-            $yesCount = $trx->auditAnswers->whereIn(
-                'question_id',
-                Question::where('category', 'profit')->pluck('id')
-            )->where('answer', true)->count();
+            // Audit score using 'profit' category (must match getProfitChecklist logic)
+            $currentProfitQuestions = Question::where('category', 'profit')->get();
+            $profitQuestionIds = $currentProfitQuestions->pluck('id')->toArray();
+            $profitAnswers = $trx->auditAnswers->filter(function ($a) use ($profitQuestionIds) {
+                return in_array($a->question_id, $profitQuestionIds) || $a->question_id === null;
+            });
+            $yesCount = $profitAnswers->where('answer', true)->count();
+            $totalQuestions = $currentProfitQuestions->count();
+
+            // Count edited questions as additional unanswered
+            foreach ($currentProfitQuestions as $cq) {
+                $existingAns = $profitAnswers->firstWhere('question_id', $cq->id);
+                if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $cq->content) {
+                    $totalQuestions++;
+                }
+            }
+            // Count orphaned answers (deleted questions)
+            foreach ($profitAnswers as $ans) {
+                if ($ans->question_id === null || !$currentProfitQuestions->contains('id', $ans->question_id)) {
+                    $totalQuestions++;
+                }
+            }
+
             $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
 
             return [
