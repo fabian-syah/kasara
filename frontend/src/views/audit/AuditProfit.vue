@@ -209,6 +209,11 @@
                                             title="Lihat Nota">
                                             <Eye :size="16" />
                                         </button>
+                                        <button @click="openChecklist(item)"
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Cek Audit Profit">
+                                            <ClipboardCheck :size="16" />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -219,31 +224,43 @@
         </div>
     </div>
 
-    <!-- Receipt Modal -->
-    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" :showEditIcon="true"
-        @close="showReceiptModal = false" @open-checklist="openChecklistFromReceipt" />
+    <!-- Receipt Modal (no edit icon for profit - separate checklist button) -->
+    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" @close="showReceiptModal = false" />
 
-    <!-- Audit Checklist Modal (Profit) -->
+    <!-- Audit Checklist Modal (Profit) - Two-stage: read-only / edit -->
     <Teleport to="body">
         <div v-if="showChecklistModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showChecklistModal = false"></div>
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeChecklist"></div>
             <div
                 class="relative bg-white dark:bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden">
                 <!-- Header -->
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-surface-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Cek Audit Profit</h3>
-                    <p class="text-sm text-gray-500 mt-0.5">
-                        Kategori: <span class="font-semibold text-purple-600 dark:text-purple-400">profit</span>
-                        — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
-                        <span v-if="checklistData?.score !== undefined" class="font-semibold"
-                            :class="checklistData.score === 100 ? 'text-emerald-600' : 'text-amber-600'">
-                            ({{ checklistData.score }}%)
-                        </span>
-                    </p>
-                    <p v-if="checklistData?.audited_at" class="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                        <Calendar :size="12" />
-                        Terakhir diaudit: {{ formatDate(checklistData.audited_at) }}
-                    </p>
+                <div
+                    class="px-6 py-4 border-b border-gray-100 dark:border-surface-700 flex items-start justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Cek Audit Profit</h3>
+                        <p class="text-sm text-gray-500 mt-0.5">
+                            Kategori: <span class="font-semibold text-purple-600 dark:text-purple-400">profit</span>
+                            — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
+                            <span v-if="checklistData?.score !== undefined" class="font-semibold"
+                                :class="checklistData.score === 100 ? 'text-emerald-600' : 'text-amber-600'">
+                                ({{ checklistData.score }}%)
+                            </span>
+                        </p>
+                        <p v-if="checklistData?.audited_at" class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                            <Calendar :size="12" />
+                            Terakhir diaudit: {{ formatDate(checklistData.audited_at) }}
+                        </p>
+                        <p v-else class="text-xs text-amber-500 mt-1 font-medium">Belum pernah diaudit</p>
+                    </div>
+                    <!-- Edit toggle button -->
+                    <button v-if="!checklistEditMode" @click="checklistEditMode = true"
+                        class="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all"
+                        title="Edit Audit">
+                        <Pencil :size="16" />
+                    </button>
+                    <span v-else class="px-3 py-1.5 text-xs font-bold bg-primary-500/10 text-primary-600 rounded-lg">
+                        Mode Edit
+                    </span>
                 </div>
 
                 <!-- Questions -->
@@ -254,7 +271,7 @@
                     <div v-else-if="!checklistData?.questions?.length" class="text-center py-8 text-gray-500">
                         Belum ada pertanyaan untuk kategori <strong>profit</strong>.
                     </div>
-                    <div v-else v-for="(q, i) in checklistData.questions" :key="q.question_id"
+                    <div v-else v-for="(q, i) in checklistData.questions" :key="i"
                         class="flex flex-col gap-2 p-4 rounded-xl border transition-all"
                         :class="q.answer === true ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5' : q.answer === false ? 'border-red-200 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5' : 'border-gray-200 dark:border-surface-600 bg-gray-50/50 dark:bg-surface-700/30'">
                         <div class="flex items-start gap-4">
@@ -267,7 +284,25 @@
                                     Dijawab: {{ formatDate(q.answered_at) }}
                                 </p>
                             </div>
-                            <div class="flex gap-2 flex-shrink-0">
+
+                            <!-- READ-ONLY mode: show only the answer badge -->
+                            <div v-if="!checklistEditMode" class="flex-shrink-0">
+                                <span v-if="q.answer === true"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-white">
+                                    Yes
+                                </span>
+                                <span v-else-if="q.answer === false"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500 text-white">
+                                    No
+                                </span>
+                                <span v-else
+                                    class="px-3 py-1.5 rounded-lg text-[10px] font-medium bg-gray-100 dark:bg-surface-600 text-gray-400 italic">
+                                    Belum di cek
+                                </span>
+                            </div>
+
+                            <!-- EDIT mode: Yes/No toggle buttons -->
+                            <div v-else class="flex gap-2 flex-shrink-0">
                                 <button @click="setAnswer(i, true)"
                                     class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
                                     :class="q.answer === true ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-600'">
@@ -280,22 +315,29 @@
                                 </button>
                             </div>
                         </div>
-                        <!-- Notes textarea -->
-                        <div class="ml-8">
+
+                        <!-- Notes: read-only shows text, edit shows textarea -->
+                        <div v-if="checklistEditMode" class="ml-8">
                             <textarea v-model="q.notes" rows="2" placeholder="Catatan (opsional)..."
                                 class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">
                             </textarea>
+                        </div>
+                        <div v-else-if="q.notes" class="ml-8">
+                            <p
+                                class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-surface-700/50 px-3 py-2 rounded-lg">
+                                <span class="font-medium text-gray-600 dark:text-gray-300">Catatan:</span> {{ q.notes }}
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Footer -->
                 <div class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-3">
-                    <button @click="showChecklistModal = false"
+                    <button @click="closeChecklist"
                         class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-xl transition-colors">
                         Tutup
                     </button>
-                    <button @click="saveChecklist" :disabled="checklistSaving"
+                    <button v-if="checklistEditMode" @click="saveChecklist" :disabled="checklistSaving"
                         class="px-5 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow-lg shadow-primary-500/20 transition-all disabled:opacity-50">
                         {{ checklistSaving ? 'Menyimpan...' : 'Simpan' }}
                     </button>
@@ -307,7 +349,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue'
-import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save } from 'lucide-vue-next'
+import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
@@ -326,22 +368,22 @@ const openReceipt = (item) => {
     showReceiptModal.value = true;
 }
 
-const openChecklistFromReceipt = () => {
-    showReceiptModal.value = false
-    if (selectedTransaction.value) {
-        openChecklist(selectedTransaction.value)
-    }
-}
-
 // Audit Checklist Modal State
 const showChecklistModal = ref(false)
 const checklistLoading = ref(false)
 const checklistSaving = ref(false)
 const checklistData = ref(null)
 const checklistStockOutId = ref(null)
+const checklistEditMode = ref(false)
+
+const closeChecklist = () => {
+    showChecklistModal.value = false
+    checklistEditMode.value = false
+}
 
 const openChecklist = async (item) => {
     checklistStockOutId.value = item.id
+    checklistEditMode.value = false
     showChecklistModal.value = true
     checklistLoading.value = true
     try {
