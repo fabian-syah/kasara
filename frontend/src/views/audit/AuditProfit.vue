@@ -143,7 +143,7 @@
                                     class="px-4 py-4 font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-gray-900 dark:text-white font-medium text-xs">{{ item.order_no
-                                    }}</td>
+                                }}</td>
                                 <td class="px-4 py-4 text-gray-600 dark:text-gray-300 text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -153,24 +153,31 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-4 text-gray-600 dark:text-gray-300 font-medium text-xs">{{ item.type
-                                    }}</td>
+                                }}</td>
                                 <td class="px-4 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
                                 <!-- Harga Jual -->
                                 <td
                                     class="px-4 py-4 text-gray-900 dark:text-white font-mono text-xs font-semibold whitespace-nowrap">
-                                    {{ formatCurrency(item.harga_jual) }}
+                                    {{ formatCurrency(item.harga_jual || 0) }}
                                 </td>
-                                <!-- Harga Modal (editable) -->
+                                <!-- Harga Modal (editable with Rupiah formatting) -->
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-1">
-                                        <input type="number" v-model.number="editableModal[item.id]"
-                                            :placeholder="formatNumber(item.default_harga_modal)" class="w-28 px-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all
-                                                bg-white dark:bg-surface-700
-                                                focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                                            :class="item.has_saved_modal
-                                                ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                                                : 'border-gray-200 dark:border-surface-600 text-gray-700 dark:text-gray-300'"
-                                            @keyup.enter="saveHargaModal(item)" />
+                                        <div class="relative">
+                                            <span
+                                                class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono pointer-events-none">Rp</span>
+                                            <input type="text"
+                                                :value="formatModalDisplay(item.id, item.default_harga_modal)"
+                                                @input="onModalInput($event, item)" @focus="onModalFocus($event, item)"
+                                                @blur="onModalBlur($event, item)"
+                                                :placeholder="formatNumber(item.default_harga_modal || 0)" class="w-32 pl-8 pr-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all
+                                                    bg-white dark:bg-surface-700
+                                                    focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                                :class="item.has_saved_modal
+                                                    ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                                                    : 'border-gray-200 dark:border-surface-600 text-gray-700 dark:text-gray-300'"
+                                                @keyup.enter="saveHargaModal(item)" />
+                                        </div>
                                         <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
                                             class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all"
                                             title="Simpan Harga Modal">
@@ -382,22 +389,59 @@ const savingModalId = ref(null)
 const initEditableModal = () => {
     profitRecords.value.daily_sales.forEach(item => {
         // Pre-fill with saved harga_modal or leave empty (placeholder shows default)
-        editableModal[item.id] = item.harga_modal ?? null
+        editableModal[item.id] = item.harga_modal != null ? Number(item.harga_modal) : null
     })
 }
 
+// Format display for modal input (shows rupiah-formatted number)
+const formatModalDisplay = (itemId, defaultVal) => {
+    const val = editableModal[itemId]
+    if (val != null && val !== '') {
+        return formatNumber(val)
+    }
+    return ''
+}
+
+// Handle typing in harga modal input - strip non-digits, store raw number
+const onModalInput = (event, item) => {
+    const raw = event.target.value.replace(/[^0-9]/g, '')
+    const num = raw ? parseInt(raw, 10) : null
+    editableModal[item.id] = num
+    // Reformat the display
+    event.target.value = num != null ? formatNumber(num) : ''
+}
+
+const onModalFocus = (event, item) => {
+    // On focus, show raw number for easy editing
+    const val = editableModal[item.id]
+    if (val != null) {
+        event.target.value = val.toString()
+    }
+}
+
+const onModalBlur = (event, item) => {
+    // On blur, reformat to rupiah
+    const val = editableModal[item.id]
+    if (val != null) {
+        event.target.value = formatNumber(val)
+    } else {
+        event.target.value = ''
+    }
+}
+
 const getEffectiveProfit = (item) => {
-    const hargaModal = editableModal[item.id] || item.harga_modal || item.default_harga_modal
-    return item.harga_jual - hargaModal
+    const hargaJual = Number(item.harga_jual) || 0
+    const hargaModal = editableModal[item.id] || Number(item.harga_modal) || Number(item.default_harga_modal) || 0
+    return hargaJual - hargaModal
 }
 
 const saveHargaModal = async (item) => {
     const value = editableModal[item.id]
     if (!value && value !== 0) {
         // Use default if empty
-        editableModal[item.id] = item.default_harga_modal
+        editableModal[item.id] = Number(item.default_harga_modal) || 0
     }
-    const hargaModal = editableModal[item.id] || item.default_harga_modal
+    const hargaModal = editableModal[item.id] || Number(item.default_harga_modal) || 0
 
     savingModalId.value = item.id
     try {
@@ -449,11 +493,11 @@ const selectedLocationKey = ref('all')
 
 // Summary computeds
 const totalHargaJual = computed(() =>
-    profitRecords.value.daily_sales.reduce((sum, item) => sum + (item.harga_jual || 0), 0)
+    profitRecords.value.daily_sales.reduce((sum, item) => sum + (Number(item.harga_jual) || 0), 0)
 )
 const totalHargaModal = computed(() =>
     profitRecords.value.daily_sales.reduce((sum, item) => {
-        const modal = editableModal[item.id] || item.harga_modal || item.default_harga_modal
+        const modal = editableModal[item.id] || Number(item.harga_modal) || Number(item.default_harga_modal) || 0
         return sum + modal
     }, 0)
 )
@@ -508,15 +552,17 @@ const canFilterBranch = computed(() => {
 })
 
 const formatCurrency = (value) => {
+    const num = Number(value) || 0
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0
-    }).format(value)
+    }).format(num)
 }
 
 const formatNumber = (value) => {
-    return new Intl.NumberFormat('id-ID').format(value)
+    const num = Number(value) || 0
+    return new Intl.NumberFormat('id-ID').format(num)
 }
 
 const formatDate = (dateString) => {

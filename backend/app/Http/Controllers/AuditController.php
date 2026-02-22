@@ -905,10 +905,10 @@ class AuditController extends Controller
             }
 
             // Profit calculation
-            $hargaJual = $trx->selling_price;
+            $hargaJual = (float) ($trx->selling_price ?? 0);
             $savedProfit = $trx->auditProfit;
-            $hargaModal = $savedProfit ? $savedProfit->harga_modal : null;
-            $defaultHargaModal = round($hargaJual * 0.95);
+            $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
+            $defaultHargaModal = $hargaJual > 0 ? round($hargaJual * 0.95) : 0;
             $effectiveHargaModal = $hargaModal ?? $defaultHargaModal;
             $profit = $hargaJual - $effectiveHargaModal;
 
