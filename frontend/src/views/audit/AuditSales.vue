@@ -131,7 +131,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
@@ -162,17 +162,13 @@
                                         ✅</span>
                                     <span v-else
                                         class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
-                                        item.audit_score }}% ⚠️</span>
+                                            item.audit_score }}% ⚠️</span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-2 transition-opacity">
                                         <button @click="openReceipt(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
                                             <Eye :size="16" />
-                                        </button>
-                                        <button @click="openChecklist(item)"
-                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
-                                            <FileText :size="16" />
                                         </button>
                                     </div>
                                 </td>
@@ -273,7 +269,8 @@
     </div>
 
     <!-- Receipt Modal -->
-    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" @close="showReceiptModal = false" />
+    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" :showEditIcon="true"
+        @close="showReceiptModal = false" @open-checklist="openChecklistFromReceipt" />
 
     <!-- Audit Checklist Modal -->
     <Teleport to="body">
@@ -291,6 +288,10 @@
                             ({{ checklistData.score }}%)
                         </span>
                     </p>
+                    <p v-if="checklistData?.audited_at" class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                        <Calendar :size="12" />
+                        Terakhir diaudit: {{ formatDate(checklistData.audited_at) }}
+                    </p>
                 </div>
 
                 <!-- Questions -->
@@ -302,23 +303,36 @@
                         Belum ada pertanyaan untuk kategori ini.
                     </div>
                     <div v-else v-for="(q, i) in checklistData.questions" :key="q.question_id"
-                        class="flex items-start gap-4 p-4 rounded-xl border transition-all"
+                        class="flex flex-col gap-2 p-4 rounded-xl border transition-all"
                         :class="q.answer === true ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5' : q.answer === false ? 'border-red-200 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5' : 'border-gray-200 dark:border-surface-600 bg-gray-50/50 dark:bg-surface-700/30'">
-                        <span class="text-sm font-bold text-gray-400 mt-0.5">{{ i + 1 }}.</span>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ q.content }}</p>
+                        <div class="flex items-start gap-4">
+                            <span class="text-sm font-bold text-gray-400 mt-0.5">{{ i + 1 }}.</span>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ q.content }}</p>
+                                <p v-if="q.is_deleted" class="text-[10px] text-red-400 mt-0.5 italic">Pertanyaan ini
+                                    sudah dihapus/diubah</p>
+                                <p v-if="q.answered_at" class="text-[10px] text-gray-400 mt-0.5">
+                                    Dijawab: {{ formatDate(q.answered_at) }}
+                                </p>
+                            </div>
+                            <div class="flex gap-2 flex-shrink-0">
+                                <button @click="setAnswer(i, true)"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    :class="q.answer === true ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-600'">
+                                    Yes
+                                </button>
+                                <button @click="setAnswer(i, false)"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    :class="q.answer === false ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600'">
+                                    No
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex gap-2 flex-shrink-0">
-                            <button @click="setAnswer(i, true)"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                :class="q.answer === true ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-600'">
-                                Yes
-                            </button>
-                            <button @click="setAnswer(i, false)"
-                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                :class="q.answer === false ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600'">
-                                No
-                            </button>
+                        <!-- Notes textarea -->
+                        <div class="ml-8">
+                            <textarea v-model="q.notes" rows="2" placeholder="Catatan (opsional)..."
+                                class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">
+                            </textarea>
                         </div>
                     </div>
                 </div>
@@ -359,6 +373,13 @@ const selectedTransaction = ref(null)
 const openReceipt = (item) => {
     selectedTransaction.value = item;
     showReceiptModal.value = true;
+}
+
+const openChecklistFromReceipt = () => {
+    showReceiptModal.value = false
+    if (selectedTransaction.value) {
+        openChecklist(selectedTransaction.value)
+    }
 }
 
 // Audit Checklist Modal State
@@ -403,7 +424,9 @@ const saveChecklist = async () => {
         const payload = {
             answers: answeredQuestions.map(q => ({
                 question_id: q.question_id,
-                answer: q.answer
+                answer: q.answer,
+                notes: q.notes || null,
+                content: q.content
             }))
         }
         const res = await axios.post(`/audit/checklist/${checklistStockOutId.value}`, payload)

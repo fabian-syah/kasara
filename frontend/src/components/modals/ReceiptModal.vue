@@ -4,7 +4,14 @@
             class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white"
             @click.self="close">
             <div
-                class="bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-[80mm] print:mx-auto">
+                class="relative bg-white w-full max-w-sm sm:max-w-md rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:w-[80mm] print:mx-auto">
+
+                <!-- Edit/Audit Button (top-right) -->
+                <button v-if="showEditIcon" @click="$emit('open-checklist')"
+                    class="absolute top-4 right-4 z-10 p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all print:hidden"
+                    title="Cek Audit">
+                    <Pencil :size="16" />
+                </button>
 
                 <!-- Receipt Header -->
                 <!-- Added print:pt-10 to push content down from header when printing -->
@@ -111,14 +118,18 @@
 
 <script setup>
 import { defineProps, defineEmits, ref } from 'vue';
-import { Printer } from 'lucide-vue-next';
+import { Printer, Pencil } from 'lucide-vue-next';
 
 const props = defineProps({
     isOpen: Boolean,
-    transaction: Object
+    transaction: Object,
+    showEditIcon: {
+        type: Boolean,
+        default: false
+    }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'open-checklist']);
 const imageError = ref(false);
 
 const close = () => {

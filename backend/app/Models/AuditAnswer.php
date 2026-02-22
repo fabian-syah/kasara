@@ -11,6 +11,8 @@ class AuditAnswer extends Model
         'question_id',
         'answer',
         'auditor_id',
+        'question_content',
+        'notes',
     ];
 
     protected $casts = [

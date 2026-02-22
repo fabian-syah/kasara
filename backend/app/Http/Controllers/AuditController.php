@@ -699,39 +699,69 @@ class AuditController extends Controller
 
     /**
      * Get audit checklist questions + existing answers for a stock_out.
+     * Merges answered questions (with snapshotted content) + current unanswered questions.
      */
     public function getChecklist($stockOutId)
     {
         $stockOut = StockOut::findOrFail($stockOutId);
+        $category = $stockOut->category;
 
-        $questions = Question::where('category', $stockOut->category)
-            ->orderBy('id')
-            ->get();
+        // Get current questions for this category
+        $currentQuestions = Question::where('category', $category)->orderBy('id')->get();
+        $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        $answers = AuditAnswer::where('stock_out_id', $stockOutId)
-            ->pluck('answer', 'question_id');
+        // Get ALL existing answers for this stock_out (including answers for deleted/edited questions)
+        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
 
-        $checklist = $questions->map(function ($q) use ($answers) {
-            return [
-                'question_id' => $q->id,
-                'content' => $q->content,
-                'answer' => $answers->has($q->id) ? (bool) $answers[$q->id] : null,
-            ];
-        });
+        $checklist = collect();
+        $answeredQuestionIds = [];
+
+        // 1. Add previously answered questions (use snapshotted content if available)
+        foreach ($existingAnswers as $ans) {
+            $answeredQuestionIds[] = $ans->question_id;
+            $checklist->push([
+                'question_id' => $ans->question_id,
+                'content' => $ans->question_content ?? optional(Question::find($ans->question_id))->content ?? 'Pertanyaan dihapus',
+                'answer' => (bool) $ans->answer,
+                'notes' => $ans->notes,
+                'answered_at' => $ans->updated_at?->toDateTimeString(),
+                'is_deleted' => $ans->question_id === null || !in_array($ans->question_id, $currentQuestionIds),
+            ]);
+        }
+
+        // 2. Add current questions that haven't been answered yet
+        foreach ($currentQuestions as $q) {
+            if (!in_array($q->id, $answeredQuestionIds)) {
+                $checklist->push([
+                    'question_id' => $q->id,
+                    'content' => $q->content,
+                    'answer' => null,
+                    'notes' => null,
+                    'answered_at' => null,
+                    'is_deleted' => false,
+                ]);
+            }
+        }
+
+        $answeredCount = $existingAnswers->count();
+        $yesCount = $existingAnswers->where('answer', true)->count();
+        $totalQuestions = $checklist->count();
+        $latestAnswer = $existingAnswers->max('updated_at');
 
         return response()->json([
             'stock_out_id' => (int) $stockOutId,
-            'category' => $stockOut->category,
-            'questions' => $checklist,
-            'total' => $questions->count(),
-            'answered' => $answers->count(),
-            'yes_count' => $answers->filter(fn($v) => $v == true)->count(),
-            'score' => $questions->count() > 0 ? round(($answers->filter(fn($v) => $v == true)->count() / $questions->count()) * 100) : 0,
+            'category' => $category,
+            'questions' => $checklist->values(),
+            'total' => $totalQuestions,
+            'answered' => $answeredCount,
+            'yes_count' => $yesCount,
+            'score' => $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0,
+            'audited_at' => $latestAnswer ? \Carbon\Carbon::parse($latestAnswer)->toDateTimeString() : null,
         ]);
     }
 
     /**
-     * Save/update audit checklist answers.
+     * Save/update audit checklist answers with notes and question content snapshot.
      */
     public function saveChecklist(Request $request, $stockOutId)
     {
@@ -740,11 +770,16 @@ class AuditController extends Controller
 
         $request->validate([
             'answers' => 'required|array',
-            'answers.*.question_id' => 'required|exists:questions,id',
+            'answers.*.question_id' => 'required|integer',
             'answers.*.answer' => 'required|boolean',
+            'answers.*.notes' => 'nullable|string|max:1000',
+            'answers.*.content' => 'nullable|string',
         ]);
 
         foreach ($request->answers as $item) {
+            $question = Question::find($item['question_id']);
+            $content = $item['content'] ?? ($question ? $question->content : null);
+
             AuditAnswer::updateOrCreate(
                 [
                     'stock_out_id' => $stockOutId,
@@ -753,22 +788,25 @@ class AuditController extends Controller
                 [
                     'answer' => $item['answer'],
                     'auditor_id' => $user->id,
+                    'question_content' => $content,
+                    'notes' => $item['notes'] ?? null,
                 ]
             );
         }
 
         // Return updated score
-        $totalQuestions = Question::where('category', $stockOut->category)->count();
-        $answeredCount = AuditAnswer::where('stock_out_id', $stockOutId)->count();
-        $yesCount = AuditAnswer::where('stock_out_id', $stockOutId)->where('answer', true)->count();
+        $allAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        $totalQuestions = $allAnswers->count();
+        $yesCount = $allAnswers->where('answer', true)->count();
         $score = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0;
 
         return response()->json([
             'message' => 'Checklist berhasil disimpan',
             'score' => $score,
-            'answered' => $answeredCount,
+            'answered' => $totalQuestions,
             'yes_count' => $yesCount,
             'total' => $totalQuestions,
+            'audited_at' => now()->toDateTimeString(),
         ]);
     }
 
@@ -983,40 +1021,69 @@ class AuditController extends Controller
 
     /**
      * Get audit checklist questions for profit category.
+     * Merges answered (snapshotted) + current unanswered questions.
      */
     public function getProfitChecklist($stockOutId)
     {
         $stockOut = StockOut::findOrFail($stockOutId);
 
-        // Always use 'profit' category for profit checklist
-        $questions = Question::where('category', 'profit')
-            ->orderBy('id')
-            ->get();
+        $currentQuestions = Question::where('category', 'profit')->orderBy('id')->get();
+        $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        $answers = AuditAnswer::where('stock_out_id', $stockOutId)
-            ->pluck('answer', 'question_id');
+        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)
+            ->where(function ($q) use ($currentQuestionIds) {
+                $q->whereIn('question_id', $currentQuestionIds)
+                    ->orWhereNull('question_id')
+                    ->orWhereNotNull('question_content');
+            })->get();
 
-        $checklist = $questions->map(function ($q) use ($answers) {
-            return [
-                'question_id' => $q->id,
-                'content' => $q->content,
-                'answer' => $answers->has($q->id) ? (bool) $answers[$q->id] : null,
-            ];
-        });
+        $checklist = collect();
+        $answeredQuestionIds = [];
+
+        foreach ($existingAnswers as $ans) {
+            $answeredQuestionIds[] = $ans->question_id;
+            $checklist->push([
+                'question_id' => $ans->question_id,
+                'content' => $ans->question_content ?? optional(Question::find($ans->question_id))->content ?? 'Pertanyaan dihapus',
+                'answer' => (bool) $ans->answer,
+                'notes' => $ans->notes,
+                'answered_at' => $ans->updated_at?->toDateTimeString(),
+                'is_deleted' => $ans->question_id === null || !in_array($ans->question_id, $currentQuestionIds),
+            ]);
+        }
+
+        foreach ($currentQuestions as $q) {
+            if (!in_array($q->id, $answeredQuestionIds)) {
+                $checklist->push([
+                    'question_id' => $q->id,
+                    'content' => $q->content,
+                    'answer' => null,
+                    'notes' => null,
+                    'answered_at' => null,
+                    'is_deleted' => false,
+                ]);
+            }
+        }
+
+        $answeredCount = $existingAnswers->count();
+        $yesCount = $existingAnswers->where('answer', true)->count();
+        $totalQuestions = $checklist->count();
+        $latestAnswer = $existingAnswers->max('updated_at');
 
         return response()->json([
             'stock_out_id' => (int) $stockOutId,
             'category' => 'profit',
-            'questions' => $checklist,
-            'total' => $questions->count(),
-            'answered' => $answers->count(),
-            'yes_count' => $answers->filter(fn($v) => $v == true)->count(),
-            'score' => $questions->count() > 0 ? round(($answers->filter(fn($v) => $v == true)->count() / $questions->count()) * 100) : 0,
+            'questions' => $checklist->values(),
+            'total' => $totalQuestions,
+            'answered' => $answeredCount,
+            'yes_count' => $yesCount,
+            'score' => $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0,
+            'audited_at' => $latestAnswer ? \Carbon\Carbon::parse($latestAnswer)->toDateTimeString() : null,
         ]);
     }
 
     /**
-     * Save profit checklist answers.
+     * Save profit checklist answers with notes and question content snapshot.
      */
     public function saveProfitChecklist(Request $request, $stockOutId)
     {
@@ -1025,11 +1092,16 @@ class AuditController extends Controller
 
         $request->validate([
             'answers' => 'required|array',
-            'answers.*.question_id' => 'required|exists:questions,id',
+            'answers.*.question_id' => 'required|integer',
             'answers.*.answer' => 'required|boolean',
+            'answers.*.notes' => 'nullable|string|max:1000',
+            'answers.*.content' => 'nullable|string',
         ]);
 
         foreach ($request->answers as $item) {
+            $question = Question::find($item['question_id']);
+            $content = $item['content'] ?? ($question ? $question->content : null);
+
             AuditAnswer::updateOrCreate(
                 [
                     'stock_out_id' => $stockOutId,
@@ -1038,26 +1110,24 @@ class AuditController extends Controller
                 [
                     'answer' => $item['answer'],
                     'auditor_id' => $user->id,
+                    'question_content' => $content,
+                    'notes' => $item['notes'] ?? null,
                 ]
             );
         }
 
-        // Return updated score using 'profit' category
-        $totalQuestions = Question::where('category', 'profit')->count();
-        $profitQuestionIds = Question::where('category', 'profit')->pluck('id');
-        $answeredCount = AuditAnswer::where('stock_out_id', $stockOutId)
-            ->whereIn('question_id', $profitQuestionIds)->count();
-        $yesCount = AuditAnswer::where('stock_out_id', $stockOutId)
-            ->whereIn('question_id', $profitQuestionIds)
-            ->where('answer', true)->count();
+        $allAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        $totalQuestions = $allAnswers->count();
+        $yesCount = $allAnswers->where('answer', true)->count();
         $score = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0;
 
         return response()->json([
             'message' => 'Checklist profit berhasil disimpan',
             'score' => $score,
-            'answered' => $answeredCount,
+            'answered' => $totalQuestions,
             'yes_count' => $yesCount,
             'total' => $totalQuestions,
+            'audited_at' => now()->toDateTimeString(),
         ]);
     }
 }
