@@ -183,8 +183,8 @@ function getPaymentLabel(method) {
     <!-- Header -->
     <div class="flex justify-between items-end">
       <div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Transaksi</h1>
-        <p class="text-slate-500 mt-1">Riwayat semua transaksi penjualan</p>
+        <h1 class="text-2xl font-bold text-text-primary tracking-tight">Transaksi</h1>
+        <p class="text-text-secondary mt-1">Riwayat semua transaksi penjualan</p>
       </div>
       <button class="btn btn-secondary">
         <Download :size="16" />
@@ -194,25 +194,18 @@ function getPaymentLabel(method) {
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div
-        v-for="(stat, index) in stats"
-        :key="index"
-        class="card flex items-center gap-4"
-      >
-        <div
-          class="w-12 h-12 rounded-xl flex items-center justify-center"
-          :class="{
-            'bg-blue-600': stat.color === 'blue',
-            'bg-emerald-600': stat.color === 'emerald',
-            'bg-amber-600': stat.color === 'amber',
-            'bg-red-600': stat.color === 'red',
-          }"
-        >
+      <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
+          'bg-blue-600': stat.color === 'blue',
+          'bg-emerald-600': stat.color === 'emerald',
+          'bg-amber-600': stat.color === 'amber',
+          'bg-red-600': stat.color === 'red',
+        }">
           <component :is="stat.icon" :size="20" class="text-white" />
         </div>
         <div>
-          <p class="text-slate-500 text-sm">{{ stat.label }}</p>
-          <p class="text-xl font-bold text-white">{{ stat.value }}</p>
+          <p class="text-text-secondary text-sm">{{ stat.label }}</p>
+          <p class="text-xl font-bold text-text-primary">{{ stat.value }}</p>
         </div>
       </div>
     </div>
@@ -221,16 +214,9 @@ function getPaymentLabel(method) {
     <div class="card">
       <div class="flex flex-wrap items-center gap-4">
         <div class="relative flex-1 min-w-[200px]">
-          <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-            :size="18"
-          />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari ID transaksi atau customer..."
-            class="input pl-10"
-          />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" :size="18" />
+          <input v-model="searchQuery" type="text" placeholder="Cari ID transaksi atau customer..."
+            class="input pl-10" />
         </div>
 
         <select v-model="selectedBranch" class="input w-40">
@@ -249,7 +235,7 @@ function getPaymentLabel(method) {
 
         <div class="flex items-center gap-2">
           <input v-model="dateFrom" type="date" class="input w-36" />
-          <span class="text-slate-500">-</span>
+          <span class="text-text-secondary">-</span>
           <input v-model="dateTo" type="date" class="input w-36" />
         </div>
       </div>
@@ -275,10 +261,10 @@ function getPaymentLabel(method) {
           <tbody>
             <tr v-for="trx in filteredTransactions" :key="trx.id">
               <td class="font-mono text-sm text-blue-400">{{ trx.id }}</td>
-              <td class="text-white">{{ trx.customer }}</td>
-              <td class="text-slate-400">{{ trx.branch }}</td>
-              <td class="text-center text-slate-400">{{ trx.items }}</td>
-              <td class="text-white font-semibold">
+              <td class="text-text-primary">{{ trx.customer }}</td>
+              <td class="text-text-secondary">{{ trx.branch }}</td>
+              <td class="text-center text-text-secondary">{{ trx.items }}</td>
+              <td class="text-text-primary font-semibold">
                 {{ formatCurrency(trx.total) }}
               </td>
               <td>
@@ -291,17 +277,13 @@ function getPaymentLabel(method) {
                   {{ getStatusBadge(trx.status).label }}
                 </span>
               </td>
-              <td class="text-slate-400 text-sm">{{ trx.date }}</td>
+              <td class="text-text-secondary text-sm">{{ trx.date }}</td>
               <td>
                 <div class="flex items-center justify-center gap-2">
-                  <button
-                    class="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-                  >
+                  <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors">
                     <Eye :size="16" class="text-slate-400" />
                   </button>
-                  <button
-                    class="p-2 hover:bg-slate-700 rounded-lg transition-colors"
-                  >
+                  <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors">
                     <FileText :size="16" class="text-slate-400" />
                   </button>
                 </div>
@@ -312,27 +294,19 @@ function getPaymentLabel(method) {
       </div>
 
       <!-- Pagination -->
-      <div
-        class="flex items-center justify-between px-6 py-4 border-t border-slate-700/50"
-      >
+      <div class="flex items-center justify-between px-6 py-4 border-t border-slate-700/50">
         <p class="text-sm text-slate-500">
           Menampilkan 1-{{ filteredTransactions.length }} dari
           {{ filteredTransactions.length }} transaksi
         </p>
         <div class="flex items-center gap-2">
-          <button
-            class="p-2 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
-            disabled
-          >
+          <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50" disabled>
             <ChevronLeft :size="16" class="text-slate-400" />
           </button>
           <button class="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">
             1
           </button>
-          <button
-            class="p-2 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
-            disabled
-          >
+          <button class="p-2 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50" disabled>
             <ChevronRight :size="16" class="text-slate-400" />
           </button>
         </div>
@@ -345,11 +319,13 @@ function getPaymentLabel(method) {
 .animate-in {
   animation: fadeIn 0.3s ease-out;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -83,15 +83,15 @@
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" v-if="profitRecords.daily_sales.length > 0">
                 <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Total Harga Jual</p>
-                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ formatCurrency(totalHargaJual) }}</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Harga Jual</p>
+                    <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaJual) }}</p>
                 </div>
                 <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Total Harga Modal</p>
-                    <p class="text-lg font-bold text-gray-900 dark:text-white">{{ formatCurrency(totalHargaModal) }}</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Harga Modal</p>
+                    <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaModal) }}</p>
                 </div>
                 <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-gray-500 uppercase mb-1">Total Profit</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Profit</p>
                     <p class="text-lg font-bold"
                         :class="totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                         {{ formatCurrency(totalProfit) }}
@@ -105,7 +105,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead
-                            class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
+                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
                                 <th class="px-4 py-4">No</th>
                                 <th class="px-4 py-4">Waktu</th>
@@ -124,14 +124,14 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
                                 <td colspan="12" class="px-6 py-12">
-                                    <div class="flex flex-col items-center justify-center text-gray-500">
+                                    <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data profit...</span>
                                     </div>
                                 </td>
                             </tr>
                             <tr v-else-if="profitRecords.daily_sales.length === 0">
-                                <td colspan="12" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -144,12 +144,11 @@
                                 </td>
                             </tr>
                             <tr v-else v-for="(item, index) in profitRecords.daily_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-gray-800 dark:text-white">
-                                <td class="px-4 py-4 text-gray-500 dark:text-gray-400 font-medium">{{ index + 1 }}</td>
-                                <td
-                                    class="px-4 py-4 font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap">
+                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
+                                <td class="px-4 py-4 text-text-secondary font-medium">{{ index + 1 }}</td>
+                                <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
-                                <td class="px-4 py-4 text-gray-900 dark:text-white font-medium text-xs">{{ item.order_no
+                                <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
                                 }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
@@ -161,10 +160,10 @@
                                 </td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.type
                                 }}</td>
-                                <td class="px-4 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
+                                <td class="px-4 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
                                 <!-- Harga Jual -->
                                 <td
-                                    class="px-4 py-4 text-gray-900 dark:text-white font-mono text-xs font-semibold whitespace-nowrap">
+                                    class="px-4 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap">
                                     {{ formatCurrency(item.harga_jual || 0) }}
                                 </td>
                                 <!-- Harga Modal (editable with Rupiah formatting) -->
@@ -182,7 +181,7 @@
                                                     focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                                                 :class="item.has_saved_modal
                                                     ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                                                    : 'border-gray-200 dark:border-surface-600 text-gray-700 dark:text-gray-300'"
+                                                    : 'border-gray-200 dark:border-surface-600 text-text-primary'"
                                                 @keyup.enter="saveHargaModal(item)" />
                                         </div>
                                         <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"

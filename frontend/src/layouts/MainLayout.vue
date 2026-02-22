@@ -33,7 +33,7 @@ onErrorCaptured((err, instance, info) => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-surface-900 text-slate-300 font-sans antialiased overflow-hidden">
+  <div class="flex h-screen bg-surface-900 text-text-primary font-sans antialiased overflow-hidden">
     <!-- Mobile Backdrop -->
     <div v-if="isMobileMenuOpen" class="fixed inset-0 bg-black/60 z-40 lg:hidden" @click="isMobileMenuOpen = false">
     </div>

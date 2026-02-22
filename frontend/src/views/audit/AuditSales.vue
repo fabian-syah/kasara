@@ -87,7 +87,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead
-                            class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
+                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
                                 <th class="px-6 py-4">No</th>
                                 <th class="px-6 py-4">Waktu Pesanan</th>
@@ -108,14 +108,14 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
                                 <td colspan="14" class="px-6 py-12">
-                                    <div class="flex flex-col items-center justify-center text-gray-500">
+                                    <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data penjualan...</span>
                                     </div>
                                 </td>
                             </tr>
                             <tr v-else-if="salesRecords.daily_sales.length === 0">
-                                <td colspan="14" class="px-6 py-12 text-center text-gray-500">
+                                <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -129,12 +129,12 @@
                             </tr>
                             <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="index"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-gray-800 dark:text-white">
-                                <td class="px-6 py-4 text-gray-500 dark:text-gray-400">{{ index + 1 }}</td>
+                                <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
                                 }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
-                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">{{
+                                <td class="px-6 py-4 text-text-primary font-medium">{{
                                     item.customer_phone }}</td>
                                 <td class="px-6 py-4">
                                     <span
@@ -153,9 +153,9 @@
                                     </span>
                                 </td>
                                 <!-- Backend doesn't split payment methods yet, hardcoding 0 or logic if available later -->
-                                <td class="px-6 py-4 text-gray-900 dark:text-gray-200 font-mono text-xs">Rp 0</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-gray-200 font-mono text-xs">Rp 0</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-gray-200 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-text-primary font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-text-primary font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-text-primary font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4 text-center">
                                     <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"
