@@ -7,6 +7,8 @@ use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\ProductDetail;
 use App\Models\Distributor;
+use App\Models\StockOut;
+use App\Models\StockOutNonHpItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -575,6 +577,24 @@ class InventoryController extends Controller
                     'notes' => $request->notes,
                 ]);
 
+                // Create StockOut Record for Audit Purposes (Manual Stock In)
+                $stockOutAudit = StockOut::create([
+                    'receipt_id' => 'IN-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                    'category' => 'barang_masuk_inventory',
+                    'user_id' => Auth::id(),
+                    'inventory_user_id' => $ownerUserId,
+                    'status' => 'received',
+                    'notes' => $request->notes,
+                ]);
+
+                StockOutNonHpItem::create([
+                    'stock_out_id' => $stockOutAudit->id,
+                    'product_id' => $product->id,
+                    'quantity' => $request->quantity,
+                    'received_quantity' => $request->quantity,
+                    'selling_price' => $item['selling_price'] ?? $product->price ?? 0,
+                ]);
+
                 // Dispatch History Event
                 try {
                     event(new \App\Events\InventoryLogEvent($log->load(['product', 'user', 'distributor'])));
@@ -674,6 +694,19 @@ class InventoryController extends Controller
                         'reference_id' => 'STOCK-IN-HP-' . time(),
                         'notes' => $request->notes,
                     ]);
+
+                    // Create StockOut Record for Audit Purposes (Manual Stock In)
+                    $stockOutAudit = StockOut::create([
+                        'receipt_id' => 'IN-HP-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                        'category' => 'barang_masuk_inventory',
+                        'user_id' => Auth::id(),
+                        'inventory_user_id' => $ownerUserId,
+                        'status' => 'received',
+                        'notes' => $request->notes,
+                    ]);
+
+                    // Attach HP items
+                    $stockOutAudit->items()->attach(collect($newDetails)->pluck('id'));
                 }
 
                 // Update Master Product Price (Sync with latest Stock In Selling Price)

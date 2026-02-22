@@ -1342,8 +1342,152 @@ class AuditController extends Controller
 
         return response()->stream($callback, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
+
+    /**
+
+     * Get stock-in data for audit.
+     */
+    public function stockIn(Request $request)
+    {
+        $user = $request->user();
+        $branchIds = $user->getAccessibleBranchIds();
+        $onlineShopIds = $user->getAccessibleOnlineShopIds();
+        $warehouseIds = $user->getAccessibleWarehouseIds();
+
+        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        $requestedBranchId = $request->branch_id;
+        $requestedOnlineShopId = $request->online_shop_id;
+        $requestedWarehouseId = $request->warehouse_id;
+
+        $categories = ['barang_masuk_inventory', 'pindah_cabang'];
+
+        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
+            ->whereIn('category', $categories)
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        // Only received transfers are relevant for "In"
+        $query->where(function ($q) {
+            $q->where('category', '!=', 'pindah_cabang')
+                ->orWhere('status', 'received');
+        });
+
+        // Filter by location
+        $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+            // For barang_masuk_inventory (manual), filter by inventoryUser's location
+            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                $sub->where('category', 'barang_masuk_inventory');
+                $sub->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                    if ($requestedBranchId) {
+                        $sq->where('branch_id', $requestedBranchId);
+                    } elseif ($requestedOnlineShopId) {
+                        $sq->where('online_shop_id', $requestedOnlineShopId);
+                    } elseif ($requestedWarehouseId) {
+                        $sq->where('warehouse_id', $requestedWarehouseId);
+                    } else {
+                        if (!empty($branchIds)) $sq->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds)) $sq->orWhereIn('online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds)) $sq->orWhereIn('warehouse_id', $warehouseIds);
+                    }
+                });
+            });
+
+            // For pindah_cabang (transfers), filter by destination
+            $q->orWhere(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                $sub->where('category', 'pindah_cabang');
+                if ($requestedBranchId) {
+                    $sub->where('destination_type', 'branch')->where('destination_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $sub->where('destination_type', 'online_shop')->where('destination_id', $requestedOnlineShopId);
+                } elseif ($requestedWarehouseId) {
+                    $sub->where('destination_type', 'warehouse')->where('destination_id', $requestedWarehouseId);
+                } else {
+                    $sub->where(function ($inner) use ($branchIds, $onlineShopIds, $warehouseIds) {
+                        if (!empty($branchIds)) {
+                            $inner->orWhere(function ($ss) use ($branchIds) {
+                                $ss->where('destination_type', 'branch')->whereIn('destination_id', $branchIds);
+                            });
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $inner->orWhere(function ($ss) use ($onlineShopIds) {
+                                $ss->where('destination_type', 'online_shop')->whereIn('destination_id', $onlineShopIds);
+                            });
+                        }
+                        if (!empty($warehouseIds)) {
+                            $inner->orWhere(function ($ss) use ($warehouseIds) {
+                                $ss->where('destination_type', 'warehouse')->whereIn('destination_id', $warehouseIds);
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        $records = $query->latest()->get()->map(function ($trx) {
+            $hpItemsCount = $trx->items->count();
+            // Non-HP count from audit payload or relation
+            $nonHpItemsCount = 0;
+            if ($trx->items->isEmpty()) {
+                if (is_array($trx->non_hp_items)) {
+                    $nonHpItemsCount = collect($trx->non_hp_items)->sum('quantity');
+                } elseif ($trx->nonHpItems->isNotEmpty()) {
+                    $nonHpItemsCount = $trx->nonHpItems->sum('quantity');
+                }
+            }
+
+            // Audit score
+            $auditAnsCount = $trx->auditAnswers->count();
+            $yesCount = $trx->auditAnswers->where('answer', true)->count();
+            $currentQuestions = Question::where('category', $trx->category)->count();
+            $score = $currentQuestions > 0 ? round(($yesCount / $currentQuestions) * 100) : null;
+
+            $sourceLabel = 'Unknown';
+            if ($trx->category === 'pindah_cabang') {
+                $sourceUser = $trx->user;
+                $sourceLabel = $sourceUser->branch?->name ?? $sourceUser->warehouse?->name ?? 'External';
+            } else {
+                $sourceLabel = 'Manual Entry';
+            }
+
+            return [
+                'id' => $trx->id,
+                'date' => $trx->created_at->toDateTimeString(),
+                'receipt_id' => $trx->receipt_id,
+                'category' => $trx->category,
+                'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
+                'brand_names' => $trx->items->map(fn($i) => $i->product->brand ?? '-')->unique()->implode(', ') ?: ($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-')->unique()->implode(', ') ?: '-'),
+                'product_names' => $trx->items->map(fn($i) => $i->product->name ?? '-')->unique()->implode(', ') ?: ($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-')->unique()->implode(', ') ?: '-'),
+                'qty' => $hpItemsCount + $nonHpItemsCount,
+                'source' => $sourceLabel,
+                'audit_score' => $score,
+                'audit_answered' => $auditAnsCount,
+                'audit_total' => $currentQuestions,
+            ];
+        });
+
+        return response()->json([
+            'data' => $records
+        ]);
+    }
+
+    /**
+     * Get checklist for stock-in audit.
+     */
+    public function getStockInChecklist($stockOutId)
+    {
+        return $this->getChecklist($stockOutId);
+    }
+
+    /**
+     * Save checklist for stock-in audit.
+     */
+    public function saveStockInChecklist(Request $request, $stockOutId)
+    {
+        return $this->saveChecklist($request, $stockOutId);
+    }
 }
+
 

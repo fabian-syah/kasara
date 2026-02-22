@@ -126,7 +126,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/profit/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'saveProfitData']);
         Route::get('/profit-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'getProfitChecklist']);
         Route::post('/profit-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'saveProfitChecklist']);
+
+        // Stock In
+        Route::get('/stock-in', [\App\Http\Controllers\AuditController::class, 'stockIn']);
+        Route::get('/stock-in-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'getStockInChecklist']);
+        Route::post('/stock-in-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'saveStockInChecklist']);
     });
+
 
     // Settings
     Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);

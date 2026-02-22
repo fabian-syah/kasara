@@ -8,6 +8,7 @@ import MainLayout from '../layouts/MainLayout.vue'
 import Login from '../views/auth/Login.vue'
 import UnderConstruction from '../views/audit/UnderConstruction.vue'
 import AuditProfit from '../views/audit/AuditProfit.vue'
+import AuditStockIn from '../views/audit/AuditStockIn.vue'
 
 // Lazy-loaded Views
 const Dashboard = () => import('../views/admin/Dashboard.vue')
@@ -240,7 +241,7 @@ const routes = [
             // Direct redirects for underscored versions
             { path: 'audit/uc/profit', name: 'AuditProfitUC', component: AuditProfit, meta: { title: 'Audit Profit', menu: 'audit_profit_uc', permissions: ['audit.view'] } },
             { path: 'audit/uc/profit_', redirect: 'audit/uc/profit' },
-            { path: 'audit/uc/stock-in', name: 'AuditStockInUC', component: UnderConstruction, meta: { title: 'Audit Barang Masuk (Dev)', menu: 'audit_stock_in_uc', permissions: ['audit.view'] } },
+            { path: 'audit/uc/stock-in', name: 'AuditStockIn', component: AuditStockIn, meta: { title: 'Audit Barang Masuk', menu: 'audit_stock_in_uc', permissions: ['audit.view'] } },
             { path: 'audit/uc/stock_in', redirect: 'audit/uc/stock-in' },
             { path: 'audit/uc/stock-out', name: 'AuditStockOutUC', component: UnderConstruction, meta: { title: 'Audit Barang Keluar (Dev)', menu: 'audit_stock_out_uc', permissions: ['audit.view'] } },
             { path: 'audit/uc/stock_out', redirect: 'audit/uc/stock-out' },
