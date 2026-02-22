@@ -1480,7 +1480,7 @@ function getStockStatus(product) {
         </div>
 
         <!-- Modal Body -->
-        <div class="flex-1 overflow-y-auto p-6 bg-surface-50 dark:bg-surface-900/50">
+        <div class="flex-1 overflow-y-auto p-6 bg-surface-900/50">
           <!-- STEP 1: SELECT INVENTORY ACCOUNT -->
           <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
             <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
@@ -1493,7 +1493,7 @@ function getStockStatus(product) {
             </div>
 
             <div v-else-if="inventoryUsers.length === 0" class="text-center py-8 text-text-secondary">
-              <div class="bg-surface-100 dark:bg-surface-800 p-6 rounded-2xl inline-block mb-3">
+              <div class="bg-surface-800 p-6 rounded-2xl inline-block mb-3 border border-surface-700">
                 <UserCheck :size="32" class="text-surface-500" />
               </div>
               <p>Tidak ada akun inventory ditemukan.</p>
@@ -1501,12 +1501,12 @@ function getStockStatus(product) {
 
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div v-for="user in inventoryUsers" :key="user.id" @click="selectedInventoryUser = user"
-                class="p-4 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-50 dark:hover:bg-surface-700/80 transition-all relative group shadow-sm hover:shadow-md">
+                class="p-4 rounded-2xl border border-surface-700 bg-surface-800 cursor-pointer hover:border-primary-500 hover:bg-surface-700 transition-all relative group shadow-sm hover:shadow-md">
 
                 <div class="flex items-center gap-4">
                   <!-- Photo -->
                   <div
-                    class="w-14 h-14 rounded-xl bg-surface-100 dark:bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-200 dark:border-surface-600 group-hover:border-primary-500/50 transition-colors">
+                    class="w-14 h-14 rounded-xl bg-surface-900 shrink-0 flex items-center justify-center overflow-hidden border border-surface-700 group-hover:border-primary-500/50 transition-colors">
                     <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
                       class="w-full h-full object-cover" alt="Foto" />
                     <span v-else class="text-xl font-bold text-primary-500">{{ (user.full_name || user.name ||
@@ -1539,11 +1539,10 @@ function getStockStatus(product) {
           <!-- STEP 2: CATEGORY SELECTION -->
           <div v-else-if="!selectedStockOutCategory" class="animate-in slide-in-from-right">
             <!-- Selected User Header -->
-            <div
-              class="flex items-center justify-between mb-6 bg-surface-100 dark:bg-surface-700/30 p-3 rounded-xl border border-surface-200 dark:border-surface-600">
+            <div class="flex items-center justify-between mb-6 bg-surface-800 p-3 rounded-xl border border-surface-700">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-full bg-surface-200 dark:bg-surface-600 flex items-center justify-center overflow-hidden border border-surface-300 dark:border-surface-500">
+                  class="w-10 h-10 rounded-full bg-surface-900 flex items-center justify-center overflow-hidden border border-surface-700">
                   <img v-if="selectedInventoryUser.photo_inventory"
                     :src="`${storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
                     class="w-full h-full object-cover" />
@@ -1568,7 +1567,7 @@ function getStockStatus(product) {
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
               <button v-for="category in availableStockOutCategories" :key="category.id"
                 @click="selectStockOutCategory(category)"
-                class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 hover:bg-surface-50 dark:hover:bg-surface-700 hover:border-primary-500/50 transition-all group gap-3 text-center h-32 md:h-40 shadow-sm hover:shadow-md">
+                class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-700 bg-surface-800 hover:bg-surface-700 hover:border-primary-500/50 transition-all group gap-3 text-center h-32 md:h-40 shadow-sm hover:shadow-md">
                 <div
                   :class="`p-3 rounded-full bg-${category.color}-500/10 text-${category.color}-500 group-hover:scale-110 transition-transform`">
                   <component :is="category.icon" :size="28" />

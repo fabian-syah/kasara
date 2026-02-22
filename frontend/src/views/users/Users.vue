@@ -525,14 +525,14 @@ function getUserRoleName(user) {
                     <div v-if="user.created_users?.length" class="flex flex-wrap gap-1 mt-1.5">
                       <span class="text-[10px] text-text-secondary mr-1">Memiliki:</span>
                       <span v-for="child in user.created_users" :key="child.id"
-                        class="px-1.5 py-0.5 rounded text-[10px] bg-surface-100 dark:bg-surface-700 text-text-primary border border-surface-200 dark:border-surface-600">
+                        class="px-1.5 py-0.5 rounded text-[10px] bg-surface-700 text-text-primary border border-surface-600">
                         {{ child.full_name }}
                       </span>
                     </div>
                     <div v-if="user.created_by_user" class="flex items-center gap-1 mt-1.5">
                       <span class="text-[10px] text-text-secondary">Milik Akun:</span>
                       <span
-                        class="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">
+                        class="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium border border-blue-500/20">
                         {{ user.created_by_user.full_name }}
                       </span>
                     </div>
@@ -623,7 +623,7 @@ function getUserRoleName(user) {
                 <p class="text-[10px] text-text-secondary">Akun Inventory:</p>
                 <div class="flex flex-wrap gap-1 mt-0.5">
                   <span v-for="child in user.created_users" :key="child.id"
-                    class="text-[10px] bg-surface-100 dark:bg-surface-700 px-1.5 rounded text-text-primary">
+                    class="text-[10px] bg-surface-700 px-1.5 rounded text-text-primary border border-surface-600">
                     {{ child.full_name }}
                   </span>
                 </div>
@@ -637,7 +637,7 @@ function getUserRoleName(user) {
             </div>
           </div>
           <span v-if="user && user.roles && user.roles.length"
-            class="text-xs px-2 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg border border-surface-200 dark:border-surface-700">
+            class="text-xs px-2 py-1 bg-surface-800 text-text-secondary rounded-lg border border-surface-700 leading-none h-fit">
             {{ getUserRoleName(user) }}
           </span>
         </div>
