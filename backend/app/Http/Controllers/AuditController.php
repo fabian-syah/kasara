@@ -725,6 +725,13 @@ class AuditController extends Controller
         $stockOut = StockOut::findOrFail($stockOutId);
         $category = $stockOut->category;
 
+        // Contextual Mapping: If we are auditing a received transfer, use the "In" category questions
+        if ($category === 'pindah_cabang' && $stockOut->status === 'received') {
+            $category = 'pindah_cabang_masuk';
+        } elseif ($category === 'Barang Masuk Inventory') {
+            $category = 'barang_masuk';
+        }
+
         // Get current questions for this category
         $currentQuestions = Question::where('category', $category)->orderBy('id')->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
@@ -1349,7 +1356,7 @@ class AuditController extends Controller
         $requestedOnlineShopId = $request->online_shop_id;
         $requestedWarehouseId = $request->warehouse_id;
 
-        $categories = ['Barang Masuk Inventory', 'pindah_cabang'];
+        $categories = ['barang_masuk', 'pindah_cabang_masuk', 'pindah_cabang'];
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
@@ -1365,7 +1372,7 @@ class AuditController extends Controller
         $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
             // For barang_masuk_inventory (manual), filter by inventoryUser's location
             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
-                $sub->where('category', 'Barang Masuk Inventory');
+                $sub->whereIn('category', ['barang_masuk', 'Barang Masuk Inventory']);
                 $sub->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
                     if ($requestedBranchId) {
                         $sq->where('branch_id', $requestedBranchId);
@@ -1441,11 +1448,20 @@ class AuditController extends Controller
                 $sourceLabel = 'Manual Entry';
             }
 
+            $actualCategory = $trx->category;
+            // Map for frontend display in the context of Stock In audit
+            $displayCategory = $actualCategory;
+            if ($actualCategory === 'pindah_cabang') {
+                $displayCategory = 'pindah_cabang_masuk';
+            } elseif ($actualCategory === 'Barang Masuk Inventory') {
+                $displayCategory = 'barang_masuk';
+            }
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
                 'receipt_id' => $trx->receipt_id,
-                'category' => $trx->category,
+                'category' => $displayCategory,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => $trx->items->map(fn($i) => $i->product->brand ?? '-')->unique()->implode(', ') ?: ($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-')->unique()->implode(', ') ?: '-'),
                 'product_names' => $trx->items->map(fn($i) => $i->product->name ?? '-')->unique()->implode(', ') ?: ($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-')->unique()->implode(', ') ?: '-'),

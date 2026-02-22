@@ -15,37 +15,37 @@ class AuditQuestionSeeder extends Seeder
         $questions = [
             // Barang Masuk Inventory (Manual)
             [
-                'category' => 'Barang Masuk Inventory',
+                'category' => 'barang_masuk',
                 'content' => 'Apakah jumlah fisik barang sesuai dengan yang diinput di sistem?',
             ],
             [
-                'category' => 'Barang Masuk Inventory',
+                'category' => 'barang_masuk',
                 'content' => 'Apakah kondisi fisik barang dalam keadaan baik (tidak cacat)?',
             ],
             [
-                'category' => 'Barang Masuk Inventory',
+                'category' => 'barang_masuk',
                 'content' => 'Apakah label harga atau barcode sudah tertempel dengan benar?',
             ],
             [
-                'category' => 'Barang Masuk Inventory',
+                'category' => 'barang_masuk',
                 'content' => 'Apakah data supplier/sumber barang sudah benar?',
             ],
 
-            // Pindah Cabang (Transfer)
+            // Pindah Cabang (Transfer Incoming)
             [
-                'category' => 'pindah_cabang',
+                'category' => 'pindah_cabang_masuk',
                 'content' => 'Apakah nomor nota transfer sesuai dengan yang diterima?',
             ],
             [
-                'category' => 'pindah_cabang',
+                'category' => 'pindah_cabang_masuk',
                 'content' => 'Apakah jumlah barang yang diterima sesuai dengan nota transfer?',
             ],
             [
-                'category' => 'pindah_cabang',
+                'category' => 'pindah_cabang_masuk',
                 'content' => 'Apakah kondisi packaging barang aman saat diterima?',
             ],
             [
-                'category' => 'pindah_cabang',
+                'category' => 'pindah_cabang_masuk',
                 'content' => 'Apakah ada selisih barang? Jika ya, apakah sudah dilaporkan?',
             ],
         ];

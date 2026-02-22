@@ -580,7 +580,7 @@ class InventoryController extends Controller
                 // Create StockOut Record for Audit Purposes (Manual Stock In)
                 $stockOutAudit = StockOut::create([
                     'receipt_id' => 'IN-' . strtoupper(\Illuminate\Support\Str::random(6)),
-                    'category' => 'Barang Masuk Inventory',
+                    'category' => 'barang_masuk',
                     'user_id' => Auth::id(),
                     'inventory_user_id' => $ownerUserId,
                     'status' => 'received',
@@ -698,7 +698,7 @@ class InventoryController extends Controller
                     // Create StockOut Record for Audit Purposes (Manual Stock In)
                     $stockOutAudit = StockOut::create([
                         'receipt_id' => 'IN-HP-' . strtoupper(\Illuminate\Support\Str::random(6)),
-                        'category' => 'Barang Masuk Inventory',
+                        'category' => 'barang_masuk',
                         'user_id' => Auth::id(),
                         'inventory_user_id' => $ownerUserId,
                         'status' => 'received',
