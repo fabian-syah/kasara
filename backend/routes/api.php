@@ -114,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Audit
     Route::prefix('audit')->group(function () {
         Route::get('/sales', [\App\Http\Controllers\AuditController::class, 'sales']);
+        Route::get('/sales/export', [\App\Http\Controllers\AuditController::class, 'exportSales']);
         Route::get('/inventory', [\App\Http\Controllers\AuditController::class, 'inventory']);
         Route::get('/track', [\App\Http\Controllers\AuditController::class, 'track']);
         Route::get('/analysis', [\App\Http\Controllers\AuditController::class, 'analysis']);

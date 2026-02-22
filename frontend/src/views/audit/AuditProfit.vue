@@ -70,6 +70,13 @@
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
+
+                    <!-- Export Button -->
+                    <button @click="exportExcel" :disabled="exporting"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 dark:shadow-none hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                        <Download :size="18" :class="{ 'animate-bounce': exporting }" />
+                        <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
+                    </button>
                 </div>
             </div>
 
@@ -137,14 +144,14 @@
                                 </td>
                             </tr>
                             <tr v-else v-for="(item, index) in profitRecords.daily_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
-                                <td class="px-4 py-4 text-gray-500">{{ index + 1 }}</td>
+                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-gray-800 dark:text-white">
+                                <td class="px-4 py-4 text-gray-500 dark:text-gray-400 font-medium">{{ index + 1 }}</td>
                                 <td
                                     class="px-4 py-4 font-medium text-gray-900 dark:text-white text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-gray-900 dark:text-white font-medium text-xs">{{ item.order_no
-                                    }}</td>
-                                <td class="px-4 py-4 text-gray-600 dark:text-gray-300 text-xs">{{ item.customer_name }}
+                                }}</td>
+                                <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
                                     <span
@@ -152,8 +159,8 @@
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 text-gray-600 dark:text-gray-300 font-medium text-xs">{{ item.type
-                                    }}</td>
+                                <td class="px-4 py-4 font-medium text-xs">{{ item.type
+                                }}</td>
                                 <td class="px-4 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
                                 <!-- Harga Jual -->
                                 <td
@@ -357,6 +364,7 @@ import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 const authStore = useAuthStore()
 
 const loading = ref(false)
+const exporting = ref(false)
 const selectedPeriod = ref('daily')
 
 // Receipt Modal State
@@ -533,6 +541,40 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
 const selectedMonth = ref(new Date().getMonth() + 1);
 const selectedYear = ref(currentYear);
+
+const exportExcel = async () => {
+    if (exporting.value) return;
+    exporting.value = true;
+    try {
+        const params = { ...filters.value };
+        if (selectedLocationKey.value === 'all') {
+            params.branch_id = undefined;
+            params.online_shop_id = undefined;
+        } else {
+            const [type, id] = selectedLocationKey.value.split(':');
+            params.branch_id = type === 'B' ? id : undefined;
+            params.online_shop_id = type === 'S' ? id : undefined;
+        }
+
+        const response = await axios.get('/audit/sales/export', {
+            params,
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `audit-profit-export-${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (e) {
+        console.error('Export failed', e);
+        alert('Gagal export data: ' + (e.response?.data?.message || e.message));
+    } finally {
+        exporting.value = false;
+    }
+}
 
 const profitRecords = ref({
     daily_sales: [],

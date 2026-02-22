@@ -73,10 +73,10 @@
                     </div>
 
                     <!-- Export Button -->
-                    <button
-                        class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 dark:shadow-none hover:transform hover:-translate-y-0.5 transition-all">
-                        <Download :size="18" />
-                        <span>Export</span>
+                    <button @click="exportExcel" :disabled="exporting"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 dark:shadow-none hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                        <Download :size="18" :class="{ 'animate-bounce': exporting }" />
+                        <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
                     </button>
                 </div>
             </div>
@@ -128,20 +128,21 @@
                                 </td>
                             </tr>
                             <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group">
-                                <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
+                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-gray-800 dark:text-white">
+                                <td class="px-6 py-4 text-gray-500 dark:text-gray-400">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
                                 }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">{{ item.customer_name }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ item.customer_phone }}</td>
+                                <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
+                                <td class="px-6 py-4 text-gray-700 dark:text-gray-300 font-medium">{{
+                                    item.customer_phone }}</td>
                                 <td class="px-6 py-4">
                                     <span
                                         class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{{ item.type }}</td>
+                                <td class="px-6 py-4 font-medium">{{ item.type }}</td>
                                 <td class="px-6 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
@@ -152,9 +153,9 @@
                                     </span>
                                 </td>
                                 <!-- Backend doesn't split payment methods yet, hardcoding 0 or logic if available later -->
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
-                                <td class="px-6 py-4 text-gray-600 dark:text-gray-400 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-gray-900 dark:text-gray-200 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-gray-900 dark:text-gray-200 font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-gray-900 dark:text-gray-200 font-mono text-xs">Rp 0</td>
                                 <td class="px-6 py-4 text-center">
                                     <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"
@@ -364,7 +365,42 @@ const authStore = useAuthStore()
 
 // Dropped Tabs Logic - Now displaying all sections vertically
 const loading = ref(false)
+const exporting = ref(false)
 const selectedPeriod = ref('daily') // For filter dropdown
+
+const exportExcel = async () => {
+    if (exporting.value) return;
+    exporting.value = true;
+    try {
+        const params = { ...filters.value };
+        if (selectedLocationKey.value === 'all') {
+            params.branch_id = undefined;
+            params.online_shop_id = undefined;
+        } else {
+            const [type, id] = selectedLocationKey.value.split(':');
+            params.branch_id = type === 'B' ? id : undefined;
+            params.online_shop_id = type === 'S' ? id : undefined;
+        }
+
+        const response = await axios.get('/audit/sales/export', {
+            params,
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `audit-sales-export-${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (e) {
+        console.error('Export failed', e);
+        alert('Gagal export data: ' + (e.response?.data?.message || e.message));
+    } finally {
+        exporting.value = false;
+    }
+}
 
 // Receipt Modal State
 const showReceiptModal = ref(false)
