@@ -710,8 +710,17 @@ class AuditController extends Controller
         $currentQuestions = Question::where('category', $category)->orderBy('id')->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        // Get ALL existing answers for this stock_out (including answers for deleted/edited questions)
-        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        // Get existing answers only for questions in THIS category (not profit, etc.)
+        // Include orphaned answers (question_id = null) only if they don't belong to other categories
+        $allCategoryQuestionIds = Question::where('category', $category)->pluck('id')->toArray();
+        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)
+            ->where(function ($q) use ($allCategoryQuestionIds) {
+                $q->whereIn('question_id', $allCategoryQuestionIds)
+                    ->orWhere(function ($q2) use ($allCategoryQuestionIds) {
+                        // Include orphaned answers only if question_id is null
+                        $q2->whereNull('question_id');
+                    });
+            })->get();
 
         $checklist = collect();
         $answeredQuestionIds = [];
