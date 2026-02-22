@@ -729,17 +729,8 @@ class AuditController extends Controller
         $currentQuestions = Question::where('category', $category)->orderBy('id')->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        // Get existing answers only for questions in THIS category (not profit, etc.)
-        // Include orphaned answers (question_id = null) only if they don't belong to other categories
-        $allCategoryQuestionIds = Question::where('category', $category)->pluck('id')->toArray();
-        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)
-            ->where(function ($q) use ($allCategoryQuestionIds) {
-                $q->whereIn('question_id', $allCategoryQuestionIds)
-                    ->orWhere(function ($q2) use ($allCategoryQuestionIds) {
-                        // Include orphaned answers only if question_id is null
-                        $q2->whereNull('question_id');
-                    });
-            })->get();
+        // Get existing answers for this transaction
+        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
 
         $checklist = collect();
         $answeredQuestionIds = [];
@@ -1100,13 +1091,8 @@ class AuditController extends Controller
         $currentQuestions = Question::where('category', 'profit')->orderBy('id')->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        // Only get answers for profit questions (current IDs) or orphaned (null question_id)
-        // Do NOT use orWhereNotNull('question_content') — that pulls in answers from other categories
-        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)
-            ->where(function ($q) use ($currentQuestionIds) {
-                $q->whereIn('question_id', $currentQuestionIds)
-                    ->orWhereNull('question_id');
-            })->get();
+        // Load all answers for this transaction
+        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
 
         $checklist = collect();
         $answeredQuestionIds = [];
@@ -1363,7 +1349,7 @@ class AuditController extends Controller
         $requestedOnlineShopId = $request->online_shop_id;
         $requestedWarehouseId = $request->warehouse_id;
 
-        $categories = ['barang_masuk_inventory', 'pindah_cabang'];
+        $categories = ['Barang Masuk Inventory', 'pindah_cabang'];
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
@@ -1379,7 +1365,7 @@ class AuditController extends Controller
         $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
             // For barang_masuk_inventory (manual), filter by inventoryUser's location
             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
-                $sub->where('category', 'barang_masuk_inventory');
+                $sub->where('category', 'Barang Masuk Inventory');
                 $sub->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
                     if ($requestedBranchId) {
                         $sq->where('branch_id', $requestedBranchId);
@@ -1388,9 +1374,12 @@ class AuditController extends Controller
                     } elseif ($requestedWarehouseId) {
                         $sq->where('warehouse_id', $requestedWarehouseId);
                     } else {
-                        if (!empty($branchIds)) $sq->orWhereIn('branch_id', $branchIds);
-                        if (!empty($onlineShopIds)) $sq->orWhereIn('online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds)) $sq->orWhereIn('warehouse_id', $warehouseIds);
+                        if (!empty($branchIds))
+                            $sq->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $sq->orWhereIn('online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds))
+                            $sq->orWhereIn('warehouse_id', $warehouseIds);
                     }
                 });
             });

@@ -15,19 +15,19 @@ class AuditQuestionSeeder extends Seeder
         $questions = [
             // Barang Masuk Inventory (Manual)
             [
-                'category' => 'barang_masuk_inventory',
+                'category' => 'Barang Masuk Inventory',
                 'content' => 'Apakah jumlah fisik barang sesuai dengan yang diinput di sistem?',
             ],
             [
-                'category' => 'barang_masuk_inventory',
+                'category' => 'Barang Masuk Inventory',
                 'content' => 'Apakah kondisi fisik barang dalam keadaan baik (tidak cacat)?',
             ],
             [
-                'category' => 'barang_masuk_inventory',
+                'category' => 'Barang Masuk Inventory',
                 'content' => 'Apakah label harga atau barcode sudah tertempel dengan benar?',
             ],
             [
-                'category' => 'barang_masuk_inventory',
+                'category' => 'Barang Masuk Inventory',
                 'content' => 'Apakah data supplier/sumber barang sudah benar?',
             ],
 
