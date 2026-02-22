@@ -1,6 +1,6 @@
 <template>
     <div class="space-y-6">
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Audit Profit</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-text-primary">Audit Profit</h1>
 
         <!-- Header Controls -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -8,7 +8,7 @@
                 <!-- Location Filter (Branch + Online Shop) -->
                 <div v-if="canFilterBranch" class="min-w-[200px]">
                     <select v-model="selectedLocationKey" @change="fetchData"
-                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                        class="block w-full rounded-md border-0 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                         <option value="all">Semua Cabang/Toko</option>
                         <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                             :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
@@ -18,17 +18,17 @@
                 </div>
 
                 <select v-model="selectedYear" @change="fetchData"
-                    class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                    class="block rounded-md border-0 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                     <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
                 </select>
                 <select v-model="selectedMonth" @change="fetchData"
-                    class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700">
+                    class="block rounded-md border-0 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                     <option :value="null">Semua Bulan</option>
                     <option v-for="(name, index) in months" :key="index" :value="index + 1">{{ name }}</option>
                 </select>
                 <!-- Date Filter -->
                 <input type="date" v-model="selectedDate" @change="fetchData"
-                    class="block rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:text-white dark:ring-surface-700" />
+                    class="block rounded-md border-0 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700" />
 
                 <button @click="fetchData" :disabled="loading"
                     class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50">
@@ -49,10 +49,10 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate dark:text-gray-400">Total Profit
+                                <dt class="text-sm font-medium text-text-secondary truncate">Total Profit
                                     (Est)
                                 </dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">
+                                <dd class="text-lg font-semibold text-text-primary">
                                     {{ formatCurrency(summary.total_profit) }}
                                     <span v-if="comparison" class="text-xs ml-2"
                                         :class="comparison.profit_diff >= 0 ? 'text-green-500' : 'text-red-500'">
@@ -75,9 +75,9 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate dark:text-gray-400">Total Omset
+                                <dt class="text-sm font-medium text-text-secondary truncate">Total Omset
                                 </dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">
+                                <dd class="text-lg font-semibold text-text-primary">
                                     {{ formatCurrency(summary.total_revenue) }}
                                     <span v-if="comparison" class="text-xs ml-2"
                                         :class="comparison.revenue_diff >= 0 ? 'text-green-500' : 'text-red-500'">
@@ -100,10 +100,10 @@
                         </div>
                         <div class="ml-5 w-0 flex-1">
                             <dl>
-                                <dt class="text-sm font-medium text-gray-500 truncate dark:text-gray-400">Total Item
+                                <dt class="text-sm font-medium text-text-secondary truncate">Total Item
                                     Terjual
                                 </dt>
-                                <dd class="text-lg font-semibold text-gray-900 dark:text-white">{{
+                                <dd class="text-lg font-semibold text-text-primary">{{
                                     formatNumber(summary.total_items) }} Unit</dd>
                             </dl>
                         </div>
@@ -117,7 +117,7 @@
             <!-- Profit Trend Chart -->
             <div
                 class="bg-white dark:bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Tren Profit Harian</h3>
+                <h3 class="text-lg font-medium leading-6 text-text-primary mb-4">Tren Profit Harian</h3>
                 <div class="h-80 relative">
                     <Line v-if="chartData.trend" :data="chartData.trend" :options="lineChartOptions" />
                     <div v-else class="flex items-center justify-center h-full text-gray-500">Tidak ada data</div>
@@ -127,7 +127,7 @@
             <!-- Sales By Branch Chart -->
             <div
                 class="bg-white dark:bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
-                <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">Kontribusi Sales per
+                <h3 class="text-lg font-medium leading-6 text-text-primary mb-4">Kontribusi Sales per
                     Cabang/Shop (by CS)</h3>
                 <div class="h-80 relative flex justify-center">
                     <Pie v-if="chartData.breakdown" :data="chartData.breakdown" :options="pieChartOptions" />

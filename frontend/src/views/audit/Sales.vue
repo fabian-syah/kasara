@@ -1,7 +1,7 @@
 <template>
     <div class="space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Audit Penjualan</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-text-primary">Audit Penjualan</h1>
 
             <!-- Location Filter (Branch + Online Shop) -->
             <div v-if="canFilterBranch" class="min-w-[200px]">
@@ -88,24 +88,23 @@
                         <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
                             <tr v-for="(item, index) in salesRecords.daily_sales" :key="index"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{{
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{{
                                     formatDate(item.date)
-                                    }}</td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium">
+                                }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary font-medium">
                                     {{
                                         item.order_no }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                                     <div>{{ item.customer_name }}</div>
-                                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ item.customer_phone }}
+                                    <div class="text-xs text-text-secondary">{{ item.customer_phone }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{{
                                     item.category }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{{
                                     item.type }}</td>
                                 <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">
+                                    class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right font-medium">
                                     {{ item.qty }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -114,8 +113,7 @@
                                         {{ item.status }}
                                     </span>
                                 </td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right font-bold">
                                     {{
                                         formatCurrency(item.grand_total) }}</td>
                             </tr>
@@ -185,7 +183,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                                }}</td>
+                            }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>

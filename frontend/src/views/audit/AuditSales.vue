@@ -128,11 +128,11 @@
                                 </td>
                             </tr>
                             <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-gray-800 dark:text-white">
+                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ formatDate(item.date)
-                                }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white font-medium">{{ item.order_no }}</td>
+                                <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
+                                    }}</td>
+                                <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
                                     item.customer_phone }}</td>
@@ -143,7 +143,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 font-medium">{{ item.type }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
+                                <td class="px-6 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
                                         :class="item.status === 'Lunas'

@@ -183,8 +183,8 @@ function rejectItem() {
     <!-- Header -->
     <div class="flex justify-between items-end">
       <div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Audit</h1>
-        <p class="text-slate-500 mt-1">
+        <h1 class="text-2xl font-bold text-text-primary tracking-tight">Audit</h1>
+        <p class="text-text-secondary mt-1">
           Review dan approval transaksi yang memerlukan perhatian
         </p>
       </div>
@@ -192,24 +192,17 @@ function rejectItem() {
 
     <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div
-        v-for="(stat, index) in stats"
-        :key="index"
-        class="card flex items-center gap-4"
-      >
-        <div
-          class="w-12 h-12 rounded-xl flex items-center justify-center"
-          :class="{
-            'bg-amber-600': stat.color === 'amber',
-            'bg-emerald-600': stat.color === 'emerald',
-            'bg-red-600': stat.color === 'red',
-          }"
-        >
+      <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
+          'bg-amber-600': stat.color === 'amber',
+          'bg-emerald-600': stat.color === 'emerald',
+          'bg-red-600': stat.color === 'red',
+        }">
           <component :is="stat.icon" :size="20" class="text-white" />
         </div>
         <div>
-          <p class="text-slate-500 text-sm">{{ stat.label }}</p>
-          <p class="text-xl font-bold text-white">{{ stat.value }}</p>
+          <p class="text-text-secondary text-sm">{{ stat.label }}</p>
+          <p class="text-xl font-bold text-text-primary">{{ stat.value }}</p>
         </div>
       </div>
     </div>
@@ -218,16 +211,8 @@ function rejectItem() {
     <div class="card">
       <div class="flex items-center gap-4">
         <div class="relative flex-1">
-          <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-            :size="18"
-          />
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari ID transaksi atau cabang..."
-            class="input pl-10"
-          />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" :size="18" />
+          <input v-model="searchQuery" type="text" placeholder="Cari ID transaksi atau cabang..." class="input pl-10" />
         </div>
         <select v-model="selectedStatus" class="input w-36">
           <option value="">Status</option>
@@ -246,49 +231,34 @@ function rejectItem() {
 
     <!-- Audit List -->
     <div class="space-y-4">
-      <div
-        v-for="item in filteredItems"
-        :key="item.id"
-        class="card card-hover cursor-pointer"
-        @click="openDetail(item)"
-      >
+      <div v-for="item in filteredItems" :key="item.id" class="card card-hover cursor-pointer"
+        @click="openDetail(item)">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-start gap-4">
-            <div
-              class="w-12 h-12 rounded-xl flex items-center justify-center"
-              :class="
-                item.priority === 'high'
-                  ? 'bg-red-500/20'
-                  : item.priority === 'medium'
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="item.priority === 'high'
+                ? 'bg-red-500/20'
+                : item.priority === 'medium'
                   ? 'bg-amber-500/20'
                   : 'bg-slate-700'
-              "
-            >
-              <AlertTriangle
-                :size="20"
-                :class="
-                  item.priority === 'high'
-                    ? 'text-red-400'
-                    : item.priority === 'medium'
+              ">
+              <AlertTriangle :size="20" :class="item.priority === 'high'
+                  ? 'text-red-400'
+                  : item.priority === 'medium'
                     ? 'text-amber-400'
                     : 'text-slate-400'
-                "
-              />
+                " />
             </div>
             <div>
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-mono text-sm text-blue-400">{{
                   item.transactionId
                 }}</span>
-                <span
-                  class="badge text-[10px]"
-                  :class="getPriorityBadge(item.priority).class"
-                >
+                <span class="badge text-[10px]" :class="getPriorityBadge(item.priority).class">
                   {{ getPriorityBadge(item.priority).label }}
                 </span>
               </div>
-              <p class="text-white font-medium">{{ item.issue }}</p>
-              <div class="flex items-center gap-4 mt-2 text-sm text-slate-500">
+              <p class="text-text-primary font-medium">{{ item.issue }}</p>
+              <div class="flex items-center gap-4 mt-2 text-sm text-text-secondary">
                 <span class="flex items-center gap-1">
                   <Building2 :size="12" />
                   {{ item.branch }}
@@ -310,66 +280,48 @@ function rejectItem() {
 
     <!-- Detail Modal -->
     <Teleport to="body">
-      <div
-        v-if="showDetailModal && selectedItem"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      >
-        <div
-          class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          @click="showDetailModal = false"
-        ></div>
+      <div v-if="showDetailModal && selectedItem" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showDetailModal = false"></div>
 
         <div
-          class="relative bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-lg p-6 shadow-2xl"
-        >
-          <h3 class="text-xl font-bold text-white mb-6">Review Audit</h3>
+          class="relative bg-white dark:bg-surface-900 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg p-6 shadow-2xl">
+          <h3 class="text-xl font-bold text-text-primary mb-6">Review Audit</h3>
 
           <div class="space-y-4 mb-6">
             <div class="flex justify-between">
-              <span class="text-slate-400">ID Transaksi</span>
-              <span class="text-blue-400 font-mono">{{
+              <span class="text-text-secondary">ID Transaksi</span>
+              <span class="text-blue-500 font-mono">{{
                 selectedItem.transactionId
               }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-400">Cabang</span>
-              <span class="text-white">{{ selectedItem.branch }}</span>
+              <span class="text-text-secondary">Cabang</span>
+              <span class="text-text-primary">{{ selectedItem.branch }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-400">Kasir</span>
-              <span class="text-white">{{ selectedItem.cashier }}</span>
+              <span class="text-text-secondary">Kasir</span>
+              <span class="text-text-primary">{{ selectedItem.cashier }}</span>
             </div>
             <div class="flex justify-between">
-              <span class="text-slate-400">Total</span>
-              <span class="text-white font-bold">{{
+              <span class="text-text-secondary">Total</span>
+              <span class="text-text-primary font-bold">{{
                 formatCurrency(selectedItem.total)
               }}</span>
             </div>
-            <div
-              class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl"
-            >
+            <div class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
               <p class="text-amber-400 font-medium">{{ selectedItem.issue }}</p>
             </div>
           </div>
 
           <div v-if="selectedItem.status === 'pending'" class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-slate-400 mb-2"
-                >Catatan (Wajib untuk Reject)</label
-              >
-              <textarea
-                v-model="auditNotes"
-                class="input h-24 resize-none"
-                placeholder="Masukkan catatan..."
-              ></textarea>
+              <label class="block text-sm font-medium text-text-secondary mb-2">Catatan (Wajib untuk Reject)</label>
+              <textarea v-model="auditNotes" class="input h-24 resize-none"
+                placeholder="Masukkan catatan..."></textarea>
             </div>
 
             <div class="flex gap-3">
-              <button
-                @click="rejectItem"
-                class="btn btn-danger flex-1"
-                :disabled="!auditNotes"
-              >
+              <button @click="rejectItem" class="btn btn-danger flex-1" :disabled="!auditNotes">
                 <XCircle :size="16" />
                 Reject
               </button>
@@ -381,10 +333,7 @@ function rejectItem() {
           </div>
 
           <div v-else class="text-center py-4">
-            <span
-              class="badge text-lg py-2 px-4"
-              :class="getStatusBadge(selectedItem.status).class"
-            >
+            <span class="badge text-lg py-2 px-4" :class="getStatusBadge(selectedItem.status).class">
               {{ getStatusBadge(selectedItem.status).label }}
             </span>
             <p class="text-slate-500 text-sm mt-2">
@@ -401,11 +350,13 @@ function rejectItem() {
 .animate-in {
   animation: fadeIn 0.3s ease-out;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
