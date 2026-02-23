@@ -24,6 +24,7 @@ import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatt
 
 
 import { Html5Qrcode } from "html5-qrcode";
+import StockOutModal from "../../components/inventory/StockOutModal.vue";
 const router = useRouter();
 const props = defineProps({
   isEmbedded: {
@@ -173,6 +174,21 @@ async function fetchFilterOptions() {
 }
 
 const showStockInModal = ref(false);
+const showStockOutModal = ref(false);
+
+const openStockOutModal = () => {
+  if (selectedItems.value.length === 0) {
+    toast.warning("Pilih minimal satu barang untuk dikeluarkan");
+    return;
+  }
+  showStockOutModal.value = true;
+};
+
+const handleStockOutSuccess = () => {
+  showStockOutModal.value = false;
+  selectedItems.value = [];
+  loadInventory(pagination.value.current_page);
+};
 
 // Tab Switch
 const activeTab = ref("hp"); // 'hp' or 'non-hp'
