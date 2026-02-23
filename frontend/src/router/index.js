@@ -9,6 +9,7 @@ import Login from '../views/auth/Login.vue'
 import UnderConstruction from '../views/audit/UnderConstruction.vue'
 import AuditProfit from '../views/audit/AuditProfit.vue'
 import AuditStockIn from '../views/audit/AuditStockIn.vue'
+import AuditStockOut from '../views/audit/AuditStockOut.vue'
 
 // Lazy-loaded Views
 const Dashboard = () => import('../views/admin/Dashboard.vue')
@@ -243,7 +244,7 @@ const routes = [
             { path: 'audit/uc/profit_', redirect: 'audit/uc/profit' },
             { path: 'audit/uc/stock-in', name: 'AuditStockIn', component: AuditStockIn, meta: { title: 'Audit Barang Masuk', menu: 'audit_stock_in_uc', permissions: ['audit.view'] } },
             { path: 'audit/uc/stock_in', redirect: 'audit/uc/stock-in' },
-            { path: 'audit/uc/stock-out', name: 'AuditStockOutUC', component: UnderConstruction, meta: { title: 'Audit Barang Keluar (Dev)', menu: 'audit_stock_out_uc', permissions: ['audit.view'] } },
+            { path: 'audit/uc/stock-out', name: 'AuditStockOutUC', component: AuditStockOut, meta: { title: 'Audit Barang Keluar', menu: 'audit_stock_out_uc', permissions: ['audit.view'] } },
             { path: 'audit/uc/stock_out', redirect: 'audit/uc/stock-out' },
 
             // Working Routes for Standalone Menus

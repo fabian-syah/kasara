@@ -131,6 +131,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock-in', [\App\Http\Controllers\AuditController::class, 'stockIn']);
         Route::get('/stock-in-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'getStockInChecklist']);
         Route::post('/stock-in-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'saveStockInChecklist']);
+
+        // Stock Out
+        Route::get('/stock-out', [\App\Http\Controllers\AuditController::class, 'stockOut']);
+        Route::get('/stock-out-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'getStockOutChecklist']);
+        Route::post('/stock-out-checklist/{stockOutId}', [\App\Http\Controllers\AuditController::class, 'saveStockOutChecklist']);
     });
 
 

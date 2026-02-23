@@ -1502,20 +1502,140 @@ class AuditController extends Controller
     }
 
     /**
-     * Get checklist for stock-in audit.
+     * Get stock-out data for audit.
      */
-    public function getStockInChecklist($stockOutId)
+    public function stockOut(Request $request)
+    {
+        $user = $request->user();
+        $branchIds = $user->getAccessibleBranchIds();
+        $onlineShopIds = $user->getAccessibleOnlineShopIds();
+        $warehouseIds = $user->getAccessibleWarehouseIds();
+
+        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        $requestedBranchId = $request->branch_id;
+        $requestedOnlineShopId = $request->online_shop_id;
+        $requestedWarehouseId = $request->warehouse_id;
+
+        $categories = [
+            'penjualan_offline',
+            'orderan_online',
+            'pindah_cabang',
+            'retur',
+            'kesalahan_input',
+            'giveaway_customer',
+            'hadiah',
+            'brand_ambassador',
+            'promo',
+            'inventaris'
+        ];
+
+        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
+            ->whereIn('category', $categories)
+            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+
+        // Filter by location
+        $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+            $q->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                if ($requestedBranchId) {
+                    $sq->where('branch_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $sq->where('online_shop_id', $requestedOnlineShopId);
+                } elseif ($requestedWarehouseId) {
+                    $sq->where('warehouse_id', $requestedWarehouseId);
+                } else {
+                    if (!empty($branchIds))
+                        $sq->orWhereIn('branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $sq->orWhereIn('online_shop_id', $onlineShopIds);
+                    if (!empty($warehouseIds))
+                        $sq->orWhereIn('warehouse_id', $warehouseIds);
+                }
+            })->orWhereHas('user', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                if ($requestedBranchId) {
+                    $sq->where('branch_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $sq->where('online_shop_id', $requestedOnlineShopId);
+                } elseif ($requestedWarehouseId) {
+                    $sq->where('warehouse_id', $requestedWarehouseId);
+                } else {
+                    if (!empty($branchIds))
+                        $sq->orWhereIn('branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $sq->orWhereIn('online_shop_id', $onlineShopIds);
+                    if (!empty($warehouseIds))
+                        $sq->orWhereIn('warehouse_id', $warehouseIds);
+                }
+            });
+        });
+
+        $records = $query->latest()->get()->map(function ($trx) {
+            $hpItemsCount = $trx->items->count();
+            // Non-HP count from audit payload or relation
+            $nonHpItemsCount = 0;
+            if ($trx->items->isEmpty()) {
+                if (is_array($trx->non_hp_items)) {
+                    $nonHpItemsCount = collect($trx->non_hp_items)->sum('quantity');
+                } elseif ($trx->nonHpItems->isNotEmpty()) {
+                    $nonHpItemsCount = $trx->nonHpItems->sum('quantity');
+                }
+            }
+
+            // Audit score
+            $auditAnsCount = $trx->auditAnswers->count();
+            $yesCount = $trx->auditAnswers->where('answer', true)->count();
+            $currentQuestions = Question::where('category', $trx->category)->count();
+
+            // Only calculate score if there is at least 1 answer
+            $score = null;
+            if ($auditAnsCount > 0 && $currentQuestions > 0) {
+                $score = round(($yesCount / $currentQuestions) * 100);
+            }
+
+            $sourceLabel = 'Internal';
+            if ($trx->category === 'pindah_cabang' && $trx->destination) {
+                $sourceLabel = $trx->destination->name;
+            } elseif (in_array($trx->category, ['penjualan_offline', 'orderan_online'])) {
+                $sourceLabel = 'Customer';
+            } else {
+                $sourceLabel = 'Manual Entry';
+            }
+
+            return [
+                'id' => $trx->id,
+                'date' => $trx->created_at->toDateTimeString(),
+                'receipt_id' => $trx->receipt_id,
+                'category' => $trx->category,
+                'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
+                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
+                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
+                'qty' => $hpItemsCount + $nonHpItemsCount,
+                'source' => $sourceLabel,
+                'audit_score' => $score,
+                'audit_answered' => $auditAnsCount,
+                'audit_total' => $currentQuestions,
+            ];
+        });
+
+        return response()->json([
+            'data' => $records
+        ]);
+    }
+
+    /**
+     * Get checklist for stock-out audit.
+     */
+    public function getStockOutChecklist($stockOutId)
     {
         return $this->getChecklist($stockOutId);
     }
 
     /**
-     * Save checklist for stock-in audit.
+     * Save checklist for stock-out audit.
      */
-    public function saveStockInChecklist(Request $request, $stockOutId)
+    public function saveStockOutChecklist(Request $request, $stockOutId)
     {
         return $this->saveChecklist($request, $stockOutId);
     }
 }
-
-

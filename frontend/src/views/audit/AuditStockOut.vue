@@ -1,16 +1,16 @@
 <template>
     <div class="space-y-8">
-        <!-- Section: Audit Barang Masuk -->
+        <!-- Section: Audit Barang Keluar -->
         <div
             class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
             <!-- Header & Filters -->
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                 <div>
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white">
-                        Audit Barang Masuk
+                        Audit Barang Keluar
                     </h2>
                     <p class="text-sm text-gray-500 mt-1">
-                        Review dan audit barang masuk (Inventory & Transfer)
+                        Review dan audit barang keluar (Inventory & Transfer)
                     </p>
                 </div>
 
@@ -90,7 +90,7 @@
                         Total Transaksi
                     </p>
                     <p class="text-lg font-bold text-text-primary">
-                        {{ stockInRecords.length }}
+                        {{ stockOutRecords.length }}
                     </p>
                 </div>
                 <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
@@ -98,7 +98,7 @@
                         Belum Diaudit
                     </p>
                     <p class="text-lg font-bold text-amber-500">
-                        {{stockInRecords.filter((r) => r.audit_score === null).length}}
+                        {{stockOutRecords.filter((r) => r.audit_score === null).length}}
                     </p>
                 </div>
                 <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
@@ -106,7 +106,7 @@
                         Sudah Diaudit
                     </p>
                     <p class="text-lg font-bold text-emerald-500">
-                        {{stockInRecords.filter((r) => r.audit_score !== null).length}}
+                        {{stockOutRecords.filter((r) => r.audit_score !== null).length}}
                     </p>
                 </div>
             </div>
@@ -137,11 +137,11 @@
                                 <td colspan="11" class="px-6 py-12">
                                     <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
-                                        <span class="text-sm font-medium">Memuat data barang masuk...</span>
+                                        <span class="text-sm font-medium">Memuat data barang keluar...</span>
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else-if="stockInRecords.length === 0">
+                            <tr v-else-if="stockOutRecords.length === 0">
                                 <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
@@ -154,7 +154,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in stockInRecords" :key="item.id"
+                            <tr v-else v-for="(item, index) in stockOutRecords" :key="item.id"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-4 py-4 text-text-secondary font-medium">
                                     {{ index + 1 }}
@@ -166,15 +166,9 @@
                                     {{ item.receipt_id }}
                                 </td>
                                 <td class="px-4 py-4">
-                                    <span class="px-2.5 py-1 text-xs font-semibold rounded-lg" :class="item.category === 'pindah_cabang'
-                                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
-                                        : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                        ">
-                                        {{
-                                            item.category === 'pindah_cabang'
-                                                ? 'Transfer'
-                                                : 'Inventory'
-                                        }}
+                                    <span
+                                        class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20 whitespace-nowrap">
+                                        {{ getCategoryLabel(item.category) }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.type }}</td>
@@ -204,7 +198,7 @@
                                 <td class="px-4 py-4 text-center">
                                     <button @click="openChecklist(item)"
                                         class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
-                                        title="Cek Audit Barang Masuk">
+                                        title="Cek Audit Barang Keluar">
                                         <ClipboardCheck :size="16" />
                                     </button>
                                 </td>
@@ -226,13 +220,13 @@
                         class="px-6 py-4 border-b border-gray-100 dark:border-surface-700 flex items-start justify-between">
                         <div>
                             <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                                Cek Audit Barang Masuk
+                                Cek Audit Barang Keluar
                             </h3>
                             <p class="text-sm text-gray-500 mt-0.5">
                                 Kategori:
                                 <span class="font-semibold text-purple-600 dark:text-purple-400">{{
                                     checklistData?.category
-                                }}</span>
+                                    }}</span>
                                 — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
                                 <span v-if="checklistData?.score !== undefined" class="font-semibold" :class="checklistData.score === 100
                                     ? 'text-emerald-600'
@@ -366,7 +360,23 @@ import { useAuthStore } from '../../store/auth';
 const authStore = useAuthStore();
 
 const loading = ref(false);
-const stockInRecords = ref([]);
+const stockOutRecords = ref([]);
+
+const getCategoryLabel = (val) => {
+    const categories = {
+        'penjualan_offline': 'Penjualan Store',
+        'orderan_online': 'Penjualan Online',
+        'pindah_cabang': 'Keluar Pindah Cabang',
+        'retur': 'Keluar Retur',
+        'kesalahan_input': 'Keluar Salah Input',
+        'giveaway_customer': 'Giveaway Customer',
+        'hadiah': 'Keluar Hadiah',
+        'brand_ambassador': 'Brand Ambassador',
+        'promo': 'Keluar Promo',
+        'inventaris': 'Keluar Inventaris',
+    };
+    return categories[val] || val;
+};
 
 // Audit Checklist Modal State
 const showChecklistModal = ref(false);
@@ -391,7 +401,7 @@ const openChecklist = async (item) => {
     showChecklistModal.value = true;
     checklistLoading.value = true;
     try {
-        const res = await axios.get(`/audit/stock-in-checklist/${item.id}`);
+        const res = await axios.get(`/audit/stock-out-checklist/${item.id}`);
         checklistData.value = res.data;
     } catch (e) {
         console.error('Failed to load stock-in checklist', e);
@@ -431,12 +441,12 @@ const saveChecklist = async () => {
             })),
         };
         const res = await axios.post(
-            `/audit/stock-in-checklist/${checklistStockOutId.value}`,
+            `/audit/stock-out-checklist/${checklistStockOutId.value}`,
             payload
         );
 
         // Update the score in the table
-        const item = stockInRecords.value.find(
+        const item = stockOutRecords.value.find(
             (s) => s.id === checklistStockOutId.value
         );
         if (item) {
@@ -450,7 +460,7 @@ const saveChecklist = async () => {
         checklistData.value.answered = res.data.answered;
         checklistData.value.total = res.data.total;
 
-        alert('Checklist barang masuk berhasil disimpan!');
+        alert('Checklist barang keluar berhasil disimpan!');
     } catch (e) {
         console.error('Failed to save checklist', e);
         alert('Gagal menyimpan: ' + (e.response?.data?.message || e.message));
@@ -641,8 +651,8 @@ const fetchData = async () => {
             else if (type === 'W') params.warehouse_id = id;
         }
 
-        const response = await axios.get('/audit/stock-in', { params });
-        stockInRecords.value = response.data.data;
+        const response = await axios.get('/audit/stock-out', { params });
+        stockOutRecords.value = response.data.data;
     } catch (error) {
         console.error('Error fetching stock-in data:', error);
     } finally {
