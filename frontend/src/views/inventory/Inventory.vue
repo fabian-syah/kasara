@@ -74,7 +74,8 @@ import {
   Loader2,
   ScanBarcode,
   Upload,
-  Warehouse
+  Warehouse,
+  Truck
 } from "lucide-vue-next";
 
 const inventoryStore = useInventoryStore();
@@ -783,6 +784,11 @@ function getStockStatus(product) {
         <button class="btn btn-secondary" @click="router.push({ name: 'StockOpname' })" title="Stock Opname">
           <Archive :size="16" />
           <span class="hidden sm:inline">Stock Opname</span>
+        </button>
+        <button class="btn btn-secondary" @click="router.push({ name: 'outgoing_transfer_history' })"
+          title="Riwayat Transfer Keluar (Pindah Cabang)">
+          <Truck :size="16" />
+          <span class="hidden sm:inline">Trx Keluar</span>
         </button>
 
         <!-- Keluar Stok Button -->

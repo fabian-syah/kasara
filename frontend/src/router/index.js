@@ -173,6 +173,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/outgoing-history',
+                name: 'outgoing_transfer_history',
+                component: () => import('../views/inventory/OutgoingTransferHistory.vue'),
+                meta: {
+                    title: 'Riwayat Transfer Keluar',
+                    menu: 'inventory',
+                    permissions: ['inventory.view']
+                }
+            },
+            {
                 path: 'retur-items',
                 name: 'ReturItems',
                 component: () => import('../views/inventory/ReturItems.vue'),

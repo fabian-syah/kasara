@@ -120,19 +120,26 @@ class TransferController extends Controller
     {
         $user = Auth::user();
         $branchId = $user->branch_id;
+        $type = $request->query('type'); // 'incoming' or 'outgoing'
 
         $transfers = StockOut::with(['items.product', 'user', 'destinationBranch', 'confirmedBy'])
             ->where('category', 'pindah_cabang')
-            ->where(function ($q) use ($branchId, $user) {
-                // Show transfers sent by this user or received by this branch
-                $q->where('user_id', $user->id)
-                    ->orWhere('destination_branch_id', $branchId);
+            ->where(function ($q) use ($branchId, $user, $type) {
+                if ($type === 'incoming') {
+                    $q->where('destination_branch_id', $branchId);
+                } elseif ($type === 'outgoing') {
+                    $q->where('user_id', $user->id);
+                } else {
+                    // Show transfers sent by this user or received by this branch
+                    $q->where('user_id', $user->id)
+                        ->orWhere('destination_branch_id', $branchId);
+                }
             })
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($request->query('per_page', 15));
 
         return response()->json([
-            'data' => $transfers->map(function ($t) use ($branchId) {
+            'data' => collect($transfers->items())->map(function ($t) use ($branchId) {
                 return [
                     'id' => $t->id,
                     'receipt_id' => $t->receipt_id,
@@ -146,7 +153,10 @@ class TransferController extends Controller
                     'confirmed_by' => $t->confirmedBy?->name,
                     'created_at' => $t->created_at,
                 ];
-            })
+            }),
+            'current_page' => $transfers->currentPage(),
+            'last_page' => $transfers->lastPage(),
+            'total' => $transfers->total()
         ]);
     }
 }
