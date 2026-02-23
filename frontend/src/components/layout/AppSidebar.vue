@@ -119,6 +119,7 @@ const menuItems = [
         items: [
             { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Konfirmasi Masuk" },
             { id: "incoming_transfer_history", path: "/inventory/incoming-history", label: "Riwayat Masuk" },
+            { id: "outgoing_transfer_history", path: "/inventory/outgoing-history", label: "Riwayat Keluar" },
         ]
     },
 
