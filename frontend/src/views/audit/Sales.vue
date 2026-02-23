@@ -109,13 +109,28 @@
                                     item.category }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{{
                                     item.type }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-semibold text-text-secondary">
-                                    {{ item.brand_names }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-xs font-medium text-text-secondary">
-                                    {{ item.product_names }}</td>
-                                <td
-                                    class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right font-medium">
-                                    {{ item.qty }}
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary align-top">
+                                    {{ item.brand_names }}
+                                </td>
+                                <td class="px-6 py-4 text-xs font-medium text-text-secondary align-top">
+                                    <div class="flex flex-col gap-1">
+                                        <div v-for="(detail, idx) in item.items" :key="'name-' + idx"
+                                            class="whitespace-normal">
+                                            {{ detail.name }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-text-primary text-right font-medium align-top">
+                                    <div class="flex flex-col gap-1 items-end">
+                                        <div v-for="(detail, idx) in item.items" :key="'qty-' + idx"
+                                            class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs">
+                                            {{ detail.qty }}
+                                        </div>
+                                    </div>
+                                    <div v-if="item.items && item.items.length > 1"
+                                        class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary">
+                                        Total: <span class="font-bold text-text-primary">{{ item.qty }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
