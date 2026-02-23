@@ -208,7 +208,10 @@ class AuditController extends Controller
                 }
             }
 
-            $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
+            $auditScore = null;
+            if ($answers->count() > 0 && $totalQuestions > 0) {
+                $auditScore = round(($yesCount / $totalQuestions) * 100);
+            }
 
             return [
                 'id' => $trx->id,
@@ -1034,7 +1037,10 @@ class AuditController extends Controller
                 }
             }
 
-            $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
+            $auditScore = null;
+            if ($profitAnswers->count() > 0 && $totalQuestions > 0) {
+                $auditScore = round(($yesCount / $totalQuestions) * 100);
+            }
 
             return [
                 'id' => $trx->id,
@@ -1450,7 +1456,12 @@ class AuditController extends Controller
             $auditAnsCount = $trx->auditAnswers->count();
             $yesCount = $trx->auditAnswers->where('answer', true)->count();
             $currentQuestions = Question::where('category', $trx->category)->count();
-            $score = $currentQuestions > 0 ? round(($yesCount / $currentQuestions) * 100) : null;
+
+            // Only calculate score if there is at least 1 answer
+            $score = null;
+            if ($auditAnsCount > 0 && $currentQuestions > 0) {
+                $score = round(($yesCount / $currentQuestions) * 100);
+            }
 
             $sourceLabel = 'Unknown';
             if ($trx->category === 'pindah_cabang') {
