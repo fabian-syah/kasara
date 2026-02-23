@@ -598,6 +598,17 @@ body {
 
 /* Component Base Styles */
 @layer components {
+
+  /* Force global modal overlay transparency fixing device specific solid-color rendering */
+  .fixed.inset-0.bg-black\/50,
+  .fixed.inset-0.bg-black\/60,
+  .fixed.inset-0.bg-black\/80,
+  .absolute.inset-0.bg-black\/50,
+  .absolute.inset-0.bg-black\/60,
+  .absolute.inset-0.bg-black\/80 {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+  }
+
   .btn {
     display: inline-flex;
     gap: 0.5rem;
