@@ -78,11 +78,8 @@
                                     class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Brand</th>
                                 <th scope="col"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Nama Type</th>
-                                <th scope="col"
-                                    class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    Jml</th>
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-64">
+                                    Rincian Barang</th>
                                 <th scope="col"
                                     class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     Status</th>
@@ -96,7 +93,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{{
                                     formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary font-medium">
                                     {{
                                         item.order_no }}</td>
@@ -113,23 +110,22 @@
                                     {{ item.brand_names }}
                                 </td>
                                 <td class="px-6 py-4 text-xs font-medium text-text-secondary align-top">
-                                    <div class="flex flex-col gap-1">
-                                        <div v-for="(detail, idx) in item.items" :key="'name-' + idx"
-                                            class="whitespace-normal">
-                                            {{ detail.name }}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-sm text-text-primary text-right font-medium align-top">
-                                    <div class="flex flex-col gap-1 items-end">
-                                        <div v-for="(detail, idx) in item.items" :key="'qty-' + idx"
-                                            class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs">
-                                            {{ detail.qty }}
+                                    <div class="flex flex-col gap-2">
+                                        <div v-for="(detail, idx) in item.items" :key="'item-' + idx"
+                                            class="flex justify-between items-start gap-3 border-b border-gray-100 dark:border-surface-700 last:border-0 pb-2 last:pb-0">
+                                            <div class="whitespace-normal flex-1 leading-relaxed">
+                                                {{ detail.name }}
+                                            </div>
+                                            <div
+                                                class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
+                                                {{ detail.qty }}
+                                            </div>
                                         </div>
                                     </div>
                                     <div v-if="item.items && item.items.length > 1"
-                                        class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary">
-                                        Total: <span class="font-bold text-text-primary">{{ item.qty }}</span>
+                                        class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary flex justify-end">
+                                        <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
+                                                }}</span></span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
@@ -208,7 +204,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 item.total_sales
-                                }}</td>
+                            }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
