@@ -5,7 +5,7 @@
             class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
             <!-- Header & Filters -->
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Penjualan</h2>
+                <h2 class="text-xl font-bold text-text-primary">Penjualan</h2>
 
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                     <!-- Period Filter (Modern UI) -->
@@ -122,7 +122,7 @@
                                             class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
                                             <FileText class="w-6 h-6 text-gray-400" />
                                         </div>
-                                        <span class="font-medium text-gray-900 dark:text-white">Tidak ada data
+                                        <span class="font-medium text-text-primary">Tidak ada data
                                             penjualan</span>
                                         <span class="text-xs mt-1">Belum ada transaksi pada periode ini</span>
                                     </div>
@@ -132,7 +132,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -163,7 +163,7 @@
                                         <div v-if="item.items && item.items.length > 1"
                                             class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary flex justify-end">
                                             <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                            }}</span></span>
+                                                    }}</span></span>
                                         </div>
                                     </template>
                                     <template v-else>
@@ -230,7 +230,7 @@
         <!-- Section 2: Laporan per Brand -->
         <div
             class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Laporan per Brand</h2>
+            <h2 class="text-xl font-bold text-text-primary mb-6">Laporan per Brand</h2>
 
             <div
                 class="bg-white dark:bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
@@ -250,8 +250,8 @@
                         <tr v-else v-for="(item, index) in salesRecords.brand_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                             <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
-                            <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ item.brand }}</td>
-                            <td class="px-6 py-4 text-gray-900 dark:text-white font-semibold">{{ item.qty }}</td>
+                            <td class="px-6 py-4 font-medium text-text-primary">{{ item.brand }}</td>
+                            <td class="px-6 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -261,7 +261,7 @@
         <!-- Section 3: Laporan per CS -->
         <div
             class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Laporan per CS</h2>
+            <h2 class="text-xl font-bold text-text-primary mb-6">Laporan per CS</h2>
 
             <div
                 class="bg-white dark:bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
@@ -285,8 +285,8 @@
                             <tr v-else v-for="(item, index) in salesRecords.cs_sales" :key="index"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                                 <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ item.cs_name }}</td>
-                                <td class="px-6 py-4 text-gray-900 dark:text-white pl-12 font-semibold">{{
+                                <td class="px-6 py-4 font-medium text-text-primary">{{ item.cs_name }}</td>
+                                <td class="px-6 py-4 text-text-primary pl-12 font-semibold">{{
                                     item.total_sales }}</td>
                                 <td class="px-6 py-4 text-gray-500 pl-12">{{ item.total_trade_in || 0 }}</td>
                                 <td class="px-6 py-4 text-gray-500 pl-12">{{ item.total_refund || 0 }}</td>
@@ -312,7 +312,7 @@
                 class="relative bg-white dark:bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden">
                 <!-- Header -->
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-surface-700">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Cek Audit</h3>
+                    <h3 class="text-lg font-bold text-text-primary">Cek Audit</h3>
                     <p class="text-sm text-gray-500 mt-0.5">
                         {{ checklistData?.category }} — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
                         <span v-if="checklistData?.score !== undefined" class="font-semibold"
@@ -340,7 +340,7 @@
                         <div class="flex items-start gap-4">
                             <span class="text-sm font-bold text-gray-400 mt-0.5">{{ i + 1 }}.</span>
                             <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ q.content }}</p>
+                                <p class="text-sm font-medium text-text-primary">{{ q.content }}</p>
                                 <p v-if="q.is_deleted" class="text-[10px] text-red-400 mt-0.5 italic">Pertanyaan ini
                                     sudah dihapus/diubah</p>
                                 <p v-if="q.answered_at" class="text-[10px] text-gray-400 mt-0.5">

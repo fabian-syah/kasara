@@ -6,7 +6,7 @@
             <!-- Header & Filters -->
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Audit Profit</h2>
+                    <h2 class="text-xl font-bold text-text-primary">Audit Profit</h2>
                     <p class="text-sm text-gray-500 mt-1">Analisis profit per transaksi penjualan</p>
                 </div>
 
@@ -138,7 +138,7 @@
                                             class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
                                             <TrendingUp class="w-6 h-6 text-gray-400" />
                                         </div>
-                                        <span class="font-medium text-gray-900 dark:text-white">Tidak ada data
+                                        <span class="font-medium text-text-primary">Tidak ada data
                                             profit</span>
                                         <span class="text-xs mt-1">Belum ada transaksi pada periode ini</span>
                                     </div>
@@ -150,7 +150,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                    }}</td>
+                                }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -179,7 +179,7 @@
                                         <div v-if="item.items && item.items.length > 1"
                                             class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary flex justify-end">
                                             <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                    }}</span></span>
+                                            }}</span></span>
                                         </div>
                                     </template>
                                     <template v-else>
@@ -187,7 +187,7 @@
                                             <span class="whitespace-normal">{{ item.product_names }}</span>
                                             <span
                                                 class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap">{{
-                                                item.qty }}</span>
+                                                    item.qty }}</span>
                                         </div>
                                     </template>
                                 </td>
@@ -273,7 +273,7 @@
                 <div
                     class="px-6 py-4 border-b border-gray-100 dark:border-surface-700 flex items-start justify-between">
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Cek Audit Profit</h3>
+                        <h3 class="text-lg font-bold text-text-primary">Cek Audit Profit</h3>
                         <p class="text-sm text-gray-500 mt-0.5">
                             Kategori: <span class="font-semibold text-purple-600 dark:text-purple-400">profit</span>
                             — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
@@ -313,7 +313,7 @@
                         <div class="flex items-start gap-4">
                             <span class="text-sm font-bold text-gray-400 mt-0.5">{{ i + 1 }}.</span>
                             <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ q.content }}</p>
+                                <p class="text-sm font-medium text-text-primary">{{ q.content }}</p>
                                 <p v-if="q.is_deleted" class="text-[10px] text-red-400 mt-0.5 italic">Pertanyaan ini
                                     sudah dihapus/diubah</p>
                                 <p v-if="q.answered_at" class="text-[10px] text-gray-400 mt-0.5">
