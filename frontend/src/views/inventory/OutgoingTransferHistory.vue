@@ -170,7 +170,7 @@ onMounted(() => fetchHistory(1));
                             </div>
                             <p class="text-xs text-text-secondary mt-0.5">
                                 Ke: <span class="text-text-primary font-medium">
-                                    {{ transfer.destination_branch || 'Unknown' }}
+                                    {{ transfer.destination?.name || transfer.destination_branch?.name || 'Unknown' }}
                                 </span>
                                 <span class="mx-1">•</span>
                                 {{ formatDate(transfer.created_at) }}
@@ -181,10 +181,12 @@ onMounted(() => fetchHistory(1));
                     <!-- Items Summary -->
                     <div class="text-right">
                         <p class="text-sm font-medium text-text-primary">
-                            Total: {{ transfer.items_count || 0 }} Unit
+                            Total: {{(transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc +
+                                i.quantity, 0) || 0)}} Unit
                         </p>
                         <p class="text-xs text-text-secondary" v-if="transfer.confirmed_by">
-                            Diterima oleh: {{ transfer.confirmed_by }}
+                            Diterima oleh: {{ transfer.confirmed_by?.full_name || transfer.confirmed_by?.name ||
+                                transfer.confirmed_by?.username || 'System' }}
                         </p>
                         <p class="text-xs text-text-secondary text-amber-500" v-else>
                             Menunggu Konfirmasi
@@ -243,7 +245,8 @@ onMounted(() => fetchHistory(1));
                     <div class="grid grid-cols-2 gap-4 bg-surface-900/50 p-4 rounded-xl border border-surface-700">
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Pengirim / Kurir</p>
-                            <p class="font-medium text-text-primary">{{ selectedTransfer.sender || 'Unknown' }}</p>
+                            <p class="font-medium text-text-primary">{{ selectedTransfer.inventoryUser?.full_name ||
+                                selectedTransfer.inventoryUser?.name || selectedTransfer.user?.name || 'Unknown' }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Dikirim Tanggal</p>
@@ -252,13 +255,15 @@ onMounted(() => fetchHistory(1));
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Tujuan</p>
                             <p class="font-medium text-text-primary">
-                                {{ selectedTransfer.destination_branch || 'Unknown' }}
+                                {{ selectedTransfer.destination?.name || selectedTransfer.destination_branch?.name ||
+                                'Unknown' }}
                             </p>
                         </div>
                         <div>
                             <p class="text-xs text-text-secondary mb-1">Total Barang</p>
                             <p class="font-medium text-text-primary">
-                                {{ selectedTransfer.items_count || 0 }} Unit
+                                {{(selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc,
+                                    i) => acc + i.quantity, 0) || 0)}} Unit
                             </p>
                         </div>
                         <div>
@@ -271,7 +276,8 @@ onMounted(() => fetchHistory(1));
                             <p class="text-xs text-text-secondary mb-1">Dikonfirmasi Oleh</p>
                             <p class="font-medium text-text-primary"
                                 :class="{ 'text-amber-500': !selectedTransfer.confirmed_by }">
-                                {{ selectedTransfer.confirmed_by || 'Belum Diterima' }}
+                                {{ selectedTransfer.confirmed_by?.full_name || selectedTransfer.confirmed_by?.name ||
+                                    selectedTransfer.confirmed_by?.username || 'Belum Diterima' }}
                             </p>
                         </div>
                     </div>

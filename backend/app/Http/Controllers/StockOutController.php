@@ -981,62 +981,84 @@ class StockOutController extends Controller
         }
     }
 
-    // History of Incoming Transfers (Completed)
+    // History of Transfers (Incoming and Outgoing)
     public function historyIncoming(Request $request)
     {
         $user = Auth::user();
         if (!$user)
             return response()->json(['message' => 'Unauthorized'], 401);
 
+        $type = $request->query('type'); // 'outgoing' or 'incoming'
+
         $query = StockOut::with(['items.product', 'nonHpItems', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
-            ->where('category', 'pindah_cabang')
-            ->whereIn('status', ['received', 'rejected']);
+            ->where('category', 'pindah_cabang');
 
-        // Filter by Destination
-        $query->where(function ($q) use ($user) {
-            $hasFilter = false;
+        if ($type === 'outgoing') {
+            $query->whereIn('status', ['pending', 'in_transit', 'received', 'rejected']);
+        } else {
+            $query->whereIn('status', ['received', 'rejected']);
+        }
 
-            // Branch
-            $branchIds = $user->getAccessibleBranchIds();
-            if (!empty($branchIds)) {
-                $q->orWhere(function ($sub) use ($branchIds) {
-                    $sub->where('destination_type', 'branch')
-                        ->whereIn('destination_id', $branchIds);
+        // Filter by Destination or Source
+        $query->where(function ($q) use ($user, $type) {
+            if ($type === 'outgoing') {
+                $q->whereHas('user', function ($sub) use ($user) {
+                    if ($user->branch_id) {
+                        $sub->where('branch_id', $user->branch_id);
+                    } elseif ($user->warehouse_id) {
+                        $sub->where('warehouse_id', $user->warehouse_id);
+                    } elseif ($user->online_shop_id) {
+                        $sub->where('online_shop_id', $user->online_shop_id);
+                    }
                 });
-                $hasFilter = true;
-            }
 
-            // Warehouse
-            $warehouseIds = $user->getAccessibleWarehouseIds();
-            if (!empty($warehouseIds)) {
-                $q->orWhere(function ($sub) use ($warehouseIds) {
-                    $sub->where('destination_type', 'warehouse')
-                        ->whereIn('destination_id', $warehouseIds);
-                });
-                $hasFilter = true;
-            }
-
-            // Online Shop
-            $onlineShopIds = $user->getAccessibleOnlineShopIds();
-            if (!empty($onlineShopIds)) {
-                $q->orWhere(function ($sub) use ($onlineShopIds) {
-                    $sub->where('destination_type', 'online_shop')
-                        ->whereIn('destination_id', $onlineShopIds);
-                });
-                $hasFilter = true;
-            }
-
-            // If no specific location assigned, restrict access unless Super Admin
-            if (!$hasFilter) {
                 if ($user->hasRole('super_admin')) {
-                    $q->orWhereRaw('1 = 1');
-                } else {
-                    $q->whereRaw('0 = 1');
+                    $q->orWhereRaw('1 = 1'); // Show all for super admin
                 }
-            }
+            } else {
+                $hasFilter = false;
 
-            // Also include transfers confirmed by this user
-            $q->orWhere('confirmed_by', $user->id);
+                // Branch
+                $branchIds = $user->getAccessibleBranchIds();
+                if (!empty($branchIds)) {
+                    $q->orWhere(function ($sub) use ($branchIds) {
+                        $sub->where('destination_type', 'branch')
+                            ->whereIn('destination_id', $branchIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                // Warehouse
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                if (!empty($warehouseIds)) {
+                    $q->orWhere(function ($sub) use ($warehouseIds) {
+                        $sub->where('destination_type', 'warehouse')
+                            ->whereIn('destination_id', $warehouseIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                // Online Shop
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                if (!empty($onlineShopIds)) {
+                    $q->orWhere(function ($sub) use ($onlineShopIds) {
+                        $sub->where('destination_type', 'online_shop')
+                            ->whereIn('destination_id', $onlineShopIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                if (!$hasFilter) {
+                    if ($user->hasRole('super_admin')) {
+                        $q->orWhereRaw('1 = 1');
+                    } else {
+                        $q->whereRaw('0 = 1');
+                    }
+                }
+
+                // Also include transfers confirmed by this user
+                $q->orWhere('confirmed_by', $user->id);
+            }
         });
 
         // Search
