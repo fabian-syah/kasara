@@ -112,7 +112,7 @@
                                 <th class="px-6 py-4">Transfer</th>
                                 <th class="px-6 py-4">Debit</th>
                                 <th class="px-6 py-4 text-center">Cek Audit</th>
-                                <th class="px-6 py-4 text-center">#</th>
+                                <th class="px-6 py-4 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
@@ -141,7 +141,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -177,7 +177,7 @@
                                             <div v-if="item.items && item.items.length > 1"
                                                 class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:bg-surface-800/50">
                                                 <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                        }}</span></span>
+                                                }}</span></span>
                                             </div>
                                         </template>
                                         <template v-else>
@@ -227,8 +227,14 @@
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-2 transition-opacity">
                                         <button @click="openReceipt(item)"
-                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm">
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Lihat Nota">
                                             <Eye :size="16" />
+                                        </button>
+                                        <button @click="openChecklist(item)"
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Cek Audit">
+                                            <ClipboardCheck :size="16" />
                                         </button>
                                     </div>
                                 </td>
@@ -329,8 +335,8 @@
     </div>
 
     <!-- Receipt Modal -->
-    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" :showEditIcon="true"
-        @close="showReceiptModal = false" @open-checklist="openChecklistFromReceipt" />
+    <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" :showEditIcon="false"
+        @close="showReceiptModal = false" />
 
     <!-- Audit Checklist Modal -->
     <Teleport to="body">
@@ -416,7 +422,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'

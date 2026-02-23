@@ -186,7 +186,9 @@
                                 </td>
                                 <!-- Audit Score -->
                                 <td class="px-4 py-4 text-center">
-                                    <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
+                                    <span v-if="['penjualan_offline', 'orderan_online'].includes(item.category)"
+                                        class="text-xs text-gray-400">-</span>
+                                    <span v-else-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"
                                         class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
                                         ✅</span>
@@ -196,11 +198,13 @@
                                 </td>
                                 <!-- Actions -->
                                 <td class="px-4 py-4 text-center">
-                                    <button @click="openChecklist(item)"
+                                    <button v-if="!['penjualan_offline', 'orderan_online'].includes(item.category)"
+                                        @click="openChecklist(item)"
                                         class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                         title="Cek Audit Barang Keluar">
                                         <ClipboardCheck :size="16" />
                                     </button>
+                                    <span v-else class="text-xs text-gray-400 italic">History</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -226,7 +230,7 @@
                                 Kategori:
                                 <span class="font-semibold text-purple-600 dark:text-purple-400">{{
                                     checklistData?.category
-                                    }}</span>
+                                }}</span>
                                 — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
                                 <span v-if="checklistData?.score !== undefined" class="font-semibold" :class="checklistData.score === 100
                                     ? 'text-emerald-600'
