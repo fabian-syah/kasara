@@ -96,9 +96,7 @@
                                 <th class="px-6 py-4">No HP</th>
                                 <th class="px-6 py-4">Kategori</th>
                                 <th class="px-6 py-4">Tipe</th>
-                                <th class="px-6 py-4">Brand</th>
-                                <th class="px-6 py-4">Nama Type</th>
-                                <th class="px-6 py-4">Jumlah Barang</th>
+                                <th class="px-6 py-4 text-left w-64">Rincian Barang</th>
                                 <th class="px-6 py-4">Status Pembayaran</th>
                                 <th class="px-6 py-4">Cash</th>
                                 <th class="px-6 py-4">Transfer</th>
@@ -133,7 +131,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -147,9 +145,35 @@
                                 <td class="px-6 py-4 font-medium">{{ item.type }}</td>
                                 <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.brand_names }}
                                 </td>
-                                <td class="px-6 py-4 text-xs font-medium text-text-secondary">{{ item.product_names }}
+                                <td class="px-6 py-4 text-xs font-medium text-text-secondary align-top">
+                                    <template v-if="item.items && item.items.length > 0">
+                                        <div class="flex flex-col gap-2">
+                                            <div v-for="(detail, idx) in item.items" :key="'item-' + idx"
+                                                class="flex justify-between items-start gap-3 border-b border-gray-100 dark:border-surface-700 last:border-0 pb-2 last:pb-0">
+                                                <div class="whitespace-normal flex-1 leading-relaxed">
+                                                    {{ detail.name }}
+                                                </div>
+                                                <div
+                                                    class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5 mt-0.5">
+                                                    {{ detail.qty }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-if="item.items && item.items.length > 1"
+                                            class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary flex justify-end">
+                                            <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
+                                                    }}</span></span>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        <div class="flex justify-between items-center gap-3">
+                                            <span class="whitespace-normal">{{ item.product_names }}</span>
+                                            <span
+                                                class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap">{{
+                                                item.qty }}</span>
+                                        </div>
+                                    </template>
                                 </td>
-                                <td class="px-6 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
                                         :class="item.status === 'Lunas'
@@ -339,7 +363,7 @@
                         <div class="ml-8">
                             <textarea v-model="q.notes" rows="2" placeholder="Catatan (opsional)..."
                                 class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">
-                            </textarea>
+                        </textarea>
                         </div>
                     </div>
                 </div>
