@@ -20,7 +20,8 @@ import {
   EyeOff,
   Loader2,
   MapPin, // Icon for placement
-  Building // Icon for warehouse
+  Building, // Icon for warehouse
+  Camera // Icon for photo upload
 } from "lucide-vue-next";
 
 // Toast
@@ -60,6 +61,10 @@ const selectedAccountType = ref(""); // New filter
 const showModal = ref(false);
 const editingUser = ref(null);
 const showPassword = ref(false);
+
+const fileInput = ref(null);
+const selectedUserForPhoto = ref(null);
+const isUploadingPhoto = ref(false);
 
 const isAudit = computed(() => authStore.userRole === 'audit');
 const currentUser = computed(() => authStore.user);
@@ -165,6 +170,55 @@ function formatLastSeen(date, timezone) {
     });
   } catch (e) {
     return '-';
+  }
+}
+
+// Avatar Helper & Upload Logic
+function getAvatarUrl(user) {
+  if (user && user.photo) {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
+    return `${baseUrl.replace('/api', '')}/storage/${user.photo}`;
+  }
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'U')}&background=3b82f6&color=fff`;
+}
+
+function triggerFileInput(user) {
+  selectedUserForPhoto.value = user;
+  if (fileInput.value) {
+    fileInput.value.click();
+  }
+}
+
+async function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) { // 2MB limit
+    toast.error("Ukuran foto maksimal 2MB");
+    event.target.value = '';
+    return;
+  }
+
+  isUploadingPhoto.value = true;
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  try {
+    const res = await usersApi.updateProfile(selectedUserForPhoto.value.id, formData);
+    // Update local user data
+    const updatedUser = res.data.data;
+    const index = users.value.findIndex(u => u.id === selectedUserForPhoto.value.id);
+    if (index !== -1) {
+      users.value[index].photo = updatedUser.photo;
+    }
+    toast.success("Foto profil berhasil diperbarui");
+  } catch (error) {
+    console.error("Upload error", error);
+    toast.error("Gagal mengupload foto");
+  } finally {
+    isUploadingPhoto.value = false;
+    event.target.value = '';
+    selectedUserForPhoto.value = null;
   }
 }
 
@@ -407,6 +461,9 @@ function getUserRoleName(user) {
 
 <template>
   <div class="space-y-6 animate-in">
+    <!-- Hidden File Input for Avatar Upload -->
+    <input type="file" accept="image/*" ref="fileInput" class="hidden" @change="handlePhotoUpload" />
+
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
       <div>
@@ -414,6 +471,11 @@ function getUserRoleName(user) {
           <Users :size="28" class="text-blue-500" /> Staff & Role
         </h1>
         <p class="text-text-secondary mt-1">Kelola pengguna dan hak akses</p>
+        <div
+          class="mt-2 text-xs bg-blue-500/10 text-blue-400 p-2.5 rounded-lg inline-flex items-center border border-blue-500/20 shadow-sm leading-relaxed max-w-2xl">
+          💡 <strong>Tip:</strong> Klik pada foto profil di tabel untuk mengubah atau menambahkan foto pengguna. Hal ini
+          berlaku untuk akun login maupun akun inventory.
+        </div>
       </div>
       <button @click="openAddModal" class="btn btn-primary w-full md:w-auto flex justify-center">
         <UserPlus :size="18" />
@@ -496,10 +558,15 @@ function getUserRoleName(user) {
             <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-surface-800/50 transition-colors">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-4">
-                  <div class="relative">
-                    <img
-                      :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=3b82f6&color=fff`"
-                      class="w-12 h-12 rounded-xl object-cover shadow-sm" :alt="user.full_name" />
+                  <div class="relative group cursor-pointer h-12 w-12 shrink-0" @click="triggerFileInput(user)"
+                    title="Klik untuk ubah foto">
+                    <img :src="getAvatarUrl(user)"
+                      class="w-full h-full rounded-xl object-cover shadow-sm group-hover:opacity-50 transition-opacity duration-200"
+                      :alt="user.full_name" />
+                    <div
+                      class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-inner rounded-xl bg-black/40">
+                      <Camera class="text-white drop-shadow-md" :size="20" />
+                    </div>
                     <!-- Status Indicator Dot -->
                     <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-800"
                       :class="user.is_active ? 'bg-emerald-500' : 'bg-red-500'"></div>
@@ -597,10 +664,13 @@ function getUserRoleName(user) {
       <div v-for="user in filteredUsers" :key="user.id" class="card space-y-4 flex flex-col justify-between h-full">
         <div class="flex justify-between items-start gap-3">
           <div class="flex items-center gap-3">
-            <div class="relative">
-              <img
-                :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=3b82f6&color=fff`"
-                class="w-12 h-12 rounded-xl shadow-sm" />
+            <div class="relative group cursor-pointer h-12 w-12 shrink-0" @click="triggerFileInput(user)">
+              <img :src="getAvatarUrl(user)"
+                class="w-full h-full rounded-xl object-cover shadow-sm group-hover:opacity-50 transition-opacity duration-200" />
+              <div
+                class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-inner rounded-xl bg-black/40">
+                <Camera class="text-white drop-shadow-md" :size="20" />
+              </div>
               <div class="absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-surface-800"
                 :class="user.is_active ? 'bg-emerald-500' : 'bg-red-500'"></div>
             </div>
