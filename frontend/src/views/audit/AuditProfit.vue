@@ -150,7 +150,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                }}</td>
+                                    }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -159,8 +159,31 @@
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 font-medium text-xs">{{ item.type }}</td>
-                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.brand_names }}
+                                <td class="px-4 py-4 font-medium text-xs align-top">
+                                    <template v-if="item.items && item.items.length > 0">
+                                        <div class="flex flex-col gap-2">
+                                            <div v-for="(detail, idx) in item.items" :key="'type-' + idx"
+                                                class="border-b border-gray-100 dark:border-surface-700 pb-2 last:border-0 last:pb-0">
+                                                {{ detail.type || item.type }}
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        {{ item.type }}
+                                    </template>
+                                </td>
+                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary align-top">
+                                    <template v-if="item.items && item.items.length > 0">
+                                        <div class="flex flex-col gap-2">
+                                            <div v-for="(detail, idx) in item.items" :key="'brand-' + idx"
+                                                class="border-b border-gray-100 dark:border-surface-700 pb-2 last:border-0 last:pb-0 whitespace-nowrap">
+                                                {{ detail.brand || item.brand_names }}
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template v-else>
+                                        {{ item.brand_names }}
+                                    </template>
                                 </td>
                                 <td class="px-4 py-4 text-xs font-medium text-text-secondary align-top">
                                     <template v-if="item.items && item.items.length > 0">
@@ -179,7 +202,7 @@
                                         <div v-if="item.items && item.items.length > 1"
                                             class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary flex justify-end">
                                             <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                            }}</span></span>
+                                                    }}</span></span>
                                         </div>
                                     </template>
                                     <template v-else>
