@@ -175,9 +175,10 @@ function formatLastSeen(date, timezone) {
 
 // Avatar Helper & Upload Logic
 function getAvatarUrl(user) {
-  if (user && user.photo) {
-    if (user.photo.startsWith('http')) {
-      return user.photo;
+  const photoPath = user?.photo || user?.photo_inventory;
+  if (photoPath) {
+    if (photoPath.startsWith('http')) {
+      return photoPath;
     }
     const storageUrl = import.meta.env.VITE_API_BASE_URL
       ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "")
@@ -185,7 +186,7 @@ function getAvatarUrl(user) {
 
     // Ensure no double slashes like .com//storage
     const cleanStorageUrl = storageUrl.replace(/\/+$/, "");
-    return `${cleanStorageUrl}/storage/${user.photo}`;
+    return `${cleanStorageUrl}/storage/${photoPath}`;
   }
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'U')}&background=3b82f6&color=fff`;
 }
