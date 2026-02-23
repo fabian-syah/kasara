@@ -199,8 +199,8 @@ async function loadInventory(page = 1) {
       page: page,
       search: debouncedSearch.value,
       type: activeTab.value,
-      branch_id: props.branchId || undefined,
-      online_shop_id: props.onlineShopId || undefined,
+      branch_id: effectiveBranchId.value,
+      online_shop_id: effectiveOnlineShopId.value,
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
@@ -224,8 +224,28 @@ async function loadInventory(page = 1) {
   }
 }
 
+const locations = ref([]);
+const selectedLocationKey = ref('all');
+
+const effectiveBranchId = computed(() => {
+  if (props.isEmbedded) return props.branchId || undefined;
+  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return undefined;
+  return selectedLocationKey.value.split(':')[1];
+});
+
+const effectiveOnlineShopId = computed(() => {
+  if (props.isEmbedded) return props.onlineShopId || undefined;
+  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return undefined;
+  return selectedLocationKey.value.split(':')[1];
+});
+
+const canFilterBranch = computed(() => {
+  const role = (authStore.userRole || '').toLowerCase();
+  return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+});
+
 // Watchers
-watch([debouncedSearch, selectedCondition, selectedStockStatus, filterProduct, filterCapacity, filterBrand], () => {
+watch([debouncedSearch, selectedCondition, selectedStockStatus, filterProduct, filterCapacity, filterBrand, selectedLocationKey], () => {
   loadInventory(1);
 });
 
@@ -276,6 +296,9 @@ onMounted(() => {
   loadInventory(); // Use new loader
   fetchInventoryUsers();
   fetchFilterOptions(); // Fetch options on mount
+  if (canFilterBranch.value && !props.isEmbedded) {
+    fetchLocations();
+  }
 
   // Real-time Updates
   if (window.Echo) {
@@ -612,6 +635,65 @@ async function fetchWarehouses() {
   }
 }
 
+async function fetchLocations() {
+  try {
+    const [branchRes, shopRes, warehouseRes] = await Promise.all([
+      branchesApi.list(),
+      onlineShopsApi.list(),
+      warehousesApi.list()
+    ]);
+
+    const allBranches = (branchRes.data?.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
+    const allShops = (shopRes.data?.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
+    const allWarehouses = (warehouseRes.data?.data || warehouseRes.data || []).map(w => ({ ...w, type: 'warehouse' }));
+    const allLocations = [...allBranches, ...allShops, ...allWarehouses];
+
+    const user = authStore.user;
+    const role = (authStore.userRole || '').toLowerCase();
+    const isGlobalRole = ['super_admin', 'owner'].includes(role);
+
+    let allowedBranchIds = [];
+    if (user?.branch_id) allowedBranchIds.push(user.branch_id);
+    let allowedShopIds = [];
+    if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
+    let allowedWarehouseIds = [];
+    if (user?.warehouse_id) allowedWarehouseIds.push(user.warehouse_id);
+
+    if (user?.placements && Array.isArray(user.placements)) {
+      user.placements.forEach(p => {
+        if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
+        if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+        if (p.model_type === 'warehouse') allowedWarehouseIds.push(p.model_id);
+      });
+    }
+
+    allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
+    allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+    allowedWarehouseIds = [...new Set(allowedWarehouseIds.map(id => Number(id)))];
+
+    const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0;
+
+    if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+      locations.value = allLocations;
+    } else if (hasAnyRestriction) {
+      locations.value = allLocations.filter(loc => {
+        if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+        if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+        if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
+        return false;
+      });
+      if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+        const loc = locations.value[0];
+        selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`;
+      }
+    } else {
+      locations.value = [];
+    }
+  } catch (error) {
+    console.error('Error fetching locations:', error);
+  }
+}
+
 async function fetchBranches() {
   try {
     const response = await branchesApi.list();
@@ -622,6 +704,7 @@ async function fetchBranches() {
     console.error("Gagal memuat cabang", e);
   }
 }
+
 
 const onlineShops = ref([]);
 const distributors = ref([]);
@@ -745,6 +828,20 @@ function getStockStatus(product) {
 
         <!-- Filters Wrapper -->
         <div class="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto items-start md:items-center">
+
+          <!-- Location Filter (Not Embedded Only) -->
+          <select v-if="!isEmbedded && canFilterBranch" v-model="selectedLocationKey"
+            class="input w-full md:w-48 bg-surface-800">
+            <option value="all">Semua Cabang/Toko</option>
+            <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+              :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`">
+              <span v-if="loc.type === 'branch'">[Cabang]</span>
+              <span v-else-if="loc.type === 'online_shop'">[Toko]</span>
+              <span v-else>[Gudang]</span>
+              {{ loc.name }}
+            </option>
+          </select>
+
           <!-- Month Filter -->
           <select v-model="selectedMonth" class="input w-full md:w-48 bg-surface-800">
             <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">
@@ -1064,13 +1161,8 @@ function getStockStatus(product) {
     </div>
 
     <!-- Stock Out Modal Component -->
-    <StockOutModal 
-      :show="showStockOutModal" 
-      :selectedItems="selectedItems"
-      :activeTab="activeTab"
-      @close="showStockOutModal = false"
-      @success="handleStockOutSuccess"
-    />
+    <StockOutModal :show="showStockOutModal" :selectedItems="selectedItems" :activeTab="activeTab"
+      @close="showStockOutModal = false" @success="handleStockOutSuccess" />
   </div>
 </template>
 
