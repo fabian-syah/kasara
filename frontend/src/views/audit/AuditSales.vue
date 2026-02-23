@@ -95,9 +95,18 @@
                                 <th class="px-6 py-4">Nama</th>
                                 <th class="px-6 py-4">No HP</th>
                                 <th class="px-6 py-4">Kategori</th>
-                                <th class="px-6 py-4">Tipe</th>
-                                <th class="px-6 py-4">Brand</th>
-                                <th class="px-6 py-4 text-left w-64">Rincian Barang</th>
+                                <th colspan="3"
+                                    class="p-0 border-b border-gray-200 dark:border-surface-700 bg-gray-50/50 dark:bg-surface-700/50">
+                                    <div
+                                        class="grid grid-cols-[80px_100px_1fr] md:grid-cols-[100px_120px_1fr] w-full min-w-[320px]">
+                                        <div class="px-6 py-4 text-left font-semibold text-text-secondary uppercase">
+                                            Tipe</div>
+                                        <div class="px-6 py-4 text-left font-semibold text-text-secondary uppercase">
+                                            Brand</div>
+                                        <div class="px-6 py-4 text-left font-semibold text-text-secondary uppercase">
+                                            Rincian Barang</div>
+                                    </div>
+                                </th>
                                 <th class="px-6 py-4">Status Pembayaran</th>
                                 <th class="px-6 py-4">Cash</th>
                                 <th class="px-6 py-4">Transfer</th>
@@ -132,7 +141,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -143,60 +152,56 @@
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 font-medium align-top">
-                                    <template v-if="item.items && item.items.length > 0">
-                                        <div class="flex flex-col gap-2">
-                                            <div v-for="(detail, idx) in item.items" :key="'type-' + idx"
-                                                class="border-b border-gray-100 dark:border-surface-700 pb-2 last:border-0 last:pb-0">
-                                                {{ detail.type || item.type }}
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <template v-else>
-                                        {{ item.type }}
-                                    </template>
-                                </td>
-                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary align-top">
-                                    <template v-if="item.items && item.items.length > 0">
-                                        <div class="flex flex-col gap-2">
-                                            <div v-for="(detail, idx) in item.items" :key="'brand-' + idx"
-                                                class="border-b border-gray-100 dark:border-surface-700 pb-2 last:border-0 last:pb-0 whitespace-nowrap">
-                                                {{ detail.brand || item.brand_names }}
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <template v-else>
-                                        {{ item.brand_names }}
-                                    </template>
-                                </td>
-                                <td class="px-6 py-4 text-xs font-medium text-text-secondary align-top">
-                                    <template v-if="item.items && item.items.length > 0">
-                                        <div class="flex flex-col gap-2">
-                                            <div v-for="(detail, idx) in item.items" :key="'item-' + idx"
-                                                class="flex justify-between items-start gap-3 border-b border-gray-100 dark:border-surface-700 last:border-0 pb-2 last:pb-0">
-                                                <div class="whitespace-normal flex-1 leading-relaxed">
-                                                    {{ detail.name }}
-                                                </div>
+                                <td colspan="3" class="p-0 align-top">
+                                    <div class="flex flex-col w-full h-full min-w-[320px]">
+                                        <template v-if="item.items && item.items.length > 0">
+                                            <div v-for="(detail, idx) in item.items" :key="idx"
+                                                class="grid grid-cols-[80px_100px_1fr] md:grid-cols-[100px_120px_1fr] border-b border-gray-100 dark:border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                                 <div
-                                                    class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5 mt-0.5">
-                                                    {{ detail.qty }}
+                                                    class="px-6 py-4 font-medium text-sm text-text-secondary border-r border-gray-100 dark:border-surface-700 flex items-start break-words">
+                                                    {{ detail.type || item.type }}</div>
+                                                <div
+                                                    class="px-6 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:border-surface-700 flex items-start break-words whitespace-pre-wrap">
+                                                    {{ detail.brand || item.brand_names }}</div>
+                                                <div
+                                                    class="px-6 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center">
+                                                    <div class="flex justify-between items-start gap-3 w-full">
+                                                        <div class="whitespace-normal flex-1 leading-relaxed">{{
+                                                            detail.name }}</div>
+                                                        <div
+                                                            class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
+                                                            {{ detail.qty }}</div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div v-if="item.items && item.items.length > 1"
-                                            class="mt-2 pt-2 border-t border-gray-200 dark:border-surface-600 text-xs text-text-secondary flex justify-end">
-                                            <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                            }}</span></span>
-                                        </div>
-                                    </template>
-                                    <template v-else>
-                                        <div class="flex justify-between items-center gap-3">
-                                            <span class="whitespace-normal">{{ item.product_names }}</span>
-                                            <span
-                                                class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap">{{
-                                                    item.qty }}</span>
-                                        </div>
-                                    </template>
+                                            <div v-if="item.items && item.items.length > 1"
+                                                class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:bg-surface-800/50">
+                                                <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
+                                                        }}</span></span>
+                                            </div>
+                                        </template>
+                                        <template v-else>
+                                            <div
+                                                class="grid grid-cols-[80px_100px_1fr] md:grid-cols-[100px_120px_1fr] border-b border-gray-100 dark:border-surface-700 last:border-0">
+                                                <div
+                                                    class="px-6 py-4 font-medium text-sm text-text-secondary border-r border-gray-100 dark:border-surface-700 flex items-start break-words">
+                                                    {{ item.type }}</div>
+                                                <div
+                                                    class="px-6 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:border-surface-700 flex items-start break-words whitespace-pre-wrap">
+                                                    {{ item.brand_names }}</div>
+                                                <div
+                                                    class="px-6 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center">
+                                                    <div class="flex justify-between items-start gap-3 w-full">
+                                                        <div class="whitespace-normal flex-1 leading-relaxed">{{
+                                                            item.product_names || '-' }}</div>
+                                                        <div
+                                                            class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
+                                                            {{ item.qty }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
