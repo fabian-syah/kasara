@@ -1624,6 +1624,22 @@ class AuditController extends Controller
     }
 
     /**
+     * Get checklist for stock-in audit.
+     */
+    public function getStockInChecklist($stockOutId)
+    {
+        return $this->getChecklist($stockOutId);
+    }
+
+    /**
+     * Save checklist for stock-in audit.
+     */
+    public function saveStockInChecklist(Request $request, $stockOutId)
+    {
+        return $this->saveChecklist($request, $stockOutId);
+    }
+
+    /**
      * Get checklist for stock-out audit.
      */
     public function getStockOutChecklist($stockOutId)
