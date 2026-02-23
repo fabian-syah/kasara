@@ -174,6 +174,7 @@ async function fetchFilterOptions() {
 }
 
 const showStockInModal = ref(false);
+const selectedItems = ref([]);
 const showStockOutModal = ref(false);
 
 const openStockOutModal = () => {
@@ -288,22 +289,6 @@ function changePage(page) {
 }
 
 
-const selectedItems = ref([]);
-const showStockOutModal = ref(false);
-
-function openStockOutModal() {
-  if (selectedItems.value.length === 0) {
-    import('../../composables/useToast').then(m => m.useToast().error('Pilih setidaknya satu item untuk dikeluarkan'));
-    return;
-  }
-  showStockOutModal.value = true;
-}
-
-function handleStockOutSuccess() {
-  selectedItems.value = [];
-  showStockOutModal.value = false;
-  loadInventory(1);
-}
 
 const branches = ref([]);
 const { user } = storeToRefs(authStore);
