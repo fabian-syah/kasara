@@ -201,6 +201,7 @@ async function loadInventory(page = 1) {
       type: activeTab.value,
       branch_id: effectiveBranchId.value,
       online_shop_id: effectiveOnlineShopId.value,
+      warehouse_id: effectiveWarehouseId.value,
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
@@ -236,6 +237,12 @@ const effectiveBranchId = computed(() => {
 const effectiveOnlineShopId = computed(() => {
   if (props.isEmbedded) return props.onlineShopId || undefined;
   if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return undefined;
+  return selectedLocationKey.value.split(':')[1];
+});
+
+const effectiveWarehouseId = computed(() => {
+  if (props.isEmbedded) return undefined;
+  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('W:')) return undefined;
   return selectedLocationKey.value.split(':')[1];
 });
 
