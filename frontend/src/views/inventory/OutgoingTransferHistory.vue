@@ -256,7 +256,7 @@ onMounted(() => fetchHistory(1));
                             <p class="text-xs text-text-secondary mb-1">Tujuan</p>
                             <p class="font-medium text-text-primary">
                                 {{ selectedTransfer.destination?.name || selectedTransfer.destination_branch?.name ||
-                                'Unknown' }}
+                                    'Unknown' }}
                             </p>
                         </div>
                         <div>
@@ -279,6 +279,11 @@ onMounted(() => fetchHistory(1));
                                 {{ selectedTransfer.confirmed_by?.full_name || selectedTransfer.confirmed_by?.name ||
                                     selectedTransfer.confirmed_by?.username || 'Belum Diterima' }}
                             </p>
+                        </div>
+                        <div class="col-span-2" v-if="selectedTransfer.transfer_notes || selectedTransfer.notes">
+                            <p class="text-xs text-text-secondary mb-1">Catatan</p>
+                            <p class="font-medium text-text-primary whitespace-pre-wrap">{{
+                                selectedTransfer.transfer_notes || selectedTransfer.notes }}</p>
                         </div>
                     </div>
 
@@ -305,14 +310,33 @@ onMounted(() => fetchHistory(1));
                     </div>
                 </div>
 
-                <!-- REJECTED ITEMS (HP) -->
-                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status === 'in_transit' || i.pivot?.status === 'rejected')"
+                <!-- IN TRANSIT ITEMS (HP) -->
+                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status === 'in_transit')"
                     class="mt-4">
-                    <h3 class="font-bold text-red-500 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <AlertTriangle :size="16" /> Barang Ditolak / Belum Diterima
+                    <h3 class="font-bold text-amber-500 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <Clock :size="16" /> Menunggu Konfirmasi (HP)
                     </h3>
                     <div class="space-y-2">
-                        <div v-for="item in selectedTransfer.items.filter(i => i.status === 'in_transit' || i.pivot?.status === 'rejected')"
+                        <div v-for="item in selectedTransfer.items.filter(i => i.status === 'in_transit')"
+                            :key="item.id"
+                            class="flex items-center justify-between p-3 rounded-xl border border-amber-500/30 bg-amber-500/10">
+                            <div>
+                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
+                            </div>
+                            <span class="text-xs font-bold text-amber-500">PENDING</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REJECTED ITEMS (HP) -->
+                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.pivot?.status === 'rejected')"
+                    class="mt-4">
+                    <h3 class="font-bold text-red-500 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <AlertTriangle :size="16" /> Barang Ditolak
+                    </h3>
+                    <div class="space-y-2">
+                        <div v-for="item in selectedTransfer.items.filter(i => i.pivot?.status === 'rejected')"
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-red-500/30 bg-red-500/10">
                             <div>
@@ -339,7 +363,10 @@ onMounted(() => fetchHistory(1));
                             </div>
                             <div class="text-right">
                                 <span class="text-sm font-bold text-text-primary">{{ item.quantity }} Unit</span>
-                                <p class="text-xs text-text-secondary">Diterima</p>
+                                <p class="text-xs font-bold text-amber-500"
+                                    v-if="selectedTransfer.status === 'pending' || selectedTransfer.status === 'in_transit'">
+                                    PENDING</p>
+                                <p class="text-xs font-bold text-green-500" v-else>DITERIMA</p>
                             </div>
                         </div>
                     </div>
