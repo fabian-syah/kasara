@@ -649,10 +649,15 @@ async function fetchLocations() {
       onlineShopsApi.list(),
       warehousesApi.list()
     ]);
-
-    const allBranches = (branchRes.data?.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
-    const allShops = (shopRes.data?.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
-    const allWarehouses = (warehouseRes.data?.data || warehouseRes.data || []).map(w => ({ ...w, type: 'warehouse' }));
+    const allBranches = (branchRes.data?.data || branchRes.data || [])
+      .filter(b => b.is_active !== false && b.is_active !== 0)
+      .map(b => ({ ...b, type: 'branch' }));
+    const allShops = (shopRes.data?.data || shopRes.data || [])
+      .filter(s => s.is_active !== false && s.is_active !== 0)
+      .map(s => ({ ...s, type: 'online_shop' }));
+    const allWarehouses = (warehouseRes.data?.data || warehouseRes.data || [])
+      .filter(w => w.is_active !== false && w.is_active !== 0)
+      .map(w => ({ ...w, type: 'warehouse' }));
     const allLocations = [...allBranches, ...allShops, ...allWarehouses];
 
     const user = authStore.user;
