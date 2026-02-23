@@ -645,7 +645,7 @@ async function fetchWarehouses() {
 async function fetchLocations() {
   try {
     const [branchRes, shopRes, warehouseRes] = await Promise.all([
-      branchesApi.list(),
+      branchesApi.list({ type: 'physical' }),
       onlineShopsApi.list(),
       warehousesApi.list()
     ]);
