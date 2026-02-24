@@ -9,14 +9,8 @@ import {
     Users,
     ArrowUpDown,
     ArrowUp,
-    ArrowDown,
-    Search,
-    Download,
-    Building2,
-    TrendingUp
+    Building2
 } from 'lucide-vue-next';
-
-import ProfitReport from './ProfitReport.vue';
 
 const loading = ref(true);
 const stats = ref({
@@ -163,12 +157,11 @@ const filteredProducts = computed(() => {
         </div>
 
         <!-- Tabs -->
-        <div class="flex flex-wrap border-b border-surface-700 gap-2 md:gap-6">
+        <div class="flex border-b border-surface-700 gap-6">
             <button v-for="tab in [
                 { id: 'brand', label: 'Laporan per Brand', icon: BarChart3 },
                 { id: 'product', label: 'Total Produk Terjual', icon: Package },
-                { id: 'cs', label: 'Performa CS', icon: Users },
-                { id: 'profit', label: 'Laporan Profit', icon: TrendingUp }
+                { id: 'cs', label: 'Performa CS', icon: Users }
             ]" :key="tab.id" @click="activeTab = tab.id"
                 class="flex items-center gap-2 py-3 px-1 border-b-2 transition-all font-medium text-sm"
                 :class="activeTab === tab.id ? 'border-primary-500 text-primary-500' : 'border-transparent text-text-secondary hover:text-text-primary'">
@@ -364,11 +357,6 @@ const filteredProducts = computed(() => {
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <!-- Profit Report Tab -->
-            <div v-if="activeTab === 'profit'">
-                <ProfitReport />
             </div>
         </div>
     </div>

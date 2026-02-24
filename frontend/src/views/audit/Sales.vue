@@ -99,7 +99,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{{
                                     formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary font-medium">
                                     {{
                                         item.order_no }}</td>
@@ -135,7 +135,7 @@
                                             <div v-if="item.items && item.items.length > 1"
                                                 class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:!bg-surface-800/50">
                                                 <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                }}</span></span>
+                                                        }}</span></span>
                                             </div>
                                         </template>
                                         <template v-else>
@@ -237,7 +237,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right">{{
                                 item.total_sales
-                                }}</td>
+                            }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
@@ -248,6 +248,11 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Profit Report Tab -->
+            <div v-if="currentTab === 'profit'">
+                <ProfitReport />
+            </div>
         </div>
     </div>
 </template>
@@ -257,13 +262,15 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { Loader2 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
+import ProfitReport from '../reports/ProfitReport.vue'
 
 const authStore = useAuthStore()
 
 const tabs = [
     { id: 'daily', name: 'Penjualan Harian' },
     { id: 'brand', name: 'Laporan per Brand' },
-    { id: 'cs', name: 'Laporan per CS' }
+    { id: 'cs', name: 'Laporan per CS' },
+    { id: 'profit', name: 'Laporan Profit' }
 ]
 
 const currentTab = ref('daily')
