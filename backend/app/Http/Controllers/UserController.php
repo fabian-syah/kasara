@@ -145,8 +145,8 @@ class UserController extends Controller
                 $user->assignRole($request->role);
             }
 
-            // Handle Placements (Audit)
-            if ($request->role === 'audit') {
+            // Handle Placements (Audit & Leader)
+            if (in_array($request->role, ['audit', 'leader'])) {
                 $placements = [];
                 if ($request->selected_branches && is_array($request->selected_branches)) {
                     foreach ($request->selected_branches as $id) {
@@ -229,8 +229,8 @@ class UserController extends Controller
             $user->syncRoles([$validated['role']]);
         }
 
-        // Handle Placements (Audit)
-        if ($request->role === 'audit' || $user->hasRole('audit')) {
+        // Handle Placements (Audit & Leader)
+        if (in_array($request->role, ['audit', 'leader']) || $user->hasAnyRole(['audit', 'leader'])) {
             // Only update if array is present (to avoid clearing if not sent)
             if ($request->has('selected_branches') || $request->has('selected_online_shops')) {
                 $user->placements()->delete();

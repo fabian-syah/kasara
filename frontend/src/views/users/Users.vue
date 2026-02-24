@@ -244,7 +244,7 @@ async function fetchData() {
     ]);
 
     users.value = usersRes.data.data || [];
-    branches.value = (branchesRes.data.data || []).filter(b => b.is_active);
+    branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
     warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
     onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
     distributors.value = (distributorsRes.data.data || []).filter(d => d.is_active);
@@ -266,7 +266,7 @@ const placementType = computed(() => {
   const role = form.value.role;
   if (!role) return 'branch';
   if (['super_admin', 'admin_produk', 'analist'].includes(role)) return 'none';
-  if (role === 'audit') return 'audit';
+  if (['audit', 'leader'].includes(role)) return 'audit';
   if (['gudang', 'inventory'].includes(role)) return 'warehouse';
   if (['toko_online', 'leader_shopee'].includes(role)) return 'online_shop';
   if (role === 'distribution') return 'distributor';
@@ -275,7 +275,7 @@ const placementType = computed(() => {
 
 const placementLabel = computed(() => {
   const type = placementType.value;
-  if (type === 'audit') return 'Pengaturan Akses Audit';
+  if (type === 'audit') return 'Pengaturan Multi-Lokasi (Bisa lebih dari 1)';
   if (type === 'warehouse') return 'Lokasi Gudang';
   if (type === 'online_shop') return 'Toko Online';
   if (type === 'distributor') return 'Distributor';
@@ -828,7 +828,7 @@ function getUserRoleName(user) {
               <!-- Audit Multi-Selection -->
               <div v-if="placementType === 'audit'" class="space-y-4">
                 <div>
-                  <label class="label mb-2">Pilih Cabang Fisik (Bisa Lebih dari 1)</label>
+                  <label class="label mb-2">Pilih Cabang Fisik (Centang yang sesuai)</label>
                   <div
                     class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-surface-700 rounded-xl bg-surface-900/50">
                     <label v-for="b in branches" :key="b.id"
