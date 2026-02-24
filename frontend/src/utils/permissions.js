@@ -13,8 +13,7 @@ export const ROLES = {
     INVENTORY: 'inventory',
     GUDANG: 'gudang',
     INVENTORY_KASIR: 'inventory_kasir',
-    TOKO_ONLINE: 'toko_online',
-    LEADER_SHOPEE: 'leader_shopee'
+    TOKO_ONLINE: 'toko_online'
 }
 
 export const ROLE_LABELS = {
@@ -29,8 +28,7 @@ export const ROLE_LABELS = {
     [ROLES.INVENTORY]: 'Inventory',
     [ROLES.GUDANG]: 'Gudang',
     [ROLES.INVENTORY_KASIR]: 'Inventory & Kasir',
-    [ROLES.TOKO_ONLINE]: 'Toko Online',
-    [ROLES.LEADER_SHOPEE]: 'Leader Shopee'
+    [ROLES.TOKO_ONLINE]: 'Toko Online'
 }
 
 // Permission constants
@@ -181,11 +179,6 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.INVENTORY_MANAGE, // Allow confirming transfers
         PERMISSIONS.USERS_VIEW, // Needed to select target account for stock in
         PERMISSIONS.REPORTS_VIEW
-    ],
-
-    [ROLES.LEADER_SHOPEE]: [
-        PERMISSIONS.ONLINE_ANALYSIS,
-        PERMISSIONS.INVENTORY_VIEW // Read only access to inventory
     ]
 }
 
@@ -202,8 +195,7 @@ export const ROLE_MENUS = {
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales', 'online_scan', 'shopee_history', 'reports', 'report_sales', 'inventory', 'incoming_group', 'track'],
-    [ROLES.LEADER_SHOPEE]: ['dashboard', 'online_analysis', 'shopee_history', 'track']
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales', 'online_scan', 'shopee_history', 'reports', 'report_sales', 'inventory', 'incoming_group', 'track']
 }
 
 // Helper functions

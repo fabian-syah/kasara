@@ -109,7 +109,7 @@ const filteredRolesOptions = computed(() => {
     if (!hasBranchAccess && ['sales', 'inventory_kasir', 'security', 'leader'].includes(r.value)) return false;
 
     // 4. Hide Online Shop roles if no online access
-    if (!hasOnlineAccess && ['toko_online', 'leader_shopee'].includes(r.value)) return false;
+    if (!hasOnlineAccess && ['toko_online'].includes(r.value)) return false;
 
     // 5. Hide Distributor roles if no distributor access
     if (!hasDistributorAccess && ['distribution'].includes(r.value)) return false;
@@ -274,7 +274,7 @@ const placementType = computed(() => {
   if (['super_admin', 'admin_produk', 'analist'].includes(role)) return 'none';
   if (['audit', 'leader'].includes(role)) return 'audit';
   if (['gudang', 'inventory'].includes(role)) return 'warehouse';
-  if (['toko_online', 'leader_shopee'].includes(role)) return 'online_shop';
+  if (['toko_online'].includes(role)) return 'online_shop';
   if (role === 'distribution') return 'distributor';
   return 'branch';
 });
