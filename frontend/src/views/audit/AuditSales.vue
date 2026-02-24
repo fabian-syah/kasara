@@ -141,7 +141,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
@@ -177,7 +177,7 @@
                                             <div v-if="item.items && item.items.length > 1"
                                                 class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:bg-surface-800/50">
                                                 <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                }}</span></span>
+                                                        }}</span></span>
                                             </div>
                                         </template>
                                         <template v-else>
@@ -231,7 +231,7 @@
                                             title="Lihat Nota">
                                             <Eye :size="16" />
                                         </button>
-                                        <button @click="openChecklist(item)"
+                                        <button v-if="!isLeader" @click="openChecklist(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Cek Audit">
                                             <ClipboardCheck :size="16" />
@@ -428,6 +428,7 @@ import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 
 const authStore = useAuthStore()
+const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')
 
 // Dropped Tabs Logic - Now displaying all sections vertically
 const loading = ref(false)
@@ -649,9 +650,9 @@ const handleMonthChange = () => {
 }
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner can filter branches
+    // Only Audit, Super Admin, Owner, Leader can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'leader'].some(r => role.includes(r));
 })
 
 const formatCurrency = (value) => {

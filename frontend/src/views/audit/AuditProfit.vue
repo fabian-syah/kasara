@@ -240,9 +240,10 @@
                                                 :class="item.has_saved_modal
                                                     ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
                                                     : 'border-gray-200 dark:border-surface-600 text-text-primary'"
-                                                @keyup.enter="saveHargaModal(item)" />
+                                                :disabled="isLeader" @keyup.enter="saveHargaModal(item)" />
                                         </div>
-                                        <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
+                                        <button v-if="!isLeader" @click="saveHargaModal(item)"
+                                            :disabled="savingModalId === item.id"
                                             class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all"
                                             title="Simpan Harga Modal">
                                             <Save v-if="savingModalId !== item.id" :size="14" />
@@ -317,12 +318,13 @@
                         <p v-else class="text-xs text-amber-500 mt-1 font-medium">Belum pernah diaudit</p>
                     </div>
                     <!-- Edit toggle button -->
-                    <button v-if="!checklistEditMode" @click="checklistEditMode = true"
+                    <button v-if="!checklistEditMode && !isLeader" @click="checklistEditMode = true"
                         class="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all"
                         title="Edit Audit">
                         <Pencil :size="16" />
                     </button>
-                    <span v-else class="px-3 py-1.5 text-xs font-bold bg-primary-500/10 text-primary-600 rounded-lg">
+                    <span v-else-if="!isLeader"
+                        class="px-3 py-1.5 text-xs font-bold bg-primary-500/10 text-primary-600 rounded-lg">
                         Mode Edit
                     </span>
                 </div>
@@ -420,6 +422,7 @@ import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 
 const authStore = useAuthStore()
+const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')
 
 const loading = ref(false)
 const exporting = ref(false)
@@ -714,9 +717,11 @@ const handleMonthChange = () => {
     }
 }
 
+
 const canFilterBranch = computed(() => {
+    // Only Audit, Super Admin, Owner, Leader can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'leader'].some(r => role.includes(r));
 })
 
 const formatCurrency = (value) => {

@@ -230,7 +230,7 @@
                                 Kategori:
                                 <span class="font-semibold text-purple-600 dark:text-purple-400">{{
                                     checklistData?.category
-                                }}</span>
+                                    }}</span>
                                 — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
                                 <span v-if="checklistData?.score !== undefined" class="font-semibold" :class="checklistData.score === 100
                                     ? 'text-emerald-600'
@@ -241,12 +241,12 @@
                             </p>
                         </div>
                         <!-- Edit toggle button -->
-                        <button v-if="!checklistEditMode" @click="checklistEditMode = true"
+                        <button v-if="!checklistEditMode && !isLeader" @click="checklistEditMode = true"
                             class="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all"
                             title="Edit Audit">
                             <Pencil :size="16" />
                         </button>
-                        <span v-else
+                        <span v-else-if="!isLeader"
                             class="px-3 py-1.5 text-xs font-bold bg-primary-500/10 text-primary-600 rounded-lg">
                             Mode Edit
                         </span>
@@ -362,6 +362,7 @@ import axios from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
 
 const authStore = useAuthStore();
+const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader');
 
 const loading = ref(false);
 const stockOutRecords = ref([]);
@@ -546,7 +547,7 @@ const handlePeriodChange = () => {
 
 const canFilterBranch = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner'].some((r) => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'leader'].some((r) => role.includes(r));
 });
 
 const formatDate = (dateString) => {

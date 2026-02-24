@@ -16,6 +16,11 @@ import {
   ChevronDown,
 } from "lucide-vue-next";
 
+import { useAuthStore } from "../../store/auth";
+
+const authStore = useAuthStore();
+const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader');
+
 // Mock audit items
 const auditItems = ref([
   {
@@ -325,7 +330,7 @@ function rejectItem() {
                 placeholder="Masukkan catatan..."></textarea>
             </div>
 
-            <div class="flex gap-3">
+            <div v-if="!isLeader" class="flex gap-3">
               <button @click="rejectItem" class="btn btn-danger flex-1" :disabled="!auditNotes">
                 <XCircle :size="16" />
                 Reject
