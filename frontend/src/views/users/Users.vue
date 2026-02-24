@@ -854,39 +854,70 @@ function getUserRoleName(user) {
                   <!-- Physical Branches -->
                   <div v-if="selectedMultiPlacementType === 'physical'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label v-for="b in branches" :key="b.id"
-                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
-                      <input type="checkbox" :value="b.id" v-model="form.selected_branches"
-                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
-                      <span class="text-sm font-medium">{{ b.name }}</span>
+                      class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
+                      :class="form.selected_branches?.includes(b.id) ? 'bg-blue-500/10 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
+                      <input type="checkbox" :value="b.id" v-model="form.selected_branches" class="sr-only">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                          :class="form.selected_branches?.includes(b.id) ? 'bg-blue-500 text-white' : 'bg-surface-700 text-text-secondary'">
+                          <Building class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium transition-colors"
+                          :class="form.selected_branches?.includes(b.id) ? 'text-blue-400' : 'text-text-primary'">
+                          {{ b.name }}
+                        </span>
+                      </div>
+                      <Check v-if="form.selected_branches?.includes(b.id)" class="w-4 h-4 text-blue-500 shrink-0" />
                     </label>
                     <p v-if="branches.length === 0"
-                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada cabang fisik
+                      class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada cabang fisik
                       aktif.</p>
                   </div>
 
                   <!-- Online Shops -->
                   <div v-if="selectedMultiPlacementType === 'online'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label v-for="s in onlineShops" :key="s.id"
-                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
-                      <input type="checkbox" :value="s.id" v-model="form.selected_online_shops"
-                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
-                      <span class="text-sm font-medium">{{ s.name }}</span>
+                      class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
+                      :class="form.selected_online_shops?.includes(s.id) ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
+                      <input type="checkbox" :value="s.id" v-model="form.selected_online_shops" class="sr-only">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                          :class="form.selected_online_shops?.includes(s.id) ? 'bg-orange-500 text-white' : 'bg-surface-700 text-text-secondary'">
+                          <MapPin class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium transition-colors"
+                          :class="form.selected_online_shops?.includes(s.id) ? 'text-orange-400' : 'text-text-primary'">
+                          {{ s.name }}
+                        </span>
+                      </div>
+                      <Check v-if="form.selected_online_shops?.includes(s.id)"
+                        class="w-4 h-4 text-orange-500 shrink-0" />
                     </label>
                     <p v-if="onlineShops.length === 0"
-                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada toko online
+                      class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada toko online
                       aktif.</p>
                   </div>
 
                   <!-- Warehouses -->
                   <div v-if="selectedMultiPlacementType === 'warehouse'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label v-for="w in warehouses" :key="w.id"
-                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
-                      <input type="checkbox" :value="w.id" v-model="form.selected_warehouses"
-                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
-                      <span class="text-sm font-medium">{{ w.name }}</span>
+                      class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
+                      :class="form.selected_warehouses?.includes(w.id) ? 'bg-purple-500/10 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
+                      <input type="checkbox" :value="w.id" v-model="form.selected_warehouses" class="sr-only">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                          :class="form.selected_warehouses?.includes(w.id) ? 'bg-purple-500 text-white' : 'bg-surface-700 text-text-secondary'">
+                          <Building class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium transition-colors"
+                          :class="form.selected_warehouses?.includes(w.id) ? 'text-purple-400' : 'text-text-primary'">
+                          {{ w.name }}
+                        </span>
+                      </div>
+                      <Check v-if="form.selected_warehouses?.includes(w.id)" class="w-4 h-4 text-purple-500 shrink-0" />
                     </label>
                     <p v-if="warehouses.length === 0"
-                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada gudang aktif.
+                      class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada gudang aktif.
                     </p>
                   </div>
 
@@ -894,13 +925,24 @@ function getUserRoleName(user) {
                   <div v-if="selectedMultiPlacementType === 'distributor'"
                     class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label v-for="d in distributors" :key="d.id"
-                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
-                      <input type="checkbox" :value="d.id" v-model="form.selected_distributors"
-                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
-                      <span class="text-sm font-medium">{{ d.name }}</span>
+                      class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
+                      :class="form.selected_distributors?.includes(d.id) ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
+                      <input type="checkbox" :value="d.id" v-model="form.selected_distributors" class="sr-only">
+                      <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                          :class="form.selected_distributors?.includes(d.id) ? 'bg-emerald-500 text-white' : 'bg-surface-700 text-text-secondary'">
+                          <MapPin class="w-4 h-4" />
+                        </div>
+                        <span class="text-sm font-medium transition-colors"
+                          :class="form.selected_distributors?.includes(d.id) ? 'text-emerald-400' : 'text-text-primary'">
+                          {{ d.name }}
+                        </span>
+                      </div>
+                      <Check v-if="form.selected_distributors?.includes(d.id)"
+                        class="w-4 h-4 text-emerald-500 shrink-0" />
                     </label>
                     <p v-if="distributors.length === 0"
-                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada distributor
+                      class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada distributor
                       aktif.</p>
                   </div>
                 </div>
