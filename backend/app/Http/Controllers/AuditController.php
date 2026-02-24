@@ -576,7 +576,7 @@ class AuditController extends Controller
         $dailyStats = [];
 
         // Query StockOut (Transactions)
-        $query = StockOut::with(['items', 'nonHpItems'])
+        $query = StockOut::with(['items', 'nonHpItems', 'user', 'inventoryUser'])
             ->whereIn('category', $salesCategories)
             ->whereYear('created_at', $year);
 
@@ -660,21 +660,13 @@ class AuditController extends Controller
             $dailyStats[$date]['revenue'] += $trx->selling_price;
             $dailyStats[$date]['items'] += $trxItems;
 
-            // Breakdown by Branch/OnlineShop
-            $sourceName = 'Unknown';
+            // Breakdown by CS (Akun Inventory)
+            $sourceName = 'Unknown CS';
 
             if ($trx->inventoryUser) {
-                if ($trx->inventoryUser->branch) {
-                    $sourceName = $trx->inventoryUser->branch->name;
-                } elseif ($trx->inventoryUser->onlineShop) {
-                    $sourceName = $trx->inventoryUser->onlineShop->name;
-                }
+                $sourceName = $trx->inventoryUser->full_name;
             } elseif ($trx->user) {
-                if ($trx->user->branch) {
-                    $sourceName = $trx->user->branch->name;
-                } elseif ($trx->user->onlineShop) {
-                    $sourceName = $trx->user->onlineShop->name;
-                }
+                $sourceName = $trx->user->full_name;
             }
 
             if (!isset($breakdown[$sourceName])) {

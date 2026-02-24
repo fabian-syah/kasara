@@ -127,10 +127,10 @@
             <!-- Sales By Branch Chart -->
             <div
                 class="bg-white dark:bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
-                <h3 class="text-lg font-medium leading-6 text-text-primary mb-4">Kontribusi Sales per
-                    Cabang/Shop (by CS)</h3>
+                <h3 class="text-lg font-medium leading-6 text-text-primary mb-4">Kontribusi Sales per CS (Akun
+                    Inventory)</h3>
                 <div class="h-80 relative flex justify-center">
-                    <Pie v-if="chartData.breakdown" :data="chartData.breakdown" :options="pieChartOptions" />
+                    <Doughnut v-if="chartData.breakdown" :data="chartData.breakdown" :options="pieChartOptions" />
                     <div v-else class="flex items-center justify-center h-full text-gray-500">Tidak ada data</div>
                 </div>
             </div>
@@ -154,9 +154,10 @@ import {
     Title,
     Tooltip,
     Legend,
-    ArcElement
+    ArcElement,
+    Filler
 } from 'chart.js';
-import { Line, Pie } from 'vue-chartjs';
+import { Line, Doughnut } from 'vue-chartjs';
 
 ChartJS.register(
     CategoryScale,
@@ -166,7 +167,8 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    ArcElement
+    ArcElement,
+    Filler
 );
 
 const toast = useToast();
@@ -240,6 +242,7 @@ const lineChartOptions = {
 const pieChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    cutout: '65%', // makes it a doughnut
     plugins: {
         legend: {
             position: 'right',
@@ -355,18 +358,27 @@ const processCharts = (data) => {
             datasets: [
                 {
                     label: 'Profit (Est)',
-                    backgroundColor: '#10B981', // Emerald 500
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)', // Emerald 500 with opacity
                     borderColor: '#10B981',
+                    pointBackgroundColor: '#10B981',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
                     data: profits,
-                    tension: 0.3
+                    fill: true,
+                    tension: 0.4
                 },
                 {
                     label: 'Omset',
-                    backgroundColor: '#3B82F6', // Blue 500
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)', // Blue 500 with opacity
                     borderColor: '#3B82F6',
+                    pointBackgroundColor: '#3B82F6',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
                     data: revenues,
-                    tension: 0.3,
-                    borderDash: [5, 5]
+                    fill: true,
+                    tension: 0.4
                 }
             ]
         };
@@ -388,6 +400,9 @@ const processCharts = (data) => {
             datasets: [
                 {
                     backgroundColor: backgroundColors.slice(0, labels.length),
+                    borderColor: '#ffffff',
+                    borderWidth: 2,
+                    hoverOffset: 4,
                     data: counts
                 }
             ]
