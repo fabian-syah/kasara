@@ -133,9 +133,13 @@ const form = ref({
   address: "",
   password: "",
   is_active: true,
-  selected_branches: [], // For Audit
-  selected_online_shops: [], // For Audit
+  selected_branches: [], // For Audit/Leader
+  selected_online_shops: [], // For Audit/Leader
+  selected_warehouses: [], // For Audit/Leader
+  selected_distributors: [], // For Audit/Leader
 });
+
+const selectedMultiPlacementType = ref('physical'); // UI toggle for audit/leader modal
 
 // Helper to reset form
 function resetForm() {
@@ -244,10 +248,10 @@ async function fetchData() {
     ]);
 
     users.value = usersRes.data.data || [];
-    branches.value = (branchesRes.data.data || []).filter(b => !b.type || b.type === 'physical');
-    warehouses.value = warehousesRes.data.data || [];
-    onlineShops.value = onlineShopsRes.data.data || [];
-    distributors.value = distributorsRes.data.data || [];
+    branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
+    warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
+    onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
+    distributors.value = (distributorsRes.data.data || []).filter(d => d.is_active);
   } catch (error) {
     console.error("Error fetching data:", error);
     toast.error("Gagal memuat data.");
@@ -341,6 +345,8 @@ function openEditModal(user) {
   // Parse placements if available
   const branchPlacements = (user.placements || []).filter(p => p.model_type === 'branch').map(p => p.model_id);
   const onlineShopPlacements = (user.placements || []).filter(p => p.model_type === 'online_shop').map(p => p.model_id);
+  const warehousePlacements = (user.placements || []).filter(p => p.model_type === 'warehouse').map(p => p.model_id);
+  const distributorPlacements = (user.placements || []).filter(p => p.model_type === 'distributor').map(p => p.model_id);
 
   form.value = {
     full_name: user.full_name,
@@ -358,7 +364,10 @@ function openEditModal(user) {
     password: "",
     selected_branches: branchPlacements,
     selected_online_shops: onlineShopPlacements,
+    selected_warehouses: warehousePlacements,
+    selected_distributors: distributorPlacements,
   };
+  selectedMultiPlacementType.value = 'physical'; // Reset UI toggle
   showModal.value = true;
 }
 
@@ -393,6 +402,8 @@ async function saveUser() {
     if (placementType.value === 'audit') {
       payload.selected_branches = form.value.selected_branches;
       payload.selected_online_shops = form.value.selected_online_shops;
+      payload.selected_warehouses = form.value.selected_warehouses;
+      payload.selected_distributors = form.value.selected_distributors;
     }
 
     if (editingUser.value) {
@@ -825,32 +836,85 @@ function getUserRoleName(user) {
             <div v-if="form.role && placementType !== 'none'" class="animate-in fade-in slide-in-from-top-2">
               <label class="label">{{ placementLabel }}</label>
 
-              <!-- Audit Multi-Selection -->
+              <!-- Audit/Leader Multi-Selection with Cleaner UI -->
               <div v-if="placementType === 'audit'" class="space-y-4">
+                <!-- Dropdown to select which list to view -->
                 <div>
-                  <label class="label mb-2">Pilih Cabang Fisik (Centang yang sesuai)</label>
-                  <div
-                    class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-surface-700 rounded-xl bg-surface-900/50">
+                  <label class="label mb-2">Pilih Jenis Lokasi</label>
+                  <select v-model="selectedMultiPlacementType" class="input">
+                    <option value="physical">Cabang Fisik</option>
+                    <option value="online">Toko Online</option>
+                    <option value="warehouse">Gudang</option>
+                    <option value="distributor">Distributor</option>
+                  </select>
+                </div>
+
+                <!-- Checkboxes container -->
+                <div class="border border-surface-700 rounded-xl bg-surface-900/50 p-3 max-h-52 overflow-y-auto">
+                  <!-- Physical Branches -->
+                  <div v-if="selectedMultiPlacementType === 'physical'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label v-for="b in branches" :key="b.id"
-                      class="flex items-center gap-2 p-2 rounded hover:bg-surface-800 cursor-pointer">
+                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
                       <input type="checkbox" :value="b.id" v-model="form.selected_branches"
-                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800">
-                      <span class="text-sm">{{ b.name }}</span>
+                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
+                      <span class="text-sm font-medium">{{ b.name }}</span>
                     </label>
+                    <p v-if="branches.length === 0"
+                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada cabang fisik
+                      aktif.</p>
+                  </div>
+
+                  <!-- Online Shops -->
+                  <div v-if="selectedMultiPlacementType === 'online'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label v-for="s in onlineShops" :key="s.id"
+                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
+                      <input type="checkbox" :value="s.id" v-model="form.selected_online_shops"
+                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
+                      <span class="text-sm font-medium">{{ s.name }}</span>
+                    </label>
+                    <p v-if="onlineShops.length === 0"
+                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada toko online
+                      aktif.</p>
+                  </div>
+
+                  <!-- Warehouses -->
+                  <div v-if="selectedMultiPlacementType === 'warehouse'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label v-for="w in warehouses" :key="w.id"
+                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
+                      <input type="checkbox" :value="w.id" v-model="form.selected_warehouses"
+                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
+                      <span class="text-sm font-medium">{{ w.name }}</span>
+                    </label>
+                    <p v-if="warehouses.length === 0"
+                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada gudang aktif.
+                    </p>
+                  </div>
+
+                  <!-- Distributors -->
+                  <div v-if="selectedMultiPlacementType === 'distributor'"
+                    class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label v-for="d in distributors" :key="d.id"
+                      class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-surface-800 cursor-pointer transition-colors border border-transparent hover:border-surface-600">
+                      <input type="checkbox" :value="d.id" v-model="form.selected_distributors"
+                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800 w-4 h-4">
+                      <span class="text-sm font-medium">{{ d.name }}</span>
+                    </label>
+                    <p v-if="distributors.length === 0"
+                      class="text-sm text-text-secondary italic col-span-full text-center py-2">Tidak ada distributor
+                      aktif.</p>
                   </div>
                 </div>
 
-                <div>
-                  <label class="label mb-2">Pilih Toko Online (Opsional)</label>
-                  <div
-                    class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-surface-700 rounded-xl bg-surface-900/50">
-                    <label v-for="s in onlineShops" :key="s.id"
-                      class="flex items-center gap-2 p-2 rounded hover:bg-surface-800 cursor-pointer">
-                      <input type="checkbox" :value="s.id" v-model="form.selected_online_shops"
-                        class="rounded border-surface-600 text-blue-500 focus:ring-blue-500 bg-surface-800">
-                      <span class="text-sm">{{ s.name }}</span>
-                    </label>
-                  </div>
+                <!-- Selections Summary -->
+                <div class="flex flex-wrap gap-2 text-xs text-text-secondary mt-2">
+                  <span v-if="form.selected_branches?.length">Cabang Fisik: <strong class="text-blue-400">{{
+                    form.selected_branches.length }}</strong> terpilih</span>
+                  <span v-if="form.selected_online_shops?.length">Toko Online: <strong class="text-blue-400">{{
+                    form.selected_online_shops.length }}</strong> terpilih</span>
+                  <span v-if="form.selected_warehouses?.length">Gudang: <strong class="text-blue-400">{{
+                    form.selected_warehouses.length }}</strong> terpilih</span>
+                  <span v-if="form.selected_distributors?.length">Distributor: <strong class="text-blue-400">{{
+                    form.selected_distributors.length }}</strong> terpilih</span>
                 </div>
               </div>
 
