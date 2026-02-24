@@ -117,7 +117,8 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.AUDIT_APPROVE,
         PERMISSIONS.TRANSACTIONS_VIEW,
         PERMISSIONS.BRANCHES_VIEW,
-        PERMISSIONS.USERS_VIEW
+        PERMISSIONS.USERS_VIEW,
+        PERMISSIONS.REPORTS_PROFIT
     ],
 
     [ROLES.SECURITY]: [
@@ -130,6 +131,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.TRANSACTIONS_VIEW,
         PERMISSIONS.REPORTS_VIEW,
         PERMISSIONS.REPORTS_SALES,
+        PERMISSIONS.REPORTS_PROFIT,
         PERMISSIONS.BRANCHES_VIEW,
         PERMISSIONS.AUDIT_VIEW,
         PERMISSIONS.USERS_VIEW
@@ -147,6 +149,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.POS_ACCESS,
         PERMISSIONS.TRANSACTIONS_CREATE,
         PERMISSIONS.TRANSACTIONS_VIEW,
+        PERMISSIONS.REPORTS_PROFIT,
         PERMISSIONS.INVENTORY_VIEW,
         PERMISSIONS.INVENTORY_STOCK_IN, // Allow access to stock in/out pages
         PERMISSIONS.INVENTORY_MANAGE // Allow confirming transfers
@@ -186,14 +189,14 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit', 'reports', 'report_sales', 'settings', 'warehouses', 'distributors', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track'],
-    [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'track'],
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit_sales_group', 'audit', 'reports', 'report_sales', 'settings', 'warehouses', 'distributors', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track'],
+    [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'audit_sales_group', 'track'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
-    [ROLES.AUDIT]: ['dashboard', 'audit', 'audit_sales', 'audit_inventory', 'audit_analysis', 'users', 'track'],
+    [ROLES.AUDIT]: ['dashboard', 'audit_sales_group', 'audit', 'audit_inventory', 'audit_analysis', 'users', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
-    [ROLES.LEADER]: ['dashboard', 'audit_sales', 'audit_inventory', 'audit_analysis', 'users', 'track'],
+    [ROLES.LEADER]: ['dashboard', 'audit_sales_group', 'audit_inventory', 'audit_analysis', 'users', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
-    [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'inventory', 'incoming_group', 'track'],
+    [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'audit_sales_group', 'inventory', 'incoming_group', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
