@@ -698,4 +698,11 @@ body {
   .table tbody tr {
     @apply hover:bg-surface-800/50 transition-colors;
   }
+
+  /* Specific fix for iOS/Safari where bg-white overrides dark:bg-surface-800 in tables */
+  html.dark table *,
+  html.dark .bg-white.dark\:bg-surface-800,
+  html.dark tbody.bg-white {
+    background-color: transparent !important;
+  }
 }

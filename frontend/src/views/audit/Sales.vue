@@ -17,7 +17,7 @@
 
             <!-- Date Filter -->
             <div
-                class="flex items-center gap-2 bg-white dark:bg-surface-800 p-2 rounded-lg border border-gray-200 dark:border-surface-700 shadow-sm">
+                class="flex items-center gap-2 bg-white dark:!bg-surface-800 p-2 rounded-lg border border-gray-200 dark:border-surface-700 shadow-sm">
                 <input type="date" v-model="filters.start_date"
                     class="border-gray-300 dark:border-surface-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent dark:bg-surface-700 text-gray-900 dark:text-white" />
                 <span class="text-gray-500 dark:text-gray-400">-</span>
@@ -54,7 +54,7 @@
         <div v-else>
             <!-- Daily Sales Table -->
             <div v-if="currentTab === 'daily'"
-                class="bg-white dark:bg-surface-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-surface-700">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-surface-700">
                         <thead class="bg-gray-50 dark:bg-surface-900">
@@ -94,7 +94,7 @@
                                     Total</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
+                        <tbody class="bg-white dark:!bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
                             <tr v-for="(item, index) in salesRecords.daily_sales" :key="index"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{{
@@ -127,13 +127,13 @@
                                                         <div class="whitespace-normal flex-1 leading-relaxed">{{
                                                             detail.name }}</div>
                                                         <div
-                                                            class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
+                                                            class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
                                                             {{ detail.qty }}</div>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div v-if="item.items && item.items.length > 1"
-                                                class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:bg-surface-800/50">
+                                                class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:!bg-surface-800/50">
                                                 <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
                                                 }}</span></span>
                                             </div>
@@ -153,7 +153,7 @@
                                                         <div class="whitespace-normal flex-1 leading-relaxed">{{
                                                             item.product_names || '-' }}</div>
                                                         <div
-                                                            class="bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
+                                                            class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
                                                             {{ item.qty }}</div>
                                                     </div>
                                                 </div>
@@ -183,7 +183,7 @@
 
             <!-- Brand Sales Table -->
             <div v-if="currentTab === 'brand'"
-                class="bg-white dark:bg-surface-800 shadow rounded-lg overflow-hidden max-w-4xl mx-auto border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 shadow rounded-lg overflow-hidden max-w-4xl mx-auto border border-gray-200 dark:border-surface-700">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-surface-700">
                     <thead class="bg-gray-50 dark:bg-surface-900">
                         <tr>
@@ -195,7 +195,7 @@
                                 Total Terjual (Unit)</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
+                    <tbody class="bg-white dark:!bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
                         <tr v-for="(item, index) in salesRecords.brand_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-primary">{{
@@ -214,7 +214,7 @@
 
             <!-- CS Sales Table -->
             <div v-if="currentTab === 'cs'"
-                class="bg-white dark:bg-surface-800 shadow rounded-lg overflow-hidden max-w-4xl mx-auto border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 shadow rounded-lg overflow-hidden max-w-4xl mx-auto border border-gray-200 dark:border-surface-700">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-surface-700">
                     <thead class="bg-gray-50 dark:bg-surface-900">
                         <tr>
@@ -229,7 +229,7 @@
                                 Grand Total</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
+                    <tbody class="bg-white dark:!bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
                         <tr v-for="(item, index) in salesRecords.cs_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-primary">{{

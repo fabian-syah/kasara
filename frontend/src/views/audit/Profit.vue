@@ -41,7 +41,7 @@
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
             <div
-                class="bg-white dark:bg-surface-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-surface-700">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -67,7 +67,7 @@
             </div>
 
             <div
-                class="bg-white dark:bg-surface-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-surface-700">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -92,7 +92,7 @@
             </div>
 
             <div
-                class="bg-white dark:bg-surface-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-surface-700">
                 <div class="p-5">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
@@ -116,7 +116,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Profit Trend Chart -->
             <div
-                class="bg-white dark:bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
                 <h3 class="text-lg font-medium leading-6 text-text-primary mb-4">Tren Profit Harian</h3>
                 <div class="h-80 relative">
                     <Line v-if="chartData.trend" :data="chartData.trend" :options="lineChartOptions" />
@@ -126,7 +126,7 @@
 
             <!-- Sales By Branch Chart -->
             <div
-                class="bg-white dark:bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
+                class="bg-white dark:!bg-surface-800 p-6 rounded-lg shadow border border-gray-200 dark:border-surface-700">
                 <h3 class="text-lg font-medium leading-6 text-text-primary mb-4">Kontribusi Sales per CS (Akun
                     Inventory)</h3>
                 <div class="h-80 relative flex justify-center">

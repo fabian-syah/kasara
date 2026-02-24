@@ -294,7 +294,7 @@ function rejectItem() {
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showDetailModal = false"></div>
 
         <div
-          class="relative bg-white dark:bg-surface-900 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg p-6 shadow-2xl">
+          class="relative bg-white dark:!bg-surface-900 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg p-6 shadow-2xl">
           <h3 class="text-xl font-bold text-text-primary mb-6">Review Audit</h3>
 
           <div class="space-y-4 mb-6">

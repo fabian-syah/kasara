@@ -492,7 +492,7 @@ async function submitStockOut() {
 <template>
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <div
-            class="bg-white dark:bg-surface-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in duration-200 border border-surface-200 dark:border-surface-700 shadow-xl">
+            class="bg-white dark:!bg-surface-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in duration-200 border border-surface-200 dark:border-surface-700 shadow-xl">
             <!-- Modal Header -->
             <div class="flex items-center justify-between p-6 border-b border-surface-200 dark:border-surface-700">
                 <div class="flex items-center gap-3">

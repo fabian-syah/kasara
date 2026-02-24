@@ -18,7 +18,7 @@
                     <!-- Period Filter (Modern UI) -->
                     <div class="relative min-w-[140px]">
                         <select v-model="selectedPeriod" @change="handlePeriodChange"
-                            class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="daily">Harian</option>
                             <option value="monthly">Bulanan</option>
                         </select>
@@ -29,7 +29,7 @@
                     <!-- Daily: Date Picker (Modern UI) -->
                     <div v-if="selectedPeriod === 'daily'" class="relative group">
                         <div
-                            class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
+                            class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
                             <Calendar :size="18"
                                 class="text-gray-500 dark:text-gray-400 group-hover:text-primary-500" />
                             <span class="text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[100px]">
@@ -46,7 +46,7 @@
                         <!-- Month Selector -->
                         <div class="relative min-w-[140px]">
                             <select v-model="selectedMonth" @change="handleMonthChange"
-                                class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                                 <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
                             </select>
                             <ChevronDown :size="16"
@@ -56,7 +56,7 @@
                         <!-- Year Selector -->
                         <div class="relative min-w-[100px]">
                             <select v-model="selectedYear" @change="handleMonthChange"
-                                class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                                 <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
                             </select>
                             <ChevronDown :size="16"
@@ -67,7 +67,7 @@
                     <!-- Branch Filter -->
                     <div v-if="canFilterBranch" class="relative min-w-[200px]">
                         <select v-model="selectedLocationKey" @change="fetchData"
-                            class="w-full appearance-none bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Lokasi</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                                 :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`">
@@ -85,7 +85,7 @@
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
                         Total Transaksi
                     </p>
@@ -93,7 +93,7 @@
                         {{ stockOutRecords.length }}
                     </p>
                 </div>
-                <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
                         Belum Diaudit
                     </p>
@@ -101,7 +101,7 @@
                         {{stockOutRecords.filter((r) => r.audit_score === null).length}}
                     </p>
                 </div>
-                <div class="bg-white dark:bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
                         Sudah Diaudit
                     </p>
@@ -113,11 +113,11 @@
 
             <!-- Table -->
             <div
-                class="bg-white dark:bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead
-                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
+                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
                                 <th class="px-4 py-4">No</th>
                                 <th class="px-4 py-4">Waktu</th>
@@ -145,7 +145,7 @@
                                 <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
-                                            class="w-12 h-12 bg-gray-100 dark:bg-surface-700 rounded-full flex items-center justify-center mb-3">
+                                            class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
                                             <PackageSearch class="w-6 h-6 text-gray-400" />
                                         </div>
                                         <span class="font-medium text-gray-900 dark:text-white">Tidak ada data barang
@@ -218,7 +218,7 @@
             <div v-if="showChecklistModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeChecklist"></div>
                 <div
-                    class="relative bg-white dark:bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden">
+                    class="relative bg-white dark:!bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden">
                     <!-- Header -->
                     <div
                         class="px-6 py-4 border-b border-gray-100 dark:border-surface-700 flex items-start justify-between">
@@ -317,12 +317,12 @@
                             <!-- Notes -->
                             <div v-if="checklistEditMode" class="ml-8">
                                 <textarea v-model="q.notes" rows="2" placeholder="Catatan (opsional)..."
-                                    class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">
+                                    class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">
                 </textarea>
                             </div>
                             <div v-else-if="q.notes" class="ml-8">
                                 <p
-                                    class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-surface-700/50 px-3 py-2 rounded-lg">
+                                    class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:!bg-surface-700/50 px-3 py-2 rounded-lg">
                                     <span class="font-medium text-gray-600 dark:text-gray-300">Catatan:</span>
                                     {{ q.notes }}
                                 </p>
