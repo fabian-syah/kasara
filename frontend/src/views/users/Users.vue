@@ -244,10 +244,10 @@ async function fetchData() {
     ]);
 
     users.value = usersRes.data.data || [];
-    branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
-    warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
-    onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
-    distributors.value = (distributorsRes.data.data || []).filter(d => d.is_active);
+    branches.value = (branchesRes.data.data || []).filter(b => !b.type || b.type === 'physical');
+    warehouses.value = warehousesRes.data.data || [];
+    onlineShops.value = onlineShopsRes.data.data || [];
+    distributors.value = distributorsRes.data.data || [];
   } catch (error) {
     console.error("Error fetching data:", error);
     toast.error("Gagal memuat data.");
