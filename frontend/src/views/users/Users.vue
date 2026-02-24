@@ -159,6 +159,8 @@ function resetForm() {
     is_active: true,
     selected_branches: [],
     selected_online_shops: [],
+    selected_warehouses: [],
+    selected_distributors: [],
   };
   showPassword.value = false;
 }
