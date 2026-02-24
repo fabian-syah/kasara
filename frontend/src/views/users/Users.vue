@@ -67,6 +67,8 @@ const selectedUserForPhoto = ref(null);
 const isUploadingPhoto = ref(false);
 
 const isAudit = computed(() => authStore.userRole === 'audit');
+const isLeader = computed(() => authStore.userRole === 'leader');
+const isReadOnlyAccess = computed(() => isAudit.value || isLeader.value);
 const currentUser = computed(() => authStore.user);
 
 // Filtered Roles List for Add/Edit Modal
@@ -198,6 +200,10 @@ function getAvatarUrl(user) {
 }
 
 function triggerFileInput(user) {
+  if (isReadOnlyAccess.value && user.id !== currentUser.value.id) {
+    toast.info("Anda hanya dapat mengubah foto profil akun sendiri.");
+    return;
+  }
   selectedUserForPhoto.value = user;
   if (fileInput.value) {
     fileInput.value.click();
@@ -439,6 +445,7 @@ async function saveUser() {
 }
 
 async function toggleStatus(user) {
+  if (isReadOnlyAccess.value) return;
   try {
     const newStatus = !user.is_active;
     user.is_active = newStatus;
@@ -499,7 +506,8 @@ function getUserRoleName(user) {
           berlaku untuk akun login maupun akun inventory.
         </div>
       </div>
-      <button @click="openAddModal" class="btn btn-primary w-full md:w-auto flex justify-center">
+      <button v-if="!isReadOnlyAccess" @click="openAddModal"
+        class="btn btn-primary w-full md:w-auto flex justify-center">
         <UserPlus :size="18" />
         <span>Tambah User</span>
       </button>
@@ -567,7 +575,7 @@ function getUserRoleName(user) {
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Status
               </th>
               <th class="text-right py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider"
-                v-if="!isAudit">Aksi
+                v-if="!isReadOnlyAccess">Aksi
               </th>
             </tr>
           </thead>
@@ -647,9 +655,10 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <button @click="toggleStatus(user)"
+                  <button @click="toggleStatus(user)" :disabled="isReadOnlyAccess"
                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
-                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600']" title="Klik untuk mengubah status">
+                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600', isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']"
+                    title="Klik untuk mengubah status">
                     <span class="sr-only">Toggle status</span>
                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                       :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
@@ -660,7 +669,7 @@ function getUserRoleName(user) {
                   </span>
                 </div>
               </td>
-              <td class="px-6 py-4" v-if="!isAudit">
+              <td class="px-6 py-4" v-if="!isReadOnlyAccess">
                 <div class="flex justify-end gap-2">
                   <button @click="openEditModal(user)"
                     class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors" title="Edit">
@@ -745,9 +754,9 @@ function getUserRoleName(user) {
               <span class="text-xs" :class="user.is_active ? 'text-emerald-400' : 'text-text-secondary'">
                 {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
               </span>
-              <button @click="toggleStatus(user)"
+              <button @click="toggleStatus(user)" :disabled="isReadOnlyAccess"
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-900 shrink-0"
-                :class="user.is_active ? 'bg-emerald-500' : 'bg-surface-600'">
+                :class="[user.is_active ? 'bg-emerald-500' : 'bg-surface-600', isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']">
                 <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                   :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
@@ -755,7 +764,7 @@ function getUserRoleName(user) {
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-surface-700/50">
+        <div v-if="!isReadOnlyAccess" class="flex items-center justify-end gap-2 pt-2 border-t border-surface-700/50">
           <button @click="openEditModal(user)"
             class="btn-sm btn-outline text-blue-400 border-surface-700 hover:bg-surface-800">
             <Edit :size="14" class="mr-1" /> Edit

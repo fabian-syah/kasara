@@ -58,13 +58,17 @@ class UserController extends Controller
             }
             // Untuk Branch/Warehouse/Gudang, kita tetap pakai logic placement sharing
             else {
-                if ($user->hasRole('audit')) {
+                if ($user->hasAnyRole(['audit', 'leader'])) {
                     $branchIds = $user->getAccessibleBranchIds();
                     $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                    $warehouseIds = $user->getAccessibleWarehouseIds();
 
-                    $query->where(function ($q) use ($branchIds, $onlineShopIds) {
+                    $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds) {
                         if (!empty($branchIds))
                             $q->orWhereIn('branch_id', $branchIds);
+
+                        if (!empty($warehouseIds))
+                            $q->orWhereIn('warehouse_id', $warehouseIds);
 
                         if (!empty($onlineShopIds)) {
                             // Fix: Only show online shop users who are NOT assigned to a physical branch
@@ -76,7 +80,7 @@ class UserController extends Controller
                         }
 
                         // Show all if empty? No, show nothing if no access
-                        if (empty($branchIds) && empty($onlineShopIds))
+                        if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds))
                             $q->whereRaw('0=1');
                     });
                 } else {
