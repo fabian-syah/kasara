@@ -926,6 +926,7 @@ class AuditController extends Controller
             foreach ($trx->items as $item) {
                 $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
                 $details[] = [
+                    'id' => 'hp_' . $item->id,
                     'name' => $item->product->name ?? 'Unknown HP',
                     'qty' => 1,
                     'price' => $price,
@@ -942,13 +943,14 @@ class AuditController extends Controller
 
             if ($hasJsonData) {
                 $productMap = $trx->nonHpItems->pluck('product', 'product_id');
-                foreach ($jsonItems as $itemData) {
+                foreach ($jsonItems as $idx => $itemData) {
                     $pid = $itemData['product_id'] ?? null;
                     $product = $productMap[$pid] ?? null;
                     $name = $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP');
                     $price = $itemData['selling_price'] ?? 0;
                     $qty = $itemData['quantity'] ?? 1;
                     $details[] = [
+                        'id' => 'nonhp_json_' . $idx,
                         'name' => $name,
                         'qty' => $qty,
                         'price' => $price,
@@ -962,6 +964,7 @@ class AuditController extends Controller
                 foreach ($trx->nonHpItems as $nhp) {
                     $basePrice = $nhp->product->price ?? 0;
                     $details[] = [
+                        'id' => 'nonhp_' . $nhp->id,
                         'name' => $nhp->product->name ?? 'Unknown Item',
                         'qty' => $nhp->quantity,
                         'price' => $basePrice,
@@ -977,9 +980,12 @@ class AuditController extends Controller
             $remainingBalance = $trx->selling_price - $calculatedTotal;
             if (abs($remainingBalance) > 1) {
                 $details[] = [
+                    'id' => 'gap_1',
                     'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
                     'qty' => 1,
-                    'price' => $remainingBalance
+                    'price' => $remainingBalance,
+                    'brand' => '-',
+                    'type' => 'Lainnya'
                 ];
             }
 
@@ -998,12 +1004,45 @@ class AuditController extends Controller
                 }
             }
 
-            // Profit calculation
-            $hargaJual = (float) ($trx->selling_price ?? 0);
+            // Profit calculation per item
             $savedProfit = $trx->auditProfit;
+            $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
+
+            $totalHargaModal = 0;
+            $totalHargaJual = 0;
+
+            foreach ($details as &$detail) {
+                $itemJualTotal = $detail['price'] * $detail['qty']; // Aggregated sell price for this item row
+                // For default modal, calculate off the total selling price of the row (price * qty)
+                $defaultItemModal = $itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0;
+
+                // If auditor saved a specific modal for this item row, use it
+                $savedItemModal = null;
+                if (is_array($itemsModalData) && isset($itemsModalData[$detail['id']])) {
+                    $savedItemModal = (float) $itemsModalData[$detail['id']];
+                }
+
+                $effectiveItemModal = $savedItemModal ?? $defaultItemModal;
+                $itemProfit = $itemJualTotal - $effectiveItemModal;
+
+                $detail['harga_jual'] = $itemJualTotal;
+                $detail['default_harga_modal'] = $defaultItemModal;
+                $detail['harga_modal'] = $savedItemModal;
+                $detail['profit'] = $itemProfit;
+                $detail['has_saved_modal'] = $savedItemModal !== null;
+
+                $totalHargaModal += $effectiveItemModal;
+                $totalHargaJual += $itemJualTotal;
+            }
+            unset($detail);
+
+            // Total Profit calculation (sum of items)
+            $hargaJual = (float) ($trx->selling_price ?? 0);
             $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
             $defaultHargaModal = $hargaJual > 0 ? round($hargaJual * 0.95) : 0;
-            $effectiveHargaModal = $hargaModal ?? $defaultHargaModal;
+
+            // Effective sum of all item modals
+            $effectiveHargaModal = $totalHargaModal;
             $profit = $hargaJual - $effectiveHargaModal;
 
             // Audit score using 'profit' category (must match getProfitChecklist logic)
@@ -1077,22 +1116,27 @@ class AuditController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'harga_modal' => 'required|numeric|min:0',
+            'items_modal' => 'required|array',
         ]);
+
+        $itemsModal = $request->items_modal;
+        $totalModal = array_sum(array_map('floatval', $itemsModal));
 
         $auditProfit = AuditProfit::updateOrCreate(
             ['stock_out_id' => $stockOutId],
             [
-                'harga_modal' => $request->harga_modal,
+                'harga_modal' => $totalModal,
+                'items_modal' => $itemsModal,
                 'auditor_id' => $user->id,
             ]
         );
 
-        $profit = $stockOut->selling_price - $auditProfit->harga_modal;
+        $profit = $stockOut->selling_price - $totalModal;
 
         return response()->json([
             'message' => 'Harga modal berhasil disimpan',
-            'harga_modal' => $auditProfit->harga_modal,
+            'harga_modal' => $totalModal,
+            'items_modal' => $itemsModal,
             'profit' => $profit,
         ]);
     }

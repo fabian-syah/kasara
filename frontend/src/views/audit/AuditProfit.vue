@@ -82,15 +82,18 @@
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" v-if="profitRecords.daily_sales.length > 0">
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div
+                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Harga Jual</p>
                     <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaJual) }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div
+                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Harga Modal</p>
                     <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaModal) }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div
+                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Profit</p>
                     <p class="text-lg font-bold"
                         :class="totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
@@ -112,21 +115,23 @@
                                 <th class="px-4 py-4">No Pesanan</th>
                                 <th class="px-4 py-4">Nama</th>
                                 <th class="px-4 py-4">Kategori</th>
-                                <th colspan="3"
+                                <th colspan="4"
                                     class="p-0 border-b border-gray-200 dark:border-surface-700 bg-gray-50/50 dark:!bg-surface-700/50">
-                                    <div
-                                        class="grid grid-cols-[80px_100px_1fr] md:grid-cols-[100px_120px_1fr] w-full min-w-[320px]">
+                                    <div class="grid grid-cols-[80px_100px_1fr_100px_150px_100px] w-full min-w-[700px]">
                                         <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Tipe</div>
                                         <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Brand</div>
                                         <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Rincian Barang</div>
+                                        <div class="px-4 py-4 text-right font-semibold text-text-secondary uppercase">
+                                            Harga Jual</div>
+                                        <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
+                                            Harga Modal</div>
+                                        <div class="px-4 py-4 text-right font-semibold text-text-secondary uppercase">
+                                            Profit</div>
                                     </div>
                                 </th>
-                                <th class="px-4 py-4">Harga Jual</th>
-                                <th class="px-4 py-4">Harga Modal</th>
-                                <th class="px-4 py-4">Profit</th>
                                 <th class="px-4 py-4 text-center">Cek Audit</th>
                                 <th class="px-4 py-4 text-center">#</th>
                             </tr>
@@ -159,7 +164,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                }}</td>
+                                    }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -168,19 +173,19 @@
                                         {{ item.category }}
                                     </span>
                                 </td>
-                                <td colspan="3" class="p-0 align-top">
-                                    <div class="flex flex-col w-full h-full min-w-[320px]">
+                                <td colspan="4" class="p-0 align-top">
+                                    <div class="flex flex-col w-full h-full min-w-[700px]">
                                         <template v-if="item.items && item.items.length > 0">
                                             <div v-for="(detail, idx) in item.items" :key="idx"
-                                                class="grid grid-cols-[80px_100px_1fr] md:grid-cols-[100px_120px_1fr] border-b border-gray-100 dark:border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                                class="grid grid-cols-[80px_100px_1fr_100px_150px_100px] border-b border-gray-100 dark:!border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                                 <div
-                                                    class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:border-surface-700 flex items-start break-words">
+                                                    class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:!border-surface-700 flex items-start break-words">
                                                     {{ detail.type || item.type }}</div>
                                                 <div
-                                                    class="px-4 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:border-surface-700 flex items-start break-words whitespace-pre-wrap">
+                                                    class="px-4 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:!border-surface-700 flex items-start break-words whitespace-pre-wrap">
                                                     {{ detail.brand || item.brand_names }}</div>
                                                 <div
-                                                    class="px-4 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center">
+                                                    class="px-4 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center border-r border-gray-100 dark:!border-surface-700">
                                                     <div class="flex justify-between items-start gap-3 w-full">
                                                         <div class="whitespace-normal flex-1 leading-relaxed">{{
                                                             detail.name }}</div>
@@ -189,72 +194,74 @@
                                                             {{ detail.qty }}</div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div v-if="item.items && item.items.length > 1"
-                                                class="px-4 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:!bg-surface-800/50">
-                                                <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                        }}</span></span>
-                                            </div>
-                                        </template>
-                                        <template v-else>
-                                            <div
-                                                class="grid grid-cols-[80px_100px_1fr] md:grid-cols-[100px_120px_1fr] border-b border-gray-100 dark:border-surface-700 last:border-0">
+                                                <!-- Harga Jual -->
                                                 <div
-                                                    class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:border-surface-700 flex items-start break-words">
-                                                    {{ item.type }}</div>
+                                                    class="px-4 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap text-right flex items-center justify-end border-r border-gray-100 dark:!border-surface-700">
+                                                    {{ formatCurrency(detail.harga_jual || 0) }}
+                                                </div>
+                                                <!-- Harga Modal Input -->
                                                 <div
-                                                    class="px-4 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:border-surface-700 flex items-start break-words whitespace-pre-wrap">
-                                                    {{ item.brand_names }}</div>
-                                                <div
-                                                    class="px-4 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center">
-                                                    <div class="flex justify-between items-start gap-3 w-full">
-                                                        <div class="whitespace-normal flex-1 leading-relaxed">{{
-                                                            item.product_names || '-' }}</div>
-                                                        <div
-                                                            class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
-                                                            {{ item.qty }}</div>
+                                                    class="px-4 py-3 flex items-center border-r border-gray-100 dark:!border-surface-700 group/modal">
+                                                    <div class="relative w-full">
+                                                        <span
+                                                            class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono pointer-events-none">Rp</span>
+                                                        <input type="text"
+                                                            :value="formatModalDisplay(item.id, detail.id, detail.default_harga_modal)"
+                                                            @input="onModalInput($event, item, detail)"
+                                                            @focus="onModalFocus($event, item, detail)"
+                                                            @blur="onModalBlur($event, item, detail)"
+                                                            :placeholder="formatNumber(detail.default_harga_modal || 0)"
+                                                            class="w-full pl-8 pr-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all
+                                                                bg-white dark:!bg-surface-700
+                                                                focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                                            :class="detail.has_saved_modal
+                                                                ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                                                                : 'border-gray-200 dark:border-surface-600 text-text-primary'"
+                                                            :disabled="isLeader" @keyup.enter="saveHargaModal(item)" />
                                                     </div>
+                                                </div>
+                                                <!-- Profit -->
+                                                <div class="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap text-right flex items-center justify-end"
+                                                    :class="getEffectiveProfit(item, detail) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                    {{ formatCurrency(getEffectiveProfit(item, detail)) }}
+                                                </div>
+                                            </div>
+
+                                            <div v-if="item.items && item.items.length > 1"
+                                                class="px-4 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-between bg-gray-50/50 dark:!bg-surface-800/50">
+                                                <div>
+                                                    <span>Total Pesanan: <span
+                                                            class="font-bold text-text-primary ml-1">{{ item.qty
+                                                            }}</span></span>
+                                                </div>
+                                                <div class="flex items-center gap-4">
+                                                    <span class="font-mono text-[10px] text-gray-500">Jual: {{
+                                                        formatCurrency(item.harga_jual) }}</span>
+                                                    <span class="font-mono text-[10px] text-gray-500">Modal: {{
+                                                        formatCurrency(item.harga_modal ?? item.default_harga_modal)
+                                                        }}</span>
+                                                    <span class="font-bold font-mono text-[11px]"
+                                                        :class="item.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                        Profit: {{ formatCurrency(item.profit) }}</span>
                                                 </div>
                                             </div>
                                         </template>
+                                        <template v-else>
+                                            <div class="p-4 text-center text-sm text-gray-500">
+                                                Data Rincian Barang Tidak Valid
+                                            </div>
+                                        </template>
                                     </div>
-                                </td>
-                                <!-- Harga Jual -->
-                                <td
-                                    class="px-4 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap">
-                                    {{ formatCurrency(item.harga_jual || 0) }}
-                                </td>
-                                <!-- Harga Modal (editable with Rupiah formatting) -->
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-1">
-                                        <div class="relative">
-                                            <span
-                                                class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono pointer-events-none">Rp</span>
-                                            <input type="text"
-                                                :value="formatModalDisplay(item.id, item.default_harga_modal)"
-                                                @input="onModalInput($event, item)" @focus="onModalFocus($event, item)"
-                                                @blur="onModalBlur($event, item)"
-                                                :placeholder="formatNumber(item.default_harga_modal || 0)" class="w-32 pl-8 pr-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all
-                                                    bg-white dark:!bg-surface-700
-                                                    focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                                                :class="item.has_saved_modal
-                                                    ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                                                    : 'border-gray-200 dark:border-surface-600 text-text-primary'"
-                                                :disabled="isLeader" @keyup.enter="saveHargaModal(item)" />
-                                        </div>
-                                        <button v-if="!isLeader" @click="saveHargaModal(item)"
-                                            :disabled="savingModalId === item.id"
-                                            class="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all"
-                                            title="Simpan Harga Modal">
+                                    <div v-if="!isLeader"
+                                        class="flex justify-end p-2 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[700px]">
+                                        <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
+                                            class="px-3 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all shadow-sm"
+                                            title="Simpan Semua Harga Modal Transaksi Ini">
                                             <Save v-if="savingModalId !== item.id" :size="14" />
                                             <Loader2 v-else :size="14" class="animate-spin" />
+                                            <span>Simpan Rincian Modal</span>
                                         </button>
                                     </div>
-                                </td>
-                                <!-- Profit -->
-                                <td class="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap"
-                                    :class="getEffectiveProfit(item) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                                    {{ formatCurrency(getEffectiveProfit(item)) }}
                                 </td>
                                 <!-- Audit Score -->
                                 <td class="px-4 py-4 text-center">
@@ -519,20 +526,25 @@ const saveChecklist = async () => {
     }
 }
 
-// Harga Modal editing
+// Harga Modal editing per item
+// editableModal structure: { stock_out_id: { detail_id: value, detail_id_2: value } }
 const editableModal = reactive({})
 const savingModalId = ref(null)
 
 const initEditableModal = () => {
     profitRecords.value.daily_sales.forEach(item => {
-        // Pre-fill with saved harga_modal or leave empty (placeholder shows default)
-        editableModal[item.id] = item.harga_modal != null ? Number(item.harga_modal) : null
+        editableModal[item.id] = {}
+        if (item.items) {
+            item.items.forEach(detail => {
+                editableModal[item.id][detail.id] = detail.harga_modal != null ? Number(detail.harga_modal) : null
+            })
+        }
     })
 }
 
 // Format display for modal input (shows rupiah-formatted number)
-const formatModalDisplay = (itemId, defaultVal) => {
-    const val = editableModal[itemId]
+const formatModalDisplay = (stockOutId, detailId, defaultVal) => {
+    const val = editableModal[stockOutId]?.[detailId]
     if (val != null && val !== '') {
         return formatNumber(val)
     }
@@ -540,25 +552,28 @@ const formatModalDisplay = (itemId, defaultVal) => {
 }
 
 // Handle typing in harga modal input - strip non-digits, store raw number
-const onModalInput = (event, item) => {
+const onModalInput = (event, item, detail) => {
     const raw = event.target.value.replace(/[^0-9]/g, '')
     const num = raw ? parseInt(raw, 10) : null
-    editableModal[item.id] = num
+
+    if (!editableModal[item.id]) editableModal[item.id] = {}
+    editableModal[item.id][detail.id] = num
+
     // Reformat the display
     event.target.value = num != null ? formatNumber(num) : ''
 }
 
-const onModalFocus = (event, item) => {
+const onModalFocus = (event, item, detail) => {
     // On focus, show raw number for easy editing
-    const val = editableModal[item.id]
+    const val = editableModal[item.id]?.[detail.id]
     if (val != null) {
         event.target.value = val.toString()
     }
 }
 
-const onModalBlur = (event, item) => {
+const onModalBlur = (event, item, detail) => {
     // On blur, reformat to rupiah
-    const val = editableModal[item.id]
+    const val = editableModal[item.id]?.[detail.id]
     if (val != null) {
         event.target.value = formatNumber(val)
     } else {
@@ -566,28 +581,46 @@ const onModalBlur = (event, item) => {
     }
 }
 
-const getEffectiveProfit = (item) => {
-    const hargaJual = Number(item.harga_jual) || 0
-    const hargaModal = editableModal[item.id] || Number(item.harga_modal) || Number(item.default_harga_modal) || 0
+const getEffectiveProfit = (item, detail) => {
+    const hargaJual = Number(detail.harga_jual) || 0
+    const hargaModal = editableModal[item.id]?.[detail.id] ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0
     return hargaJual - hargaModal
 }
 
 const saveHargaModal = async (item) => {
-    const value = editableModal[item.id]
-    if (!value && value !== 0) {
-        // Use default if empty
-        editableModal[item.id] = Number(item.default_harga_modal) || 0
+    // Gather all details for this transaction
+    const itemsModalPayload = {}
+    if (item.items) {
+        item.items.forEach(detail => {
+            const currentEditVal = editableModal[item.id]?.[detail.id]
+            const finalVal = currentEditVal ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0
+
+            // Assign back to editable state immediately so it matches
+            if (!editableModal[item.id]) editableModal[item.id] = {}
+            editableModal[item.id][detail.id] = finalVal
+
+            itemsModalPayload[detail.id] = finalVal
+        })
     }
-    const hargaModal = editableModal[item.id] || Number(item.default_harga_modal) || 0
 
     savingModalId.value = item.id
     try {
         const res = await axios.post(`/audit/profit/${item.id}`, {
-            harga_modal: hargaModal
+            items_modal: itemsModalPayload
         })
+
+        // Update item total properties
         item.harga_modal = res.data.harga_modal
-        item.has_saved_modal = true
         item.profit = res.data.profit
+
+        // Update individual item properties safely
+        if (item.items) {
+            item.items.forEach(detail => {
+                detail.harga_modal = res.data.items_modal[detail.id]
+                detail.has_saved_modal = true
+                detail.profit = detail.harga_jual - detail.harga_modal
+            })
+        }
     } catch (e) {
         console.error('Failed to save harga modal', e)
         alert('Gagal menyimpan harga modal: ' + (e.response?.data?.message || e.message))
