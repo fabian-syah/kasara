@@ -99,7 +99,7 @@
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">{{
                                     formatDate(item.date)
-                                }}</td>
+                                    }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary font-medium">
                                     {{
                                         item.order_no }}</td>
@@ -135,7 +135,7 @@
                                             <div v-if="item.items && item.items.length > 1"
                                                 class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:bg-surface-800/50">
                                                 <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                        }}</span></span>
+                                                }}</span></span>
                                             </div>
                                         </template>
                                         <template v-else>
@@ -198,10 +198,10 @@
                     <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
                         <tr v-for="(item, index) in salesRecords.brand_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-primary">{{
                                 item.brand }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right">{{
                                 item.qty }}</td>
                         </tr>
                         <tr v-if="salesRecords.brand_sales.length === 0">
@@ -232,13 +232,13 @@
                     <tbody class="bg-white dark:bg-surface-800 divide-y divide-gray-200 dark:divide-surface-700">
                         <tr v-for="(item, index) in salesRecords.cs_sales" :key="index"
                             class="hover:bg-gray-50 dark:hover:bg-surface-700/50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-text-primary">{{
                                 item.cs_name }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right">{{
                                 item.total_sales
-                            }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white text-right">{{
+                                }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary text-right">{{
                                 formatCurrency(item.grand_total) }}</td>
                         </tr>
                         <tr v-if="salesRecords.cs_sales.length === 0">
