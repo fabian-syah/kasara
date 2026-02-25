@@ -162,28 +162,36 @@ const availableSpecs = computed(() => {
                 }
             });
         } else {
-            // 2. Fallback: Heuristic Combinatorial (for rows with "4" in RAM and "64" in Storage)
-            const extractNumbers = (str) => {
-                if (!str) return [];
-                // Extract all distinct numbers (e.g. "4/64" -> [4, 64], "4GB" -> [4])
-                const matches = str.match(/\d+/g);
-                return matches ? matches.map(Number) : [];
+            // 2. Fallback: Heuristic Parsing (Preserve TB/GB units if possible)
+            // Improved strategy: 
+            // - Split raw values by comma first, as users often input "64, 128, 256, 1 TB"
+            const parseToSet = (str) => {
+                const s = new Set();
+                if (!str) return s;
+                // Try splitting by comma first
+                const parts = str.split(',');
+                parts.forEach(p => {
+                    const clean = p.trim().toUpperCase();
+                    if (clean) s.add(clean);
+                });
+                return s;
             };
 
-            const nums = [
-                ...extractNumbers(rawRam),
-                ...extractNumbers(rawStorage)
-            ];
+            const rams = parseToSet(rawRam);
+            const storages = parseToSet(rawStorage);
 
-            const rams = new Set();
-            const storages = new Set();
-
-            nums.forEach(n => {
-                if (n > 0) {
-                    if (n <= 32) rams.add(n); // <=32 = RAM
-                    else storages.add(n);     // >32 = Storage
+            // If completely empty due to weird formatting, fallback to digits+optional letters
+            if (rams.size === 0 && storages.size === 0) {
+                const fallbackMatch = combinedRaw.match(/\d+\s*(?:TB|GB|MB)?/gi);
+                if (fallbackMatch) {
+                    fallbackMatch.forEach(m => {
+                        const clean = m.trim().toUpperCase();
+                        const num = parseInt(clean);
+                        if (num > 0 && num <= 32 && !clean.includes('TB')) rams.add(clean);
+                        else if (num > 0) storages.add(clean);
+                    });
                 }
-            });
+            }
 
             if (rams.size > 0 && storages.size > 0) {
                 rams.forEach(r => storages.forEach(s => {
@@ -207,9 +215,19 @@ const availableSpecs = computed(() => {
     const sortedCombinations = Array.from(validCombinations).sort((a, b) => {
         const parse = (str) => {
             const parts = String(str).split('/');
+
+            // Helper to extract true byte equivalent for sorting
+            const getBytes = (val) => {
+                if (!val) return 0;
+                let num = parseInt(val) || 0;
+                let upper = String(val).toUpperCase();
+                if (upper.includes('TB')) return num * 1024;
+                return num; // assume GB by default
+            };
+
             return {
-                ram: parseInt(parts[0]) || 0,
-                storage: parts[1] ? parseInt(parts[1]) : 0
+                ram: getBytes(parts[0]),
+                storage: parts[1] ? getBytes(parts[1]) : getBytes(parts[0]) // single storage fallback handling 
             };
         };
         const pa = parse(a);
@@ -715,7 +733,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -859,7 +877,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
