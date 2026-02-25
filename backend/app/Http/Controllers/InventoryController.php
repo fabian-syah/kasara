@@ -43,7 +43,7 @@ class InventoryController extends Controller
 
         // 2. Base Query
         if ($type === 'non-hp') {
-            $query = Inventory::with(['product', 'user'])->where('quantity', '>', 0);
+            $query = Inventory::with(['product', 'user', 'user.distributor'])->where('quantity', '>', 0);
         } else {
             $query = ProductDetail::with(['product', 'distributor', 'user']);
         }

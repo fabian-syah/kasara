@@ -1112,7 +1112,7 @@ function getStockStatus(product) {
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
                 </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
-                  {{ item.latest_supplier || item.latest_distributor || '-' }}
+                  {{ item.user?.distributor?.name || '-' }}
                 </td>
               </template>
 
