@@ -262,7 +262,7 @@ class InventoryController extends Controller
         }
 
         // PLACEMENT FILTER (Same logic as index)
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user, $type) {
                 $branchIds = $user->getAccessibleBranchIds();
@@ -280,17 +280,20 @@ class InventoryController extends Controller
                                 $hasC = false;
                                 if (!empty($branchIds)) {
                                     $sq->orWhere(function ($sub) use ($branchIds) {
-                                        $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds); });
+                                        $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds);
+                                    });
                                     $hasC = true;
                                 }
                                 if (!empty($warehouseIds)) {
                                     $sq->orWhere(function ($sub) use ($warehouseIds) {
-                                        $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds); });
+                                        $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds);
+                                    });
                                     $hasC = true;
                                 }
                                 if (!empty($onlineShopIds)) {
                                     $sq->orWhere(function ($sub) use ($onlineShopIds) {
-                                        $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds); });
+                                        $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
+                                    });
                                     $hasC = true;
                                 }
                                 if (!$hasC) {
@@ -414,7 +417,7 @@ class InventoryController extends Controller
         }
 
         // PLACEMENT FILTER
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user) {
                 $branchIds = $user->getAccessibleBranchIds();

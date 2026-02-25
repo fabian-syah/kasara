@@ -118,7 +118,7 @@ const menuItems = [
     // Incoming Transfer (Barang Masuk)
     {
         id: "incoming_group",
-        label: "Barang Masuk",
+        label: "OTW",
         icon: ArrowDownRight,
         items: [
             { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Konfirmasi Masuk" },
