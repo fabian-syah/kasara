@@ -97,23 +97,43 @@ class DistributorController extends Controller
         $hpItems = $hpQuery->get();
 
         // 2. Fetch Non-IMEI Items
-        $nonHpQuery = \App\Models\Inventory::with(['product', 'user'])
+        $nonHpAll = \App\Models\Inventory::with(['product', 'user'])
+            ->select(
+                'product_id',
+                'placement_type',
+                'placement_id',
+                'user_id',
+                \DB::raw('MAX(id) as id'),
+                \DB::raw('SUM(quantity) as quantity')
+            )
             ->where('quantity', '>', 0)
-            ->whereHas('user', function ($q) {
-                $q->whereNotNull('distributor_id');
-            });
+            ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id')
+            ->get();
 
-        if ($userRole === 'distribution' || $userRole === 'distributor') {
-            $nonHpQuery->whereHas('user', function ($q) use ($user) {
-                $q->where('distributor_id', $user->distributor_id);
-            });
-        } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
-            $nonHpQuery->whereHas('user', function ($q) use ($request) {
-                $q->where('distributor_id', $request->distributor_id);
-            });
+        $nonHpItems = [];
+        foreach ($nonHpAll as $item) {
+            $log = \App\Models\InventoryLog::with('distributor')
+                ->where('product_id', $item->product_id)
+                ->where('user_id', $item->user_id)
+                ->where('type', 'in')
+                ->latest()
+                ->first();
+
+            $itemDist = $log ? $log->distributor_id : ($item->user->distributor_id ?? null);
+
+            if ($userRole === 'distribution' || $userRole === 'distributor') {
+                if ($itemDist != $user->distributor_id)
+                    continue;
+            } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
+                if ($itemDist != $request->distributor_id)
+                    continue;
+            } else {
+                if (!$itemDist)
+                    continue;
+            }
+
+            $nonHpItems[] = $item;
         }
-
-        $nonHpItems = $nonHpQuery->get();
 
         // Get names for grouping
         $branches = \App\Models\Branch::pluck('name', 'id');
