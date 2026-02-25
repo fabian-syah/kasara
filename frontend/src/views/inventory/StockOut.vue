@@ -728,14 +728,15 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                        }}</span>
+                                    }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[
                                         'px-2 py-1 rounded text-xs font-bold uppercase',
-                                        item.condition === 'new' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'
+                                        item.condition === 'new' ? 'bg-green-500/20 text-green-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400')
                                     ]">
-                                        {{ item.condition === 'new' ? 'NEW' : 'SCD' }}
+                                        {{ item.condition === 'new' ? 'NEW' : (item.condition === 'ex_ibox' ? 'iBOX' :
+                                        'SCD') }}
                                     </span>
                                 </td>
                             </tr>

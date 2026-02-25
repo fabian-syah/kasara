@@ -154,7 +154,7 @@ const exportToExcel = () => {
             const brand = item.product_type?.brand?.name || '-';
             const tipe = item.product_type?.name || '-';
             const kapasitas = [item.ram, item.storage].filter(Boolean).join(' / ') || '-';
-            const kondisi = item.condition === 'new' ? 'Baru' : 'Bekas';
+            const kondisi = item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas');
             const modal = formatRupiahExcel(item.cost_price);
             const jual = formatRupiahExcel(item.price);
             const d = item.updated_at ? new Date(item.updated_at) : null;
@@ -222,6 +222,7 @@ const exportToExcel = () => {
                     <option value="">Semua Kondisi</option>
                     <option value="new">Baru (New)</option>
                     <option value="second">Bekas (Second)</option>
+                    <option value="ex_ibox">Ex iBox (Khusus iPhone)</option>
                 </select>
             </div>
         </div>
@@ -308,8 +309,9 @@ const exportToExcel = () => {
                             <!-- Condition (HP only) -->
                             <td v-if="filters.category === 'hp'" class="px-5 py-3 text-center">
                                 <span class="px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide"
-                                    :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'">
-                                    {{ item.condition === 'new' ? 'BARU' : 'BEKAS' }}
+                                    :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : (item.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20')">
+                                    {{ item.condition === 'new' ? 'BARU' : (item.condition === 'ex_ibox' ? 'EX IBOX' :
+                                    'BEKAS') }}
                                 </span>
                             </td>
                             <td class="px-5 py-3 text-right text-text-secondary text-sm">{{
@@ -358,8 +360,9 @@ const exportToExcel = () => {
                                     </span>
                                     <span v-if="filters.category === 'hp'"
                                         class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
-                                        :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'">
-                                        {{ item.condition === 'new' ? 'BARU' : 'BEKAS' }}
+                                        :class="item.condition === 'new' ? 'bg-emerald-500/10 text-emerald-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-400' : 'bg-amber-500/10 text-amber-400')">
+                                        {{ item.condition === 'new' ? 'BARU' : (item.condition === 'ex_ibox' ? 'EX IBOX'
+                                        : 'BEKAS') }}
                                     </span>
                                 </div>
                             </div>

@@ -195,6 +195,9 @@ const filteredProducts = computed(() => {
                                 HP Second</th>
                             <th
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700">
+                                HP Ex iBox</th>
+                            <th
+                                class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700">
                                 Non-HP (Aksesoris)</th>
                             <th
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider rounded-tr-xl border-b border-surface-700">
@@ -211,14 +214,16 @@ const filteredProducts = computed(() => {
                                 formatNumber(b.hp_new) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 text-amber-400 font-medium">{{
                                 formatNumber(b.hp_second) }}</td>
+                            <td class="px-6 py-4 border-b border-surface-800 text-purple-400 font-medium">{{
+                                formatNumber(b.hp_ex_ibox) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 text-blue-400 font-medium">{{
                                 formatNumber(b.non_hp) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 font-black text-text-primary">
-                                {{ formatNumber(b.hp_new + b.hp_second + b.non_hp) }}
+                                {{ formatNumber(b.hp_new + b.hp_second + b.hp_ex_ibox + b.non_hp) }}
                             </td>
                         </tr>
                         <tr v-if="stats.brands.length === 0">
-                            <td colspan="5" class="px-6 py-10 text-center text-text-secondary italic">Tidak ada data
+                            <td colspan="6" class="px-6 py-10 text-center text-text-secondary italic">Tidak ada data
                                 penjualan</td>
                         </tr>
                     </tbody>
@@ -273,6 +278,9 @@ const filteredProducts = computed(() => {
                                 <td class="px-6 py-4 border-b border-surface-800 text-center">
                                     <span v-if="p.condition === 'new'"
                                         class="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[10px] rounded border border-emerald-500/20 uppercase font-bold">New</span>
+                                    <span v-else-if="p.condition === 'ex_ibox'"
+                                        class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] rounded border border-purple-500/20 uppercase font-bold">Ex
+                                        iBox</span>
                                     <span v-else
                                         class="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] rounded border border-amber-500/20 uppercase font-bold">Second</span>
                                 </td>

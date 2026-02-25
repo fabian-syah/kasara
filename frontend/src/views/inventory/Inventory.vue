@@ -875,6 +875,7 @@ function getStockStatus(product) {
             <option value="all">Semua Kondisi</option>
             <option value="new">Baru</option>
             <option value="second">Bekas</option>
+            <option value="ex_ibox">Ex iBox (Khusus iPhone)</option>
           </select>
 
           <button @click="loadInventory(1)"
@@ -1057,8 +1058,8 @@ function getStockStatus(product) {
                 </td>
                 <td class="text-sm hidden lg:table-cell">
                   <span class="badge"
-                    :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'">
-                    {{ item.condition === 'new' ? 'Baru' : 'Bekas' }}
+                    :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400')">
+                    {{ item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas') }}
                   </span>
                 </td>
                 <td class="font-mono text-sm">

@@ -68,12 +68,13 @@ onMounted(() => {
                             <th class="px-6 py-4 font-medium">Tipe Produk</th>
                             <th class="px-6 py-4 font-medium text-center">Stok Baru</th>
                             <th class="px-6 py-4 font-medium text-center">Stok Bekas</th>
+                            <th class="px-6 py-4 font-medium text-center">Stok Ex iBox</th>
                             <th class="px-6 py-4 font-medium text-right">Total</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700">
                         <tr v-if="isLoading">
-                            <td colspan="5" class="px-6 py-8 text-center text-text-secondary">
+                            <td colspan="6" class="px-6 py-8 text-center text-text-secondary">
                                 <div class="flex justify-center items-center gap-2">
                                     <div
                                         class="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin">
@@ -83,7 +84,7 @@ onMounted(() => {
                             </td>
                         </tr>
                         <tr v-else-if="filteredReports.length === 0">
-                            <td colspan="5" class="px-6 py-8 text-center text-text-secondary">
+                            <td colspan="6" class="px-6 py-8 text-center text-text-secondary">
                                 Tidak ada data ditemukan
                             </td>
                         </tr>
@@ -102,6 +103,13 @@ onMounted(() => {
                                 <span v-if="report.second > 0"
                                     class="bg-amber-500/10 text-amber-400 px-2 py-1 rounded text-xs font-bold">
                                     {{ formatNumber(report.second) }}
+                                </span>
+                                <span v-else class="text-text-disabled">-</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span v-if="report.ex_ibox > 0"
+                                    class="bg-purple-500/10 text-purple-400 px-2 py-1 rounded text-xs font-bold">
+                                    {{ formatNumber(report.ex_ibox) }}
                                 </span>
                                 <span v-else class="text-text-disabled">-</span>
                             </td>
@@ -139,7 +147,7 @@ onMounted(() => {
                         <p class="text-primary-400 font-bold">{{ formatNumber(report.total) }}</p>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3 pt-3 border-t border-surface-700/50">
+                <div class="grid grid-cols-3 gap-3 pt-3 border-t border-surface-700/50">
                     <div class="bg-surface-900/50 p-2 rounded-lg text-center">
                         <p class="text-[10px] text-text-secondary uppercase mb-1">Stok Baru</p>
                         <p class="text-emerald-400 font-bold" v-if="report.new > 0">{{ formatNumber(report.new) }}</p>
@@ -148,6 +156,13 @@ onMounted(() => {
                     <div class="bg-surface-900/50 p-2 rounded-lg text-center">
                         <p class="text-[10px] text-text-secondary uppercase mb-1">Stok Bekas</p>
                         <p class="text-amber-400 font-bold" v-if="report.second > 0">{{ formatNumber(report.second) }}
+                        </p>
+                        <p class="text-text-disabled font-medium" v-else>-</p>
+                    </div>
+                    <div class="bg-surface-900/50 p-2 rounded-lg text-center">
+                        <p class="text-[10px] text-text-secondary uppercase mb-1">Ex iBox</p>
+                        <p class="text-purple-400 font-bold" v-if="report.ex_ibox > 0">{{ formatNumber(report.ex_ibox)
+                            }}
                         </p>
                         <p class="text-text-disabled font-medium" v-else>-</p>
                     </div>

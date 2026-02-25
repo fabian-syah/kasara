@@ -157,7 +157,7 @@ class DashboardController extends Controller
 
                 // Brand Condition Stats
                 $brand = $item->product->brand ?? 'Unknown';
-                $cond = ($item->condition === 'new') ? 'New' : 'Second';
+                $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
                 $key = "$brand $cond";
                 $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + 1;
             }

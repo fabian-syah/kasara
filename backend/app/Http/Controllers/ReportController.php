@@ -27,6 +27,7 @@ class ReportController extends Controller
         $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType) {
             $hpNew = 0;
             $hpSecond = 0;
+            $hpExIbox = 0;
             $nonHpNew = 0;
 
             // HP Items (ProductDetail) - Only if filter is 'all' or 'hp'
@@ -50,6 +51,7 @@ class ReportController extends Controller
 
                 $hpNew = $hpStats['new'] ?? 0;
                 $hpSecond = $hpStats['second'] ?? 0;
+                $hpExIbox = $hpStats['ex_ibox'] ?? 0;
             }
 
             // Non-HP Items (Inventory) - Only if filter is 'all' or 'non-hp'
@@ -75,7 +77,8 @@ class ReportController extends Controller
                 'name' => $brand->name,
                 'new' => $hpNew + $nonHpNew,
                 'second' => $hpSecond,
-                'total' => $hpNew + $hpSecond + $nonHpNew,
+                'ex_ibox' => $hpExIbox,
+                'total' => $hpNew + $hpSecond + $hpExIbox + $nonHpNew,
             ];
         })->filter(function ($item) {
             return $item['total'] > 0;
@@ -115,7 +118,8 @@ class ReportController extends Controller
                     product_details.ram,
                     product_details.storage,
                     COUNT(CASE WHEN product_details.condition = 'new' THEN 1 END) as new_count,
-                    COUNT(CASE WHEN product_details.condition = 'second' THEN 1 END) as second_count
+                    COUNT(CASE WHEN product_details.condition = 'second' THEN 1 END) as second_count,
+                    COUNT(CASE WHEN product_details.condition = 'ex_ibox' THEN 1 END) as ex_ibox_count
                 ")
                 ->groupBy('products.name', 'products.brand', 'product_details.ram', 'product_details.storage')
                 ->orderBy('products.brand')
@@ -133,7 +137,8 @@ class ReportController extends Controller
                     'type' => 'hp',
                     'new' => (int) $item->new_count,
                     'second' => (int) $item->second_count,
-                    'total' => (int) $item->new_count + (int) $item->second_count,
+                    'ex_ibox' => (int) $item->ex_ibox_count,
+                    'total' => (int) $item->new_count + (int) $item->second_count + (int) $item->ex_ibox_count,
                     'ram' => $item->ram,
                     'storage' => $item->storage
                 ];
@@ -174,6 +179,7 @@ class ReportController extends Controller
                     'type' => 'non-hp',
                     'new' => (int) $item->total_qty,
                     'second' => 0,
+                    'ex_ibox' => 0,
                     'total' => (int) $item->total_qty
                 ];
             });
@@ -321,16 +327,18 @@ class ReportController extends Controller
         $brandStatsMap = [];
         foreach ($hpBrandStats as $s) {
             if (!isset($brandStatsMap[$s->brand])) {
-                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
+                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'hp_ex_ibox' => 0, 'non_hp' => 0];
             }
             if ($s->condition === 'second')
                 $brandStatsMap[$s->brand]['hp_second'] += $s->count;
+            elseif ($s->condition === 'ex_ibox')
+                $brandStatsMap[$s->brand]['hp_ex_ibox'] += $s->count;
             else
                 $brandStatsMap[$s->brand]['hp_new'] += $s->count;
         }
         foreach ($nhpBrandStats as $s) {
             if (!isset($brandStatsMap[$s->brand])) {
-                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'non_hp' => 0];
+                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'hp_ex_ibox' => 0, 'non_hp' => 0];
             }
             $brandStatsMap[$s->brand]['non_hp'] += $s->count;
         }

@@ -411,7 +411,7 @@ class InventoryController extends Controller
                         $item->imei ?? '-',
                         $item->ram ?? '-',
                         $item->storage ?? '-',
-                        $item->condition === 'new' ? 'Baru' : 'Bekas',
+                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
                         $item->cost_price ?? 0,
                         $item->selling_price ?? 0,
                         $item->distributor->name ?? ($item->supplier_name ?? '-'),

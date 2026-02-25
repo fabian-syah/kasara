@@ -308,7 +308,15 @@ watch([selectedBrand, selectedTypeName], ([newBrand, newType]) => {
     fetchProductMatch(newBrand, newType);
 });
 
-watch(selectedBrand, () => { selectedTypeName.value = ""; selectedRam.value = ""; selectedStorage.value = ""; selectedCapacity.value = ""; });
+watch(selectedBrand, (newVal) => {
+    selectedTypeName.value = "";
+    selectedRam.value = "";
+    selectedStorage.value = "";
+    selectedCapacity.value = "";
+    if (newVal !== 1 && batchDetails.value.condition === 'ex_ibox') {
+        batchDetails.value.condition = 'new';
+    }
+});
 watch(selectedTypeName, () => { selectedRam.value = ""; selectedStorage.value = ""; selectedCapacity.value = ""; });
 
 // Capacity handling: Use selectedCapacity for UI, and internal refs for logic
@@ -894,6 +902,7 @@ onMounted(fetchInitialData);
                             <select v-model="batchDetails.condition" class="input bg-surface-900 h-12 text-sm">
                                 <option value="new">Baru</option>
                                 <option value="second">Bekas</option>
+                                <option v-if="selectedBrand === 1" value="ex_ibox">Ex iBox (Khusus iPhone)</option>
                             </select>
                         </div>
                         <div>

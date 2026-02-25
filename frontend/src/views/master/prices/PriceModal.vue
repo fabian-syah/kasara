@@ -140,6 +140,12 @@ watch(() => props.price, (newVal) => {
     }
 }, { immediate: true });
 
+watch(selectedBrandId, (newVal) => {
+    if (newVal != 1 && form.value.condition === 'ex_ibox') {
+        form.value.condition = 'new';
+    }
+});
+
 // Re-populate when types finish loading (fixes race condition with onMounted)
 watch(() => types.value.length, () => {
     if (props.price && types.value.length > 0) {
@@ -244,16 +250,21 @@ useEscapeKey(() => {
                 <!-- Condition (HP Only) -->
                 <div v-if="category === 'hp'">
                     <label class="label">Kondisi Barang</label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid gap-3" :class="selectedBrandId == 1 ? 'grid-cols-3' : 'grid-cols-2'">
                         <button type="button" @click="form.condition = 'new'"
-                            class="p-3 rounded-xl border text-center font-bold transition-all"
+                            class="p-3 rounded-xl border text-center font-bold transition-all text-xs lg:text-sm"
                             :class="form.condition === 'new' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-surface-900 border-surface-700 text-text-secondary'">
-                            BARU (NEW)
+                            BARU
                         </button>
                         <button type="button" @click="form.condition = 'second'"
-                            class="p-3 rounded-xl border text-center font-bold transition-all"
+                            class="p-3 rounded-xl border text-center font-bold transition-all text-xs lg:text-sm"
                             :class="form.condition === 'second' ? 'bg-amber-500 border-amber-500 text-white' : 'bg-surface-900 border-surface-700 text-text-secondary'">
-                            BEKAS (SECOND)
+                            BEKAS
+                        </button>
+                        <button v-if="selectedBrandId == 1" type="button" @click="form.condition = 'ex_ibox'"
+                            class="p-3 rounded-xl border text-center font-bold transition-all text-xs lg:text-sm"
+                            :class="form.condition === 'ex_ibox' ? 'bg-purple-500 border-purple-500 text-white' : 'bg-surface-900 border-surface-700 text-text-secondary'">
+                            EX iBOX
                         </button>
                     </div>
                 </div>
