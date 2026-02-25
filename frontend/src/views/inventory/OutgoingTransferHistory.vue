@@ -180,15 +180,18 @@ onMounted(() => fetchHistory(1));
 
                     <!-- Items Summary -->
                     <div class="text-right">
+                        <p class="text-sm font-bold text-green-500 mb-0.5" v-if="transfer.selling_price > 0">
+                            Rp {{ Number(transfer.selling_price || 0).toLocaleString('id-ID') }}
+                        </p>
                         <p class="text-sm font-medium text-text-primary">
                             Total: {{(transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc +
                                 i.quantity, 0) || 0)}} Unit
                         </p>
-                        <p class="text-xs text-text-secondary" v-if="transfer.confirmed_by">
+                        <p class="text-xs text-text-secondary mt-1" v-if="transfer.confirmed_by">
                             Diterima oleh: {{ transfer.confirmed_by?.full_name || transfer.confirmed_by?.name ||
                                 transfer.confirmed_by?.username || 'System' }}
                         </p>
-                        <p class="text-xs text-text-secondary text-amber-500" v-else>
+                        <p class="text-xs text-text-secondary text-amber-500 mt-1" v-else>
                             Menunggu Konfirmasi
                         </p>
                     </div>
@@ -264,6 +267,12 @@ onMounted(() => fetchHistory(1));
                             <p class="font-medium text-text-primary">
                                 {{(selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc,
                                     i) => acc + i.quantity, 0) || 0)}} Unit
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-text-secondary mb-1">Total Harga Jual</p>
+                            <p class="font-bold text-green-500">
+                                Rp {{ Number(selectedTransfer.selling_price || 0).toLocaleString('id-ID') }}
                             </p>
                         </div>
                         <div>

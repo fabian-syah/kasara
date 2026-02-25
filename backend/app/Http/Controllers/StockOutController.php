@@ -993,7 +993,7 @@ class StockOutController extends Controller
             ->where('category', 'pindah_cabang');
 
         if ($type === 'outgoing') {
-            $query->whereIn('status', ['pending', 'in_transit', 'received', 'rejected']);
+            $query->where('status', 'pending');
         } else {
             $query->whereIn('status', ['received', 'rejected']);
         }
@@ -1001,18 +1001,36 @@ class StockOutController extends Controller
         // Filter by Destination or Source
         $query->where(function ($q) use ($user, $type) {
             if ($type === 'outgoing') {
-                $q->whereHas('user', function ($sub) use ($user) {
-                    if ($user->branch_id) {
-                        $sub->where('branch_id', $user->branch_id);
-                    } elseif ($user->warehouse_id) {
-                        $sub->where('warehouse_id', $user->warehouse_id);
-                    } elseif ($user->online_shop_id) {
-                        $sub->where('online_shop_id', $user->online_shop_id);
-                    }
-                });
+                $hasFilter = false;
+
+                $branchIds = $user->getAccessibleBranchIds();
+                if (!empty($branchIds)) {
+                    $q->orWhereHas('user', function ($sub) use ($branchIds) {
+                        $sub->whereIn('branch_id', $branchIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                if (!empty($warehouseIds)) {
+                    $q->orWhereHas('user', function ($sub) use ($warehouseIds) {
+                        $sub->whereIn('warehouse_id', $warehouseIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                if (!empty($onlineShopIds)) {
+                    $q->orWhereHas('user', function ($sub) use ($onlineShopIds) {
+                        $sub->whereIn('online_shop_id', $onlineShopIds);
+                    });
+                    $hasFilter = true;
+                }
 
                 if ($user->hasRole('super_admin')) {
                     $q->orWhereRaw('1 = 1'); // Show all for super admin
+                } elseif (!$hasFilter) {
+                    $q->whereRaw('0 = 1'); // Restrict if no locations assigned
                 }
             } else {
                 $hasFilter = false;
