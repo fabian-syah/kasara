@@ -97,18 +97,25 @@ class DistributorController extends Controller
         $hpItems = $hpQuery->get();
 
         // 2. Fetch Non-IMEI Items
-        $nonHpAll = \App\Models\Inventory::with(['product', 'user'])
-            ->select(
-                'product_id',
-                'placement_type',
-                'placement_id',
-                'user_id',
-                \DB::raw('MAX(id) as id'),
-                \DB::raw('SUM(quantity) as quantity')
-            )
+        $nonHpRaw = \App\Models\Inventory::with(['product', 'user'])
             ->where('quantity', '>', 0)
-            ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id')
+            ->whereHas('product', function ($q) {
+                $q->where('type', 'non-hp')->orWhere('has_imei', false);
+            })
             ->get();
+
+        $nonHpGrouped = collect();
+        foreach ($nonHpRaw as $item) {
+            $key = "{$item->product_id}-{$item->placement_type}-{$item->placement_id}-{$item->user_id}";
+            if (!$nonHpGrouped->has($key)) {
+                $nonHpGrouped->put($key, clone $item);
+            } else {
+                $existing = $nonHpGrouped->get($key);
+                $existing->quantity += $item->quantity;
+                $existing->id = max($existing->id, $item->id);
+            }
+        }
+        $nonHpAll = $nonHpGrouped->values();
 
         $nonHpItems = [];
         foreach ($nonHpAll as $item) {

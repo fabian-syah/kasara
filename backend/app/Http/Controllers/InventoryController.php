@@ -44,18 +44,15 @@ class InventoryController extends Controller
         // 2. Base Query
         if ($type === 'non-hp') {
             $query = Inventory::with(['product', 'user', 'user.distributor', 'latestLog', 'latestLog.distributor'])
-                ->select(
-                    'product_id',
-                    'placement_type',
-                    'placement_id',
-                    'user_id',
-                    \DB::raw('MAX(id) as id'),
-                    \DB::raw('SUM(quantity) as quantity')
-                )
                 ->where('quantity', '>', 0)
-                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
+                ->whereHas('product', function ($q) {
+                    $q->where('type', 'non-hp')->orWhere('has_imei', false);
+                });
         } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user']);
+            $query = ProductDetail::with(['product', 'distributor', 'user'])
+                ->whereHas('product', function ($q) {
+                    $q->where('type', 'hp')->orWhere('has_imei', true);
+                });
         }
 
         // 3. Security Filter
