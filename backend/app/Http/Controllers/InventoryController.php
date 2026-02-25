@@ -269,42 +269,61 @@ class InventoryController extends Controller
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
 
-                $hasConstraint = false;
-                if (!empty($branchIds)) {
-                    $q->orWhere(function ($sub) use ($branchIds, $type) {
-                        if ($type === 'non-hp') {
-                            $sub->whereIn('branch_id', $branchIds);
-                        } else {
+                if ($type === 'non-hp') {
+                    // For non-hp, check if the inventory log references a product/user combo that exists in an allowed placement in the `inventories` table
+                    $q->whereExists(function ($query) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                        $query->select(\DB::raw(1))
+                            ->from('inventories')
+                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
+                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
+                            ->where(function ($sq) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                                $hasC = false;
+                                if (!empty($branchIds)) {
+                                    $sq->orWhere(function ($sub) use ($branchIds) {
+                                        $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds); });
+                                    $hasC = true;
+                                }
+                                if (!empty($warehouseIds)) {
+                                    $sq->orWhere(function ($sub) use ($warehouseIds) {
+                                        $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds); });
+                                    $hasC = true;
+                                }
+                                if (!empty($onlineShopIds)) {
+                                    $sq->orWhere(function ($sub) use ($onlineShopIds) {
+                                        $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds); });
+                                    $hasC = true;
+                                }
+                                if (!$hasC) {
+                                    $sq->whereRaw('0 = 1');
+                                }
+                            });
+                    });
+                } else {
+                    $hasConstraint = false;
+                    if (!empty($branchIds)) {
+                        $q->orWhere(function ($sub) use ($branchIds) {
                             $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds);
-                        }
-                    });
-                    $hasConstraint = true;
-                }
+                        });
+                        $hasConstraint = true;
+                    }
 
-                if (!empty($warehouseIds)) {
-                    $q->orWhere(function ($sub) use ($warehouseIds, $type) {
-                        if ($type === 'non-hp') {
-                            $sub->whereIn('warehouse_id', $warehouseIds);
-                        } else {
+                    if (!empty($warehouseIds)) {
+                        $q->orWhere(function ($sub) use ($warehouseIds) {
                             $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds);
-                        }
-                    });
-                    $hasConstraint = true;
-                }
+                        });
+                        $hasConstraint = true;
+                    }
 
-                if (!empty($onlineShopIds)) {
-                    $q->orWhere(function ($sub) use ($onlineShopIds, $type) {
-                        if ($type === 'non-hp') {
-                            $sub->whereIn('online_shop_id', $onlineShopIds);
-                        } else {
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($onlineShopIds) {
                             $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
-                        }
-                    });
-                    $hasConstraint = true;
-                }
+                        });
+                        $hasConstraint = true;
+                    }
 
-                if (!$hasConstraint) {
-                    $q->whereRaw('0 = 1');
+                    if (!$hasConstraint) {
+                        $q->whereRaw('0 = 1');
+                    }
                 }
             });
         }
@@ -313,10 +332,36 @@ class InventoryController extends Controller
         if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($request, $type) {
                 if ($type === 'non-hp') {
-                    $q->where('branch_id', $request->branch_id);
+                    $q->whereExists(function ($query) use ($request) {
+                        $query->select(\DB::raw(1))
+                            ->from('inventories')
+                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
+                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
+                            ->where('placement_type', 'branch')
+                            ->where('placement_id', $request->branch_id);
+                    });
                 } else {
                     $q->where('placement_type', 'branch')
                         ->where('placement_id', $request->branch_id);
+                }
+            });
+        }
+
+        // AUDIT ONLINE SHOP FILTER
+        if ($request->online_shop_id && $user->hasRole($unrestrictedRoles)) {
+            $query->where(function ($q) use ($request, $type) {
+                if ($type === 'non-hp') {
+                    $q->whereExists(function ($query) use ($request) {
+                        $query->select(\DB::raw(1))
+                            ->from('inventories')
+                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
+                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
+                            ->where('placement_type', 'online_shop')
+                            ->where('placement_id', $request->online_shop_id);
+                    });
+                } else {
+                    $q->where('placement_type', 'online_shop')
+                        ->where('placement_id', $request->online_shop_id);
                 }
             });
         }
@@ -619,9 +664,9 @@ class InventoryController extends Controller
                 // Log
                 $log = InventoryLog::create([
                     'product_id' => $product->id,
-                    'branch_id' => 1, // Fallback or need to make nullable if placement isn't branch
-                    // TODO: Update InventoryLog to support polymorphic placement too? Or just use description for now.
-                    // For now, let's assume we map placement_id -> branch_id if type is branch, or null.
+                    'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
+                    'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
+                    'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
                     'user_id' => $ownerUserId, // Use the Owner User ID (Inventory Account)
                     'distributor_id' => $distributorId,
                     'supplier_name' => $supplierName,
@@ -739,7 +784,9 @@ class InventoryController extends Controller
                 if ($inserted_count > 0) {
                     InventoryLog::create([
                         'product_id' => $product->id,
-                        'branch_id' => 1,
+                        'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
+                        'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
+                        'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
                         'user_id' => $ownerUserId, // Use Owner User ID
                         'distributor_id' => $distributorId,
                         'supplier_name' => $supplierName,

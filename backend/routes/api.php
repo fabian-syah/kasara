@@ -29,6 +29,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 // Protected routes
 // Public Fixer Route (Temporary)
 Route::get('/inventory/fix-data', [InventoryController::class, 'fixMergedImeis']);
+Route::get('/inventory/fix-logs', [InventoryController::class, 'fixInventoryLogs']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
