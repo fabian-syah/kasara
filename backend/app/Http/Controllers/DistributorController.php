@@ -71,4 +71,104 @@ class DistributorController extends Controller
         $distributor->delete();
         return response()->json(['success' => true]);
     }
+
+    public function monitoring(Request $request)
+    {
+        $user = $request->user();
+        $userRole = strtolower($user->roles->first()->name ?? '');
+
+        $query = \App\Models\ProductDetail::with(['product.type', 'product.brand'])
+            ->where('status', 'available')
+            ->whereNotNull('distributor_id');
+
+        // Apply distributor filter based on Role
+        if ($userRole === 'distributor') {
+            $placement = \App\Models\UserPlacement::where('user_id', $user->id)
+                ->where('model_type', Distributor::class)
+                ->first();
+
+            if (!$placement) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda belum dikaitkan dengan distributor manapun.'
+                ], 403);
+            }
+            $query->where('distributor_id', $placement->model_id);
+        } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
+            $query->where('distributor_id', $request->distributor_id);
+        }
+
+        // Fetch items
+        $items = $query->get();
+
+        // Get names for grouping
+        $branches = \App\Models\Branch::pluck('name', 'id');
+        $warehouses = \App\Models\Warehouse::pluck('name', 'id');
+        $onlineShops = \App\Models\OnlineShop::pluck('name', 'id');
+
+        $grouped = [];
+
+        foreach ($items as $item) {
+            $locationName = 'Unknown Location';
+            if ($item->placement_type === 'branch') {
+                $locationName = 'Cabang: ' . ($branches[$item->placement_id] ?? 'Unknown');
+            } elseif ($item->placement_type === 'warehouse') {
+                $locationName = 'Gudang: ' . ($warehouses[$item->placement_id] ?? 'Unknown');
+            } elseif ($item->placement_type === 'online_shop') {
+                $locationName = 'Online: ' . ($onlineShops[$item->placement_id] ?? 'Unknown');
+            }
+
+            if (!isset($grouped[$locationName])) {
+                $grouped[$locationName] = [
+                    'location' => $locationName,
+                    'products' => []
+                ];
+            }
+
+            $brandName = $item->product->brand->name ?? 'Unknown';
+            $typeName = $item->product->type->name ?? 'Unknown';
+
+            // Format capacity
+            $spec = [];
+            if ($item->ram)
+                $spec[] = $item->ram;
+            if ($item->storage)
+                $spec[] = $item->storage;
+            $specStr = !empty($spec) ? ' ' . implode('/', $spec) : '';
+
+            $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
+
+            $productKey = trim("{$brandName} {$typeName}{$specStr} - {$cond}");
+
+            if (!isset($grouped[$locationName]['products'][$productKey])) {
+                $grouped[$locationName]['products'][$productKey] = [
+                    'name' => $productKey,
+                    'qty' => 0
+                ];
+            }
+
+            $grouped[$locationName]['products'][$productKey]['qty'] += 1;
+        }
+
+        $result = array_values($grouped);
+
+        // Sort locations
+        usort($result, function ($a, $b) {
+            return strcmp($a['location'], $b['location']);
+        });
+
+        // Convert and sort products
+        foreach ($result as &$loc) {
+            $prodArr = array_values($loc['products']);
+            usort($prodArr, function ($a, $b) {
+                return strcmp($a['name'], $b['name']);
+            });
+            $loc['products'] = $prodArr;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result
+        ]);
+    }
 }

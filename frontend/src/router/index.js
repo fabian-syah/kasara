@@ -83,6 +83,17 @@ const routes = [
                 }
             },
             {
+                path: 'distributor/monitoring',
+                name: 'DistributorMonitoring',
+                component: () => import('../views/distributor/StockMonitoring.vue'),
+                meta: {
+                    title: 'Monitoring Stok',
+                    menu: 'distributor_monitoring',
+                    // Allow both distributor and super_admin via permissions logic
+                    permissions: ['distributor.monitoring']
+                }
+            },
+            {
                 path: 'inventory',
                 name: 'Inventory',
                 component: Inventory,

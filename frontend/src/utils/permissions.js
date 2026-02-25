@@ -83,7 +83,10 @@ export const PERMISSIONS = {
     // Online store
     ONLINE_ORDERS: 'online.orders',
     ONLINE_SCAN: 'online.scan',
-    ONLINE_ANALYSIS: 'online.analysis'
+    ONLINE_ANALYSIS: 'online.analysis',
+
+    // Distributor Monitoring
+    DISTRIBUTOR_MONITORING: 'distributor.monitoring'
 }
 
 // Role-based permissions mapping
@@ -142,7 +145,8 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.DISTRIBUTION_SIMULATE,
         PERMISSIONS.INVENTORY_VIEW,
         PERMISSIONS.INVENTORY_STOCK_IN,
-        PERMISSIONS.BRANCHES_VIEW
+        PERMISSIONS.BRANCHES_VIEW,
+        PERMISSIONS.DISTRIBUTOR_MONITORING
     ],
 
     [ROLES.SALES]: [
@@ -189,13 +193,13 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit_sales', 'audit', 'reports', 'report_sales', 'settings', 'warehouses', 'distributors', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track'],
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit_sales', 'audit', 'reports', 'report_sales', 'settings', 'warehouses', 'distributors', 'distributor_monitoring', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track'],
     [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'audit_sales', 'track'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
     [ROLES.AUDIT]: ['dashboard', 'audit_sales', 'audit', 'audit_inventory', 'audit_analysis', 'users', 'reports', 'report_sales', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
     [ROLES.LEADER]: ['dashboard', 'audit_sales', 'audit_inventory', 'audit_analysis', 'users', 'reports', 'report_sales', 'track'],
-    [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
+    [ROLES.DISTRIBUTION]: ['dashboard', 'distributor_monitoring', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
     [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'audit_sales', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],

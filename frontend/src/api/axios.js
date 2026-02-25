@@ -173,7 +173,8 @@ export const distributors = {
     get: (id) => api.get(`/distributors/${id}`),
     create: (data) => api.post('/distributors', data),
     update: (id, data) => api.put(`/distributors/${id}`, data),
-    delete: (id) => api.delete(`/distributors/${id}`)
+    delete: (id) => api.delete(`/distributors/${id}`),
+    monitoring: () => api.get('/distributors/monitoring')
 }
 
 export const reports = {

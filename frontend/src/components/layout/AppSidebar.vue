@@ -8,6 +8,7 @@ import {
     LayoutDashboard,
     ShoppingCart,
     Package,
+    PackageSearch,
     Box,
     Users,
     Receipt,
@@ -83,6 +84,9 @@ const menuItems = [
 
     // Modul Cabang Fisik (TAMBAHKAN INI)
     { id: "branches", path: "/branches", label: "Cabang Fisik", icon: Building2 },
+
+    // Special
+    { id: "distributor_monitoring", path: "/distributor/monitoring", label: "Monitoring Distributor", icon: PackageSearch },
 
     //   { id: "pos", path: "/pos", label: "Kasir (POS)", icon: ShoppingCart },
     { id: "inventory", path: "/inventory", label: "Inventory", icon: Box },

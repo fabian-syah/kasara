@@ -1,0 +1,140 @@
+<script setup>
+import { ref, onMounted } from "vue";
+import { distributors } from "../../api/axios";
+import { useToast } from "../../composables/useToast";
+import { Loader2, PackageSearch, MapPin, Box } from "lucide-vue-next";
+
+const toast = useToast();
+const isLoading = ref(false);
+const monitoringData = ref([]);
+
+const fetchMonitoringData = async () => {
+    isLoading.value = true;
+    try {
+        const response = await distributors.monitoring();
+        if (response.data.success) {
+            monitoringData.value = response.data.data;
+        } else {
+            toast.error(response.data.message || "Gagal memuat data monitoring");
+        }
+    } catch (error) {
+        console.error("Fetch monitoring error", error);
+        if (error.response?.data?.message) {
+            toast.error(error.response.data.message);
+        } else {
+            toast.error("Gagal memuat data monitoring.");
+        }
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchMonitoringData();
+});
+</script>
+
+<template>
+    <div class="space-y-6 animate-in pb-20">
+        <!-- Header Section -->
+        <div>
+            <h1 class="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
+                <PackageSearch :size="28" class="text-primary-500" /> Monitoring Stok Distributor
+            </h1>
+            <p class="text-text-secondary mt-1 max-w-2xl">
+                Pantau ketersediaan barang yang Anda suplai di seluruh jaringan cabang APEX POS.
+            </p>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
+            <Loader2 class="w-10 h-10 animate-spin text-primary-500 mb-4" />
+            <p class="text-text-secondary animate-pulse font-medium">Memuat data penyebaran stok...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!monitoringData.length"
+            class="flex flex-col items-center justify-center p-12 text-center bg-surface-800/40 backdrop-blur-xl border border-surface-700/50 rounded-2xl shadow-lg">
+            <div class="w-20 h-20 bg-surface-700/50 rounded-full flex items-center justify-center mb-4">
+                <Box class="w-10 h-10 text-text-secondary" />
+            </div>
+            <h3 class="text-xl font-bold text-text-primary mb-2">Tidak Ada Stok Aktif</h3>
+            <p class="text-text-secondary max-w-sm">
+                Belum ada produk dari suplai Anda yang berstatus tersedia di Gudang atau Cabang saat ini.
+            </p>
+        </div>
+
+        <!-- Data Grid -->
+        <div v-else class="space-y-8">
+            <!-- Iterate over each branch/location -->
+            <div v-for="(location, idx) in monitoringData" :key="idx"
+                class="relative overflow-hidden bg-white dark:bg-surface-800/60 backdrop-blur-3xl border border-surface-200 dark:border-surface-700/50 shadow-sm dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl transition-all duration-300 hover:shadow-md dark:hover:border-primary-500/30">
+
+                <!-- Card Header (Location Name) -->
+                <div
+                    class="px-6 py-4 border-b border-surface-200 dark:border-surface-700/50 bg-surface-50 dark:bg-surface-800/40 sticky top-0 z-10">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
+                                <MapPin class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                            </div>
+                            <h2 class="text-lg font-bold text-text-primary tracking-wide">
+                                {{ location.location }}
+                            </h2>
+                        </div>
+                        <span
+                            class="text-xs font-semibold px-3 py-1 rounded-full bg-surface-200 dark:bg-surface-700 text-text-secondary uppercase tracking-wider">
+                            {{ location.products.length }} Varian
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Product Grid inside Location -->
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div v-for="(product, pIdx) in location.products" :key="pIdx"
+                            class="group flex items-center justify-between p-4 rounded-xl bg-surface-50 dark:bg-surface-900 border border-transparent dark:border-surface-700/30 transition-all duration-300 hover:bg-surface-100 hover:border-surface-200 dark:hover:bg-surface-800 dark:hover:border-primary-500/20">
+
+                            <div class="flex-1 pr-4">
+                                <h4
+                                    class="font-semibold text-text-primary text-sm tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                    {{ product.name }}
+                                </h4>
+                            </div>
+
+                            <div class="flex flex-col items-end justify-center min-w-[60px]">
+                                <span class="text-2xl font-black text-primary-600 dark:text-primary-400 leading-none">
+                                    {{ product.qty }}
+                                </span>
+                                <span class="text-[10px] uppercase font-bold text-text-secondary tracking-widest mt-1">
+                                    Unit
+                                </span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<style scoped>
+@reference "../../style.css";
+
+.animate-in {
+    animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
