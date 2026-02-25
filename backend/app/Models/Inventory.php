@@ -38,4 +38,11 @@ class Inventory extends Model
             return $this->belongsTo(OnlineShop::class, 'placement_id');
         return null;
     }
+
+    public function latestLog()
+    {
+        return $this->hasOne(InventoryLog::class, 'product_id', 'product_id')
+            ->where('type', 'in')
+            ->latestOfMany();
+    }
 }

@@ -43,7 +43,7 @@ class InventoryController extends Controller
 
         // 2. Base Query
         if ($type === 'non-hp') {
-            $query = Inventory::with(['product', 'user', 'user.distributor'])->where('quantity', '>', 0);
+            $query = Inventory::with(['product', 'user', 'user.distributor', 'latestLog', 'latestLog.distributor'])->where('quantity', '>', 0);
         } else {
             $query = ProductDetail::with(['product', 'distributor', 'user']);
         }
@@ -142,8 +142,14 @@ class InventoryController extends Controller
         // 6. Pagination & Response
         $items = $query->latest()->paginate(20);
 
-        $items->getCollection()->transform(function ($item) {
+        $items->getCollection()->transform(function ($item) use ($type) {
             $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id);
+
+            if ($type === 'non-hp') {
+                $item->latest_distributor = $item->latestLog && $item->latestLog->distributor ? $item->latestLog->distributor->name : null;
+                $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
+            }
+
             return $item;
         });
 
