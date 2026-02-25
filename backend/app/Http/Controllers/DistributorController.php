@@ -122,7 +122,7 @@ class DistributorController extends Controller
             }
 
             $brandName = $item->product->brand ?? 'Unknown';
-            $typeName = $item->product->type ?? 'Unknown';
+            $typeName = $item->product->name ?? 'Unknown';
 
             // Format capacity
             $spec = [];
