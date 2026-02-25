@@ -764,7 +764,6 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
 
-            // If no specific location assigned, restrict access unless Super Admin
             if (!$hasFilter) {
                 if ($user->hasRole('super_admin')) {
                     // Show all (do nothing, let base query stand)

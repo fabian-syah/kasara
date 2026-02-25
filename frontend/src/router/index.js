@@ -170,7 +170,7 @@ const routes = [
                 meta: {
                     title: 'Barang Masuk Transfer',
                     menu: 'inventory',
-                    permissions: ['inventory.manage', 'inventory.stock_in']
+                    permissions: ['inventory.manage', 'inventory.stock_in', 'audit.view']
                 }
             },
             {
@@ -180,7 +180,7 @@ const routes = [
                 meta: {
                     title: 'Riwayat Transfer Masuk',
                     menu: 'inventory',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {
@@ -190,7 +190,7 @@ const routes = [
                 meta: {
                     title: 'Riwayat Transfer Keluar',
                     menu: 'inventory',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {
