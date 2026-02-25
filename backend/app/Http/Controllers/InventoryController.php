@@ -150,7 +150,37 @@ class InventoryController extends Controller
         }
 
         // 6. Pagination & Response
-        $items = $query->latest()->paginate(20);
+        if ($type === 'non-hp') {
+            $query->orderBy('id', 'desc');
+            $rawItems = $query->get();
+            $grouped = collect();
+
+            foreach ($rawItems as $item) {
+                // Generate unique key for grouping
+                $key = "{$item->product_id}-{$item->placement_type}-{$item->placement_id}-{$item->user_id}";
+                if (!$grouped->has($key)) {
+                    $grouped->put($key, clone $item);
+                } else {
+                    $existing = $grouped->get($key);
+                    $existing->quantity += $item->quantity;
+                    $existing->id = max($existing->id, $item->id);
+                }
+            }
+            $grouped = $grouped->sortByDesc('id')->values();
+
+            // Manual pagination
+            $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+            $perPage = 20;
+            $items = new \Illuminate\Pagination\LengthAwarePaginator(
+                $grouped->forPage($page, $perPage)->values(),
+                $grouped->count(),
+                $perPage,
+                $page,
+                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
+            );
+        } else {
+            $items = $query->latest()->paginate(20);
+        }
 
         $items->getCollection()->transform(function ($item) use ($type) {
             $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id);
