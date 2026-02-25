@@ -71,6 +71,35 @@ onMounted(() => {
             </p>
         </div>
 
+        <!-- Summary Stats -->
+        <div v-if="!isLoading && monitoringData.length > 0" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+                class="bg-gradient-to-br from-primary-500/10 to-primary-600/5 dark:from-primary-500/20 dark:to-primary-900/10 border border-primary-500/20 dark:border-primary-500/30 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+                <div
+                    class="w-12 h-12 rounded-xl bg-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                    <MapPin :size="24" />
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-text-secondary">Total Lokasi</p>
+                    <p class="text-2xl font-black text-text-primary">{{ totalLocations }} <span
+                            class="text-sm font-semibold text-text-secondary">Cabang</span></p>
+                </div>
+            </div>
+
+            <div
+                class="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 dark:from-emerald-500/20 dark:to-emerald-900/10 border border-emerald-500/20 dark:border-emerald-500/30 p-5 rounded-2xl flex items-center gap-4 shadow-sm">
+                <div
+                    class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <Activity :size="24" />
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-text-secondary">Produk Aktif</p>
+                    <p class="text-2xl font-black text-text-primary">{{ totalUnits }} <span
+                            class="text-sm font-semibold text-text-secondary">Unit</span></p>
+                </div>
+            </div>
+        </div>
+
         <!-- Data Grid -->
         <div v-else class="space-y-8">
             <!-- Iterate over each branch/location -->
