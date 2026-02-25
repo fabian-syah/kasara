@@ -157,6 +157,7 @@ class DistributorController extends Controller
                 'id' => $item->id,
                 'imei' => $item->imei,
                 'color' => $item->color,
+                'notes' => $item->notes,
                 'condition' => $item->condition,
             ];
         }

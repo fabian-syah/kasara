@@ -193,10 +193,24 @@ onMounted(() => {
                                                 </span>
                                                 <span
                                                     class="text-text-secondary text-[10px] font-medium flex items-center gap-1">
-                                                    <div class="w-2 h-2 rounded-full border border-surface-300 dark:border-surface-600"
-                                                        :style="{ backgroundColor: item.color ? item.color.toLowerCase() : 'transparent' }">
-                                                    </div>
-                                                    {{ item.color || 'Tanpa Warna' }}
+                                                    <template v-if="item.color">
+                                                        <div class="w-2 h-2 rounded-full border border-surface-300 dark:border-surface-600 shadow-sm"
+                                                            :style="{ backgroundColor: item.color.toLowerCase() }">
+                                                        </div>
+                                                        {{ item.color }}
+                                                    </template>
+                                                    <template v-else-if="item.notes">
+                                                        <div
+                                                            class="w-1.5 h-1.5 rounded-full bg-surface-400 dark:bg-surface-500">
+                                                        </div>
+                                                        {{ item.notes }}
+                                                    </template>
+                                                    <template v-else>
+                                                        <div
+                                                            class="w-1.5 h-1.5 rounded-full bg-surface-300 dark:bg-surface-600">
+                                                        </div>
+                                                        Unit Standard
+                                                    </template>
                                                 </span>
                                             </div>
                                             <div class="flex justify-end">
