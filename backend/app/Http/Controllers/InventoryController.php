@@ -146,8 +146,21 @@ class InventoryController extends Controller
             $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
             if ($type === 'non-hp') {
-                $item->latest_distributor = $item->latestLog && $item->latestLog->distributor ? $item->latestLog->distributor->name : null;
-                $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
+                // Fetch latest log manually to guarantee accuracy against user_id and product_id
+                $log = \App\Models\InventoryLog::with('distributor')
+                    ->where('product_id', $item->product_id)
+                    ->where('user_id', $item->user_id)
+                    ->where('type', 'in')
+                    ->latest()
+                    ->first();
+
+                $item->latest_distributor = $log && $log->distributor ? $log->distributor->name : null;
+                $item->latest_supplier = $log ? $log->supplier_name : null;
+
+                // Fallback to user's distributor if nothing found in log
+                if (!$item->latest_distributor && !$item->latest_supplier && $item->user && $item->user->distributor) {
+                    $item->latest_distributor = $item->user->distributor->name;
+                }
             }
 
             return $item;
