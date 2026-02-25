@@ -322,7 +322,43 @@ class StockOutController extends Controller
                     }
                 }
             } else {
-                $totalSellingPrice = $request->selling_price;
+                $totalSellingPrice = floatval($request->selling_price ?? 0);
+
+                // Fallback Hitung Total dari Item secara otomatis jika 0 (terutama untuk Pindah Cabang)
+                if ($totalSellingPrice == 0) {
+                    // Kalkulasi HP
+                    if (isset($productDetails) && $productDetails->count() > 0) {
+                        foreach ($productDetails as $pd) {
+                            $itemPrice = floatval($pd->selling_price);
+
+                            // Jika ProductDetail belum diset selling_price, ambil dari Master Data Harga (ProductPrice)
+                            if ($itemPrice == 0 && $pd->product) {
+                                $productType = \App\Models\ProductType::where('name', $pd->product->name)->first();
+                                if ($productType) {
+                                    $priceData = \App\Models\ProductPrice::where('product_type_id', $productType->id)
+                                        ->where('condition', $pd->condition)
+                                        ->where('ram', $pd->ram)
+                                        ->where('storage', $pd->storage)
+                                        ->first();
+                                    if ($priceData) {
+                                        $itemPrice = floatval($priceData->price);
+                                    }
+                                }
+                            }
+                            $totalSellingPrice += $itemPrice;
+                        }
+                    }
+
+                    // Kalkulasi Non-HP
+                    if ($request->non_hp_items) {
+                        foreach ($request->non_hp_items as $item) {
+                            $prod = \App\Models\Product::find($item['product_id']);
+                            if ($prod) {
+                                $totalSellingPrice += (floatval($prod->price) * intval($item['quantity']));
+                            }
+                        }
+                    }
+                }
             }
 
             // Map Destination Type
