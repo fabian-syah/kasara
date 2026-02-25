@@ -57,7 +57,7 @@ class ProductPriceController extends Controller
     {
         $validated = $request->validate([
             'product_type_id' => 'required|exists:product_types,id',
-            'condition' => 'required|in:new,second',
+            'condition' => 'required|in:new,second,ex_ibox',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
             'cost_price' => 'required|numeric|min:0',
@@ -127,7 +127,7 @@ class ProductPriceController extends Controller
     {
         $request->validate([
             'product_type_id' => 'required|exists:product_types,id',
-            'condition' => 'required|in:new,second',
+            'condition' => 'required|in:new,second,ex_ibox',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
         ]);
