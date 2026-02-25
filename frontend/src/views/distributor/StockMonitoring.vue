@@ -141,12 +141,24 @@ onMounted(() => {
                                     <div class="flex flex-col">
                                         <h4
                                             class="font-semibold text-text-primary text-sm tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">
-                                            {{ product.name }}
+                                            {{ product.brand }} {{ product.type_name }}
                                         </h4>
-                                        <span v-if="!product.has_imei || product.type === 'non-hp'"
-                                            class="text-[10px] uppercase font-bold text-amber-500 dark:text-amber-400 tracking-widest mt-0.5 flex items-center gap-1">
-                                            <div class="w-1 h-1 rounded-full bg-amber-500"></div> Non IMEI
-                                        </span>
+
+                                        <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                            <span v-if="product.capacity"
+                                                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-200 dark:bg-surface-700 text-text-secondary shadow-sm">
+                                                {{ product.capacity }}
+                                            </span>
+                                            <span
+                                                class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm"
+                                                :class="product.condition_label === 'New' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'">
+                                                {{ product.condition_label }}
+                                            </span>
+                                            <span v-if="!product.has_imei || product.type === 'non-hp'"
+                                                class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 tracking-widest flex items-center gap-1 shadow-sm">
+                                                <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div> Non IMEI
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 

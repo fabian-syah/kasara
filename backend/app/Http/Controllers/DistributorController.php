@@ -139,6 +139,10 @@ class DistributorController extends Controller
             if (!isset($grouped[$locationName]['products'][$productKey])) {
                 $grouped[$locationName]['products'][$productKey] = [
                     'name' => $productKey,
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'capacity' => implode('/', $spec),
+                    'condition_label' => $cond,
                     'qty' => 0,
                     'type' => $item->product->type ?? 'hp',
                     'has_imei' => $item->product->has_imei ?? true,
