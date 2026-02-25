@@ -1,12 +1,19 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { distributors } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { Loader2, PackageSearch, MapPin, Box } from "lucide-vue-next";
+import { Loader2, PackageSearch, MapPin, Box, Smartphone, Activity } from "lucide-vue-next";
 
 const toast = useToast();
 const isLoading = ref(false);
 const monitoringData = ref([]);
+
+const totalLocations = computed(() => monitoringData.value.length);
+const totalUnits = computed(() => {
+    return monitoringData.value.reduce((sum, loc) => {
+        return sum + loc.products.reduce((acc, p) => acc + p.qty, 0);
+    }, 0);
+});
 
 const fetchMonitoringData = async () => {
     isLoading.value = true;
@@ -95,9 +102,13 @@ onMounted(() => {
                         <div v-for="(product, pIdx) in location.products" :key="pIdx"
                             class="group flex items-center justify-between p-4 rounded-xl bg-surface-50 dark:bg-surface-900 border border-transparent dark:border-surface-700/30 transition-all duration-300 hover:bg-surface-100 hover:border-surface-200 dark:hover:bg-surface-800 dark:hover:border-primary-500/20">
 
-                            <div class="flex-1 pr-4">
+                            <div class="flex items-center flex-1 pr-4 gap-3">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800 flex items-center justify-center text-text-secondary group-hover:text-primary-500 group-hover:bg-primary-500/10 transition-colors">
+                                    <Smartphone :size="16" />
+                                </div>
                                 <h4
-                                    class="font-semibold text-text-primary text-sm tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                    class="font-semibold text-text-primary text-sm tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">
                                     {{ product.name }}
                                 </h4>
                             </div>
@@ -120,8 +131,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@reference "../../style.css";
-
 .animate-in {
     animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
