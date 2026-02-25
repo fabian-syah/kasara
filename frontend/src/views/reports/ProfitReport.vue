@@ -209,8 +209,8 @@
                                                 </div>
                                                 <!-- Profit -->
                                                 <div class="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap text-right flex items-center justify-end"
-                                                    :class="getEffectiveProfit(item, detail) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                                                    {{ formatCurrency(getEffectiveProfit(item, detail)) }}
+                                                    :class="detail.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                    {{ formatCurrency(detail.profit) }}
                                                 </div>
                                             </div>
 
@@ -369,108 +369,7 @@ const saveChecklist = async () => {
     }
 }
 
-// Harga Modal editing per item
-// editableModal structure: { stock_out_id: { detail_id: value, detail_id_2: value } }
-const editableModal = reactive({})
-const savingModalId = ref(null)
 
-const initEditableModal = () => {
-    profitRecords.value.daily_sales.forEach(item => {
-        editableModal[item.id] = {}
-        if (item.items) {
-            item.items.forEach(detail => {
-                editableModal[item.id][detail.id] = detail.harga_modal != null ? Number(detail.harga_modal) : null
-            })
-        }
-    })
-}
-
-// Format display for modal input (shows rupiah-formatted number)
-const formatModalDisplay = (stockOutId, detailId, defaultVal) => {
-    const val = editableModal[stockOutId]?.[detailId]
-    if (val != null && val !== '') {
-        return formatNumber(val)
-    }
-    return ''
-}
-
-// Handle typing in harga modal input - strip non-digits, store raw number
-const onModalInput = (event, item, detail) => {
-    const raw = event.target.value.replace(/[^0-9]/g, '')
-    const num = raw ? parseInt(raw, 10) : null
-
-    if (!editableModal[item.id]) editableModal[item.id] = {}
-    editableModal[item.id][detail.id] = num
-
-    // Reformat the display
-    event.target.value = num != null ? formatNumber(num) : ''
-}
-
-const onModalFocus = (event, item, detail) => {
-    // On focus, show raw number for easy editing
-    const val = editableModal[item.id]?.[detail.id]
-    if (val != null) {
-        event.target.value = val.toString()
-    }
-}
-
-const onModalBlur = (event, item, detail) => {
-    // On blur, reformat to rupiah
-    const val = editableModal[item.id]?.[detail.id]
-    if (val != null) {
-        event.target.value = formatNumber(val)
-    } else {
-        event.target.value = ''
-    }
-}
-
-const getEffectiveProfit = (item, detail) => {
-    const hargaJual = Number(detail.harga_jual) || 0
-    const hargaModal = editableModal[item.id]?.[detail.id] ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0
-    return hargaJual - hargaModal
-}
-
-const saveHargaModal = async (item) => {
-    // Gather all details for this transaction
-    const itemsModalPayload = {}
-    if (item.items) {
-        item.items.forEach(detail => {
-            const currentEditVal = editableModal[item.id]?.[detail.id]
-            const finalVal = currentEditVal ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0
-
-            // Assign back to editable state immediately so it matches
-            if (!editableModal[item.id]) editableModal[item.id] = {}
-            editableModal[item.id][detail.id] = finalVal
-
-            itemsModalPayload[detail.id] = finalVal
-        })
-    }
-
-    savingModalId.value = item.id
-    try {
-        const res = await axios.post(`/audit/profit/${item.id}`, {
-            items_modal: itemsModalPayload
-        })
-
-        // Update item total properties
-        item.harga_modal = res.data.harga_modal
-        item.profit = res.data.profit
-
-        // Update individual item properties safely
-        if (item.items) {
-            item.items.forEach(detail => {
-                detail.harga_modal = res.data.items_modal[detail.id]
-                detail.has_saved_modal = true
-                detail.profit = detail.harga_jual - detail.harga_modal
-            })
-        }
-    } catch (e) {
-        console.error('Failed to save harga modal', e)
-        alert('Gagal menyimpan harga modal: ' + (e.response?.data?.message || e.message))
-    } finally {
-        savingModalId.value = null
-    }
-}
 
 // Monthly Logic
 const months = [
@@ -544,8 +443,8 @@ const totalHargaJual = computed(() =>
 )
 const totalHargaModal = computed(() =>
     profitRecords.value.daily_sales.reduce((sum, item) => {
-        const modal = editableModal[item.id] || Number(item.harga_modal) || Number(item.default_harga_modal) || 0
-        return sum + modal
+        const modal = item.harga_modal ?? item.default_harga_modal ?? 0
+        return sum + Number(modal)
     }, 0)
 )
 const totalProfit = computed(() => totalHargaJual.value - totalHargaModal.value)
