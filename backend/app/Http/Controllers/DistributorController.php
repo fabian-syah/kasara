@@ -77,23 +77,19 @@ class DistributorController extends Controller
         $user = $request->user();
         $userRole = strtolower($user->roles->first()->name ?? '');
 
-        $query = \App\Models\ProductDetail::with(['product.type', 'product.brand'])
+        $query = \App\Models\ProductDetail::with(['product'])
             ->where('status', 'available')
             ->whereNotNull('distributor_id');
 
         // Apply distributor filter based on Role
-        if ($userRole === 'distributor') {
-            $placement = \App\Models\UserPlacement::where('user_id', $user->id)
-                ->where('model_type', Distributor::class)
-                ->first();
-
-            if (!$placement) {
+        if ($userRole === 'distribution' || $userRole === 'distributor') {
+            if (!$user->distributor_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Akun Anda belum dikaitkan dengan distributor manapun.'
                 ], 403);
             }
-            $query->where('distributor_id', $placement->model_id);
+            $query->where('distributor_id', $user->distributor_id);
         } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
             $query->where('distributor_id', $request->distributor_id);
         }
@@ -125,8 +121,8 @@ class DistributorController extends Controller
                 ];
             }
 
-            $brandName = $item->product->brand->name ?? 'Unknown';
-            $typeName = $item->product->type->name ?? 'Unknown';
+            $brandName = $item->product->brand ?? 'Unknown';
+            $typeName = $item->product->type ?? 'Unknown';
 
             // Format capacity
             $spec = [];
