@@ -77,11 +77,11 @@ class DistributorController extends Controller
         $user = $request->user();
         $userRole = strtolower($user->roles->first()->name ?? '');
 
-        $query = \App\Models\ProductDetail::with(['product'])
+        // 1. Fetch IMEI Items
+        $hpQuery = \App\Models\ProductDetail::with(['product'])
             ->where('status', 'available')
             ->whereNotNull('distributor_id');
 
-        // Apply distributor filter based on Role
         if ($userRole === 'distribution' || $userRole === 'distributor') {
             if (!$user->distributor_id) {
                 return response()->json([
@@ -89,13 +89,31 @@ class DistributorController extends Controller
                     'message' => 'Akun Anda belum dikaitkan dengan distributor manapun.'
                 ], 403);
             }
-            $query->where('distributor_id', $user->distributor_id);
+            $hpQuery->where('distributor_id', $user->distributor_id);
         } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
-            $query->where('distributor_id', $request->distributor_id);
+            $hpQuery->where('distributor_id', $request->distributor_id);
         }
 
-        // Fetch items
-        $items = $query->get();
+        $hpItems = $hpQuery->get();
+
+        // 2. Fetch Non-IMEI Items
+        $nonHpQuery = \App\Models\Inventory::with(['product', 'user'])
+            ->where('quantity', '>', 0)
+            ->whereHas('user', function ($q) {
+                $q->whereNotNull('distributor_id');
+            });
+
+        if ($userRole === 'distribution' || $userRole === 'distributor') {
+            $nonHpQuery->whereHas('user', function ($q) use ($user) {
+                $q->where('distributor_id', $user->distributor_id);
+            });
+        } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
+            $nonHpQuery->whereHas('user', function ($q) use ($request) {
+                $q->where('distributor_id', $request->distributor_id);
+            });
+        }
+
+        $nonHpItems = $nonHpQuery->get();
 
         // Get names for grouping
         $branches = \App\Models\Branch::pluck('name', 'id');
@@ -104,7 +122,8 @@ class DistributorController extends Controller
 
         $grouped = [];
 
-        foreach ($items as $item) {
+        // Process HP Items
+        foreach ($hpItems as $item) {
             $locationName = 'Unknown Location';
             if ($item->placement_type === 'branch') {
                 $locationName = 'Cabang: ' . ($branches[$item->placement_id] ?? 'Unknown');
@@ -160,6 +179,47 @@ class DistributorController extends Controller
                 'notes' => $item->notes,
                 'condition' => $item->condition,
             ];
+        }
+
+        // Process Non-HP Items
+        foreach ($nonHpItems as $item) {
+            $locationName = 'Unknown Location';
+            if ($item->placement_type === 'branch') {
+                $locationName = 'Cabang: ' . ($branches[$item->placement_id] ?? 'Unknown');
+            } elseif ($item->placement_type === 'warehouse') {
+                $locationName = 'Gudang: ' . ($warehouses[$item->placement_id] ?? 'Unknown');
+            } elseif ($item->placement_type === 'online_shop') {
+                $locationName = 'Online: ' . ($onlineShops[$item->placement_id] ?? 'Unknown');
+            }
+
+            if (!isset($grouped[$locationName])) {
+                $grouped[$locationName] = [
+                    'location' => $locationName,
+                    'products' => []
+                ];
+            }
+
+            $brandName = $item->product->brand ?? 'Unknown';
+            $typeName = $item->product->name ?? 'Unknown';
+
+            $cond = 'New'; // Assuming Non-HP are mostly new
+            $productKey = trim("{$brandName} {$typeName} - {$cond}");
+
+            if (!isset($grouped[$locationName]['products'][$productKey])) {
+                $grouped[$locationName]['products'][$productKey] = [
+                    'name' => $productKey,
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'capacity' => null, // Non-HP doesn't usually have capacity
+                    'condition_label' => $cond,
+                    'qty' => 0,
+                    'type' => $item->product->type ?? 'non-hp',
+                    'has_imei' => false,
+                    'items' => [] // Don't list individual items for non-HP since they are grouped by quantity
+                ];
+            }
+
+            $grouped[$locationName]['products'][$productKey]['qty'] += $item->quantity;
         }
 
         $result = array_values($grouped);
