@@ -11,15 +11,23 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // Alter product_details table
-        DB::statement("ALTER TABLE `product_details` CHANGE COLUMN `condition` `condition` ENUM('new', 'second', 'ex_ibox') NOT NULL DEFAULT 'new'");
+        $driver = Schema::getConnection()->getDriverName();
 
-        // Alter product_prices table (assuming it has the condition ENUM too based on the codebase conventions)
-        // Let's make sure it doesn't fail if the table doesn't have it.
-        try {
-            DB::statement("ALTER TABLE `product_prices` CHANGE COLUMN `condition` `condition` ENUM('new', 'second', 'ex_ibox') NOT NULL DEFAULT 'new'");
-        } catch (\Exception $e) {
-            // It might not exist or be different
+        if ($driver === 'pgsql') {
+            DB::statement("ALTER TABLE product_details DROP CONSTRAINT IF EXISTS product_details_condition_check");
+            DB::statement("ALTER TABLE product_details ADD CONSTRAINT product_details_condition_check CHECK (condition::text = ANY (ARRAY['new'::character varying, 'second'::character varying, 'ex_ibox'::character varying]::text[]))");
+
+            try {
+                DB::statement("ALTER TABLE product_prices DROP CONSTRAINT IF EXISTS product_prices_condition_check");
+                DB::statement("ALTER TABLE product_prices ADD CONSTRAINT product_prices_condition_check CHECK (condition::text = ANY (ARRAY['new'::character varying, 'second'::character varying, 'ex_ibox'::character varying]::text[]))");
+            } catch (\Exception $e) {
+            }
+        } else {
+            DB::statement("ALTER TABLE `product_details` MODIFY COLUMN `condition` ENUM('new', 'second', 'ex_ibox') NOT NULL DEFAULT 'new'");
+            try {
+                DB::statement("ALTER TABLE `product_prices` MODIFY COLUMN `condition` ENUM('new', 'second', 'ex_ibox') NOT NULL DEFAULT 'new'");
+            } catch (\Exception $e) {
+            }
         }
     }
 
@@ -28,14 +36,23 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        // Revert product_details
-        DB::statement("ALTER TABLE `product_details` CHANGE COLUMN `condition` `condition` ENUM('new', 'second') NOT NULL DEFAULT 'new'");
+        $driver = Schema::getConnection()->getDriverName();
 
-        // Revert product_prices
-        try {
-            DB::statement("ALTER TABLE `product_prices` CHANGE COLUMN `condition` `condition` ENUM('new', 'second') NOT NULL DEFAULT 'new'");
-        } catch (\Exception $e) {
-            // It might not exist or be different
+        if ($driver === 'pgsql') {
+            DB::statement("ALTER TABLE product_details DROP CONSTRAINT IF EXISTS product_details_condition_check");
+            DB::statement("ALTER TABLE product_details ADD CONSTRAINT product_details_condition_check CHECK (condition::text = ANY (ARRAY['new'::character varying, 'second'::character varying]::text[]))");
+
+            try {
+                DB::statement("ALTER TABLE product_prices DROP CONSTRAINT IF EXISTS product_prices_condition_check");
+                DB::statement("ALTER TABLE product_prices ADD CONSTRAINT product_prices_condition_check CHECK (condition::text = ANY (ARRAY['new'::character varying, 'second'::character varying]::text[]))");
+            } catch (\Exception $e) {
+            }
+        } else {
+            DB::statement("ALTER TABLE `product_details` MODIFY COLUMN `condition` ENUM('new', 'second') NOT NULL DEFAULT 'new'");
+            try {
+                DB::statement("ALTER TABLE `product_prices` MODIFY COLUMN `condition` ENUM('new', 'second') NOT NULL DEFAULT 'new'");
+            } catch (\Exception $e) {
+            }
         }
     }
 };
