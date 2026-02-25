@@ -129,26 +129,71 @@ onMounted(() => {
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         <div v-for="(product, pIdx) in location.products" :key="pIdx"
-                            class="group flex items-center justify-between p-4 rounded-xl bg-surface-50 dark:bg-surface-900 border border-transparent dark:border-surface-700/30 transition-all duration-300 hover:bg-surface-100 hover:border-surface-200 dark:hover:bg-surface-800 dark:hover:border-primary-500/20">
+                            class="group flex flex-col p-4 rounded-xl bg-surface-50 dark:bg-surface-900 border border-transparent dark:border-surface-700/30 transition-all duration-300 hover:bg-surface-100 hover:border-surface-200 dark:hover:bg-surface-800 dark:hover:border-primary-500/20 shadow-sm">
 
-                            <div class="flex items-center flex-1 pr-4 gap-3">
-                                <div
-                                    class="w-8 h-8 rounded-lg bg-surface-200 dark:bg-surface-800 flex items-center justify-center text-text-secondary group-hover:text-primary-500 group-hover:bg-primary-500/10 transition-colors">
-                                    <Smartphone :size="16" />
+                            <div class="flex items-center justify-between w-full">
+                                <div class="flex items-center flex-1 pr-4 gap-3">
+                                    <div
+                                        class="w-10 h-10 rounded-lg bg-surface-200 dark:bg-surface-800 flex items-center justify-center text-text-secondary group-hover:text-primary-500 group-hover:bg-primary-500/10 transition-colors">
+                                        <Smartphone v-if="product.type === 'hp'" :size="18" />
+                                        <Box v-else :size="18" />
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <h4
+                                            class="font-semibold text-text-primary text-sm tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">
+                                            {{ product.name }}
+                                        </h4>
+                                        <span v-if="!product.has_imei || product.type === 'non-hp'"
+                                            class="text-[10px] uppercase font-bold text-amber-500 dark:text-amber-400 tracking-widest mt-0.5 flex items-center gap-1">
+                                            <div class="w-1 h-1 rounded-full bg-amber-500"></div> Non IMEI
+                                        </span>
+                                    </div>
                                 </div>
-                                <h4
-                                    class="font-semibold text-text-primary text-sm tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors leading-snug">
-                                    {{ product.name }}
-                                </h4>
+
+                                <div class="flex flex-col items-end justify-center min-w-[60px]">
+                                    <span
+                                        class="text-2xl font-black text-primary-600 dark:text-primary-400 leading-none">
+                                        {{ product.qty }}
+                                    </span>
+                                    <span
+                                        class="text-[10px] uppercase font-bold text-text-secondary tracking-widest mt-1">
+                                        Unit
+                                    </span>
+                                </div>
                             </div>
 
-                            <div class="flex flex-col items-end justify-center min-w-[60px]">
-                                <span class="text-2xl font-black text-primary-600 dark:text-primary-400 leading-none">
-                                    {{ product.qty }}
-                                </span>
-                                <span class="text-[10px] uppercase font-bold text-text-secondary tracking-widest mt-1">
-                                    Unit
-                                </span>
+                            <!-- Details list -->
+                            <div v-if="product.items && product.items.length > 0"
+                                class="mt-4 pt-3 border-t border-surface-200 dark:border-surface-700/50">
+                                <div class="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+                                    <div v-for="item in product.items" :key="item.id"
+                                        class="flex items-center justify-between py-2 px-3 rounded-lg bg-white dark:bg-surface-800/80 border border-surface-200 dark:border-surface-700/60 shadow-sm hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
+                                        <div class="flex flex-col gap-0.5">
+                                            <span v-if="product.has_imei && product.type === 'hp'"
+                                                class="font-mono text-text-primary text-xs font-semibold tracking-wide">
+                                                {{ item.imei || 'Tanpa IMEI' }}
+                                            </span>
+                                            <span v-else
+                                                class="font-medium text-text-primary text-xs flex items-center gap-1">
+                                                <span class="text-text-secondary">SN:</span> {{ item.imei || '-' }}
+                                            </span>
+                                            <span
+                                                class="text-text-secondary text-[10px] font-medium flex items-center gap-1">
+                                                <div class="w-2 h-2 rounded-full border border-surface-300 dark:border-surface-600"
+                                                    :style="{ backgroundColor: item.color ? item.color.toLowerCase() : 'transparent' }">
+                                                </div>
+                                                {{ item.color || 'Tanpa Warna' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex justify-end">
+                                            <span
+                                                class="px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase"
+                                                :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'">
+                                                {{ item.condition === 'new' ? 'BARU' : 'BEKAS' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
