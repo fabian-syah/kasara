@@ -310,7 +310,17 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                    <span v-if="item.ram || item.storage"
+                                        class="px-2 py-0.5 rounded border border-surface-600 text-[10px] font-medium text-blue-400 bg-blue-500/10 whitespace-nowrap">
+                                        {{ item.ram }} {{ item.storage }}
+                                    </span>
+                                    <span v-if="item.condition"
+                                        class="px-2 py-0.5 rounded border border-surface-600 text-[10px] font-bold text-amber-500 bg-amber-500/10 uppercase whitespace-nowrap">
+                                        {{ item.condition }}
+                                    </span>
+                                </div>
                                 <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
                             </div>
                             <span
@@ -330,7 +340,17 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-amber-500/30 bg-amber-500/10">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                    <span v-if="item.ram || item.storage"
+                                        class="px-2 py-0.5 rounded border border-amber-500/30 text-[10px] font-medium text-blue-400 bg-surface-800/80 whitespace-nowrap">
+                                        {{ item.ram }} {{ item.storage }}
+                                    </span>
+                                    <span v-if="item.condition"
+                                        class="px-2 py-0.5 rounded border border-amber-500/30 text-[10px] font-bold text-amber-500 bg-surface-800/80 uppercase whitespace-nowrap">
+                                        {{ item.condition }}
+                                    </span>
+                                </div>
                                 <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
                             </div>
                             <span class="text-xs font-bold text-amber-500">PENDING</span>
@@ -349,7 +369,17 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-red-500/30 bg-red-500/10">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                    <span v-if="item.ram || item.storage"
+                                        class="px-2 py-0.5 rounded border border-red-500/30 text-[10px] font-medium text-blue-400 bg-surface-800/80 whitespace-nowrap">
+                                        {{ item.ram }} {{ item.storage }}
+                                    </span>
+                                    <span v-if="item.condition"
+                                        class="px-2 py-0.5 rounded border border-red-500/30 text-[10px] font-bold text-amber-500 bg-surface-800/80 uppercase whitespace-nowrap">
+                                        {{ item.condition }}
+                                    </span>
+                                </div>
                                 <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
                             </div>
                             <span class="text-xs font-bold text-red-500">DITOLAK</span>
