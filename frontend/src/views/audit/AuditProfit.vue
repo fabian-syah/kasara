@@ -164,7 +164,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                    }}</td>
+                                }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -187,8 +187,12 @@
                                                 <div
                                                     class="px-4 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center border-r border-gray-100 dark:!border-surface-700">
                                                     <div class="flex justify-between items-start gap-3 w-full">
-                                                        <div class="whitespace-normal flex-1 leading-relaxed">{{
-                                                            detail.name }}</div>
+                                                        <div class="whitespace-normal flex-1 leading-relaxed">
+                                                            <div>{{ detail.name }}</div>
+                                                            <div v-if="detail.imei && detail.imei !== '-'"
+                                                                class="mt-1 text-xs text-blue-500 font-mono">IMEI: {{
+                                                                detail.imei }}</div>
+                                                        </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
                                                             {{ detail.qty }}</div>
@@ -239,7 +243,7 @@
                                                         formatCurrency(item.harga_jual) }}</span>
                                                     <span class="font-mono text-[10px] text-gray-500">Modal: {{
                                                         formatCurrency(item.harga_modal ?? item.default_harga_modal)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="font-bold font-mono text-[11px]"
                                                         :class="item.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                                                         Profit: {{ formatCurrency(item.profit) }}</span>

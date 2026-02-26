@@ -85,7 +85,8 @@
 
             <!-- Summary Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div
+                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
                         Total Transaksi
                     </p>
@@ -93,7 +94,8 @@
                         {{ stockInRecords.length }}
                     </p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div
+                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
                         Belum Diaudit
                     </p>
@@ -101,7 +103,8 @@
                         {{stockInRecords.filter((r) => r.audit_score === null).length}}
                     </p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div
+                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
                         Sudah Diaudit
                     </p>
@@ -126,6 +129,7 @@
                                 <th class="px-4 py-4">Tipe</th>
                                 <th class="px-4 py-4">Brand</th>
                                 <th class="px-4 py-4">Nama Produk</th>
+                                <th class="px-4 py-4">IMEI</th>
                                 <th class="px-4 py-4">Qty</th>
                                 <th class="px-4 py-4">Sumber</th>
                                 <th class="px-4 py-4 text-center">Score Audit</th>
@@ -134,7 +138,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
-                                <td colspan="11" class="px-6 py-12">
+                                <td colspan="12" class="px-6 py-12">
                                     <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data barang masuk...</span>
@@ -142,7 +146,7 @@
                                 </td>
                             </tr>
                             <tr v-else-if="stockInRecords.length === 0">
-                                <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
+                                <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -183,6 +187,9 @@
                                 </td>
                                 <td class="px-4 py-4 text-xs font-medium text-text-secondary">
                                     {{ item.product_names }}
+                                </td>
+                                <td class="px-4 py-4 text-xs font-mono text-blue-500">
+                                    {{ item.imeis }}
                                 </td>
                                 <td class="px-4 py-4 text-text-primary font-semibold">
                                     {{ item.qty }}
@@ -232,7 +239,7 @@
                                 Kategori:
                                 <span class="font-semibold text-purple-600 dark:text-purple-400">{{
                                     checklistData?.category
-                                    }}</span>
+                                }}</span>
                                 — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
                                 <span v-if="checklistData?.score !== undefined" class="font-semibold" :class="checklistData.score === 100
                                     ? 'text-emerald-600'

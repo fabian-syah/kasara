@@ -92,7 +92,8 @@ class AuditController extends Controller
                     'price' => $price,
                     'is_fixed' => true,
                     'brand' => $item->product->brand ?? '-',
-                    'type' => 'HP'
+                    'type' => 'HP',
+                    'imei' => $item->imei ?? '-',
                 ];
                 $calculatedTotal += $price;
             }
@@ -223,6 +224,7 @@ class AuditController extends Controller
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
+                'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
@@ -932,7 +934,8 @@ class AuditController extends Controller
                     'price' => $price,
                     'is_fixed' => true,
                     'brand' => $item->product->brand ?? '-',
-                    'type' => 'HP'
+                    'type' => 'HP',
+                    'imei' => $item->imei ?? '-',
                 ];
                 $calculatedTotal += $price;
             }
@@ -1083,6 +1086,7 @@ class AuditController extends Controller
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
+                'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
@@ -1524,6 +1528,7 @@ class AuditController extends Controller
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
+                'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
                 'audit_score' => $score,
@@ -1646,6 +1651,7 @@ class AuditController extends Controller
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
+                'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
                 'audit_score' => $score,

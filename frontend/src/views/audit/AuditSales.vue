@@ -166,8 +166,12 @@
                                                 <div
                                                     class="px-6 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center">
                                                     <div class="flex justify-between items-start gap-3 w-full">
-                                                        <div class="whitespace-normal flex-1 leading-relaxed">{{
-                                                            detail.name }}</div>
+                                                        <div class="whitespace-normal flex-1 leading-relaxed">
+                                                            <div>{{ detail.name }}</div>
+                                                            <div v-if="detail.imei && detail.imei !== '-'"
+                                                                class="mt-1 text-xs text-blue-500 font-mono">IMEI: {{
+                                                                    detail.imei }}</div>
+                                                        </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
                                                             {{ detail.qty }}</div>
@@ -192,8 +196,12 @@
                                                 <div
                                                     class="px-6 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center">
                                                     <div class="flex justify-between items-start gap-3 w-full">
-                                                        <div class="whitespace-normal flex-1 leading-relaxed">{{
-                                                            item.product_names || '-' }}</div>
+                                                        <div class="whitespace-normal flex-1 leading-relaxed">
+                                                            <div>{{ item.product_names || '-' }}</div>
+                                                            <div v-if="item.imeis && item.imeis !== '-'"
+                                                                class="mt-1 text-xs text-blue-500 font-mono">IMEI: {{
+                                                                    item.imeis }}</div>
+                                                        </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
                                                             {{ item.qty }}</div>
