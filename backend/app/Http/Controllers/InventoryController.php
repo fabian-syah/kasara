@@ -39,6 +39,11 @@ class InventoryController extends Controller
         $bIds = array_unique(array_filter($bIds));
         $wIds = array_unique(array_filter($wIds));
 
+        $dIds = [];
+        if ($user->distributor_id) {
+            $dIds[] = $user->distributor_id;
+        }
+
         $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
 
         // 2. Base Query
@@ -57,7 +62,7 @@ class InventoryController extends Controller
 
         // 3. Security Filter
         if (!$unrestricted) {
-            $query->where(function ($q) use ($osIds, $bIds, $wIds) {
+            $query->where(function ($q) use ($osIds, $bIds, $wIds, $dIds) {
                 $hasConstraint = false;
                 if (!empty($osIds)) {
                     $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds));
@@ -69,6 +74,10 @@ class InventoryController extends Controller
                 }
                 if (!empty($wIds)) {
                     $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($dIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
                     $hasConstraint = true;
                 }
                 if (!$hasConstraint)
@@ -268,15 +277,19 @@ class InventoryController extends Controller
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $dIds = [];
+                if ($user->distributor_id) {
+                    $dIds[] = $user->distributor_id;
+                }
 
                 if ($type === 'non-hp') {
                     // For non-hp, check if the inventory log references a product/user combo that exists in an allowed placement in the `inventories` table
-                    $q->whereExists(function ($query) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                    $q->whereExists(function ($query) use ($branchIds, $warehouseIds, $onlineShopIds, $dIds) {
                         $query->select(\DB::raw(1))
                             ->from('inventories')
                             ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
                             ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
-                            ->where(function ($sq) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                            ->where(function ($sq) use ($branchIds, $warehouseIds, $onlineShopIds, $dIds) {
                                 $hasC = false;
                                 if (!empty($branchIds)) {
                                     $sq->orWhere(function ($sub) use ($branchIds) {
@@ -293,6 +306,12 @@ class InventoryController extends Controller
                                 if (!empty($onlineShopIds)) {
                                     $sq->orWhere(function ($sub) use ($onlineShopIds) {
                                         $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
+                                    });
+                                    $hasC = true;
+                                }
+                                if (!empty($dIds)) {
+                                    $sq->orWhere(function ($sub) use ($dIds) {
+                                        $sub->where('placement_type', 'distributor')->whereIn('placement_id', $dIds);
                                     });
                                     $hasC = true;
                                 }
@@ -320,6 +339,13 @@ class InventoryController extends Controller
                     if (!empty($onlineShopIds)) {
                         $q->orWhere(function ($sub) use ($onlineShopIds) {
                             $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
+                        });
+                        $hasConstraint = true;
+                    }
+
+                    if (!empty($dIds)) {
+                        $q->orWhere(function ($sub) use ($dIds) {
+                            $sub->where('placement_type', 'distributor')->whereIn('placement_id', $dIds);
                         });
                         $hasConstraint = true;
                     }
@@ -435,6 +461,10 @@ class InventoryController extends Controller
                 }
                 if (!empty($onlineShopIds)) {
                     $q->orWhereIn('online_shop_id', $onlineShopIds);
+                    $hasConstraint = true;
+                }
+                if ($user->distributor_id) {
+                    $q->orWhere('user_id', $user->id);
                     $hasConstraint = true;
                 }
 
