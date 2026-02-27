@@ -36,6 +36,8 @@ class Inventory extends Model
             return $this->belongsTo(Warehouse::class, 'placement_id');
         if ($this->placement_type === 'online_shop')
             return $this->belongsTo(OnlineShop::class, 'placement_id');
+        if ($this->placement_type === 'distributor')
+            return $this->belongsTo(Distributor::class, 'placement_id');
         return null;
     }
 
