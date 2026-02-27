@@ -77,10 +77,23 @@ class DistributorController extends Controller
         $user = $request->user();
         $userRole = strtolower($user->roles->first()->name ?? '');
 
-        // 1. Fetch IMEI Items
+        // 1. Fetch IMEI Items (Available)
         $hpQuery = \App\Models\ProductDetail::with(['product'])
             ->where('status', 'available')
             ->whereNotNull('distributor_id');
+
+        // 1b. Fetch IMEI Sales (HP)
+        $hpSalesQuery = \App\Models\ProductDetail::with([
+            'product',
+            'stockOuts' => function ($q) {
+                $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee'])->latest();
+            }
+        ])
+            ->where('status', 'sold')
+            ->whereNotNull('distributor_id')
+            ->whereHas('stockOuts', function ($q) {
+                $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee']);
+            });
 
         if ($userRole === 'distribution' || $userRole === 'distributor') {
             if (!$user->distributor_id) {
@@ -92,11 +105,13 @@ class DistributorController extends Controller
             $hpQuery->where('distributor_id', $user->distributor_id);
         } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
             $hpQuery->where('distributor_id', $request->distributor_id);
+            $hpSalesQuery->where('distributor_id', $request->distributor_id);
         }
 
         $hpItems = $hpQuery->get();
+        $hpSalesItems = $hpSalesQuery->get();
 
-        // 2. Fetch Non-IMEI Items
+        // 2. Fetch Non-IMEI Items (Available)
         $nonHpRaw = \App\Models\Inventory::with(['product', 'user'])
             ->where('quantity', '>', 0)
             ->whereHas('product', function ($q) {
@@ -141,6 +156,72 @@ class DistributorController extends Controller
 
             $nonHpItems[] = $item;
         }
+
+        // 2b. Fetch Non-IMEI Sales
+        // To find sales from distributors for non-HP items, we look at StockOutNonHpItem 
+        // and link back to InventoryLog to check the source distributor.
+        $nonHpSalesRaw = \App\Models\StockOutNonHpItem::with(['product', 'stockOut'])
+            ->whereHas('stockOut', function ($q) {
+                $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee']);
+            })
+            ->get();
+
+        $nonHpSalesItems = [];
+        $nonHpSalesGrouped = [];
+
+        foreach ($nonHpSalesRaw as $soldItem) {
+            if (!$soldItem->product)
+                continue;
+
+            // Heuristic for non-HP: Find the latest IN record for this product to guess the distributor
+            $log = \App\Models\InventoryLog::with('distributor')
+                ->where('product_id', $soldItem->product_id)
+                ->where('type', 'in')
+                ->latest()
+                ->first();
+
+            $itemDist = $log ? $log->distributor_id : null;
+
+            if ($userRole === 'distribution' || $userRole === 'distributor') {
+                if ($itemDist != $user->distributor_id)
+                    continue;
+            } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
+                if ($itemDist != $request->distributor_id)
+                    continue;
+            } else {
+                if (!$itemDist)
+                    continue;
+            }
+
+            // Group by product logic
+            $brandName = $soldItem->product->brand ?? 'Unknown';
+            $typeName = $soldItem->product->name ?? 'Unknown';
+            $productKey = trim("{$brandName} {$typeName}");
+
+            if (!isset($nonHpSalesGrouped[$productKey])) {
+                $nonHpSalesGrouped[$productKey] = [
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'qty' => 0,
+                    'total_sales' => 0,
+                    'items' => []
+                ];
+            }
+
+            $price = $soldItem->selling_price > 0 ? $soldItem->selling_price : ($soldItem->product->price ?? 0);
+            $qty = $soldItem->quantity;
+
+            $nonHpSalesGrouped[$productKey]['qty'] += $qty;
+            $nonHpSalesGrouped[$productKey]['total_sales'] += ($price * $qty);
+            $nonHpSalesGrouped[$productKey]['items'][] = [
+                'date' => $soldItem->stockOut->created_at ?? null,
+                'receipt_id' => $soldItem->stockOut->receipt_id ?? null,
+                'qty' => $qty,
+                'price' => $price,
+            ];
+        }
+
+        $nonHpSalesItems = array_values($nonHpSalesGrouped);
 
         // Get names for grouping
         $branches = \App\Models\Branch::pluck('name', 'id');
@@ -249,6 +330,51 @@ class DistributorController extends Controller
             $grouped[$locationName]['products'][$productKey]['qty'] += $item->quantity;
         }
 
+        // 3. Process Sales Data
+        $salesHpFormatted = [];
+        $totalOmzet = 0;
+
+        foreach ($hpSalesItems as $soldItem) {
+            // Find selling price from latest stock out
+            $latestOut = $soldItem->stockOuts->first();
+            $sellingPrice = 0;
+            if ($latestOut) {
+                // If it's a multi-item stock out with overall price, we might have to fallback or find proportion.
+                // Assuming selling_price on stockOut or detail level
+                $sellingPrice = $latestOut->selling_price > 0 ? $latestOut->selling_price : ($soldItem->selling_price > 0 ? $soldItem->selling_price : $soldItem->product->price);
+            }
+
+            $brandName = $soldItem->product->brand ?? 'Unknown';
+            $typeName = $soldItem->product->name ?? 'Unknown';
+
+            $spec = [];
+            if ($soldItem->ram)
+                $spec[] = $soldItem->ram;
+            if ($soldItem->storage)
+                $spec[] = $soldItem->storage;
+            $specStr = !empty($spec) ? ' ' . implode('/', $spec) : '';
+            $cond = ($soldItem->condition === 'new') ? 'New' : (($soldItem->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
+
+            $totalOmzet += $sellingPrice;
+
+            $salesHpFormatted[] = [
+                'id' => $soldItem->id,
+                'brand' => $brandName,
+                'type_name' => trim("{$typeName}{$specStr}"),
+                'imei' => $soldItem->imei,
+                'capacity' => implode('/', $spec),
+                'condition_label' => $cond,
+                'date' => $latestOut ? $latestOut->created_at : $soldItem->updated_at,
+                'receipt_id' => $latestOut ? $latestOut->receipt_id : null,
+                'harga_jual' => $sellingPrice
+            ];
+        }
+
+        // Add non-HP sales to omzet
+        foreach ($nonHpSalesItems as $nhpSale) {
+            $totalOmzet += $nhpSale['total_sales'];
+        }
+
         $result = array_values($grouped);
 
         // Sort locations
@@ -267,7 +393,12 @@ class DistributorController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $result
+            'data' => [
+                'stock' => $result,
+                'sales_hp' => $salesHpFormatted,
+                'sales_non_hp' => $nonHpSalesItems,
+                'total_omzet' => $totalOmzet
+            ]
         ]);
     }
 }
