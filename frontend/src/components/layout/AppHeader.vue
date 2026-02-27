@@ -38,7 +38,7 @@ async function handleLogout() {
 }
 
 // User info
-const userName = computed(() => authStore.user?.name || "Guest");
+const userName = computed(() => authStore.userName);
 const userRole = computed(() => getRoleLabel(authStore.userRole));
 </script>
 
