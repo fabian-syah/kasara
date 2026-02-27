@@ -217,6 +217,9 @@ class UserController extends Controller
             }
             $path = $request->file('photo')->store('profile-photos', 'public');
             $validated['photo'] = $path;
+
+            // Sync with photo_inventory to ensure Stock In and User Management views match
+            $validated['photo_inventory'] = $path;
         }
 
         if ($request->filled('password')) {

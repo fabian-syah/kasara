@@ -983,6 +983,9 @@ class InventoryController extends Controller
             }
             $path = $request->file('photo_inventory')->store('account-photos', 'public');
             $account->photo_inventory = $path;
+
+            // Sync with photo to ensure User Management views match
+            $account->photo = $path;
         }
 
         $account->save();
@@ -1080,6 +1083,32 @@ class InventoryController extends Controller
     // Get My Inventory Accounts
     public function getMyInventoryUsers()
     {
+        // One-time sync for any desynced photos across the platform
+        // If photo_inventory exists but photo is null, sync it.
+        // If photo exists but photo_inventory is null on an inventory role, sync it.
+        $syncNeeded = \App\Models\User::role('inventory')
+            ->where(function ($q) {
+                $q->where(function ($sq) {
+                    $sq->whereNotNull('photo_inventory')->whereNull('photo');
+                })->orWhere(function ($sq) {
+                    $sq->whereNotNull('photo')->whereNull('photo_inventory');
+                })->orWhereRaw('photo != photo_inventory');
+            })->get();
+
+        foreach ($syncNeeded as $u) {
+            if ($u->photo_inventory && !$u->photo) {
+                $u->photo = $u->photo_inventory;
+                $u->save();
+            } else if ($u->photo && !$u->photo_inventory) {
+                $u->photo_inventory = $u->photo;
+                $u->save();
+            } else if ($u->photo && $u->photo_inventory && $u->photo != $u->photo_inventory) {
+                // If both exist but different, we'll favor photo_inventory for inventory accounts
+                $u->photo = $u->photo_inventory;
+                $u->save();
+            }
+        }
+
         $user = Auth::user();
         $inventoryUsers = \App\Models\User::role('inventory')
             ->where('created_by', $user->id)
