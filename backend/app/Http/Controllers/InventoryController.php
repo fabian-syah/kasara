@@ -899,7 +899,7 @@ class InventoryController extends Controller
         ]);
 
         $user = Auth::user();
-        if (!$user->branch_id && !$user->warehouse_id && !$user->online_shop_id && !$user->hasRole('super_admin')) {
+        if (!$user->branch_id && !$user->warehouse_id && !$user->online_shop_id && !$user->distributor_id && !$user->hasRole('super_admin')) {
             return response()->json(['message' => 'Anda tidak memiliki lokasi fisik untuk membuat akun inventory.'], 403);
         }
 
