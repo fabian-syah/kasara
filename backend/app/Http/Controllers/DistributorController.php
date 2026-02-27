@@ -419,6 +419,24 @@ class DistributorController extends Controller
             $loc['products'] = $prodArr;
         }
 
+        // Sort sales data
+        usort($salesHpFormatted, function ($a, $b) {
+            $dateA = $a['date'] ?? null;
+            $dateB = $b['date'] ?? null;
+            if ($dateA == $dateB)
+                return 0;
+            return ($dateA > $dateB) ? -1 : 1;
+        });
+
+        // Sort non-HP sales by the latest item date
+        usort($nonHpSalesItems, function ($a, $b) {
+            $latestA = empty($a['items']) ? null : max(array_column($a['items'], 'date'));
+            $latestB = empty($b['items']) ? null : max(array_column($b['items'], 'date'));
+            if ($latestA == $latestB)
+                return 0;
+            return ($latestA > $latestB) ? -1 : 1;
+        });
+
         return response()->json([
             'success' => true,
             'data' => [
