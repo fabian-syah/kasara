@@ -316,9 +316,11 @@ onMounted(() => {
                                 <tr v-else v-for="item in monitoringData.sales_hp" :key="item.id"
                                     class="hover:bg-surface-50 dark:hover:bg-surface-700/30 transition-colors">
                                     <td class="px-6 py-4 text-xs font-medium">
-                                        <div class="text-text-primary">{{ formatDate(item.date) }}</div>
-                                        <div class="text-text-secondary mt-0.5 text-[11px] font-mono">{{
-                                            item.receipt_id }}</div>
+                                        <div class="text-text-primary font-bold">{{ item.outlet }}</div>
+                                        <div class="text-text-secondary mt-0.5">{{ formatDate(item.date) }}</div>
+                                        <div class="text-text-secondary mt-0.5 text-[10px] font-mono opacity-75">{{
+                                            item.receipt_id
+                                            }}</div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-text-primary">{{ item.brand }}</div>
@@ -362,6 +364,7 @@ onMounted(() => {
                             <thead
                                 class="text-xs text-text-secondary uppercase bg-surface-50 dark:bg-surface-900/50 border-b border-surface-200 dark:border-surface-700">
                                 <tr>
+                                    <th class="px-6 py-4 font-semibold">Toko (Outlet)</th>
                                     <th class="px-6 py-4 font-semibold">Brand</th>
                                     <th class="px-6 py-4 font-semibold">Nama Produk</th>
                                     <th class="px-6 py-4 font-semibold text-center">Unit Terjual</th>
@@ -370,19 +373,19 @@ onMounted(() => {
                             </thead>
                             <tbody class="divide-y divide-surface-200 dark:divide-surface-700">
                                 <tr v-if="!monitoringData.sales_non_hp || !monitoringData.sales_non_hp.length">
-                                    <td colspan="4" class="px-6 py-8 text-center text-text-secondary italic">Tidak
-                                        ada data
+                                    <td colspan="5" class="px-6 py-8 text-center text-text-secondary italic">Tidak ada
+                                        data
                                         penjualan aksesoris untuk saat ini.</td>
                                 </tr>
                                 <template v-else v-for="(item, idx) in monitoringData.sales_non_hp" :key="idx">
                                     <tr class="hover:bg-surface-50 dark:hover:bg-surface-700/30 transition-colors">
+                                        <td class="px-6 py-4 text-xs font-bold text-text-primary">{{ item.outlet }}</td>
                                         <td class="px-6 py-4 font-bold text-text-primary">{{ item.brand }}</td>
-                                        <td class="px-6 py-4 text-text-secondary font-medium">{{ item.type_name }}
-                                        </td>
+                                        <td class="px-6 py-4 text-text-secondary font-medium">{{ item.type_name }}</td>
                                         <td class="px-6 py-4 text-center">
                                             <span
                                                 class="px-3 py-1 bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold rounded-lg">{{
-                                                    item.qty }}</span>
+                                                item.qty }}</span>
                                         </td>
                                         <td class="px-6 py-4 text-right">
                                             <span class="font-bold font-mono text-emerald-600 dark:text-emerald-400">{{

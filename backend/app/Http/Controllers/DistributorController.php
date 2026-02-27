@@ -86,7 +86,9 @@ class DistributorController extends Controller
         $hpSalesQuery = \App\Models\ProductDetail::with([
             'product',
             'stockOuts' => function ($q) {
-                $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee'])->latest();
+                $q->with(['user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop'])
+                    ->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee'])
+                    ->latest();
             }
         ])
             ->where('status', 'sold')
@@ -160,7 +162,7 @@ class DistributorController extends Controller
         // 2b. Fetch Non-IMEI Sales
         // To find sales from distributors for non-HP items, we look at StockOutNonHpItem 
         // and link back to InventoryLog to check the source distributor.
-        $nonHpSalesRaw = \App\Models\StockOutNonHpItem::with(['product', 'stockOut'])
+        $nonHpSalesRaw = \App\Models\StockOutNonHpItem::with(['product', 'stockOut.user.branch', 'stockOut.user.onlineShop', 'stockOut.inventoryUser.branch', 'stockOut.inventoryUser.onlineShop'])
             ->whereHas('stockOut', function ($q) {
                 $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee']);
             })
@@ -193,15 +195,29 @@ class DistributorController extends Controller
                     continue;
             }
 
-            // Group by product logic
+            // Outlet Details
+            $outletName = 'APEX POS';
+            if ($soldItem->stockOut) {
+                $sourceUser = $soldItem->stockOut->inventoryUser ?? $soldItem->stockOut->user;
+                if ($sourceUser) {
+                    if ($sourceUser->branch) {
+                        $outletName = 'Cabang: ' . $sourceUser->branch->name;
+                    } elseif ($sourceUser->onlineShop) {
+                        $outletName = 'Online: ' . $sourceUser->onlineShop->name;
+                    }
+                }
+            }
+
+            // Group by product and outlet logic
             $brandName = $soldItem->product->brand ?? 'Unknown';
             $typeName = $soldItem->product->name ?? 'Unknown';
-            $productKey = trim("{$brandName} {$typeName}");
+            $productKey = trim("{$brandName} {$typeName} | {$outletName}");
 
             if (!isset($nonHpSalesGrouped[$productKey])) {
                 $nonHpSalesGrouped[$productKey] = [
                     'brand' => $brandName,
                     'type_name' => $typeName,
+                    'outlet' => $outletName,
                     'qty' => 0,
                     'total_sales' => 0,
                     'items' => []
@@ -338,10 +354,21 @@ class DistributorController extends Controller
             // Find selling price from latest stock out
             $latestOut = $soldItem->stockOuts->first();
             $sellingPrice = 0;
+            $outletName = 'APEX POS';
+
             if ($latestOut) {
                 // If it's a multi-item stock out with overall price, we might have to fallback or find proportion.
                 // Assuming selling_price on stockOut or detail level
                 $sellingPrice = $latestOut->selling_price > 0 ? $latestOut->selling_price : ($soldItem->selling_price > 0 ? $soldItem->selling_price : $soldItem->product->price);
+
+                $sourceUser = $latestOut->inventoryUser ?? $latestOut->user;
+                if ($sourceUser) {
+                    if ($sourceUser->branch) {
+                        $outletName = 'Cabang: ' . $sourceUser->branch->name;
+                    } elseif ($sourceUser->onlineShop) {
+                        $outletName = 'Online: ' . $sourceUser->onlineShop->name;
+                    }
+                }
             }
 
             $brandName = $soldItem->product->brand ?? 'Unknown';
@@ -359,6 +386,7 @@ class DistributorController extends Controller
 
             $salesHpFormatted[] = [
                 'id' => $soldItem->id,
+                'outlet' => $outletName,
                 'brand' => $brandName,
                 'type_name' => trim("{$typeName}{$specStr}"),
                 'imei' => $soldItem->imei,
