@@ -20,6 +20,13 @@ const totalOmzet = computed(() => monitoringData.value.total_omzet || 0);
 // Tab state for switching between Stock and Sales
 const activeTab = ref('stock'); // 'stock' or 'sales'
 
+// Accordion state for locations
+const expandedLocations = ref({});
+
+const toggleLocation = (idx) => {
+    expandedLocations.value[idx] = !expandedLocations.value[idx];
+};
+
 const formatCurrency = (value) => {
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -162,8 +169,8 @@ onMounted(() => {
                     class="relative overflow-hidden bg-white dark:bg-surface-800/60 backdrop-blur-3xl border border-surface-200 dark:border-surface-700/50 shadow-sm dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl transition-all duration-300 hover:shadow-md dark:hover:border-primary-500/30">
 
                     <!-- Card Header (Location Name) -->
-                    <div
-                        class="px-6 py-4 border-b border-surface-200 dark:border-surface-700/50 bg-surface-50 dark:bg-surface-800/40 sticky top-0 z-10">
+                    <div @click="toggleLocation(idx)"
+                        class="px-6 py-4 border-b border-surface-200 dark:border-surface-700/50 bg-surface-50 dark:bg-surface-800/40 sticky top-0 z-10 cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700/50 transition-colors">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
@@ -173,15 +180,23 @@ onMounted(() => {
                                     {{ location.location }}
                                 </h2>
                             </div>
-                            <span
-                                class="text-xs font-semibold px-3 py-1 rounded-full bg-surface-200 dark:bg-surface-700 text-text-secondary uppercase tracking-wider">
-                                {{ location.products.length }} Varian
-                            </span>
+                            <div class="flex items-center gap-4">
+                                <span
+                                    class="text-xs font-semibold px-3 py-1 rounded-full bg-surface-200 dark:bg-surface-700 text-text-secondary uppercase tracking-wider">
+                                    {{ location.products.length }} Varian
+                                </span>
+                                <span
+                                    class="text-xs font-bold px-3 py-1 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-400">
+                                    {{location.products.reduce((sum, p) => sum + p.qty, 0)}} Unit
+                                </span>
+                                <ChevronDown class="w-5 h-5 text-text-secondary transition-transform duration-300"
+                                    :class="expandedLocations[idx] ? 'rotate-180' : ''" />
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Product Grid inside Location -->
-                    <div class="p-6">
+                    <!-- Product Grid inside Location (Collapsible) -->
+                    <div v-show="expandedLocations[idx]" class="p-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             <div v-for="(product, pIdx) in location.products" :key="pIdx"
                                 class="group flex flex-col p-4 rounded-xl bg-surface-50 dark:bg-surface-900 border border-transparent dark:border-surface-700/30 transition-all duration-300 hover:bg-surface-100 hover:border-surface-200 dark:hover:bg-surface-800 dark:hover:border-primary-500/20 shadow-sm">
@@ -320,7 +335,7 @@ onMounted(() => {
                                         <div class="text-text-secondary mt-0.5">{{ formatDate(item.date) }}</div>
                                         <div class="text-text-secondary mt-0.5 text-[10px] font-mono opacity-75">{{
                                             item.receipt_id
-                                            }}</div>
+                                        }}</div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-text-primary">{{ item.brand }}</div>
@@ -385,7 +400,7 @@ onMounted(() => {
                                         <td class="px-6 py-4 text-center">
                                             <span
                                                 class="px-3 py-1 bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold rounded-lg">{{
-                                                item.qty }}</span>
+                                                    item.qty }}</span>
                                         </td>
                                         <td class="px-6 py-4 text-right">
                                             <span class="font-bold font-mono text-emerald-600 dark:text-emerald-400">{{
