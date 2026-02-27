@@ -12,6 +12,22 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+
+        // One-time auto-fix for name vs full_name desyncs
+        // Only trigger occasionally or on first load, maybe just run it silently
+        $desynced = \App\Models\User::whereNotNull('full_name')
+            ->whereRaw('name != full_name')
+            ->get();
+        if ($desynced->count() > 0) {
+            foreach ($desynced as $u) {
+                // If the user's login username is 'distributortrial' but full_name is 'adminproduk',
+                // we want the profile to show the full_name. We shouldn't necessarily overwrite 
+                // username but 'name' which is the display name.
+                $u->name = $u->full_name;
+                $u->save();
+            }
+        }
+
         $query = User::with(['branch', 'warehouse', 'onlineShop', 'distributor', 'roles', 'createdBy', 'createdUsers', 'placements']);
 
         // Jika bukan super_admin, filter berdasarkan placement user login
@@ -228,7 +244,10 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
-        $user->update($validated);
+        // Sync name with full_name
+        if (isset($validated['full_name'])) {
+            $validated['name'] = $validated['full_name'];
+        }
 
         $user->update($validated);
 
