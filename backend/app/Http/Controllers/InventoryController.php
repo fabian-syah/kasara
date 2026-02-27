@@ -603,7 +603,7 @@ class InventoryController extends Controller
             'type' => 'required|in:hp,non-hp', // Matches product type
 
             // Placement (Ideally auto-detected from user, but allowed if explicit)
-            'placement_type' => 'required|in:branch,warehouse,online_shop',
+            'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
             'placement_id' => 'required|integer',
 
             // For Non-HP
