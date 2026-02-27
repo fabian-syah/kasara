@@ -771,7 +771,7 @@ function getStockStatus(product) {
         <h1 class="text-2xl font-bold text-text-primary tracking-tight">Inventory</h1>
         <p class="text-text-secondary mt-1">Kelola stok produk di semua cabang</p>
       </div>
-      <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+      <div class="flex flex-wrap gap-2 items-center justify-start md:justify-end w-full md:w-auto">
         <!-- History Buttons -->
         <button class="btn btn-secondary" @click="router.push({ name: 'StockInHistory' })" title="Riwayat Masuk">
           <Calendar :size="16" />
@@ -1013,15 +1013,17 @@ function getStockStatus(product) {
           </thead>
           <tbody>
             <tr v-if="inventoryStore.isLoading">
-              <td colspan="10" class="text-center py-12">
+              <td colspan="15" class="text-center py-12">
                 <RefreshCw :size="24" class="animate-spin mx-auto text-blue-400 mb-2" />
                 <p class="text-text-secondary">Memuat data...</p>
               </td>
             </tr>
             <tr v-else-if="filteredProducts.length === 0">
-              <td colspan="10" class="text-center py-12">
-                <Box :size="48" class="mx-auto text-text-secondary mb-2" />
-                <p class="text-text-secondary">Tidak ada data ditemukan</p>
+              <td colspan="15" class="text-center py-12">
+                <div class="flex flex-col items-center justify-center w-full h-full">
+                  <Box :size="48" class="text-text-secondary mb-2" />
+                  <p class="text-text-secondary text-center">Tidak ada data ditemukan</p>
+                </div>
               </td>
             </tr>
             <tr v-else v-for="item in filteredProducts" :key="item.id" @click="toggleSelect(item)"
