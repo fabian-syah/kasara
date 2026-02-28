@@ -165,8 +165,14 @@ class UserController extends Controller
                 $user->assignRole($request->role);
             }
 
-            // Handle Placements (Audit & Leader)
-            if (in_array($request->role, ['audit', 'leader'])) {
+            // Handle Multi-Placements (Audit, Leader, Distributor, etc.)
+            // If any of these keys exist in request, we process them
+            if (
+                $request->has('selected_branches') ||
+                $request->has('selected_online_shops') ||
+                $request->has('selected_warehouses') ||
+                $request->has('selected_distributors')
+            ) {
                 $placements = [];
                 if ($request->selected_branches && is_array($request->selected_branches)) {
                     foreach ($request->selected_branches as $id) {
@@ -176,6 +182,16 @@ class UserController extends Controller
                 if ($request->selected_online_shops && is_array($request->selected_online_shops)) {
                     foreach ($request->selected_online_shops as $id) {
                         $placements[] = ['model_type' => 'online_shop', 'model_id' => $id];
+                    }
+                }
+                if ($request->selected_warehouses && is_array($request->selected_warehouses)) {
+                    foreach ($request->selected_warehouses as $id) {
+                        $placements[] = ['model_type' => 'warehouse', 'model_id' => $id];
+                    }
+                }
+                if ($request->selected_distributors && is_array($request->selected_distributors)) {
+                    foreach ($request->selected_distributors as $id) {
+                        $placements[] = ['model_type' => 'distributor', 'model_id' => $id];
                     }
                 }
                 if (!empty($placements)) {
@@ -255,25 +271,37 @@ class UserController extends Controller
             $user->syncRoles([$validated['role']]);
         }
 
-        // Handle Placements (Audit & Leader)
-        if (in_array($request->role, ['audit', 'leader']) || $user->hasAnyRole(['audit', 'leader'])) {
-            // Only update if array is present (to avoid clearing if not sent)
-            if ($request->has('selected_branches') || $request->has('selected_online_shops')) {
-                $user->placements()->delete();
-                $placements = [];
-                if ($request->selected_branches && is_array($request->selected_branches)) {
-                    foreach ($request->selected_branches as $id) {
-                        $placements[] = ['model_type' => 'branch', 'model_id' => $id];
-                    }
+        // Handle Multi-Placements (Audit, Leader, Distributor, etc.)
+        if (
+            $request->has('selected_branches') ||
+            $request->has('selected_online_shops') ||
+            $request->has('selected_warehouses') ||
+            $request->has('selected_distributors')
+        ) {
+            $user->placements()->delete();
+            $placements = [];
+            if ($request->selected_branches && is_array($request->selected_branches)) {
+                foreach ($request->selected_branches as $id) {
+                    $placements[] = ['model_type' => 'branch', 'model_id' => $id];
                 }
-                if ($request->selected_online_shops && is_array($request->selected_online_shops)) {
-                    foreach ($request->selected_online_shops as $id) {
-                        $placements[] = ['model_type' => 'online_shop', 'model_id' => $id];
-                    }
+            }
+            if ($request->selected_online_shops && is_array($request->selected_online_shops)) {
+                foreach ($request->selected_online_shops as $id) {
+                    $placements[] = ['model_type' => 'online_shop', 'model_id' => $id];
                 }
-                if (!empty($placements)) {
-                    $user->placements()->createMany($placements);
+            }
+            if ($request->selected_warehouses && is_array($request->selected_warehouses)) {
+                foreach ($request->selected_warehouses as $id) {
+                    $placements[] = ['model_type' => 'warehouse', 'model_id' => $id];
                 }
+            }
+            if ($request->selected_distributors && is_array($request->selected_distributors)) {
+                foreach ($request->selected_distributors as $id) {
+                    $placements[] = ['model_type' => 'distributor', 'model_id' => $id];
+                }
+            }
+            if (!empty($placements)) {
+                $user->placements()->createMany($placements);
             }
         }
 

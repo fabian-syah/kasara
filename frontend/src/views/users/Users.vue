@@ -278,10 +278,9 @@ const placementType = computed(() => {
   const role = form.value.role;
   if (!role) return 'branch';
   if (['super_admin', 'admin_produk', 'analist'].includes(role)) return 'none';
-  if (['audit', 'leader'].includes(role)) return 'audit';
+  if (['audit', 'leader', 'distributor'].includes(role)) return 'audit';
   if (['gudang', 'inventory'].includes(role)) return 'warehouse';
   if (['toko_online'].includes(role)) return 'online_shop';
-  if (role === 'distributor') return 'distributor';
   return 'branch';
 });
 
