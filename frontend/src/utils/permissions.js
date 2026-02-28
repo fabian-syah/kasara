@@ -8,7 +8,7 @@ export const ROLES = {
     AUDIT: 'audit',
     SECURITY: 'security',
     LEADER: 'leader',
-    DISTRIBUTION: 'distribution',
+    DISTRIBUTOR: 'distributor',
     SALES: 'sales',
     INVENTORY: 'inventory',
     GUDANG: 'gudang',
@@ -23,7 +23,7 @@ export const ROLE_LABELS = {
     [ROLES.AUDIT]: 'Audit',
     [ROLES.SECURITY]: 'Security',
     [ROLES.LEADER]: 'Leader',
-    [ROLES.DISTRIBUTION]: 'Distribution',
+    [ROLES.DISTRIBUTOR]: 'Distributor',
     [ROLES.SALES]: 'Sales',
     [ROLES.INVENTORY]: 'Inventory',
     [ROLES.GUDANG]: 'Gudang',
@@ -131,22 +131,14 @@ export const ROLE_PERMISSIONS = {
     ],
 
     [ROLES.LEADER]: [
-        PERMISSIONS.TRANSACTIONS_VIEW,
-        PERMISSIONS.REPORTS_VIEW,
-        PERMISSIONS.REPORTS_SALES,
-        PERMISSIONS.REPORTS_PROFIT,
-        PERMISSIONS.BRANCHES_VIEW,
-        PERMISSIONS.AUDIT_VIEW,
-        PERMISSIONS.USERS_VIEW
+        PERMISSIONS.DISTRIBUTOR_MONITORING,
+        PERMISSIONS.ANALYTICS_VIEW,
+        'track.view'
     ],
 
-    [ROLES.DISTRIBUTION]: [
-        PERMISSIONS.DISTRIBUTION_VIEW,
-        PERMISSIONS.DISTRIBUTION_SIMULATE,
-        PERMISSIONS.INVENTORY_VIEW,
-        PERMISSIONS.INVENTORY_STOCK_IN,
-        PERMISSIONS.BRANCHES_VIEW,
-        PERMISSIONS.DISTRIBUTOR_MONITORING
+    [ROLES.DISTRIBUTOR]: [
+        PERMISSIONS.DISTRIBUTOR_MONITORING,
+        'track.view'
     ],
 
     [ROLES.SALES]: [
@@ -198,8 +190,8 @@ export const ROLE_MENUS = {
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
     [ROLES.AUDIT]: ['dashboard', 'audit_sales', 'audit', 'audit_inventory', 'audit_analysis', 'users', 'incoming_group', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
-    [ROLES.LEADER]: ['dashboard', 'audit_sales', 'audit_inventory', 'audit_analysis', 'users', 'reports', 'report_sales', 'track'],
-    [ROLES.DISTRIBUTION]: ['dashboard', 'distributor_monitoring', 'inventory', 'incoming_group', 'track'],
+    [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'track'],
+    [ROLES.DISTRIBUTOR]: ['dashboard', 'distributor_monitoring', 'track'],
     [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'audit_sales', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],

@@ -97,14 +97,9 @@ class DistributorController extends Controller
                 $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee']);
             });
 
-        if ($userRole === 'distribution' || $userRole === 'distributor') {
-            if (!$user->distributor_id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akun Anda belum dikaitkan dengan distributor manapun.'
-                ], 403);
-            }
+        if (($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader') && $user->distributor_id) {
             $hpQuery->where('distributor_id', $user->distributor_id);
+            $hpSalesQuery->where('distributor_id', $user->distributor_id);
         } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
             $hpQuery->where('distributor_id', $request->distributor_id);
             $hpSalesQuery->where('distributor_id', $request->distributor_id);

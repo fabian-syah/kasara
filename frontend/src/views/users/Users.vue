@@ -114,7 +114,7 @@ const filteredRolesOptions = computed(() => {
     if (!hasOnlineAccess && ['toko_online'].includes(r.value)) return false;
 
     // 5. Hide Distributor roles if no distributor access
-    if (!hasDistributorAccess && ['distribution'].includes(r.value)) return false;
+    if (!hasDistributorAccess && ['distributor'].includes(r.value)) return false;
 
     return true;
   });
@@ -281,7 +281,7 @@ const placementType = computed(() => {
   if (['audit', 'leader'].includes(role)) return 'audit';
   if (['gudang', 'inventory'].includes(role)) return 'warehouse';
   if (['toko_online'].includes(role)) return 'online_shop';
-  if (role === 'distribution') return 'distributor';
+  if (role === 'distributor') return 'distributor';
   return 'branch';
 });
 
