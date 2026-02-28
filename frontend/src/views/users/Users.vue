@@ -470,12 +470,23 @@ async function permanentDeleteUser(id) {
 // Helper to get placement name for table
 function getPlacementName(user) {
   if (!user) return '-';
-  if (user.roles?.some(r => r.name === 'audit') && (user.placements || []).length > 0) {
-    const count = (user.placements || []).length;
-    return `${count} Akses Lokasi`;
+
+  // Handle Multi-Placements (Audit, Leader, Distributor)
+  if ((user.placements || []).length > 0) {
+    const list = user.placements;
+    if (list.length === 1) {
+      const p = list[0];
+      if (p.model_type === 'branch') return branches.value.find(b => b.id == p.model_id)?.name || 'Cabang';
+      if (p.model_type === 'online_shop') return onlineShops.value.find(s => s.id == p.model_id)?.name || 'Online Shop';
+      if (p.model_type === 'warehouse') return warehouses.value.find(w => w.id == p.model_id)?.name || 'Gudang';
+      if (p.model_type === 'distributor') return distributors.value.find(d => d.id == p.model_id)?.name || 'Distributor';
+    }
+    return `${list.length} Akses Lokasi`;
   }
+
+  // Fallback to primary columns
   if (user.branch) return user.branch.name;
-  if (user.warehouse) return `Gudang: ${user.warehouse.name}`; // Prefix for clarity
+  if (user.warehouse) return `Gudang: ${user.warehouse.name}`;
   if (user.online_shop) return `Online: ${user.online_shop.name}`;
   if (user.distributor) return `Dist: ${user.distributor.name}`;
   return '-';
