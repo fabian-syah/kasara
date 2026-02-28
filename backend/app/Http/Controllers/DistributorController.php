@@ -97,15 +97,17 @@ class DistributorController extends Controller
                 $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee']);
             });
 
+        $accessibleDistributorIds = $user->getAccessibleDistributorIds();
+
         if (($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader')) {
-            if (!$user->distributor_id) {
+            if (empty($accessibleDistributorIds)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Akun Anda belum dikaitkan dengan distributor manapun.'
                 ], 403);
             }
-            $hpQuery->where('distributor_id', $user->distributor_id);
-            $hpSalesQuery->where('distributor_id', $user->distributor_id);
+            $hpQuery->whereIn('distributor_id', $accessibleDistributorIds);
+            $hpSalesQuery->whereIn('distributor_id', $accessibleDistributorIds);
         } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
             $hpQuery->where('distributor_id', $request->distributor_id);
             $hpSalesQuery->where('distributor_id', $request->distributor_id);
@@ -147,7 +149,7 @@ class DistributorController extends Controller
             $itemDist = $log ? $log->distributor_id : ($item->user->distributor_id ?? null);
 
             if ($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader') {
-                if ($itemDist != $user->distributor_id)
+                if (!in_array($itemDist, $accessibleDistributorIds))
                     continue;
             } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
                 if ($itemDist != $request->distributor_id)
@@ -186,7 +188,7 @@ class DistributorController extends Controller
             $itemDist = $log ? $log->distributor_id : null;
 
             if ($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader') {
-                if ($itemDist != $user->distributor_id)
+                if (!in_array($itemDist, $accessibleDistributorIds))
                     continue;
             } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
                 if ($itemDist != $request->distributor_id)

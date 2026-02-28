@@ -111,6 +111,17 @@ class User extends Authenticatable
         return array_unique(array_merge($ids, $extras));
     }
 
+    // Helper to get all accessible distributor IDs
+    public function getAccessibleDistributorIds()
+    {
+        $ids = [];
+        if ($this->distributor_id)
+            $ids[] = $this->distributor_id;
+
+        $extras = $this->placements()->where('model_type', 'distributor')->pluck('model_id')->toArray();
+        return array_unique(array_merge($ids, $extras));
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *
