@@ -97,7 +97,13 @@ class DistributorController extends Controller
                 $q->whereIn('category', ['penjualan_offline', 'orderan_online', 'shopee']);
             });
 
-        if (($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader') && $user->distributor_id) {
+        if (($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader')) {
+            if (!$user->distributor_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda belum dikaitkan dengan distributor manapun.'
+                ], 403);
+            }
             $hpQuery->where('distributor_id', $user->distributor_id);
             $hpSalesQuery->where('distributor_id', $user->distributor_id);
         } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
@@ -140,7 +146,7 @@ class DistributorController extends Controller
 
             $itemDist = $log ? $log->distributor_id : ($item->user->distributor_id ?? null);
 
-            if ($userRole === 'distribution' || $userRole === 'distributor') {
+            if ($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader') {
                 if ($itemDist != $user->distributor_id)
                     continue;
             } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
@@ -179,7 +185,7 @@ class DistributorController extends Controller
 
             $itemDist = $log ? $log->distributor_id : null;
 
-            if ($userRole === 'distribution' || $userRole === 'distributor') {
+            if ($userRole === 'distribution' || $userRole === 'distributor' || $userRole === 'leader') {
                 if ($itemDist != $user->distributor_id)
                     continue;
             } else if ($userRole === 'super_admin' && $request->has('distributor_id') && $request->distributor_id) {
