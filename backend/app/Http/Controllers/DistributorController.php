@@ -78,7 +78,7 @@ class DistributorController extends Controller
         $userRole = strtolower($user->roles->first()->name ?? '');
 
         // 1. Fetch IMEI Items (Available)
-        $hpQuery = \App\Models\ProductDetail::with(['product'])
+        $hpQuery = \App\Models\ProductDetail::with(['product', 'user.branch', 'user.onlineShop'])
             ->where('status', 'available')
             ->whereNotNull('distributor_id');
 
@@ -117,7 +117,7 @@ class DistributorController extends Controller
         $hpSalesItems = $hpSalesQuery->get();
 
         // 2. Fetch Non-IMEI Items (Available)
-        $nonHpRaw = \App\Models\Inventory::with(['product', 'user'])
+        $nonHpRaw = \App\Models\Inventory::with(['product', 'user.branch', 'user.onlineShop'])
             ->where('quantity', '>', 0)
             ->whereHas('product', function ($q) {
                 $q->where('type', 'non-hp')->orWhere('has_imei', false);
@@ -246,6 +246,7 @@ class DistributorController extends Controller
         $branches = \App\Models\Branch::pluck('name', 'id');
         $warehouses = \App\Models\Warehouse::pluck('name', 'id');
         $onlineShops = \App\Models\OnlineShop::pluck('name', 'id');
+        $distributorNames = Distributor::pluck('name', 'id');
 
         $grouped = [];
 
@@ -258,6 +259,15 @@ class DistributorController extends Controller
                 $locationName = 'Gudang: ' . ($warehouses[$item->placement_id] ?? 'Unknown');
             } elseif ($item->placement_type === 'online_shop') {
                 $locationName = 'Online: ' . ($onlineShops[$item->placement_id] ?? 'Unknown');
+            } elseif ($item->placement_type === 'distributor') {
+                $locationName = 'Distributor: ' . ($distributorNames[$item->placement_id] ?? 'Unknown');
+            } elseif (!$item->placement_type && $item->user) {
+                // Fallback: resolve from user's branch or online shop
+                if ($item->user->branch) {
+                    $locationName = 'Cabang: ' . $item->user->branch->name;
+                } elseif ($item->user->onlineShop) {
+                    $locationName = 'Online: ' . $item->user->onlineShop->name;
+                }
             }
 
             if (!isset($grouped[$locationName])) {
@@ -317,6 +327,15 @@ class DistributorController extends Controller
                 $locationName = 'Gudang: ' . ($warehouses[$item->placement_id] ?? 'Unknown');
             } elseif ($item->placement_type === 'online_shop') {
                 $locationName = 'Online: ' . ($onlineShops[$item->placement_id] ?? 'Unknown');
+            } elseif ($item->placement_type === 'distributor') {
+                $locationName = 'Distributor: ' . ($distributorNames[$item->placement_id] ?? 'Unknown');
+            } elseif (!$item->placement_type && $item->user) {
+                // Fallback: resolve from user's branch or online shop
+                if ($item->user->branch) {
+                    $locationName = 'Cabang: ' . $item->user->branch->name;
+                } elseif ($item->user->onlineShop) {
+                    $locationName = 'Online: ' . $item->user->onlineShop->name;
+                }
             }
 
             if (!isset($grouped[$locationName])) {
