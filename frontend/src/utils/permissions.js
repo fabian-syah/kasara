@@ -9,6 +9,7 @@ export const ROLES = {
     SECURITY: 'security',
     LEADER: 'leader',
     DISTRIBUTOR: 'distributor',
+    DISTRIBUTION: 'distribution',
     SALES: 'sales',
     INVENTORY: 'inventory',
     GUDANG: 'gudang',
@@ -24,6 +25,7 @@ export const ROLE_LABELS = {
     [ROLES.SECURITY]: 'Security',
     [ROLES.LEADER]: 'Leader',
     [ROLES.DISTRIBUTOR]: 'Distributor',
+    [ROLES.DISTRIBUTION]: 'Distribution',
     [ROLES.SALES]: 'Sales',
     [ROLES.INVENTORY]: 'Inventory',
     [ROLES.GUDANG]: 'Gudang',
@@ -142,6 +144,12 @@ export const ROLE_PERMISSIONS = {
         'track.view'
     ],
 
+    [ROLES.DISTRIBUTION]: [
+        PERMISSIONS.DISTRIBUTOR_MONITORING,
+        PERMISSIONS.INVENTORY_VIEW,
+        'track.view'
+    ],
+
     [ROLES.SALES]: [
         PERMISSIONS.POS_ACCESS,
         PERMISSIONS.TRANSACTIONS_CREATE,
@@ -193,6 +201,7 @@ export const ROLE_MENUS = {
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
     [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'track'],
     [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'track'],
+    [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'track'],
     [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'audit_sales', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
