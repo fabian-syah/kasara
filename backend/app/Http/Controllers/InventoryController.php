@@ -926,7 +926,7 @@ class InventoryController extends Controller
         return response()->json($query->select('id', 'name', 'type', 'sku', 'brand', 'price')->limit(20)->get());
     }
 
-    // Update item status (e.g., accept return: returned -> available)
+    // Update item status (e.g., accept return: service -> available)
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -935,6 +935,7 @@ class InventoryController extends Controller
         ]);
 
         $item = ProductDetail::findOrFail($id);
+        $oldStatus = $item->status;
 
         $updateData = ['status' => $request->status];
 
@@ -942,9 +943,34 @@ class InventoryController extends Controller
         // record who accepted it by updating user_id
         if ($request->status === 'available' && $request->inventory_user_id) {
             $updateData['user_id'] = $request->inventory_user_id;
+
+            // Get the warehouse placement from the inventory user
+            $invUser = \App\Models\User::find($request->inventory_user_id);
+            if ($invUser && $invUser->warehouse_id) {
+                $updateData['placement_type'] = 'warehouse';
+                $updateData['placement_id'] = $invUser->warehouse_id;
+            }
         }
 
         $item->update($updateData);
+
+        // If this was a retur acceptance (service -> available),
+        // mark the retur stock_out as confirmed so it shows as MASUK in Lacak Barang
+        if ($oldStatus === 'service' && $request->status === 'available') {
+            $returStockOut = $item->stockOuts()
+                ->where('category', 'retur')
+                ->whereNull('confirmed_at')
+                ->latest()
+                ->first();
+
+            if ($returStockOut) {
+                $returStockOut->update([
+                    'status' => 'received',
+                    'confirmed_at' => now(),
+                    'confirmed_by' => Auth::id(),
+                ]);
+            }
+        }
 
         return response()->json([
             'success' => true,

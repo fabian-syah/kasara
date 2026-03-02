@@ -731,7 +731,7 @@ class StockOutController extends Controller
                     'timestamp' => $out->created_at->timestamp,
                 ];
 
-                // Event 2: The ARRIVAL (if confirmed)
+                // Event 2: The ARRIVAL (if confirmed transfer)
                 if ($out->category === 'pindah_cabang' && $out->status === 'received' && $out->confirmed_at) {
                     $allEvents[] = [
                         'type' => 'stock_in',
@@ -749,6 +749,35 @@ class StockOutController extends Controller
                         'condition' => $out->items->first()?->condition ?? '-',
                         'selling_price' => $out->items->first()?->selling_price ?? 0,
                         'is_arrival' => true,
+                    ];
+                }
+
+                // Event 3: RETUR ARRIVAL (if retur confirmed/accepted)
+                if ($out->category === 'retur' && $out->status === 'received' && $out->confirmed_at) {
+                    // Find the item to get current placement
+                    $returItem = $out->items->first();
+                    $allEvents[] = [
+                        'type' => 'stock_in',
+                        'sub_type' => 'retur_arrival',
+                        'id' => $out->receipt_id,
+                        'imei' => $query,
+                        'product_name' => $returItem?->product?->name ?? 'Unknown',
+                        'status' => 'available',
+                        'placement_type' => $returItem?->placement_type,
+                        'placement_id' => $returItem?->placement_id,
+                        'placement_name' => match ($returItem?->placement_type) {
+                            'warehouse' => \App\Models\Warehouse::find($returItem?->placement_id)?->name ?? 'Gudang',
+                            'branch' => \App\Models\Branch::find($returItem?->placement_id)?->name ?? 'Cabang',
+                            'online_shop' => \App\Models\OnlineShop::find($returItem?->placement_id)?->name ?? 'Toko Online',
+                            default => 'Unknown'
+                        },
+                        'created_at' => $out->confirmed_at->toDateTimeString(),
+                        'timestamp' => $out->confirmed_at->timestamp,
+                        'input_by' => $out->confirmedBy?->name ?? 'Unknown',
+                        'condition' => $returItem?->condition ?? '-',
+                        'selling_price' => $returItem?->selling_price ?? 0,
+                        'is_arrival' => true,
+                        'is_retur_return' => true,
                     ];
                 }
             }
