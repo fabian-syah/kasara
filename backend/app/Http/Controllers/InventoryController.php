@@ -907,11 +907,21 @@ class InventoryController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:available,sold,returned,deleted,out'
+            'status' => 'required|in:available,sold,returned,deleted,out',
+            'inventory_user_id' => 'nullable|exists:users,id'
         ]);
 
         $item = ProductDetail::findOrFail($id);
-        $item->update(['status' => $request->status]);
+
+        $updateData = ['status' => $request->status];
+
+        // If accepting a return and an inventory account is specified,
+        // record who accepted it by updating user_id
+        if ($request->status === 'available' && $request->inventory_user_id) {
+            $updateData['user_id'] = $request->inventory_user_id;
+        }
+
+        $item->update($updateData);
 
         return response()->json([
             'success' => true,
