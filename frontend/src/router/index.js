@@ -159,8 +159,7 @@ const routes = [
                 component: () => import('../views/inventory/TrackStock.vue'),
                 meta: {
                     title: 'Lacak Barang',
-                    menu: 'track',
-                    permissions: ['inventory.view', 'audit.view']
+                    menu: 'track'
                 }
             },
             {
