@@ -19,7 +19,16 @@ import {
     X,
     UserCircle,
     MessageSquare,
-    Warehouse
+    Warehouse,
+    ChevronRight,
+    Tag,
+    HardDrive,
+    DollarSign,
+    Shield,
+    Phone,
+    StickyNote,
+    Hash,
+    MapPin
 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -30,19 +39,16 @@ const returItems = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
 
-// Lightbox state
-const showLightbox = ref(false);
-const lightboxImage = ref(null);
-const lightboxItem = ref(null);
+// Detail modal state
+const showDetail = ref(false);
+const selectedItem = ref(null);
 
 // Inventory Account Selection
 const inventoryAccounts = ref([]);
 const selectedInventoryAccount = ref('');
 const isLoadingAccounts = ref(false);
 
-// Confirmation modal state
-const showConfirmModal = ref(false);
-const confirmItem = ref(null);
+// Accepting state
 const isAccepting = ref(false);
 
 // Fetch inventory accounts (gudang role)
@@ -51,7 +57,6 @@ async function fetchInventoryAccounts() {
     try {
         const response = await api.get('/inventory/my-accounts');
         inventoryAccounts.value = response.data || [];
-        // Auto-select first if available
         if (inventoryAccounts.value.length > 0) {
             selectedInventoryAccount.value = inventoryAccounts.value[0].id;
         }
@@ -62,7 +67,7 @@ async function fetchInventoryAccounts() {
     }
 }
 
-// Fetch returned items (status = 'returned')
+// Fetch returned items (status = 'service' = retur items)
 async function fetchReturItems() {
     isLoading.value = true;
     try {
@@ -89,24 +94,25 @@ const filteredItems = computed(() => {
         item.imei?.toLowerCase().includes(q) ||
         item.product?.name?.toLowerCase().includes(q) ||
         item.sku?.toLowerCase().includes(q) ||
-        item.customer_name?.toLowerCase().includes(q)
+        item.retur_data?.customer_name?.toLowerCase().includes(q) ||
+        item.retur_data?.receipt_id?.toLowerCase().includes(q)
     );
 });
 
-// Open confirm modal
-function openConfirmModal(item) {
-    confirmItem.value = item;
-    showConfirmModal.value = true;
+// Open detail view
+function openDetail(item) {
+    selectedItem.value = item;
+    showDetail.value = true;
 }
 
-function closeConfirmModal() {
-    showConfirmModal.value = false;
-    confirmItem.value = null;
+function closeDetail() {
+    showDetail.value = false;
+    selectedItem.value = null;
 }
 
-// Accept return (change status to 'available') with inventory account
+// Accept return
 async function acceptReturn() {
-    if (!confirmItem.value) return;
+    if (!selectedItem.value) return;
     if (!selectedInventoryAccount.value) {
         toast.error("Pilih akun inventory terlebih dahulu");
         return;
@@ -114,13 +120,12 @@ async function acceptReturn() {
 
     isAccepting.value = true;
     try {
-        await api.patch(`/inventory/${confirmItem.value.id}/status`, {
+        await api.patch(`/inventory/${selectedItem.value.id}/status`, {
             status: 'available',
             inventory_user_id: selectedInventoryAccount.value
         });
         toast.success("Barang berhasil diterima ke gudang");
-        closeConfirmModal();
-        closeLightbox();
+        closeDetail();
         fetchReturItems();
     } catch (e) {
         toast.error("Gagal menerima barang");
@@ -129,24 +134,40 @@ async function acceptReturn() {
     }
 }
 
-// Lightbox functions
-function openLightbox(item) {
-    lightboxItem.value = item;
-    lightboxImage.value = item.proof_image;
-    showLightbox.value = true;
-}
-
-function closeLightbox() {
-    showLightbox.value = false;
-    lightboxItem.value = null;
-    lightboxImage.value = null;
-}
-
 // Get selected account name
 const selectedAccountName = computed(() => {
     const acc = inventoryAccounts.value.find(a => a.id === selectedInventoryAccount.value);
     return acc ? (acc.full_name || acc.name) : '';
 });
+
+// Format date
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+}
+
+// Format currency
+function formatCurrency(val) {
+    if (!val) return 'Rp 0';
+    return 'Rp ' + Number(val).toLocaleString('id-ID');
+}
+
+// Condition label
+function conditionLabel(cond) {
+    if (!cond) return '-';
+    if (cond === 'new') return 'Baru';
+    if (cond === 'second') return 'Second';
+    if (cond === 'ex_ibox') return 'Ex iBox';
+    return cond;
+}
+
+function conditionClass(cond) {
+    if (cond === 'new') return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+    if (cond === 'ex_ibox') return 'bg-purple-500/15 text-purple-400 border-purple-500/30';
+    return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+}
 
 onMounted(() => {
     fetchReturItems();
@@ -193,7 +214,7 @@ onMounted(() => {
         <div class="card">
             <div class="relative">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-                <input v-model="searchQuery" type="text" placeholder="Cari IMEI, produk, SKU, customer..."
+                <input v-model="searchQuery" type="text" placeholder="Cari IMEI, produk, customer, no. retur..."
                     class="input pl-10" />
             </div>
         </div>
@@ -212,7 +233,7 @@ onMounted(() => {
         </div>
 
         <!-- Items List -->
-        <div class="space-y-4">
+        <div class="space-y-3">
             <div v-if="isLoading" class="text-center py-12 text-text-secondary">
                 <Loader2 :size="32" class="animate-spin mx-auto mb-2" />
                 Memuat barang retur...
@@ -221,187 +242,276 @@ onMounted(() => {
                 <Package :size="48" class="mx-auto mb-2 opacity-50" />
                 Tidak ada barang retur yang menunggu
             </div>
-            <div v-else v-for="item in filteredItems" :key="item.id"
-                class="card p-5 border-l-4 border-l-amber-500 hover:bg-surface-700/50 transition-colors">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex items-start gap-4">
-                        <!-- Product Image/Proof Thumbnail -->
-                        <div @click="item.proof_image && openLightbox(item)"
-                            class="w-20 h-20 rounded-xl bg-surface-700 flex items-center justify-center shrink-0 overflow-hidden relative group"
-                            :class="{ 'cursor-pointer hover:ring-2 hover:ring-amber-500': item.proof_image }">
-                            <img v-if="item.proof_image" :src="item.proof_image" alt="Foto Bukti"
-                                class="w-full h-full object-cover" />
-                            <Package v-else :size="28" class="text-text-secondary" />
-                            <!-- Hover overlay -->
-                            <div v-if="item.proof_image"
-                                class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Image :size="20" class="text-white" />
-                            </div>
+
+            <!-- Item Card - Clickable -->
+            <div v-else v-for="item in filteredItems" :key="item.id" @click="openDetail(item)"
+                class="card p-4 border-l-4 border-l-amber-500 hover:bg-surface-700/50 transition-all cursor-pointer group">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 flex-1 min-w-0">
+                        <!-- Proof Image Thumbnail -->
+                        <div
+                            class="w-14 h-14 rounded-xl bg-surface-700 flex items-center justify-center shrink-0 overflow-hidden">
+                            <img v-if="item.retur_data?.proof_image" :src="item.retur_data.proof_image"
+                                alt="Foto Retur" class="w-full h-full object-cover" />
+                            <Package v-else :size="24" class="text-text-secondary" />
                         </div>
 
-                        <!-- Info -->
-                        <div class="space-y-2 flex-1">
-                            <div>
-                                <h3 class="font-bold text-text-primary">{{ item.product?.name || 'Produk' }}</h3>
-                                <p class="text-xs text-text-secondary">SKU: {{ item.sku || '-' }}</p>
+                        <!-- Basic Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <h3 class="font-bold text-text-primary truncate">{{ item.product?.name || 'Produk' }}
+                                </h3>
+                                <span :class="conditionClass(item.condition)"
+                                    class="px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0">
+                                    {{ conditionLabel(item.condition) }}
+                                </span>
                             </div>
-                            <div class="flex items-center gap-2 text-sm text-text-secondary">
-                                <Smartphone :size="14" />
+                            <div class="flex items-center gap-3 text-xs text-text-secondary">
                                 <span class="font-mono">{{ item.imei }}</span>
+                                <span v-if="item.storage" class="text-text-secondary/70">{{ item.storage }}</span>
                             </div>
-
-                            <!-- Return Details -->
-                            <div v-if="item.customer_name || item.retur_issue"
-                                class="mt-2 p-3 rounded-lg bg-surface-700/50 space-y-1">
-                                <div v-if="item.customer_name"
-                                    class="flex items-center gap-2 text-xs text-text-secondary">
-                                    <UserCircle :size="12" />
-                                    <span>Customer: <strong class="text-text-primary">{{ item.customer_name
-                                    }}</strong></span>
-                                </div>
-                                <div v-if="item.retur_issue" class="flex items-start gap-2 text-xs text-text-secondary">
-                                    <MessageSquare :size="12" class="shrink-0 mt-0.5" />
-                                    <span>Kendala: <span class="text-amber-400">{{ item.retur_issue }}</span></span>
-                                </div>
-                                <div v-if="item.retur_officer"
-                                    class="flex items-center gap-2 text-xs text-text-secondary">
-                                    <User :size="12" />
-                                    <span>Petugas: {{ item.retur_officer }}</span>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-wrap gap-3 text-xs">
-                                <span class="flex items-center gap-1 text-text-secondary">
-                                    <Calendar :size="12" />
-                                    {{ new Date(item.updated_at).toLocaleDateString('id-ID') }}
+                            <div class="flex items-center gap-3 mt-1 text-xs">
+                                <span v-if="item.retur_data?.receipt_id"
+                                    class="text-amber-400 font-semibold">{{ item.retur_data.receipt_id }}</span>
+                                <span v-if="item.retur_data?.customer_name" class="text-text-secondary">
+                                    <UserCircle :size="10" class="inline mr-0.5" />{{ item.retur_data.customer_name }}
                                 </span>
-                                <span v-if="item.ram && item.storage"
-                                    class="px-2 py-0.5 rounded bg-surface-700 text-text-secondary">
-                                    {{ item.ram }}/{{ item.storage }}
-                                </span>
-                                <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
-                                    {{ item.condition || 'Second' }}
-                                </span>
-                                <span v-if="item.proof_image"
-                                    class="px-2 py-0.5 rounded bg-green-500/20 text-green-400 flex items-center gap-1">
-                                    <Image :size="10" />
-                                    Ada Foto
+                                <span v-if="item.retur_data?.created_at" class="text-text-secondary/60">
+                                    {{ formatDate(item.retur_data.created_at) }}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Action -->
-                    <button @click="openConfirmModal(item)"
-                        :disabled="!selectedInventoryAccount"
-                        class="btn bg-green-600 hover:bg-green-700 text-white px-4 h-10 rounded-xl text-sm font-medium shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
-                        <CheckCircle :size="16" class="mr-1" />
-                        Terima
-                    </button>
+                    <!-- Arrow -->
+                    <ChevronRight :size="20"
+                        class="text-text-secondary/50 group-hover:text-amber-500 transition-colors shrink-0" />
                 </div>
             </div>
         </div>
 
-        <!-- Confirmation Modal -->
-        <div v-if="showConfirmModal && confirmItem"
-            class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <!-- Detail Modal -->
+        <div v-if="showDetail && selectedItem"
+            class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            @click.self="closeDetail">
             <div
-                class="bg-surface-800 rounded-2xl w-full max-w-lg border border-surface-700 shadow-2xl animate-in zoom-in duration-200">
+                class="bg-surface-800 rounded-2xl w-full max-w-2xl border border-surface-700 shadow-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
                 <!-- Modal Header -->
-                <div class="p-6 border-b border-surface-700">
-                    <h2 class="text-xl font-bold text-white">Konfirmasi Terima Retur</h2>
-                    <p class="text-text-secondary text-sm mt-1">Pastikan akun yang menerima sudah benar</p>
+                <div class="sticky top-0 bg-surface-800 p-5 border-b border-surface-700 z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Detail Retur</h2>
+                            <p v-if="selectedItem.retur_data?.receipt_id"
+                                class="text-amber-400 text-sm font-mono mt-0.5">
+                                {{ selectedItem.retur_data.receipt_id }}
+                            </p>
+                        </div>
+                        <button @click="closeDetail"
+                            class="w-10 h-10 rounded-xl bg-surface-700 hover:bg-surface-600 flex items-center justify-center transition-colors">
+                            <X :size="20" class="text-text-secondary" />
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Modal Body -->
-                <div class="p-6 space-y-5">
-                    <!-- Item Info -->
-                    <div class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                        <h3 class="font-bold text-text-primary mb-2">{{ confirmItem.product?.name || 'Produk' }}</h3>
-                        <div class="flex items-center gap-2 text-sm text-text-secondary mb-1">
-                            <Smartphone :size="14" />
-                            <span class="font-mono">{{ confirmItem.imei }}</span>
-                        </div>
-                        <div v-if="confirmItem.customer_name" class="text-xs text-text-secondary mt-1">
-                            Customer: <span class="text-text-primary font-medium">{{ confirmItem.customer_name }}</span>
+                <div class="p-5 space-y-5">
+                    <!-- Proof Image -->
+                    <div v-if="selectedItem.retur_data?.proof_image"
+                        class="rounded-xl overflow-hidden border border-surface-600">
+                        <img :src="selectedItem.retur_data.proof_image" alt="Foto Bukti Retur"
+                            class="w-full max-h-72 object-contain bg-black/30" />
+                        <div class="px-4 py-2 bg-surface-700/50 text-xs text-text-secondary flex items-center gap-1">
+                            <Image :size="12" />
+                            Foto Bukti Retur
                         </div>
                     </div>
 
-                    <!-- Account Selection Confirm -->
-                    <div class="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20">
-                        <label class="block text-sm font-medium text-text-primary mb-2 flex items-center gap-2">
-                            <Warehouse :size="16" class="text-blue-500" />
-                            Diterima oleh Akun:
-                        </label>
+                    <!-- Product Info Section -->
+                    <div class="bg-surface-700/30 rounded-xl p-4 border border-surface-600 space-y-3">
+                        <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider">Informasi Barang</h4>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- Brand -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Tag :size="10" /> Brand
+                                </p>
+                                <p class="text-sm font-semibold text-text-primary">
+                                    {{ selectedItem.product?.brand || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Type/Name -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Smartphone :size="10" /> Produk
+                                </p>
+                                <p class="text-sm font-semibold text-text-primary">
+                                    {{ selectedItem.product?.name || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- IMEI -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Hash :size="10" /> IMEI
+                                </p>
+                                <p class="text-sm font-mono text-blue-400">
+                                    {{ selectedItem.imei || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Storage -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <HardDrive :size="10" /> Storage
+                                </p>
+                                <p class="text-sm font-semibold text-text-primary">
+                                    {{ selectedItem.ram && selectedItem.storage ? `${selectedItem.ram} / ${selectedItem.storage}` : selectedItem.storage || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Kondisi -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Shield :size="10" /> Kondisi
+                                </p>
+                                <span :class="conditionClass(selectedItem.condition)"
+                                    class="inline-block px-2 py-0.5 rounded-md text-xs font-bold border">
+                                    {{ conditionLabel(selectedItem.condition) }}
+                                </span>
+                            </div>
+
+                            <!-- Harga Jual -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <DollarSign :size="10" /> Harga Jual
+                                </p>
+                                <p class="text-sm font-bold text-emerald-400">
+                                    {{ formatCurrency(selectedItem.selling_price || selectedItem.retur_data?.selling_price) }}
+                                </p>
+                            </div>
+
+                            <!-- Lokasi Asal -->
+                            <div class="col-span-2 space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <MapPin :size="10" /> Lokasi Asal
+                                </p>
+                                <p class="text-sm text-text-primary">
+                                    {{ selectedItem.placement_name || '-' }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Retur Info Section -->
+                    <div v-if="selectedItem.retur_data"
+                        class="bg-amber-500/5 rounded-xl p-4 border border-amber-500/20 space-y-3">
+                        <h4 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Informasi Retur</h4>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- Customer -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <UserCircle :size="10" /> Customer
+                                </p>
+                                <p class="text-sm font-semibold text-text-primary">
+                                    {{ selectedItem.retur_data.customer_name || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Phone :size="10" /> No. Telepon
+                                </p>
+                                <p class="text-sm text-text-primary">
+                                    {{ selectedItem.retur_data.customer_phone || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Petugas -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <User :size="10" /> Petugas
+                                </p>
+                                <p class="text-sm text-text-primary">
+                                    {{ selectedItem.retur_data.retur_officer || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Seal -->
+                            <div class="space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Shield :size="10" /> Seal
+                                </p>
+                                <p class="text-sm text-text-primary">
+                                    {{ selectedItem.retur_data.retur_seal || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Kendala -->
+                            <div class="col-span-2 space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <AlertTriangle :size="10" /> Kendala / Alasan Retur
+                                </p>
+                                <p class="text-sm text-amber-300">
+                                    {{ selectedItem.retur_data.retur_issue || '-' }}
+                                </p>
+                            </div>
+
+                            <!-- Catatan -->
+                            <div v-if="selectedItem.retur_data.notes" class="col-span-2 space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <StickyNote :size="10" /> Catatan
+                                </p>
+                                <p class="text-sm text-text-primary">
+                                    {{ selectedItem.retur_data.notes }}
+                                </p>
+                            </div>
+
+                            <!-- Tanggal Retur -->
+                            <div class="col-span-2 space-y-0.5">
+                                <p class="text-[10px] text-text-secondary uppercase flex items-center gap-1">
+                                    <Calendar :size="10" /> Tanggal Retur
+                                </p>
+                                <p class="text-sm text-text-primary">
+                                    {{ formatDate(selectedItem.retur_data.created_at) }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accept Section -->
+                    <div class="bg-blue-500/5 rounded-xl p-4 border border-blue-500/20 space-y-3">
+                        <h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                            <Warehouse :size="12" /> Terima Barang ke Gudang
+                        </h4>
                         <select v-model="selectedInventoryAccount"
-                            class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
                             <option value="" disabled>Pilih Akun Inventory</option>
                             <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                 {{ acc.full_name || acc.name }} {{ acc.code_id ? `(${acc.code_id})` : '' }}
                             </option>
                         </select>
-                        <p class="text-xs text-text-secondary mt-2">
-                            Barang retur akan tercatat diterima oleh akun ini.
+                        <p class="text-[10px] text-text-secondary">
+                            Barang retur akan tercatat diterima oleh akun ini dan statusnya berubah menjadi tersedia.
                         </p>
                     </div>
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="p-6 border-t border-surface-700 flex gap-3">
-                    <button @click="closeConfirmModal" :disabled="isAccepting"
+                <div class="sticky bottom-0 bg-surface-800 p-5 border-t border-surface-700 flex gap-3">
+                    <button @click="closeDetail" :disabled="isAccepting"
                         class="btn btn-secondary flex-1 h-12 rounded-xl font-bold">
-                        Batal
+                        Tutup
                     </button>
                     <button @click="acceptReturn" :disabled="isAccepting || !selectedInventoryAccount"
-                        class="btn bg-green-600 hover:bg-green-700 text-white flex-1 h-12 rounded-xl font-bold disabled:opacity-30">
+                        class="btn bg-green-600 hover:bg-green-700 text-white flex-1 h-12 rounded-xl font-bold disabled:opacity-30 disabled:cursor-not-allowed">
                         <Loader2 v-if="isAccepting" :size="18" class="animate-spin mr-2" />
                         <CheckCircle v-else :size="18" class="mr-2" />
                         {{ isAccepting ? 'Memproses...' : 'Terima Barang' }}
                     </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Lightbox Modal -->
-        <div v-if="showLightbox" class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            @click.self="closeLightbox">
-            <div class="relative max-w-4xl w-full animate-in zoom-in duration-200">
-                <!-- Close Button -->
-                <button @click="closeLightbox"
-                    class="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors">
-                    <X :size="32" />
-                </button>
-
-                <!-- Image -->
-                <div class="bg-surface-800 rounded-2xl overflow-hidden">
-                    <img :src="lightboxImage" alt="Foto Bukti Retur" class="w-full max-h-[70vh] object-contain" />
-
-                    <!-- Item Details -->
-                    <div v-if="lightboxItem" class="p-6 border-t border-surface-700">
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="space-y-2">
-                                <h3 class="font-bold text-text-primary text-lg">
-                                    {{ lightboxItem.product?.name || 'Produk' }}
-                                </h3>
-                                <p class="font-mono text-sm text-text-secondary">IMEI: {{ lightboxItem.imei }}</p>
-                                <div v-if="lightboxItem.customer_name" class="flex items-center gap-2 text-sm">
-                                    <UserCircle :size="16" class="text-text-secondary" />
-                                    <span class="text-text-secondary">Customer:</span>
-                                    <span class="text-text-primary font-medium">{{ lightboxItem.customer_name }}</span>
-                                </div>
-                                <div v-if="lightboxItem.retur_issue" class="text-sm">
-                                    <span class="text-text-secondary">Kendala:</span>
-                                    <span class="text-amber-400 ml-2">{{ lightboxItem.retur_issue }}</span>
-                                </div>
-                            </div>
-                            <button @click="openConfirmModal(lightboxItem)"
-                                :disabled="!selectedInventoryAccount"
-                                class="btn bg-green-600 hover:bg-green-700 text-white px-6 h-12 rounded-xl font-bold shrink-0 disabled:opacity-30">
-                                <CheckCircle :size="18" class="mr-2" />
-                                Terima Barang
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

@@ -192,7 +192,7 @@ class InventoryController extends Controller
             $items = $query->latest()->paginate(20);
         }
 
-        $items->getCollection()->transform(function ($item) use ($type) {
+        $items->getCollection()->transform(function ($item) use ($type, $request) {
             $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
             if ($type === 'non-hp') {
@@ -210,6 +210,25 @@ class InventoryController extends Controller
                 // Fallback to user's distributor if nothing found in log
                 if (!$item->latest_distributor && !$item->latest_supplier && $item->user && $item->user->distributor) {
                     $item->latest_distributor = $item->user->distributor->name;
+                }
+            }
+
+            // Attach retur stock-out data when fetching service/retur items
+            if ($request->status === 'service' && $type === 'hp') {
+                $returStockOut = $item->stockOuts()->where('category', 'retur')->latest()->first();
+                if ($returStockOut) {
+                    $item->retur_data = [
+                        'receipt_id' => $returStockOut->receipt_id,
+                        'customer_name' => $returStockOut->customer_name,
+                        'customer_phone' => $returStockOut->customer_phone,
+                        'retur_officer' => $returStockOut->retur_officer,
+                        'retur_issue' => $returStockOut->retur_issue,
+                        'retur_seal' => $returStockOut->retur_seal,
+                        'proof_image' => $returStockOut->proof_image ? asset('storage/' . $returStockOut->proof_image) : null,
+                        'selling_price' => $returStockOut->selling_price,
+                        'notes' => $returStockOut->notes,
+                        'created_at' => $returStockOut->created_at?->toDateTimeString(),
+                    ];
                 }
             }
 
