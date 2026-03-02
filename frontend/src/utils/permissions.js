@@ -206,7 +206,7 @@ export const ROLE_MENUS = {
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'inventory', 'reports', 'track']
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'inventory', 'incoming_group', 'reports', 'track']
 }
 
 // Helper functions
