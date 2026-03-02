@@ -62,14 +62,14 @@ async function fetchInventoryAccounts() {
     }
 }
 
-// Fetch returned items (status = 'returned', placement_type = 'warehouse')
+// Fetch returned items (status = 'returned')
 async function fetchReturItems() {
     isLoading.value = true;
     try {
         const response = await api.get('/inventory', {
             params: {
                 status: 'returned',
-                placement_type: 'warehouse'
+                type: 'hp'
             }
         });
         returItems.value = response.data.data || response.data;

@@ -130,6 +130,8 @@
                                 <th class="px-4 py-4">Brand</th>
                                 <th class="px-4 py-4">Nama Produk</th>
                                 <th class="px-4 py-4">IMEI</th>
+                                <th class="px-4 py-4">Kapasitas</th>
+                                <th class="px-4 py-4">Kondisi</th>
                                 <th class="px-4 py-4">Qty</th>
                                 <th class="px-4 py-4">Sumber</th>
                                 <th class="px-4 py-4 text-center">Score Audit</th>
@@ -138,7 +140,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
-                                <td colspan="12" class="px-6 py-12">
+                                <td colspan="14" class="px-6 py-12">
                                     <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data barang masuk...</span>
@@ -146,7 +148,7 @@
                                 </td>
                             </tr>
                             <tr v-else-if="stockInRecords.length === 0">
-                                <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
+                                <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -190,6 +192,15 @@
                                 </td>
                                 <td class="px-4 py-4 text-xs font-mono text-blue-500">
                                     {{ item.imeis }}
+                                </td>
+                                <td class="px-4 py-4 text-xs text-text-secondary">
+                                    {{ item.storages || '-' }}
+                                </td>
+                                <td class="px-4 py-4">
+                                    <span v-if="item.conditions" class="px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                                        :class="item.conditions === 'Baru' ? 'bg-emerald-500/10 text-emerald-500' : item.conditions === 'Ex iBox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'"
+                                    >{{ item.conditions }}</span>
+                                    <span v-else class="text-xs text-gray-400">-</span>
                                 </td>
                                 <td class="px-4 py-4 text-text-primary font-semibold">
                                     {{ item.qty }}
