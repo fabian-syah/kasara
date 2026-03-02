@@ -967,7 +967,7 @@ class InventoryController extends Controller
                 $returStockOut->update([
                     'status' => 'received',
                     'confirmed_at' => now(),
-                    'confirmed_by' => Auth::id(),
+                    'confirmed_by' => $request->inventory_user_id ?? Auth::id(),
                 ]);
             }
         }
