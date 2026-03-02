@@ -118,6 +118,16 @@ const menuItems = [
     },
 
     // Audit Specific Menus (Restored)
+    {
+        id: "audit_cabang",
+        label: "Cabang",
+        icon: Building2,
+        items: [
+            { id: "audit_sales_sub", path: "/audit/sales", label: "Penjualan" },
+            { id: "audit_inventory_sub", path: "/audit/inventory", label: "Inventory" },
+            { id: "audit_analysis_sub", path: "/audit/analysis", label: "Analisa Cabang" },
+        ]
+    },
     { id: "audit_sales", path: "/audit/sales", label: "Penjualan", icon: Receipt },
     { id: "audit_inventory", path: "/audit/inventory", label: "Inventory", icon: Package },
     { id: "audit_analysis", path: "/audit/analysis", label: "Analisa Cabang", icon: BarChart3 },
@@ -167,7 +177,9 @@ const visibleMenuItems = computed(() => {
     const userRole = authStore.userRole;
     if (!userRole) return menuItems.filter((item) => item.id === "dashboard");
 
-    if (userRole.toLowerCase().replace(/\s+/g, '_') === "super_admin") return menuItems;
+    if (userRole.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
+        return menuItems.filter(item => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(item.id));
+    }
 
     // Get allowed menus for role
     const allowedMenus = getMenuForRole(userRole);
