@@ -94,6 +94,8 @@ class AuditController extends Controller
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'HP',
                     'imei' => $item->imei ?? '-',
+                    'storage' => $item->ram && $item->storage ? $item->ram . ' / ' . $item->storage : ($item->storage ?? null),
+                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                 ];
                 $calculatedTotal += $price;
             }
@@ -225,6 +227,8 @@ class AuditController extends Controller
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
+                'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
+                'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
                 'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
@@ -936,6 +940,8 @@ class AuditController extends Controller
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'HP',
                     'imei' => $item->imei ?? '-',
+                    'storage' => $item->ram && $item->storage ? $item->ram . ' / ' . $item->storage : ($item->storage ?? null),
+                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                 ];
                 $calculatedTotal += $price;
             }
@@ -1529,6 +1535,8 @@ class AuditController extends Controller
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
+                'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
+                'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
                 'audit_score' => $score,
@@ -1652,6 +1660,8 @@ class AuditController extends Controller
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
+                'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
+                'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
                 'audit_score' => $score,
