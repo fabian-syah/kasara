@@ -68,7 +68,7 @@ async function fetchReturItems() {
     try {
         const response = await api.get('/inventory', {
             params: {
-                status: 'returned',
+                status: 'service',
                 type: 'hp'
             }
         });
