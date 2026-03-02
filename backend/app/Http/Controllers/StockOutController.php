@@ -699,6 +699,20 @@ class StockOutController extends Controller
                     }
                 }
 
+                // Filter items to only include the searched item if it's an IMEI or Tracking No
+                $filteredItems = array_filter($mergedItems, function ($item) use ($query) {
+                    if (isset($item['imei']) && stripos($item['imei'], $query) !== false)
+                        return true;
+                    if (isset($item['tracking_no']) && stripos($item['tracking_no'], $query) !== false)
+                        return true;
+                    return false;
+                });
+
+                // Only use filtered items if there's a match inside items, otherwise show all (meaning the match was on receipt ID)
+                if (count($filteredItems) > 0 && stripos($out->receipt_id, $query) === false && stripos($out->shopee_tracking_no, $query) === false) {
+                    $mergedItems = array_values($filteredItems);
+                }
+
                 // Event 1: The STOCK OUT itself
                 $allEvents[] = [
                     'type' => 'stock_out',
