@@ -210,14 +210,6 @@ onMounted(() => {
             </select>
         </div>
 
-        <!-- Search -->
-        <div class="card">
-            <div class="relative">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-                <input v-model="searchQuery" type="text" placeholder="Cari IMEI, produk, customer, no. retur..."
-                    class="input pl-10" />
-            </div>
-        </div>
 
         <!-- Stats -->
         <div class="card bg-amber-500/10 border-amber-500/30">
@@ -251,8 +243,8 @@ onMounted(() => {
                         <!-- Proof Image Thumbnail -->
                         <div
                             class="w-14 h-14 rounded-xl bg-surface-700 flex items-center justify-center shrink-0 overflow-hidden">
-                            <img v-if="item.retur_data?.proof_image" :src="item.retur_data.proof_image"
-                                alt="Foto Retur" class="w-full h-full object-cover" />
+                            <img v-if="item.retur_data?.proof_image" :src="item.retur_data.proof_image" alt="Foto Retur"
+                                class="w-full h-full object-cover" />
                             <Package v-else :size="24" class="text-text-secondary" />
                         </div>
 
@@ -271,8 +263,8 @@ onMounted(() => {
                                 <span v-if="item.storage" class="text-text-secondary/70">{{ item.storage }}</span>
                             </div>
                             <div class="flex items-center gap-3 mt-1 text-xs">
-                                <span v-if="item.retur_data?.receipt_id"
-                                    class="text-amber-400 font-semibold">{{ item.retur_data.receipt_id }}</span>
+                                <span v-if="item.retur_data?.receipt_id" class="text-amber-400 font-semibold">{{
+                                    item.retur_data.receipt_id }}</span>
                                 <span v-if="item.retur_data?.customer_name" class="text-text-secondary">
                                     <UserCircle :size="10" class="inline mr-0.5" />{{ item.retur_data.customer_name }}
                                 </span>
@@ -367,7 +359,8 @@ onMounted(() => {
                                     <HardDrive :size="10" /> Storage
                                 </p>
                                 <p class="text-sm font-semibold text-text-primary">
-                                    {{ selectedItem.ram && selectedItem.storage ? `${selectedItem.ram} / ${selectedItem.storage}` : selectedItem.storage || '-' }}
+                                    {{ selectedItem.ram && selectedItem.storage ? `${selectedItem.ram} /
+                                    ${selectedItem.storage}` : selectedItem.storage || '-' }}
                                 </p>
                             </div>
 
@@ -388,7 +381,8 @@ onMounted(() => {
                                     <DollarSign :size="10" /> Harga Jual
                                 </p>
                                 <p class="text-sm font-bold text-emerald-400">
-                                    {{ formatCurrency(selectedItem.selling_price || selectedItem.retur_data?.selling_price) }}
+                                    {{ formatCurrency(selectedItem.selling_price ||
+                                    selectedItem.retur_data?.selling_price) }}
                                 </p>
                             </div>
 
