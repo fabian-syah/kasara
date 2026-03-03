@@ -38,9 +38,13 @@ import {
 
 const props = defineProps({
     isMobileMenuOpen: Boolean,
+    isExpanded: {
+        type: Boolean,
+        default: true
+    }
 });
 
-const emit = defineEmits(['close-mobile-menu']);
+const emit = defineEmits(['close-mobile-menu', 'expand-sidebar']);
 
 const route = useRoute();
 const router = useRouter();
@@ -48,12 +52,7 @@ const authStore = useAuthStore();
 const themeStore = useThemeStore();
 
 // Sidebar state
-const isExpanded = ref(true);
 const isMiniSidebar = ref(false);
-
-const toggleSidebar = () => {
-    isExpanded.value = !isExpanded.value;
-};
 
 // Navigation state
 const expandedMenus = ref({});
@@ -267,7 +266,7 @@ watch(() => route.path, () => {
             <div v-for="item in visibleMenuItems" :key="item.id">
                 <!-- Dropdown Menu -->
                 <div v-if="item.items" class="space-y-0.5">
-                    <button @click.prevent="toggleMenu(item.id); if (!isExpanded) isExpanded = true;" type="button"
+                    <button @click.prevent="toggleMenu(item.id); if (!isExpanded) emit('expand-sidebar');" type="button"
                         class="w-full flex items-center rounded-lg font-medium transition-all duration-200 group"
                         :class="[
                             isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',

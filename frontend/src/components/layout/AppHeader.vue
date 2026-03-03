@@ -24,11 +24,9 @@ const router = useRouter();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 
-const isThemeMenuOpen = ref(false);
 const isUserMenuOpen = ref(false);
 
 function closeMenus() {
-    isThemeMenuOpen.value = false;
     isUserMenuOpen.value = false;
 }
 
@@ -78,70 +76,6 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
         <!-- Right Side -->
         <div class="flex items-center gap-1 sm:gap-2">
-            <!-- Theme Toggle -->
-            <div class="relative">
-                <button @click="isThemeMenuOpen = !isThemeMenuOpen"
-                    class="p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                    <Palette :size="20" />
-                </button>
-
-                <!-- Theme Dropdown -->
-                <transition enter-active-class="transition duration-100 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-75 ease-in"
-                    leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
-                    <div v-if="isThemeMenuOpen"
-                        class="fixed inset-x-4 top-16 md:absolute md:top-auto md:right-0 md:left-auto md:w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 p-4 mt-2">
-
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-semibold text-gray-900 dark:text-white text-sm">
-                                Tampilan
-                            </h3>
-                            <button @click="isThemeMenuOpen = false"
-                                class="md:hidden p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white">
-                                <X :size="16" />
-                            </button>
-                            <button @click="themeStore.toggleDarkMode"
-                                class="hidden md:flex items-center gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300 text-xs font-medium"
-                                :title="themeStore.isDark
-                                    ? 'Switch to Light Mode'
-                                    : 'Switch to Dark Mode'
-                                    ">
-                                <Sun v-if="themeStore.isDark" :size="14" />
-                                <Moon v-else :size="14" />
-                                <span>{{ themeStore.isDark ? 'Light' : 'Dark' }}</span>
-                            </button>
-                        </div>
-
-                        <!-- Mobile Dark Mode Toggle -->
-                        <div
-                            class="flex md:hidden items-center justify-between mb-4 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Mode Gelap</span>
-                            <button @click="themeStore.toggleDarkMode"
-                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-                                :class="themeStore.isDark ? 'bg-primary-600' : 'bg-gray-300'">
-                                <span class="sr-only">Use setting</span>
-                                <span aria-hidden="true"
-                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                                    :class="themeStore.isDark ? 'translate-x-5' : 'translate-x-0'"></span>
-                            </button>
-                        </div>
-
-                        <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wider">
-                            Warna Tema
-                        </p>
-                        <div class="grid grid-cols-5 gap-2">
-                            <button v-for="theme in themeStore.availableThemes" :key="theme.id"
-                                @click="themeStore.setTheme(theme.id)"
-                                class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-transform hover:scale-110 shadow-sm"
-                                :class="themeStore.themeName === theme.id
-                                    ? 'border-gray-900 dark:border-white ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-primary-500'
-                                    : 'border-transparent'
-                                    " :style="{ backgroundColor: theme.color }" :title="theme.name"></button>
-                        </div>
-                    </div>
-                </transition>
-            </div>
 
             <!-- Dark mode quick toggle -->
             <button @click="themeStore.toggleDarkMode"
@@ -227,7 +161,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
             </div>
 
             <!-- Overlay for closing dropdown -->
-            <div v-if="isUserMenuOpen || isThemeMenuOpen" @click="closeMenus" class="fixed inset-0 z-40 bg-transparent">
+            <div v-if="isUserMenuOpen" @click="closeMenus" class="fixed inset-0 z-40 bg-transparent">
             </div>
         </div>
     </header>

@@ -41,7 +41,8 @@ onErrorCaptured((err, instance, info) => {
     <ToastContainer />
 
     <!-- Sidebar -->
-    <AppSidebar :is-mobile-menu-open="isMobileMenuOpen" @close-mobile-menu="isMobileMenuOpen = false" />
+    <AppSidebar :is-mobile-menu-open="isMobileMenuOpen" :is-expanded="isSidebarExpanded"
+      @close-mobile-menu="isMobileMenuOpen = false" @expand-sidebar="isSidebarExpanded = true" />
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
