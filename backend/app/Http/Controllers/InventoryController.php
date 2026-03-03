@@ -97,6 +97,16 @@ class InventoryController extends Controller
         if ($request->filled('warehouse_id'))
             $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
 
+        // Explicit placement_type filter (used for Monitoring pages)
+        if ($request->filled('placement_type')) {
+            $query->where('placement_type', $request->placement_type);
+        }
+
+        // Explicit distributor_id filter (used for Distributor Monitoring)
+        if ($request->filled('distributor_id')) {
+            $query->where('placement_type', 'distributor')->where('placement_id', $request->distributor_id);
+        }
+
         if ($request->filled('brand')) {
             $brands = explode(',', $request->brand);
             $query->whereHas('product', fn($q) => $q->whereIn('brand', $brands));

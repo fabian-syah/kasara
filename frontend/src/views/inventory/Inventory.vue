@@ -38,6 +38,22 @@ const props = defineProps({
   onlineShopId: {
     type: [Number, String],
     default: null
+  },
+  pageMode: {
+    type: String,
+    default: 'inventory', // 'inventory', 'warehouse', 'online_shop', 'distributor'
+  },
+  title: {
+    type: String,
+    default: 'Inventory'
+  },
+  subtitle: {
+    type: String,
+    default: 'Kelola stok produk di semua cabang'
+  },
+  hideActions: {
+    type: Boolean,
+    default: false
   }
 });
 const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
@@ -62,6 +78,8 @@ import {
   Building2,
   RotateCcw,
   ShoppingBag,
+  Globe,
+  PackageSearch,
   LogOut,
   Gift,
   Trophy,
@@ -228,6 +246,18 @@ async function loadInventory(page = 1) {
       status: selectedStockStatus.value === 'all' ? undefined : selectedStockStatus.value,
     };
 
+    if (props.pageMode === 'online_shop') {
+      params.placement_type = 'online_shop';
+    } else if (props.pageMode === 'warehouse') {
+      params.placement_type = 'warehouse';
+    } else if (props.pageMode === 'distributor') {
+      params.placement_type = 'distributor';
+      // For distributor, we also need to pass distributor_id if it's set in the user context
+      if (authStore.user?.distributor_id) {
+        params.distributor_id = authStore.user.distributor_id;
+      }
+    }
+
     // Use store action to populate both inventoryStore.products AND pagination
     await inventoryStore.fetchProducts(params);
 
@@ -247,24 +277,35 @@ const locations = ref([]);
 const selectedLocationKey = ref('all');
 
 const effectiveBranchId = computed(() => {
-  if (props.isEmbedded) return props.branchId || undefined;
+  if (props.isEmbedded || props.pageMode !== 'inventory') return props.branchId || undefined;
   if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return undefined;
   return selectedLocationKey.value.split(':')[1];
 });
 
 const effectiveOnlineShopId = computed(() => {
   if (props.isEmbedded) return props.onlineShopId || undefined;
+  if (props.pageMode === 'online_shop') {
+    if (selectedLocationKey.value === 'all') return undefined; // Let API handle multiple accessible shops
+    return selectedLocationKey.value.split(':')[1];
+  }
+  if (props.pageMode !== 'inventory') return undefined;
   if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return undefined;
   return selectedLocationKey.value.split(':')[1];
 });
 
 const effectiveWarehouseId = computed(() => {
   if (props.isEmbedded) return undefined;
+  if (props.pageMode === 'warehouse') {
+    if (selectedLocationKey.value === 'all') return undefined;
+    return selectedLocationKey.value.split(':')[1];
+  }
+  if (props.pageMode !== 'inventory') return undefined;
   if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('W:')) return undefined;
   return selectedLocationKey.value.split(':')[1];
 });
 
 const canFilterBranch = computed(() => {
+  if (props.pageMode !== 'inventory') return true; // Let the specific mode load its own locations
   const role = (authStore.userRole || '').toLowerCase();
   return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
 });
@@ -687,21 +728,35 @@ async function fetchLocations() {
 
     const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0;
 
-    if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
-      locations.value = allLocations;
-    } else if (hasAnyRestriction) {
-      locations.value = allLocations.filter(loc => {
-        if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
-        if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
-        if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
-        return false;
-      });
-      if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
-        const loc = locations.value[0];
-        selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`;
+    let filteredLocations = allLocations;
+
+    if (!isGlobalRole && role !== 'audit') {
+      if (hasAnyRestriction) {
+        filteredLocations = allLocations.filter(loc => {
+          if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+          if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+          if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
+          return false;
+        });
+      } else {
+        filteredLocations = [];
       }
+    }
+
+    // Apply pageMode restriction
+    if (props.pageMode === 'online_shop') {
+      locations.value = filteredLocations.filter(loc => loc.type === 'online_shop');
+    } else if (props.pageMode === 'warehouse') {
+      locations.value = filteredLocations.filter(loc => loc.type === 'warehouse');
+    } else if (props.pageMode === 'distributor') {
+      locations.value = []; // Handled separately or no location filter for distributor yet
     } else {
-      locations.value = [];
+      locations.value = filteredLocations;
+    }
+
+    if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+      const loc = locations.value[0];
+      selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`;
     }
   } catch (error) {
     console.error('Error fetching locations:', error);
@@ -767,11 +822,18 @@ function getStockStatus(product) {
   <div class="space-y-6 animate-in">
     <!-- Header -->
     <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-text-primary tracking-tight">Inventory</h1>
-        <p class="text-text-secondary mt-1">Kelola stok produk di semua cabang</p>
+      <div class="flex items-center gap-3">
+        <!-- Dynamic Icon based on pageMode -->
+        <Warehouse v-if="pageMode === 'warehouse'" :size="32" class="text-amber-500" />
+        <Globe v-else-if="pageMode === 'online_shop'" :size="32" class="text-cyan-500" />
+        <PackageSearch v-else-if="pageMode === 'distributor'" :size="32" class="text-primary-500" />
+
+        <div>
+          <h1 class="text-2xl font-bold text-text-primary tracking-tight">{{ title }}</h1>
+          <p class="text-text-secondary mt-1">{{ subtitle }}</p>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2 items-center justify-start md:justify-end w-full md:w-auto">
+      <div v-if="!hideActions" class="flex flex-wrap gap-2 items-center justify-start md:justify-end w-full md:w-auto">
         <!-- History Buttons -->
         <button class="btn btn-secondary" @click="router.push({ name: 'StockInHistory' })" title="Riwayat Masuk">
           <Calendar :size="16" />
@@ -849,9 +911,9 @@ function getStockStatus(product) {
         <div class="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto items-start md:items-center">
 
           <!-- Location Filter (Not Embedded Only) -->
-          <select v-if="!isEmbedded && canFilterBranch" v-model="selectedLocationKey"
+          <select v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" v-model="selectedLocationKey"
             class="input w-full md:w-48 bg-surface-800">
-            <option value="all">Semua Cabang/Toko</option>
+            <option value="all">Semua Lokasi</option>
             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
               :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`">
               <span v-if="loc.type === 'branch'">[Cabang]</span>
