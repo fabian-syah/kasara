@@ -42,7 +42,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
 <template>
     <header
-        class="sticky top-0 z-[999] flex items-center justify-between h-[72px] px-4 lg:px-6 bg-white/80 dark:bg-[#050505]/80 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/60 transition-colors duration-300">
+        class="sticky top-0 z-[40] flex items-center justify-between h-[72px] px-4 lg:px-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/60 transition-colors duration-300">
         <!-- Left Side: Hamburger & Toggle & Search -->
         <div class="flex items-center gap-3 flex-1">
             <!-- Mobile hamburger -->

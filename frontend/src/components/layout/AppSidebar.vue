@@ -232,65 +232,73 @@ watch(() => route.path, () => {
 
 <template>
     <aside
-        class="fixed inset-y-0 left-0 z-[99999] flex flex-col bg-white/80 dark:bg-[#050505]/90 backdrop-blur-2xl border-r border-neutral-200/50 dark:border-neutral-800/60 transition-all duration-300 lg:static"
+        class="fixed inset-y-0 left-0 z-[99999] flex flex-col bg-white/70 dark:bg-[#050505]/70 backdrop-blur-3xl border border-neutral-200/50 dark:border-neutral-800/60 shadow-xl transition-all duration-300 lg:static rounded-2xl md:rounded-[24px] overflow-hidden"
         :class="[
             isExpanded ? 'w-[290px]' : 'w-[90px]',
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         ]">
+        
+        <!-- macOS Traffic Lights (Desktop Only) -->
+        <div class="hidden lg:flex items-center gap-2 px-6 pt-5 pb-1">
+            <div class="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 cursor-pointer transition-colors shadow-sm"></div>
+            <div class="w-3 h-3 rounded-full bg-amber-500 hover:bg-amber-600 cursor-pointer transition-colors shadow-sm"></div>
+            <div class="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-600 cursor-pointer transition-colors shadow-sm" @click="emit('expand-sidebar')"></div>
+        </div>
+
         <!-- Logo Section -->
         <div
-            class="flex items-center justify-between h-[72px] px-6 border-b border-surface-200 dark:border-surface-800 shrink-0">
+            class="flex items-center justify-between px-6 py-4 shrink-0 border-b border-surface-200/50 dark:border-surface-800/50">
             <router-link to="/" class="flex items-center gap-3">
-                <img src="/images/logo-pstore.png" alt="PSTORE POS" class="w-12 h-12 object-contain dark:brightness-0 dark:invert" />
-                <span v-show="isExpanded" class="text-xl font-bold text-text-primary whitespace-nowrap">
-                    PSTORE <span class="text-primary-500">POS</span>
+                <img src="/images/logo-pstore.png" alt="PSTORE POS" class="object-contain dark:brightness-0 dark:invert transition-all" :class="isExpanded ? 'w-10 h-10' : 'w-12 h-12 mx-auto'" />
+                <span v-show="isExpanded" class="text-xl font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent whitespace-nowrap">
+                    PSTORE <span class="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">POS</span>
                 </span>
             </router-link>
             <!-- Close Button (Mobile Only) -->
             <button @click="emit('close-mobile-menu')"
-                class="lg:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                class="lg:hidden p-2 bg-neutral-100 dark:bg-neutral-800 text-text-secondary hover:text-text-primary rounded-xl transition-colors">
                 <X :size="20" />
             </button>
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 sidebar-scrollbar">
+        <nav class="flex-1 overflow-y-auto px-3 py-6 space-y-1.5 sidebar-scrollbar">
             <p v-show="isExpanded"
-                class="px-3 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                class="px-4 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-4">
                 Menu
             </p>
-            <div v-show="!isExpanded" class="flex justify-center mb-3">
+            <div v-show="!isExpanded" class="flex justify-center mb-4">
                 <MoreHorizontal :size="16" class="text-text-secondary" />
             </div>
 
             <div v-for="item in visibleMenuItems" :key="item.id">
                 <!-- Dropdown Menu -->
-                <div v-if="item.items" class="space-y-0.5">
+                <div v-if="item.items" class="space-y-1">
                     <button @click.prevent="toggleMenu(item.id); if (!isExpanded) emit('expand-sidebar');" type="button"
-                        class="w-full flex items-center rounded-lg font-medium transition-all duration-200 group"
+                        class="w-full flex items-center rounded-[14px] font-medium transition-all duration-300 group"
                         :class="[
-                            isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
+                            isExpanded ? 'gap-3 px-4 py-3' : 'justify-center p-3',
                             isGroupActive(item.items)
-                                ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-                                : 'text-text-secondary hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-text-primary'
+                                ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400'
+                                : 'text-text-secondary hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 hover:text-text-primary'
                         ]">
                         <component :is="item.icon" :size="20" class="shrink-0" />
                         <span v-show="isExpanded" class="text-sm flex-1 text-left">{{ item.label }}</span>
-                        <ChevronDown v-show="isExpanded" :size="16" class="shrink-0 transition-transform duration-200"
+                        <ChevronDown v-show="isExpanded" :size="16" class="shrink-0 transition-transform duration-300 opacity-60 group-hover:opacity-100"
                             :class="{ 'rotate-180': expandedMenus[item.id] || isGroupActive(item.items) }" />
                     </button>
 
                     <!-- Submenu Items -->
                     <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
-                        class="ml-9 space-y-0.5 mt-1">
+                        class="ml-8 space-y-1 mt-1.5 border-l-2 border-neutral-100 dark:border-neutral-800/60 pl-2">
                         <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
-                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
                             :class="isActiveRoute(subitem.path)
-                                ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:hover:bg-surface-800/50'
+                                ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'
+                                : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'
                                 ">
                             <div class="w-1.5 h-1.5 rounded-full shrink-0"
-                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'">
+                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
                             </div>
                             <span>{{ subitem.label }}</span>
                         </router-link>
@@ -299,27 +307,27 @@ watch(() => route.path, () => {
 
                 <!-- Regular Link -->
                 <router-link v-else :to="item.path"
-                    class="flex items-center rounded-lg font-medium transition-all duration-200 group" :class="[
-                        isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
+                    class="flex items-center rounded-[14px] font-medium transition-all duration-300 group" :class="[
+                        isExpanded ? 'gap-3 px-4 py-3' : 'justify-center p-3',
                         isActiveRoute(item.path)
-                            ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-                            : 'text-text-secondary hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-text-primary'
+                            ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 shadow-sm'
+                            : 'text-text-secondary hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 hover:text-text-primary'
                     ]" :title="!isExpanded ? item.label : undefined">
-                    <component :is="item.icon" :size="20" class="shrink-0" />
+                    <component :is="item.icon" :size="20" class="shrink-0 transition-transform duration-300 group-hover:scale-110" />
                     <span v-show="isExpanded" class="text-sm">{{ item.label }}</span>
                 </router-link>
             </div>
         </nav>
 
         <!-- User Section -->
-        <div class="border-t border-gray-200 dark:border-gray-800 p-4">
-            <div v-if="isExpanded" class="flex items-center gap-3 mb-3 px-1">
+        <div class="border-t border-surface-200/50 dark:border-surface-800/50 p-4">
+            <div v-if="isExpanded" class="flex items-center gap-3 mb-4 px-2">
                 <img :src="authStore.user?.photo
                     ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
-                    class="w-10 h-10 rounded-full border-2 border-surface-200 dark:border-surface-700 object-cover"
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '10b981' : '050505'}&color=fff&size=128`"
+                    class="w-10 h-10 rounded-full border-2 border-surface-200 dark:border-surface-700 object-cover shadow-sm transition-transform hover:scale-105"
                     :alt="userName"
-                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
+                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '10b981' : '050505'}&color=fff&size=128`" />
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-text-primary truncate">
                         {{ userName }}
@@ -330,9 +338,9 @@ watch(() => route.path, () => {
                 </div>
             </div>
             <button @click="handleLogout"
-                class="flex items-center w-full rounded-lg transition-all duration-200 text-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
-                :class="isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5'">
-                <LogOut :size="20" />
+                class="flex items-center w-full rounded-[14px] transition-all duration-300 text-text-secondary hover:text-red-500 hover:bg-red-500/10"
+                :class="isExpanded ? 'gap-3 px-4 py-3' : 'justify-center p-3'">
+                <LogOut :size="20" class="transition-transform group-hover:-translate-x-1" />
                 <span v-show="isExpanded" class="text-sm font-medium">Keluar</span>
             </button>
         </div>

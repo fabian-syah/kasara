@@ -40,22 +40,25 @@ onErrorCaptured((err, instance, info) => {
 
     <ToastContainer />
 
-    <!-- Sidebar -->
-    <AppSidebar :is-mobile-menu-open="isMobileMenuOpen" :is-expanded="isSidebarExpanded"
-      @close-mobile-menu="isMobileMenuOpen = false" @expand-sidebar="isSidebarExpanded = true" />
+    <!-- Sidebar & Main Content Wrapper for floating effect -->
+    <div class="flex flex-1 w-full h-full relative p-2 md:p-4 gap-2 md:gap-4 overflow-hidden">
+      <!-- Sidebar -->
+      <AppSidebar :is-mobile-menu-open="isMobileMenuOpen" :is-expanded="isSidebarExpanded"
+        @close-mobile-menu="isMobileMenuOpen = false" @expand-sidebar="isSidebarExpanded = true" />
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-      <!-- Header -->
-      <AppHeader @toggle-mobile-menu="isMobileMenuOpen = !isMobileMenuOpen" @toggle-sidebar="toggleSidebar" />
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200/50 dark:border-neutral-800/60 relative overflow-hidden transition-colors duration-500">
+        <!-- Header -->
+        <AppHeader @toggle-mobile-menu="isMobileMenuOpen = !isMobileMenuOpen" @toggle-sidebar="toggleSidebar" />
 
-      <!-- Page Content Wrapper -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar">
-        <div class="p-4 md:p-6 lg:p-8 max-w-[1920px] mx-auto">
-          <router-view />
+        <!-- Page Content Wrapper -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+          <div class="p-4 md:p-6 lg:p-8 max-w-[1920px] mx-auto">
+            <router-view />
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
 
