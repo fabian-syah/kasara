@@ -32,7 +32,7 @@ onErrorCaptured((err, instance, info) => {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-950 font-sans antialiased">
+  <div class="flex h-screen overflow-hidden bg-neutral-50 dark:bg-[#050505] font-sans antialiased transition-colors duration-500">
     <!-- Mobile Backdrop -->
     <div v-if="isMobileMenuOpen" class="fixed inset-0 bg-black/50 z-[99998] lg:hidden backdrop-blur-sm"
       @click="isMobileMenuOpen = false">
