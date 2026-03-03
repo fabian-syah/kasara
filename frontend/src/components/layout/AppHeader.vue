@@ -42,7 +42,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
 <template>
     <header
-        class="sticky top-0 z-[40] flex items-center justify-between h-[72px] px-4 lg:px-8 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/60 transition-colors duration-300">
+        class="sticky top-0 z-[40] flex items-center justify-between h-[72px] px-4 lg:px-8 bg-white/80 dark:bg-surface-900/80 backdrop-blur-2xl border-b border-neutral-200/50 dark:border-neutral-800/60 transition-colors duration-300">
         <!-- Left Side: Hamburger & Toggle & Search -->
         <div class="flex items-center gap-3 flex-1">
             <!-- Mobile hamburger -->
@@ -125,7 +125,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                     leave-active-class="transition duration-75 ease-in"
                     leave-from-class="transform scale-100 opacity-100" leave-to-class="transform scale-95 opacity-0">
                     <div v-if="isUserMenuOpen"
-                        class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                        class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-surface-900 border border-neutral-200 dark:border-surface-700 rounded-xl shadow-xl z-50 overflow-hidden">
 
                         <!-- Mobile User Info in Dropdown -->
                         <div

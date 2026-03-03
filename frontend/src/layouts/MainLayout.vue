@@ -47,7 +47,7 @@ onErrorCaptured((err, instance, info) => {
         @close-mobile-menu="isMobileMenuOpen = false" @expand-sidebar="isSidebarExpanded = true" />
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200/50 dark:border-neutral-800/60 relative overflow-hidden transition-colors duration-500">
+      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-surface-900 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200/50 dark:border-neutral-800/60 relative overflow-hidden transition-colors duration-500">
         <!-- Header -->
         <AppHeader @toggle-mobile-menu="isMobileMenuOpen = !isMobileMenuOpen" @toggle-sidebar="toggleSidebar" />
 
