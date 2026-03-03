@@ -47,13 +47,13 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
         <div class="flex items-center gap-3 flex-1">
             <!-- Mobile hamburger -->
             <button @click="emit('toggle-mobile-menu')"
-                class="lg:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                class="lg:hidden p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
                 <Menu :size="22" />
             </button>
 
             <!-- Desktop sidebar toggle -->
             <button @click="emit('toggle-sidebar')"
-                class="hidden lg:flex p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                class="hidden lg:flex p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <line x1="3" y1="7" x2="21" y2="7"></line>
@@ -64,11 +64,11 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
             <!-- Search -->
             <div class="relative w-full max-w-[200px] sm:max-w-sm lg:max-w-md group">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" :size="18" />
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
                 <input type="text" placeholder="Cari..."
-                    class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2.5 pl-10 pr-12 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500" />
+                    class="w-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg py-2.5 pl-10 pr-12 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                 <span
-                    class="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[11px] text-gray-400 font-mono bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                    class="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[11px] text-text-secondary font-mono bg-surface-200 dark:bg-surface-700 px-1.5 py-0.5 rounded">
                     ⌘K
                 </span>
             </div>
@@ -79,28 +79,27 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
             <!-- Dark mode quick toggle -->
             <button @click="themeStore.toggleDarkMode"
-                class="hidden md:block p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                class="hidden md:block p-2.5 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
                 <Sun v-if="themeStore.isDark" :size="20" />
                 <Moon v-else :size="20" />
             </button>
 
             <!-- Notifications -->
             <button
-                class="relative p-2.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+                class="relative p-2.5 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
                 <Bell :size="20" />
-                <span
-                    class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-gray-900"></span>
+                <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-surface-950"></span>
             </button>
 
             <!-- Separator -->
-            <div class="h-8 w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
+            <div class="h-8 w-px bg-surface-200 dark:bg-surface-700 mx-1"></div>
 
             <!-- User Avatar & Dropdown -->
             <div class="relative">
                 <button @click="isUserMenuOpen = !isUserMenuOpen"
-                    class="flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 rounded-lg transition-colors focus:outline-none">
+                    class="flex items-center gap-3 hover:bg-surface-100 dark:hover:bg-surface-800 p-1.5 rounded-lg transition-colors focus:outline-none">
                     <div
-                        class="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 shadow-sm">
+                        class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-200 dark:border-surface-700 shadow-sm">
                         <img :src="authStore.user?.photo
                             ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
                             : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
@@ -108,14 +107,15 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                             @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
                     </div>
                     <div class="text-left hidden sm:block">
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white leading-none">
+                        <p class="text-sm font-semibold text-text-primary leading-none">
                             {{ userName }}
                         </p>
-                        <p class="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">
+                        <p class="text-[11px] text-text-secondary font-medium mt-0.5">
                             {{ userRole }}
                         </p>
                     </div>
-                    <ChevronDown :size="16" class="text-gray-400 transition-transform duration-200 hidden sm:block"
+                    <ChevronDown :size="16"
+                        class="text-text-secondary transition-transform duration-200 hidden sm:block"
                         :class="{ 'rotate-180': isUserMenuOpen }" />
                 </button>
 
@@ -129,25 +129,25 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
 
                         <!-- Mobile User Info in Dropdown -->
                         <div
-                            class="block sm:hidden px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ userName }}</p>
-                            <p class="text-xs text-gray-500 truncate">{{ authStore.user?.email }}</p>
+                            class="block sm:hidden px-4 py-3 border-b border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800">
+                            <p class="text-sm font-semibold text-text-primary truncate">{{ userName }}</p>
+                            <p class="text-xs text-text-secondary truncate">{{ authStore.user?.email }}</p>
                         </div>
 
                         <div class="p-1">
                             <router-link to="/settings" @click="isUserMenuOpen = false"
-                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
                                 <Settings :size="16" />
                                 <span>Pengaturan Profil</span>
                             </router-link>
                             <button @click="themeStore.toggleDarkMode"
-                                class="w-full flex md:hidden items-center gap-3 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                                class="w-full flex md:hidden items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
                                 <component :is="themeStore.isDark ? Sun : Moon" :size="16" />
                                 <span>{{ themeStore.isDark ? 'Mode Terang' : 'Mode Gelap' }}</span>
                             </button>
                         </div>
 
-                        <div class="h-px bg-gray-200 dark:bg-gray-700 my-1"></div>
+                        <div class="h-px bg-surface-200 dark:bg-surface-700 my-1"></div>
 
                         <div class="p-1">
                             <button @click="handleLogout"

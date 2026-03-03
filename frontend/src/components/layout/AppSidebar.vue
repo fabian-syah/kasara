@@ -239,10 +239,10 @@ watch(() => route.path, () => {
         ]">
         <!-- Logo Section -->
         <div
-            class="flex items-center justify-between h-[72px] px-6 border-b border-gray-200 dark:border-gray-800 shrink-0">
+            class="flex items-center justify-between h-[72px] px-6 border-b border-surface-200 dark:border-surface-800 shrink-0">
             <router-link to="/" class="flex items-center gap-3">
                 <img src="/images/logo-pstore.png" alt="PSTORE POS" class="w-8 h-8 object-contain" />
-                <span v-show="isExpanded" class="text-lg font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                <span v-show="isExpanded" class="text-lg font-bold text-text-primary whitespace-nowrap">
                     PSTORE <span class="text-primary-500">POS</span>
                 </span>
             </router-link>
@@ -256,11 +256,11 @@ watch(() => route.path, () => {
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 sidebar-scrollbar">
             <p v-show="isExpanded"
-                class="px-3 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                class="px-3 text-[11px] font-semibold text-text-secondary uppercase tracking-wider mb-3">
                 Menu
             </p>
             <div v-show="!isExpanded" class="flex justify-center mb-3">
-                <MoreHorizontal :size="16" class="text-gray-400" />
+                <MoreHorizontal :size="16" class="text-text-secondary" />
             </div>
 
             <div v-for="item in visibleMenuItems" :key="item.id">
@@ -272,7 +272,7 @@ watch(() => route.path, () => {
                             isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
                             isGroupActive(item.items)
                                 ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                                : 'text-text-secondary hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-text-primary'
                         ]">
                         <component :is="item.icon" :size="20" class="shrink-0" />
                         <span v-show="isExpanded" class="text-sm flex-1 text-left">{{ item.label }}</span>
@@ -287,7 +287,7 @@ watch(() => route.path, () => {
                             class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200"
                             :class="isActiveRoute(subitem.path)
                                 ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:hover:bg-surface-800/50'
                                 ">
                             <div class="w-1.5 h-1.5 rounded-full shrink-0"
                                 :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'">
@@ -303,7 +303,7 @@ watch(() => route.path, () => {
                         isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
                         isActiveRoute(item.path)
                             ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                            : 'text-text-secondary hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-text-primary'
                     ]" :title="!isExpanded ? item.label : undefined">
                     <component :is="item.icon" :size="20" class="shrink-0" />
                     <span v-show="isExpanded" class="text-sm">{{ item.label }}</span>
@@ -317,11 +317,11 @@ watch(() => route.path, () => {
                 <img :src="authStore.user?.photo
                     ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
-                    class="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-700 object-cover"
+                    class="w-10 h-10 rounded-full border-2 border-surface-200 dark:border-surface-700 object-cover"
                     :alt="userName"
                     @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                    <p class="text-sm font-semibold text-text-primary truncate">
                         {{ userName }}
                     </p>
                     <p class="text-[11px] text-primary-500 font-medium uppercase tracking-wide">
@@ -330,7 +330,7 @@ watch(() => route.path, () => {
                 </div>
             </div>
             <button @click="handleLogout"
-                class="flex items-center w-full rounded-lg transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                class="flex items-center w-full rounded-lg transition-all duration-200 text-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                 :class="isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5'">
                 <LogOut :size="20" />
                 <span v-show="isExpanded" class="text-sm font-medium">Keluar</span>
