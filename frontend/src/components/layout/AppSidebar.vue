@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "../../store/auth";
 import { useThemeStore } from "../../store/theme";
@@ -32,7 +32,8 @@ import {
     Search,
     ArrowDownRight,
     DollarSign,
-    HelpCircle
+    HelpCircle,
+    MoreHorizontal
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -46,18 +47,22 @@ const router = useRouter();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 
+// Sidebar state
+const isExpanded = ref(true);
+const isMiniSidebar = ref(false);
+
+const toggleSidebar = () => {
+    isExpanded.value = !isExpanded.value;
+};
+
 // Navigation state
-const expandedMenus = ref({
-    reports: false,
-});
+const expandedMenus = ref({});
 
 const toggleMenu = (id) => {
-    // Gunakan spread operator atau pastikan key sudah ada agar reaktif
     expandedMenus.value = {
         ...expandedMenus.value,
         [id]: !expandedMenus.value[id]
     };
-    console.log('New state for', id, ':', expandedMenus.value[id]);
 };
 
 // Menu configuration
@@ -89,7 +94,7 @@ const menuItems = [
         ]
     },
 
-    // Modul Cabang Fisik (TAMBAHKAN INI)
+    // Modul Cabang Fisik
     { id: "branches", path: "/branches", label: "Cabang Fisik", icon: Building2 },
 
     // Special
@@ -97,7 +102,6 @@ const menuItems = [
     { id: "online_monitoring", path: "/monitoring/online", label: "Monitoring Stok Online", icon: Globe },
     { id: "warehouse_monitoring", path: "/monitoring/warehouse", label: "Monitoring Stok Gudang", icon: Warehouse },
 
-    //   { id: "pos", path: "/pos", label: "Kasir (POS)", icon: ShoppingCart },
     { id: "inventory", path: "/inventory", label: "Inventory", icon: Box },
     { id: "products", path: "/products", label: "Produk", icon: Package },
     { id: "users", path: "/users", label: "Staff & Role", icon: Users },
@@ -145,9 +149,6 @@ const menuItems = [
             { id: "outgoing_transfer_history", path: "/inventory/outgoing-history", label: "Riwayat Keluar" },
         ]
     },
-
-    // Admin Produk Reports (Moved to Online Shop section conceptually or renamed)
-    // The user wants it for "toko_online" role.
 
     // Master Data
     { id: "warehouses", path: "/warehouses", label: "Cabang & Gudang", icon: Warehouse },
@@ -223,70 +224,75 @@ function isActiveRoute(path) {
 function isGroupActive(items) {
     return items.some(item => isActiveRoute(item.path));
 }
+
+// Close mobile menu on route change
+watch(() => route.path, () => {
+    emit('close-mobile-menu');
+});
 </script>
 
 <template>
     <aside
-        class="fixed inset-y-0 left-0 z-100 w-64 bg-surface-800 border-r border-surface-700 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0"
-        :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'">
-        <!-- Logo -->
-        <div class="p-6 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div
-                    class="w-10 h-10 bg-primary-600 rounded-xl shadow-lg shadow-primary-500/20 flex items-center justify-center text-white font-black text-xl">
-                    A
-                </div>
-                <span class="text-xl font-bold tracking-tight text-text-primary">
-                    APEX<span class="text-primary-500">POS</span>
+        class="fixed inset-y-0 left-0 z-[99999] flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 lg:static"
+        :class="[
+            isExpanded ? 'w-[290px]' : 'w-[90px]',
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        ]">
+        <!-- Logo Section -->
+        <div
+            class="flex items-center justify-between h-[72px] px-6 border-b border-gray-200 dark:border-gray-800 shrink-0">
+            <router-link to="/" class="flex items-center gap-3">
+                <img src="/images/logo-pstore.png" alt="PSTORE POS" class="w-8 h-8 object-contain" />
+                <span v-show="isExpanded" class="text-lg font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                    PSTORE <span class="text-primary-500">POS</span>
                 </span>
-            </div>
+            </router-link>
             <!-- Close Button (Mobile Only) -->
-            <button @click="emit('close-mobile-menu')" class="lg:hidden text-text-secondary hover:text-text-primary">
-                <X :size="24" />
+            <button @click="emit('close-mobile-menu')"
+                class="lg:hidden text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <X :size="20" />
             </button>
         </div>
 
-        <!-- Branch Indicator -->
-        <div class="mx-4 px-4 py-3 bg-surface-900 rounded-xl border border-surface-700 mb-4">
-            <div class="flex items-center gap-2 text-xs text-text-secondary mb-1">
-                <Building2 :size="12" />
-                <span>CABANG AKTIF</span>
-            </div>
-            <p class="text-sm font-medium text-text-primary truncate">
-                {{ userBranch }}
-            </p>
-        </div>
-
         <!-- Navigation -->
-        <nav class="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-            <p class="px-4 text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-2">
-                Menu Utama
+        <nav class="flex-1 overflow-y-auto px-4 py-6 space-y-1 sidebar-scrollbar">
+            <p v-show="isExpanded"
+                class="px-3 text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                Menu
             </p>
+            <div v-show="!isExpanded" class="flex justify-center mb-3">
+                <MoreHorizontal :size="16" class="text-gray-400" />
+            </div>
 
             <div v-for="item in visibleMenuItems" :key="item.id">
                 <!-- Dropdown Menu -->
-                <div v-if="item.items" class="space-y-1">
-                    <button @click.prevent="toggleMenu(item.id)" type="button"
-                        class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border border-transparent hover:bg-surface-700 hover:text-text-primary"
+                <div v-if="item.items" class="space-y-0.5">
+                    <button @click.prevent="toggleMenu(item.id); if (!isExpanded) isExpanded = true;" type="button"
+                        class="w-full flex items-center rounded-lg font-medium transition-all duration-200 group"
                         :class="[
-                            isGroupActive(item.items) ? 'text-primary-500' : 'text-text-secondary'
+                            isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
+                            isGroupActive(item.items)
+                                ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                         ]">
-                        <component :is="item.icon" :size="18" />
-                        <span>{{ item.label }}</span>
-                        <ChevronDown :size="16" class="ml-auto transition-transform duration-200"
+                        <component :is="item.icon" :size="20" class="shrink-0" />
+                        <span v-show="isExpanded" class="text-sm flex-1 text-left">{{ item.label }}</span>
+                        <ChevronDown v-show="isExpanded" :size="16" class="shrink-0 transition-transform duration-200"
                             :class="{ 'rotate-180': expandedMenus[item.id] || isGroupActive(item.items) }" />
                     </button>
 
                     <!-- Submenu Items -->
-                    <div v-show="expandedMenus[item.id] || isGroupActive(item.items)" class="pl-4 space-y-1">
+                    <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
+                        class="ml-9 space-y-0.5 mt-1">
                         <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
-                            class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200"
                             :class="isActiveRoute(subitem.path)
-                                ? 'bg-primary-500/10 text-primary-600 border-primary-500/20'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'
+                                ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                                 ">
-                            <div class="w-1.5 h-1.5 rounded-full"
-                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-surface-600'"></div>
+                            <div class="w-1.5 h-1.5 rounded-full shrink-0"
+                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'">
+                            </div>
                             <span>{{ subitem.label }}</span>
                         </router-link>
                     </div>
@@ -294,58 +300,61 @@ function isGroupActive(items) {
 
                 <!-- Regular Link -->
                 <router-link v-else :to="item.path"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group border"
-                    :class="isActiveRoute(item.path)
-                        ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 border-primary-500/20'
-                        : 'text-text-secondary border-transparent hover:bg-surface-700 hover:text-text-primary'
-                        ">
-                    <component :is="item.icon" :size="18" class="transition-colors" :class="isActiveRoute(item.path)
-                        ? 'text-primary-600 dark:text-primary-400'
-                        : 'text-text-secondary group-hover:text-primary-500'
-                        " />
-                    <span>{{ item.label }}</span>
-                    <ChevronRight :size="14" class="ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                    class="flex items-center rounded-lg font-medium transition-all duration-200 group" :class="[
+                        isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
+                        isActiveRoute(item.path)
+                            ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+                    ]" :title="!isExpanded ? item.label : undefined">
+                    <component :is="item.icon" :size="20" class="shrink-0" />
+                    <span v-show="isExpanded" class="text-sm">{{ item.label }}</span>
                 </router-link>
             </div>
         </nav>
 
         <!-- User Section -->
-        <div class="p-4 bg-surface-900 border-t border-surface-700">
-            <div class="flex items-center gap-3 mb-4 px-2">
+        <div class="border-t border-gray-200 dark:border-gray-800 p-4">
+            <div v-if="isExpanded" class="flex items-center gap-3 mb-3 px-1">
                 <img :src="authStore.user?.photo
                     ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
-                    class="w-10 h-10 rounded-xl border-2 border-surface-700 object-cover" :alt="userName"
+                    class="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-700 object-cover"
+                    :alt="userName"
                     @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-text-primary truncate">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
                         {{ userName }}
                     </p>
-                    <p class="text-[10px] text-primary-500 font-medium uppercase tracking-wide">
+                    <p class="text-[11px] text-primary-500 font-medium uppercase tracking-wide">
                         {{ userRole }}
                     </p>
                 </div>
             </div>
             <button @click="handleLogout"
-                class="flex items-center gap-3 w-full p-3 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-300">
-                <LogOut :size="18" />
-                <span class="font-medium">Keluar</span>
+                class="flex items-center w-full rounded-lg transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                :class="isExpanded ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5'">
+                <LogOut :size="20" />
+                <span v-show="isExpanded" class="text-sm font-medium">Keluar</span>
             </button>
         </div>
     </aside>
 </template>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+.sidebar-scrollbar::-webkit-scrollbar {
+    width: 4px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+.sidebar-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #1e293b;
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.3);
     border-radius: 9999px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.5);
 }
 </style>

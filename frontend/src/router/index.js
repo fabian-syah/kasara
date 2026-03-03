@@ -562,8 +562,8 @@ router.beforeEach(async (to, from, next) => {
 // Update document title
 router.afterEach((to) => {
     document.title = to.meta.title
-        ? `${to.meta.title} | APEX POS`
-        : 'APEX POS'
+        ? `${to.meta.title} | PSTORE POS`
+        : 'PSTORE POS'
 })
 
 // Handle chunk load errors (e.g., after deployment)

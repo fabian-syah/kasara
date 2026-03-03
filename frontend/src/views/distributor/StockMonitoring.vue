@@ -80,7 +80,7 @@ onMounted(() => {
                 <PackageSearch :size="28" class="text-primary-500" /> Monitoring Stok Distributor
             </h1>
             <p class="text-text-secondary mt-1 max-w-2xl">
-                Pantau ketersediaan barang yang Anda suplai di seluruh jaringan cabang APEX POS.
+                Pantau ketersediaan barang yang Anda suplai di seluruh jaringan cabang PSTORE POS.
             </p>
         </div>
 
@@ -335,7 +335,7 @@ onMounted(() => {
                                         <div class="text-text-secondary mt-0.5">{{ formatDate(item.date) }}</div>
                                         <div class="text-text-secondary mt-0.5 text-[10px] font-mono opacity-75">{{
                                             item.receipt_id
-                                        }}</div>
+                                            }}</div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-text-primary">{{ item.brand }}</div>

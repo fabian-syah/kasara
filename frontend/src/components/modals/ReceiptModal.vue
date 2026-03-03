@@ -29,7 +29,7 @@
                     </div>
 
                     <h2 class="text-xl font-bold text-gray-900 mb-1" v-if="imageError">{{ transaction?.outlet_name ||
-                        'APEX POS' }}</h2>
+                        'PSTORE POS' }}</h2>
                     <p class="text-xs text-gray-500 mb-4 print:text-black">
                         {{ transaction?.outlet_address || 'Jl. Raya Example No. 123, Indonesia' }}</p>
 
