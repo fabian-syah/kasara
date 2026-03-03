@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('product-prices', App\Http\Controllers\ProductPriceController::class);
 
     // Inventory
+    Route::get('/inventory/stock-summary', [InventoryController::class, 'stockSummary']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::get('/inventory/history/in', [InventoryController::class, 'stockInHistory']);
     Route::get('/inventory/history/out', [InventoryController::class, 'stockOutHistory']);

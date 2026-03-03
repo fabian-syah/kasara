@@ -159,6 +159,6 @@ class StockOut extends Model
 
     public function auditProfit()
     {
-        return $this->hasOne(AuditProfit::class);
+        return $this->hasOne(AuditProfit::class, 'stock_out_id', 'id');
     }
 }

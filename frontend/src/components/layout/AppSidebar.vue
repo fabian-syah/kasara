@@ -100,6 +100,7 @@ const menuItems = [
     { id: "distributor_monitoring", path: "/distributor/monitoring", label: "Monitoring Distributor", icon: PackageSearch },
     { id: "online_monitoring", path: "/monitoring/online", label: "Monitoring Stok Online", icon: Globe },
     { id: "warehouse_monitoring", path: "/monitoring/warehouse", label: "Monitoring Stok Gudang", icon: Warehouse },
+    { id: "stock_summary", path: "/monitoring/summary", label: "Ringkasan Stok", icon: Box },
 
     { id: "inventory", path: "/inventory", label: "Inventory", icon: Box },
     { id: "products", path: "/products", label: "Produk", icon: Package },

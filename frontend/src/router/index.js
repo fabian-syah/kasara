@@ -114,6 +114,16 @@ const routes = [
                 }
             },
             {
+                path: 'monitoring/summary',
+                name: 'StockSummary',
+                component: () => import('../views/monitoring/StockSummary.vue'),
+                meta: {
+                    title: 'Ringkasan Stok',
+                    menu: 'stock_summary',
+                    permissions: ['distributor.monitoring', 'online.monitoring', 'warehouse.monitoring']
+                }
+            },
+            {
                 path: 'inventory',
                 name: 'Inventory',
                 component: Inventory,

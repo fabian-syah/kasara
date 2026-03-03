@@ -1645,4 +1645,133 @@ class InventoryController extends Controller
             ]
         ]);
     }
+
+    public function stockSummary(Request $request)
+    {
+        $user = Auth::user();
+
+        $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);
+        $bIds = (array) ($user->getAccessibleBranchIds() ?: []);
+        $wIds = (array) ($user->getAccessibleWarehouseIds() ?: []);
+
+        if ($user->online_shop_id)
+            $osIds[] = $user->online_shop_id;
+        if ($user->branch_id)
+            $bIds[] = $user->branch_id;
+        if ($user->warehouse_id)
+            $wIds[] = $user->warehouse_id;
+
+        $osIds = array_unique(array_filter($osIds));
+        $bIds = array_unique(array_filter($bIds));
+        $wIds = array_unique(array_filter($wIds));
+        $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
+
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
+
+        // Non-HP Query
+        $nonHpQuery = Inventory::with('product')
+            ->where('quantity', '>', 0)
+            ->whereHas('product', fn($q) => $q->where('type', 'non-hp')->orWhere('has_imei', false));
+
+        // HP Query
+        $hpQuery = ProductDetail::with('product')
+            ->whereIn('status', ['available', 'booking', 'returned', 'process'])
+            ->whereHas('product', fn($q) => $q->where('type', 'hp')->orWhere('has_imei', true));
+
+        // Apply security filter
+        $applySecurity = function ($query) use ($unrestricted, $osIds, $bIds, $wIds, $dIds) {
+            if (!$unrestricted) {
+                $query->where(function ($q) use ($osIds, $bIds, $wIds, $dIds) {
+                    $hasConstraint = false;
+                    if (!empty($osIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($bIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($wIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($dIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
+                        $hasConstraint = true;
+                    }
+                    if (!$hasConstraint)
+                        $q->whereRaw('0 = 1');
+                });
+            }
+        };
+
+        $applySecurity($nonHpQuery);
+        $applySecurity($hpQuery);
+
+        $nonHpItems = $nonHpQuery->get();
+        $hpItems = $hpQuery->get();
+
+        $combined = [];
+        $totalQty = 0;
+
+        foreach ($nonHpItems as $item) {
+            $product = $item->product;
+            if (!$product)
+                continue;
+
+            $key = 'nonhp_' . $product->id;
+
+            if (!isset($combined[$key])) {
+                $combined[$key] = [
+                    'name' => $product->name,
+                    'brand' => $product->brand,
+                    'storage' => null,
+                    'condition' => null,
+                    'quantity' => 0,
+                ];
+            }
+            $combined[$key]['quantity'] += $item->quantity;
+            $totalQty += $item->quantity;
+        }
+
+        foreach ($hpItems as $item) {
+            $product = $item->product;
+            if (!$product)
+                continue;
+
+            $storageLabel = implode('/', array_filter([$item->ram, $item->storage]));
+            if (empty($storageLabel))
+                $storageLabel = null;
+
+            $conditionLabel = $item->condition === 'new' ? 'Baru' : ($item->condition === 'second' ? 'Second' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : $item->condition));
+
+            $key = 'hp_' . $product->id . '_' . $storageLabel . '_' . $conditionLabel;
+
+            if (!isset($combined[$key])) {
+                $combined[$key] = [
+                    'name' => $product->name,
+                    'brand' => $product->brand,
+                    'storage' => $storageLabel,
+                    'condition' => $conditionLabel,
+                    'quantity' => 0,
+                ];
+            }
+            $combined[$key]['quantity'] += 1;
+            $totalQty += 1;
+        }
+
+        $combinedValues = array_values($combined);
+        usort($combinedValues, function ($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
+
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'totalItems' => count($combinedValues),
+                'totalQuantity' => $totalQty
+            ],
+            'items' => $combinedValues
+        ]);
+    }
 }
