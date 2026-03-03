@@ -11,8 +11,6 @@ import {
   Loader2,
   Moon,
   Sun,
-  Moon,
-  Sun,
 } from "lucide-vue-next"; // Icons
 
 const router = useRouter();
