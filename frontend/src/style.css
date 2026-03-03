@@ -206,12 +206,7 @@ select {
 
 /* Force checkbox colors */
 input[type="checkbox"] {
-  accent-color: var(--color-text-primary);
-}
-
-input[type="checkbox"]:checked {
-  background-color: var(--color-text-primary);
-  border-color: var(--color-text-primary);
+  accent-color: var(--color-primary-500);
 }
 
 #app {
