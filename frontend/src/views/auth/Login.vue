@@ -114,50 +114,53 @@ function demoLogin(role) {
     ]">
       
       <!-- Left Panel: Branding & Value Props -->
-      <div class="hidden lg:flex lg:w-5/12 p-12 flex-col justify-between relative overflow-hidden bg-gradient-to-br from-emerald-950 to-neutral-950">
-        <!-- Inside left panel we force a dark elegant aesthetic regardless of theme for contrast -->
-        <div class="absolute inset-0 bg-emerald-500/5 backdrop-blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-emerald-900/30 to-transparent"></div>
+      <div :class="[
+        'hidden lg:flex lg:w-5/12 p-12 flex-col justify-between relative overflow-hidden transition-colors duration-500',
+        themeStore.isDark ? 'bg-gradient-to-br from-emerald-950 to-neutral-950' : 'bg-gradient-to-br from-emerald-50 to-teal-50'
+      ]">
+        <!-- Inside left panel -->
+        <div :class="['absolute inset-0 backdrop-blur-3xl transition-colors duration-500', themeStore.isDark ? 'bg-emerald-500/5' : 'bg-white/40']"></div>
+        <div :class="['absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t to-transparent transition-colors duration-500', themeStore.isDark ? 'from-emerald-900/30' : 'from-emerald-200/30']"></div>
         
         <div class="relative z-10 flex flex-col gap-8">
           <div class="flex items-center gap-4">
-            <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center transform hover:rotate-12 transition-transform duration-500">
+            <div :class="['w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transform hover:rotate-12 transition-all duration-500', themeStore.isDark ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20']">
                <img src="/images/logo-pstore.png" alt="PSTORE" class="w-8 h-8 object-contain brightness-0 invert" />
             </div>
-            <h2 class="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
-              PSTORE<span class="text-emerald-400 font-light">POS</span>
+            <h2 :class="['text-3xl font-extrabold tracking-tight drop-shadow-md transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
+              PSTORE<span :class="['font-light transition-colors duration-500', themeStore.isDark ? 'text-emerald-400' : 'text-emerald-600']">POS</span>
             </h2>
           </div>
 
           <div>
-            <h1 class="text-4xl lg:text-5xl font-bold leading-tight mb-6 text-white drop-shadow-sm">
+            <h1 :class="['text-4xl lg:text-5xl font-bold leading-tight mb-6 drop-shadow-sm transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
               Tingkatkan <br />
-              <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">Performa Bisnis</span>
+              <span :class="['text-transparent bg-clip-text bg-gradient-to-r transition-colors duration-500', themeStore.isDark ? 'from-emerald-400 to-teal-200' : 'from-emerald-600 to-teal-600']">Performa Bisnis</span>
             </h1>
-            <p class="text-emerald-100/70 text-lg leading-relaxed font-light">
+            <p :class="['text-lg leading-relaxed font-light transition-colors duration-500', themeStore.isDark ? 'text-emerald-100/70' : 'text-neutral-600']">
               Sistem manajemen mutakhir untuk enterprise modern. Kontrol penuh di genggaman Anda.
             </p>
           </div>
         </div>
 
         <div class="relative z-10 space-y-4">
-          <div class="flex items-center gap-4 bg-black/20 p-4 rounded-2xl border border-emerald-500/10 backdrop-blur-md hover:bg-black/30 transition-colors">
-            <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+          <div :class="['flex items-center gap-4 p-4 rounded-2xl border backdrop-blur-md transition-all duration-500', themeStore.isDark ? 'bg-black/20 border-emerald-500/10 hover:bg-black/30' : 'bg-white/60 border-emerald-200/50 hover:bg-white/80 shadow-sm']">
+            <div :class="['w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500', themeStore.isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600']">
                <TrendingUp :size="22" stroke-width="1.5" />
             </div>
             <div>
-              <h4 class="text-sm font-bold text-white tracking-wide">Analisis Real-time</h4>
-              <p class="text-xs text-emerald-200/60 mt-0.5">Pantau omset dan profit secara instan.</p>
+              <h4 :class="['text-sm font-bold tracking-wide transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">Analisis Real-time</h4>
+              <p :class="['text-xs mt-0.5 transition-colors duration-500', themeStore.isDark ? 'text-emerald-200/60' : 'text-neutral-500']">Pantau omset dan profit secara instan.</p>
             </div>
           </div>
           
-          <div class="flex items-center gap-4 bg-black/20 p-4 rounded-2xl border border-emerald-500/10 backdrop-blur-md hover:bg-black/30 transition-colors">
-            <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+          <div :class="['flex items-center gap-4 p-4 rounded-2xl border backdrop-blur-md transition-all duration-500', themeStore.isDark ? 'bg-black/20 border-emerald-500/10 hover:bg-black/30' : 'bg-white/60 border-emerald-200/50 hover:bg-white/80 shadow-sm']">
+            <div :class="['w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500', themeStore.isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600']">
                <Boxes :size="22" stroke-width="1.5" />
             </div>
             <div>
-              <h4 class="text-sm font-bold text-white tracking-wide">Multi Cabang</h4>
-              <p class="text-xs text-emerald-200/60 mt-0.5">Sinkronisasi data 60+ lokasi tanpa delay.</p>
+              <h4 :class="['text-sm font-bold tracking-wide transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">Multi Cabang</h4>
+              <p :class="['text-xs mt-0.5 transition-colors duration-500', themeStore.isDark ? 'text-emerald-200/60' : 'text-neutral-500']">Sinkronisasi data 60+ lokasi tanpa delay.</p>
             </div>
           </div>
         </div>
