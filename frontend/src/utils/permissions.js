@@ -1,4 +1,4 @@
-// Role definitions and permissions for PSTORE POS
+// Role definitions and permissions for KASARA
 // Based on the 12 roles identified from the reference image
 
 export const ROLES = {

@@ -250,9 +250,8 @@ watch(() => route.path, () => {
         <div
             class="flex items-center justify-between px-6 py-4 shrink-0 border-b border-surface-200/50 dark:border-surface-800/50">
             <router-link to="/" class="flex items-center gap-3">
-                <img src="/images/logo-pstore.png" alt="PSTORE POS" class="object-contain dark:brightness-0 dark:invert transition-all" :class="isExpanded ? 'w-10 h-10' : 'w-12 h-12 mx-auto'" />
                 <span v-show="isExpanded" class="text-xl font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent whitespace-nowrap">
-                    PSTORE <span class="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">POS</span>
+                    KASARA
                 </span>
             </router-link>
             <!-- Close Button (Mobile Only) -->

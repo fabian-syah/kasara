@@ -19,17 +19,12 @@
                     class="p-6 text-center border-b border-dashed border-gray-300 print:px-0 print:pb-0 print:pt-4 print:mb-4">
                     <!-- Modern Logo Implementation -->
                     <div class="mb-4 flex justify-center">
-                        <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 object-contain"
-                            @error="handleImageError" v-show="!imageError">
-                        <!-- Fallback if logo missing -->
-                        <div v-if="imageError"
-                            class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-2">
-                            <span class="font-bold text-lg">P</span>
+                        <div class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-2">
+                            <span class="font-bold text-lg">K</span>
                         </div>
                     </div>
 
-                    <h2 class="text-xl font-bold text-gray-900 mb-1" v-if="imageError">{{ transaction?.outlet_name ||
-                        'PSTORE POS' }}</h2>
+                    <h2 class="text-xl font-bold text-gray-900 mb-1">{{ transaction?.outlet_name || 'KASARA' }}</h2>
                     <p class="text-xs text-gray-500 mb-4 print:text-black">
                         {{ transaction?.outlet_address || 'Jl. Raya Example No. 123, Indonesia' }}</p>
 
@@ -109,7 +104,7 @@
                 <!-- Print Footer -->
                 <div class="hidden print:block text-center mt-6 pt-4 border-t border-dashed border-gray-300">
                     <p class="text-[10px] text-gray-500">Terima kasih atas kunjungan Anda!</p>
-                    <p class="text-[10px] text-gray-400 mt-1">Powered by PSTORE</p>
+                    <p class="text-[10px] text-gray-400 mt-1">Powered by KASARA</p>
                 </div>
             </div>
         </div>

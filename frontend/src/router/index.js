@@ -572,8 +572,8 @@ router.beforeEach(async (to, from, next) => {
 // Update document title
 router.afterEach((to) => {
     document.title = to.meta.title
-        ? `${to.meta.title} | PSTORE POS`
-        : 'PSTORE POS'
+        ? `${to.meta.title} | KASARA`
+        : 'KASARA'
 })
 
 // Handle chunk load errors (e.g., after deployment)

@@ -137,7 +137,7 @@ useEscapeKey(() => {
                     <label class="block text-sm font-medium text-text-secondary mb-1.5">Nama Cabang</label>
                     <input v-model="form.name" type="text"
                         class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
-                        placeholder="Contoh: PStore Jakarta Pusat" />
+                        placeholder="Contoh: Kasara Jakarta Pusat" />
                 </div>
 
                 <div>

@@ -114,12 +114,8 @@ async function handleLogin() {
         <div class="relative z-10 flex flex-col gap-8">
           <div class="flex items-center gap-4">
             <!-- Increased Logo Container Size -->
-            <div :class="['w-20 h-20 rounded-[1.75rem] shadow-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300', themeStore.isDark ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20']">
-               <!-- Increased Logo Size -->
-               <img src="/images/logo-pstore.png" alt="PSTORE" class="w-14 h-14 object-contain brightness-0 invert shadow-sm" />
-            </div>
             <h2 :class="['text-4xl font-extrabold tracking-tight drop-shadow-md transition-colors duration-200', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
-              PSTORE<span :class="['font-light transition-colors duration-200', themeStore.isDark ? 'text-emerald-400' : 'text-emerald-600']">POS</span>
+              KASARA
             </h2>
           </div>
 
@@ -162,12 +158,8 @@ async function handleLogin() {
         
         <!-- Mobile Header -->
         <div class="flex lg:hidden items-center justify-center gap-4 mb-10">
-          <!-- Increased Logo Size For Mobile -->
-          <div class="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center">
-            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-11 h-11 object-contain brightness-0 invert" />
-          </div>
           <h2 :class="['text-4xl font-extrabold tracking-tight drop-shadow-sm', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
-            PSTORE<span class="text-emerald-500 font-light">POS</span>
+            KASARA
           </h2>
         </div>
 
