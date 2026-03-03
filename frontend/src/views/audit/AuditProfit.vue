@@ -709,8 +709,16 @@ const totalHargaJual = computed(() =>
 )
 const totalHargaModal = computed(() =>
     profitRecords.value.daily_sales.reduce((sum, item) => {
-        const modal = editableModal[item.id] || Number(item.harga_modal) || Number(item.default_harga_modal) || 0
-        return sum + modal
+        let itemModal = 0;
+        if (item.items && item.items.length > 0) {
+            item.items.forEach(detail => {
+                const modalVal = editableModal[item.id]?.[detail.id] ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0;
+                itemModal += Number(modalVal) || 0;
+            });
+        } else {
+            itemModal = Number(item.harga_modal) || Number(item.default_harga_modal) || 0;
+        }
+        return sum + itemModal;
     }, 0)
 )
 const totalProfit = computed(() => totalHargaJual.value - totalHargaModal.value)
