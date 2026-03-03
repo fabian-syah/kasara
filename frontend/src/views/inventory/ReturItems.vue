@@ -190,25 +190,8 @@ onMounted(() => {
             </button>
         </div>
 
-        <!-- Account Selection -->
-        <div class="card bg-blue-500/5 border-blue-500/20">
-            <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                    <Warehouse :size="20" class="text-blue-500" />
-                </div>
-                <div>
-                    <p class="font-bold text-text-primary text-sm">Akun Penerima</p>
-                    <p class="text-xs text-text-secondary">Pilih akun inventory gudang yang menerima barang retur</p>
-                </div>
-            </div>
-            <select v-model="selectedInventoryAccount"
-                class="w-full bg-surface-800 border border-surface-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
-                <option value="" disabled>Pilih Akun Inventory</option>
-                <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
-                    {{ acc.full_name || acc.name }} {{ acc.code_id ? `(${acc.code_id})` : '' }}
-                </option>
-            </select>
-        </div>
+
+
 
 
         <!-- Stats -->
@@ -382,7 +365,7 @@ onMounted(() => {
                                 </p>
                                 <p class="text-sm font-bold text-emerald-400">
                                     {{ formatCurrency(selectedItem.selling_price ||
-                                    selectedItem.retur_data?.selling_price) }}
+                                        selectedItem.retur_data?.selling_price) }}
                                 </p>
                             </div>
 
