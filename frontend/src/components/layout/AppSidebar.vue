@@ -176,16 +176,36 @@ const userBranch = computed(() => authStore.user?.branch?.name || "-");
 
 // Filter menu based on user role
 const visibleMenuItems = computed(() => {
-    const userRole = authStore.userRole;
-    if (!userRole) return menuItems.filter((item) => item.id === "dashboard");
+    const role = authStore.userRole;
+    if (!role) return menuItems.filter((item) => item.id === "dashboard");
 
-    if (userRole.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
+    if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
         return menuItems.filter(item => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(item.id));
     }
 
     // Get allowed menus for role
-    const allowedMenus = getMenuForRole(userRole);
-    return menuItems.filter((item) => allowedMenus.includes(item.id));
+    const allowedMenus = getMenuForRole(role);
+    let filtered = menuItems.filter((item) => allowedMenus.includes(item.id));
+
+    // For leader role: dynamically hide monitoring menus based on placements
+    if (role === 'leader') {
+        const userData = authStore.user;
+        const placements = userData?.placements || [];
+        const placementTypes = placements.map(p => p.model_type);
+
+        const hasDistributor = !!userData?.distributor_id || placementTypes.includes('distributor');
+        const hasOnlineShop = !!userData?.online_shop_id || placementTypes.includes('online_shop');
+        const hasWarehouse = !!userData?.warehouse_id || placementTypes.includes('warehouse');
+
+        filtered = filtered.filter(item => {
+            if (item.id === 'distributor_monitoring' && !hasDistributor) return false;
+            if (item.id === 'online_monitoring' && !hasOnlineShop) return false;
+            if (item.id === 'warehouse_monitoring' && !hasWarehouse) return false;
+            return true;
+        });
+    }
+
+    return filtered;
 });
 
 // Logout handler
