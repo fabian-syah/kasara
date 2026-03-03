@@ -11,7 +11,8 @@ import {
   Loader2,
   Moon,
   Sun,
-  Palette,
+  Moon,
+  Sun,
 } from "lucide-vue-next"; // Icons
 
 const router = useRouter();
@@ -27,7 +28,6 @@ const showPassword = ref(false);
 const rememberMe = ref(false);
 const isLoading = ref(false);
 const error = ref("");
-const isThemeMenuOpen = ref(false); // Menu State
 
 const isFormValid = computed(() => form.value.username && form.value.password);
 
@@ -73,45 +73,12 @@ function demoLogin(role) {
     class="min-h-screen flex bg-surface-900 text-text-primary relative overflow-hidden transition-colors duration-300">
     <!-- Theme Switcher (Absolute Top Right) -->
     <div class="absolute top-4 right-4 z-50">
-      <div class="relative">
-        <button @click="isThemeMenuOpen = !isThemeMenuOpen"
-          class="p-2 text-text-secondary hover:text-text-primary transition-colors rounded-lg hover:bg-surface-800 bg-surface-800/50 border border-surface-700 backdrop-blur-sm">
-          <Palette :size="20" />
-        </button>
-
-        <transition enter-active-class="transition duration-100 ease-out"
-          enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-          leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-100 opacity-100"
-          leave-to-class="transform scale-95 opacity-0">
-          <div v-if="isThemeMenuOpen"
-            class="absolute right-0 mt-2 w-72 bg-surface-800 border border-surface-700 rounded-xl shadow-xl p-4">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="font-semibold text-text-primary text-sm">Tampilan</h3>
-              <button @click="themeStore.toggleDarkMode"
-                class="p-2 rounded-lg bg-surface-900 border border-surface-700 hover:bg-surface-700 transition-colors text-text-primary"
-                :title="themeStore.isDark
-                  ? 'Switch to Light Mode'
-                  : 'Switch to Dark Mode'
-                  ">
-                <Sun v-if="themeStore.isDark" :size="16" />
-                <Moon v-else :size="16" />
-              </button>
-            </div>
-
-            <p class="text-xs text-text-secondary mb-2 font-medium uppercase tracking-wider">
-              Pilih Warna Tema
-            </p>
-            <div class="grid grid-cols-5 gap-2">
-              <button v-for="theme in themeStore.availableThemes" :key="theme.id" @click="themeStore.setTheme(theme.id)"
-                class="w-9 h-9 rounded-full flex items-center justify-center border-2 transition-transform hover:scale-110 shadow-sm"
-                :class="themeStore.themeName === theme.id
-                  ? 'border-text-primary ring-2 ring-offset-2 ring-offset-surface-800 ring-primary-500'
-                  : 'border-transparent'
-                  " :style="{ backgroundColor: theme.color }" :title="theme.name"></button>
-            </div>
-          </div>
-        </transition>
-      </div>
+      <button @click="themeStore.toggleDarkMode"
+        class="p-2.5 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-800 bg-surface-800/50 border border-surface-700 backdrop-blur-sm"
+        :title="themeStore.isDark ? 'Mode Terang' : 'Mode Gelap'">
+        <Sun v-if="themeStore.isDark" :size="20" />
+        <Moon v-else :size="20" />
+      </button>
     </div>
 
     <!-- Background Effects -->
