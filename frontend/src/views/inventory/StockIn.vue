@@ -31,6 +31,7 @@ import { parseCurrency, formatNumber } from "../../utils/formatters";
 const toast = useToast();
 const router = useRouter();
 const authStore = useAuthStore();
+const isDistributorRole = computed(() => ['distributor', 'distribution'].includes((authStore.userRole || '').toLowerCase()));
 const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
 // Remove '/api' from the end of apiUrl to get the base URL for storage
 const storageUrl = apiUrl.replace(/\/api\/?$/, '');
@@ -60,6 +61,9 @@ const selectedDistributor = ref("");
 const selectedDistributorName = computed(() => {
     if (isManualDistributor.value) return newDistributorName.value || 'Distributor Baru';
     const d = distributors.value.find(x => x.id === selectedDistributor.value);
+    if (!d && isDistributorRole.value && authStore.user) {
+        return authStore.user.name || authStore.user.full_name || 'Distributor (Anda)';
+    }
     return d ? d.name : '-';
 });
 
@@ -410,11 +414,24 @@ const canSubmit = computed(() => {
 
 
 function nextStep() {
-    if (canNext.value) currentStep.value++;
+    if (canNext.value) {
+        if (currentStep.value === 2 && isDistributorRole.value) {
+            selectedDistributor.value = authStore.user?.distributor_id || "";
+            currentStep.value = 4;
+            return;
+        }
+        currentStep.value++;
+    }
 }
 
 function prevStep() {
-    if (currentStep.value > 1) currentStep.value--;
+    if (currentStep.value > 1) {
+        if (currentStep.value === 4 && isDistributorRole.value) {
+            currentStep.value = 2;
+            return;
+        }
+        currentStep.value--;
+    }
 }
 
 const showCreateAccountModal = ref(false);
