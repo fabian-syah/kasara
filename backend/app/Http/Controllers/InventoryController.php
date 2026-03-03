@@ -38,11 +38,7 @@ class InventoryController extends Controller
         $osIds = array_unique(array_filter($osIds));
         $bIds = array_unique(array_filter($bIds));
         $wIds = array_unique(array_filter($wIds));
-
-        $dIds = [];
-        if ($user->distributor_id) {
-            $dIds[] = $user->distributor_id;
-        }
+        $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
         $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
 
