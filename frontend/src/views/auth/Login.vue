@@ -95,10 +95,10 @@ function demoLogin(role) {
         <!-- Header Layout -->
         <div class="mb-10 text-center animate-in slide-up" style="animation-delay: 100ms;">
           <div
-            class="w-16 h-16 bg-primary-600 rounded-2xl shadow-xl shadow-primary-500/30 flex items-center justify-center mx-auto mb-6 transform transition-transform hover:scale-105">
-            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-10 h-10 object-contain" />
+            class="w-24 h-24 bg-primary-600 rounded-3xl shadow-xl shadow-primary-500/30 flex items-center justify-center mx-auto mb-6 transform transition-transform hover:scale-105">
+            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-16 h-16 object-contain" />
           </div>
-          <h2 class="text-3xl font-extrabold text-text-primary mb-2 tracking-tight">
+          <h2 class="text-4xl font-extrabold text-text-primary mb-2 tracking-tight">
             PSTORE <span class="text-primary-500">POS</span>
           </h2>
           <p class="text-text-secondary font-medium">Masuk untuk melanjutkan ke dashboard.</p>
@@ -133,10 +133,10 @@ function demoLogin(role) {
       <div class="w-full max-w-md">
         <!-- Header (Mobile) -->
         <div class="mb-8 text-center lg:hidden">
-          <div class="w-12 h-12 bg-primary-600 rounded-xl shadow-lg flex items-center justify-center mx-auto mb-4">
-            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-8 h-8 object-contain" />
+          <div class="w-16 h-16 bg-primary-600 rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-4">
+            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-10 h-10 object-contain" />
           </div>
-          <h2 class="text-2xl font-bold text-text-primary">
+          <h2 class="text-3xl font-bold text-text-primary">
             PSTORE <span class="text-primary-500">POS</span>
           </h2>
         </div>

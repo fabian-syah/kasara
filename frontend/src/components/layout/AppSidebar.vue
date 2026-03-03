@@ -241,8 +241,8 @@ watch(() => route.path, () => {
         <div
             class="flex items-center justify-between h-[72px] px-6 border-b border-surface-200 dark:border-surface-800 shrink-0">
             <router-link to="/" class="flex items-center gap-3">
-                <img src="/images/logo-pstore.png" alt="PSTORE POS" class="w-8 h-8 object-contain" />
-                <span v-show="isExpanded" class="text-lg font-bold text-text-primary whitespace-nowrap">
+                <img src="/images/logo-pstore.png" alt="PSTORE POS" class="w-12 h-12 object-contain" />
+                <span v-show="isExpanded" class="text-xl font-bold text-text-primary whitespace-nowrap">
                     PSTORE <span class="text-primary-500">POS</span>
                 </span>
             </router-link>
