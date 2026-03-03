@@ -12,7 +12,6 @@ import {
   Moon,
   Sun,
   ChevronRight,
-  ShieldCheck,
   TrendingUp,
   Boxes
 } from "lucide-vue-next";
@@ -57,25 +56,15 @@ async function handleLogin() {
     isLoading.value = false;
   }
 }
-
-function demoLogin(role) {
-  const demos = {
-    admin: { username: "admin", password: "demo123" },
-    kasir: { username: "kasir", password: "demo123" },
-    gudang: { username: "gudang", password: "demo123" },
-  };
-  form.value.username = demos[role].username;
-  form.value.password = demos[role].password;
-}
 </script>
 
 <template>
   <div :class="[
-    'min-h-screen flex items-center justify-center relative overflow-hidden font-sans transition-colors duration-500',
+    'min-h-screen flex items-center justify-center relative overflow-hidden font-sans transition-colors duration-200',
     themeStore.isDark ? 'bg-[#050505] text-white selection:bg-emerald-500/30' : 'bg-neutral-50 text-neutral-900 selection:bg-emerald-500/30'
   ]">
     
-    <!-- Animated Abstract Background -->
+    <!-- Animated Abstract Background (Simplified for Performance) -->
     <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
       <div :class="[
         'absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob',
@@ -98,7 +87,7 @@ function demoLogin(role) {
     <div class="absolute top-6 right-6 z-50">
       <button @click="themeStore.toggleDarkMode"
         :class="[
-          'p-3 transition-all duration-300 rounded-full border backdrop-blur-md shadow-lg hover:scale-110 active:scale-95 text-neutral-500 hover:text-emerald-500',
+          'p-3 transition-colors duration-200 rounded-full border backdrop-blur-md shadow-lg hover:scale-110 active:scale-95 text-neutral-500 hover:text-emerald-500',
           themeStore.isDark ? 'bg-neutral-900/50 border-neutral-800 hover:shadow-emerald-500/20' : 'bg-white/80 border-neutral-200 hover:shadow-emerald-500/20'
         ]"
         :title="themeStore.isDark ? 'Mode Terang' : 'Mode Gelap'">
@@ -109,58 +98,60 @@ function demoLogin(role) {
 
     <!-- Main Card Container -->
     <div :class="[
-      'relative z-10 w-full max-w-5xl flex flex-col lg:flex-row shadow-2xl rounded-[2rem] overflow-hidden m-4 lg:m-8 backdrop-blur-2xl border transition-colors duration-500',
+      'relative z-10 w-full max-w-5xl flex flex-col lg:flex-row shadow-2xl rounded-[2rem] overflow-hidden m-4 lg:m-8 backdrop-blur-2xl border transition-colors duration-200',
       themeStore.isDark ? 'bg-neutral-900/60 border-neutral-800/60 shadow-black/50' : 'bg-white/70 border-white/40 shadow-emerald-900/10'
     ]">
       
       <!-- Left Panel: Branding & Value Props -->
       <div :class="[
-        'hidden lg:flex lg:w-5/12 p-12 flex-col justify-between relative overflow-hidden transition-colors duration-500',
+        'hidden lg:flex lg:w-5/12 p-12 flex-col justify-between relative overflow-hidden transition-colors duration-200',
         themeStore.isDark ? 'bg-gradient-to-br from-emerald-950 to-neutral-950' : 'bg-gradient-to-br from-emerald-50 to-teal-50'
       ]">
         <!-- Inside left panel -->
-        <div :class="['absolute inset-0 backdrop-blur-3xl transition-colors duration-500', themeStore.isDark ? 'bg-emerald-500/5' : 'bg-white/40']"></div>
-        <div :class="['absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t to-transparent transition-colors duration-500', themeStore.isDark ? 'from-emerald-900/30' : 'from-emerald-200/30']"></div>
+        <div :class="['absolute inset-0 backdrop-blur-3xl transition-colors duration-200', themeStore.isDark ? 'bg-emerald-500/5' : 'bg-white/40']"></div>
+        <div :class="['absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t to-transparent transition-colors duration-200', themeStore.isDark ? 'from-emerald-900/30' : 'from-emerald-200/30']"></div>
         
         <div class="relative z-10 flex flex-col gap-8">
           <div class="flex items-center gap-4">
-            <div :class="['w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center transform hover:rotate-12 transition-all duration-500', themeStore.isDark ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20']">
-               <img src="/images/logo-pstore.png" alt="PSTORE" class="w-8 h-8 object-contain brightness-0 invert" />
+            <!-- Increased Logo Container Size -->
+            <div :class="['w-20 h-20 rounded-[1.75rem] shadow-xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300', themeStore.isDark ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30' : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/20']">
+               <!-- Increased Logo Size -->
+               <img src="/images/logo-pstore.png" alt="PSTORE" class="w-14 h-14 object-contain brightness-0 invert shadow-sm" />
             </div>
-            <h2 :class="['text-3xl font-extrabold tracking-tight drop-shadow-md transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
-              PSTORE<span :class="['font-light transition-colors duration-500', themeStore.isDark ? 'text-emerald-400' : 'text-emerald-600']">POS</span>
+            <h2 :class="['text-4xl font-extrabold tracking-tight drop-shadow-md transition-colors duration-200', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
+              PSTORE<span :class="['font-light transition-colors duration-200', themeStore.isDark ? 'text-emerald-400' : 'text-emerald-600']">POS</span>
             </h2>
           </div>
 
           <div>
-            <h1 :class="['text-4xl lg:text-5xl font-bold leading-tight mb-6 drop-shadow-sm transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
+            <h1 :class="['text-4xl lg:text-5xl font-bold leading-tight mb-6 drop-shadow-sm transition-colors duration-200', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
               Tingkatkan <br />
-              <span :class="['text-transparent bg-clip-text bg-gradient-to-r transition-colors duration-500', themeStore.isDark ? 'from-emerald-400 to-teal-200' : 'from-emerald-600 to-teal-600']">Performa Bisnis</span>
+              <span :class="['text-transparent bg-clip-text bg-gradient-to-r transition-colors duration-200', themeStore.isDark ? 'from-emerald-400 to-teal-200' : 'from-emerald-600 to-teal-600']">Performa Bisnis</span>
             </h1>
-            <p :class="['text-lg leading-relaxed font-light transition-colors duration-500', themeStore.isDark ? 'text-emerald-100/70' : 'text-neutral-600']">
+            <p :class="['text-lg leading-relaxed font-light transition-colors duration-200', themeStore.isDark ? 'text-emerald-100/70' : 'text-neutral-600']">
               Sistem manajemen mutakhir untuk enterprise modern. Kontrol penuh di genggaman Anda.
             </p>
           </div>
         </div>
 
         <div class="relative z-10 space-y-4">
-          <div :class="['flex items-center gap-4 p-4 rounded-2xl border backdrop-blur-md transition-all duration-500', themeStore.isDark ? 'bg-black/20 border-emerald-500/10 hover:bg-black/30' : 'bg-white/60 border-emerald-200/50 hover:bg-white/80 shadow-sm']">
-            <div :class="['w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500', themeStore.isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600']">
+          <div :class="['flex items-center gap-4 p-4 rounded-2xl border backdrop-blur-md transition-colors duration-200', themeStore.isDark ? 'bg-black/20 border-emerald-500/10 hover:bg-black/30' : 'bg-white/60 border-emerald-200/50 hover:bg-white/80 shadow-sm']">
+            <div :class="['w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors duration-200', themeStore.isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600']">
                <TrendingUp :size="22" stroke-width="1.5" />
             </div>
             <div>
-              <h4 :class="['text-sm font-bold tracking-wide transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">Analisis Real-time</h4>
-              <p :class="['text-xs mt-0.5 transition-colors duration-500', themeStore.isDark ? 'text-emerald-200/60' : 'text-neutral-500']">Pantau omset dan profit secara instan.</p>
+              <h4 :class="['text-sm font-bold tracking-wide transition-colors duration-200', themeStore.isDark ? 'text-white' : 'text-neutral-900']">Analisis Real-time</h4>
+              <p :class="['text-xs mt-0.5 transition-colors duration-200', themeStore.isDark ? 'text-emerald-200/60' : 'text-neutral-500']">Pantau omset dan profit secara instan.</p>
             </div>
           </div>
           
-          <div :class="['flex items-center gap-4 p-4 rounded-2xl border backdrop-blur-md transition-all duration-500', themeStore.isDark ? 'bg-black/20 border-emerald-500/10 hover:bg-black/30' : 'bg-white/60 border-emerald-200/50 hover:bg-white/80 shadow-sm']">
-            <div :class="['w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors duration-500', themeStore.isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600']">
+          <div :class="['flex items-center gap-4 p-4 rounded-2xl border backdrop-blur-md transition-colors duration-200', themeStore.isDark ? 'bg-black/20 border-emerald-500/10 hover:bg-black/30' : 'bg-white/60 border-emerald-200/50 hover:bg-white/80 shadow-sm']">
+            <div :class="['w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-colors duration-200', themeStore.isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600']">
                <Boxes :size="22" stroke-width="1.5" />
             </div>
             <div>
-              <h4 :class="['text-sm font-bold tracking-wide transition-colors duration-500', themeStore.isDark ? 'text-white' : 'text-neutral-900']">Multi Cabang</h4>
-              <p :class="['text-xs mt-0.5 transition-colors duration-500', themeStore.isDark ? 'text-emerald-200/60' : 'text-neutral-500']">Sinkronisasi data 60+ lokasi tanpa delay.</p>
+              <h4 :class="['text-sm font-bold tracking-wide transition-colors duration-200', themeStore.isDark ? 'text-white' : 'text-neutral-900']">Multi Cabang</h4>
+              <p :class="['text-xs mt-0.5 transition-colors duration-200', themeStore.isDark ? 'text-emerald-200/60' : 'text-neutral-500']">Sinkronisasi data 60+ lokasi tanpa delay.</p>
             </div>
           </div>
         </div>
@@ -170,11 +161,12 @@ function demoLogin(role) {
       <div class="w-full lg:w-7/12 p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
         
         <!-- Mobile Header -->
-        <div class="flex lg:hidden items-center justify-center gap-3 mb-10">
-          <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl shadow-lg shadow-emerald-500/30 flex items-center justify-center">
-            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-7 h-7 object-contain brightness-0 invert" />
+        <div class="flex lg:hidden items-center justify-center gap-4 mb-10">
+          <!-- Increased Logo Size For Mobile -->
+          <div class="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center">
+            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-11 h-11 object-contain brightness-0 invert" />
           </div>
-          <h2 :class="['text-3xl font-extrabold tracking-tight drop-shadow-sm', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
+          <h2 :class="['text-4xl font-extrabold tracking-tight drop-shadow-sm', themeStore.isDark ? 'text-white' : 'text-neutral-900']">
             PSTORE<span class="text-emerald-500 font-light">POS</span>
           </h2>
         </div>
@@ -203,7 +195,7 @@ function demoLogin(role) {
                 </div>
                 <input v-model="form.username" type="text" placeholder="Masukkan ID atau username"
                   :class="[
-                    'w-full text-sm rounded-xl pl-12 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all shadow-sm',
+                    'w-full text-sm rounded-xl pl-12 pr-4 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-colors shadow-sm',
                     themeStore.isDark 
                       ? 'bg-neutral-950/50 border border-neutral-800 text-white placeholder:text-neutral-600 focus:border-emerald-500' 
                       : 'bg-white border border-neutral-200 text-neutral-900 placeholder:text-neutral-400 focus:border-emerald-500'
@@ -223,7 +215,7 @@ function demoLogin(role) {
                 </div>
                 <input v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••"
                   :class="[
-                    'w-full text-sm rounded-xl pl-12 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all shadow-sm',
+                    'w-full text-sm rounded-xl pl-12 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-colors shadow-sm',
                     themeStore.isDark 
                       ? 'bg-neutral-950/50 border border-neutral-800 text-white placeholder:text-neutral-600 focus:border-emerald-500' 
                       : 'bg-white border border-neutral-200 text-neutral-900 placeholder:text-neutral-400 focus:border-emerald-500'
@@ -255,46 +247,17 @@ function demoLogin(role) {
 
             <!-- Submit Button -->
             <button type="submit" :disabled="!isFormValid || isLoading" 
-              class="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 p-[1px] disabled:opacity-50 disabled:cursor-not-allowed mt-6 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-all">
-              <div class="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              class="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 p-[1px] disabled:opacity-50 disabled:cursor-not-allowed mt-10 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-transform">
+              <div class="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div :class="['relative flex items-center justify-center gap-2 w-full h-full transition-colors py-4 rounded-xl font-bold text-white', themeStore.isDark ? 'bg-neutral-950 group-hover:bg-transparent' : 'bg-transparent']">
                  <Loader2 v-if="isLoading" :size="20" :class="['animate-spin', themeStore.isDark ? 'text-emerald-400 group-hover:text-white' : 'text-white']" />
                  <template v-else>
                    <span :class="[themeStore.isDark ? 'text-emerald-400 group-hover:text-white transition-colors' : 'text-white']">Masuk Sekarang</span>
-                   <ChevronRight :size="18" :class="['transition-all group-hover:translate-x-1', themeStore.isDark ? 'text-emerald-400 group-hover:text-white' : 'text-white']" />
+                   <ChevronRight :size="18" :class="['transition-transform group-hover:translate-x-1', themeStore.isDark ? 'text-emerald-400 group-hover:text-white' : 'text-white']" />
                  </template>
               </div>
             </button>
           </form>
-
-          <!-- Demo Roles -->
-          <div class="mt-12">
-            <div class="relative flex items-center py-5">
-              <div class="flex-grow border-t border-neutral-200 dark:border-neutral-800"></div>
-              <span :class="['flex-shrink-0 mx-4 text-xs font-semibold uppercase tracking-widest', themeStore.isDark ? 'text-neutral-600' : 'text-neutral-400']">
-                Akses Demo
-              </span>
-              <div class="flex-grow border-t border-neutral-200 dark:border-neutral-800"></div>
-            </div>
-            
-            <div class="grid grid-cols-3 gap-3">
-              <button @click="demoLogin('admin')" 
-                :class="['py-3 px-2 rounded-xl border text-xs font-bold transition-all group hover:-translate-y-0.5', themeStore.isDark ? 'border-neutral-800 bg-neutral-900/50 hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-400 text-neutral-400' : 'border-neutral-200 bg-neutral-50 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 text-neutral-600']">
-                <span :class="['block mb-1 text-lg', themeStore.isDark ? 'text-emerald-500/50 group-hover:text-emerald-400' : 'text-emerald-300 group-hover:text-emerald-500']">●</span> 
-                Admin
-              </button>
-              <button @click="demoLogin('kasir')" 
-                :class="['py-3 px-2 rounded-xl border text-xs font-bold transition-all group hover:-translate-y-0.5', themeStore.isDark ? 'border-neutral-800 bg-neutral-900/50 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-400 text-neutral-400' : 'border-neutral-200 bg-neutral-50 hover:bg-amber-50 hover:border-amber-200 hover:text-amber-600 text-neutral-600']">
-                <span :class="['block mb-1 text-lg', themeStore.isDark ? 'text-amber-500/50 group-hover:text-amber-400' : 'text-amber-300 group-hover:text-amber-500']">●</span> 
-                Kasir
-              </button>
-              <button @click="demoLogin('gudang')" 
-                :class="['py-3 px-2 rounded-xl border text-xs font-bold transition-all group hover:-translate-y-0.5', themeStore.isDark ? 'border-neutral-800 bg-neutral-900/50 hover:bg-rose-500/10 hover:border-rose-500/50 hover:text-rose-400 text-neutral-400' : 'border-neutral-200 bg-neutral-50 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-neutral-600']">
-                <span :class="['block mb-1 text-lg', themeStore.isDark ? 'text-rose-500/50 group-hover:text-rose-400' : 'text-rose-300 group-hover:text-rose-500']">●</span> 
-                Gudang
-              </button>
-            </div>
-          </div>
 
         </div>
       </div>
