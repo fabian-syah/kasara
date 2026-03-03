@@ -94,6 +94,26 @@ const routes = [
                 }
             },
             {
+                path: 'monitoring/online',
+                name: 'OnlineStockMonitoring',
+                component: () => import('../views/monitoring/OnlineStockMonitoring.vue'),
+                meta: {
+                    title: 'Monitoring Stok Online',
+                    menu: 'online_monitoring',
+                    permissions: ['online.monitoring', 'distributor.monitoring']
+                }
+            },
+            {
+                path: 'monitoring/warehouse',
+                name: 'WarehouseStockMonitoring',
+                component: () => import('../views/monitoring/WarehouseStockMonitoring.vue'),
+                meta: {
+                    title: 'Monitoring Stok Gudang',
+                    menu: 'warehouse_monitoring',
+                    permissions: ['warehouse.monitoring', 'distributor.monitoring']
+                }
+            },
+            {
                 path: 'inventory',
                 name: 'Inventory',
                 component: Inventory,

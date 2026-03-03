@@ -1336,4 +1336,307 @@ class InventoryController extends Controller
             'brands' => $brands
         ]);
     }
+
+    /**
+     * Monitoring Stok Online Shop
+     * For leaders assigned to online shops — shows stock grouped by online shop.
+     */
+    public function monitoringOnlineShop(Request $request)
+    {
+        $user = $request->user();
+        $userRole = strtolower($user->roles->first()->name ?? '');
+
+        $accessibleIds = $user->getAccessibleOnlineShopIds();
+
+        // Only leader/super_admin can access
+        if ($userRole === 'leader') {
+            if (empty($accessibleIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda belum dikaitkan dengan toko online manapun.'
+                ], 403);
+            }
+        }
+
+        // 1. HP Items (IMEI-based, available)
+        $hpQuery = ProductDetail::with(['product'])
+            ->where('status', 'available')
+            ->where('placement_type', 'online_shop');
+
+        if ($userRole === 'leader') {
+            $hpQuery->whereIn('placement_id', $accessibleIds);
+        } elseif ($userRole === 'super_admin' && $request->online_shop_id) {
+            $hpQuery->where('placement_id', $request->online_shop_id);
+        }
+
+        $hpItems = $hpQuery->get();
+
+        // 2. Non-HP Items (quantity-based, qty > 0)
+        $nonHpQuery = Inventory::with(['product'])
+            ->where('quantity', '>', 0)
+            ->where('placement_type', 'online_shop')
+            ->whereHas('product', function ($q) {
+                $q->where('type', 'non-hp')->orWhere('has_imei', false);
+            });
+
+        if ($userRole === 'leader') {
+            $nonHpQuery->whereIn('placement_id', $accessibleIds);
+        } elseif ($userRole === 'super_admin' && $request->online_shop_id) {
+            $nonHpQuery->where('placement_id', $request->online_shop_id);
+        }
+
+        $nonHpItems = $nonHpQuery->get();
+
+        // Group by online shop
+        $onlineShopNames = \App\Models\OnlineShop::pluck('name', 'id');
+        $grouped = [];
+
+        // Process HP
+        foreach ($hpItems as $item) {
+            $locationName = $onlineShopNames[$item->placement_id] ?? 'Unknown';
+
+            if (!isset($grouped[$locationName])) {
+                $grouped[$locationName] = ['location' => $locationName, 'products' => []];
+            }
+
+            $brandName = $item->product->brand ?? 'Unknown';
+            $typeName = $item->product->name ?? 'Unknown';
+            $spec = [];
+            if ($item->ram)
+                $spec[] = $item->ram;
+            if ($item->storage)
+                $spec[] = $item->storage;
+            $specStr = !empty($spec) ? ' ' . implode('/', $spec) : '';
+            $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
+            $productKey = trim("{$brandName} {$typeName}{$specStr} - {$cond}");
+
+            if (!isset($grouped[$locationName]['products'][$productKey])) {
+                $grouped[$locationName]['products'][$productKey] = [
+                    'name' => $productKey,
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'capacity' => implode('/', $spec),
+                    'condition_label' => $cond,
+                    'qty' => 0,
+                    'type' => $item->product->type ?? 'hp',
+                    'has_imei' => $item->product->has_imei ?? true,
+                    'items' => []
+                ];
+            }
+
+            $grouped[$locationName]['products'][$productKey]['qty'] += 1;
+            $grouped[$locationName]['products'][$productKey]['items'][] = [
+                'id' => $item->id,
+                'imei' => $item->imei,
+                'color' => $item->color,
+                'notes' => $item->notes,
+                'condition' => $item->condition,
+            ];
+        }
+
+        // Process Non-HP
+        foreach ($nonHpItems as $item) {
+            $locationName = $onlineShopNames[$item->placement_id] ?? 'Unknown';
+
+            if (!isset($grouped[$locationName])) {
+                $grouped[$locationName] = ['location' => $locationName, 'products' => []];
+            }
+
+            $brandName = $item->product->brand ?? 'Unknown';
+            $typeName = $item->product->name ?? 'Unknown';
+            $cond = 'New';
+            $productKey = trim("{$brandName} {$typeName} - {$cond}");
+
+            if (!isset($grouped[$locationName]['products'][$productKey])) {
+                $grouped[$locationName]['products'][$productKey] = [
+                    'name' => $productKey,
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'capacity' => null,
+                    'condition_label' => $cond,
+                    'qty' => 0,
+                    'type' => $item->product->type ?? 'non-hp',
+                    'has_imei' => false,
+                    'items' => []
+                ];
+            }
+
+            $grouped[$locationName]['products'][$productKey]['qty'] += $item->quantity;
+        }
+
+        // Sort and format
+        $result = array_values($grouped);
+        usort($result, fn($a, $b) => strcmp($a['location'], $b['location']));
+        foreach ($result as &$loc) {
+            $prodArr = array_values($loc['products']);
+            usort($prodArr, fn($a, $b) => strcmp($a['name'], $b['name']));
+            $loc['products'] = $prodArr;
+        }
+
+        $totalUnits = 0;
+        foreach ($result as $loc) {
+            foreach ($loc['products'] as $p) {
+                $totalUnits += $p['qty'];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'stock' => $result,
+                'total_units' => $totalUnits
+            ]
+        ]);
+    }
+
+    /**
+     * Monitoring Stok Gudang (Warehouse)
+     * For leaders assigned to warehouses — shows stock grouped by warehouse.
+     */
+    public function monitoringWarehouse(Request $request)
+    {
+        $user = $request->user();
+        $userRole = strtolower($user->roles->first()->name ?? '');
+
+        $accessibleIds = $user->getAccessibleWarehouseIds();
+
+        if ($userRole === 'leader') {
+            if (empty($accessibleIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda belum dikaitkan dengan gudang manapun.'
+                ], 403);
+            }
+        }
+
+        // 1. HP Items
+        $hpQuery = ProductDetail::with(['product'])
+            ->where('status', 'available')
+            ->where('placement_type', 'warehouse');
+
+        if ($userRole === 'leader') {
+            $hpQuery->whereIn('placement_id', $accessibleIds);
+        } elseif ($userRole === 'super_admin' && $request->warehouse_id) {
+            $hpQuery->where('placement_id', $request->warehouse_id);
+        }
+
+        $hpItems = $hpQuery->get();
+
+        // 2. Non-HP Items
+        $nonHpQuery = Inventory::with(['product'])
+            ->where('quantity', '>', 0)
+            ->where('placement_type', 'warehouse')
+            ->whereHas('product', function ($q) {
+                $q->where('type', 'non-hp')->orWhere('has_imei', false);
+            });
+
+        if ($userRole === 'leader') {
+            $nonHpQuery->whereIn('placement_id', $accessibleIds);
+        } elseif ($userRole === 'super_admin' && $request->warehouse_id) {
+            $nonHpQuery->where('placement_id', $request->warehouse_id);
+        }
+
+        $nonHpItems = $nonHpQuery->get();
+
+        // Group by warehouse
+        $warehouseNames = \App\Models\Warehouse::pluck('name', 'id');
+        $grouped = [];
+
+        // Process HP
+        foreach ($hpItems as $item) {
+            $locationName = $warehouseNames[$item->placement_id] ?? 'Unknown';
+
+            if (!isset($grouped[$locationName])) {
+                $grouped[$locationName] = ['location' => $locationName, 'products' => []];
+            }
+
+            $brandName = $item->product->brand ?? 'Unknown';
+            $typeName = $item->product->name ?? 'Unknown';
+            $spec = [];
+            if ($item->ram)
+                $spec[] = $item->ram;
+            if ($item->storage)
+                $spec[] = $item->storage;
+            $specStr = !empty($spec) ? ' ' . implode('/', $spec) : '';
+            $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
+            $productKey = trim("{$brandName} {$typeName}{$specStr} - {$cond}");
+
+            if (!isset($grouped[$locationName]['products'][$productKey])) {
+                $grouped[$locationName]['products'][$productKey] = [
+                    'name' => $productKey,
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'capacity' => implode('/', $spec),
+                    'condition_label' => $cond,
+                    'qty' => 0,
+                    'type' => $item->product->type ?? 'hp',
+                    'has_imei' => $item->product->has_imei ?? true,
+                    'items' => []
+                ];
+            }
+
+            $grouped[$locationName]['products'][$productKey]['qty'] += 1;
+            $grouped[$locationName]['products'][$productKey]['items'][] = [
+                'id' => $item->id,
+                'imei' => $item->imei,
+                'color' => $item->color,
+                'notes' => $item->notes,
+                'condition' => $item->condition,
+            ];
+        }
+
+        // Process Non-HP
+        foreach ($nonHpItems as $item) {
+            $locationName = $warehouseNames[$item->placement_id] ?? 'Unknown';
+
+            if (!isset($grouped[$locationName])) {
+                $grouped[$locationName] = ['location' => $locationName, 'products' => []];
+            }
+
+            $brandName = $item->product->brand ?? 'Unknown';
+            $typeName = $item->product->name ?? 'Unknown';
+            $cond = 'New';
+            $productKey = trim("{$brandName} {$typeName} - {$cond}");
+
+            if (!isset($grouped[$locationName]['products'][$productKey])) {
+                $grouped[$locationName]['products'][$productKey] = [
+                    'name' => $productKey,
+                    'brand' => $brandName,
+                    'type_name' => $typeName,
+                    'capacity' => null,
+                    'condition_label' => $cond,
+                    'qty' => 0,
+                    'type' => $item->product->type ?? 'non-hp',
+                    'has_imei' => false,
+                    'items' => []
+                ];
+            }
+
+            $grouped[$locationName]['products'][$productKey]['qty'] += $item->quantity;
+        }
+
+        // Sort and format
+        $result = array_values($grouped);
+        usort($result, fn($a, $b) => strcmp($a['location'], $b['location']));
+        foreach ($result as &$loc) {
+            $prodArr = array_values($loc['products']);
+            usort($prodArr, fn($a, $b) => strcmp($a['name'], $b['name']));
+            $loc['products'] = $prodArr;
+        }
+
+        $totalUnits = 0;
+        foreach ($result as $loc) {
+            foreach ($loc['products'] as $p) {
+                $totalUnits += $p['qty'];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'stock' => $result,
+                'total_units' => $totalUnits
+            ]
+        ]);
+    }
 }

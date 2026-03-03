@@ -94,6 +94,8 @@ const menuItems = [
 
     // Special
     { id: "distributor_monitoring", path: "/distributor/monitoring", label: "Monitoring Distributor", icon: PackageSearch },
+    { id: "online_monitoring", path: "/monitoring/online", label: "Monitoring Stok Online", icon: Globe },
+    { id: "warehouse_monitoring", path: "/monitoring/warehouse", label: "Monitoring Stok Gudang", icon: Warehouse },
 
     //   { id: "pos", path: "/pos", label: "Kasir (POS)", icon: ShoppingCart },
     { id: "inventory", path: "/inventory", label: "Inventory", icon: Box },
