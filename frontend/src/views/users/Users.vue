@@ -76,43 +76,47 @@ const auditAccessibleBranchIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p => p.model_id);
+  return user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p => Number(p.model_id));
 });
 const auditAccessibleWarehouseIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')).map(p => p.model_id);
+  return user.placements.filter(p => p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')).map(p => Number(p.model_id));
 });
 const auditAccessibleOnlineShopIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')).map(p => p.model_id);
+  return user.placements.filter(p => p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')).map(p => Number(p.model_id));
 });
 const auditAccessibleDistributorIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'distributor' || p.model_type?.includes('Distributor')).map(p => p.model_id);
+  return user.placements.filter(p => p.model_type === 'distributor' || p.model_type?.includes('Distributor')).map(p => Number(p.model_id));
 });
 
 // Filtered data for modal form — audit only sees their assigned locations
 const availableBranches = computed(() => {
   if (!isAudit.value || !auditAccessibleBranchIds.value) return branches.value;
-  return branches.value.filter(b => auditAccessibleBranchIds.value.includes(b.id));
+  if (auditAccessibleBranchIds.value.length === 0) return [];
+  return branches.value.filter(b => auditAccessibleBranchIds.value.includes(Number(b.id)));
 });
 const availableWarehouses = computed(() => {
   if (!isAudit.value || !auditAccessibleWarehouseIds.value) return warehouses.value;
-  return warehouses.value.filter(w => auditAccessibleWarehouseIds.value.includes(w.id));
+  if (auditAccessibleWarehouseIds.value.length === 0) return [];
+  return warehouses.value.filter(w => auditAccessibleWarehouseIds.value.includes(Number(w.id)));
 });
 const availableOnlineShops = computed(() => {
   if (!isAudit.value || !auditAccessibleOnlineShopIds.value) return onlineShops.value;
-  return onlineShops.value.filter(s => auditAccessibleOnlineShopIds.value.includes(s.id));
+  if (auditAccessibleOnlineShopIds.value.length === 0) return [];
+  return onlineShops.value.filter(s => auditAccessibleOnlineShopIds.value.includes(Number(s.id)));
 });
 const availableDistributors = computed(() => {
   if (!isAudit.value || !auditAccessibleDistributorIds.value) return distributors.value;
-  return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(d.id));
+  if (auditAccessibleDistributorIds.value.length === 0) return [];
+  return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(Number(d.id)));
 });
 
 // Filtered Roles List for Add/Edit Modal
@@ -1040,7 +1044,8 @@ function getUserRoleName(user) {
               <!-- Online Shop Select -->
               <select v-else-if="placementType === 'online_shop'" v-model="form.online_shop_id" class="input">
                 <option value="">Pilih Toko Online...</option>
-                <option v-for="s in availableOnlineShops" :key="s.id" :value="s.id">{{ s.name }} ({{ s.platform }})</option>
+                <option v-for="s in availableOnlineShops" :key="s.id" :value="s.id">{{ s.name }} ({{ s.platform }})
+                </option>
               </select>
 
               <!-- Branch Select (Default) -->
