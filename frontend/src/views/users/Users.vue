@@ -715,8 +715,9 @@ function getUserRoleName(user) {
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <button @click="toggleStatus(user)" :disabled="isReadOnlyAccess"
-                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-surface-900 shrink-0"
-                    :class="[user.is_active ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-600', isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']"
+                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0"
+                    :style="{ backgroundColor: user.is_active ? '#10b981' : '#9ca3af' }"
+                    :class="[isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']"
                     title="Klik untuk mengubah status">
                     <span class="sr-only">Toggle status</span>
                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
@@ -814,8 +815,9 @@ function getUserRoleName(user) {
                 {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
               </span>
               <button @click="toggleStatus(user)" :disabled="isReadOnlyAccess"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-surface-900 shrink-0"
-                :class="[user.is_active ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-600', isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']">
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0"
+                :style="{ backgroundColor: user.is_active ? '#10b981' : '#9ca3af' }"
+                :class="[isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']">
                 <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                   :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>

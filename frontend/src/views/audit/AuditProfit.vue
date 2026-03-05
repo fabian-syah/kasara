@@ -73,7 +73,8 @@
 
                     <!-- Export Button -->
                     <button @click="exportExcel" :disabled="exporting"
-                        class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 dark:shadow-none hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                        :style="{ backgroundColor: '#10b981', color: '#ffffff' }">
                         <Download :size="18" :class="{ 'animate-bounce': exporting }" />
                         <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
                     </button>
@@ -164,7 +165,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                    }}</td>
+                                }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -191,7 +192,7 @@
                                                             <div>{{ detail.name }}</div>
                                                             <div v-if="detail.storage"
                                                                 class="mt-0.5 text-[10px] text-gray-500">{{
-                                                                detail.storage }}</div>
+                                                                    detail.storage }}</div>
                                                             <div v-if="detail.imei && detail.imei !== '-'"
                                                                 class="mt-0.5 text-xs text-blue-500 font-mono">IMEI: {{
                                                                     detail.imei }}</div>
@@ -199,7 +200,7 @@
                                                                 class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                                                 :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">{{
                                                                     detail.condition === 'new' ? 'Baru' : detail.condition
-                                                                === 'ex_ibox' ? 'Ex iBox' : 'Second' }}</span>
+                                                                        === 'ex_ibox' ? 'Ex iBox' : 'Second' }}</span>
                                                         </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
@@ -251,7 +252,7 @@
                                                         formatCurrency(item.harga_jual) }}</span>
                                                     <span class="font-mono text-[10px] text-gray-500">Modal: {{
                                                         formatCurrency(item.harga_modal ?? item.default_harga_modal)
-                                                        }}</span>
+                                                    }}</span>
                                                     <span class="font-bold font-mono text-[11px]"
                                                         :class="item.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                                                         Profit: {{ formatCurrency(item.profit) }}</span>
