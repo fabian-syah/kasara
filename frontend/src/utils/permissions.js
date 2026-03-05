@@ -149,12 +149,14 @@ export const ROLE_PERMISSIONS = {
     [ROLES.DISTRIBUTOR]: [
         PERMISSIONS.DISTRIBUTOR_MONITORING,
         PERMISSIONS.INVENTORY_VIEW,
+        PERMISSIONS.INVENTORY_MANAGE,
         'track.view'
     ],
 
     [ROLES.DISTRIBUTION]: [
         PERMISSIONS.DISTRIBUTOR_MONITORING,
         PERMISSIONS.INVENTORY_VIEW,
+        PERMISSIONS.INVENTORY_MANAGE,
         'track.view'
     ],
 
@@ -208,8 +210,8 @@ export const ROLE_MENUS = {
     [ROLES.AUDIT]: ['dashboard', 'audit_cabang', 'audit', 'users', 'incoming_group', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
     [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track'],
-    [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'track'],
-    [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'track'],
+    [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'incoming_group', 'track'],
+    [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'track'],
     [ROLES.SALES]: ['dashboard', 'pos', 'transactions', 'audit_sales', 'inventory', 'incoming_group', 'reports', 'report_sales', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
