@@ -164,7 +164,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                }}</td>
+                                    }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -189,13 +189,17 @@
                                                     <div class="flex justify-between items-start gap-3 w-full">
                                                         <div class="whitespace-normal flex-1 leading-relaxed">
                                                             <div>{{ detail.name }}</div>
-                                                            <div v-if="detail.storage" class="mt-0.5 text-[10px] text-gray-500">{{ detail.storage }}</div>
+                                                            <div v-if="detail.storage"
+                                                                class="mt-0.5 text-[10px] text-gray-500">{{
+                                                                detail.storage }}</div>
                                                             <div v-if="detail.imei && detail.imei !== '-'"
                                                                 class="mt-0.5 text-xs text-blue-500 font-mono">IMEI: {{
-                                                                detail.imei }}</div>
-                                                            <span v-if="detail.condition" class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
-                                                                :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'"
-                                                            >{{ detail.condition === 'new' ? 'Baru' : detail.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}</span>
+                                                                    detail.imei }}</div>
+                                                            <span v-if="detail.condition"
+                                                                class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                                                                :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">{{
+                                                                    detail.condition === 'new' ? 'Baru' : detail.condition
+                                                                === 'ex_ibox' ? 'Ex iBox' : 'Second' }}</span>
                                                         </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
@@ -247,7 +251,7 @@
                                                         formatCurrency(item.harga_jual) }}</span>
                                                     <span class="font-mono text-[10px] text-gray-500">Modal: {{
                                                         formatCurrency(item.harga_modal ?? item.default_harga_modal)
-                                                    }}</span>
+                                                        }}</span>
                                                     <span class="font-bold font-mono text-[11px]"
                                                         :class="item.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                                                         Profit: {{ formatCurrency(item.profit) }}</span>
@@ -431,7 +435,7 @@
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil } from 'lucide-vue-next'
+import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil, Download } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
