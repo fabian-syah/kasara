@@ -158,7 +158,7 @@ const filteredRolesOptions = computed(() => {
     ['toko_online'].forEach(r => allowedRoles.add(r));
   }
   if (hasDistributorAccess) {
-    ['distributor', 'distribution'].forEach(r => allowedRoles.add(r));
+    ['distributor'].forEach(r => allowedRoles.add(r));
   }
 
   // Exclude roles that should never be assigned by an audit user, regardless of placement access
