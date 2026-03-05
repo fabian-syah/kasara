@@ -126,12 +126,8 @@ const filteredRolesOptions = computed(() => {
   const user = currentUser.value;
   if (!user) return [];
 
-  // Debugging user placements
-  console.log('Current User for Filtering:', user);
-  console.log('Placements:', user.placements);
 
-  // Determine Access
-  // Robust check for model_type (handles 'App\Models\Branch' vs 'branch')
+  // Determine Access based on placements
   const hasBranchAccess = !!user.branch_id || (user.placements?.some(p =>
     p.model_type === 'branch' || p.model_type?.includes('Branch')
   ) ?? false);
@@ -148,24 +144,27 @@ const filteredRolesOptions = computed(() => {
     p.model_type === 'distributor' || p.model_type?.includes('Distributor')
   ) ?? false);
 
-  return rolesList.filter(r => {
-    // 1. Hide Super Admin & Admin Produk & Audit itself & Analist
-    if (['super_admin', 'audit', 'analist', 'admin_produk'].includes(r.value)) return false;
+  // Whitelist: only show roles matching audit's access types
+  const allowedRoles = new Set();
 
-    // 2. Hide Warehouse roles if no warehouse access
-    if (!hasWarehouseAccess && ['gudang', 'inventory', 'head_gudang'].includes(r.value)) return false;
+  // Roles that an audit user can assign based on their own placements
+  if (hasBranchAccess) {
+    ['sales', 'inventory_kasir', 'security', 'leader'].forEach(r => allowedRoles.add(r));
+  }
+  if (hasWarehouseAccess) {
+    ['gudang', 'inventory'].forEach(r => allowedRoles.add(r));
+  }
+  if (hasOnlineAccess) {
+    ['toko_online'].forEach(r => allowedRoles.add(r));
+  }
+  if (hasDistributorAccess) {
+    ['distributor', 'distribution'].forEach(r => allowedRoles.add(r));
+  }
 
-    // 3. Hide Branch roles if no branch access
-    if (!hasBranchAccess && ['sales', 'inventory_kasir', 'security', 'leader'].includes(r.value)) return false;
+  // Exclude roles that should never be assigned by an audit user, regardless of placement access
+  const alwaysExcludedRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
 
-    // 4. Hide Online Shop roles if no online access
-    if (!hasOnlineAccess && ['toko_online'].includes(r.value)) return false;
-
-    // 5. Hide Distributor roles if no distributor access
-    if (!hasDistributorAccess && ['distributor'].includes(r.value)) return false;
-
-    return true;
-  });
+  return rolesList.filter(r => allowedRoles.has(r.value) && !alwaysExcludedRoles.includes(r.value));
 });
 
 // Form
