@@ -68,8 +68,52 @@ const isUploadingPhoto = ref(false);
 
 const isAudit = computed(() => authStore.userRole === 'audit');
 const isLeader = computed(() => authStore.userRole === 'leader');
-const isReadOnlyAccess = computed(() => isAudit.value || isLeader.value);
+const isReadOnlyAccess = computed(() => isLeader.value);
 const currentUser = computed(() => authStore.user);
+
+// For audit: filter placement options to only the audit user's accessible placements
+const auditAccessibleBranchIds = computed(() => {
+  if (!isAudit.value) return null;
+  const user = currentUser.value;
+  if (!user?.placements) return [];
+  return user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p => p.model_id);
+});
+const auditAccessibleWarehouseIds = computed(() => {
+  if (!isAudit.value) return null;
+  const user = currentUser.value;
+  if (!user?.placements) return [];
+  return user.placements.filter(p => p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')).map(p => p.model_id);
+});
+const auditAccessibleOnlineShopIds = computed(() => {
+  if (!isAudit.value) return null;
+  const user = currentUser.value;
+  if (!user?.placements) return [];
+  return user.placements.filter(p => p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')).map(p => p.model_id);
+});
+const auditAccessibleDistributorIds = computed(() => {
+  if (!isAudit.value) return null;
+  const user = currentUser.value;
+  if (!user?.placements) return [];
+  return user.placements.filter(p => p.model_type === 'distributor' || p.model_type?.includes('Distributor')).map(p => p.model_id);
+});
+
+// Filtered data for modal form — audit only sees their assigned locations
+const availableBranches = computed(() => {
+  if (!isAudit.value || !auditAccessibleBranchIds.value) return branches.value;
+  return branches.value.filter(b => auditAccessibleBranchIds.value.includes(b.id));
+});
+const availableWarehouses = computed(() => {
+  if (!isAudit.value || !auditAccessibleWarehouseIds.value) return warehouses.value;
+  return warehouses.value.filter(w => auditAccessibleWarehouseIds.value.includes(w.id));
+});
+const availableOnlineShops = computed(() => {
+  if (!isAudit.value || !auditAccessibleOnlineShopIds.value) return onlineShops.value;
+  return onlineShops.value.filter(s => auditAccessibleOnlineShopIds.value.includes(s.id));
+});
+const availableDistributors = computed(() => {
+  if (!isAudit.value || !auditAccessibleDistributorIds.value) return distributors.value;
+  return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(d.id));
+});
 
 // Filtered Roles List for Add/Edit Modal
 const filteredRolesOptions = computed(() => {
@@ -874,7 +918,7 @@ function getUserRoleName(user) {
                 <div class="border border-surface-700 rounded-xl bg-surface-900/50 p-3 max-h-52 overflow-y-auto">
                   <!-- Physical Branches -->
                   <div v-if="selectedMultiPlacementType === 'physical'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label v-for="b in branches" :key="b.id"
+                    <label v-for="b in availableBranches" :key="b.id"
                       class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
                       :class="form.selected_branches?.includes(b.id) ? 'bg-blue-500/10 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
                       <input type="checkbox" :value="b.id" v-model="form.selected_branches" class="sr-only">
@@ -890,14 +934,14 @@ function getUserRoleName(user) {
                       </div>
                       <Check v-if="form.selected_branches?.includes(b.id)" class="w-4 h-4 text-blue-500 shrink-0" />
                     </label>
-                    <p v-if="branches.length === 0"
+                    <p v-if="availableBranches.length === 0"
                       class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada cabang fisik
                       aktif.</p>
                   </div>
 
                   <!-- Online Shops -->
                   <div v-if="selectedMultiPlacementType === 'online'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label v-for="s in onlineShops" :key="s.id"
+                    <label v-for="s in availableOnlineShops" :key="s.id"
                       class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
                       :class="form.selected_online_shops?.includes(s.id) ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
                       <input type="checkbox" :value="s.id" v-model="form.selected_online_shops" class="sr-only">
@@ -914,14 +958,14 @@ function getUserRoleName(user) {
                       <Check v-if="form.selected_online_shops?.includes(s.id)"
                         class="w-4 h-4 text-orange-500 shrink-0" />
                     </label>
-                    <p v-if="onlineShops.length === 0"
+                    <p v-if="availableOnlineShops.length === 0"
                       class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada toko online
                       aktif.</p>
                   </div>
 
                   <!-- Warehouses -->
                   <div v-if="selectedMultiPlacementType === 'warehouse'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label v-for="w in warehouses" :key="w.id"
+                    <label v-for="w in availableWarehouses" :key="w.id"
                       class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
                       :class="form.selected_warehouses?.includes(w.id) ? 'bg-purple-500/10 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
                       <input type="checkbox" :value="w.id" v-model="form.selected_warehouses" class="sr-only">
@@ -937,7 +981,7 @@ function getUserRoleName(user) {
                       </div>
                       <Check v-if="form.selected_warehouses?.includes(w.id)" class="w-4 h-4 text-purple-500 shrink-0" />
                     </label>
-                    <p v-if="warehouses.length === 0"
+                    <p v-if="availableWarehouses.length === 0"
                       class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada gudang aktif.
                     </p>
                   </div>
@@ -945,7 +989,7 @@ function getUserRoleName(user) {
                   <!-- Distributors -->
                   <div v-if="selectedMultiPlacementType === 'distributor'"
                     class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label v-for="d in distributors" :key="d.id"
+                    <label v-for="d in availableDistributors" :key="d.id"
                       class="relative flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 border"
                       :class="form.selected_distributors?.includes(d.id) ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-surface-800 border-surface-700 hover:border-surface-600'">
                       <input type="checkbox" :value="d.id" v-model="form.selected_distributors" class="sr-only">
@@ -962,7 +1006,7 @@ function getUserRoleName(user) {
                       <Check v-if="form.selected_distributors?.includes(d.id)"
                         class="w-4 h-4 text-emerald-500 shrink-0" />
                     </label>
-                    <p v-if="distributors.length === 0"
+                    <p v-if="availableDistributors.length === 0"
                       class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada distributor
                       aktif.</p>
                   </div>
@@ -984,25 +1028,25 @@ function getUserRoleName(user) {
               <!-- Warehouse Select -->
               <select v-else-if="placementType === 'warehouse'" v-model="form.warehouse_id" class="input">
                 <option value="">Pilih Gudang...</option>
-                <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }} ({{ w.code }})</option>
+                <option v-for="w in availableWarehouses" :key="w.id" :value="w.id">{{ w.name }} ({{ w.code }})</option>
               </select>
 
               <!-- Distributor Select -->
               <select v-else-if="placementType === 'distributor'" v-model="form.distributor_id" class="input">
                 <option value="">Pilih Distributor...</option>
-                <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                <option v-for="d in availableDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
               </select>
 
               <!-- Online Shop Select -->
               <select v-else-if="placementType === 'online_shop'" v-model="form.online_shop_id" class="input">
                 <option value="">Pilih Toko Online...</option>
-                <option v-for="s in onlineShops" :key="s.id" :value="s.id">{{ s.name }} ({{ s.platform }})</option>
+                <option v-for="s in availableOnlineShops" :key="s.id" :value="s.id">{{ s.name }} ({{ s.platform }})</option>
               </select>
 
               <!-- Branch Select (Default) -->
               <select v-else v-model="form.branch_id" class="input">
                 <option value="">Pilih Cabang Fisik...</option>
-                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                <option v-for="b in availableBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
               </select>
             </div>
 

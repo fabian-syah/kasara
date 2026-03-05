@@ -132,6 +132,35 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $currentUser = $request->user();
+
+        // Audit role restriction: block forbidden roles
+        if ($currentUser->hasRole('audit')) {
+            $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
+            if (in_array($request->role, $forbiddenRoles)) {
+                return response()->json(['message' => 'Anda tidak memiliki izin untuk membuat user dengan role ini.'], 403);
+            }
+
+            // Validate placements against audit user's accessible locations
+            $accessibleBranchIds = $currentUser->getAccessibleBranchIds();
+            $accessibleWarehouseIds = $currentUser->getAccessibleWarehouseIds();
+            $accessibleOnlineShopIds = $currentUser->getAccessibleOnlineShopIds();
+            $accessibleDistributorIds = $currentUser->getAccessibleDistributorIds();
+
+            if ($request->branch_id && !in_array($request->branch_id, $accessibleBranchIds)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke cabang ini.'], 403);
+            }
+            if ($request->warehouse_id && !in_array($request->warehouse_id, $accessibleWarehouseIds)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke gudang ini.'], 403);
+            }
+            if ($request->online_shop_id && !in_array($request->online_shop_id, $accessibleOnlineShopIds)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke toko online ini.'], 403);
+            }
+            if ($request->distributor_id && !in_array($request->distributor_id, $accessibleDistributorIds)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke distributor ini.'], 403);
+            }
+        }
+
         $request->validate([
             'username' => 'required|string|unique:users,username',
             'code_id' => 'nullable|string|unique:users,code_id',
@@ -223,6 +252,19 @@ class UserController extends Controller
     {
         $currentUser = $request->user();
 
+        // Audit role restriction on update
+        if ($currentUser->hasRole('audit')) {
+            $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
+            if ($request->role && in_array($request->role, $forbiddenRoles)) {
+                return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah role ke role ini.'], 403);
+            }
+
+            // Also block editing users that have forbidden roles
+            if ($user->hasAnyRole($forbiddenRoles)) {
+                return response()->json(['message' => 'Anda tidak memiliki izin untuk mengedit user ini.'], 403);
+            }
+        }
+
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
             'username' => ['sometimes', 'string', Rule::unique('users')->ignore($user->id)],
@@ -311,7 +353,33 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $currentUser = request()->user();
-        if (!$currentUser->hasRole('super_admin') && $currentUser->branch_id !== $user->branch_id) {
+
+        // Audit role: can only delete users within their accessible placements, not forbidden roles
+        if ($currentUser->hasRole('audit')) {
+            $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
+            if ($user->hasAnyRole($forbiddenRoles)) {
+                return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus user ini.'], 403);
+            }
+
+            $accessibleBranchIds = $currentUser->getAccessibleBranchIds();
+            $accessibleWarehouseIds = $currentUser->getAccessibleWarehouseIds();
+            $accessibleOnlineShopIds = $currentUser->getAccessibleOnlineShopIds();
+            $accessibleDistributorIds = $currentUser->getAccessibleDistributorIds();
+
+            $hasAccess = false;
+            if ($user->branch_id && in_array($user->branch_id, $accessibleBranchIds))
+                $hasAccess = true;
+            if ($user->warehouse_id && in_array($user->warehouse_id, $accessibleWarehouseIds))
+                $hasAccess = true;
+            if ($user->online_shop_id && in_array($user->online_shop_id, $accessibleOnlineShopIds))
+                $hasAccess = true;
+            if ($user->distributor_id && in_array($user->distributor_id, $accessibleDistributorIds))
+                $hasAccess = true;
+
+            if (!$hasAccess) {
+                return response()->json(['message' => 'Anda tidak memiliki akses untuk menghapus user ini.'], 403);
+            }
+        } elseif (!$currentUser->hasRole('super_admin') && $currentUser->branch_id !== $user->branch_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
