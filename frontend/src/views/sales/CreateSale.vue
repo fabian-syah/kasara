@@ -68,7 +68,11 @@ onMounted(async () => {
             api.get('/user')
         ]);
 
-        salesAccounts.value = accountsRes.data.data || accountsRes.data;
+        const rawAccounts = accountsRes.data.data || accountsRes.data;
+        // Filter ONLY for sales role as requested by user (hide inventory accounts like bian trial)
+        salesAccounts.value = rawAccounts.filter(acc =>
+            acc.roles && acc.roles.some(r => r.name === 'sales')
+        );
 
         // Auto-select logged-in user if they are in the list
         const currentUser = userRes.data.data || userRes.data;
@@ -377,7 +381,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                            }}/{{ item.storage || '-' }}</span>
+                                                }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -578,7 +582,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
