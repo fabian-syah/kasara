@@ -1205,7 +1205,7 @@ class InventoryController extends Controller
         }
 
         $user = Auth::user();
-        $inventoryUsers = \App\Models\User::role('inventory')
+        $inventoryUsers = \App\Models\User::role(['inventory', 'sales'])
             ->where('created_by', $user->id)
             ->where('is_active', true)
             ->select('id', 'name', 'full_name', 'username', 'code_id')
