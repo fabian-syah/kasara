@@ -10,22 +10,22 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('sales', function (Blueprint $table) {
-            if (!Schema::hasColumn('sales', 'sales_account')) {
+        Schema::table('stock_outs', function (Blueprint $table) {
+            if (!Schema::hasColumn('stock_outs', 'sales_account')) {
                 $table->string('sales_account')->nullable()->after('customer_name');
             }
-            if (!Schema::hasColumn('sales', 'category')) {
+            if (!Schema::hasColumn('stock_outs', 'category')) {
                 $table->string('category')->nullable()->after('sales_account');
             }
         });
     }
 
     /**
-     * Reverse the migrations hmmmm.
+     * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('sales', function (Blueprint $table) {
+        Schema::table('stock_outs', function (Blueprint $table) {
             $table->dropColumn(['sales_account', 'category']);
         });
     }

@@ -63,6 +63,8 @@ class StockOut extends Model
         // Confirmation
         'confirmed_at',
         'confirmed_by',
+        'sales_account',
+        'category',
     ];
 
     protected $casts = [

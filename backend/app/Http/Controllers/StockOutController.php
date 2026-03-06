@@ -138,6 +138,9 @@ class StockOutController extends Controller
                     'event_sponsorship',
                     'promo',
                     'inventaris',
+                    'penjualan',
+                    'tukar_unit',
+                    'downgrade',
                 ])
             ],
             'sub_category' => 'required_if:category,keluar|nullable|string',
@@ -161,8 +164,8 @@ class StockOutController extends Controller
             'inventory_user_id' => 'sometimes|nullable|exists:users,id',
             'retur_seal' => 'nullable|string|max:255',
             'retur_issue' => 'required_if:category,retur|nullable|string',
-            'customer_name' => 'required_if:category,retur|nullable|string|max:255',
-            'customer_phone' => 'required_if:category,retur|nullable|string|max:50',
+            'customer_name' => 'nullable|string|max:255',
+            'customer_phone' => 'nullable|string|max:50',
             'return_destination_id' => 'required_if:category,retur|nullable|exists:warehouses,id',
             'proof_image' => 'nullable|image|max:10240', // Max 10MB
         ];
