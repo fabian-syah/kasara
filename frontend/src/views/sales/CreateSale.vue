@@ -63,10 +63,30 @@ const lastTransaction = ref(null);
 onMounted(async () => {
     inventoryStore.fetchProducts();
     try {
-        const response = await api.get('/inventory/my-accounts');
-        salesAccounts.value = response.data.data || response.data;
+        const [accountsRes, userRes] = await Promise.all([
+            api.get('/inventory/my-accounts'),
+            api.get('/user')
+        ]);
+
+        salesAccounts.value = accountsRes.data.data || accountsRes.data;
+
+        // Auto-select logged-in user if they are in the list
+        const currentUser = userRes.data.data || userRes.data;
+        if (currentUser) {
+            const match = salesAccounts.value.find(acc =>
+                acc.name === currentUser.name ||
+                acc.username === currentUser.username ||
+                acc.id === currentUser.id
+            );
+            if (match) {
+                salesAccount.value = match.name;
+            } else if (salesAccounts.value.length > 0) {
+                // If it's a sales account, it should be in the list now
+                // but if not, we can still default to the first one available
+            }
+        }
     } catch (e) {
-        console.error("Gagal memuat akun sales", e);
+        console.error("Gagal memuat data awal", e);
     }
 });
 
@@ -357,7 +377,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                                }}/{{ item.storage || '-' }}</span>
+                                            }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -558,7 +578,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
