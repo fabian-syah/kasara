@@ -18,6 +18,7 @@ import {
     Receipt,
     CheckCircle,
     AlertCircle,
+    User,
 } from "lucide-vue-next";
 
 const cartStore = useCartStore();
@@ -26,6 +27,7 @@ const inventoryStore = useInventoryStore();
 // Pre-sales setup
 const isSetupComplete = ref(false);
 const salesAccount = ref("");
+const salesAccounts = ref([]);
 const transactionCategory = ref("penjualan");
 
 const categoriesPenjualan = [
@@ -57,8 +59,14 @@ const selectedPaymentMethod = ref("cash");
 const showSuccessModal = ref(false);
 const lastTransaction = ref(null);
 
-onMounted(() => {
+onMounted(async () => {
     inventoryStore.fetchProducts();
+    try {
+        const response = await api.get('/inventory/my-accounts');
+        salesAccounts.value = response.data.data || response.data;
+    } catch (e) {
+        console.error("Gagal memuat akun sales", e);
+    }
 });
 
 const filteredProducts = computed(() => {
@@ -120,21 +128,20 @@ async function processPayment() {
     }
 
     try {
-        const payload = {
-            category: transactionCategory.value,
-            sales_account: salesAccount.value,
-            payment_method: selectedPaymentMethod.value,
-            paid_amount: paymentAmount.value,
-            items: cartItems.value.map(item => ({
-                product_id: item.id,
-                quantity: item.quantity,
-                price: item.price
-            }))
-        };
+        const formData = new FormData();
+        formData.append('category', transactionCategory.value);
+        formData.append('sales_account', salesAccount.value);
+        formData.append('payment_method', selectedPaymentMethod.value);
+        formData.append('paid_amount', paymentAmount.value);
+        formData.append('selling_price', cartTotal.value);
 
-        // Here we're assuming an api object is globally available or imported
-        // similar to other views. We need to import axios or api first if it's not.
-        const response = await api.post('/sales', payload);
+        cartItems.value.forEach(item => {
+            formData.append('product_detail_ids[]', item.id);
+        });
+
+        const response = await api.post('/stock-outs', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
         const change = paymentAmount.value - cartTotal.value;
         lastTransaction.value = {
@@ -202,8 +209,14 @@ function scrollToCart() {
                 <div class="space-y-6">
                     <div>
                         <label class="block text-sm font-semibold text-text-primary mb-2">Akun Sales Utama</label>
-                        <input v-model="salesAccount" type="text" placeholder="Masukkan nama akun sales..."
-                            class="w-full border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 text-text-primary focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" />
+                        <select v-model="salesAccount"
+                            class="w-full border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 text-text-primary focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all">
+                            <option value="" disabled>-- Pilih Akun Sales --</option>
+                            <option v-for="account in salesAccounts" :key="account.id"
+                                :value="account.full_name || account.name">
+                                {{ account.full_name || account.name }}
+                            </option>
+                        </select>
                     </div>
 
                     <div>
@@ -374,7 +387,7 @@ function scrollToCart() {
                                 </button>
                                 <span class="w-8 text-center text-text-primary font-semibold">{{
                                     item.quantity
-                                    }}</span>
+                                }}</span>
                                 <button @click.stop="incrementQty(item.id)"
                                     class="w-7 h-7 rounded-lg bg-surface-200 dark:bg-surface-700 hover:bg-surface-300 dark:hover:bg-surface-600 flex items-center justify-center transition-colors"
                                     :disabled="item.quantity >= item.stock" :class="{
@@ -407,7 +420,7 @@ function scrollToCart() {
                         <span class="text-text-primary font-semibold">Total</span>
                         <span class="text-xl font-bold text-primary-500">{{
                             formatCurrency(cartTotal)
-                            }}</span>
+                        }}</span>
                     </div>
                 </div>
 
@@ -483,7 +496,7 @@ function scrollToCart() {
                                 <span class="text-emerald-600 dark:text-emerald-400">Kembalian</span>
                                 <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
                         </div>
                         <div v-else class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
@@ -531,13 +544,13 @@ function scrollToCart() {
                             <span class="text-text-secondary">Total</span>
                             <span class="text-text-primary">{{
                                 formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                         <div v-if="lastTransaction.change > 0" class="flex justify-between text-sm">
                             <span class="text-text-secondary">Kembalian</span>
                             <span class="text-emerald-500 font-bold">{{
                                 formatCurrency(lastTransaction.change)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
