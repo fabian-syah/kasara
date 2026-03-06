@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import api from "../../api";
+import api from "../../api/axios";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useCartStore } from "../../store/cart";
 import { useInventoryStore } from "../../store/inventory";
@@ -374,7 +374,7 @@ function scrollToCart() {
                                 </button>
                                 <span class="w-8 text-center text-text-primary font-semibold">{{
                                     item.quantity
-                                }}</span>
+                                    }}</span>
                                 <button @click.stop="incrementQty(item.id)"
                                     class="w-7 h-7 rounded-lg bg-surface-200 dark:bg-surface-700 hover:bg-surface-300 dark:hover:bg-surface-600 flex items-center justify-center transition-colors"
                                     :disabled="item.quantity >= item.stock" :class="{
@@ -407,7 +407,7 @@ function scrollToCart() {
                         <span class="text-text-primary font-semibold">Total</span>
                         <span class="text-xl font-bold text-primary-500">{{
                             formatCurrency(cartTotal)
-                        }}</span>
+                            }}</span>
                     </div>
                 </div>
 
@@ -483,7 +483,7 @@ function scrollToCart() {
                                 <span class="text-emerald-600 dark:text-emerald-400">Kembalian</span>
                                 <span class="text-xl font-bold text-emerald-600 dark:text-emerald-400">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
                         </div>
                         <div v-else class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
@@ -531,13 +531,13 @@ function scrollToCart() {
                             <span class="text-text-secondary">Total</span>
                             <span class="text-text-primary">{{
                                 formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                         <div v-if="lastTransaction.change > 0" class="flex justify-between text-sm">
                             <span class="text-text-secondary">Kembalian</span>
                             <span class="text-emerald-500 font-bold">{{
                                 formatCurrency(lastTransaction.change)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
