@@ -1,0 +1,319 @@
+<template>
+    <div class="space-y-6">
+        <!-- Header & Filters -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-text-primary">Cek Penjualan</h1>
+                <p class="text-text-secondary text-sm mt-1">Lihat riwayat penjualan dari cabang Anda</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <!-- Period Filter -->
+                <div class="relative min-w-[140px]">
+                    <select v-model="selectedPeriod" @change="handlePeriodChange"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
+                        <option value="daily">Harian</option>
+                        <option value="monthly">Bulanan</option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
+                <!-- Daily: Date Picker -->
+                <div v-if="selectedPeriod === 'daily'" class="relative group">
+                    <div
+                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
+                        <Calendar :size="18" class="text-gray-500 dark:text-gray-400 group-hover:text-primary-500" />
+                        <span class="text-sm font-medium text-text-primary min-w-[100px]">
+                            {{ formattedDateDisplay }}
+                        </span>
+                    </div>
+                    <input type="date" v-model="filters.start_date" @change="handleDateChange"
+                        @click="$event.target.showPicker()"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                </div>
+
+                <!-- Monthly: Month & Year Selectors -->
+                <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2">
+                    <div class="relative min-w-[140px]">
+                        <select v-model="selectedMonth" @change="handleMonthChange"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
+                            <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+
+                    <div class="relative min-w-[100px]">
+                        <select v-model="selectedYear" @change="handleMonthChange"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
+                            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
+                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Total Penjualan</p>
+                <p class="text-2xl font-bold text-text-primary mt-1">{{ totalSales }}</p>
+            </div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
+                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Total Unit</p>
+                <p class="text-2xl font-bold text-primary-500 mt-1">{{ totalUnits }}</p>
+            </div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
+                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Lunas</p>
+                <p class="text-2xl font-bold text-emerald-500 mt-1">{{ totalLunas }}</p>
+            </div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
+                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Belum Lunas</p>
+                <p class="text-2xl font-bold text-amber-500 mt-1">{{ totalBelumLunas }}</p>
+            </div>
+        </div>
+
+        <!-- Sales Table -->
+        <div
+            class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead
+                        class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
+                        <tr>
+                            <th class="px-6 py-4">No</th>
+                            <th class="px-6 py-4">Tanggal</th>
+                            <th class="px-6 py-4">No Pesanan</th>
+                            <th class="px-6 py-4">Nama</th>
+                            <th class="px-6 py-4">No HP</th>
+                            <th class="px-6 py-4">Kategori</th>
+                            <th class="px-6 py-4">Produk</th>
+                            <th class="px-6 py-4">IMEI</th>
+                            <th class="px-6 py-4">Qty</th>
+                            <th class="px-6 py-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
+                        <tr v-if="loading">
+                            <td colspan="10" class="px-6 py-12">
+                                <div class="flex flex-col items-center justify-center text-text-secondary">
+                                    <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
+                                    <span class="text-sm font-medium">Memuat data penjualan...</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr v-else-if="salesRecords.daily_sales.length === 0">
+                            <td colspan="10" class="px-6 py-12 text-center text-text-secondary">
+                                <div class="flex flex-col items-center justify-center">
+                                    <div
+                                        class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
+                                        <FileText class="w-6 h-6 text-gray-400" />
+                                    </div>
+                                    <span class="font-medium text-text-primary">Tidak ada data penjualan</span>
+                                    <span class="text-xs mt-1">Belum ada transaksi pada periode ini</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <template v-else>
+                            <template v-for="(item, index) in salesRecords.daily_sales" :key="index">
+                                <!-- If item has sub-items -->
+                                <tr v-if="item.items && item.items.length > 0" v-for="(detail, idx) in item.items"
+                                    :key="`${index}-${idx}`"
+                                    class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
+                                    <td class="px-6 py-4 text-text-secondary" v-if="idx === 0"
+                                        :rowspan="item.items.length">{{ index + 1 }}</td>
+                                    <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
+                                        formatDate(item.date) }}</td>
+                                    <td class="px-6 py-4 font-mono text-xs" v-if="idx === 0"
+                                        :rowspan="item.items.length">{{ item.order_no }}</td>
+                                    <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
+                                        item.customer_name }}</td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">{{
+                                        item.customer_phone }}</td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
+                                            {{ item.category }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <div>{{ detail.name }}</div>
+                                        <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
+                                            }}</div>
+                                        <span v-if="detail.condition"
+                                            class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                                            :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
+                                            {{ detail.condition === 'new' ? 'Baru' : detail.condition === 'ex_ibox' ?
+                                            'Ex iBox' : 'Second' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ detail.imei && detail.imei
+                                        !== '-' ? detail.imei : '-' }}</td>
+                                    <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
+                                            :class="item.status === 'Lunas'
+                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                                                : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
+                                            {{ item.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <!-- Single item row -->
+                                <tr v-else
+                                    class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
+                                    <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
+                                    <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
+                                    <td class="px-6 py-4 font-mono text-xs">{{ item.order_no }}</td>
+                                    <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
+                                    <td class="px-6 py-4">{{ item.customer_phone }}</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
+                                            {{ item.category }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">{{ item.product_names || '-' }}</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ item.imeis && item.imeis
+                                        !== '-' ? item.imeis : '-' }}</td>
+                                    <td class="px-6 py-4 font-bold">{{ item.qty }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
+                                            :class="item.status === 'Lunas'
+                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                                                : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
+                                            {{ item.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </template>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { Loader2, FileText, ChevronDown, Calendar } from 'lucide-vue-next'
+import axios from '../../api/axios'
+
+const loading = ref(false)
+const selectedPeriod = ref('daily')
+
+const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+const selectedMonth = ref(new Date().getMonth() + 1);
+const selectedYear = ref(currentYear);
+
+const salesRecords = ref({
+    daily_sales: [],
+    brand_sales: [],
+    cs_sales: []
+})
+
+const getTodayLocal = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+const filters = ref({
+    start_date: getTodayLocal(),
+    end_date: getTodayLocal(),
+})
+
+const formattedDateDisplay = computed(() => {
+    if (!filters.value.start_date) return 'Pilih Tanggal';
+    if (selectedPeriod.value === 'daily') {
+        const date = new Date(filters.value.start_date);
+        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    } else {
+        const monthIndex = selectedMonth.value - 1;
+        return `${months[monthIndex]} ${selectedYear.value}`;
+    }
+})
+
+// Summary stats
+const totalSales = computed(() => salesRecords.value.daily_sales.length)
+const totalUnits = computed(() => salesRecords.value.daily_sales.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
+const totalLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status === 'Lunas').length)
+const totalBelumLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status !== 'Lunas').length)
+
+const handlePeriodChange = () => {
+    if (selectedPeriod.value === 'daily') {
+        const today = getTodayLocal();
+        filters.value.start_date = today;
+        filters.value.end_date = today;
+    } else {
+        handleMonthChange();
+    }
+    fetchData();
+}
+
+const handleDateChange = () => {
+    if (selectedPeriod.value === 'daily') {
+        filters.value.end_date = filters.value.start_date;
+    }
+    fetchData();
+}
+
+const handleMonthChange = () => {
+    const year = selectedYear.value;
+    const month = selectedMonth.value;
+    const endDate = new Date(year, month, 0);
+    const pad = (n) => n < 10 ? '0' + n : n;
+    filters.value.start_date = `${year}-${pad(month)}-01`;
+    filters.value.end_date = `${year}-${pad(month)}-${pad(endDate.getDate())}`;
+    if (selectedPeriod.value === 'monthly') {
+        fetchData();
+    }
+}
+
+const formatDate = (dateString) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
+}
+
+const fetchData = async () => {
+    loading.value = true
+    try {
+        const params = { ...filters.value };
+        const response = await axios.get('/audit/sales', { params })
+        salesRecords.value = response.data
+    } catch (error) {
+        console.error('Error fetching sales:', error)
+    } finally {
+        loading.value = false
+    }
+}
+
+onMounted(() => {
+    const today = getTodayLocal();
+    filters.value.start_date = today;
+    filters.value.end_date = today;
+    fetchData()
+})
+</script>

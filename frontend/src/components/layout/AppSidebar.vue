@@ -33,7 +33,9 @@ import {
     ArrowDownRight,
     DollarSign,
     HelpCircle,
-    MoreHorizontal
+    MoreHorizontal,
+    Trophy,
+    History
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -159,6 +161,12 @@ const menuItems = [
     { id: "categories", path: "/categories", label: "Kategori", icon: Box },
     { id: "distributors", path: "/distributors", label: "Distributor", icon: Truck },
 
+    // Sales Menus
+    { id: "sales_create", path: "/sales/create", label: "Buat Penjualan", icon: ShoppingCart },
+    { id: "sales_check", path: "/sales/check", label: "Cek Penjualan", icon: ClipboardList },
+    { id: "sales_imei_history", path: "/sales/imei-history", label: "History IMEI", icon: History },
+    { id: "sales_ranking", path: "/sales/ranking", label: "Peringkat & Foto", icon: Trophy },
+
     // Lacak Barang
     { id: "questions", path: "/questions", label: "Pertanyaan", icon: HelpCircle },
     { id: "track", path: "/track", label: "Lacak Barang", icon: Search },
@@ -238,19 +246,24 @@ watch(() => route.path, () => {
             isExpanded ? 'w-[290px]' : 'w-[90px]',
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         ]">
-        
+
         <!-- macOS Traffic Lights (Desktop Only) -->
         <div class="hidden lg:flex items-center gap-2 px-6 pt-5 pb-1">
-            <div class="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 cursor-pointer transition-colors shadow-sm"></div>
-            <div class="w-3 h-3 rounded-full bg-amber-500 hover:bg-amber-600 cursor-pointer transition-colors shadow-sm"></div>
-            <div class="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-600 cursor-pointer transition-colors shadow-sm" @click="emit('expand-sidebar')"></div>
+            <div class="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 cursor-pointer transition-colors shadow-sm">
+            </div>
+            <div
+                class="w-3 h-3 rounded-full bg-amber-500 hover:bg-amber-600 cursor-pointer transition-colors shadow-sm">
+            </div>
+            <div class="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-600 cursor-pointer transition-colors shadow-sm"
+                @click="emit('expand-sidebar')"></div>
         </div>
 
         <!-- Logo Section -->
         <div
             class="flex items-center justify-between px-6 py-4 shrink-0 border-b border-surface-200/50 dark:border-surface-800/50">
             <router-link to="/" class="flex items-center gap-3">
-                <span v-show="isExpanded" class="text-xl font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent whitespace-nowrap">
+                <span v-show="isExpanded"
+                    class="text-xl font-bold bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-white dark:to-neutral-400 bg-clip-text text-transparent whitespace-nowrap">
                     KASARA
                 </span>
             </router-link>
@@ -284,7 +297,8 @@ watch(() => route.path, () => {
                         ]">
                         <component :is="item.icon" :size="20" class="shrink-0" />
                         <span v-show="isExpanded" class="text-sm flex-1 text-left">{{ item.label }}</span>
-                        <ChevronDown v-show="isExpanded" :size="16" class="shrink-0 transition-transform duration-300 opacity-60 group-hover:opacity-100"
+                        <ChevronDown v-show="isExpanded" :size="16"
+                            class="shrink-0 transition-transform duration-300 opacity-60 group-hover:opacity-100"
                             :class="{ 'rotate-180': expandedMenus[item.id] || isGroupActive(item.items) }" />
                     </button>
 
@@ -313,7 +327,8 @@ watch(() => route.path, () => {
                             ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 shadow-sm'
                             : 'text-text-secondary hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 hover:text-text-primary'
                     ]" :title="!isExpanded ? item.label : undefined">
-                    <component :is="item.icon" :size="20" class="shrink-0 transition-transform duration-300 group-hover:scale-110" />
+                    <component :is="item.icon" :size="20"
+                        class="shrink-0 transition-transform duration-300 group-hover:scale-110" />
                     <span v-show="isExpanded" class="text-sm">{{ item.label }}</span>
                 </router-link>
             </div>

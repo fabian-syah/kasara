@@ -492,6 +492,46 @@ const routes = [
                 }
             },
             {
+                path: 'sales/create',
+                name: 'SalesCreateSale',
+                component: () => import('../views/sales/CreateSale.vue'),
+                meta: {
+                    title: 'Buat Penjualan',
+                    menu: 'sales_create',
+                    permissions: ['pos.access', 'transactions.create']
+                }
+            },
+            {
+                path: 'sales/check',
+                name: 'SalesCheckSales',
+                component: () => import('../views/sales/CheckSales.vue'),
+                meta: {
+                    title: 'Cek Penjualan',
+                    menu: 'sales_check',
+                    permissions: ['transactions.view']
+                }
+            },
+            {
+                path: 'sales/imei-history',
+                name: 'SalesImeiHistory',
+                component: () => import('../views/sales/ImeiHistory.vue'),
+                meta: {
+                    title: 'History IMEI',
+                    menu: 'sales_imei_history',
+                    permissions: ['transactions.view', 'inventory.view']
+                }
+            },
+            {
+                path: 'sales/ranking',
+                name: 'SalesRankingHistory',
+                component: () => import('../views/sales/RankingHistory.vue'),
+                meta: {
+                    title: 'Peringkat & Foto',
+                    menu: 'sales_ranking',
+                    permissions: ['transactions.view']
+                }
+            },
+            {
                 path: 'system-status',
                 name: 'SystemStatus',
                 component: () => import('../views/admin/SystemStatus.vue'),
