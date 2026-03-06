@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import api from "../../utils/api";
+import api from "../../api";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useCartStore } from "../../store/cart";
 import { useInventoryStore } from "../../store/inventory";
@@ -132,7 +132,7 @@ async function processPayment() {
             }))
         };
 
-        // Here we're assuming an api object is globally available or imported 
+        // Here we're assuming an api object is globally available or imported
         // similar to other views. We need to import axios or api first if it's not.
         const response = await api.post('/sales', payload);
 
