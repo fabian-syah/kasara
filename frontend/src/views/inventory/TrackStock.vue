@@ -58,7 +58,9 @@ async function search() {
 
     try {
         const response = await api.get('/track', { params: { q: query.value } });
-        results.value = response.data.data || [];
+        // Filter out 'barang_masuk' stock_out records - internal records from stock-in process
+        const data = response.data.data || [];
+        results.value = data.filter(r => !(r.type === 'stock_out' && r.category === 'barang_masuk'));
     } catch (e) {
         toast.error(e.response?.data?.message || "Gagal mencari");
         results.value = [];
@@ -163,7 +165,7 @@ function formatCurrency(value) {
                                                 result.product_name }}</p>
                                         </div>
                                         <p class="text-sm text-text-secondary font-mono tracking-tight">{{ result.imei
-                                            }}</p>
+                                        }}</p>
                                     </div>
                                 </div>
                                 <div
@@ -222,7 +224,7 @@ function formatCurrency(value) {
                                 <div v-if="(result.ram || result.storage) && !result.is_arrival">
                                     <p class="text-text-secondary text-xs">RAM / Storage</p>
                                     <p class="text-text-primary">{{ result.ram || '-' }}GB / {{ result.storage || '-'
-                                        }}GB
+                                    }}GB
                                     </p>
                                 </div>
                             </div>
@@ -336,7 +338,7 @@ function formatCurrency(value) {
                                                 <span>
                                                     <span class="text-text-secondary text-xs">Penerima:</span>
                                                     <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                        }}</span>
+                                                    }}</span>
                                                 </span>
                                                 <span>
                                                     <span class="text-text-secondary text-xs">No. Resi:</span>
@@ -360,7 +362,7 @@ function formatCurrency(value) {
                                         <div>
                                             <p class="text-text-secondary text-xs">No. Resi Shopee</p>
                                             <p class="text-text-primary font-mono">{{ result.shopee_tracking_no || '-'
-                                                }}
+                                            }}
                                             </p>
                                         </div>
                                     </template>

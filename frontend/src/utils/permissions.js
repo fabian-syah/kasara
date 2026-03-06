@@ -214,7 +214,7 @@ export const ROLE_MENUS = {
     [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track'],
     [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'incoming_group', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'track'],
-    [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_imei_history', 'sales_ranking', 'inventory', 'incoming_group', 'track'],
+    [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_ranking', 'inventory', 'incoming_group', 'track'],
     [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
