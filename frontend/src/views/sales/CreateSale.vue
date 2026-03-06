@@ -244,7 +244,8 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                     <p class="text-text-secondary mb-8">Pilih nama akun utama yang melakukan penjualan</p>
 
                     <div class="text-left mb-8">
-                        <label class="block text-sm font-semibold text-text-primary mb-3">Akun Sales Utama</label>
+                        <label class="block text-sm font-semibold text-text-primary mb-3">Nama Sales (Untuk
+                            Pencatatan)</label>
                         <select v-model="salesAccount"
                             class="w-full border border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-lg font-medium focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
                             <option value="" disabled>-- Pilih Akun Sales --</option>
@@ -356,7 +357,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                            }}/{{ item.storage || '-' }}</span>
+                                                }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -371,8 +372,8 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                         </code>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <span class="text-xs text-text-secondary">{{ item.distributor?.name || '-'
-                                        }}</span>
+                                        <span class="text-xs text-text-secondary">{{ item.distributor?.name ||
+                                            item.supplier_name || '-' }}</span>
                                     </td>
                                     <td class="px-4 py-4 text-right">
                                         <span class="text-sm font-black text-primary-500">{{
@@ -557,7 +558,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
