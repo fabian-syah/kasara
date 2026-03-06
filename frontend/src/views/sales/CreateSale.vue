@@ -96,19 +96,20 @@ function prevStep() {
 }
 
 const filteredProducts = computed(() => {
-    let products = inventoryStore.products;
-    if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        products = products.filter(
+    let result = inventoryStore.products;
+    if (searchQuery.ref || searchQuery.value) {
+        const query = (searchQuery.value || "").toLowerCase();
+        result = result.filter(
             (p) =>
-                p.name.toLowerCase().includes(query) ||
-                p.sku.toLowerCase().includes(query)
+                (p.product?.name || p.name || "").toLowerCase().includes(query) ||
+                (p.product?.brand || "").toLowerCase().includes(query) ||
+                (p.imei || "").toLowerCase().includes(query)
         );
     }
     if (selectedCategory.value) {
-        products = products.filter((p) => p.category === selectedCategory.value);
+        result = result.filter((p) => p.category === selectedCategory.value);
     }
-    return products;
+    return result;
 });
 
 const categories = computed(() => inventoryStore.categories);
@@ -308,36 +309,89 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                 <!-- Products -->
                 <div class="flex-[2] flex flex-col min-w-0">
                     <div
-                        class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-4 mb-4">
-                        <div class="relative">
+                        class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-4 mb-4 flex gap-4">
+                        <div class="relative flex-1">
                             <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
-                            <input v-model="searchQuery" type="text" placeholder="Cari produk (Nama atau SKU)..."
-                                class="w-full bg-surface-50 dark:bg-surface-900 border-none rounded-xl pl-12 pr-4 py-3 text-text-primary focus:ring-4 focus:ring-primary-500/10 transition-all" />
+                            <input v-model="searchQuery" type="text" placeholder="Cari IMEI, Brand, atau Nama Produk..."
+                                class="w-full bg-surface-50 dark:bg-surface-900 border-none rounded-xl pl-12 pr-4 py-3 text-sm text-text-primary focus:ring-4 focus:ring-primary-500/10 transition-all" />
                         </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4">
-                        <div v-if="filteredProducts.length === 0"
-                            class="flex flex-col items-center justify-center h-64 text-text-secondary">
-                            <Search :size="48" class="mb-4 opacity-50" />
-                            <p>Produk tidak ditemukan</p>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <div v-for="product in filteredProducts" :key="product.id" @click="addToCart(product)"
-                                class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-4 cursor-pointer group hover:border-primary-500 hover:shadow-xl transition-all"
-                                :class="{ 'opacity-50 cursor-not-allowed': product.stock === 0 }">
-                                <div
-                                    class="h-24 bg-surface-50 dark:bg-surface-900 rounded-xl mb-3 flex items-center justify-center text-3xl">
-                                    📱</div>
-                                <h3 class="font-bold text-text-primary text-sm truncate">{{ product.name }}</h3>
-                                <p class="text-primary-500 font-extrabold text-sm mb-2">{{ formatCurrency(product.price)
-                                    }}</p>
-                                <div class="flex justify-between items-center text-[10px] font-bold uppercase">
-                                    <span :class="product.stock > 0 ? 'text-emerald-500' : 'text-red-500'">STOK: {{
-                                        product.stock }}</span>
-                                </div>
-                            </div>
-                        </div>
+                    <div
+                        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 mb-4 shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-surface-50 dark:bg-surface-900 z-10">
+                                <tr>
+                                    <th
+                                        class="px-4 py-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-surface-100 dark:border-surface-700">
+                                        Produk & Brand</th>
+                                    <th
+                                        class="px-4 py-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-surface-100 dark:border-surface-700">
+                                        Spek & Kondisi</th>
+                                    <th
+                                        class="px-4 py-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-surface-100 dark:border-surface-700">
+                                        IMEI</th>
+                                    <th
+                                        class="px-4 py-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-surface-100 dark:border-surface-700">
+                                        Distributor</th>
+                                    <th
+                                        class="px-4 py-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-surface-100 dark:border-surface-700 text-right">
+                                        Harga</th>
+                                    <th
+                                        class="px-4 py-3 text-[10px] font-bold text-text-secondary uppercase tracking-wider border-b border-surface-100 dark:border-surface-700 text-right">
+                                        Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-100 dark:divide-surface-700">
+                                <tr v-for="item in filteredProducts" :key="item.id"
+                                    class="hover:bg-surface-50 dark:hover:bg-surface-900/50 transition-colors group">
+                                    <td class="px-4 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-text-primary text-sm">{{ item.product?.name ||
+                                                item.name }}</span>
+                                            <span class="text-[10px] text-text-secondary uppercase font-semibold">{{
+                                                item.product?.brand || '-' }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
+                                            }}/{{ item.storage || '-' }}</span>
+                                            <span
+                                                class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
+                                                :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
+                                                {{ item.condition || 'Second' }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <code
+                                            class="text-[11px] font-mono bg-surface-50 dark:bg-surface-900 px-2 py-1 rounded border border-surface-100 dark:border-surface-700">
+                                            {{ item.imei || '-' }}
+                                        </code>
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        <span class="text-xs text-text-secondary">{{ item.distributor?.name || '-'
+                                        }}</span>
+                                    </td>
+                                    <td class="px-4 py-4 text-right">
+                                        <span class="text-sm font-black text-primary-500">{{
+                                            formatCurrency(item.selling_price || item.price) }}</span>
+                                    </td>
+                                    <td class="px-4 py-4 text-right">
+                                        <button @click="addToCart(item)"
+                                            class="p-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-all shadow-lg shadow-primary-500/20 active:scale-95">
+                                            <Plus :size="16" />
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredProducts.length === 0">
+                                    <td colspan="6" class="px-4 py-20 text-center text-text-secondary italic">
+                                        Data tidak ditemukan atau stok kosong.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
 
                     <div class="flex gap-4">
@@ -355,10 +409,13 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
 
                 <!-- Cart Sidebar (Sticky in step 3) -->
                 <div
-                    class="w-full lg:w-80 flex flex-col bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden">
+                    class="w-full lg:w-96 flex flex-col bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden">
                     <div
-                        class="p-4 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center gap-2 font-bold">
-                        <ShoppingCart :size="18" class="text-primary-500" /> Keranjang ({{ cartItemCount }})
+                        class="p-4 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center justify-between font-bold">
+                        <div class="flex items-center gap-2">
+                            <ShoppingCart :size="18" class="text-primary-500" /> Keranjang ({{ cartItemCount }})
+                        </div>
+                        <span class="text-[10px] text-text-secondary font-bold uppercase">{{ salesAccount }}</span>
                     </div>
                     <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
                         <div v-if="cartItems.length === 0"
@@ -368,43 +425,33 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                         </div>
                         <div v-else class="space-y-4">
                             <div v-for="item in cartItems" :key="item.id"
-                                class="pb-4 border-b border-surface-100 dark:border-surface-700 last:border-0">
-                                <div class="flex justify-between items-start mb-2">
+                                class="pb-4 border-b border-surface-100 dark:border-surface-700 last:border-0 relative">
+                                <div class="flex justify-between items-start mb-2 pr-6">
                                     <div class="min-w-0">
-                                        <p class="text-xs font-bold text-text-primary truncate">{{ item.name }}</p>
-                                        <p class="text-[10px] text-primary-500">{{ formatCurrency(item.price) }}</p>
+                                        <p class="text-xs font-bold text-text-primary truncate">{{ item.product?.name ||
+                                            item.name }}</p>
+                                        <p class="text-[10px] font-mono text-text-secondary">{{ item.imei }}</p>
                                     </div>
-                                    <button @click="removeFromCart(item.id)" class="text-red-500">
-                                        <X :size="14" />
+                                    <button @click="removeFromCart(item.id)"
+                                        class="text-red-400 hover:text-red-500 absolute top-0 right-0">
+                                        <Trash2 :size="16" />
                                     </button>
                                 </div>
                                 <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-2">
-                                        <button @click="decrementQty(item.id)"
-                                            class="w-6 h-6 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center">
-                                            <Minus :size="10" />
-                                        </button>
-                                        <span class="text-xs font-bold">{{ item.quantity }}</span>
-                                        <button @click="incrementQty(item.id)"
-                                            class="w-6 h-6 bg-surface-100 dark:bg-surface-700 rounded flex items-center justify-center"
-                                            :disabled="item.quantity >= item.stock">
-                                            <Plus :size="10" />
-                                        </button>
-                                    </div>
-                                    <p class="text-xs font-bold">{{ formatCurrency(item.price * item.quantity) }}</p>
+                                    <span
+                                        class="text-xs px-2 py-0.5 bg-surface-50 dark:bg-surface-900 rounded text-text-secondary font-bold">QTY:
+                                        1</span>
+                                    <p class="text-xs font-black text-primary-500">{{ formatCurrency(item.selling_price
+                                        || item.price) }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div
                         class="p-4 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-100 dark:border-surface-700">
-                        <div class="flex justify-between mb-1 text-xs text-text-secondary">
-                            <span>Subtotal</span>
-                            <span>{{ formatCurrency(cartSubtotal) }}</span>
-                        </div>
-                        <div class="flex justify-between mb-3 text-lg font-bold text-text-primary">
+                        <div class="flex justify-between mb-3 text-lg font-black text-text-primary">
                             <span>Total</span>
-                            <span class="text-primary-500">{{ formatCurrency(cartTotal) }}</span>
+                            <span class="text-primary-600">{{ formatCurrency(cartTotal) }}</span>
                         </div>
                     </div>
                 </div>

@@ -438,6 +438,7 @@ class StockOutController extends Controller
 
                 'notes' => $request->notes,
                 'non_hp_items' => $request->non_hp_items, // Data JSON Non-HP
+                'sales_account' => $request->sales_account, // Add this line
             ]);
 
             // Create StockOutNonHpItem records
