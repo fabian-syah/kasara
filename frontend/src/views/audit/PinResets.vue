@@ -31,7 +31,6 @@ const showPassword = ref(false);
 
 const form = ref({
     transaction_pin: "",
-    password: "",
 });
 
 const isReadOnlyAccess = computed(() => authStore.userRole === 'leader');
@@ -80,10 +79,7 @@ async function saveUser() {
 
     isSaving.value = true;
     try {
-        const payload = { ...form.value };
-        if (!payload.password) delete payload.password;
-
-        await usersApi.update(editingUser.value.id, payload);
+        await usersApi.update(editingUser.value.id, form.value);
         toast.success(`PIN untuk ${editingUser.value.full_name} berhasil direset.`);
         closeModal();
         fetchData(); // Refresh list
@@ -260,28 +256,12 @@ onMounted(() => {
 
                         <div>
                             <label
-                                class="block text-xs font-black text-neutral-500 dark:text-neutral-400 border border-transparent rounded-xl mb-2 uppercase tracking-widest">PIN
-                                Baru (4 Digit)</label>
-                            <input v-model="form.transaction_pin" type="text" maxlength="4"
-                                class="w-full bg-neutral-100 dark:bg-neutral-800 border-2 border-transparent focus:border-amber-500 rounded-2xl px-5 py-4 text-center text-2xl font-black tracking-[1em] focus:outline-none transition-all placeholder:text-neutral-400 placeholder:text-sm placeholder:tracking-normal"
+                                class="block text-xs font-black text-neutral-500 dark:text-neutral-400 border border-transparent rounded-xl mb-2 uppercase tracking-widest text-center">Ganti
+                                PIN (4 Digit)</label>
+                            <input v-model="form.transaction_pin" type="text" maxlength="4" autocomplete="new-password"
+                                class="w-full bg-neutral-100 dark:bg-neutral-800 border-2 border-transparent focus:border-amber-500 rounded-2xl px-5 py-4 text-center text-3xl font-black tracking-[1em] focus:outline-none transition-all placeholder:text-neutral-400 placeholder:text-sm placeholder:tracking-normal"
                                 placeholder="____"
                                 @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" required />
-                        </div>
-
-                        <div>
-                            <label
-                                class="block text-xs font-black text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-widest">Password
-                                User (Opsional)</label>
-                            <div class="relative">
-                                <input v-model="form.password" :type="showPassword ? 'text' : 'password'"
-                                    class="w-full bg-neutral-100 dark:bg-neutral-800 border-2 border-transparent focus:border-primary-500 rounded-2xl px-5 py-3 focus:outline-none transition-all"
-                                    placeholder="Isi jika ingin ganti password juga" />
-                                <button type="button" @click="showPassword = !showPassword"
-                                    class="absolute right-4 top-3 text-neutral-400 hover:text-neutral-600 transition-colors">
-                                    <Eye v-if="!showPassword" :size="18" />
-                                    <EyeOff v-else :size="18" />
-                                </button>
-                            </div>
                         </div>
 
                         <div class="flex gap-3 pt-2">
