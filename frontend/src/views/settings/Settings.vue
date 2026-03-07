@@ -140,11 +140,6 @@ function openSetPin() {
     showPinModal.value = true;
 }
 
-function openChangePin() {
-    pinModalMode.value = 'change';
-    pinModalTitle.value = 'Ubah PIN Transaksi';
-    showPinModal.value = true;
-}
 
 async function handlePinToggle() {
     const action = user.value.pin_enabled ? 'Matikan' : 'Aktifkan';
@@ -159,9 +154,6 @@ async function handlePinSuccess(pin, newPin) {
         if (pinModalMode.value === 'setup') {
             await authStore.setPin(pin);
             toast.success("PIN berhasil dipasang!");
-        } else if (pinModalMode.value === 'change') {
-            await authStore.updatePin(pin, newPin);
-            toast.success("PIN berhasil diubah!");
         } else {
             // Toggle Logic
             await authStore.togglePin(pin);
@@ -341,12 +333,6 @@ async function handlePinSuccess(pin, newPin) {
                                     type="button" class="btn btn-primary px-6 rounded-xl">
                                     Pasang PIN Sekarang
                                 </button>
-                                <template v-else>
-                                    <button @click="openChangePin" type="button"
-                                        class="btn btn-secondary px-6 rounded-xl flex items-center gap-2">
-                                        <Edit2 :size="16" /> Ubah PIN
-                                    </button>
-                                </template>
                             </div>
                         </div>
                     </div>
