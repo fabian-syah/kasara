@@ -81,7 +81,8 @@ export const auth = {
     setPin: (pin) => api.post('/pin/set', { transaction_pin: pin }),
     updatePin: (current_pin, new_pin) => api.post('/pin/update', { current_pin, new_pin }),
     togglePin: (pin) => api.post('/pin/toggle', { transaction_pin: pin }),
-    verifyPin: (pin) => api.post('/pin/verify', { transaction_pin: pin })
+    verifyPin: (pin) => api.post('/pin/verify', { transaction_pin: pin }),
+    requestResetPin: () => api.post('/pin/request-reset')
 }
 
 export const products = {

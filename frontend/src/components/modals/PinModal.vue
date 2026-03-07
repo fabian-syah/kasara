@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, nextTick } from "vue";
 import { Lock, X, AlertCircle, CheckCircle } from "lucide-vue-next";
-import api from "../../api/axios";
+import api, { auth as authApi } from "../../api/axios";
+import { useToast } from "../../composables/useToast";
 
 const props = defineProps({
     show: Boolean,
@@ -51,7 +52,6 @@ async function handleSubmit() {
     resetPin();
 }
 
-const { useToast } = await import("../../composables/useToast");
 const toast = useToast();
 
 async function handleRequestReset() {
@@ -59,7 +59,7 @@ async function handleRequestReset() {
 
     loading.value = true;
     try {
-        await api.post("/pin/request-reset");
+        await authApi.requestResetPin();
         toast.success("Permintaan reset PIN telah dikirim.");
         close();
     } catch (err) {
