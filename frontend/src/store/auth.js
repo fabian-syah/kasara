@@ -158,6 +158,22 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('current_branch_id', branchId)
     }
 
+    async function setPin(pin) {
+        return await authApi.setPin(pin)
+    }
+
+    async function updatePin(currentPin, newPin) {
+        return await authApi.updatePin(currentPin, newPin)
+    }
+
+    async function togglePin(pin) {
+        return await authApi.togglePin(pin)
+    }
+
+    async function verifyPin(pin) {
+        return await authApi.verifyPin(pin)
+    }
+
     // Initialize - try to restore user from localStorage
     function initialize() {
         const savedUserHash = localStorage.getItem('user')
@@ -199,6 +215,10 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         fetchUser,
         setBranch,
+        setPin,
+        updatePin,
+        togglePin,
+        verifyPin,
         initialize,
         updateUserData(userData) {
             if (!userData) return;

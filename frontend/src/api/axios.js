@@ -77,7 +77,11 @@ export const auth = {
     logout: () => api.post('/logout'),
     verifyPassword: (password) => api.post('/verify-password', { password }),
     user: () => api.get('/user'),
-    refresh: () => api.post('/refresh')
+    refresh: () => api.post('/refresh'),
+    setPin: (pin) => api.post('/pin/set', { transaction_pin: pin }),
+    updatePin: (current_pin, new_pin) => api.post('/pin/update', { current_pin, new_pin }),
+    togglePin: (pin) => api.post('/pin/toggle', { transaction_pin: pin }),
+    verifyPin: (pin) => api.post('/pin/verify', { transaction_pin: pin })
 }
 
 export const products = {

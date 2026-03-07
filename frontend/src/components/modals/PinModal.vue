@@ -47,25 +47,8 @@ async function handleSubmit() {
     const pinStr = pin.value.join("");
     if (pinStr.length < 4) return;
 
-    loading.value = true;
-    error.value = "";
-
-    try {
-        if (props.mode === "verify") {
-            await api.post("/pin/verify", { pin: pinStr });
-            emit("success", pinStr);
-        } else if (props.mode === "set" || props.mode === "setup_initial") {
-            await api.post("/pin/set", { pin: pinStr });
-            emit("success", pinStr);
-        }
-        resetPin();
-    } catch (err) {
-        error.value = err.response?.data?.message || "PIN salah atau terjadi kesalahan.";
-        resetPin();
-        emit("error", error.value);
-    } finally {
-        loading.value = false;
-    }
+    emit("success", pinStr);
+    resetPin();
 }
 
 function resetPin() {
