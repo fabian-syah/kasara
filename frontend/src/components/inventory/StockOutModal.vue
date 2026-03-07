@@ -8,8 +8,9 @@ import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatt
 import { Html5Qrcode } from "html5-qrcode";
 import {
     ChevronLeft, ChevronRight, X, UserCheck, Box, Smartphone,
-    Loader2, ScanBarcode, User, ArrowRightLeft, AlertTriangle, RotateCcw, LogOut, Plus
+    Loader2, ScanBarcode, User, ArrowRightLeft, AlertTriangle, RotateCcw, LogOut, Plus, Shield
 } from "lucide-vue-next";
+import PinModal from "../modals/PinModal.vue";
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -29,6 +30,7 @@ const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 // Copying required refs and functions from Inventory.vue
 const isSubmitting = ref(false);
 const selectedStockOutCategory = ref(null);
+const showPinModal = ref(false);
 
 const stockOutForm = ref({
     sub_category: '',
@@ -403,13 +405,27 @@ const canSubmitStockOut = computed(() => {
     }
 });
 
-async function submitStockOut() {
+async function handlePinSuccess(pin) {
+    showPinModal.value = false;
+    await submitStockOut(pin);
+}
+
+async function submitStockOut(pin = null) {
     if (!canSubmitStockOut.value) return;
+
+    // If user has PIN enabled and we don't have a verified PIN yet
+    if (authStore.user?.pin_enabled && !pin) {
+        showPinModal.value = true;
+        return;
+    }
 
     isSubmitting.value = true;
     try {
         const formData = new FormData();
         formData.append('category', selectedStockOutCategory.value);
+        if (pin) {
+            formData.append('transaction_pin', pin);
+        }
 
         const hpItems = props.selectedItems.filter(item => !item.type || item.type === 'hp');
         const nonHpItems = props.selectedItems.filter(item => item.type === 'non-hp');
@@ -552,7 +568,7 @@ async function submitStockOut() {
                                     <div class="flex flex-col gap-0.5">
                                         <span
                                             class="text-xs text-text-secondary uppercase tracking-wider font-medium">{{
-                                            user.roles?.[0]?.name || 'INVENTORY' }}</span>
+                                                user.roles?.[0]?.name || 'INVENTORY' }}</span>
                                         <span v-if="user.phone"
                                             class="text-[10px] text-emerald-500 font-mono flex items-center gap-1">
                                             <Smartphone :size="10" /> {{ user.phone }}
@@ -661,7 +677,7 @@ async function submitStockOut() {
                                         </div>
                                         <span v-if="item.type !== 'non-hp'"
                                             class="text-xs font-mono bg-surface-700 px-2 py-0.5 rounded text-text-secondary">{{
-                                            item.imei
+                                                item.imei
                                             }}</span>
                                     </div>
                                     <div v-if="item.type === 'non-hp'" class="w-full md:w-1/2 mt-2">
@@ -816,7 +832,7 @@ async function submitStockOut() {
                                         <div class="flex justify-between items-center mb-2">
                                             <span class="text-sm font-medium">{{ item.product?.name }}</span>
                                             <span v-if="item.type !== 'non-hp'" class="text-xs font-mono">{{ item.imei
-                                                }}</span>
+                                            }}</span>
                                         </div>
                                         <div class="flex gap-3">
                                             <div v-if="item.type === 'non-hp'" class="w-1/3">
@@ -925,5 +941,9 @@ async function submitStockOut() {
                 <div :id="scannerContainerId" class="w-full aspect-video bg-black mt-4"></div>
             </div>
         </div>
+
+        <!-- PIN Modal Component -->
+        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPinModal = false"
+            @success="handlePinSuccess" />
     </div>
 </template>

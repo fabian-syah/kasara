@@ -3,7 +3,8 @@ import { ref, onMounted } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin } from "lucide-vue-next";
+import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key } from "lucide-vue-next";
+import PinModal from "../../components/modals/PinModal.vue";
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -13,6 +14,11 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 const photoPreview = ref(null);
 const photoFile = ref(null);
+
+// PIN State
+const showPinModal = ref(false);
+const pinModalMode = ref('verify');
+const pinModalTitle = ref('Verifikasi PIN');
 
 const form = ref({
     full_name: "",
@@ -125,6 +131,49 @@ async function saveProfile() {
         toast.error("Gagal memperbarui profil.");
     } finally {
         isSaving.value = false;
+    }
+}
+
+function openSetPin() {
+    pinModalMode.value = 'setup';
+    pinModalTitle.value = 'Pasang PIN Transaksi';
+    showPinModal.value = true;
+}
+
+function openChangePin() {
+    pinModalMode.value = 'change';
+    pinModalTitle.value = 'Ubah PIN Transaksi';
+    showPinModal.value = true;
+}
+
+async function handlePinToggle() {
+    const action = user.value.pin_enabled ? 'Matikan' : 'Aktifkan';
+    pinModalMode.value = 'verify';
+    pinModalTitle.value = `${action} PIN Transaksi`;
+    showPinModal.value = true;
+}
+
+async function handlePinSuccess(pin, newPin) {
+    showPinModal.value = false;
+    try {
+        if (pinModalMode.value === 'setup') {
+            await authStore.setPin(pin);
+            toast.success("PIN berhasil dipasang!");
+        } else if (pinModalMode.value === 'change') {
+            await authStore.updatePin(pin, newPin);
+            toast.success("PIN berhasil diubah!");
+        } else {
+            // Toggle Logic
+            await authStore.togglePin(pin);
+            toast.success(`PIN berhasil ${user.value.pin_enabled ? 'dimatikan' : 'diaktifkan'}!`);
+        }
+        // Refresh user data
+        const res = await usersApi.get(authStore.user.id);
+        user.value = res.data.data;
+        authStore.updateUserData(user.value);
+    } catch (error) {
+        console.error("PIN operation failed", error);
+        toast.error(error.response?.data?.message || "Operasi PIN gagal.");
     }
 }
 </script>
@@ -251,10 +300,65 @@ async function saveProfile() {
                         </button>
                     </div>
 
+                    <div class="h-px bg-surface-700/50"></div>
+
+                    <!-- PIN Management -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+                            <Shield :size="20" class="text-primary-500" /> PIN Transaksi
+                        </h3>
+                        <p class="text-sm text-text-secondary mb-6">
+                            Gunakan PIN 4-angka untuk mengamankan transaksi sensitif seperti input stok, hapus stok, dan
+                            penjualan.
+                        </p>
+
+                        <div class="bg-surface-900 border border-surface-700 rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="flex items-center gap-4">
+                                    <div
+                                        class="w-12 h-12 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
+                                        <Key :size="24" />
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-text-primary">Status PIN Transaksi</p>
+                                        <p class="text-xs text-text-secondary">
+                                            {{ user.pin_enabled ? 'Aktif - Transaksi memerlukan verifikasi PIN' :
+                                                'Nonaktif - Transaksi tidak memerlukan PIN' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button @click="handlePinToggle" type="button"
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 bg-surface-700"
+                                    :class="{ 'bg-primary-500': user.pin_enabled }">
+                                    <span
+                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                                        :class="{ 'translate-x-6': user.pin_enabled, 'translate-x-1': !user.pin_enabled }" />
+                                </button>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <button v-if="!user.transaction_pin" @click="openSetPin" type="button"
+                                    class="btn btn-primary px-6 rounded-xl">
+                                    Pasang PIN Sekarang
+                                </button>
+                                <template v-else>
+                                    <button @click="openChangePin" type="button"
+                                        class="btn btn-secondary px-6 rounded-xl flex items-center gap-2">
+                                        <Edit2 :size="16" /> Ubah PIN
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- PIN Modal Component -->
+    <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" @close="showPinModal = false"
+        @success="handlePinSuccess" />
 </template>
 
 <style scoped>

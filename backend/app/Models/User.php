@@ -39,6 +39,8 @@ class User extends Authenticatable
         'created_by',
         'photo_inventory',
         'phone',
+        'transaction_pin',
+        'pin_enabled',
     ];
 
     // Relasi ke Cabang
@@ -130,6 +132,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'transaction_pin',
     ];
 
     /**
@@ -144,6 +147,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'last_seen' => 'datetime', // TAMBAHKAN INI
             'is_active' => 'boolean', // Tambahkan ini juga biar CRUD lebih stabil
+            'pin_enabled' => 'boolean',
+            'transaction_pin' => 'hashed',
         ];
     }
 }

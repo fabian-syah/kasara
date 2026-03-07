@@ -23,8 +23,10 @@ import {
     Camera,
     Edit2,
     X,
-    AlertTriangle
+    AlertTriangle,
+    Shield,
 } from "lucide-vue-next";
+import PinModal from "../../components/modals/PinModal.vue";
 import { debounce } from "../../utils/debounce";
 import { parseCurrency, formatNumber } from "../../utils/formatters";
 
@@ -43,6 +45,9 @@ const distributors = ref([]);
 const currentStep = ref(1);
 const isManualDistributor = ref(false);
 const newDistributorName = ref("");
+
+// PIN State
+const showPinModal = ref(false);
 
 const targetUsers = ref([]);
 const placementLabel = ref("");
@@ -565,8 +570,20 @@ function selectUserPlacement(user) {
     nextStep();
 }
 
-async function submitStockIn() {
+async function handlePinSuccess(pin) {
+    showPinModal.value = false;
+    await submitStockIn(pin);
+}
+
+async function submitStockIn(pin = null) {
     if (!canSubmit.value) return;
+
+    // If user has PIN enabled and we don't have a verified PIN yet
+    if (authStore.user?.pin_enabled && !pin) {
+        showPinModal.value = true;
+        return;
+    }
+
     isSubmitting.value = true;
     try {
         let productId = selectedProduct.value;
@@ -647,6 +664,7 @@ async function submitStockIn() {
             placement_id: placementId.value,
             inventory_user_id: selectedInventoryUserId.value,
             notes: notes.value,
+            transaction_pin: pin,
         };
 
         if (itemType.value === 'hp') {
@@ -750,7 +768,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -894,7 +912,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -1025,49 +1043,45 @@ onMounted(fetchInitialData);
             class="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
             <div
                 class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-lg shadow-2xl relative animate-in zoom-in-95">
-                <!-- Close Button (Absolute) -->
-                <button @click="closeDuplicateModal"
-                    class="absolute top-4 right-4 text-text-secondary hover:text-white transition-colors">
-                    <X :size="24" />
-                </button>
-
-                <div class="text-center mb-6">
-                    <div class="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <AlertTriangle :size="32" class="text-yellow-500" />
-                    </div>
-                    <h3 class="text-xl font-bold text-white">Laporan Stok Masuk</h3>
-                    <p class="text-text-secondary text-sm mt-1">Beberapa item berhasil, namun ada duplikat.</p>
+                <div class="flex items-center gap-3 text-red-500 mb-6 font-bold text-xl uppercase tracking-wider">
+                    <AlertTriangle :size="32" /> IMEI Duplikat Terdeteksi
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
-                        <span class="block text-2xl font-bold text-emerald-500">{{ duplicateDetails.success }}</span>
-                        <span class="text-xs text-emerald-400 font-semibold uppercase">Berhasil</span>
+                <div class="space-y-4 mb-8">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
+                            <span class="block text-xs uppercase text-emerald-500 mb-1">Berhasil</span>
+                            <span class="text-3xl font-black text-white">{{ duplicateDetails.success }}</span>
+                        </div>
+                        <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
+                            <span class="block text-xs uppercase text-rose-500 mb-1">Duplikat</span>
+                            <span class="text-3xl font-black text-white">{{ duplicateDetails.fail }}</span>
+                        </div>
                     </div>
-                    <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
-                        <span class="block text-2xl font-bold text-red-500">{{ duplicateDetails.fail }}</span>
-                        <span class="text-xs text-red-400 font-semibold uppercase">Gagal (Duplikat)</span>
+
+                    <div class="bg-surface-800 rounded-2xl p-4 max-h-[200px] overflow-y-auto border border-surface-700">
+                        <p class="text-sm text-text-secondary mb-3">IMEI berikut sudah ada di sistem:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div v-for="item in duplicateDetails.items" :key="item.imei"
+                                class="text-sm font-mono text-white/80 bg-surface-900 border border-surface-700 p-2 rounded-xl text-center">
+                                {{ item.imei }}
+                            </div>
+                        </div>
                     </div>
+                    <p class="text-xs text-text-secondary italic">Sistem hanya mengabaikan IMEI yang duplikat. Barang
+                        lainnya sudah berhasil disimpan.</p>
                 </div>
 
-                <div v-if="duplicateDetails.fail > 0"
-                    class="bg-surface-800 rounded-xl p-4 mb-6 max-h-40 overflow-y-auto border border-surface-700">
-                    <h4
-                        class="text-xs font-bold text-text-secondary uppercase mb-2 sticky top-0 bg-surface-800 pb-2 border-b border-surface-700">
-                        Daftar IMEI Duplikat:</h4>
-                    <ul class="space-y-1">
-                        <li v-for="imei in duplicateDetails.items" :key="imei"
-                            class="text-sm font-mono text-red-400 flex items-center gap-2">
-                            <XCircle :size="14" /> {{ imei }}
-                        </li>
-                    </ul>
+                <div class="flex justify-end pt-4 border-t border-surface-700">
+                    <button @click="closeDuplicateModal" class="btn btn-primary px-8 rounded-xl font-bold">Saya
+                        Mengerti</button>
                 </div>
-
-                <button @click="closeDuplicateModal" class="btn btn-primary w-full py-4 rounded-xl font-bold text-lg">
-                    Tutup & Ke Inventory
-                </button>
             </div>
         </div>
+
+        <!-- PIN Modal Component -->
+        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPinModal = false"
+            @success="handlePinSuccess" />
     </div>
 </template>
 

@@ -36,6 +36,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/verify-password', [AuthController::class, 'verifyPassword']);
     Route::get('/user', [AuthController::class, 'me']);
 
+    // PIN Management
+    Route::post('/pin/set', [AuthController::class, 'setPin']);
+    Route::post('/pin/update', [AuthController::class, 'updatePin']);
+    Route::post('/pin/toggle', [AuthController::class, 'togglePin']);
+    Route::post('/pin/verify', [AuthController::class, 'verifyPin']);
+
     // ... users, branches, etc ...
     Route::apiResource('users', UserController::class);
     Route::apiResource('users', UserController::class);

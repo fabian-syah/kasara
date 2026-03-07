@@ -660,6 +660,7 @@ class InventoryController extends Controller
             'product_id' => 'required|exists:products,id',
             'distributor_id' => 'nullable|exists:distributors,id',
             'type' => 'required|in:hp,non-hp', // Matches product type
+            'transaction_pin' => 'nullable|string|size:4',
 
             // Placement (Ideally auto-detected from user, but allowed if explicit)
             'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
@@ -682,6 +683,16 @@ class InventoryController extends Controller
         ]);
 
         $user = Auth::user();
+
+        // PIN Verification
+        if ($user->pin_enabled) {
+            if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PIN transaksi salah atau diperlukan.'
+                ], 422);
+            }
+        }
 
         // Determine Ownership User (Who 'owns' the stock)
         // If inventory_user_id is passed (from shared account selection), use that.
@@ -937,8 +948,21 @@ class InventoryController extends Controller
     {
         $request->validate([
             'status' => 'required|in:available,sold,returned,deleted,out',
-            'inventory_user_id' => 'nullable|exists:users,id'
+            'inventory_user_id' => 'nullable|exists:users,id',
+            'transaction_pin' => 'nullable|string|size:4',
         ]);
+
+        $user = Auth::user();
+
+        // PIN Verification
+        if ($user->pin_enabled) {
+            if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PIN transaksi salah atau diperlukan.'
+                ], 422);
+            }
+        }
 
         $item = ProductDetail::findOrFail($id);
         $oldStatus = $item->status;

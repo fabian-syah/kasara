@@ -22,7 +22,9 @@ import {
     ArrowLeft,
     ArrowRight,
     ShoppingBag,
+    Shield,
 } from "lucide-vue-next";
+import PinModal from "../../components/modals/PinModal.vue";
 
 const cartStore = useCartStore();
 const inventoryStore = useInventoryStore();
@@ -60,6 +62,13 @@ const selectedPaymentMethod = ref("cash");
 const showSuccessModal = ref(false);
 const lastTransaction = ref(null);
 
+// PIN State
+const showPinModal = ref(false);
+const pinModalMode = ref("verify"); // 'verify' or 'setup_initial'
+const pinModalTitle = ref("Verifikasi PIN");
+const currentUser = ref(null);
+const showInitialPinSetup = ref(false);
+
 onMounted(async () => {
     inventoryStore.fetchProducts();
     try {
@@ -74,13 +83,21 @@ onMounted(async () => {
             acc.roles && acc.roles.some(r => r.name === 'sales')
         );
 
+        const currentUserData = userRes.data.data || userRes.data;
+        currentUser.value = currentUserData;
+
         // Auto-select logged-in user if they are in the list
-        const currentUser = userRes.data.data || userRes.data;
-        if (currentUser) {
+        if (currentUserData) {
+            // Check if PIN setup is needed (only for sales role)
+            const isSales = currentUserData.roles && currentUserData.roles.some(r => r.name === 'sales');
+            if (isSales && !currentUserData.transaction_pin) {
+                showInitialPinSetup.value = true;
+            }
+
             const match = salesAccounts.value.find(acc =>
-                acc.name === currentUser.name ||
-                acc.username === currentUser.username ||
-                acc.id === currentUser.id
+                acc.name === currentUserData.name ||
+                acc.username === currentUserData.username ||
+                acc.id === currentUserData.id
             );
             if (match) {
                 salesAccount.value = match.name;
@@ -164,6 +181,21 @@ function incrementQty(productId) {
 
 function decrementQty(productId) {
     cartStore.decrementQuantity(productId);
+}
+
+async function handleSubmitOrder() {
+    if (currentUser.value?.pin_enabled) {
+        showPinModal.value = true;
+        pinModalMode.value = "verify";
+        pinModalTitle.value = "Verifikasi PIN Transaksi";
+    } else {
+        await processPayment();
+    }
+}
+
+async function handlePinSuccess() {
+    showPinModal.value = false;
+    await processPayment();
 }
 
 async function processPayment() {
