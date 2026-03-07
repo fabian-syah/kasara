@@ -3,7 +3,8 @@ import { ref, onMounted } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, Edit2 } from "lucide-vue-next";
+import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, Edit2, AlertCircle, Clock } from "lucide-vue-next";
+import { formatDate } from "../../utils/formatters";
 import PinModal from "../../components/modals/PinModal.vue";
 
 const authStore = useAuthStore();
@@ -326,6 +327,21 @@ async function handlePinSuccess(pin, newPin) {
                                         class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                                         :class="{ 'translate-x-6': user.pin_enabled, 'translate-x-1': !user.pin_enabled }" />
                                 </button>
+                            </div>
+
+                            <!-- Pending Reset Info -->
+                            <div v-if="user.pin_reset_requested_at"
+                                class="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
+                                <AlertCircle class="text-amber-500 shrink-0" :size="20" />
+                                <div>
+                                    <p class="text-sm font-bold text-amber-500 uppercase tracking-wider mb-1">Permintaan
+                                        Reset Pending</p>
+                                    <p class="text-xs text-text-secondary leading-relaxed">
+                                        Anda telah meminta reset PIN pada <strong class="text-text-primary">{{
+                                            formatDate(user.pin_reset_requested_at, 'datetime') }}</strong>. Silakan
+                                        hubungi Audit Hub atau Admin untuk mendapatkan PIN baru.
+                                    </p>
+                                </div>
                             </div>
 
                             <div class="flex flex-wrap gap-3">

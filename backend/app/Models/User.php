@@ -143,7 +143,6 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'transaction_pin',
-        'pin_reset_requested_at',
     ];
 
     /**
