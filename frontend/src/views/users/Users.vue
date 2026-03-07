@@ -186,6 +186,7 @@ const form = ref({
   selected_online_shops: [], // For Audit/Leader
   selected_warehouses: [], // For Audit/Leader
   selected_distributors: [], // For Audit/Leader
+  transaction_pin: "",
 });
 
 const selectedMultiPlacementType = ref('physical'); // UI toggle for audit/leader modal
@@ -210,6 +211,7 @@ function resetForm() {
     selected_online_shops: [],
     selected_warehouses: [],
     selected_distributors: [],
+    transaction_pin: "",
   };
   showPassword.value = false;
 }
@@ -675,6 +677,11 @@ function getUserRoleName(user) {
                       </span>
                     </div>
 
+                    <div v-if="user.pin_reset_requested_at" class="flex items-center gap-1.5 mt-1 animate-pulse">
+                      <span class="flex h-2 w-2 rounded-full bg-red-500"></span>
+                      <p class="text-[10px] font-bold text-red-500 uppercase">Butuh Reset PIN</p>
+                    </div>
+
                     <p class="text-xs text-text-secondary font-mono mb-1">{{ user.username }}</p>
 
                     <!-- Relationship Info -->
@@ -793,7 +800,7 @@ function getUserRoleName(user) {
                 <span class="text-[10px] text-text-secondary">Milik:</span>
                 <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{
                   user.created_by_user.full_name
-                }}</span>
+                  }}</span>
               </div>
             </div>
           </div>
@@ -887,13 +894,38 @@ function getUserRoleName(user) {
               </div>
             </div>
 
+            <!-- Transaction PIN Reset -->
+            <div v-if="editingUser" class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+              <div class="flex items-center gap-2 text-amber-500">
+                <Shield :size="18" />
+                <h4 class="text-sm font-bold uppercase tracking-wider">PIN Transaksi</h4>
+              </div>
+
+              <div v-if="editingUser.pin_reset_requested_at"
+                class="flex items-start gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                <AlertCircle class="text-red-500 shrink-0 mt-0.5" :size="16" />
+                <p class="text-[11px] text-red-400 leading-tight">
+                  User ini meminta reset PIN pada {{ formatDate(editingUser.pin_reset_requested_at) }}.
+                  Masukkan PIN baru di bawah untuk mereset.
+                </p>
+              </div>
+
+              <div>
+                <label class="label">PIN Baru (4 Digit)</label>
+                <input v-model="form.transaction_pin" type="text" maxlength="4" class="input font-mono"
+                  placeholder="Abaikan jika tidak ingin merubah PIN"
+                  @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" />
+                <p class="text-[10px] text-text-secondary mt-1">Sifatnya opsional, digunakan jika user lupa PIN.</p>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="label">Role</label>
                 <select v-model="form.role" class="input" required>
                   <option value="">Pilih Role</option>
                   <option v-for="role in filteredRolesOptions" :key="role.value" :value="role.value">{{ role.label
-                  }}</option>
+                    }}</option>
                 </select>
               </div>
               <div>

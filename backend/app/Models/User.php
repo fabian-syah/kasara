@@ -41,6 +41,7 @@ class User extends Authenticatable
         'phone',
         'transaction_pin',
         'pin_enabled',
+        'pin_reset_requested_at',
     ];
 
     // Relasi ke Cabang
@@ -133,6 +134,7 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'transaction_pin',
+        'pin_reset_requested_at',
     ];
 
     /**
@@ -149,6 +151,7 @@ class User extends Authenticatable
             'is_active' => 'boolean', // Tambahkan ini juga biar CRUD lebih stabil
             'pin_enabled' => 'boolean',
             'transaction_pin' => 'hashed',
+            'pin_reset_requested_at' => 'datetime',
         ];
     }
 }

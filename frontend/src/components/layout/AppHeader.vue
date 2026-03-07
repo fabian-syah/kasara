@@ -65,7 +65,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
             <!-- Search -->
             <div class="relative w-full max-w-[200px] sm:max-w-sm lg:max-w-md group">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-                <input type="text" placeholder="Cari..."
+                <input type="text" placeholder="Cari..." autocomplete="off"
                     class="w-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg py-2.5 pl-10 pr-12 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                 <span
                     class="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1 text-[11px] text-text-secondary font-mono bg-surface-200 dark:bg-surface-700 px-1.5 py-0.5 rounded">

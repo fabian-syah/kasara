@@ -40,7 +40,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pin/set', [AuthController::class, 'setPin']);
     Route::post('/pin/update', [AuthController::class, 'updatePin']);
     Route::post('/pin/toggle', [AuthController::class, 'togglePin']);
-    Route::post('/pin/verify', [AuthController::class, 'verifyPin']);
+    Route::prefix('pin')->group(function () {
+        Route::post('/verify', [AuthController::class, 'verifyPin']);
+        Route::post('/request-reset', [AuthController::class, 'requestResetPin']);
+    });
 
     // ... users, branches, etc ...
     Route::apiResource('users', UserController::class);

@@ -278,6 +278,7 @@ class UserController extends Controller
             'address' => 'nullable|string',
             'birth_date' => 'nullable|date',
             'is_active' => 'boolean',
+            'transaction_pin' => 'nullable|string|size:4',
         ]);
 
         // Logic to clear other placements if one is selected? 
@@ -305,6 +306,12 @@ class UserController extends Controller
         // Sync name with full_name
         if (isset($validated['full_name'])) {
             $validated['name'] = $validated['full_name'];
+        }
+
+        if ($request->filled('transaction_pin')) {
+            $validated['transaction_pin'] = Hash::make($request->transaction_pin);
+            $validated['pin_reset_requested_at'] = null;
+            $validated['pin_enabled'] = true; // Enable it if admin sets it
         }
 
         $user->update($validated);

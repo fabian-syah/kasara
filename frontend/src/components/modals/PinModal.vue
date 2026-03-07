@@ -51,6 +51,25 @@ async function handleSubmit() {
     resetPin();
 }
 
+const { useToast } = await import("../../composables/useToast");
+const toast = useToast();
+
+async function handleRequestReset() {
+    if (!confirm("Kirim permintaan reset PIN ke Audit/Admin?")) return;
+
+    loading.value = true;
+    try {
+        await api.post("/pin/request-reset");
+        toast.success("Permintaan reset PIN telah dikirim.");
+        close();
+    } catch (err) {
+        toast.error("Gagal mengirim permintaan reset.");
+        console.error(err);
+    } finally {
+        loading.value = false;
+    }
+}
+
 function resetPin() {
     pin.value = ["", "", "", ""];
     nextTick(() => {
@@ -94,11 +113,18 @@ onMounted(() => {
                         {{ description }}
                     </p>
 
-                    <div class="flex justify-center gap-3 mb-8">
+                    <div class="flex justify-center gap-3 mb-4">
                         <input v-for="(digit, idx) in 4" :key="idx" :ref="el => inputs[idx] = el" v-model="pin[idx]"
-                            type="password" inputmode="numeric" maxlength="1"
+                            type="password" inputmode="numeric" maxlength="1" autocomplete="new-password"
                             class="w-14 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-3xl font-black text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
                             @input="handleInput(idx, $event)" @keydown="handleKeydown(idx, $event)" />
+                    </div>
+
+                    <div v-if="mode === 'verify'" class="mb-6">
+                        <button @click="handleRequestReset"
+                            class="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors underline underline-offset-4">
+                            Lupa PIN? Hubungi Audit Cabang
+                        </button>
                     </div>
 
                     <div v-if="error"
