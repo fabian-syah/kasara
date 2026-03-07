@@ -1,34 +1,32 @@
-<script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
 import { ROLE_LABELS, ROLES } from "../../utils/permissions";
 import { formatDate } from "../../utils/formatters";
-import { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi } from "../../api/axios";
+import { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi,
+distributors as distributorsApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useAuthStore } from "../../store/auth"; // Import Auth Store
 import {
-  Search,
-  Plus,
-  Filter,
-  Users,
-  Shield,
-  Trash2,
-  Edit,
-  UserPlus,
-  Check,
-  Eye,
-  EyeOff,
-  Loader2,
-  MapPin, // Icon for placement
-  Building, // Icon for warehouse
-  Camera // Icon for photo upload
+Search,
+Plus,
+Filter,
+Users,
+Shield,
+Trash2,
+Edit,
+UserPlus,
+Check,
+Eye,
+EyeOff,
+Loader2,
+MapPin, // Icon for placement
+Building, // Icon for warehouse
+Camera // Icon for photo upload
 } from "lucide-vue-next";
 
 // Toast
 const toast = useToast();
 const authStore = useAuthStore(); // Init Store
-const route = useRoute();
 
 // State
 const users = ref([]);
@@ -40,18 +38,18 @@ const isLoading = ref(false);
 const isSaving = ref(false);
 
 const timezones = [
-  { value: "WIB", label: "WIB (GMT+7)" },
-  { value: "WITA", label: "WITA (GMT+8)" },
-  { value: "WIT", label: "WIT (GMT+9)" },
-  { value: "Asia/Jakarta", label: "Asia/Jakarta" },
-  { value: "Asia/Makassar", label: "Asia/Makassar" },
-  { value: "Asia/Jayapura", label: "Asia/Jayapura" },
+{ value: "WIB", label: "WIB (GMT+7)" },
+{ value: "WITA", label: "WITA (GMT+8)" },
+{ value: "WIT", label: "WIT (GMT+9)" },
+{ value: "Asia/Jakarta", label: "Asia/Jakarta" },
+{ value: "Asia/Makassar", label: "Asia/Makassar" },
+{ value: "Asia/Jayapura", label: "Asia/Jayapura" },
 ];
 
 // Roles list
 const rolesList = Object.entries(ROLE_LABELS).map(([value, label]) => ({
-  value,
-  label,
+value,
+label,
 }));
 
 // Local state
@@ -75,488 +73,483 @@ const currentUser = computed(() => authStore.user);
 
 // For audit: filter placement options to only the audit user's accessible placements
 const auditAccessibleBranchIds = computed(() => {
-  if (!isAudit.value) return null;
-  const user = currentUser.value;
-  if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p => Number(p.model_id));
+if (!isAudit.value) return null;
+const user = currentUser.value;
+if (!user?.placements) return [];
+return user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p =>
+Number(p.model_id));
 });
 const auditAccessibleWarehouseIds = computed(() => {
-  if (!isAudit.value) return null;
-  const user = currentUser.value;
-  if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')).map(p => Number(p.model_id));
+if (!isAudit.value) return null;
+const user = currentUser.value;
+if (!user?.placements) return [];
+return user.placements.filter(p => p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')).map(p =>
+Number(p.model_id));
 });
 const auditAccessibleOnlineShopIds = computed(() => {
-  if (!isAudit.value) return null;
-  const user = currentUser.value;
-  if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')).map(p => Number(p.model_id));
+if (!isAudit.value) return null;
+const user = currentUser.value;
+if (!user?.placements) return [];
+return user.placements.filter(p => p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')).map(p =>
+Number(p.model_id));
 });
 const auditAccessibleDistributorIds = computed(() => {
-  if (!isAudit.value) return null;
-  const user = currentUser.value;
-  if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'distributor' || p.model_type?.includes('Distributor')).map(p => Number(p.model_id));
+if (!isAudit.value) return null;
+const user = currentUser.value;
+if (!user?.placements) return [];
+return user.placements.filter(p => p.model_type === 'distributor' || p.model_type?.includes('Distributor')).map(p =>
+Number(p.model_id));
 });
 
 // Filtered data for modal form — audit only sees their assigned locations
 const availableBranches = computed(() => {
-  if (!isAudit.value || !auditAccessibleBranchIds.value) return branches.value;
-  if (auditAccessibleBranchIds.value.length === 0) return [];
-  return branches.value.filter(b => auditAccessibleBranchIds.value.includes(Number(b.id)));
+if (!isAudit.value || !auditAccessibleBranchIds.value) return branches.value;
+if (auditAccessibleBranchIds.value.length === 0) return [];
+return branches.value.filter(b => auditAccessibleBranchIds.value.includes(Number(b.id)));
 });
 const availableWarehouses = computed(() => {
-  if (!isAudit.value || !auditAccessibleWarehouseIds.value) return warehouses.value;
-  if (auditAccessibleWarehouseIds.value.length === 0) return [];
-  return warehouses.value.filter(w => auditAccessibleWarehouseIds.value.includes(Number(w.id)));
+if (!isAudit.value || !auditAccessibleWarehouseIds.value) return warehouses.value;
+if (auditAccessibleWarehouseIds.value.length === 0) return [];
+return warehouses.value.filter(w => auditAccessibleWarehouseIds.value.includes(Number(w.id)));
 });
 const availableOnlineShops = computed(() => {
-  if (!isAudit.value || !auditAccessibleOnlineShopIds.value) return onlineShops.value;
-  if (auditAccessibleOnlineShopIds.value.length === 0) return [];
-  return onlineShops.value.filter(s => auditAccessibleOnlineShopIds.value.includes(Number(s.id)));
+if (!isAudit.value || !auditAccessibleOnlineShopIds.value) return onlineShops.value;
+if (auditAccessibleOnlineShopIds.value.length === 0) return [];
+return onlineShops.value.filter(s => auditAccessibleOnlineShopIds.value.includes(Number(s.id)));
 });
 const availableDistributors = computed(() => {
-  if (!isAudit.value || !auditAccessibleDistributorIds.value) return distributors.value;
-  if (auditAccessibleDistributorIds.value.length === 0) return [];
-  return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(Number(d.id)));
+if (!isAudit.value || !auditAccessibleDistributorIds.value) return distributors.value;
+if (auditAccessibleDistributorIds.value.length === 0) return [];
+return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(Number(d.id)));
 });
 
 // Filtered Roles List for Add/Edit Modal
 const filteredRolesOptions = computed(() => {
-  if (!isAudit.value) return rolesList;
+if (!isAudit.value) return rolesList;
 
-  const user = currentUser.value;
-  if (!user) return [];
+const user = currentUser.value;
+if (!user) return [];
 
 
-  // Determine Access based on placements
-  const hasBranchAccess = !!user.branch_id || (user.placements?.some(p =>
-    p.model_type === 'branch' || p.model_type?.includes('Branch')
-  ) ?? false);
+// Determine Access based on placements
+const hasBranchAccess = !!user.branch_id || (user.placements?.some(p =>
+p.model_type === 'branch' || p.model_type?.includes('Branch')
+) ?? false);
 
-  const hasWarehouseAccess = !!user.warehouse_id || (user.placements?.some(p =>
-    p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')
-  ) ?? false);
+const hasWarehouseAccess = !!user.warehouse_id || (user.placements?.some(p =>
+p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')
+) ?? false);
 
-  const hasOnlineAccess = !!user.online_shop_id || (user.placements?.some(p =>
-    p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')
-  ) ?? false);
+const hasOnlineAccess = !!user.online_shop_id || (user.placements?.some(p =>
+p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')
+) ?? false);
 
-  const hasDistributorAccess = !!user.distributor_id || (user.placements?.some(p =>
-    p.model_type === 'distributor' || p.model_type?.includes('Distributor')
-  ) ?? false);
+const hasDistributorAccess = !!user.distributor_id || (user.placements?.some(p =>
+p.model_type === 'distributor' || p.model_type?.includes('Distributor')
+) ?? false);
 
-  // Whitelist: only show roles matching audit's access types
-  const allowedRoles = new Set();
+// Whitelist: only show roles matching audit's access types
+const allowedRoles = new Set();
 
-  // Roles that an audit user can assign based on their own placements
-  if (hasBranchAccess) {
-    ['sales', 'inventory_kasir', 'security', 'leader'].forEach(r => allowedRoles.add(r));
-  }
-  if (hasWarehouseAccess) {
-    ['gudang', 'inventory'].forEach(r => allowedRoles.add(r));
-  }
-  if (hasOnlineAccess) {
-    ['toko_online'].forEach(r => allowedRoles.add(r));
-  }
-  if (hasDistributorAccess) {
-    ['distributor'].forEach(r => allowedRoles.add(r));
-  }
+// Roles that an audit user can assign based on their own placements
+if (hasBranchAccess) {
+['sales', 'inventory_kasir', 'security', 'leader'].forEach(r => allowedRoles.add(r));
+}
+if (hasWarehouseAccess) {
+['gudang', 'inventory'].forEach(r => allowedRoles.add(r));
+}
+if (hasOnlineAccess) {
+['toko_online'].forEach(r => allowedRoles.add(r));
+}
+if (hasDistributorAccess) {
+['distributor'].forEach(r => allowedRoles.add(r));
+}
 
-  // Exclude roles that should never be assigned by an audit user, regardless of placement access
-  const alwaysExcludedRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
+// Exclude roles that should never be assigned by an audit user, regardless of placement access
+const alwaysExcludedRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
 
-  return rolesList.filter(r => allowedRoles.has(r.value) && !alwaysExcludedRoles.includes(r.value));
+return rolesList.filter(r => allowedRoles.has(r.value) && !alwaysExcludedRoles.includes(r.value));
 });
 
 // Form
 const form = ref({
-  full_name: "",
-  username: "",
-  code_id: "",
-  email: "",
-  role: "",
-  branch_id: "", // For Physical Branches
-  warehouse_id: "", // For Warehouse
-  online_shop_id: "", // For Online Shop
-  distributor_id: "", // For Distributor
-  timezone: "WIB",
-  address: "",
-  password: "",
-  is_active: true,
-  selected_branches: [], // For Audit/Leader
-  selected_online_shops: [], // For Audit/Leader
-  selected_warehouses: [], // For Audit/Leader
-  selected_distributors: [], // For Audit/Leader
-  transaction_pin: "",
+full_name: "",
+username: "",
+code_id: "",
+email: "",
+role: "",
+branch_id: "", // For Physical Branches
+warehouse_id: "", // For Warehouse
+online_shop_id: "", // For Online Shop
+distributor_id: "", // For Distributor
+timezone: "WIB",
+address: "",
+password: "",
+is_active: true,
+selected_branches: [], // For Audit/Leader
+selected_online_shops: [], // For Audit/Leader
+selected_warehouses: [], // For Audit/Leader
+selected_distributors: [], // For Audit/Leader
+transaction_pin: "",
 });
 
 const selectedMultiPlacementType = ref('physical'); // UI toggle for audit/leader modal
 
 // Helper to reset form
 function resetForm() {
-  form.value = {
-    full_name: "",
-    username: "",
-    code_id: "",
-    email: "",
-    role: "",
-    branch_id: "",
-    warehouse_id: "",
-    online_shop_id: "",
-    distributor_id: "",
-    timezone: "WIB",
-    address: "",
-    password: "",
-    is_active: true,
-    selected_branches: [],
-    selected_online_shops: [],
-    selected_warehouses: [],
-    selected_distributors: [],
-    transaction_pin: "",
-  };
-  showPassword.value = false;
+form.value = {
+full_name: "",
+username: "",
+code_id: "",
+email: "",
+role: "",
+branch_id: "",
+warehouse_id: "",
+online_shop_id: "",
+distributor_id: "",
+timezone: "WIB",
+address: "",
+password: "",
+is_active: true,
+selected_branches: [],
+selected_online_shops: [],
+selected_warehouses: [],
+selected_distributors: [],
+transaction_pin: "",
+};
+showPassword.value = false;
 }
 
 // Format Date Helper
 function formatLastSeen(date, timezone) {
-  if (!date) return '-';
-  try {
-    return new Date(date).toLocaleString('id-ID', {
-      timeZone: timezone || 'Asia/Jakarta',
-      day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  } catch (e) {
-    return '-';
-  }
+if (!date) return '-';
+try {
+return new Date(date).toLocaleString('id-ID', {
+timeZone: timezone || 'Asia/Jakarta',
+day: 'numeric', month: 'short', year: 'numeric',
+hour: '2-digit', minute: '2-digit'
+});
+} catch (e) {
+return '-';
+}
 }
 
 // Avatar Helper & Upload Logic
 function getAvatarUrl(user) {
-  const photoPath = user?.photo || user?.photo_inventory;
-  if (photoPath) {
-    if (photoPath.startsWith('http')) {
-      return photoPath;
-    }
-    const storageUrl = import.meta.env.VITE_API_BASE_URL
-      ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "")
-      : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : 'https://api.stokps.com');
+const photoPath = user?.photo || user?.photo_inventory;
+if (photoPath) {
+if (photoPath.startsWith('http')) {
+return photoPath;
+}
+const storageUrl = import.meta.env.VITE_API_BASE_URL
+? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "")
+: (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : 'https://api.stokps.com');
 
-    // Ensure no double slashes like .com//storage
-    const cleanStorageUrl = storageUrl.replace(/\/+$/, "");
-    return `${cleanStorageUrl}/storage/${photoPath}`;
-  }
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'U')}&background=3b82f6&color=fff`;
+// Ensure no double slashes like .com//storage
+const cleanStorageUrl = storageUrl.replace(/\/+$/, "");
+return `${cleanStorageUrl}/storage/${photoPath}`;
+}
+return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'U')}&background=3b82f6&color=fff`;
 }
 
 function triggerFileInput(user) {
-  if (isReadOnlyAccess.value && user.id !== currentUser.value.id) {
-    toast.info("Anda hanya dapat mengubah foto profil akun sendiri.");
-    return;
-  }
-  selectedUserForPhoto.value = user;
-  if (fileInput.value) {
-    fileInput.value.click();
-  }
+if (isReadOnlyAccess.value && user.id !== currentUser.value.id) {
+toast.info("Anda hanya dapat mengubah foto profil akun sendiri.");
+return;
+}
+selectedUserForPhoto.value = user;
+if (fileInput.value) {
+fileInput.value.click();
+}
 }
 
 async function handlePhotoUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+const file = event.target.files[0];
+if (!file) return;
 
-  if (file.size > 2 * 1024 * 1024) { // 2MB limit
-    toast.error("Ukuran foto maksimal 2MB");
-    event.target.value = '';
-    return;
-  }
+if (file.size > 2 * 1024 * 1024) { // 2MB limit
+toast.error("Ukuran foto maksimal 2MB");
+event.target.value = '';
+return;
+}
 
-  isUploadingPhoto.value = true;
-  const formData = new FormData();
-  formData.append('photo', file);
+isUploadingPhoto.value = true;
+const formData = new FormData();
+formData.append('photo', file);
 
-  try {
-    const res = await usersApi.updateProfile(selectedUserForPhoto.value.id, formData);
-    // Update local user data
-    const updatedUser = res.data.data;
-    const index = users.value.findIndex(u => u.id === selectedUserForPhoto.value.id);
-    if (index !== -1) {
-      users.value[index].photo = updatedUser.photo;
-    }
-    toast.success("Foto profil berhasil diperbarui");
-  } catch (error) {
-    console.error("Upload error", error);
-    toast.error("Gagal mengupload foto");
-  } finally {
-    isUploadingPhoto.value = false;
-    event.target.value = '';
-    selectedUserForPhoto.value = null;
-  }
+try {
+const res = await usersApi.updateProfile(selectedUserForPhoto.value.id, formData);
+// Update local user data
+const updatedUser = res.data.data;
+const index = users.value.findIndex(u => u.id === selectedUserForPhoto.value.id);
+if (index !== -1) {
+users.value[index].photo = updatedUser.photo;
+}
+toast.success("Foto profil berhasil diperbarui");
+} catch (error) {
+console.error("Upload error", error);
+toast.error("Gagal mengupload foto");
+} finally {
+isUploadingPhoto.value = false;
+event.target.value = '';
+selectedUserForPhoto.value = null;
+}
 }
 
 // API Fetch
 async function fetchData() {
-  isLoading.value = true;
-  const params = {};
-  if (route.query.needs_reset === '1') {
-    params.needs_reset = 1;
-  }
+isLoading.value = true;
+try {
+const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
+usersApi.list(),
+branchesApi.list(),
+warehousesApi.list(),
+onlineShopsApi.list(),
+distributorsApi.list()
+]);
 
-  try {
-    const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
-      usersApi.list(params),
-      branchesApi.list(),
-      warehousesApi.list(),
-      onlineShopsApi.list(),
-      distributorsApi.list()
-    ]);
-
-    users.value = usersRes.data.data || [];
-    branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
-    warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
-    onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
-    distributors.value = (distributorsRes.data.data || []).filter(d => d.is_active);
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    toast.error("Gagal memuat data.");
-    users.value = []; // Ensure empty array on error
-  } finally {
-    isLoading.value = false;
-  }
+users.value = usersRes.data.data || [];
+branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
+warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
+onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
+distributors.value = (distributorsRes.data.data || []).filter(d => d.is_active);
+} catch (error) {
+console.error("Error fetching data:", error);
+toast.error("Gagal memuat data.");
+users.value = []; // Ensure empty array on error
+} finally {
+isLoading.value = false;
+}
 }
 
-watch(() => route.query.needs_reset, () => {
-  fetchData();
-});
-
 onMounted(() => {
-  fetchData();
+fetchData();
 });
 
 // Computed Logic for Placements
 const placementType = computed(() => {
-  const role = form.value.role;
-  if (!role) return 'branch';
-  if (['super_admin', 'admin_produk', 'analist'].includes(role)) return 'none';
-  if (['audit', 'leader'].includes(role)) return 'audit';
-  if (['distributor'].includes(role)) return 'distributor';
-  if (['distribution'].includes(role)) return 'distributor';
-  if (['gudang', 'inventory'].includes(role)) return 'warehouse';
-  if (['toko_online'].includes(role)) return 'online_shop';
-  return 'branch';
+const role = form.value.role;
+if (!role) return 'branch';
+if (['super_admin', 'admin_produk', 'analist'].includes(role)) return 'none';
+if (['audit', 'leader'].includes(role)) return 'audit';
+if (['distributor'].includes(role)) return 'distributor';
+if (['distribution'].includes(role)) return 'distributor';
+if (['gudang', 'inventory'].includes(role)) return 'warehouse';
+if (['toko_online'].includes(role)) return 'online_shop';
+return 'branch';
 });
 
 const placementLabel = computed(() => {
-  const type = placementType.value;
-  if (type === 'audit') return 'Pengaturan Multi-Lokasi (Bisa lebih dari 1)';
-  if (type === 'warehouse') return 'Lokasi Gudang';
-  if (type === 'online_shop') return 'Toko Online';
-  if (type === 'distributor') return 'Distributor';
-  if (type === 'branch') return 'Lokasi Cabang';
-  return '';
+const type = placementType.value;
+if (type === 'audit') return 'Pengaturan Multi-Lokasi (Bisa lebih dari 1)';
+if (type === 'warehouse') return 'Lokasi Gudang';
+if (type === 'online_shop') return 'Toko Online';
+if (type === 'distributor') return 'Distributor';
+if (type === 'branch') return 'Lokasi Cabang';
+return '';
 });
 
 // Strict Filtered Users
 const filteredUsers = computed(() => {
-  if (!users.value) return [];
-  let result = users.value;
+if (!users.value) return [];
+let result = users.value;
 
-  // Account Type Filter
-  if (selectedAccountType.value) {
-    if (selectedAccountType.value === 'main') {
-      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
-    } else if (selectedAccountType.value === 'inventory') {
-      result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
-    }
-  }
+// Account Type Filter
+if (selectedAccountType.value) {
+if (selectedAccountType.value === 'main') {
+result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
+} else if (selectedAccountType.value === 'inventory') {
+result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
+}
+}
 
-  // Search Filter
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(u =>
-      (u.full_name && u.full_name.toLowerCase().includes(query)) ||
-      (u.username && u.username.toLowerCase().includes(query))
-    );
-  }
+// Search Filter
+if (searchQuery.value) {
+const query = searchQuery.value.toLowerCase();
+result = result.filter(u =>
+(u.full_name && u.full_name.toLowerCase().includes(query)) ||
+(u.username && u.username.toLowerCase().includes(query))
+);
+}
 
-  // Role Filter
-  if (selectedRole.value) {
-    result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
-  }
+// Role Filter
+if (selectedRole.value) {
+result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
+}
 
-  // Branch Filter
-  if (selectedBranch.value) {
-    result = result.filter(u => u && u.branch_id == selectedBranch.value);
-  }
+// Branch Filter
+if (selectedBranch.value) {
+result = result.filter(u => u && u.branch_id == selectedBranch.value);
+}
 
-  return result;
+return result;
 });
 
 // Computed Stats
 const stats = computed(() => {
-  const safeUsers = users.value || [];
-  return [
-    { label: "Total User", value: safeUsers.length, icon: Users, color: "blue" },
-    { label: "User Aktif", value: safeUsers.filter(u => u && u.is_active).length, icon: Check, color: "emerald" },
-    { label: "User Nonaktif", value: safeUsers.filter(u => u && !u.is_active).length, icon: Shield, color: "amber" },
-  ];
+const safeUsers = users.value || [];
+return [
+{ label: "Total User", value: safeUsers.length, icon: Users, color: "blue" },
+{ label: "User Aktif", value: safeUsers.filter(u => u && u.is_active).length, icon: Check, color: "emerald" },
+{ label: "User Nonaktif", value: safeUsers.filter(u => u && !u.is_active).length, icon: Shield, color: "amber" },
+];
 });
 
 function openAddModal() {
-  resetForm();
-  editingUser.value = null;
-  showModal.value = true;
+resetForm();
+editingUser.value = null;
+showModal.value = true;
 }
 
 function openEditModal(user) {
-  editingUser.value = user;
+editingUser.value = user;
 
-  // Parse placements if available
-  const branchPlacements = (user.placements || []).filter(p => p.model_type === 'branch').map(p => p.model_id);
-  const onlineShopPlacements = (user.placements || []).filter(p => p.model_type === 'online_shop').map(p => p.model_id);
-  const warehousePlacements = (user.placements || []).filter(p => p.model_type === 'warehouse').map(p => p.model_id);
-  const distributorPlacements = (user.placements || []).filter(p => p.model_type === 'distributor').map(p => p.model_id);
+// Parse placements if available
+const branchPlacements = (user.placements || []).filter(p => p.model_type === 'branch').map(p => p.model_id);
+const onlineShopPlacements = (user.placements || []).filter(p => p.model_type === 'online_shop').map(p => p.model_id);
+const warehousePlacements = (user.placements || []).filter(p => p.model_type === 'warehouse').map(p => p.model_id);
+const distributorPlacements = (user.placements || []).filter(p => p.model_type === 'distributor').map(p => p.model_id);
 
-  form.value = {
-    full_name: user.full_name,
-    username: user.username,
-    code_id: user.code_id || "",
-    email: user.email,
-    role: user.roles?.length ? user.roles[0].name : '',
-    branch_id: user.branch_id,
-    warehouse_id: user.warehouse_id,
-    online_shop_id: user.online_shop_id,
-    distributor_id: user.distributor_id,
-    timezone: user.timezone || "WIB",
-    address: user.address,
-    is_active: !!user.is_active,
-    password: "",
-    selected_branches: branchPlacements,
-    selected_online_shops: onlineShopPlacements,
-    selected_warehouses: warehousePlacements,
-    selected_distributors: distributorPlacements,
-  };
-  selectedMultiPlacementType.value = 'physical'; // Reset UI toggle
-  showModal.value = true;
+form.value = {
+full_name: user.full_name,
+username: user.username,
+code_id: user.code_id || "",
+email: user.email,
+role: user.roles?.length ? user.roles[0].name : '',
+branch_id: user.branch_id,
+warehouse_id: user.warehouse_id,
+online_shop_id: user.online_shop_id,
+distributor_id: user.distributor_id,
+timezone: user.timezone || "WIB",
+address: user.address,
+is_active: !!user.is_active,
+password: "",
+selected_branches: branchPlacements,
+selected_online_shops: onlineShopPlacements,
+selected_warehouses: warehousePlacements,
+selected_distributors: distributorPlacements,
+};
+selectedMultiPlacementType.value = 'physical'; // Reset UI toggle
+showModal.value = true;
 }
 
 
 function closeModal() {
-  showModal.value = false;
-  editingUser.value = null;
-  resetForm();
+showModal.value = false;
+editingUser.value = null;
+resetForm();
 }
 
 useEscapeKey(() => {
-  if (showModal.value) closeModal();
+if (showModal.value) closeModal();
 });
 
 async function saveUser() {
-  isSaving.value = true;
-  try {
-    // Ensure only relevant placement ID is sent (though backend handles overrides, cleaner here)
-    const payload = { ...form.value };
-    if (placementType.value !== 'branch') payload.branch_id = null;
-    if (placementType.value !== 'warehouse') payload.warehouse_id = null;
-    if (placementType.value !== 'online_shop') payload.online_shop_id = null;
-    if (placementType.value !== 'distributor') payload.distributor_id = null;
+isSaving.value = true;
+try {
+// Ensure only relevant placement ID is sent (though backend handles overrides, cleaner here)
+const payload = { ...form.value };
+if (placementType.value !== 'branch') payload.branch_id = null;
+if (placementType.value !== 'warehouse') payload.warehouse_id = null;
+if (placementType.value !== 'online_shop') payload.online_shop_id = null;
+if (placementType.value !== 'distributor') payload.distributor_id = null;
 
-    // Explicitly set null if empty string to avoid DB errors constraint
-    if (!payload.branch_id) payload.branch_id = null;
-    if (!payload.warehouse_id) payload.warehouse_id = null;
-    if (!payload.online_shop_id) payload.online_shop_id = null;
-    if (!payload.distributor_id) payload.distributor_id = null;
+// Explicitly set null if empty string to avoid DB errors constraint
+if (!payload.branch_id) payload.branch_id = null;
+if (!payload.warehouse_id) payload.warehouse_id = null;
+if (!payload.online_shop_id) payload.online_shop_id = null;
+if (!payload.distributor_id) payload.distributor_id = null;
 
-    // Handle Audit Multi-Placement
-    if (placementType.value === 'audit') {
-      payload.selected_branches = form.value.selected_branches;
-      payload.selected_online_shops = form.value.selected_online_shops;
-      payload.selected_warehouses = form.value.selected_warehouses;
-      payload.selected_distributors = form.value.selected_distributors;
-    }
+// Handle Audit Multi-Placement
+if (placementType.value === 'audit') {
+payload.selected_branches = form.value.selected_branches;
+payload.selected_online_shops = form.value.selected_online_shops;
+payload.selected_warehouses = form.value.selected_warehouses;
+payload.selected_distributors = form.value.selected_distributors;
+}
 
-    if (editingUser.value) {
-      if (!payload.password) delete payload.password;
-      const res = await usersApi.update(editingUser.value.id, payload);
-      const index = users.value.findIndex(u => u.id === editingUser.value.id);
-      if (index !== -1) users.value[index] = res.data.data;
-      toast.success("User berhasil diperbarui!");
-    } else {
-      const res = await usersApi.create(payload);
-      users.value.unshift(res.data.data);
-      toast.success("User baru berhasil ditambahkan!");
-    }
-    closeModal();
-  } catch (error) {
-    console.error("Save error", error);
-    // Improve error message handling
-    let msg = "Gagal menyimpan user.";
-    if (error.response?.data?.errors) {
-      // Combine all error messages
-      msg = Object.values(error.response.data.errors).flat().join('\n');
-    } else if (error.response?.data?.message) {
-      msg = error.response.data.message;
-    } else if (error.response?.data?.error_message) {
-      msg = error.response.data.error_message;
-    }
-    toast.error(msg);
-  } finally {
-    isSaving.value = false;
-  }
+if (editingUser.value) {
+if (!payload.password) delete payload.password;
+const res = await usersApi.update(editingUser.value.id, payload);
+const index = users.value.findIndex(u => u.id === editingUser.value.id);
+if (index !== -1) users.value[index] = res.data.data;
+toast.success("User berhasil diperbarui!");
+} else {
+const res = await usersApi.create(payload);
+users.value.unshift(res.data.data);
+toast.success("User baru berhasil ditambahkan!");
+}
+closeModal();
+} catch (error) {
+console.error("Save error", error);
+// Improve error message handling
+let msg = "Gagal menyimpan user.";
+if (error.response?.data?.errors) {
+// Combine all error messages
+msg = Object.values(error.response.data.errors).flat().join('\n');
+} else if (error.response?.data?.message) {
+msg = error.response.data.message;
+} else if (error.response?.data?.error_message) {
+msg = error.response.data.error_message;
+}
+toast.error(msg);
+} finally {
+isSaving.value = false;
+}
 }
 
 async function toggleStatus(user) {
-  if (isReadOnlyAccess.value) return;
-  try {
-    const newStatus = !user.is_active;
-    user.is_active = newStatus;
-    await usersApi.update(user.id, { is_active: newStatus });
-    toast.info(newStatus ? "User diaktifkan." : "User dinonaktifkan.");
-  } catch (error) {
-    user.is_active = !user.is_active;
-    toast.error("Gagal mengubah status user.");
-  }
+if (isReadOnlyAccess.value) return;
+try {
+const newStatus = !user.is_active;
+user.is_active = newStatus;
+await usersApi.update(user.id, { is_active: newStatus });
+toast.info(newStatus ? "User diaktifkan." : "User dinonaktifkan.");
+} catch (error) {
+user.is_active = !user.is_active;
+toast.error("Gagal mengubah status user.");
+}
 }
 
 async function permanentDeleteUser(id) {
-  if (!confirm("HAPUS PERMANEN? Data tidak dapat dikembalikan!")) return;
-  try {
-    await usersApi.delete(id);
-    users.value = users.value.filter(u => u.id !== id);
-    toast.success("User berhasil dihapus permanen.");
-  } catch (error) {
-    toast.error("Gagal menghapus user.");
-  }
+if (!confirm("HAPUS PERMANEN? Data tidak dapat dikembalikan!")) return;
+try {
+await usersApi.delete(id);
+users.value = users.value.filter(u => u.id !== id);
+toast.success("User berhasil dihapus permanen.");
+} catch (error) {
+toast.error("Gagal menghapus user.");
+}
 }
 
 // Helper to get placement name for table
 function getPlacementName(user) {
-  if (!user) return '-';
+if (!user) return '-';
 
-  // Handle Multi-Placements (Audit, Leader, Distributor)
-  if ((user.placements || []).length > 0) {
-    const list = user.placements;
-    if (list.length === 1) {
-      const p = list[0];
-      if (p.model_type === 'branch') return branches.value.find(b => b.id == p.model_id)?.name || 'Cabang';
-      if (p.model_type === 'online_shop') return onlineShops.value.find(s => s.id == p.model_id)?.name || 'Online Shop';
-      if (p.model_type === 'warehouse') return warehouses.value.find(w => w.id == p.model_id)?.name || 'Gudang';
-      if (p.model_type === 'distributor') return distributors.value.find(d => d.id == p.model_id)?.name || 'Distributor';
-    }
-    return `${list.length} Akses Lokasi`;
-  }
+// Handle Multi-Placements (Audit, Leader, Distributor)
+if ((user.placements || []).length > 0) {
+const list = user.placements;
+if (list.length === 1) {
+const p = list[0];
+if (p.model_type === 'branch') return branches.value.find(b => b.id == p.model_id)?.name || 'Cabang';
+if (p.model_type === 'online_shop') return onlineShops.value.find(s => s.id == p.model_id)?.name || 'Online Shop';
+if (p.model_type === 'warehouse') return warehouses.value.find(w => w.id == p.model_id)?.name || 'Gudang';
+if (p.model_type === 'distributor') return distributors.value.find(d => d.id == p.model_id)?.name || 'Distributor';
+}
+return `${list.length} Akses Lokasi`;
+}
 
-  // Fallback to primary columns
-  if (user.branch) return user.branch.name;
-  if (user.warehouse) return `Gudang: ${user.warehouse.name}`;
-  if (user.online_shop) return `Online: ${user.online_shop.name}`;
-  if (user.distributor) return `Dist: ${user.distributor.name}`;
-  return '-';
+// Fallback to primary columns
+if (user.branch) return user.branch.name;
+if (user.warehouse) return `Gudang: ${user.warehouse.name}`;
+if (user.online_shop) return `Online: ${user.online_shop.name}`;
+if (user.distributor) return `Dist: ${user.distributor.name}`;
+return '-';
 }
 
 function getUserRoleName(user) {
-  if (!user || !user.roles || !user.roles.length) return 'No Role';
-  return ROLE_LABELS[user.roles[0].name] || user.roles[0].name;
+if (!user || !user.roles || !user.roles.length) return 'No Role';
+return ROLE_LABELS[user.roles[0].name] || user.roles[0].name;
 }
 </script>
 
@@ -637,12 +630,15 @@ function getUserRoleName(user) {
         <table class="table w-full">
           <thead>
             <tr>
-              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">User</th>
-              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Role</th>
+              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">User
+              </th>
+              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Role
+              </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">
                 Penempatan
               </th>
-              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Aktifitas
+              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">
+                Aktifitas
               </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Status
               </th>
@@ -1032,7 +1028,8 @@ function getUserRoleName(user) {
                       <Check v-if="form.selected_warehouses?.includes(w.id)" class="w-4 h-4 text-purple-500 shrink-0" />
                     </label>
                     <p v-if="availableWarehouses.length === 0"
-                      class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada gudang aktif.
+                      class="text-sm text-text-secondary italic col-span-full text-center py-4">Tidak ada gudang
+                      aktif.
                     </p>
                   </div>
 
@@ -1078,7 +1075,8 @@ function getUserRoleName(user) {
               <!-- Warehouse Select -->
               <select v-else-if="placementType === 'warehouse'" v-model="form.warehouse_id" class="input">
                 <option value="">Pilih Gudang...</option>
-                <option v-for="w in availableWarehouses" :key="w.id" :value="w.id">{{ w.name }} ({{ w.code }})</option>
+                <option v-for="w in availableWarehouses" :key="w.id" :value="w.id">{{ w.name }} ({{ w.code }})
+                </option>
               </select>
 
               <!-- Distributor Select -->

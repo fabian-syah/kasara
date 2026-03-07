@@ -265,20 +265,11 @@ const routes = [
             {
                 path: 'audit/pin-resets',
                 name: 'AuditPinResets',
-                component: Users,
-                props: (route) => ({ ...route.query, needs_reset: '1' }), // This might help, but query is enough
+                component: () => import('../views/audit/PinResets.vue'),
                 meta: {
                     title: 'Permintaan Reset PIN',
                     menu: 'audit_pin_resets',
                     permissions: ['audit.view']
-                },
-                // Redirect to ensure the query param is there
-                beforeEnter: (to, from, next) => {
-                    if (to.query.needs_reset !== '1') {
-                        next({ ...to, query: { ...to.query, needs_reset: '1' } });
-                    } else {
-                        next();
-                    }
                 }
             },
             {
