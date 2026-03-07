@@ -58,7 +58,7 @@ async function handleSubmit() {
 const toast = useToast();
 
 async function handleRequestReset() {
-    if (!confirm("Kirim permintaan reset PIN ke Audit/Admin?")) return;
+    if (!confirm("Kirim permintaan reset PIN ke Admin?")) return;
 
     loading.value = true;
     try {
