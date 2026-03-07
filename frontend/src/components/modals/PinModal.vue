@@ -3,6 +3,9 @@ import { ref, onMounted, nextTick } from "vue";
 import { Lock, X, AlertCircle, CheckCircle } from "lucide-vue-next";
 import api, { auth as authApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useAuthStore } from "../../store/auth";
+
+const authStore = useAuthStore();
 
 const props = defineProps({
     show: Boolean,
@@ -121,10 +124,14 @@ onMounted(() => {
                     </div>
 
                     <div v-if="mode === 'verify'" class="mb-6">
-                        <button @click="handleRequestReset"
+                        <button v-if="!authStore.user?.pin_reset_requested_at" @click="handleRequestReset"
                             class="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors underline underline-offset-4">
                             Lupa PIN? Hubungi Audit Cabang
                         </button>
+                        <div v-else
+                            class="text-[10px] text-amber-500 font-bold uppercase tracking-wider bg-amber-500/10 py-2 px-3 rounded-xl border border-amber-500/20">
+                            ⏳ Permintaan reset sedang diproses
+                        </div>
                     </div>
 
                     <div v-if="error"
