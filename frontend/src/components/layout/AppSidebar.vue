@@ -122,6 +122,7 @@ const menuItems = [
             { id: "audit_profit_uc", path: "/audit/uc/profit", label: "Audit Profit" },
             { id: "audit_stock_in_uc", path: "/audit/uc/stock-in", label: "Audit Barang Masuk" },
             { id: "audit_stock_out_uc", path: "/audit/uc/stock-out", label: "Audit Barang Keluar" },
+            { id: "audit_pin_resets", path: "/audit/pin-resets", label: "Permintaan PIN" },
         ]
     },
 

@@ -124,6 +124,10 @@ class UserController extends Controller
         if ($request->has('role'))
             $query->role($request->role);
 
+        if ($request->boolean('needs_reset')) {
+            $query->whereNotNull('pin_reset_requested_at');
+        }
+
         return response()->json([
             'success' => true,
             'data' => $query->latest()->get()

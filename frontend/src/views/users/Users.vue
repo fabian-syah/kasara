@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import { ROLE_LABELS, ROLES } from "../../utils/permissions";
 import { formatDate } from "../../utils/formatters";
 import { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi } from "../../api/axios";
@@ -27,6 +28,7 @@ import {
 // Toast
 const toast = useToast();
 const authStore = useAuthStore(); // Init Store
+const route = useRoute();
 
 // State
 const users = ref([]);
@@ -295,9 +297,14 @@ async function handlePhotoUpload(event) {
 // API Fetch
 async function fetchData() {
   isLoading.value = true;
+  const params = {};
+  if (route.query.needs_reset === '1') {
+    params.needs_reset = 1;
+  }
+
   try {
     const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
-      usersApi.list(),
+      usersApi.list(params),
       branchesApi.list(),
       warehousesApi.list(),
       onlineShopsApi.list(),
@@ -317,6 +324,10 @@ async function fetchData() {
     isLoading.value = false;
   }
 }
+
+watch(() => route.query.needs_reset, () => {
+  fetchData();
+});
 
 onMounted(() => {
   fetchData();
@@ -800,7 +811,7 @@ function getUserRoleName(user) {
                 <span class="text-[10px] text-text-secondary">Milik:</span>
                 <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{
                   user.created_by_user.full_name
-                  }}</span>
+                }}</span>
               </div>
             </div>
           </div>
@@ -925,7 +936,7 @@ function getUserRoleName(user) {
                 <select v-model="form.role" class="input" required>
                   <option value="">Pilih Role</option>
                   <option v-for="role in filteredRolesOptions" :key="role.value" :value="role.value">{{ role.label
-                    }}</option>
+                  }}</option>
                 </select>
               </div>
               <div>
