@@ -151,4 +151,16 @@ class AuthController extends Controller
         }
         return response()->json(['success' => true]);
     }
+
+    public function requestResetPin(Request $request)
+    {
+        $user = $request->user();
+        $user->pin_reset_requested_at = now();
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permintaan reset PIN telah dicatat.'
+        ]);
+    }
 }
