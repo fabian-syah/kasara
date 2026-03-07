@@ -44,6 +44,15 @@ class User extends Authenticatable
         'pin_reset_requested_at',
     ];
 
+    protected $appends = [
+        'transaction_pin_exists',
+    ];
+
+    public function getTransactionPinExistsAttribute()
+    {
+        return !empty($this->transaction_pin);
+    }
+
     // Relasi ke Cabang
     public function branch()
     {

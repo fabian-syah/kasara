@@ -3,7 +3,7 @@ import { ref, onMounted } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key } from "lucide-vue-next";
+import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, Edit2 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 
 const authStore = useAuthStore();
@@ -337,8 +337,8 @@ async function handlePinSuccess(pin, newPin) {
                             </div>
 
                             <div class="flex flex-wrap gap-3">
-                                <button v-if="!user.transaction_pin" @click="openSetPin" type="button"
-                                    class="btn btn-primary px-6 rounded-xl">
+                                <button v-if="!user.pin_enabled && !user.transaction_pin_exists" @click="openSetPin"
+                                    type="button" class="btn btn-primary px-6 rounded-xl">
                                     Pasang PIN Sekarang
                                 </button>
                                 <template v-else>
