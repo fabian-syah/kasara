@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, nextTick, watch } from "vue";
 import { Lock, X, AlertCircle, CheckCircle } from "lucide-vue-next";
 import api, { auth as authApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
@@ -64,6 +64,14 @@ async function handleRequestReset() {
     try {
         await authApi.requestResetPin();
         toast.success("Permintaan reset PIN telah dikirim.");
+
+        // Update store locally so UI reacts immediately
+        if (authStore.user) {
+            authStore.user.pin_reset_requested_at = new Date().toISOString();
+            // Sync with localStorage
+            localStorage.setItem('user', JSON.stringify(authStore.user));
+        }
+
         close();
     } catch (err) {
         toast.error("Gagal mengirim permintaan reset.");
@@ -160,11 +168,13 @@ onMounted(() => {
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
     -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
 /* Firefox */
 input[type=number] {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 </style>
