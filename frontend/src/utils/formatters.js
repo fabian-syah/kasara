@@ -97,7 +97,13 @@ export function parseCurrency(val) {
  * @returns {string} Formatted date string
  */
 export function formatDate(date, format = 'short') {
-    const d = new Date(date)
+    if (!date) return '-'
+
+    // Handle space instead of T for better browser compatibility
+    const dateStr = typeof date === 'string' ? date.replace(' ', 'T') : date
+    const d = new Date(dateStr)
+
+    if (isNaN(d.getTime())) return '-'
 
     const options = {
         short: { day: '2-digit', month: '2-digit', year: 'numeric' },

@@ -208,7 +208,7 @@ onMounted(() => {
                             <td class="px-6 py-4">
                                 <div class="flex flex-col">
                                     <span class="text-sm font-medium text-red-500">{{
-                                        formatDate(user.pin_reset_requested_at) }}</span>
+                                        formatDate(user.pin_reset_requested_at, 'datetime') }}</span>
                                     <span class="text-[10px] text-neutral-400 italic">Meminta bantuan reset</span>
                                 </div>
                             </td>
