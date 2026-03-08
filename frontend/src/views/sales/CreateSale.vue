@@ -68,6 +68,7 @@ const showSuccessModal = ref(false);
 const lastTransaction = ref(null);
 
 const authStore = useAuthStore();
+const currentUser = ref(null);
 const showInitialPinSetup = ref(false);
 
 onMounted(async () => {
@@ -175,11 +176,22 @@ const cartTotal = computed(() => cartStore.total);
 const cartSubtotal = computed(() => cartStore.subtotal);
 const cartItemCount = computed(() => cartStore.itemCount);
 
-const paymentMethods = [
-    { id: "cash", label: "Tunai", icon: Banknote },
-    { id: "transfer", label: "Transfer", icon: CreditCard },
-    { id: "qris", label: "QRIS", icon: QrCode },
-];
+const paymentMethods = []; // Deprecated, using availablePaymentMethods from DB
+
+const selectedPaymentMethodObj = computed(() =>
+    availablePaymentMethods.value.find(m => m.id === selectedPaymentMethod.value)
+);
+
+const isCashPayment = computed(() => {
+    const cat = selectedPaymentMethodObj.value?.category?.toLowerCase();
+    const name = selectedPaymentMethodObj.value?.name?.toLowerCase();
+    return cat === 'cash' || cat === 'tunai' || name?.includes('cash') || name?.includes('tunai');
+});
+
+const changeAmount = computed(() => {
+    if (!isCashPayment.value) return 0;
+    return paymentAmount.value - cartTotal.value;
+});
 
 function addToCart(product) {
     const availableStock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 1);
@@ -507,7 +519,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                            }}/{{ item.storage || '-' }}</span>
+                                                }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -704,7 +716,7 @@ watch(() => currentStep.value, (newStep) => {
                                             method.name }}</span>
                                         <span v-if="method.account_number"
                                             class="text-[8px] text-text-secondary font-mono truncate max-w-[80px]">{{
-                                            method.account_number }}</span>
+                                                method.account_number }}</span>
                                     </div>
                                     <div v-if="selectedPaymentMethod === method.id"
                                         class="absolute top-1 right-1 text-primary-500">
@@ -716,7 +728,7 @@ watch(() => currentStep.value, (newStep) => {
                                 Memuat metode pembayaran...
                             </div>
 
-                            <div v-if="selectedPaymentMethod === 'cash'">
+                            <div v-if="isCashPayment">
                                 <p class="text-sm font-bold text-text-primary mb-2">Jumlah Pembayaran</p>
                                 <div class="relative">
                                     <span
@@ -785,7 +797,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
@@ -799,7 +811,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <ArrowLeft :size="20" />
                                 </button>
                                 <button @click="handleSubmitOrder"
-                                    :disabled="(selectedPaymentMethod === 'cash' && changeAmount < 0) || isSubmitting"
+                                    :disabled="(isCashPayment && changeAmount < 0) || isSubmitting"
                                     class="flex-[3] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
                                     <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                                     <CheckCircle v-else :size="24" />
