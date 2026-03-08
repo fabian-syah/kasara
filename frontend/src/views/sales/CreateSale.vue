@@ -507,7 +507,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                                }}/{{ item.storage || '-' }}</span>
+                                            }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -678,17 +678,42 @@ watch(() => currentStep.value, (newStep) => {
                         </div>
 
                         <div class="space-y-6">
-                            <div>
-                                <p class="text-sm font-bold text-text-primary mb-4">Pilih Pembayaran</p>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <button v-for="method in paymentMethods" :key="method.id"
-                                        @click="selectedPaymentMethod = method.id"
-                                        class="p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2"
-                                        :class="selectedPaymentMethod === method.id ? 'border-primary-500 bg-primary-500/10 text-primary-600' : 'border-surface-100 dark:border-surface-700 text-text-secondary'">
-                                        <component :is="method.icon" :size="24" />
-                                        <span class="text-[10px] font-bold">{{ method.label }}</span>
-                                    </button>
-                                </div>
+                            <div v-if="availablePaymentMethods.length > 0"
+                                class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <button v-for="method in availablePaymentMethods" :key="method.id"
+                                    @click="selectedPaymentMethod = method.id"
+                                    class="p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 group relative overflow-hidden text-center"
+                                    :class="selectedPaymentMethod === method.id
+                                        ? 'border-primary-500 bg-primary-500/10 text-primary-600'
+                                        : 'border-surface-100 dark:border-surface-700 hover:border-surface-200'">
+                                    <div
+                                        class="w-10 h-10 bg-white dark:bg-surface-800 rounded-xl shadow-sm flex items-center justify-center">
+                                        <CreditCard
+                                            v-if="method.category?.toLowerCase() === 'bank' || method.category?.toLowerCase() === 'transfer' || method.category?.toLowerCase() === 'edc'"
+                                            :size="20"
+                                            :class="selectedPaymentMethod === method.id ? 'text-primary-500' : 'text-text-secondary'" />
+                                        <QrCode
+                                            v-else-if="method.category?.toLowerCase() === 'e-wallet' || method.category?.toLowerCase() === 'qris'"
+                                            :size="20"
+                                            :class="selectedPaymentMethod === method.id ? 'text-primary-500' : 'text-text-secondary'" />
+                                        <Banknote v-else :size="20"
+                                            :class="selectedPaymentMethod === method.id ? 'text-primary-500' : 'text-text-secondary'" />
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-[10px] uppercase tracking-wider leading-tight">{{
+                                            method.name }}</span>
+                                        <span v-if="method.account_number"
+                                            class="text-[8px] text-text-secondary font-mono truncate max-w-[80px]">{{
+                                            method.account_number }}</span>
+                                    </div>
+                                    <div v-if="selectedPaymentMethod === method.id"
+                                        class="absolute top-1 right-1 text-primary-500">
+                                        <CheckCircle :size="12" />
+                                    </div>
+                                </button>
+                            </div>
+                            <div v-else class="text-center py-4 text-text-secondary text-xs italic">
+                                Memuat metode pembayaran...
                             </div>
 
                             <div v-if="selectedPaymentMethod === 'cash'">
@@ -760,7 +785,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
