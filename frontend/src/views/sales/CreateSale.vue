@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useCartStore } from "../../store/cart";
 import { useInventoryStore } from "../../store/inventory";
+import { useAuthStore } from "../../store/auth";
 import { formatCurrency } from "../../utils/formatters";
 import {
     Search,
@@ -23,6 +24,7 @@ import {
     ArrowRight,
     ShoppingBag,
     Shield,
+    Loader2,
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 
@@ -37,6 +39,7 @@ const transactionCategory = ref("penjualan");
 
 const categoriesPenjualan = [
     { id: "penjualan", label: "Penjualan" },
+    { id: "bundling", label: "Bundling" },
     { id: "angkat_barang", label: "Angkat Barang" },
     { id: "refund", label: "Refund" },
     { id: "tukar_unit", label: "Tukar Unit" },
@@ -57,16 +60,13 @@ const customerForm = ref({
 // Payment state (Step 4)
 const paymentAmount = ref(0);
 const selectedPaymentMethod = ref("cash");
+const isSubmitting = ref(false);
 
 // Success modal
 const showSuccessModal = ref(false);
 const lastTransaction = ref(null);
 
-// PIN State
-const showPinModal = ref(false);
-const pinModalMode = ref("verify"); // 'verify' or 'setup_initial'
-const pinModalTitle = ref("Verifikasi PIN");
-const currentUser = ref(null);
+const authStore = useAuthStore();
 const showInitialPinSetup = ref(false);
 
 onMounted(async () => {
@@ -166,7 +166,8 @@ const paymentMethods = [
 ];
 
 function addToCart(product) {
-    if (product.stock > 0) {
+    const availableStock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 1);
+    if (availableStock > 0) {
         cartStore.addItem(product);
     }
 }
@@ -184,7 +185,8 @@ function decrementQty(productId) {
 }
 
 async function handleSubmitOrder() {
-    if (currentUser.value?.pin_enabled) {
+    // Only Sales role with PIN enabled requires PIN
+    if (authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
         showPinModal.value = true;
         pinModalMode.value = "verify";
         pinModalTitle.value = "Verifikasi PIN Transaksi";
@@ -199,7 +201,9 @@ async function handlePinSuccess() {
 }
 
 async function processPayment() {
+    if (isSubmitting.value) return;
     try {
+        isSubmitting.value = true;
         const formData = new FormData();
         formData.append('category', transactionCategory.value);
         formData.append('sales_account', salesAccount.value);
@@ -210,7 +214,13 @@ async function processPayment() {
         // Form details
         formData.append('customer_name', customerForm.value.customer_name);
         formData.append('customer_phone', customerForm.value.customer_phone);
-        formData.append('notes', customerForm.value.notes);
+
+        let finalNotes = customerForm.value.notes;
+        if (cartStore.discount > 0) {
+            const discText = cartStore.discountType === 'percentage' ? `${cartStore.discount}%` : formatCurrency(cartStore.discount);
+            finalNotes = (finalNotes ? finalNotes + "\n" : "") + `[Diskon ${discText}: -${formatCurrency(cartStore.discountAmount)}]`;
+        }
+        formData.append('notes', finalNotes);
 
         cartItems.value.forEach(item => {
             formData.append('product_detail_ids[]', item.id);
@@ -241,6 +251,8 @@ async function processPayment() {
     } catch (error) {
         console.error("Payment failed", error);
         alert(error.response?.data?.message || "Gagal memproses transaksi");
+    } finally {
+        isSubmitting.value = false;
     }
 }
 
@@ -413,7 +425,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                                }}/{{ item.storage || '-' }}</span>
+                                            }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -609,12 +621,47 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                         class="py-2 text-xs font-bold bg-surface-100 dark:bg-surface-700 rounded-xl">Rp
                                         100.000</button>
                                 </div>
+                            </div>
 
+                            <!-- Discount Section -->
+                            <div class="h-px bg-surface-100 dark:bg-surface-700 my-4"></div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-sm font-bold text-text-primary">Diskon</p>
+                                    <div class="flex gap-1">
+                                        <button @click="cartStore.discountType = 'percentage'"
+                                            class="px-2 py-1 text-[10px] rounded-lg font-bold transition-all"
+                                            :class="cartStore.discountType === 'percentage' ? 'bg-primary-500 text-white' : 'bg-surface-100 dark:bg-surface-700 text-text-secondary'">%</button>
+                                        <button @click="cartStore.discountType = 'fixed'"
+                                            class="px-2 py-1 text-[10px] rounded-lg font-bold transition-all"
+                                            :class="cartStore.discountType === 'fixed' ? 'bg-primary-500 text-white' : 'bg-surface-100 dark:bg-surface-700 text-text-secondary'">Rp</button>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <span v-if="cartStore.discountType === 'fixed'"
+                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-bold">Rp</span>
+                                    <input v-model.number="cartStore.discount" type="number"
+                                        class="w-full border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 text-text-primary focus:outline-none focus:border-primary-500 transition-all font-bold"
+                                        :class="cartStore.discountType === 'fixed' ? 'pl-10' : ''" placeholder="0" />
+                                    <span v-if="cartStore.discountType === 'percentage'"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-bold">%</span>
+                                </div>
+                            </div>
+
+                            <div v-if="cartStore.discountAmount > 0"
+                                class="p-3 bg-primary-500/10 rounded-xl flex justify-between items-center text-xs font-bold text-primary-600">
+                                <span>Potongan Diskon</span>
+                                <span>- {{ formatCurrency(cartStore.discountAmount) }}</span>
+                            </div>
+
+                            <div class="h-px bg-surface-100 dark:bg-surface-700 my-4"></div>
+
+                            <div v-if="selectedPaymentMethod === 'cash'">
                                 <div v-if="changeAmount >= 0"
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
@@ -627,10 +674,12 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-bold transition-all flex items-center justify-center">
                                     <ArrowLeft :size="20" />
                                 </button>
-                                <button @click="processPayment"
-                                    :disabled="selectedPaymentMethod === 'cash' && changeAmount < 0"
+                                <button @click="handleSubmitOrder"
+                                    :disabled="(selectedPaymentMethod === 'cash' && changeAmount < 0) || isSubmitting"
                                     class="flex-[3] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black text-lg shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2">
-                                    <CheckCircle :size="24" /> SELESAIKAN PROSES
+                                    <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
+                                    <CheckCircle v-else :size="24" />
+                                    {{ isSubmitting ? 'MEMPROSES...' : 'SELESAIKAN PROSES' }}
                                 </button>
                             </div>
                         </div>

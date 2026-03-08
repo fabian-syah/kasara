@@ -35,20 +35,22 @@ export const useCartStore = defineStore('cart', () => {
     // Actions
     function addItem(product) {
         const existingItem = items.value.find(item => item.id === product.id)
+        const availableStock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 1);
 
         if (existingItem) {
             // Check stock before adding
-            if (existingItem.quantity < product.stock) {
+            if (existingItem.quantity < availableStock) {
                 existingItem.quantity++
             }
         } else {
             items.value.push({
                 id: product.id,
-                name: product.name,
-                price: product.price,
-                stock: product.stock,
+                name: product.product?.name || product.name,
+                price: product.selling_price || product.price,
+                stock: availableStock,
                 quantity: 1,
-                image: product.image || null
+                image: product.image || null,
+                imei: product.imei || null
             })
         }
     }
