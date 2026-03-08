@@ -295,8 +295,8 @@ async function handlePinSuccess(pin, newPin) {
 
                     <div class="h-px bg-surface-700/50"></div>
 
-                    <!-- PIN Management -->
-                    <div>
+                    <!-- PIN Management - ONLY FOR SALES -->
+                    <div v-if="authStore.userRole === 'sales'">
                         <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
                             <Shield :size="20" class="text-primary-500" /> PIN Transaksi
                         </h3>

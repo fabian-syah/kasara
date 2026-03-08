@@ -684,8 +684,8 @@ class InventoryController extends Controller
 
         $user = Auth::user();
 
-        // PIN Verification
-        if ($user->pin_enabled) {
+        // PIN Verification - Only for Sales role if enabled
+        if ($user->hasRole('sales') && $user->pin_enabled) {
             if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
                 return response()->json([
                     'success' => false,
@@ -766,7 +766,7 @@ class InventoryController extends Controller
                     'product_id' => $product->id,
                     'quantity' => $request->quantity,
                     'received_quantity' => $request->quantity,
-                    'selling_price' => $item['selling_price'] ?? $product->price ?? 0,
+                    'selling_price' => $request->selling_price ?? $product->price ?? 0,
                 ]);
 
                 // Dispatch History Event
@@ -954,8 +954,8 @@ class InventoryController extends Controller
 
         $user = Auth::user();
 
-        // PIN Verification
-        if ($user->pin_enabled) {
+        // PIN Verification - Only for Sales role if enabled
+        if ($user->hasRole('sales') && $user->pin_enabled) {
             if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
                 return response()->json([
                     'success' => false,

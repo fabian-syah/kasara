@@ -108,8 +108,11 @@ class AuthController extends Controller
 
     public function setPin(Request $request)
     {
-        $request->validate(['transaction_pin' => 'required|string|size:4']);
         $user = $request->user();
+        if (!$user->hasRole('sales')) {
+            return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
+        }
+        $request->validate(['transaction_pin' => 'required|string|size:4']);
         $user->transaction_pin = $request->transaction_pin; // Hashed automatically by model cast
         $user->pin_enabled = true;
         $user->save();
@@ -118,11 +121,14 @@ class AuthController extends Controller
 
     public function updatePin(Request $request)
     {
+        $user = $request->user();
+        if (!$user->hasRole('sales')) {
+            return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
+        }
         $request->validate([
             'current_pin' => 'required|string|size:4',
             'new_pin' => 'required|string|size:4'
         ]);
-        $user = $request->user();
         if (!\Illuminate\Support\Facades\Hash::check($request->current_pin, $user->transaction_pin)) {
             return response()->json(['success' => false, 'message' => 'PIN saat ini salah.'], 422);
         }
@@ -133,8 +139,11 @@ class AuthController extends Controller
 
     public function togglePin(Request $request)
     {
-        $request->validate(['transaction_pin' => 'required|string|size:4']);
         $user = $request->user();
+        if (!$user->hasRole('sales')) {
+            return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
+        }
+        $request->validate(['transaction_pin' => 'required|string|size:4']);
         if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
             return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
         }
@@ -145,8 +154,12 @@ class AuthController extends Controller
 
     public function verifyPin(Request $request)
     {
+        $user = $request->user();
+        if (!$user->hasRole('sales')) {
+            return response()->json(['success' => true]); // Non-sales always pass
+        }
         $request->validate(['transaction_pin' => 'required|string|size:4']);
-        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $request->user()->transaction_pin)) {
+        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
             return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
         }
         return response()->json(['success' => true]);
@@ -155,6 +168,9 @@ class AuthController extends Controller
     public function requestResetPin(Request $request)
     {
         $user = $request->user();
+        if (!$user->hasRole('sales')) {
+            return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
+        }
         $user->pin_reset_requested_at = now();
         $user->save();
 

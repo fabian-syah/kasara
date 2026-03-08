@@ -579,7 +579,8 @@ async function submitStockIn(pin = null) {
     if (!canSubmit.value) return;
 
     // If user has PIN enabled and we don't have a verified PIN yet
-    if (authStore.user?.pin_enabled && !pin) {
+    // PIN only required for Sales role
+    if (authStore.userRole === 'sales' && authStore.user?.pin_enabled && !pin) {
         showPinModal.value = true;
         return;
     }
@@ -768,7 +769,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -912,7 +913,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -1029,7 +1030,7 @@ onMounted(fetchInitialData);
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black">Lanjut
                     <ChevronRight :size="18" />
                 </button>
-                <button v-if="currentStep === 4" @click="submitStockIn" :disabled="!canSubmit || isSubmitting"
+                <button v-if="currentStep === 4" @click="submitStockIn()" :disabled="!canSubmit || isSubmitting"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black shadow-xl shadow-emerald-600/20">
                     <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                     {{ isSubmitting ? 'Proses...' : 'Selesai & Simpan' }}
