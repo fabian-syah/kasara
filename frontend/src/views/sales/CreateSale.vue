@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import api from "../../api/axios";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useCartStore } from "../../store/cart";
@@ -8,8 +8,8 @@ import { useAuthStore } from "../../store/auth";
 import { formatCurrency } from "../../utils/formatters";
 import {
     Search,
-    ShoppingCart,
     Plus,
+    ShoppingCart,
     Minus,
     Trash2,
     X,
@@ -25,6 +25,7 @@ import {
     ShoppingBag,
     Shield,
     Loader2,
+    Hash,
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 
@@ -39,7 +40,6 @@ const transactionCategory = ref("penjualan");
 
 const categoriesPenjualan = [
     { id: "penjualan", label: "Penjualan" },
-    { id: "bundling", label: "Bundling" },
     { id: "angkat_barang", label: "Angkat Barang" },
     { id: "refund", label: "Refund" },
     { id: "tukar_unit", label: "Tukar Unit" },
@@ -59,7 +59,8 @@ const customerForm = ref({
 
 // Payment state (Step 4)
 const paymentAmount = ref(0);
-const selectedPaymentMethod = ref("cash");
+const selectedPaymentMethod = ref(null);
+const availablePaymentMethods = ref([]);
 const isSubmitting = ref(false);
 
 // Success modal
@@ -72,9 +73,10 @@ const showInitialPinSetup = ref(false);
 onMounted(async () => {
     inventoryStore.fetchProducts();
     try {
-        const [accountsRes, userRes] = await Promise.all([
+        const [accountsRes, userRes, paymentsRes] = await Promise.all([
             api.get('/inventory/my-accounts'),
-            api.get('/user')
+            api.get('/user'),
+            api.get('/payment-methods')
         ]);
 
         const rawAccounts = accountsRes.data.data || accountsRes.data;
@@ -85,6 +87,15 @@ onMounted(async () => {
 
         const currentUserData = userRes.data.data || userRes.data;
         currentUser.value = currentUserData;
+
+        // Payment Methods
+        const payments = (paymentsRes.data.data || paymentsRes.data).filter(p => p.is_active);
+        availablePaymentMethods.value = payments;
+        if (payments.length > 0) {
+            // Default to cash or first one
+            const cashMethod = payments.find(p => p.category?.toLowerCase() === 'cash' || p.name?.toLowerCase() === 'tunai');
+            selectedPaymentMethod.value = cashMethod ? cashMethod.id : payments[0].id;
+        }
 
         // Auto-select logged-in user if they are in the list
         if (currentUserData) {
@@ -101,15 +112,20 @@ onMounted(async () => {
             );
             if (match) {
                 salesAccount.value = match.name;
-            } else if (salesAccounts.value.length > 0) {
-                // If it's a sales account, it should be in the list now
-                // but if not, we can still default to the first one available
             }
         }
     } catch (e) {
         console.error("Gagal memuat data awal", e);
     }
 });
+
+const isBundling = ref(false);
+function toggleBundling() {
+    isBundling.value = !isBundling.value;
+    if (transactionCategory.value === 'penjualan' || transactionCategory.value === 'bundling') {
+        transactionCategory.value = isBundling.value ? 'bundling' : 'penjualan';
+    }
+}
 
 // Step Navigation
 function nextStep() {
@@ -207,9 +223,11 @@ async function processPayment() {
         const formData = new FormData();
         formData.append('category', transactionCategory.value);
         formData.append('sales_account', salesAccount.value);
-        formData.append('payment_method', selectedPaymentMethod.value);
+        if (selectedPaymentMethod.value) {
+            formData.append('payment_method_id', selectedPaymentMethod.value);
+        }
         formData.append('paid_amount', paymentAmount.value);
-        formData.append('selling_price', cartTotal.value);
+        formData.append('selling_price', cartStore.total);
 
         // Form details
         formData.append('customer_name', customerForm.value.customer_name);
@@ -230,13 +248,12 @@ async function processPayment() {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        const change = paymentAmount.value - cartTotal.value;
         lastTransaction.value = {
             id: response.data?.data?.receipt_id || "TRX-" + Date.now(),
             items: [...cartItems.value],
             total: cartTotal.value,
             paid: paymentAmount.value,
-            change: change,
+            change: changeAmount.value,
             method: selectedPaymentMethod.value,
             category: transactionCategory.value,
             sales_account: salesAccount.value,
@@ -265,12 +282,65 @@ useEscapeKey(() => {
     if (showSuccessModal.value) closeSuccessModal();
 });
 
-function setQuickAmount(amount) {
-    paymentAmount.value = amount;
+// Auto Rupiah logic
+const displayPaymentAmount = ref("0");
+const displayDiscount = ref("0");
+
+// Helper to format raw number to Rupiah string
+function formatNumber(n) {
+    if (!n) return "0";
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
+// Helper to get number from Rupiah string
+function parseNumber(s) {
+    if (!s) return 0;
+    const clean = s.toString().replace(/[^0-9]/g, "");
+    return parseInt(clean) || 0;
+}
 
+// Sync displays when underlying values change (e.g. from cartTotal)
+watch(() => paymentAmount.value, (newVal) => {
+    displayPaymentAmount.value = formatNumber(newVal);
+});
+
+watch(() => cartStore.discount, (newVal) => {
+    if (cartStore.discountType === 'fixed') {
+        displayDiscount.value = formatNumber(newVal);
+    } else {
+        displayDiscount.value = newVal?.toString() || "0";
+    }
+});
+
+function handlePaymentInput(e) {
+    const val = e.target.value;
+    const num = parseNumber(val);
+    paymentAmount.value = num;
+    displayPaymentAmount.value = formatNumber(num);
+}
+
+function handleDiscountInput(e) {
+    const val = e.target.value;
+    if (cartStore.discountType === 'fixed') {
+        const num = parseNumber(val);
+        cartStore.discount = num;
+        displayDiscount.value = formatNumber(num);
+    } else {
+        // Percentage (max 100)
+        let num = parseInt(val.replace(/[^0-9]/g, "")) || 0;
+        if (num > 100) num = 100;
+        cartStore.discount = num;
+        displayDiscount.value = num.toString();
+    }
+}
+
+// Sync paymentAmount to cartTotal when Step 4 is entered
+watch(() => currentStep.value, (newStep) => {
+    if (newStep === 4) {
+        paymentAmount.value = cartStore.total;
+        displayPaymentAmount.value = formatNumber(cartStore.total);
+    }
+});
 </script>
 
 <template>
@@ -378,11 +448,23 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                 <!-- Products -->
                 <div class="flex-[2] flex flex-col min-w-0">
                     <div
-                        class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-4 mb-4 flex gap-4">
-                        <div class="relative flex-1">
+                        class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-4 mb-4 flex flex-col md:flex-row gap-4 items-center">
+                        <div class="relative flex-1 w-full">
                             <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
                             <input v-model="searchQuery" type="text" placeholder="Cari IMEI, Brand, atau Nama Produk..."
                                 class="w-full bg-surface-50 dark:bg-surface-900 border-none rounded-xl pl-12 pr-4 py-3 text-sm text-text-primary focus:ring-4 focus:ring-primary-500/10 transition-all" />
+                        </div>
+
+                        <!-- Bundling Toggle (Only for Penjualan flow) -->
+                        <div v-if="transactionCategory === 'penjualan' || transactionCategory === 'bundling'"
+                            class="flex items-center gap-3 px-4 py-2 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 whitespace-nowrap">
+                            <span class="text-xs font-bold text-text-secondary uppercase">Mode Bundling</span>
+                            <button @click="toggleBundling"
+                                class="w-12 h-6 rounded-full relative transition-all duration-300"
+                                :class="isBundling ? 'bg-primary-500' : 'bg-surface-300 dark:bg-surface-600'">
+                                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm"
+                                    :class="isBundling ? 'left-7' : 'left-1'"></div>
+                            </button>
                         </div>
                     </div>
 
@@ -425,7 +507,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                            }}/{{ item.storage || '-' }}</span>
+                                                }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -611,13 +693,30 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
 
                             <div v-if="selectedPaymentMethod === 'cash'">
                                 <p class="text-sm font-bold text-text-primary mb-2">Jumlah Pembayaran</p>
-                                <input v-model.number="paymentAmount" type="number"
-                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-2xl font-black text-center focus:outline-none focus:border-primary-500 transition-all" />
+                                <div class="relative">
+                                    <span
+                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-bold">Rp</span>
+                                    <input :value="displayPaymentAmount" @input="handlePaymentInput" type="text"
+                                        class="w-full border border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-6 bg-surface-50 dark:bg-surface-900 text-text-primary text-3xl font-black focus:outline-none focus:border-primary-500 transition-all pl-12"
+                                        placeholder="0" />
+                                </div>
                                 <div class="grid grid-cols-2 gap-2 mt-2">
-                                    <button @click="setQuickAmount(cartTotal)"
+                                    <button @click="paymentAmount = cartStore.total"
                                         class="py-2 text-xs font-bold bg-primary-500/10 text-primary-600 rounded-xl">Uang
                                         Pas</button>
-                                    <button @click="setQuickAmount(100000)"
+                                    <button @click="paymentAmount = paymentAmount + 50000"
+                                        class="py-2 text-xs font-bold bg-surface-100 dark:bg-surface-700 rounded-xl">+
+                                        Rp
+                                        50.000</button>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 mt-2">
+                                    <button @click="paymentAmount = 10000"
+                                        class="py-2 text-xs font-bold bg-surface-100 dark:bg-surface-700 rounded-xl">Rp
+                                        10.000</button>
+                                    <button @click="paymentAmount = 50000"
+                                        class="py-2 text-xs font-bold bg-surface-100 dark:bg-surface-700 rounded-xl">Rp
+                                        50.000</button>
+                                    <button @click="paymentAmount = 100000"
                                         class="py-2 text-xs font-bold bg-surface-100 dark:bg-surface-700 rounded-xl">Rp
                                         100.000</button>
                                 </div>
@@ -640,7 +739,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                 <div class="relative">
                                     <span v-if="cartStore.discountType === 'fixed'"
                                         class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-bold">Rp</span>
-                                    <input v-model.number="cartStore.discount" type="number"
+                                    <input :value="displayDiscount" @input="handleDiscountInput" type="text"
                                         class="w-full border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 text-text-primary focus:outline-none focus:border-primary-500 transition-all font-bold"
                                         :class="cartStore.discountType === 'fixed' ? 'pl-10' : ''" placeholder="0" />
                                     <span v-if="cartStore.discountType === 'percentage'"
@@ -661,7 +760,7 @@ const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">

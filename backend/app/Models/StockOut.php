@@ -64,7 +64,8 @@ class StockOut extends Model
         'confirmed_at',
         'confirmed_by',
         'sales_account',
-        'category',
+        'payment_method_id',
+        'paid_amount',
     ];
 
     protected $casts = [
