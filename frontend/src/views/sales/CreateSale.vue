@@ -278,6 +278,7 @@ async function processPayment() {
             } else {
                 formData.append(`non_hp_items[${nonHpIndex}][product_id]`, item.product_id || item.id);
                 formData.append(`non_hp_items[${nonHpIndex}][quantity]`, item.quantity);
+                formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, item.price || 0);
                 nonHpIndex++;
             }
         });
@@ -545,7 +546,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                            }}/{{ item.storage || '-' }}</span>
+                                                }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -554,10 +555,14 @@ watch(() => currentStep.value, (newStep) => {
                                         </div>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <code
+                                        <code v-if="item.imei"
                                             class="text-[11px] font-mono bg-surface-50 dark:bg-surface-900 px-2 py-1 rounded border border-surface-100 dark:border-surface-700">
-                                            {{ item.imei || '-' }}
+                                            {{ item.imei }}
                                         </code>
+                                        <span v-else
+                                            class="text-xs font-bold text-text-secondary bg-surface-100 dark:bg-surface-700 px-2 py-1 rounded">
+                                            Stok: {{ item.quantity || 0 }}
+                                        </span>
                                     </td>
                                     <td class="px-4 py-4">
                                         <span class="text-xs text-text-secondary">{{ item.distributor?.name ||
@@ -626,12 +631,27 @@ watch(() => currentStep.value, (newStep) => {
                                         <Trash2 :size="16" />
                                     </button>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span
-                                        class="text-xs px-2 py-0.5 bg-surface-50 dark:bg-surface-900 rounded text-text-secondary font-bold">QTY:
-                                        1</span>
-                                    <p class="text-xs font-black text-primary-500">{{ formatCurrency(item.selling_price
-                                        || item.price) }}</p>
+                                <div class="flex justify-between items-center mt-2">
+                                    <div class="flex items-center gap-2">
+                                        <button v-if="!item.imei" @click="decrementQty(item.id)"
+                                            class="w-6 h-6 flex items-center justify-center bg-surface-100 dark:bg-surface-700 rounded-md text-text-primary hover:bg-surface-200 transition-colors font-bold">-</button>
+                                        <span
+                                            class="text-xs px-2 py-0.5 bg-surface-50 dark:bg-surface-900 rounded text-text-secondary font-bold">
+                                            QTY: {{ item.quantity }}
+                                        </span>
+                                        <button v-if="!item.imei" @click="incrementQty(item.id)"
+                                            class="w-6 h-6 flex items-center justify-center bg-surface-100 dark:bg-surface-700 rounded-md text-text-primary hover:bg-surface-200 transition-colors font-bold">+</button>
+                                    </div>
+                                    <div v-if="!item.imei" class="flex flex-col items-end">
+                                        <div
+                                            class="flex items-center gap-1 border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-50 dark:bg-surface-900 px-2 py-1 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
+                                            <span class="text-[10px] text-text-secondary font-bold">Rp</span>
+                                            <input type="number" min="0" v-model.number="item.price"
+                                                class="w-20 text-right text-xs font-bold bg-transparent outline-none focus:text-primary-500" />
+                                        </div>
+                                    </div>
+                                    <p v-else class="text-xs font-black text-primary-500">{{
+                                        formatCurrency(item.selling_price || item.price) }}</p>
                                 </div>
                             </div>
                         </div>
@@ -823,7 +843,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
