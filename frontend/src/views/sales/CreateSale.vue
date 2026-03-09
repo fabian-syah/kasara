@@ -94,6 +94,7 @@ onMounted(async () => {
             ram: null,
             storage: null,
             imei: null,
+            distributor: item.latestLog?.distributor || item.user?.distributor || null
         }));
 
         // Combine and set in store
@@ -556,7 +557,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <td class="px-4 py-4">
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold text-text-primary">{{ item.ram || '-'
-                                                }}/{{ item.storage || '-' }}</span>
+                                            }}/{{ item.storage || '-' }}</span>
                                             <span
                                                 class="text-[10px] uppercase px-2 py-0.5 rounded-full bg-surface-100 dark:bg-surface-700 w-fit mt-1"
                                                 :class="item.condition === 'new' ? 'text-emerald-500' : 'text-amber-500'">
@@ -854,7 +855,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span class="text-xs font-bold text-emerald-600">Kembalian</span>
                                     <span class="text-xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center text-red-500 text-xs font-bold">
