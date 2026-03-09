@@ -50,7 +50,8 @@ export const useCartStore = defineStore('cart', () => {
                 stock: availableStock,
                 quantity: 1,
                 image: product.image || null,
-                imei: product.imei || null
+                imei: product.imei || null,
+                product_id: product.product_id || product.product?.id
             })
         }
     }

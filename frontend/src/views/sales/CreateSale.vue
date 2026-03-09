@@ -72,13 +72,32 @@ const currentUser = ref(null);
 const showInitialPinSetup = ref(false);
 
 onMounted(async () => {
-    inventoryStore.fetchProducts();
     try {
-        const [accountsRes, userRes, paymentsRes] = await Promise.all([
+        const [hpRes, nonHpRes, accountsRes, userRes, paymentsRes] = await Promise.all([
+            api.get('/inventory', { params: { type: 'hp', status: 'available', per_page: 1000 } }),
+            api.get('/inventory', { params: { type: 'non-hp', per_page: 1000 } }),
             api.get('/inventory/my-accounts'),
             api.get('/user'),
             api.get('/payment-methods')
         ]);
+
+        // Process HP items
+        const hpData = hpRes.data?.data || hpRes.data || [];
+
+        // Process Non-HP items
+        const rawNonHpData = nonHpRes.data?.data || nonHpRes.data || [];
+        const nonHpData = rawNonHpData.map(item => ({
+            ...item,
+            is_non_hp: true,
+            selling_price: item.product?.selling_price || item.product?.price || 0,
+            condition: 'new',
+            ram: null,
+            storage: null,
+            imei: null,
+        }));
+
+        // Combine and set in store
+        inventoryStore.products = [...hpData, ...nonHpData];
 
         const rawAccounts = accountsRes.data.data || accountsRes.data;
         // Filter ONLY for sales role as requested by user (hide inventory accounts like bian trial)
@@ -257,7 +276,7 @@ async function processPayment() {
             if (item.imei) {
                 formData.append('product_detail_ids[]', item.id);
             } else {
-                formData.append(`non_hp_items[${nonHpIndex}][product_id]`, item.id);
+                formData.append(`non_hp_items[${nonHpIndex}][product_id]`, item.product_id || item.id);
                 formData.append(`non_hp_items[${nonHpIndex}][quantity]`, item.quantity);
                 nonHpIndex++;
             }
