@@ -373,6 +373,16 @@ function handleDiscountInput(e) {
     }
 }
 
+function handleItemPriceInput(item, e) {
+    const val = e.target.value;
+    const num = parseNumber(val);
+    item.price = num;
+
+    // Force reactivity update on the input element's value to maintain format
+    // even if the raw number didn't change (e.g., typing letters)
+    e.target.value = formatNumber(num);
+}
+
 // Sync paymentAmount to cartTotal when Step 4 is entered
 watch(() => currentStep.value, (newStep) => {
     if (newStep === 4) {
@@ -646,7 +656,8 @@ watch(() => currentStep.value, (newStep) => {
                                         <div
                                             class="flex items-center gap-1 border border-surface-200 dark:border-surface-700 rounded-lg bg-surface-50 dark:bg-surface-900 px-2 py-1 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
                                             <span class="text-[10px] text-text-secondary font-bold">Rp</span>
-                                            <input type="number" min="0" v-model.number="item.price"
+                                            <input type="text" :value="formatNumber(item.price)"
+                                                @input="e => handleItemPriceInput(item, e)"
                                                 class="w-20 text-right text-xs font-bold bg-transparent outline-none focus:text-primary-500" />
                                         </div>
                                     </div>
