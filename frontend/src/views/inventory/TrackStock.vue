@@ -36,6 +36,7 @@ const categoryIcons = {
     retur: RotateCcw,
     shopee: ShoppingBag,
     orderan_online: ShoppingBag,
+    penjualan_offline: ShoppingBag,
 };
 
 const categoryLabels = {
@@ -44,6 +45,7 @@ const categoryLabels = {
     retur: 'Retur',
     shopee: 'Shopee',
     orderan_online: 'Orderan Online',
+    penjualan_offline: 'Penjualan Offline',
 };
 
 // Search function
@@ -165,7 +167,7 @@ function formatCurrency(value) {
                                                 result.product_name }}</p>
                                         </div>
                                         <p class="text-sm text-text-secondary font-mono tracking-tight">{{ result.imei
-                                        }}</p>
+                                            }}</p>
                                     </div>
                                 </div>
                                 <div
@@ -221,11 +223,9 @@ function formatCurrency(value) {
                                     </p>
                                     <p class="text-text-primary">{{ result.input_by || '-' }}</p>
                                 </div>
-                                <div v-if="(result.ram || result.storage) && !result.is_arrival">
-                                    <p class="text-text-secondary text-xs">RAM / Storage</p>
-                                    <p class="text-text-primary">{{ result.ram || '-' }}GB / {{ result.storage || '-'
-                                    }}GB
-                                    </p>
+                                <div v-if="result.storage && !result.is_arrival">
+                                    <p class="text-text-secondary text-xs">Storage / Kapasitas</p>
+                                    <p class="text-text-primary">{{ result.storage || '-' }}GB</p>
                                 </div>
                             </div>
                         </div>
@@ -316,11 +316,23 @@ function formatCurrency(value) {
                                     </div>
                                 </template>
 
-                                <!-- Retur -->
-                                <template v-if="result.category === 'retur'">
+                                <!-- Retur / Sales -->
+                                <template v-if="result.category === 'retur' || result.category === 'penjualan_offline'">
                                     <div>
                                         <p class="text-text-secondary text-xs">Customer</p>
-                                        <p class="text-text-primary">{{ result.customer_name }}</p>
+                                        <p class="text-text-primary uppercase">{{ result.customer_name || '-' }}</p>
+                                    </div>
+                                    <div v-if="result.customer_wa">
+                                        <p class="text-text-secondary text-xs">WhatsApp</p>
+                                        <p class="text-text-primary">{{ result.customer_wa }}</p>
+                                    </div>
+                                    <div v-if="result.transaction_pin">
+                                        <p class="text-text-secondary text-xs">PIN Transaksi</p>
+                                        <p class="text-text-primary font-mono">{{ result.transaction_pin }}</p>
+                                    </div>
+                                    <div v-if="result.notes" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Keterangan / Notes</p>
+                                        <p class="text-text-primary italic">{{ result.notes }}</p>
                                     </div>
                                 </template>
 
@@ -338,7 +350,7 @@ function formatCurrency(value) {
                                                 <span>
                                                     <span class="text-text-secondary text-xs">Penerima:</span>
                                                     <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                    }}</span>
+                                                        }}</span>
                                                 </span>
                                                 <span>
                                                     <span class="text-text-secondary text-xs">No. Resi:</span>
@@ -362,7 +374,7 @@ function formatCurrency(value) {
                                         <div>
                                             <p class="text-text-secondary text-xs">No. Resi Shopee</p>
                                             <p class="text-text-primary font-mono">{{ result.shopee_tracking_no || '-'
-                                            }}
+                                                }}
                                             </p>
                                         </div>
                                     </template>

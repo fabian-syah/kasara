@@ -97,6 +97,7 @@
                             <th class="px-6 py-4">Produk</th>
                             <th class="px-6 py-4">IMEI</th>
                             <th class="px-6 py-4">Qty</th>
+                            <th class="px-6 py-4">PIN / Notes</th>
                             <th class="px-6 py-4">Status</th>
                         </tr>
                     </thead>
@@ -136,27 +137,40 @@
                                     <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
                                         item.customer_name }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">{{
-                                        item.customer_phone }}</td>
+                                        item.customer_wa || item.customer_phone }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                                            {{ item.category }}
+                                            {{ categoryLabels[item.category] || item.category }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                            }}</div>
+                                        }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
                                             {{ detail.condition === 'new' ? 'Baru' : detail.condition === 'ex_ibox' ?
-                                            'Ex iBox' : 'Second' }}
+                                                'Ex iBox' : 'Second' }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ detail.imei && detail.imei
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
+                                        <div v-if="item.transaction_pin" class="flex flex-col">
+                                            <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
+                                                item.transaction_pin }}</span>
+                                            <span v-if="item.notes"
+                                                class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                                :title="item.notes">{{ item.notes }}</span>
+                                        </div>
+                                        <span v-else-if="item.notes"
+                                            class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                            :title="item.notes">{{ item.notes }}</span>
+                                        <span v-else class="text-text-secondary">-</span>
+                                    </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
                                             :class="item.status === 'Lunas'
@@ -173,17 +187,30 @@
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
-                                    <td class="px-6 py-4">{{ item.customer_phone }}</td>
+                                    <td class="px-6 py-4">{{ item.customer_wa || item.customer_phone }}</td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                                            {{ item.category }}
+                                            {{ categoryLabels[item.category] || item.category }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-sm">{{ item.product_names || '-' }}</td>
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ item.imeis && item.imeis
                                         !== '-' ? item.imeis : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ item.qty }}</td>
+                                    <td class="px-6 py-4">
+                                        <div v-if="item.transaction_pin" class="flex flex-col">
+                                            <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
+                                                item.transaction_pin }}</span>
+                                            <span v-if="item.notes"
+                                                class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                                :title="item.notes">{{ item.notes }}</span>
+                                        </div>
+                                        <span v-else-if="item.notes"
+                                            class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                            :title="item.notes">{{ item.notes }}</span>
+                                        <span v-else class="text-text-secondary">-</span>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
                                             :class="item.status === 'Lunas'
@@ -209,6 +236,14 @@ import axios from '../../api/axios'
 
 const loading = ref(false)
 const selectedPeriod = ref('daily')
+
+const categoryLabels = {
+    'shopee': 'Shopee',
+    'orderan_online': 'Order Online',
+    'penjualan_offline': 'Penjualan Offline',
+    'pindah_cabang': 'Pindah Cabang',
+    'retur': 'Retur'
+};
 
 const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',

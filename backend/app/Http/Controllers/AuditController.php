@@ -94,7 +94,7 @@ class AuditController extends Controller
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'HP',
                     'imei' => $item->imei ?? '-',
-                    'storage' => $item->ram && $item->storage ? $item->ram . ' / ' . $item->storage : ($item->storage ?? null),
+                    'storage' => $item->storage ?? null,
                     'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                 ];
                 $calculatedTotal += $price;
@@ -239,6 +239,9 @@ class AuditController extends Controller
                 'grand_total' => $trx->selling_price,
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress,
+                'customer_wa' => $trx->customer_wa,
+                'notes' => $trx->notes,
+                'transaction_pin' => $trx->transaction_pin,
                 'audit_score' => $auditScore,
                 'audit_answered' => $trx->auditAnswers->count(),
                 'audit_total' => $totalQuestions,

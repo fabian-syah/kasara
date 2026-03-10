@@ -29,7 +29,7 @@ class DashboardController extends Controller
             return $this->getOnlineShopStats($user);
         }
 
-        if ($user->branch_id || $user->hasRole('toko_offline') || $user->hasRole('offline_shop') || $user->hasRole('staff_cabang')) {
+        if ($user->branch_id || $user->hasRole('toko_offline') || $user->hasRole('offline_shop') || $user->hasRole('staff_cabang') || $user->hasRole('sales')) {
             return $this->getTokoOfflineStats($user);
         }
 
