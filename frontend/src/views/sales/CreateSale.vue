@@ -836,8 +836,14 @@ watch(() => currentStep.value, (newStep) => {
                                     Foto Bukti (Max 10MB) <span class="text-red-500">*</span>
                                 </label>
                                 <div class="flex flex-col gap-4">
-                                    <input type="file" @change="handleFileChange" accept="image/*"
-                                        class="block w-full text-sm text-surface-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 transition-all cursor-pointer" />
+                                    <input type="file" @change="handleFileChange" accept="image/*" class="block w-full text-sm text-text-secondary
+                                        file:mr-4 file:py-3 file:px-6
+                                        file:rounded-xl file:border-0
+                                        file:text-sm file:font-black
+                                        file:bg-primary-500/10 file:text-primary-500
+                                        hover:file:bg-primary-500/20
+                                        dark:file:bg-primary-500/20 dark:file:text-primary-400
+                                        transition-all cursor-pointer" />
                                     <div v-if="proofImagePreview"
                                         class="relative w-40 h-40 rounded-2xl overflow-hidden border-2 border-surface-200 dark:border-surface-700">
                                         <img :src="proofImagePreview" class="w-full h-full object-cover" />
@@ -867,7 +873,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -885,7 +891,7 @@ watch(() => currentStep.value, (newStep) => {
                             <p class="text-text-secondary text-sm font-black uppercase tracking-widest mb-3">TOTAL
                                 TAGIHAN</p>
                             <p class="text-5xl font-black text-primary-600 tracking-tight">{{ formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -912,14 +918,21 @@ watch(() => currentStep.value, (newStep) => {
                                             <div>
                                                 <label
                                                     class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">Metode</label>
-                                                <select v-model="payment.method_id"
-                                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
-                                                    <option v-for="method in availablePaymentMethods" :key="method.id"
-                                                        :value="method.id">
-                                                        {{ method.name }} {{ method.account_number ?
-                                                            `(${method.account_number})` : '' }}
-                                                    </option>
-                                                </select>
+                                                <div class="relative">
+                                                    <select v-model="payment.method_id"
+                                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all appearance-none">
+                                                        <option v-for="method in availablePaymentMethods"
+                                                            :key="method.id" :value="method.id"
+                                                            class="bg-white dark:bg-surface-800 text-text-primary">
+                                                            {{ method.name }} {{ method.account_number ?
+                                                                `(${method.account_number})` : '' }}
+                                                        </option>
+                                                    </select>
+                                                    <div
+                                                        class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-secondary">
+                                                        <ChevronDown :size="18" />
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div>
                                                 <label
@@ -977,7 +990,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -994,14 +1007,14 @@ watch(() => currentStep.value, (newStep) => {
                                 <span class="text-sm font-black text-red-700 uppercase tracking-widest">Uang
                                     Kurang</span>
                                 <span class="text-3xl font-black text-red-600">{{ formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex justify-between items-center my-6">
                                 <span
                                     class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
                             <div v-if="!isFormValid"
@@ -1058,7 +1071,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
