@@ -539,9 +539,10 @@ watch(() => currentStep.value, (newStep) => {
                         </button>
                     </div>
 
-                    <div class="flex justify-end mt-8 border-t border-surface-100 dark:border-surface-700 pt-8">
+                    <div
+                        class="flex justify-center sm:justify-end mt-8 border-t border-surface-100 dark:border-surface-700 pt-8">
                         <button @click="nextStep" :disabled="!salesAccount"
-                            class="py-4 px-10 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center gap-3">
+                            class="w-full sm:w-auto py-4 px-10 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center sm:justify-start gap-3">
                             Lanjut
                             <ArrowRight :size="24" />
                         </button>
@@ -583,13 +584,14 @@ watch(() => currentStep.value, (newStep) => {
                         </button>
                     </div>
 
-                    <div class="flex justify-between border-t border-surface-100 dark:border-surface-700 pt-8">
+                    <div
+                        class="flex flex-col sm:flex-row justify-between border-t border-surface-100 dark:border-surface-700 pt-8 gap-3 sm:gap-0">
                         <button @click="prevStep"
-                            class="py-4 px-8 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 text-text-primary rounded-2xl font-bold text-lg transition-all flex items-center gap-3">
+                            class="w-full sm:w-auto py-4 px-8 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 text-text-primary rounded-2xl font-bold text-lg transition-all flex items-center justify-center sm:justify-start gap-3">
                             <ArrowLeft :size="24" /> Kembali
                         </button>
                         <button @click="nextStep"
-                            class="py-4 px-10 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center gap-3">
+                            class="w-full sm:w-auto py-4 px-10 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-bold text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center sm:justify-start gap-3">
                             Lanjut
                             <ArrowRight :size="24" />
                         </button>
@@ -1048,19 +1050,19 @@ watch(() => currentStep.value, (newStep) => {
 
                             <!-- Change/Balance Status -->
                             <div v-if="changeAmount < 0"
-                                class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center my-6 animate-pulse">
+                                class="p-4 sm:p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 animate-pulse gap-2 sm:gap-0">
                                 <span
-                                    class="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-widest">Uang
+                                    class="text-[10px] sm:text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-widest">Uang
                                     Kurang</span>
-                                <span class="text-3xl font-black text-red-600 dark:text-red-500">{{
+                                <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
                                     }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
-                                class="p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex justify-between items-center my-6">
+                                class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
                                 <span
-                                    class="text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
-                                <span class="text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
+                                    class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
+                                <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
                                     }}</span>
                             </div>
