@@ -66,6 +66,7 @@ class StockOut extends Model
         'sales_account',
         'payment_method_id',
         'paid_amount',
+        'split_payments',
     ];
 
     protected $casts = [
@@ -74,6 +75,7 @@ class StockOut extends Model
         'confirmed_at' => 'datetime',
         'shopee_items_data' => 'array',
         'non_hp_items' => 'array',
+        'split_payments' => 'array',
     ];
 
     // Relationships

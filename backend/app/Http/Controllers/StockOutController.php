@@ -168,7 +168,17 @@ class StockOutController extends Controller
             'customer_phone' => 'nullable|string|max:50',
             'return_destination_id' => 'required_if:category,retur|nullable|exists:warehouses,id',
             'proof_image' => 'nullable|image|max:10240', // Max 10MB
+            'split_payments' => 'nullable|string', // JSON string from frontend
         ];
+
+        // Mandatory fields for Sales
+        $salesCategories = ['penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        if (in_array($request->category, $salesCategories)) {
+            $rules['customer_name'] = 'required|string|max:255';
+            $rules['customer_phone'] = 'required|string|max:50';
+            $rules['notes'] = 'required|string';
+            $rules['proof_image'] = 'required|image|max:10240';
+        }
 
         // Shopee: Per-item validation
         if ($request->category === 'shopee' || $request->category === 'orderan_online') {
@@ -441,6 +451,7 @@ class StockOutController extends Controller
                 'sales_account' => $request->sales_account,
                 'payment_method_id' => $request->payment_method_id,
                 'paid_amount' => $request->paid_amount ?? 0,
+                'split_payments' => is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments,
             ]);
 
             // Create StockOutNonHpItem records
@@ -665,7 +676,8 @@ class StockOutController extends Controller
 
             foreach ($stockOuts as $out) {
                 // Determine shopee info
-                $shopeeItems = is_array($out->shopee_items_data) ? $out->shopee_items_data : (is_string($out->shopee_items_data) ? json_decode($out->shopee_items_data, true) : []);
+                $sData = $out->shopee_items_data;
+                $shopeeItems = is_string($sData) ? json_decode($sData, true) : (is_array($sData) ? $sData : []);
                 $shopeeTrackingNos = [];
                 $shopeeReceivers = [];
 
@@ -691,7 +703,8 @@ class StockOutController extends Controller
                 ])->toArray();
 
                 // Non-HP enrich
-                $nonHpItems = is_array($out->non_hp_items) ? $out->non_hp_items : (is_string($out->non_hp_items) ? json_decode($out->non_hp_items, true) : []);
+                $nhData = $out->non_hp_items;
+                $nonHpItems = is_string($nhData) ? json_decode($nhData, true) : (is_array($nhData) ? $nhData : []);
                 if (!empty($nonHpItems)) {
                     $productIds = array_column($nonHpItems, 'product_id');
                     $products = \App\Models\Product::whereIn('id', $productIds)->pluck('name', 'id');
