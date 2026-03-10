@@ -271,10 +271,11 @@ function decrementQty(productId) {
 }
 
 function addSplitPayment() {
+    const remainingAmount = Math.max(0, cartTotal.value - splitPayments.value.reduce((sum, p) => sum + p.amount, 0));
     splitPayments.value.push({
         method_id: availablePaymentMethods.value[0]?.id || null,
-        amount: 0,
-        display_amount: "0"
+        amount: remainingAmount,
+        display_amount: formatNumber(remainingAmount)
     });
 }
 
@@ -309,6 +310,10 @@ function handleFileChange(e) {
 }
 
 async function handleSubmitOrder() {
+    if (!isFormValid.value) {
+        alert("Mohon lengkapi data: " + missingFields.value.join(", "));
+        return;
+    }
     // Only Sales role with PIN enabled requires PIN
     if (authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
         showPinModal.value = true;
@@ -334,7 +339,8 @@ async function processPayment() {
         if (selectedPaymentMethod.value) {
             formData.append('payment_method_id', selectedPaymentMethod.value);
         }
-        formData.append('paid_amount', paymentAmount.value);
+        const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
+        formData.append('paid_amount', totalPaid);
         formData.append('selling_price', cartStore.total);
 
         // Form details
@@ -936,9 +942,25 @@ watch(() => currentStep.value, (newStep) => {
                 </div>
 
                 <!-- Payment Block -->
-                <div class="flex-[1.5] min-w-[350px]">
+                <div class="flex-[1.5] min-w-0">
                     <div
                         class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-2xl lg:sticky lg:top-0">
+
+                        <!-- Validation Notice at Top for Mobile -->
+                        <div v-if="missingFields.length > 0"
+                            class="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl flex items-start gap-3 mb-6">
+                            <AlertCircle class="text-orange-500 dark:text-orange-400 shrink-0" :size="20" />
+                            <div class="flex-1">
+                                <p
+                                    class="text-xs text-orange-700 dark:text-orange-300 font-bold mb-1 uppercase tracking-tight">
+                                    Data Belum Lengkap:</p>
+                                <ul
+                                    class="text-[10px] sm:text-xs text-orange-600 dark:text-orange-400 font-medium list-disc list-inside">
+                                    <li v-for="field in missingFields" :key="field">{{ field }}</li>
+                                </ul>
+                            </div>
+                        </div>
+
                         <div
                             class="text-center mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-surface-100 dark:border-surface-700">
                             <p
@@ -1076,26 +1098,15 @@ watch(() => currentStep.value, (newStep) => {
                                 }}</span>
                             </div>
 
-                            <div v-if="missingFields.length > 0"
-                                class="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl flex items-start gap-3 mb-6">
-                                <AlertCircle class="text-orange-500 dark:text-orange-400 shrink-0" :size="20" />
-                                <div class="flex-1">
-                                    <p class="text-xs text-orange-700 dark:text-orange-300 font-bold mb-1">Dibutuhkan:
-                                    </p>
-                                    <ul
-                                        class="text-[10px] text-orange-600 dark:text-orange-400 font-medium list-disc list-inside">
-                                        <li v-for="field in missingFields" :key="field">{{ field }}</li>
-                                    </ul>
-                                </div>
-                            </div>
 
                             <div class="flex gap-4 pt-8 border-t border-surface-100 dark:border-surface-700">
                                 <button @click="prevStep"
                                     class="w-20 h-20 flex-none bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 text-text-primary rounded-[1.25rem] font-bold transition-all flex items-center justify-center">
                                     <ArrowLeft :size="28" />
                                 </button>
-                                <button @click="handleSubmitOrder" :disabled="!isFormValid || isSubmitting"
-                                    class="flex-1 h-20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white rounded-[1.25rem] font-black text-xl shadow-2xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3">
+                                <button @click="handleSubmitOrder" :disabled="isSubmitting"
+                                    class="flex-1 h-20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white rounded-[1.25rem] font-black text-xl shadow-2xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3"
+                                    :class="{ 'opacity-60 grayscale cursor-not-allowed': !isFormValid && !isSubmitting }">
                                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="28" />
                                     <CheckCircle v-else :size="28" />
                                     <span>
