@@ -811,7 +811,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Nama Pelanggan <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="customerForm.customer_name" type="text" placeholder="Masukkan nama..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white transition-all" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all" />
                             </div>
                             <div>
                                 <label
@@ -819,7 +819,7 @@ watch(() => currentStep.value, (newStep) => {
                                     WhatsApp Customer <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="customerForm.customer_phone" type="text" placeholder="08xxx..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white transition-all" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all" />
                             </div>
                             <div class="md:col-span-2">
                                 <label
@@ -828,7 +828,7 @@ watch(() => currentStep.value, (newStep) => {
                                 </label>
                                 <textarea v-model="customerForm.notes" rows="2"
                                     placeholder="Catatan khusus untuk nota ini..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white transition-all resize-none"></textarea>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all resize-none"></textarea>
                             </div>
                             <div class="md:col-span-2">
                                 <label
@@ -873,7 +873,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -891,7 +891,7 @@ watch(() => currentStep.value, (newStep) => {
                             <p class="text-text-secondary text-sm font-black uppercase tracking-widest mb-3">TOTAL
                                 TAGIHAN</p>
                             <p class="text-5xl font-black text-primary-600 tracking-tight">{{ formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -970,7 +970,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span v-if="cartStore.discountType === 'fixed'"
                                         class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">Rp</span>
                                     <input :value="displayDiscount" @input="handleDiscountInput" type="text"
-                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white transition-all"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all"
                                         :class="cartStore.discountType === 'fixed' ? 'pl-14' : ''" placeholder="0" />
                                     <span v-if="cartStore.discountType === 'percentage'"
                                         class="absolute right-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">%</span>
@@ -990,7 +990,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1009,7 +1009,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex justify-between items-center my-6">
@@ -1017,7 +1017,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
                             <div v-if="!isFormValid"
@@ -1075,7 +1075,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
