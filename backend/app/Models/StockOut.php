@@ -60,6 +60,8 @@ class StockOut extends Model
         'inventory_user_id',
         'notes',
         'non_hp_items',
+        'customer_wa',
+        'transaction_pin',
         // Confirmation
         'confirmed_at',
         'confirmed_by',

@@ -377,12 +377,12 @@ async function handleSubmitOrder() {
     }
 }
 
-async function handlePinSuccess() {
+async function handlePinSuccess(pin) {
     showPinModal.value = false;
-    await processPayment();
+    await processPayment(pin);
 }
 
-async function processPayment() {
+async function processPayment(pin = null) {
     if (isSubmitting.value) return;
     try {
         isSubmitting.value = true;
@@ -398,7 +398,10 @@ async function processPayment() {
 
         // Form details
         formData.append('customer_name', customerForm.value.customer_name);
-        formData.append('customer_phone', customerForm.value.customer_phone);
+        formData.append('customer_wa', customerForm.value.customer_phone); // Map phone field to customer_wa for WA
+        if (pin) {
+            formData.append('transaction_pin', pin);
+        }
 
         let finalNotes = customerForm.value.notes;
         if (cartStore.discount > 0) {
@@ -927,7 +930,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Nama Pelanggan <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="customerForm.customer_name" type="text" placeholder="Masukkan nama..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all" />
                             </div>
                             <div>
                                 <label
@@ -935,7 +938,7 @@ watch(() => currentStep.value, (newStep) => {
                                     WhatsApp Customer <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="customerForm.customer_phone" type="text" placeholder="08xxx..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all" />
                             </div>
                             <div class="md:col-span-2">
                                 <label
@@ -944,7 +947,7 @@ watch(() => currentStep.value, (newStep) => {
                                 </label>
                                 <textarea v-model="customerForm.notes" rows="2"
                                     placeholder="Catatan khusus untuk nota ini..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all resize-none"></textarea>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all resize-none"></textarea>
                             </div>
                             <div class="md:col-span-2">
                                 <label

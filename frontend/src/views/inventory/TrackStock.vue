@@ -37,6 +37,12 @@ const categoryIcons = {
     shopee: ShoppingBag,
     orderan_online: ShoppingBag,
     penjualan_offline: ShoppingBag,
+    penjualan: ShoppingBag,
+    bundling: ShoppingBag,
+    tukar_unit: ShoppingBag,
+    tukar_tambah: ShoppingBag,
+    downgrade: ShoppingBag,
+    angkat_barang: Box,
 };
 
 const categoryLabels = {
@@ -46,6 +52,12 @@ const categoryLabels = {
     shopee: 'Shopee',
     orderan_online: 'Orderan Online',
     penjualan_offline: 'Penjualan Offline',
+    penjualan: 'Penjualan',
+    bundling: 'Bundling',
+    tukar_unit: 'Tukar Unit',
+    tukar_tambah: 'Tukar Tambah',
+    downgrade: 'Downgrade',
+    angkat_barang: 'Angkat Barang',
 };
 
 // Search function
@@ -167,7 +179,7 @@ function formatCurrency(value) {
                                                 result.product_name }}</p>
                                         </div>
                                         <p class="text-sm text-text-secondary font-mono tracking-tight">{{ result.imei
-                                            }}</p>
+                                        }}</p>
                                     </div>
                                 </div>
                                 <div
@@ -236,7 +248,8 @@ function formatCurrency(value) {
                                 'border-l-blue-500': result.category === 'pindah_cabang',
                                 'border-l-amber-500': result.category === 'kesalahan_input',
                                 'border-l-purple-500': result.category === 'retur',
-                                'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category), // Warna Oranye Shopee
+                                'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
+                                'border-l-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
                             }">
 
                             <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
@@ -246,6 +259,7 @@ function formatCurrency(value) {
                                         'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
                                         'bg-purple-500/20 text-purple-500': result.category === 'retur',
                                         'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
+                                        'bg-emerald-500/20 text-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
                                     }">
                                         <component :is="categoryIcons[result.category]" :size="24" />
                                     </div>
@@ -317,7 +331,8 @@ function formatCurrency(value) {
                                 </template>
 
                                 <!-- Retur / Sales -->
-                                <template v-if="result.category === 'retur' || result.category === 'penjualan_offline'">
+                                <template
+                                    v-if="result.category === 'retur' || ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category)">
                                     <div>
                                         <p class="text-text-secondary text-xs">Customer</p>
                                         <p class="text-text-primary uppercase">{{ result.customer_name || '-' }}</p>
@@ -350,7 +365,7 @@ function formatCurrency(value) {
                                                 <span>
                                                     <span class="text-text-secondary text-xs">Penerima:</span>
                                                     <span class="text-text-primary ml-1">{{ shopeeItem.receiver || '-'
-                                                        }}</span>
+                                                    }}</span>
                                                 </span>
                                                 <span>
                                                     <span class="text-text-secondary text-xs">No. Resi:</span>
@@ -374,7 +389,7 @@ function formatCurrency(value) {
                                         <div>
                                             <p class="text-text-secondary text-xs">No. Resi Shopee</p>
                                             <p class="text-text-primary font-mono">{{ result.shopee_tracking_no || '-'
-                                                }}
+                                            }}
                                             </p>
                                         </div>
                                     </template>

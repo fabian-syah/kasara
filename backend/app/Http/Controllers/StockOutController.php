@@ -166,6 +166,8 @@ class StockOutController extends Controller
             'retur_issue' => 'required_if:category,retur|nullable|string',
             'customer_name' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:50',
+            'customer_wa' => 'nullable|string|max:50',
+            'transaction_pin' => 'nullable|string|max:10',
             'return_destination_id' => 'required_if:category,retur|nullable|exists:warehouses,id',
             'proof_image' => 'nullable|image|max:10240', // Max 10MB
             'split_payments' => 'nullable|string', // JSON string from frontend
@@ -175,9 +177,11 @@ class StockOutController extends Controller
         $salesCategories = ['penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
         if (in_array($request->category, $salesCategories)) {
             $rules['customer_name'] = 'required|string|max:255';
-            $rules['customer_phone'] = 'required|string|max:50';
+            $rules['customer_wa'] = 'required|string|max:50';
             $rules['notes'] = 'required|string';
             $rules['proof_image'] = 'required|image|max:10240';
+            // Only require PIN if user has it enabled (set in frontend, but validated here)
+            $rules['transaction_pin'] = 'nullable|string|max:10';
         }
 
         // Shopee: Per-item validation
@@ -420,6 +424,8 @@ class StockOutController extends Controller
                 'retur_issue' => $request->retur_issue,
                 'customer_name' => $request->customer_name,
                 'customer_phone' => $request->customer_phone,
+                'customer_wa' => $request->customer_wa,
+                'transaction_pin' => $request->transaction_pin,
                 'return_destination_id' => $request->return_destination_id,
                 'proof_image' => $proofImagePath,
 
