@@ -246,6 +246,7 @@ class AuditController extends Controller
                 'audit_answered' => $trx->auditAnswers->count(),
                 'audit_total' => $totalQuestions,
                 'audit_yes' => $yesCount,
+                'proof_image' => $trx->proof_image ? asset('storage/' . $trx->proof_image) : null,
             ];
         });
 

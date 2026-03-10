@@ -99,6 +99,7 @@
                             <th class="px-6 py-4">Qty</th>
                             <th class="px-6 py-4">PIN / Notes</th>
                             <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
@@ -172,12 +173,18 @@
                                         <span v-else class="text-text-secondary">-</span>
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
-                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
-                                            :class="item.status === 'Lunas'
-                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
-                                                : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
-                                            {{ item.status }}
-                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                                class="p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 rounded-lg transition-colors"
+                                                title="Lihat Foto Bukti">
+                                                <Image :size="18" />
+                                            </button>
+                                            <button @click="openReceipt(item)"
+                                                class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                title="Buat Struk">
+                                                <Printer :size="18" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <!-- Single item row -->
@@ -219,6 +226,20 @@
                                             {{ item.status }}
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                                class="p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 rounded-lg transition-colors"
+                                                title="Lihat Foto Bukti">
+                                                <Image :size="18" />
+                                            </button>
+                                            <button @click="openReceipt(item)"
+                                                class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                title="Buat Struk">
+                                                <Printer :size="18" />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             </template>
                         </template>
@@ -226,12 +247,155 @@
                 </table>
             </div>
         </div>
+
+        <!-- Proof Photo Modal -->
+        <div v-if="showProofModal"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div class="relative max-w-4xl w-full">
+                <button @click="showProofModal = false"
+                    class="absolute -top-12 right-0 p-2 text-white hover:text-gray-300 transition-colors">
+                    <X :size="32" />
+                </button>
+                <div class="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden shadow-2xl">
+                    <img :src="currentProofUrl" alt="Foto Bukti" class="w-full h-auto max-h-[80vh] object-contain" />
+                    <div class="p-4 flex justify-between items-center bg-gray-50 dark:bg-surface-700">
+                        <span class="text-sm font-medium text-text-primary">Foto Bukti Pembayaran / Serah Terima</span>
+                        <a :href="currentProofUrl" download
+                            class="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors text-sm font-medium">
+                            <Download :size="16" />
+                            Unduh Foto
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Receipt Modal -->
+        <div v-if="showReceiptModal"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:p-0">
+            <div
+                class="bg-white dark:bg-surface-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full print:h-screen flex flex-col">
+                <div
+                    class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-surface-700 print:hidden">
+                    <h3 class="text-lg font-bold text-text-primary">Struk Penjualan</h3>
+                    <button @click="showReceiptModal = false"
+                        class="p-2 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-xl transition-colors">
+                        <X :size="20" class="text-gray-500" />
+                    </button>
+                </div>
+
+                <div id="receipt-content" class="flex-1 overflow-y-auto p-8 print:p-0">
+                    <div
+                        class="receipt-paper max-w-[400px] mx-auto bg-white p-2 text-black font-mono text-sm print:max-w-full print:mx-0">
+                        <div class="text-center mb-6">
+                            <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 mx-auto mb-2 object-contain" />
+                            <h2 class="text-xl font-bold uppercase tracking-widest">PSTORE</h2>
+                            <p class="text-xs">{{ currentReceiptData.outlet_name }}</p>
+                            <p class="text-[10px] leading-tight">{{ currentReceiptData.outlet_address }}</p>
+                        </div>
+
+                        <div class="border-t border-b border-dashed border-gray-300 py-3 mb-4 space-y-1">
+                            <div class="flex justify-between">
+                                <span>No. TRX</span>
+                                <span class="font-bold">{{ currentReceiptData.order_no }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Tanggal</span>
+                                <span>{{ formatDate(currentReceiptData.date) }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Customer</span>
+                                <span>{{ currentReceiptData.customer_name }}</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4 mb-6">
+                            <div v-if="currentReceiptData.items && currentReceiptData.items.length > 0"
+                                v-for="item in currentReceiptData.items" :key="item.id">
+                                <div class="flex justify-between items-start font-bold">
+                                    <span class="flex-1 mr-2">{{ item.name }}</span>
+                                    <span>x{{ item.qty }}</span>
+                                </div>
+                                <div class="text-[10px] text-gray-500">
+                                    <span v-if="item.imeis">IMEI: {{ item.imeis }}</span>
+                                    <span v-else-if="item.imei">IMEI: {{ item.imei }}</span>
+                                </div>
+                                <div v-if="item.storage" class="text-[10px] text-gray-500">{{ item.storage }}</div>
+                            </div>
+                            <div v-else class="flex justify-between items-start font-bold">
+                                <span class="flex-1 mr-2">{{ currentReceiptData.product_names }}</span>
+                                <span>x{{ currentReceiptData.qty }}</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-dashed border-gray-300 pt-3 space-y-1">
+                            <div class="flex justify-between text-lg font-bold">
+                                <span>TOTAL</span>
+                                <span>Rp {{ formatNumber(currentReceiptData.grand_total) }}</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-600">
+                                <span>METODE</span>
+                                <span class="uppercase">{{ currentReceiptData.payment_method }}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 text-center text-[10px] space-y-1 opacity-70 italic">
+                            <p>*** TERIMA KASIH ***</p>
+                            <p>Barang yang sudah dibeli</p>
+                            <p>tidak dapat ditukar/dikembalikan</p>
+                            <p>Simpan struk ini sebagai bukti garansi</p>
+                            <p class="mt-2 text-[8px] font-sans">Powered by PSTORE APEX</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-gray-50 dark:bg-surface-700/50 flex gap-3 print:hidden">
+                    <button @click="printReceipt"
+                        class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-2xl font-bold hover:bg-primary-600 transition-all shadow-lg shadow-primary-500/20 active:scale-95">
+                        <Printer :size="20" />
+                        Cetak Struk
+                    </button>
+                    <button @click="showReceiptModal = false"
+                        class="px-6 py-3 bg-white dark:bg-surface-800 text-text-primary border border-gray-200 dark:border-surface-600 rounded-2xl font-bold hover:bg-gray-50 transition-all active:scale-95">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
+<style scoped>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #receipt-content,
+    #receipt-content * {
+        visibility: visible;
+    }
+
+    #receipt-content {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .receipt-paper {
+        border: none !important;
+        box-shadow: none !important;
+        width: 100%;
+        max-width: none !important;
+    }
+}
+</style>
+
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download } from 'lucide-vue-next'
 import axios from '../../api/axios'
 
 const loading = ref(false)
@@ -260,6 +424,26 @@ const salesRecords = ref({
     brand_sales: [],
     cs_sales: []
 })
+
+// Modals State
+const showProofModal = ref(false)
+const currentProofUrl = ref('')
+const showReceiptModal = ref(false)
+const currentReceiptData = ref(null)
+
+const viewProof = (url) => {
+    currentProofUrl.value = url
+    showProofModal.value = true
+}
+
+const openReceipt = (item) => {
+    currentReceiptData.value = item
+    showReceiptModal.value = true
+}
+
+const printReceipt = () => {
+    window.print()
+}
 
 const getTodayLocal = () => {
     const d = new Date();
@@ -343,6 +527,11 @@ const fetchData = async () => {
     } finally {
         loading.value = false
     }
+}
+
+const formatNumber = (num) => {
+    if (!num) return '0'
+    return new Number(num).toLocaleString('id-ID')
 }
 
 onMounted(() => {
