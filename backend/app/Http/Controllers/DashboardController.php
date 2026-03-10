@@ -226,29 +226,33 @@ class DashboardController extends Controller
 
     private function getRankingData($user, $categories)
     {
+        // Count units based on user_id (who made the sale) as well for sales leaderboard
         $todayRanking = DB::table('stock_outs')
             ->whereIn('category', $categories)
             ->whereDate('created_at', now())
-            ->whereNotNull('inventory_user_id')
-            ->select('inventory_user_id', DB::raw('count(*) as total_units'))
-            ->groupBy('inventory_user_id')
+            ->select('user_id', DB::raw('count(*) as total_units'))
+            ->groupBy('user_id')
             ->orderByDesc('total_units')
             ->get();
 
         $globalRanking = [];
         $rank = 1;
         foreach ($todayRanking as $row) {
-            $globalRanking[$row->inventory_user_id] = $rank++;
+            $globalRanking[$row->user_id] = $rank++;
         }
 
-        $leaderboardQuery = User::role('inventory')->select('id', 'name', 'photo_inventory');
-        if ($user->online_shop_id)
+        // Include both inventory and sales roles in the leaderboard
+        $leaderboardQuery = User::role(['inventory', 'sales'])->select('id', 'name', 'photo_inventory');
+
+        if ($user->online_shop_id) {
             $leaderboardQuery->where('online_shop_id', $user->online_shop_id);
-        elseif ($user->branch_id)
+        } elseif ($user->branch_id) {
             $leaderboardQuery->where('branch_id', $user->branch_id);
+        }
 
         $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories) {
-            $units = StockOut::where('inventory_user_id', $u->id)->whereIn('category', $categories)->whereDate('created_at', now())->count();
+            // Count units sold by this user
+            $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->whereDate('created_at', now())->count();
             return [
                 'id' => $u->id,
                 'name' => $u->name,
@@ -259,7 +263,7 @@ class DashboardController extends Controller
         })->sortByDesc('units')->values();
 
         return [
-            'my_rank' => '-',
+            'my_rank' => $globalRanking[$user->id] ?? '-',
             'leaderboard' => $leaderboard
         ];
     }

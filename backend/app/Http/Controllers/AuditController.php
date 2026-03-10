@@ -68,7 +68,7 @@ class AuditController extends Controller
             });
         };
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
         // 1. Daily Sales
         // Load nonHpItems relationship for Product details, but we will use JSON column for price
