@@ -480,7 +480,7 @@ watch(() => currentStep.value, (newStep) => {
 </script>
 
 <template>
-    <div class="max-w-[1600px] mx-auto px-4 py-8 h-[calc(100vh-8rem)]">
+    <div class="max-w-[1600px] mx-auto px-2 sm:px-4 py-4 sm:py-8 min-h-[calc(100vh-8rem)]">
         <!-- Progress Bar -->
         <div class="mb-12 max-w-5xl mx-auto">
             <div class="flex items-center justify-between relative">
@@ -490,13 +490,15 @@ watch(() => currentStep.value, (newStep) => {
                         :style="{ width: `${((currentStep - 1) / 3) * 100}%` }"></div>
                 </div>
 
-                <div v-for="step in 4" :key="step" class="flex flex-col items-center gap-3">
-                    <div class="w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 shadow-sm"
+                <div v-for="step in 4" :key="step" class="flex flex-col items-center gap-2 sm:gap-3">
+                    <div class="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center font-bold text-sm sm:text-lg transition-all duration-300 shadow-sm"
                         :class="currentStep >= step ? 'bg-primary-600 text-white shadow-primary-500/30 scale-110' : 'bg-white dark:bg-surface-800 text-text-secondary border-2 border-surface-200 dark:border-surface-700'">
-                        <CheckCircle v-if="currentStep > step" :size="24" />
+                        <CheckCircle v-if="currentStep > step" :size="20" class="sm:hidden" />
+                        <CheckCircle v-if="currentStep > step" :size="24" class="hidden sm:block" />
                         <span v-else>{{ step }}</span>
                     </div>
-                    <span class="text-xs font-bold uppercase tracking-widest transition-colors"
+                    <span
+                        class="hidden sm:block text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors"
                         :class="currentStep >= step ? 'text-primary-600' : 'text-text-secondary'">
                         {{ ['Akun Sales', 'Kategori', 'Pilih Barang', 'Pembayaran'][step - 1] }}
                     </span>
@@ -519,19 +521,20 @@ watch(() => currentStep.value, (newStep) => {
                     <p class="text-text-secondary text-lg mb-10">Pilih nama akun utama yang bertanggung jawab pada
                         transaksi ini</p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8">
                         <button v-for="account in salesAccounts" :key="account.id"
                             @click="salesAccount = (account.full_name || account.name); nextStep()"
-                            class="p-6 rounded-2xl border-2 transition-all flex items-center gap-4 text-left group"
+                            class="p-4 sm:p-6 rounded-2xl border-2 transition-all flex items-center gap-3 sm:gap-4 text-left group"
                             :class="salesAccount === (account.full_name || account.name)
                                 ? 'border-primary-500 bg-primary-500/5 shadow-lg shadow-primary-500/10'
                                 : 'border-surface-200 dark:border-surface-700 hover:border-primary-500/50 hover:bg-surface-50 dark:hover:bg-surface-900/50'">
-                            <div class="w-12 h-12 rounded-full flex items-center justify-center transition-colors"
+                            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-colors"
                                 :class="salesAccount === (account.full_name || account.name) ? 'bg-primary-500 text-white' : 'bg-surface-100 dark:bg-surface-800 text-text-secondary group-hover:bg-primary-100 group-hover:text-primary-600'">
-                                <User :size="20" />
+                                <User :size="18" class="sm:hidden" />
+                                <User :size="20" class="hidden sm:block" />
                             </div>
                             <span
-                                class="font-bold text-lg text-text-primary group-hover:text-primary-600 transition-colors">{{
+                                class="font-bold text-base sm:text-lg text-text-primary group-hover:text-primary-600 transition-colors line-clamp-1">{{
                                     account.full_name || account.name }}</span>
                         </button>
                     </div>
@@ -601,9 +604,9 @@ watch(() => currentStep.value, (newStep) => {
                     <div
                         class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                         <div class="relative flex-1 w-full">
-                            <Search class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary" :size="24" />
-                            <input v-model="searchQuery" type="text" placeholder="Cari IMEI, Brand, atau Nama Produk..."
-                                class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-2xl pl-14 pr-6 py-4 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" />
+                            <Search class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
+                            <input v-model="searchQuery" type="text" placeholder="Cari..."
+                                class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-2xl pl-12 pr-4 py-3 sm:py-4 text-base sm:text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" />
                         </div>
 
                         <!-- Bundling Toggle (Only for Penjualan flow) -->
@@ -622,7 +625,9 @@ watch(() => currentStep.value, (newStep) => {
 
                     <div
                         class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 mb-4 shadow-sm">
-                        <table class="w-full text-left border-collapse">
+
+                        <!-- Table for Tablet/Desktop -->
+                        <table class="w-full text-left border-collapse hidden md:table">
                             <thead class="sticky top-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-sm z-10">
                                 <tr>
                                     <th
@@ -694,17 +699,52 @@ watch(() => currentStep.value, (newStep) => {
                                         </button>
                                     </td>
                                 </tr>
-                                <tr v-if="filteredProducts.length === 0">
-                                    <td colspan="6" class="px-6 py-32 text-center">
-                                        <div class="flex flex-col items-center justify-center text-text-secondary">
-                                            <Search :size="48" class="mb-4 opacity-50" />
-                                            <span class="text-lg font-medium">Produk tidak ditemukan atau stok
-                                                kosong.</span>
-                                        </div>
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
+
+                        <!-- Card list for Mobile -->
+                        <div class="md:hidden divide-y divide-surface-100 dark:divide-surface-700">
+                            <div v-for="item in filteredProducts" :key="item.id" class="p-4 flex flex-col gap-3">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="font-black text-text-primary text-base leading-tight">{{
+                                            item.product?.name || item.name }}</span>
+                                        <span class="text-[10px] text-primary-600 font-bold uppercase tracking-wider">{{
+                                            item.product?.brand || '-' }}</span>
+                                    </div>
+                                    <button @click="addToCart(item)"
+                                        class="w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
+                                        <Plus :size="20" stroke-width="3" />
+                                    </button>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        class="text-[10px] font-bold text-text-primary bg-surface-100 dark:bg-surface-800 px-2 py-0.5 rounded-md">{{
+                                            item.ram || '-' }} / {{ item.storage || '-' }}</span>
+                                    <span class="text-[10px] uppercase px-2 py-0.5 rounded-md font-bold"
+                                        :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'">
+                                        {{ item.condition || 'Second' }}
+                                    </span>
+                                    <code v-if="item.imei"
+                                        class="text-[10px] font-mono font-bold text-text-secondary truncate max-w-[120px]">{{ item.imei }}</code>
+                                    <span v-else class="text-[10px] font-black text-primary-600">Stok: {{ item.quantity
+                                        || 0 }}</span>
+                                </div>
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="text-xs text-text-secondary">{{ item.distributor?.name ||
+                                        item.supplier_name || '-' }}</span>
+                                    <span class="text-base font-black text-primary-600">{{
+                                        formatCurrency(item.selling_price || item.price) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="filteredProducts.length === 0" class="px-6 py-20 text-center">
+                            <div class="flex flex-col items-center justify-center text-text-secondary">
+                                <Search :size="48" class="mb-4 opacity-50" />
+                                <span class="text-lg font-medium">Produk tidak ditemukan</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -799,7 +839,7 @@ watch(() => currentStep.value, (newStep) => {
                 <!-- Transaction Summary & Form -->
                 <div class="flex-[2] space-y-8 min-w-0">
                     <div
-                        class="bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+                        class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-xl">
                         <h3 class="text-2xl font-black text-text-primary mb-8 flex items-center gap-3">
                             <User :size="28" class="text-primary-500" stroke-width="2.5" /> Detail Pelanggan
                         </h3>
@@ -836,7 +876,8 @@ watch(() => currentStep.value, (newStep) => {
                                     Foto Bukti (Max 10MB) <span class="text-red-500">*</span>
                                 </label>
                                 <div class="flex flex-col gap-4">
-                                    <input type="file" @change="handleFileChange" accept="image/*" class="block w-full text-sm text-text-secondary
+                                    <input type="file" @change="handleFileChange" accept="image/*" capture="environment"
+                                        class="block w-full text-sm text-text-secondary
                                         file:mr-4 file:py-3 file:px-6
                                         file:rounded-xl file:border-0
                                         file:text-sm file:font-black
@@ -858,7 +899,7 @@ watch(() => currentStep.value, (newStep) => {
                     </div>
 
                     <div
-                        class="bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+                        class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-xl">
                         <h3 class="text-2xl font-black text-text-primary mb-8 flex items-center gap-3">
                             <ShoppingCart :size="28" class="text-primary-500" stroke-width="2.5" /> Ringkasan Pembelian
                         </h3>
@@ -886,11 +927,15 @@ watch(() => currentStep.value, (newStep) => {
                 <!-- Payment Block -->
                 <div class="flex-[1.5] min-w-[350px]">
                     <div
-                        class="bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-2xl lg:sticky lg:top-0">
-                        <div class="text-center mb-8 pb-8 border-b border-surface-100 dark:border-surface-700">
-                            <p class="text-text-secondary text-sm font-black uppercase tracking-widest mb-3">TOTAL
+                        class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-2xl lg:sticky lg:top-0">
+                        <div
+                            class="text-center mb-6 sm:mb-8 pb-6 sm:pb-8 border-b border-surface-100 dark:border-surface-700">
+                            <p
+                                class="text-text-secondary text-[10px] sm:text-xs font-black uppercase tracking-widest mb-2 sm:mb-3">
+                                TOTAL
                                 TAGIHAN</p>
-                            <p class="text-5xl font-black text-primary-600 tracking-tight">{{ formatCurrency(cartTotal)
+                            <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
+                                formatCurrency(cartTotal)
                             }}</p>
                         </div>
 
