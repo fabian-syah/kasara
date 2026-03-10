@@ -73,6 +73,9 @@ const lastTransaction = ref(null);
 const authStore = useAuthStore();
 const currentUser = ref(null);
 const showInitialPinSetup = ref(false);
+const showPinModal = ref(false);
+const pinModalMode = ref("verify");
+const pinModalTitle = ref("Verifikasi PIN");
 
 onMounted(async () => {
     try {
@@ -1164,6 +1167,14 @@ watch(() => currentStep.value, (newStep) => {
                 </div>
             </div>
         </Teleport>
+
+        <!-- PIN VERIFICATION MODAL -->
+        <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" @close="showPinModal = false"
+            @success="handlePinSuccess" />
+
+        <!-- INITIAL PIN SETUP MODAL -->
+        <PinModal :show="showInitialPinSetup" mode="setup" title="Setup PIN Transaksi"
+            @close="showInitialPinSetup = false" @success="showInitialPinSetup = false" />
     </div>
 </template>
 
