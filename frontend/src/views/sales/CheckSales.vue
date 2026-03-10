@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                            }}</div>
+                                        }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -355,10 +355,9 @@
 
                         <div class="mt-8 text-center text-[10px] space-y-1 !text-gray-500 italic">
                             <p>*** TERIMA KASIH ***</p>
-                            <p>Barang yang sudah dibeli</p>
-                            <p>tidak dapat ditukar/dikembalikan</p>
-                            <p>Simpan struk ini sebagai bukti garansi</p>
-                            <p class="mt-2 text-[8px] font-sans opacity-50">Powered by PSTORE APEX</p>
+                            <p>Barang bergaransi sesuai ketentuan</p>
+                            <p>Simpan struk ini sebagai bukti garansi/retur</p>
+                            <p class="mt-2 text-[8px] font-sans opacity-50">by KASARA</p>
                         </div>
                     </div>
                 </div>
