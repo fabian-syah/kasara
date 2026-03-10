@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                            }}</div>
+                                        }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -171,6 +171,14 @@
                                             class="text-[10px] text-text-secondary truncate max-w-[150px]"
                                             :title="item.notes">{{ item.notes }}</span>
                                         <span v-else class="text-text-secondary">-</span>
+                                    </td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
+                                        <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
+                                            :class="item.status === 'Lunas'
+                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                                                : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
+                                            {{ item.status }}
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex items-center gap-2">
@@ -285,7 +293,7 @@
                 </div>
 
                 <div id="receipt-content" class="flex-1 overflow-y-auto p-8 print:p-0">
-                    <div
+                    <div v-if="currentReceiptData"
                         class="receipt-paper max-w-[400px] mx-auto bg-white p-2 text-black font-mono text-sm print:max-w-full print:mx-0">
                         <div class="text-center mb-6">
                             <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 mx-auto mb-2 object-contain" />
