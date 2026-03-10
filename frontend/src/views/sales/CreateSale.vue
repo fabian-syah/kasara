@@ -923,7 +923,7 @@ watch(() => currentStep.value, (newStep) => {
                                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all appearance-none">
                                                         <option v-for="method in availablePaymentMethods"
                                                             :key="method.id" :value="method.id"
-                                                            class="bg-white dark:bg-surface-800 text-text-primary">
+                                                            class="bg-white dark:bg-zinc-900 text-black dark:text-zinc-100">
                                                             {{ method.name }} {{ method.account_number ?
                                                                 `(${method.account_number})` : '' }}
                                                         </option>
@@ -1004,23 +1004,27 @@ watch(() => currentStep.value, (newStep) => {
                             <!-- Change/Balance Status -->
                             <div v-if="changeAmount < 0"
                                 class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center my-6 animate-pulse">
-                                <span class="text-sm font-black text-red-700 uppercase tracking-widest">Uang
+                                <span
+                                    class="text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-widest">Uang
                                     Kurang</span>
-                                <span class="text-3xl font-black text-red-600">{{ formatCurrency(Math.abs(changeAmount))
+                                <span class="text-3xl font-black text-red-600 dark:text-red-500">{{
+                                    formatCurrency(Math.abs(changeAmount))
                                 }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex justify-between items-center my-6">
                                 <span
-                                    class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
-                                <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
+                                    class="text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
+                                <span class="text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
+                                    formatCurrency(changeAmount)
                                 }}</span>
                             </div>
 
                             <div v-if="!isFormValid"
-                                class="p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-start gap-3 mb-6">
-                                <AlertCircle class="text-orange-500 shrink-0" :size="20" />
-                                <p class="text-xs text-orange-700 font-medium">Lengkapi: Nama, WA, Catatan, Foto, &
+                                class="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl flex items-start gap-3 mb-6">
+                                <AlertCircle class="text-orange-500 dark:text-orange-400 shrink-0" :size="20" />
+                                <p class="text-xs text-orange-700 dark:text-orange-300 font-bold">Lengkapi: Nama, WA,
+                                    Catatan, Foto, &
                                     Pembayaran.</p>
                             </div>
 
