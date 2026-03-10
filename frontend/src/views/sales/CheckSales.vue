@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                        }}</div>
+                                            }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -292,67 +292,73 @@
                     </button>
                 </div>
 
-                <div id="receipt-content" class="flex-1 overflow-y-auto p-8 print:p-0">
+                <div id="receipt-content"
+                    class="flex-1 overflow-y-auto p-8 print:p-0 bg-gray-100/50 dark:bg-surface-900/50">
                     <div v-if="currentReceiptData"
-                        class="receipt-paper max-w-[400px] mx-auto bg-white p-2 text-black font-mono text-sm print:max-w-full print:mx-0">
+                        class="receipt-paper max-w-[400px] mx-auto !bg-white p-6 !text-black font-mono text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-0">
                         <div class="text-center mb-6">
                             <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 mx-auto mb-2 object-contain" />
-                            <h2 class="text-xl font-bold uppercase tracking-widest">PSTORE</h2>
-                            <p class="text-xs">{{ currentReceiptData.outlet_name }}</p>
-                            <p class="text-[10px] leading-tight">{{ currentReceiptData.outlet_address }}</p>
+                            <h2 class="text-xl font-bold uppercase tracking-widest !text-black">PSTORE</h2>
+                            <p class="text-xs !text-black">{{ currentReceiptData.outlet_name }}</p>
+                            <p class="text-[10px] leading-tight !text-black">{{ currentReceiptData.outlet_address }}</p>
                         </div>
 
-                        <div class="border-t border-b border-dashed border-gray-300 py-3 mb-4 space-y-1">
+                        <div class="border-t border-b border-dashed border-gray-400 py-3 mb-4 space-y-1">
                             <div class="flex justify-between">
-                                <span>No. TRX</span>
-                                <span class="font-bold">{{ currentReceiptData.order_no }}</span>
+                                <span class="!text-black">No. TRX</span>
+                                <span class="font-bold !text-black">{{ currentReceiptData.order_no }}</span>
                             </div>
                             <div class="flex justify-between">
-                                <span>Tanggal</span>
-                                <span>{{ formatDate(currentReceiptData.date) }}</span>
+                                <span class="!text-black">Tanggal</span>
+                                <span class="!text-black">{{ formatDate(currentReceiptData.date) }}</span>
                             </div>
                             <div class="flex justify-between">
-                                <span>Customer</span>
-                                <span>{{ currentReceiptData.customer_name }}</span>
+                                <span class="!text-black">Customer</span>
+                                <span class="!text-black">{{ currentReceiptData.customer_name }}</span>
                             </div>
                         </div>
 
                         <div class="space-y-4 mb-6">
-                            <div v-if="currentReceiptData.items && currentReceiptData.items.length > 0"
-                                v-for="item in currentReceiptData.items" :key="item.id">
-                                <div class="flex justify-between items-start font-bold">
-                                    <span class="flex-1 mr-2">{{ item.name }}</span>
-                                    <span>x{{ item.qty }}</span>
+                            <template v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
+                                <div v-for="(detail, dIdx) in currentReceiptData.items" :key="dIdx" class="space-y-0.5">
+                                    <div class="flex justify-between items-start font-bold !text-black">
+                                        <span class="flex-1 mr-2">{{ detail.name }}</span>
+                                        <span>x{{ detail.qty }}</span>
+                                    </div>
+                                    <div class="text-[10px] !text-gray-600">
+                                        <span v-if="detail.imei">IMEI: {{ detail.imei }}</span>
+                                        <span v-if="detail.storage"> ({{ detail.storage }})</span>
+                                    </div>
                                 </div>
-                                <div class="text-[10px] text-gray-500">
-                                    <span v-if="item.imeis">IMEI: {{ item.imeis }}</span>
-                                    <span v-else-if="item.imei">IMEI: {{ item.imei }}</span>
+                            </template>
+                            <div v-else class="space-y-0.5">
+                                <div class="flex justify-between items-start font-bold !text-black">
+                                    <span class="flex-1 mr-2">{{ currentReceiptData.product_names }}</span>
+                                    <span>x{{ currentReceiptData.qty }}</span>
                                 </div>
-                                <div v-if="item.storage" class="text-[10px] text-gray-500">{{ item.storage }}</div>
-                            </div>
-                            <div v-else class="flex justify-between items-start font-bold">
-                                <span class="flex-1 mr-2">{{ currentReceiptData.product_names }}</span>
-                                <span>x{{ currentReceiptData.qty }}</span>
+                                <div v-if="currentReceiptData.imeis" class="text-[10px] !text-gray-600">
+                                    IMEI: {{ currentReceiptData.imeis }}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="border-t border-dashed border-gray-300 pt-3 space-y-1">
-                            <div class="flex justify-between text-lg font-bold">
+                        <div class="border-t border-dashed border-gray-400 pt-3 space-y-1">
+                            <div class="flex justify-between text-lg font-bold !text-black">
                                 <span>TOTAL</span>
                                 <span>Rp {{ formatNumber(currentReceiptData.grand_total) }}</span>
                             </div>
-                            <div class="flex justify-between text-xs text-gray-600">
+                            <div class="flex justify-between text-xs !text-gray-600">
                                 <span>METODE</span>
                                 <span class="uppercase">{{ currentReceiptData.payment_method }}</span>
                             </div>
                         </div>
 
-                        <div class="mt-8 text-center text-[10px] space-y-1 opacity-70 italic">
+                        <div class="mt-8 text-center text-[10px] space-y-1 !text-gray-500 italic">
                             <p>*** TERIMA KASIH ***</p>
                             <p>Barang yang sudah dibeli</p>
                             <p>tidak dapat ditukar/dikembalikan</p>
                             <p>Simpan struk ini sebagai bukti garansi</p>
-                            <p class="mt-2 text-[8px] font-sans">Powered by PSTORE APEX</p>
+                            <p class="mt-2 text-[8px] font-sans opacity-50">Powered by PSTORE APEX</p>
                         </div>
                     </div>
                 </div>
@@ -382,6 +388,12 @@
     #receipt-content,
     #receipt-content * {
         visibility: visible;
+        color: #000 !important;
+        background-color: transparent !important;
+    }
+
+    #receipt-content .receipt-paper {
+        background-color: #fff !important;
     }
 
     #receipt-content {
