@@ -65,6 +65,7 @@ const splitPayments = ref([]);
 const proofImage = ref(null);
 const proofImagePreview = ref(null);
 const isSubmitting = ref(false);
+const isCompressing = ref(false);
 
 // Success modal
 const showSuccessModal = ref(false);
@@ -294,21 +295,70 @@ function handleSplitAmountInput(index, e) {
     splitPayments.value[index].amount = num;
     splitPayments.value[index].display_amount = formatNumber(num);
 }
-
-function handleFileChange(e) {
-    const file = e.target.files[0];
-    if (file) {
-        if (file.size > 10 * 1024 * 1024) {
-            alert("Ukuran file maksimal 10MB");
-            e.target.value = "";
-            return;
-        }
-        proofImage.value = file;
+async function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            proofImagePreview.value = e.target.result;
-        };
         reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+                    } else reject(new Error('Blob null'));
+                }, 'image/jpeg', quality);
+            };
+            img.onerror = reject;
+        };
+        reader.onerror = reject;
+    });
+}
+
+async function handleFileChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        isCompressing.value = true;
+        // Compress if it's an image to avoid 413 Payload Too Large
+        if (file.type.startsWith('image/')) {
+            const compressed = await compressImage(file);
+            proofImage.value = compressed;
+            proofImagePreview.value = URL.createObjectURL(compressed);
+        } else {
+            if (file.size > 10 * 1024 * 1024) {
+                alert("Ukuran file maksimal 10MB");
+                e.target.value = "";
+                return;
+            }
+            proofImage.value = file;
+            proofImagePreview.value = URL.createObjectURL(file);
+        }
+    } catch (err) {
+        console.error("Compression failed, using original", err);
+        proofImage.value = file;
+        proofImagePreview.value = URL.createObjectURL(file);
+    } finally {
+        isCompressing.value = false;
     }
 }
 
@@ -411,7 +461,13 @@ async function processPayment() {
         salesAccount.value = "";
     } catch (error) {
         console.error("Payment failed", error);
-        alert(error.response?.data?.message || "Gagal memproses transaksi");
+        let errorMsg = error.response?.data?.message || "Gagal memproses transaksi";
+        if (error.response) {
+            const status = error.response.status;
+            errorMsg = `[Error ${status}] ${errorMsg}`;
+            if (status === 413) errorMsg = "[Error 413] Foto terlalu besar untuk dikirim. Hubungi IT.";
+        }
+        alert(errorMsg);
     } finally {
         isSubmitting.value = false;
     }
@@ -905,11 +961,20 @@ watch(() => currentStep.value, (newStep) => {
                                         hover:file:bg-primary-500/20
                                         dark:file:bg-primary-500/20 dark:file:text-primary-400
                                         transition-all cursor-pointer" />
-                                    <div v-if="proofImagePreview"
+                                    <!-- COMPRESSION LOADER -->
+                                    <div v-if="isCompressing"
+                                        class="flex items-center gap-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-500/20 animate-pulse">
+                                        <Loader2 class="animate-spin text-primary-500" :size="20" />
+                                        <span
+                                            class="text-xs font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest">Mengompres
+                                            Foto...</span>
+                                    </div>
+
+                                    <div v-if="proofImagePreview && !isCompressing"
                                         class="relative w-40 h-40 rounded-2xl overflow-hidden border-2 border-surface-200 dark:border-surface-700">
                                         <img :src="proofImagePreview" class="w-full h-full object-cover" />
                                         <button @click="proofImage = null; proofImagePreview = null"
-                                            class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg">
+                                            class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg transition-transform active:scale-90">
                                             <X :size="16" />
                                         </button>
                                     </div>
@@ -934,7 +999,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -972,7 +1037,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1071,7 +1136,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1090,7 +1155,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1098,7 +1163,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -1107,7 +1172,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="w-20 h-20 flex-none bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 text-text-primary rounded-[1.25rem] font-bold transition-all flex items-center justify-center">
                                     <ArrowLeft :size="28" />
                                 </button>
-                                <button @click="handleSubmitOrder" :disabled="isSubmitting"
+                                <button @click="handleSubmitOrder" :disabled="isSubmitting || isCompressing"
                                     class="flex-1 h-20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white rounded-[1.25rem] font-black text-xl shadow-2xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3"
                                     :class="{ 'opacity-60 grayscale cursor-not-allowed': !isFormValid && !isSubmitting }">
                                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="28" />
@@ -1152,7 +1217,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
