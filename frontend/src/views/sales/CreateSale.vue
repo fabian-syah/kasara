@@ -223,19 +223,28 @@ const changeAmount = computed(() => {
     return totalPaid - cartTotal.value;
 });
 
-const isFormValid = computed(() => {
-    const hasName = !!customerForm.value.customer_name;
-    const hasPhone = !!customerForm.value.customer_phone;
-    const hasNotes = !!customerForm.value.notes;
-    const hasPhoto = !!proofImage.value;
-    const paymentMatches = changeAmount.value >= 0;
-
-    // For sale categories, these are mandatory
+const missingFields = computed(() => {
+    const fields = [];
     const salesCategoriesList = ['penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
-    if (salesCategoriesList.includes(transactionCategory.value)) {
-        return hasName && hasPhone && hasNotes && hasPhoto && paymentMatches;
+    const isSale = salesCategoriesList.includes(transactionCategory.value);
+
+    if (isSale) {
+        if (!customerForm.value.customer_name) fields.push("Nama Pelanggan");
+        if (!customerForm.value.customer_phone) fields.push("WhatsApp");
+        if (!customerForm.value.notes) fields.push("Catatan/Keterangan");
+        if (!proofImage.value) fields.push("Foto Bukti");
     }
-    return paymentMatches;
+
+    if (changeAmount.value < 0) fields.push("Pembayaran (Masih Kurang)");
+
+    return fields;
+});
+
+const isFormValid = computed(() => missingFields.value.length === 0);
+
+const submitButtonText = computed(() => {
+    if (isSubmitting.value) return 'MEMPROSES...';
+    return isFormValid.value ? 'SELESAIKAN TRANSAKSI' : 'ISI SEMUA DATA';
 });
 
 function addToCart(product) {
@@ -916,7 +925,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -938,7 +947,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1037,7 +1046,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1056,7 +1065,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1064,15 +1073,20 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
-                            <div v-if="!isFormValid"
+                            <div v-if="missingFields.length > 0"
                                 class="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl flex items-start gap-3 mb-6">
                                 <AlertCircle class="text-orange-500 dark:text-orange-400 shrink-0" :size="20" />
-                                <p class="text-xs text-orange-700 dark:text-orange-300 font-bold">Lengkapi: Nama, WA,
-                                    Catatan, Foto, &
-                                    Pembayaran.</p>
+                                <div class="flex-1">
+                                    <p class="text-xs text-orange-700 dark:text-orange-300 font-bold mb-1">Dibutuhkan:
+                                    </p>
+                                    <ul
+                                        class="text-[10px] text-orange-600 dark:text-orange-400 font-medium list-disc list-inside">
+                                        <li v-for="field in missingFields" :key="field">{{ field }}</li>
+                                    </ul>
+                                </div>
                             </div>
 
                             <div class="flex gap-4 pt-8 border-t border-surface-100 dark:border-surface-700">
@@ -1081,10 +1095,12 @@ watch(() => currentStep.value, (newStep) => {
                                     <ArrowLeft :size="28" />
                                 </button>
                                 <button @click="handleSubmitOrder" :disabled="!isFormValid || isSubmitting"
-                                    class="flex-1 h-20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-[1.25rem] font-black text-xl shadow-2xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3">
+                                    class="flex-1 h-20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white rounded-[1.25rem] font-black text-xl shadow-2xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3">
                                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="28" />
                                     <CheckCircle v-else :size="28" />
-                                    {{ isSubmitting ? 'MEMPROSES...' : 'SELESAIKAN TRANSAKSI' }}
+                                    <span>
+                                        {{ submitButtonText }}
+                                    </span>
                                 </button>
                             </div>
                         </div>
@@ -1122,7 +1138,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
