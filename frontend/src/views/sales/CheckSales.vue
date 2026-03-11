@@ -279,94 +279,168 @@
         </div>
 
         <!-- Receipt Modal -->
+        <!-- Nota Penjualan Modal (PSTORE Style) -->
         <div v-if="showReceiptModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:p-0">
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white">
             <div
-                class="bg-white dark:bg-surface-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full print:h-screen flex flex-col">
+                class="bg-white dark:bg-surface-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full flex flex-col max-h-[90vh]">
+                <!-- Modal Header (hide on print) -->
                 <div
                     class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-surface-700 print:hidden">
-                    <h3 class="text-lg font-bold text-text-primary">Struk Penjualan</h3>
+                    <h3 class="text-lg font-bold text-text-primary">Nota Penjualan</h3>
                     <button @click="showReceiptModal = false"
                         class="p-2 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-xl transition-colors">
                         <X :size="20" class="text-gray-500" />
                     </button>
                 </div>
 
+                <!-- Nota Content -->
                 <div id="receipt-content"
-                    class="flex-1 overflow-y-auto p-8 print:p-0 bg-gray-100/50 dark:bg-surface-900/50">
+                    class="flex-1 overflow-y-auto p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
                     <div v-if="currentReceiptData"
-                        class="receipt-paper max-w-[400px] mx-auto !bg-white p-6 !text-black font-mono text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-0">
-                        <div class="text-center mb-6">
-                            <img src="/images/logo-pstore.png" alt="PSTORE" class="h-16 mx-auto mb-2 object-contain" />
-                            <h2 class="text-xl font-bold uppercase tracking-widest !text-black">PSTORE</h2>
-                            <p class="text-xs !text-black">{{ currentReceiptData.outlet_name }}</p>
-                            <p class="text-[10px] leading-tight !text-black">{{ currentReceiptData.outlet_address }}</p>
-                        </div>
+                        class="nota-paper max-w-[480px] mx-auto bg-white p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
 
-                        <div class="border-t border-b border-dashed border-gray-400 py-3 mb-4 space-y-1">
-                            <div class="flex justify-between">
-                                <span class="!text-black">No. TRX</span>
-                                <span class="font-bold !text-black">{{ currentReceiptData.order_no }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="!text-black">Tanggal</span>
-                                <span class="!text-black">{{ formatDate(currentReceiptData.date) }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="!text-black">Customer</span>
-                                <span class="!text-black">{{ currentReceiptData.customer_name }}</span>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4 mb-6">
-                            <template v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
-                                <div v-for="(detail, dIdx) in currentReceiptData.items" :key="dIdx" class="space-y-0.5">
-                                    <div class="flex justify-between items-start font-bold !text-black">
-                                        <span class="flex-1 mr-2">{{ detail.name }}</span>
-                                        <span>x{{ detail.qty }}</span>
-                                    </div>
-                                    <div class="text-[10px] !text-gray-600">
-                                        <span v-if="detail.imei">IMEI: {{ detail.imei }}</span>
-                                        <span v-if="detail.storage"> ({{ detail.storage }})</span>
-                                    </div>
-                                </div>
-                            </template>
-                            <div v-else class="space-y-0.5">
-                                <div class="flex justify-between items-start font-bold !text-black">
-                                    <span class="flex-1 mr-2">{{ currentReceiptData.product_names }}</span>
-                                    <span>x{{ currentReceiptData.qty }}</span>
-                                </div>
-                                <div v-if="currentReceiptData.imeis" class="text-[10px] !text-gray-600">
-                                    IMEI: {{ currentReceiptData.imeis }}
+                        <!-- ===== NOTA HEADER ===== -->
+                        <div class="flex items-start gap-4 mb-4 pb-4 border-b-2 border-black">
+                            <img src="/images/logo-pstore.png" alt="PSTORE"
+                                class="w-14 h-14 object-contain shrink-0" />
+                            <div class="flex-1 min-w-0">
+                                <h2 class="text-2xl font-extrabold tracking-wider text-black leading-none">PSTORE</h2>
+                                <p class="text-[9px] leading-tight text-gray-700 mt-1">
+                                    Pusat Perbelanjaan Online<br />
+                                    HP, Laptop, Barang Elektronik Bergaransi Terjamin Dan Terpercaya
+                                </p>
+                                <p class="text-[9px] text-gray-600 mt-0.5">
+                                    No Customer Service 0851 - 3300 - 5600
+                                </p>
+                                <div class="flex items-center gap-3 mt-1 text-[9px] text-gray-600">
+                                    <span>📷 pstOre.</span>
+                                    <span>🎵 pstOre.</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="border-t border-dashed border-gray-400 pt-3 space-y-1">
-                            <div class="flex justify-between text-lg font-bold !text-black">
-                                <span>TOTAL</span>
-                                <span>Rp {{ formatNumber(currentReceiptData.grand_total) }}</span>
-                            </div>
-                            <div class="flex justify-between text-xs !text-gray-600">
-                                <span>METODE</span>
-                                <span class="uppercase">{{ currentReceiptData.payment_method }}</span>
+                        <!-- ===== INFO NOTA ===== -->
+                        <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs mb-4">
+                            <span class="font-semibold text-black">No. Nota</span>
+                            <span class="text-black">: {{ currentReceiptData.order_no || '-' }}</span>
+                            <span class="font-semibold text-black">Atas Nama</span>
+                            <span class="text-black">: {{ currentReceiptData.customer_name || '-' }}</span>
+                            <span class="font-semibold text-black">Tanggal</span>
+                            <span class="text-black">: {{ formatDate(currentReceiptData.date) }}</span>
+                            <span class="font-semibold text-black">No. HP</span>
+                            <span class="text-black">: {{ currentReceiptData.customer_wa || currentReceiptData.customer_phone || '-' }}</span>
+                        </div>
+
+                        <!-- ===== TABEL ITEMS ===== -->
+                        <table class="w-full text-xs border-collapse mb-4">
+                            <thead>
+                                <tr class="border-t-2 border-b-2 border-black">
+                                    <th class="py-2 px-1 text-left font-bold text-black w-[50px]">Banyak</th>
+                                    <th class="py-2 px-1 text-left font-bold text-black">IMEI</th>
+                                    <th class="py-2 px-1 text-left font-bold text-black">Keterangan</th>
+                                    <th class="py-2 px-1 text-right font-bold text-black w-[90px]">Jumlah</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template
+                                    v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
+                                    <tr v-for="(detail, dIdx) in currentReceiptData.items" :key="dIdx"
+                                        class="border-b border-gray-300">
+                                        <td class="py-2 px-1 text-black align-top text-center">{{ detail.qty }}</td>
+                                        <td class="py-2 px-1 text-black align-top font-mono text-[10px]">
+                                            {{ detail.imei && detail.imei !== '-' ? detail.imei : '-' }}
+                                        </td>
+                                        <td class="py-2 px-1 text-black align-top">
+                                            <div class="font-semibold">{{ detail.name }}</div>
+                                            <div v-if="detail.storage" class="text-[10px] text-gray-600">{{
+                                                detail.storage }}</div>
+                                            <div v-if="detail.condition" class="text-[10px] text-gray-600">
+                                                {{ detail.condition === 'new' ? 'Baru' : detail.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
+                                            </div>
+                                        </td>
+                                        <td class="py-2 px-1 text-black align-top text-right font-medium">
+                                            {{ detail.price ? formatNumber(detail.price * detail.qty) : '-' }}
+                                        </td>
+                                    </tr>
+                                </template>
+                                <template v-else>
+                                    <tr class="border-b border-gray-300">
+                                        <td class="py-2 px-1 text-black align-top text-center">{{ currentReceiptData.qty || 1 }}</td>
+                                        <td class="py-2 px-1 text-black align-top font-mono text-[10px]">
+                                            {{ currentReceiptData.imeis && currentReceiptData.imeis !== '-' ? currentReceiptData.imeis : '-' }}
+                                        </td>
+                                        <td class="py-2 px-1 text-black align-top">
+                                            <div class="font-semibold">{{ currentReceiptData.product_names || '-' }}</div>
+                                        </td>
+                                        <td class="py-2 px-1 text-black align-top text-right font-medium">
+                                            {{ currentReceiptData.grand_total ? formatNumber(currentReceiptData.grand_total) : '-' }}
+                                        </td>
+                                    </tr>
+                                </template>
+                                <!-- Empty rows for physical nota feel -->
+                                <tr v-for="n in Math.max(0, 3 - (currentReceiptData.items?.length || 1))"
+                                    :key="'empty-' + n" class="border-b border-gray-300">
+                                    <td class="py-3 px-1">&nbsp;</td>
+                                    <td class="py-3 px-1"></td>
+                                    <td class="py-3 px-1"></td>
+                                    <td class="py-3 px-1"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- ===== PAYMENT SECTION ===== -->
+                        <div class="flex justify-end mb-4">
+                            <div class="w-[220px] text-xs space-y-1">
+                                <div class="flex justify-between border-b border-gray-300 pb-1">
+                                    <span class="font-bold text-black">TF :</span>
+                                    <span class="text-black">
+                                        {{ currentReceiptData.payment_method && !currentReceiptData.payment_method.toLowerCase().includes('cash') && !currentReceiptData.payment_method.toLowerCase().includes('tunai') ? 'Rp ' + formatNumber(currentReceiptData.grand_total) : '-' }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-300 pb-1">
+                                    <span class="font-bold text-black">CASH :</span>
+                                    <span class="text-black">
+                                        {{ currentReceiptData.payment_method && (currentReceiptData.payment_method.toLowerCase().includes('cash') || currentReceiptData.payment_method.toLowerCase().includes('tunai')) ? 'Rp ' + formatNumber(currentReceiptData.grand_total) : '-' }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between border-t-2 border-black pt-1">
+                                    <span class="font-extrabold text-black text-sm">TOTAL :</span>
+                                    <span class="font-extrabold text-black text-sm">Rp {{
+                                        formatNumber(currentReceiptData.grand_total) }}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="mt-8 text-center text-[10px] space-y-1 !text-gray-500 italic">
-                            <p>*** TERIMA KASIH ***</p>
-                            <p>Barang bergaransi sesuai ketentuan</p>
-                            <p>Simpan struk ini sebagai bukti garansi/retur</p>
-                            <p class="mt-2 text-[8px] font-sans opacity-50">by KASARA</p>
+                        <!-- ===== GARANSI NOTES ===== -->
+                        <div class="bg-gray-50 border border-gray-300 rounded p-2.5 mb-5 print:bg-white">
+                            <ul class="text-[9px] text-gray-700 space-y-0.5 list-disc pl-3">
+                                <li>Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
+                                <li>Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
+                                <li>Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
+                            </ul>
+                        </div>
+
+                        <!-- ===== SIGNATURE AREA ===== -->
+                        <div class="flex justify-between text-xs mt-6 mb-2">
+                            <div class="text-center">
+                                <p class="font-semibold text-black mb-12">Penerima,</p>
+                                <div class="border-b border-gray-400 w-28"></div>
+                            </div>
+                            <div class="text-center">
+                                <p class="font-semibold text-black mb-12">Hormat Kami,</p>
+                                <div class="border-b border-gray-400 w-28"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Action Buttons (hide on print) -->
                 <div class="p-6 bg-gray-50 dark:bg-surface-700/50 flex gap-3 print:hidden">
                     <button @click="printReceipt"
                         class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-2xl font-bold hover:bg-primary-600 transition-all shadow-lg shadow-primary-500/20 active:scale-95">
                         <Printer :size="20" />
-                        Cetak Struk
+                        Cetak Nota
                     </button>
                     <button @click="showReceiptModal = false"
                         class="px-6 py-3 bg-white dark:bg-surface-800 text-text-primary border border-gray-200 dark:border-surface-600 rounded-2xl font-bold hover:bg-gray-50 transition-all active:scale-95">
@@ -391,7 +465,7 @@
         background-color: transparent !important;
     }
 
-    #receipt-content .receipt-paper {
+    #receipt-content .nota-paper {
         background-color: #fff !important;
     }
 
@@ -404,11 +478,27 @@
         padding: 0;
     }
 
-    .receipt-paper {
+    .nota-paper {
         border: none !important;
         box-shadow: none !important;
         width: 100%;
         max-width: none !important;
+        padding: 16px !important;
+    }
+
+    .nota-paper table {
+        border-collapse: collapse !important;
+    }
+
+    .nota-paper table th,
+    .nota-paper table td {
+        border-color: #000 !important;
+        color: #000 !important;
+    }
+
+    .nota-paper img {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
     }
 }
 </style>
