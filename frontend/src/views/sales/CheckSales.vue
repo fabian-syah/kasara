@@ -312,7 +312,7 @@
                                 <p class="text-[9px] text-gray-600 mt-0.5">
                                     No Customer Service 0851 - 3300 - 5600
                                 </p>
-                                <div class="mt-2 text-[9px] text-gray-700 border-t border-black/10 pt-1">
+                                <div class="mt-2 text-[9px] text-gray-700 border-t border-black pt-1">
                                     <span class="font-bold">Kami ada juga di :</span>
                                     <div class="flex items-center gap-4 mt-1">
                                         <span class="flex items-center gap-1.5">
@@ -357,7 +357,7 @@
                             <tbody>
                                 <template v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
                                     <tr v-for="(detail, dIdx) in currentReceiptData.items" :key="dIdx"
-                                        class="border-b border-gray-300">
+                                        class="border-b border-black">
                                         <td class="py-2 px-1 text-black align-top text-center">{{ detail.qty }}</td>
                                         <td class="py-2 px-1 text-black align-top font-mono text-[10px]">
                                             {{ detail.imei && detail.imei !== '-' ? detail.imei : '-' }}
@@ -408,7 +408,7 @@
                         <!-- ===== PAYMENT SECTION ===== -->
                         <div class="flex justify-end mb-4">
                             <div class="w-[220px] text-xs space-y-1">
-                                <div class="flex justify-between border-b border-gray-300 pb-1">
+                                <div class="flex justify-between border-b border-black pb-1">
                                     <span class="font-bold text-black">TF :</span>
                                     <span class="text-black">
                                         {{ currentReceiptData.transfer ? 'Rp ' +
@@ -416,7 +416,7 @@
                                         }}
                                     </span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-300 pb-1">
+                                <div class="flex justify-between border-b border-black pb-1">
                                     <span class="font-bold text-black">CASH :</span>
                                     <span class="text-black">
                                         {{ currentReceiptData.cash ? 'Rp ' + formatNumber(currentReceiptData.cash) : '-'
@@ -432,7 +432,7 @@
                         </div>
 
                         <!-- ===== GARANSI NOTES ===== -->
-                        <div class="bg-gray-50 border border-gray-300 rounded p-2.5 mb-5 print:bg-white">
+                        <div class="border border-black rounded p-2.5 mb-5 print:bg-white">
                             <ul class="text-[9px] text-gray-700 space-y-0.5 list-disc pl-3">
                                 <li>Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
                                 <li>Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
@@ -444,11 +444,11 @@
                         <div class="flex justify-between text-xs mt-6 mb-2">
                             <div class="text-center">
                                 <p class="font-semibold text-black mb-12">Penerima,</p>
-                                <div class="border-b border-gray-400 w-28"></div>
+                                <div class="border-b border-black w-28"></div>
                             </div>
                             <div class="text-center">
                                 <p class="font-semibold text-black mb-12">Hormat Kami,</p>
-                                <div class="border-b border-gray-400 w-28"></div>
+                                <div class="border-b border-black w-28"></div>
                             </div>
                         </div>
                     </div>
