@@ -319,12 +319,14 @@
                                 </div>
                                 <div class="mt-2 text-[9px] text-gray-700 border-t border-black/10 pt-1">
                                     <span class="font-bold">Kami ada juga di :</span>
-                                    <div class="flex items-center gap-4 mt-0.5">
-                                        <span class="flex items-center gap-1">
-                                            <span class="text-[10px]">🛒</span> shopee pstore_
+                                    <div class="flex items-center gap-4 mt-1">
+                                        <span class="flex items-center gap-1.5">
+                                            <img src="/images/shopee-icon.png" class="w-2.5 h-2.5 object-contain" alt="" />
+                                            shopee pstore_
                                         </span>
-                                        <span class="flex items-center gap-1">
-                                            <span class="text-[10px]">🏪</span> tokopedia pstore_
+                                        <span class="flex items-center gap-1.5">
+                                            <img src="/images/tokopedia-icon.png" class="w-2.5 h-2.5 object-contain" alt="" />
+                                            tokopedia pstore_
                                         </span>
                                     </div>
                                 </div>
