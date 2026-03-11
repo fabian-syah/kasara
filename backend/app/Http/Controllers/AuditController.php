@@ -71,6 +71,8 @@ class AuditController extends Controller
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
         // 1. Daily Sales
+        $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
+
         // Load nonHpItems relationship for Product details, but we will use JSON column for price
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers'])
             ->whereIn('category', $salesCategories)
@@ -78,12 +80,15 @@ class AuditController extends Controller
 
         $scopeToAccess($dailySalesQuery);
 
-        $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) {
+        $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) use ($paymentMethods) {
             $details = [];
             $calculatedTotal = 0;
 
             // 1. HP Items
             foreach ($trx->items as $item) {
+                // IMPORTANT: In audit reports, we use the selling_price from pivot table (stock_out_items) 
+                // but currently Pivot selling_price is in ProductDetail model or pivot? 
+                // Actually, AuditController uses $item->selling_price from ProductDetail model.
                 $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
 
                 $details[] = [
@@ -216,6 +221,41 @@ class AuditController extends Controller
                 $auditScore = round(($yesCount / $totalQuestions) * 100);
             }
 
+            // 4. Payment Breakdown
+            $cash = 0;
+            $transfer = 0;
+            $debit = 0;
+            if ($trx->split_payments) {
+                $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                if (is_array($splits)) {
+                    foreach ($splits as $sp) {
+                        $methodId = $sp['payment_method_id'] ?? null;
+                        $amount = floatval($sp['amount'] ?? 0);
+                        if ($methodId && isset($paymentMethods[$methodId])) {
+                            $cat = strtolower($paymentMethods[$methodId]->category ?? '');
+                            $name = strtolower($paymentMethods[$methodId]->name ?? '');
+                            if (str_contains($cat, 'cash') || str_contains($cat, 'tunai') || str_contains($name, 'cash') || str_contains($name, 'tunai')) {
+                                $cash += $amount;
+                            } elseif (str_contains($cat, 'debit') || str_contains($name, 'debit')) {
+                                $debit += $amount;
+                            } else {
+                                $transfer += $amount;
+                            }
+                        } else {
+                            // Default to transfer if unknown
+                            $transfer += $amount;
+                        }
+                    }
+                }
+            } else {
+                // Fallback for older transactions without split_payments
+                if ($trx->category === 'penjualan_offline') {
+                    $cash = $trx->selling_price;
+                } else {
+                    $transfer = $trx->selling_price;
+                }
+            }
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
@@ -233,9 +273,9 @@ class AuditController extends Controller
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
                 'payment_method' => $trx->category === 'penjualan_offline' ? 'Offline' : 'Online',
-                'cash' => 0,
-                'transfer' => 0,
-                'debit' => 0,
+                'cash' => $cash,
+                'transfer' => $transfer,
+                'debit' => $debit,
                 'grand_total' => $trx->selling_price,
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress,

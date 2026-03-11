@@ -317,6 +317,17 @@
                                     <span>📷 pstOre.</span>
                                     <span>🎵 pstOre.</span>
                                 </div>
+                                <div class="mt-2 text-[9px] text-gray-700 border-t border-black/10 pt-1">
+                                    <span class="font-bold">Kami ada juga di :</span>
+                                    <div class="flex items-center gap-4 mt-0.5">
+                                        <span class="flex items-center gap-1">
+                                            <span class="text-[10px]">🛒</span> shopee pstore_
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <span class="text-[10px]">🏪</span> tokopedia pstore_
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -395,13 +406,13 @@
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black">TF :</span>
                                     <span class="text-black">
-                                        {{ currentReceiptData.payment_method && !currentReceiptData.payment_method.toLowerCase().includes('cash') && !currentReceiptData.payment_method.toLowerCase().includes('tunai') ? 'Rp ' + formatNumber(currentReceiptData.grand_total) : '-' }}
+                                        {{ currentReceiptData.transfer ? 'Rp ' + formatNumber(currentReceiptData.transfer) : '-' }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black">CASH :</span>
                                     <span class="text-black">
-                                        {{ currentReceiptData.payment_method && (currentReceiptData.payment_method.toLowerCase().includes('cash') || currentReceiptData.payment_method.toLowerCase().includes('tunai')) ? 'Rp ' + formatNumber(currentReceiptData.grand_total) : '-' }}
+                                        {{ currentReceiptData.cash ? 'Rp ' + formatNumber(currentReceiptData.cash) : '-' }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between border-t-2 border-black pt-1">
