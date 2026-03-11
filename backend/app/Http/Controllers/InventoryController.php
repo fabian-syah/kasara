@@ -286,16 +286,25 @@ class InventoryController extends Controller
         if ($request->brand) {
             $brandArr = explode(',', $request->brand);
             $query->whereHas('product', function ($q) use ($brandArr) {
-                $q->whereIn('brand', $brandArr); });
+                $q->whereIn('brand', $brandArr);
+            });
         }
         if ($request->product) {
             $prodArr = explode(',', $request->product);
             $query->whereHas('product', function ($q) use ($prodArr) {
-                $q->whereIn('name', $prodArr); });
+                $q->whereIn('name', $prodArr);
+            });
         }
         if ($request->condition && $request->condition !== 'all' && $type === 'hp') {
             $query->where('condition', $request->condition);
         }
+        // Always filter for available stock if not explicitly searching for something else
+        if ($type === 'non-hp') {
+            $query->where('status', 'available')->where('quantity', '>', 0);
+        } else {
+            $query->where('status', 'available');
+        }
+
         if ($request->stock_status && $request->stock_status !== 'all') {
             $query->where('status', $request->stock_status);
         }
@@ -330,7 +339,7 @@ class InventoryController extends Controller
                         $item->product->name ?? '-',
                         $item->storage ?? '-',
                         $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                        $item->imei ?? '-',
+                        "'" . ($item->imei ?? '-'), // Prefix with ' to prevent Excel scientific notation
                         $item->placement_type . ' #' . $item->placement_id,
                         $item->distributor->name ?? ($item->supplier_name ?? '-'),
                         $item->selling_price ?? 0,
