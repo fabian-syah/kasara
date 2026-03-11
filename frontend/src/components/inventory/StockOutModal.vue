@@ -832,7 +832,7 @@ async function submitStockOut(pin = null) {
                                         <div class="flex justify-between items-center mb-2">
                                             <span class="text-sm font-medium">{{ item.product?.name }}</span>
                                             <span v-if="item.type !== 'non-hp'" class="text-xs font-mono">{{ item.imei
-                                            }}</span>
+                                                }}</span>
                                         </div>
                                         <div class="flex gap-3">
                                             <div v-if="item.type === 'non-hp'" class="w-1/3">
@@ -888,6 +888,10 @@ async function submitStockOut(pin = null) {
                                     </button>
                                 </div>
                             </div>
+                            <div>
+                                <label class="label">Catatan</label>
+                                <textarea v-model="stockOutForm.shopee_notes" class="input" rows="2"></textarea>
+                            </div>
                         </div>
                     </template>
 
@@ -924,7 +928,7 @@ async function submitStockOut(pin = null) {
             </div>
 
             <div v-if="selectedStockOutCategory" class="p-6 border-t border-surface-700">
-                <button @click="submitStockOut" :disabled="!canSubmitStockOut || isSubmitting"
+                <button @click="submitStockOut()" :disabled="!canSubmitStockOut || isSubmitting"
                     class="btn btn-primary w-full h-12 font-bold disabled:opacity-30">
                     <Loader2 v-if="isSubmitting" :size="20" class="animate-spin mr-2" />
                     {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Keluar Stok' }}

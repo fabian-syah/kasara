@@ -728,7 +728,7 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                    }}</span>
+                                        }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[
@@ -736,7 +736,7 @@ onMounted(() => {
                                         item.condition === 'new' ? 'bg-green-500/20 text-green-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400')
                                     ]">
                                         {{ item.condition === 'new' ? 'NEW' : (item.condition === 'ex_ibox' ? 'iBOX' :
-                                        'SCD') }}
+                                            'SCD') }}
                                     </span>
                                 </td>
                             </tr>
@@ -1045,7 +1045,7 @@ onMounted(() => {
                 </div>
 
                 <div class="mt-8 flex justify-end">
-                    <button @click="submitStockOut" :disabled="!canSubmit || isSubmitting"
+                    <button @click="submitStockOut()" :disabled="!canSubmit || isSubmitting"
                         class="btn btn-primary px-10 h-14 rounded-2xl font-bold text-sm disabled:opacity-30">
                         <Loader2 v-if="isSubmitting" :size="20" class="animate-spin mr-2" />
                         {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Keluar Stok' }}

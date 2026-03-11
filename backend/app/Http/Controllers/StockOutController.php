@@ -186,7 +186,7 @@ class StockOutController extends Controller
                 $rules['customer_wa'] = 'required|string|max:50';
             }
 
-            $rules['notes'] = 'required|string';
+            $rules['notes'] = 'nullable|string';
 
             // proof_image is required for offline sales, but optional for online sales
             $isOnlineSale = in_array($request->category, ['shopee', 'orderan_online']);
