@@ -453,6 +453,63 @@
 </template>
 
 <style scoped>
+/* Force nota-paper to always show black text on white background, even in dark mode */
+.nota-paper,
+.nota-paper * {
+    color: #000 !important;
+}
+
+.nota-paper {
+    background-color: #fff !important;
+}
+
+.nota-paper h2 {
+    color: #000 !important;
+}
+
+.nota-paper p,
+.nota-paper span,
+.nota-paper div,
+.nota-paper li,
+.nota-paper td,
+.nota-paper th {
+    color: #000 !important;
+}
+
+.nota-paper .text-gray-700,
+.nota-paper .text-gray-600 {
+    color: #374151 !important;
+}
+
+.nota-paper table th {
+    color: #000 !important;
+    font-weight: 700 !important;
+}
+
+.nota-paper table td {
+    color: #000 !important;
+}
+
+.nota-paper .border-black {
+    border-color: #000 !important;
+}
+
+.nota-paper .border-gray-300 {
+    border-color: #d1d5db !important;
+}
+
+.nota-paper .border-gray-400 {
+    border-color: #9ca3af !important;
+}
+
+.nota-paper .bg-gray-50 {
+    background-color: #f9fafb !important;
+}
+
+.nota-paper .border-gray-200 {
+    border-color: #e5e7eb !important;
+}
+
 @media print {
     body * {
         visibility: hidden;
