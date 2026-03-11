@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/history/out', [InventoryController::class, 'stockOutHistory']);
     Route::get('/inventory/history/in/export', [InventoryController::class, 'exportStockInHistory']);
     Route::get('/inventory/history/out/export', [InventoryController::class, 'exportStockOutHistory']);
+    Route::get('/inventory/export', [InventoryController::class, 'export']);
     Route::get('/inventory/filter-options', [InventoryController::class, 'getFilterOptions']);
 
     // DEBUG ROUTE

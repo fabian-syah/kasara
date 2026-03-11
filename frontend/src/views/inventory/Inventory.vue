@@ -815,6 +815,42 @@ function getStockStatus(product) {
 
 
 
+async function exportInventory() {
+  try {
+    const params = new URLSearchParams({
+      type: activeTab.value,
+      search: debouncedSearch.value,
+      branch_id: effectiveBranchId.value || '',
+      online_shop_id: effectiveOnlineShopId.value || '',
+      warehouse_id: effectiveWarehouseId.value || '',
+      brand: filterBrand.value.join(','),
+      product: filterProduct.value.join(','),
+      condition: selectedCondition.value !== 'all' ? selectedCondition.value : '',
+      stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : '',
+    });
+
+    if (authStore.user?.distributor_id && props.pageMode === 'distributor') {
+      params.append('distributor_id', authStore.user.distributor_id);
+    }
+
+    const response = await api.get(`/inventory/export?${params.toString()}`, {
+      responseType: 'blob'
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `inventory-${activeTab.value}-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    toast.success("Export berhasil dimulai");
+  } catch (error) {
+    console.error("Export failed:", error);
+    toast.error("Gagal melakukan export");
+  }
+}
 
 </script>
 
@@ -947,7 +983,7 @@ function getStockStatus(product) {
           </button>
 
           <!-- Export -->
-          <button class="btn btn-secondary w-full md:w-auto">
+          <button @click="exportInventory" class="btn btn-secondary w-full md:w-auto">
             <Download :size="16" />
             Export
           </button>

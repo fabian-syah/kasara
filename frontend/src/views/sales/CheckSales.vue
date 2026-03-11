@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                            }}</div>
+                                        }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -301,7 +301,7 @@
                         class="nota-paper max-w-[480px] mx-auto bg-white p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
 
                         <!-- ===== NOTA HEADER ===== -->
-                        <div class="flex items-start gap-4 mb-4 pb-4 border-b-2 border-black">
+                        <div class="flex items-start gap-4 mb-4 pb-4">
                             <img src="/images/logo-pstore.png" alt="PSTORE" class="w-14 h-14 object-contain shrink-0" />
                             <div class="flex-1 min-w-0">
                                 <h2 class="text-2xl font-extrabold tracking-wider text-black leading-none">PSTORE</h2>

@@ -247,6 +247,121 @@ class InventoryController extends Controller
         return response()->json($res);
     }
 
+    public function export(Request $request)
+    {
+        $user = Auth::user();
+        $type = $request->type ?? 'hp';
+
+        if ($type === 'non-hp') {
+            $query = Inventory::with(['product', 'user', 'placement']);
+            // Apply Filters (logic similar to index)
+            if ($request->search) {
+                $search = $request->search;
+                $query->whereHas('product', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")->orWhere('brand', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%");
+                });
+            }
+        } else {
+            $query = ProductDetail::with(['product', 'distributor', 'user']);
+            if ($request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('imei', 'like', "%{$search}%")->orWhereHas('product', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%")->orWhere('brand', 'like', "%{$search}%");
+                    });
+                });
+            }
+        }
+
+        // Common Filters (simplified for export)
+        if ($request->branch_id) {
+            $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
+        }
+        if ($request->online_shop_id) {
+            $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
+        }
+        if ($request->warehouse_id) {
+            $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
+        }
+        if ($request->brand) {
+            $brandArr = explode(',', $request->brand);
+            $query->whereHas('product', function ($q) use ($brandArr) {
+                $q->whereIn('brand', $brandArr); });
+        }
+        if ($request->product) {
+            $prodArr = explode(',', $request->product);
+            $query->whereHas('product', function ($q) use ($prodArr) {
+                $q->whereIn('name', $prodArr); });
+        }
+        if ($request->condition && $request->condition !== 'all' && $type === 'hp') {
+            $query->where('condition', $request->condition);
+        }
+        if ($request->stock_status && $request->stock_status !== 'all') {
+            $query->where('status', $request->stock_status);
+        }
+
+        // Role restriction (Unrestricted can see all, others only their accessible ones)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner', 'audit'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            $query->where(function ($q) use ($user) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $shopIds = $user->getAccessibleOnlineShopIds();
+                if (!empty($branchIds))
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
+                if (!empty($warehouseIds))
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
+                if (!empty($shopIds))
+                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds));
+            });
+        }
+
+        $items = $query->latest()->get();
+
+        $callback = function () use ($items, $type) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+
+            if ($type === 'hp') {
+                fputcsv($file, ['Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory']);
+                foreach ($items as $item) {
+                    fputcsv($file, [
+                        $item->product->brand ?? '-',
+                        $item->product->name ?? '-',
+                        $item->storage ?? '-',
+                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
+                        $item->imei ?? '-',
+                        $item->placement_type . ' #' . $item->placement_id,
+                        $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                        $item->selling_price ?? 0,
+                        $item->status,
+                        $item->user->name ?? '-',
+                    ]);
+                }
+            } else {
+                fputcsv($file, ['Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan']);
+                foreach ($items as $item) {
+                    fputcsv($file, [
+                        $item->product->brand ?? '-',
+                        $item->product->name ?? '-',
+                        $item->placement_type . ' #' . $item->placement_id,
+                        $item->quantity ?? 0,
+                        $item->latest_distributor ?? ($item->latest_supplier ?? '-'),
+                        $item->user->name ?? '-',
+                        $item->notes ?? '-',
+                    ]);
+                }
+            }
+            fclose($file);
+        };
+
+        $filename = 'inventory-' . $type . '-' . now()->format('Y-m-d') . '.csv';
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
     // Stock In History
     public function stockInHistory(Request $request)
     {
