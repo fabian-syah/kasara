@@ -174,39 +174,42 @@ class StockOutController extends Controller
         ];
 
         // Mandatory fields for Sales
-        $salesCategories = ['penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        $salesCategories = ['penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online'];
         if (in_array($request->category, $salesCategories)) {
-            $rules['customer_name'] = 'required|string|max:255';
-            $rules['customer_wa'] = 'required|string|max:50';
+            // Shopee/Online uses shopee_receiver as customer name
+            if ($request->category === 'shopee' || $request->category === 'orderan_online') {
+                $rules['shopee_receiver'] = 'required|string|max:255';
+                $rules['shopee_phone'] = 'required|string|max:50';
+                $rules['shopee_address'] = 'required|string';
+            } else {
+                $rules['customer_name'] = 'required|string|max:255';
+                $rules['customer_wa'] = 'required|string|max:50';
+            }
+
             $rules['notes'] = 'required|string';
-            $rules['proof_image'] = 'required|image|max:10240';
-            // Only require PIN if user has it enabled (set in frontend, but validated here)
+
+            // proof_image is required for offline sales, but optional for online sales
+            $isOnlineSale = in_array($request->category, ['shopee', 'orderan_online']);
+            $rules['proof_image'] = ($isOnlineSale ? 'nullable' : 'required') . '|image|max:10240';
+
+            // Only require PIN if user has it enabled
             $rules['transaction_pin'] = 'nullable|string|max:10';
         }
 
-        // Shopee: Per-item validation
+        // Shopee: Per-item validation (Specific to bulk stock out if used)
         if ($request->category === 'shopee' || $request->category === 'orderan_online') {
-            // Shopee specific Items validation
             if ($request->has('shopee_items')) {
                 $rules['shopee_items'] = 'nullable|array';
                 $rules['shopee_items.*.product_detail_id'] = 'required|exists:product_details,id';
                 $rules['shopee_items.*.tracking_no'] = 'required|string|max:100';
-                $rules['shopee_items.*.selling_price'] = 'required|numeric|min:0'; // Per-item SRP
+                $rules['shopee_items.*.selling_price'] = 'required|numeric|min:0';
             }
 
             if ($request->has('non_hp_items')) {
-                $rules['non_hp_items.*.selling_price'] = 'required|numeric|min:0'; // Per-item SRP for Non-HP
+                $rules['non_hp_items.*.selling_price'] = 'required|numeric|min:0';
             }
 
-            // Validate Global Fields
-            $rules['shopee_receiver'] = 'required|string|max:255';
-            $rules['shopee_phone'] = 'nullable|string|max:50'; // Optional
-            $rules['shopee_address'] = 'required|string';
-            $rules['shopee_province'] = 'nullable|string';
-            $rules['shopee_city'] = 'nullable|string';
-            $rules['shopee_district'] = 'nullable|string';
-            $rules['shopee_village'] = 'nullable|string';
-            $rules['shopee_postal_code'] = 'nullable|string|max:10';
+            $rules['shopee_tracking_no'] = 'required_if:category,shopee,orderan_online|nullable|string|max:100';
         }
 
         // Giveaway Validation
