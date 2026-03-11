@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                        }}</div>
+                                            }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -302,8 +302,7 @@
 
                         <!-- ===== NOTA HEADER ===== -->
                         <div class="flex items-start gap-4 mb-4 pb-4 border-b-2 border-black">
-                            <img src="/images/logo-pstore.png" alt="PSTORE"
-                                class="w-14 h-14 object-contain shrink-0" />
+                            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-14 h-14 object-contain shrink-0" />
                             <div class="flex-1 min-w-0">
                                 <h2 class="text-2xl font-extrabold tracking-wider text-black leading-none">PSTORE</h2>
                                 <p class="text-[9px] leading-tight text-gray-700 mt-1">
@@ -313,20 +312,18 @@
                                 <p class="text-[9px] text-gray-600 mt-0.5">
                                     No Customer Service 0851 - 3300 - 5600
                                 </p>
-                                <div class="flex items-center gap-3 mt-1 text-[9px] text-gray-600">
-                                    <span>📷 pstOre.</span>
-                                    <span>🎵 pstOre.</span>
-                                </div>
                                 <div class="mt-2 text-[9px] text-gray-700 border-t border-black/10 pt-1">
                                     <span class="font-bold">Kami ada juga di :</span>
                                     <div class="flex items-center gap-4 mt-1">
                                         <span class="flex items-center gap-1.5">
-                                            <img src="/images/shopee-icon.png" class="w-2.5 h-2.5 object-contain" alt="" />
-                                            shopee pstore_
+                                            <img src="/images/shopee-icon.png" class="w-2.5 h-2.5 object-contain"
+                                                alt="" />
+                                            pstore_
                                         </span>
                                         <span class="flex items-center gap-1.5">
-                                            <img src="/images/tokopedia-icon.png" class="w-2.5 h-2.5 object-contain" alt="" />
-                                            tokopedia pstore_
+                                            <img src="/images/tokopedia-icon.png" class="w-2.5 h-2.5 object-contain"
+                                                alt="" />
+                                            pstore_
                                         </span>
                                     </div>
                                 </div>
@@ -342,7 +339,9 @@
                             <span class="font-semibold text-black">Tanggal</span>
                             <span class="text-black">: {{ formatDate(currentReceiptData.date) }}</span>
                             <span class="font-semibold text-black">No. HP</span>
-                            <span class="text-black">: {{ currentReceiptData.customer_wa || currentReceiptData.customer_phone || '-' }}</span>
+                            <span class="text-black">: {{ currentReceiptData.customer_wa ||
+                                currentReceiptData.customer_phone ||
+                                '-' }}</span>
                         </div>
 
                         <!-- ===== TABEL ITEMS ===== -->
@@ -356,8 +355,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <template
-                                    v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
+                                <template v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
                                     <tr v-for="(detail, dIdx) in currentReceiptData.items" :key="dIdx"
                                         class="border-b border-gray-300">
                                         <td class="py-2 px-1 text-black align-top text-center">{{ detail.qty }}</td>
@@ -369,7 +367,8 @@
                                             <div v-if="detail.storage" class="text-[10px] text-gray-600">{{
                                                 detail.storage }}</div>
                                             <div v-if="detail.condition" class="text-[10px] text-gray-600">
-                                                {{ detail.condition === 'new' ? 'Baru' : detail.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
+                                                {{ detail.condition === 'new' ? 'Baru' : detail.condition === 'ex_ibox'
+                                                    ? 'Ex iBox' : 'Second' }}
                                             </div>
                                         </td>
                                         <td class="py-2 px-1 text-black align-top text-right font-medium">
@@ -379,15 +378,19 @@
                                 </template>
                                 <template v-else>
                                     <tr class="border-b border-gray-300">
-                                        <td class="py-2 px-1 text-black align-top text-center">{{ currentReceiptData.qty || 1 }}</td>
+                                        <td class="py-2 px-1 text-black align-top text-center">{{ currentReceiptData.qty
+                                            || 1 }}</td>
                                         <td class="py-2 px-1 text-black align-top font-mono text-[10px]">
-                                            {{ currentReceiptData.imeis && currentReceiptData.imeis !== '-' ? currentReceiptData.imeis : '-' }}
+                                            {{ currentReceiptData.imeis && currentReceiptData.imeis !== '-' ?
+                                                currentReceiptData.imeis : '-' }}
                                         </td>
                                         <td class="py-2 px-1 text-black align-top">
-                                            <div class="font-semibold">{{ currentReceiptData.product_names || '-' }}</div>
+                                            <div class="font-semibold">{{ currentReceiptData.product_names || '-' }}
+                                            </div>
                                         </td>
                                         <td class="py-2 px-1 text-black align-top text-right font-medium">
-                                            {{ currentReceiptData.grand_total ? formatNumber(currentReceiptData.grand_total) : '-' }}
+                                            {{ currentReceiptData.grand_total ?
+                                                formatNumber(currentReceiptData.grand_total) : '-' }}
                                         </td>
                                     </tr>
                                 </template>
@@ -408,13 +411,16 @@
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black">TF :</span>
                                     <span class="text-black">
-                                        {{ currentReceiptData.transfer ? 'Rp ' + formatNumber(currentReceiptData.transfer) : '-' }}
+                                        {{ currentReceiptData.transfer ? 'Rp ' +
+                                            formatNumber(currentReceiptData.transfer) : '-'
+                                        }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black">CASH :</span>
                                     <span class="text-black">
-                                        {{ currentReceiptData.cash ? 'Rp ' + formatNumber(currentReceiptData.cash) : '-' }}
+                                        {{ currentReceiptData.cash ? 'Rp ' + formatNumber(currentReceiptData.cash) : '-'
+                                        }}
                                     </span>
                                 </div>
                                 <div class="flex justify-between border-t-2 border-black pt-1">
