@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                        }}</div>
+                                            }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -312,15 +312,15 @@
                                 <p class="text-[9px] text-gray-600 mt-0.5">
                                     No Customer Service 0851 - 3300 - 5600
                                 </p>
-                                <div class="mt-2 text-[9px] text-gray-700 border-t border-black pt-1">
+                                <div class="mt-2 text-[9px] text-gray-700">
                                     <span class="font-bold">Kami ada juga di :</span>
-                                    <div class="flex items-center gap-4 mt-1">
-                                        <span class="flex items-center gap-1.5">
+                                    <div class="flex items-center gap-4 mt-0.5">
+                                        <span class="flex items-center gap-1">
                                             <img src="/images/shopee-icon.png" class="w-2.5 h-2.5 object-contain"
                                                 alt="" />
                                             pstore_
                                         </span>
-                                        <span class="flex items-center gap-1.5">
+                                        <span class="flex items-center gap-1">
                                             <img src="/images/tokopedia-icon.png" class="w-2.5 h-2.5 object-contain"
                                                 alt="" />
                                             pstore_
