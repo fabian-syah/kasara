@@ -148,7 +148,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                            }}</div>
+                                        }}</div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">
@@ -357,7 +357,7 @@
                             <tbody>
                                 <template v-if="currentReceiptData.items && currentReceiptData.items.length > 0">
                                     <tr v-for="(detail, dIdx) in currentReceiptData.items" :key="dIdx"
-                                        class="border-b border-black">
+                                        class="border-b border-gray-300">
                                         <td class="py-2 px-1 text-black align-top text-center">{{ detail.qty }}</td>
                                         <td class="py-2 px-1 text-black align-top font-mono text-[10px]">
                                             {{ detail.imei && detail.imei !== '-' ? detail.imei : '-' }}
@@ -408,7 +408,7 @@
                         <!-- ===== PAYMENT SECTION ===== -->
                         <div class="flex justify-end mb-4">
                             <div class="w-[220px] text-xs space-y-1">
-                                <div class="flex justify-between border-b border-black pb-1">
+                                <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black">TF :</span>
                                     <span class="text-black">
                                         {{ currentReceiptData.transfer ? 'Rp ' +
@@ -416,7 +416,7 @@
                                         }}
                                     </span>
                                 </div>
-                                <div class="flex justify-between border-b border-black pb-1">
+                                <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black">CASH :</span>
                                     <span class="text-black">
                                         {{ currentReceiptData.cash ? 'Rp ' + formatNumber(currentReceiptData.cash) : '-'
@@ -432,7 +432,7 @@
                         </div>
 
                         <!-- ===== GARANSI NOTES ===== -->
-                        <div class="border border-black rounded p-2.5 mb-5 print:bg-white">
+                        <div class="bg-gray-50 border border-gray-300 rounded p-2.5 mb-5 print:bg-white">
                             <ul class="text-[9px] text-gray-700 space-y-0.5 list-disc pl-3">
                                 <li>Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
                                 <li>Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
@@ -444,11 +444,11 @@
                         <div class="flex justify-between text-xs mt-6 mb-2">
                             <div class="text-center">
                                 <p class="font-semibold text-black mb-12">Penerima,</p>
-                                <div class="border-b border-black w-28"></div>
+                                <div class="border-b border-gray-400 w-28"></div>
                             </div>
                             <div class="text-center">
                                 <p class="font-semibold text-black mb-12">Hormat Kami,</p>
-                                <div class="border-b border-black w-28"></div>
+                                <div class="border-b border-gray-400 w-28"></div>
                             </div>
                         </div>
                     </div>
