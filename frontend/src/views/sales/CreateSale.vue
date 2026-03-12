@@ -703,9 +703,9 @@ async function processPayment(pin = null) {
                 distributed_discount: cartStore.getDistributedGlobalDiscount(item)
             })),
             total_discount: cartStore.discountAmount + cartStore.itemDiscountTotal,
-            original_price: cartStore.subtotal,
-            global_discount_value: cartStore.discountValue,
-            global_discount_type: cartStore.discountType,
+            original_price: cartStore.totalAfterItemDiscounts,
+            global_discount_value: cartStore.discountAmount,
+            global_discount_type: 'fixed',
             cash: cashAmount,
             transfer: transferAmount,
             total: cartTotal.value,
@@ -1351,7 +1351,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1389,7 +1389,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1488,7 +1488,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1507,7 +1507,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1515,7 +1515,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -1569,7 +1569,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -1601,16 +1601,17 @@ watch(() => currentStep.value, (newStep) => {
                 return {
                     name: item.name || item.product?.name,
                     qty: item.quantity,
-                    price: item.price,
+                    price: item.price - (item.item_discount || 0), // Use Net Price
                     imei: imei,
-                    item_discount: item.item_discount,
-                    distributed_discount: item.distributed_discount
+                    item_discount: 0, // Hiding granular item discounts
+                    distributed_discount: 0
                 };
             }),
             grand_total: lastTransaction?.total,
             original_price: lastTransaction?.original_price,
+            total_discount: lastTransaction?.global_discount_value,
             global_discount_value: lastTransaction?.global_discount_value,
-            global_discount_type: lastTransaction?.global_discount_type,
+            global_discount_type: 'fixed',
             cash: lastTransaction?.cash,
             transfer: lastTransaction?.transfer,
             payment_method: selectedPaymentMethodObj?.name || 'Tunai',
@@ -1666,7 +1667,7 @@ watch(() => currentStep.value, (newStep) => {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}

@@ -104,16 +104,14 @@ class AuditController extends Controller
                 if ($mainHp) {
                     $pivot = $mainHp->pivot;
                     $sellingPrice = $pivot->selling_price ?? $mainHp->selling_price;
-                    $bundlePrice += $sellingPrice;
-                    $bundleItemDiscount += ($pivot->item_discount ?? 0);
-                    $bundleDistributedDiscount += ($pivot->distributed_discount ?? 0);
+                    $itemDisc = ($pivot->item_discount ?? 0);
+                    $bundlePrice += ($sellingPrice - $itemDisc);
                     $bundleHpId = $mainHp->id;
                 }
 
                 if ($mainNonHp) {
-                    $bundlePrice += $mainNonHp->selling_price;
-                    $bundleItemDiscount += ($mainNonHp->item_discount ?? 0);
-                    $bundleDistributedDiscount += ($mainNonHp->distributed_discount ?? 0);
+                    $itemDisc = ($mainNonHp->item_discount ?? 0);
+                    $bundlePrice += ($mainNonHp->selling_price - $itemDisc);
                     $bundleNonHpId = $mainNonHp->id;
                 }
 
@@ -121,8 +119,8 @@ class AuditController extends Controller
                     'name' => $bundleName,
                     'qty' => 1,
                     'price' => $bundlePrice,
-                    'item_discount' => $bundleItemDiscount,
-                    'distributed_discount' => $bundleDistributedDiscount,
+                    'item_discount' => 0, // Discounts are now reflected in 'price'
+                    'distributed_discount' => 0,
                     'is_fixed' => true,
                     'type' => 'Bundle',
                     'imei' => $bundleImei,
@@ -138,16 +136,14 @@ class AuditController extends Controller
                 $pivot = $item->pivot;
                 $sellingPrice = $pivot->selling_price ?? $item->selling_price;
                 $itemDiscount = $pivot->item_discount ?? 0;
-                $distributedDiscount = $pivot->distributed_discount ?? 0;
-                $realPrice = $sellingPrice - $itemDiscount - $distributedDiscount;
+                $netPrice = $sellingPrice - $itemDiscount;
 
                 $details[] = [
                     'name' => $item->product->name ?? 'Unknown HP',
                     'qty' => 1,
-                    'price' => $sellingPrice,
-                    'item_discount' => $itemDiscount,
-                    'distributed_discount' => $distributedDiscount,
-                    'real_price' => $realPrice,
+                    'price' => $netPrice,
+                    'item_discount' => 0,
+                    'distributed_discount' => 0,
                     'is_fixed' => true,
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'HP',
@@ -155,7 +151,7 @@ class AuditController extends Controller
                     'storage' => $item->storage ?? null,
                     'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                 ];
-                $calculatedTotal += $sellingPrice;
+                $calculatedTotal += $netPrice;
             }
 
             // 2. Non-HP Items (process non-bundled ones or remaining quantity)
@@ -168,29 +164,34 @@ class AuditController extends Controller
 
                 $sellingPrice = $item->selling_price ?? 0;
                 $itemDiscount = $item->item_discount ?? 0;
-                $distributedDiscount = $item->distributed_discount ?? 0;
-
-                // For simplicity, if we separated one from a bundle, we keep discount on the bundle
-                $realPrice = ($sellingPrice * $qty) - ($itemDiscount * $qty) - ($isMainNonHp ? 0 : $distributedDiscount);
+                $netPrice = $sellingPrice - $itemDiscount;
 
                 $details[] = [
                     'name' => $item->product->name ?? 'Item Non-HP',
                     'qty' => $qty,
-                    'price' => $sellingPrice,
-                    'item_discount' => $itemDiscount,
-                    'distributed_discount' => $isMainNonHp ? 0 : $distributedDiscount,
-                    'real_price' => $qty > 0 ? ($realPrice / $qty) : 0,
+                    'price' => $netPrice,
+                    'item_discount' => 0,
+                    'distributed_discount' => 0,
                     'is_fixed' => true,
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'Non-HP',
                     'imei' => '-',
                 ];
-                $calculatedTotal += ($sellingPrice * $qty);
+                $calculatedTotal += ($netPrice * $qty);
             }
 
             // 3. Final Adjustment / Gap Handling
             // [REMOVED] We no longer show "Diskon" as a row item per user request.
-            // Any gaps will be handled by the "DISKON ALL" field in the summary.
+            // Any gaps will be handled by the "DISKON" field in the summary.
+
+            // Calculate Global Discount explicitly for the summary
+            $calculatedGlobalDiscount = 0;
+            if ($trx->global_discount_type === 'percentage') {
+                $calculatedGlobalDiscount = ($calculatedTotal * ($trx->global_discount_value ?? 0)) / 100;
+            } else {
+                $calculatedGlobalDiscount = $trx->global_discount_value ?? 0;
+            }
+
             // Outlet Details
             $outletName = 'APEX POS';
             $outletAddress = 'Jl. Raya Example No. 123, Indonesia';
@@ -304,9 +305,9 @@ class AuditController extends Controller
                 'debit' => $debit,
                 'grand_total' => $trx->selling_price, // Final Paid Amount
                 'total_discount' => $trx->total_discount ?? 0,
-                'global_discount_value' => $trx->global_discount_value ?? 0,
-                'global_discount_type' => $trx->global_discount_type ?? 'fixed',
-                'original_price' => $trx->selling_price + ($trx->total_discount ?? 0),
+                'global_discount_value' => $calculatedGlobalDiscount,
+                'global_discount_type' => 'fixed',
+                'original_price' => $trx->selling_price + $calculatedGlobalDiscount,
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress,
                 'customer_wa' => $trx->customer_wa,
