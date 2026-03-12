@@ -69,6 +69,8 @@ class StockOut extends Model
         'payment_method_id',
         'paid_amount',
         'split_payments',
+        'is_bundle',
+        'bundle_description',
     ];
 
     protected $casts = [

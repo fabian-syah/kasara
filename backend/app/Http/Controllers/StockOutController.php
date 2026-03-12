@@ -171,6 +171,8 @@ class StockOutController extends Controller
             'return_destination_id' => 'required_if:category,retur|nullable|exists:warehouses,id',
             'proof_image' => 'nullable|image|max:10240', // Max 10MB
             'split_payments' => 'nullable|string', // JSON string from frontend
+            'is_bundle' => 'nullable|boolean',
+            'bundle_description' => 'nullable|string',
         ];
 
         // Mandatory fields for Sales
@@ -431,6 +433,8 @@ class StockOutController extends Controller
                 'transaction_pin' => $request->transaction_pin,
                 'return_destination_id' => $request->return_destination_id,
                 'proof_image' => $proofImagePath,
+                'is_bundle' => $request->is_bundle ?? false,
+                'bundle_description' => $request->bundle_description,
 
                 // Shopee / Orderan Online
                 'shopee_items_data' => $shopeeItemsData,
@@ -477,6 +481,82 @@ class StockOutController extends Controller
                             'returned_quantity' => 0,
                         ]);
                     }
+                }
+            }
+
+            // Handle bundled items (if any)
+            if ($request->items) {
+                // If the items are passed as a bundle structure, we need to extract the product_detail_ids
+                $allBundleItemIds = [];
+                $allBundleNonHp = [];
+
+                foreach ($request->items as $item) {
+                    if (isset($item['is_bundle']) && $item['is_bundle'] && isset($item['bundle_items'])) {
+                        foreach ($item['bundle_items'] as $bItem) {
+                            if (isset($bItem['imei']) && $bItem['imei']) {
+                                $allBundleItemIds[] = $bItem['id'];
+                            } else {
+                                $allBundleNonHp[] = [
+                                    'product_id' => $bItem['product_id'],
+                                    'quantity' => 1, // Bundles currently handle 1 qty per item
+                                    'selling_price' => $bItem['price'] ?? 0
+                                ];
+                            }
+                        }
+                    }
+                }
+
+                // Add to productDetails if not already there
+                if (!empty($allBundleItemIds)) {
+                    $bundleDetails = ProductDetail::whereIn('id', $allBundleItemIds)
+                        ->where('status', 'available')
+                        ->get();
+
+                    if ($bundleDetails->count() !== count($allBundleItemIds)) {
+                        throw new \Exception('Beberapa barang bundling sudah tidak tersedia.');
+                    }
+                    $productDetails = $productDetails->merge($bundleDetails);
+                }
+
+                // Process Non-HP bundle items
+                foreach ($allBundleNonHp as $bNonHp) {
+                    $product = Product::findOrFail($bNonHp['product_id']);
+                    $invQuery = Inventory::where('product_id', $bNonHp['product_id']);
+
+                    if ($user->branch_id) {
+                        $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                    } elseif ($user->warehouse_id) {
+                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
+                    } elseif ($user->online_shop_id) {
+                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                    }
+
+                    $inventory = $invQuery->first();
+                    if (!$inventory || $inventory->quantity < $bNonHp['quantity']) {
+                        throw new \Exception("Stok bundling tidak cukup untuk produk: {$product->name}");
+                    }
+                    $inventory->decrement('quantity', $bNonHp['quantity']);
+
+                    InventoryLog::create([
+                        'product_id' => $bNonHp['product_id'],
+                        'type' => 'out',
+                        'quantity' => $bNonHp['quantity'],
+                        'balance_after' => $inventory->quantity,
+                        'description' => "Stock Out Bundling ({$request->category})",
+                        'reference_id' => 'OUT-BUN-' . time(),
+                        'user_id' => $user->id,
+                        'branch_id' => $user->branch_id ?? null,
+                        'warehouse_id' => $user->warehouse_id ?? null,
+                        'online_shop_id' => $user->online_shop_id ?? null,
+                    ]);
+
+                    StockOutNonHpItem::create([
+                        'stock_out_id' => $stockOut->id,
+                        'product_id' => $bNonHp['product_id'],
+                        'quantity' => $bNonHp['quantity'],
+                        'received_quantity' => 0,
+                        'returned_quantity' => 0,
+                    ]);
                 }
             }
 

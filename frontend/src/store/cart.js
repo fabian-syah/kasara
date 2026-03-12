@@ -117,13 +117,34 @@ export const useCartStore = defineStore('cart', () => {
         notes.value = ''
     }
 
+    function addBundle(bundleItems, totalPrice, description) {
+        const bundleId = 'bundle-' + Date.now();
+        items.value.push({
+            id: bundleId,
+            name: description,
+            price: totalPrice,
+            quantity: 1,
+            is_bundle: true,
+            bundle_items: bundleItems.map(item => ({
+                id: item.id,
+                product_id: item.product_id || item.product?.id,
+                name: item.product?.name || item.name,
+                imei: item.imei || null,
+                price: item.selling_price || item.price,
+                is_non_hp: !!item.is_non_hp
+            }))
+        });
+    }
+
     function getTransactionData() {
         return {
             items: items.value.map(item => ({
                 product_id: item.id,
                 quantity: item.quantity,
                 price: item.price,
-                subtotal: item.price * item.quantity
+                subtotal: item.price * item.quantity,
+                is_bundle: item.is_bundle || false,
+                bundle_items: item.bundle_items || null
             })),
             customer_id: customer.value?.id || null,
             subtotal: subtotal.value,
@@ -152,6 +173,7 @@ export const useCartStore = defineStore('cart', () => {
         isEmpty,
         // Actions
         addItem,
+        addBundle,
         removeItem,
         updateQuantity,
         incrementQuantity,
