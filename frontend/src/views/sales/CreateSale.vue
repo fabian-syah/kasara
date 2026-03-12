@@ -165,18 +165,33 @@ function addToBundle(product) {
         alert("Produk sudah ada di dalam bundle.");
         return;
     }
-    bundleItems.value.push(product);
-    // Auto-update total price based on inventory prices
-    const currentTotal = bundleItems.value.reduce((sum, item) => sum + (item.selling_price || item.price || 0), 0);
+    const itemToAdd = {
+        ...product,
+        // Use inventory price as initial value and placeholder
+        bundle_price: product.selling_price || product.price || 0,
+        display_bundle_price: formatNumber(product.selling_price || product.price || 0)
+    };
+    bundleItems.value.push(itemToAdd);
+    updateBundleTotal();
+}
+
+function updateBundleTotal() {
+    const currentTotal = bundleItems.value.reduce((sum, item) => sum + (item.bundle_price || 0), 0);
     bundleTotalPrice.value = currentTotal;
     displayBundleTotalPrice.value = formatNumber(currentTotal);
 }
 
+function handleBundleItemPriceInput(idx, e) {
+    const val = e.target.value;
+    const num = parseNumber(val);
+    bundleItems.value[idx].bundle_price = num;
+    bundleItems.value[idx].display_bundle_price = formatNumber(num);
+    updateBundleTotal();
+}
+
 function removeFromBundle(index) {
     bundleItems.value.splice(index, 1);
-    const currentTotal = bundleItems.value.reduce((sum, item) => sum + (item.selling_price || item.price || 0), 0);
-    bundleTotalPrice.value = currentTotal;
-    displayBundleTotalPrice.value = formatNumber(currentTotal);
+    updateBundleTotal();
 }
 
 function handleBundlePriceInput(e) {
@@ -184,6 +199,8 @@ function handleBundlePriceInput(e) {
     const num = parseNumber(val);
     bundleTotalPrice.value = num;
     displayBundleTotalPrice.value = formatNumber(num);
+    // Correctly update the input value to the formatted string to prevent double input
+    e.target.value = formatNumber(num);
 }
 
 function finishBundling() {
@@ -197,7 +214,12 @@ function finishBundling() {
     }
 
     const description = bundleItems.value.map(item => item.product?.name || item.name).join(" + ");
-    cartStore.addBundle(bundleItems.value, bundleTotalPrice.value, description);
+    // Use the custom item prices within the bundle
+    const itemsWithPrices = bundleItems.value.map(item => ({
+        ...item,
+        selling_price: item.bundle_price
+    }));
+    cartStore.addBundle(itemsWithPrices, bundleTotalPrice.value, description);
     showBundlingModal.value = false;
 }
 
@@ -1352,14 +1374,23 @@ watch(() => currentStep.value, (newStep) => {
                                     <p class="text-xs font-medium text-center">Belum ada item dipilih</p>
                                 </div>
                                 <div v-for="(item, idx) in bundleItems" :key="item.id"
-                                    class="p-3 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 flex justify-between items-center animate-fade-in">
-                                    <div class="min-w-0">
-                                        <p class="text-xs font-bold text-text-primary truncate">{{ item.product?.name || item.name }}</p>
-                                        <p class="text-[10px] text-text-secondary">{{ formatCurrency(item.selling_price || item.price) }}</p>
-                                    </div>
-                                    <button @click="removeFromBundle(idx)" class="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg">
-                                        <Trash2 :size="14" />
+                                    class="p-4 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 animate-fade-in relative group/item">
+                                    <button @click="removeFromBundle(idx)" class="absolute top-2 right-2 text-surface-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors z-10">
+                                        <Trash2 :size="16" />
                                     </button>
+                                    
+                                    <div class="mb-3 pr-6">
+                                        <p class="text-xs font-black text-text-primary truncate">{{ item.product?.name || item.name }}</p>
+                                        <p v-if="item.imei" class="text-[10px] font-mono text-text-secondary">{{ item.imei }}</p>
+                                    </div>
+
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="item.display_bundle_price" 
+                                            @input="e => handleBundleItemPriceInput(idx, e)"
+                                            class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all"
+                                            :placeholder="formatNumber(item.selling_price || item.price || 0)" />
+                                    </div>
                                 </div>
                             </div>
 
