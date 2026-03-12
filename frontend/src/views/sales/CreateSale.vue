@@ -161,10 +161,21 @@ function openBundlingModal() {
 }
 
 function addToBundle(product) {
-    if (bundleItems.value.some(item => item.id === product.id)) {
-        alert("Produk sudah ada di dalam bundle.");
-        return;
+    // If it's a non-IMEI item and already in the bundle, just increment quantity
+    if (!product.imei) {
+        const existingItem = bundleItems.value.find(item => item.id === product.id);
+        if (existingItem) {
+            existingItem.quantity = (existingItem.quantity || 0) + 1;
+            updateBundleTotal();
+            return;
+        }
+    } else {
+        if (bundleItems.value.some(item => item.id === product.id)) {
+            alert("Produk sudah ada di dalam bundle.");
+            return;
+        }
     }
+
     const status = getCartStatus(product.id);
     if (status) {
         alert(`Produk ini sudah ada ${status.toLowerCase()}.`);
@@ -174,14 +185,38 @@ function addToBundle(product) {
     const itemToAdd = JSON.parse(JSON.stringify(product));
     itemToAdd.bundle_price = itemToAdd.selling_price || itemToAdd.price || 0;
     itemToAdd.display_bundle_price = formatNumber(itemToAdd.bundle_price);
+    itemToAdd.quantity = 1;
 
     bundleItems.value.push(itemToAdd);
     updateBundleTotal();
 }
 
+function incrementBundleItemQty(index) {
+    const item = bundleItems.value[index];
+    const availableStock = item.stock !== undefined ? item.stock : (item.quantity_available !== undefined ? item.quantity_available : 9999);
+    if (item.quantity < availableStock) {
+        item.quantity++;
+        updateBundleTotal();
+    }
+}
+
+function decrementBundleItemQty(index) {
+    const item = bundleItems.value[index];
+    if (item.quantity > 1) {
+        item.quantity--;
+        updateBundleTotal();
+    } else {
+        removeFromBundle(index);
+    }
+}
+
 function updateBundleTotal() {
-    // Force conversion to Number to avoid string concatenation
-    const currentTotal = bundleItems.value.reduce((sum, item) => sum + Number(item.bundle_price || 0), 0);
+    // Force conversion to Number to avoid string concatenation, multiply by quantity
+    const currentTotal = bundleItems.value.reduce((sum, item) => {
+        const itemPrice = Number(item.bundle_price || 0);
+        const itemQty = Number(item.quantity || 1);
+        return sum + (itemPrice * itemQty);
+    }, 0);
     bundleTotalPrice.value = currentTotal;
     displayBundleTotalPrice.value = formatNumber(currentTotal);
 }
@@ -222,7 +257,10 @@ function finishBundling() {
         return;
     }
 
-    const description = bundleItems.value.map(item => item.product?.name || item.name).join(" + ");
+    const description = bundleItems.value.map(item => {
+        const name = item.product?.name || item.name;
+        return item.quantity > 1 ? `${name} (x${item.quantity})` : name;
+    }).join(" + ");
     // Use the custom item prices within the bundle
     const itemsWithPrices = bundleItems.value.map(item => ({
         ...item,
@@ -1129,7 +1167,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1167,7 +1205,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1266,7 +1304,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1285,7 +1323,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1293,7 +1331,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -1347,7 +1385,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -1412,7 +1450,7 @@ watch(() => currentStep.value, (newStep) => {
                                                 :size="14" class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p class="text-xs text-primary-600 font-bold">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
@@ -1451,13 +1489,34 @@ watch(() => currentStep.value, (newStep) => {
                                             item.imei }}</p>
                                     </div>
 
-                                    <div class="relative">
-                                        <span
-                                            class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
-                                        <input type="text" :value="item.display_bundle_price"
-                                            @input="e => handleBundleItemPriceInput(idx, e)"
-                                            class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all"
-                                            :placeholder="formatNumber(item.selling_price || item.price || 0)" />
+                                    <div class="flex items-center justify-between gap-3">
+                                        <!-- Quantity Controls for non-IMEI -->
+                                        <div v-if="!item.imei"
+                                            class="flex items-center bg-surface-100 dark:bg-surface-900 rounded-lg border border-surface-200 dark:border-surface-700 h-9">
+                                            <button @click="decrementBundleItemQty(idx)"
+                                                class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors rounded-l-lg font-black">-</button>
+                                            <span
+                                                class="px-3 text-xs font-black text-center border-x border-surface-200 dark:border-surface-700 h-full flex items-center bg-white dark:bg-surface-800">
+                                                {{ item.quantity }}<span
+                                                    class="text-[10px] text-text-secondary ml-0.5">x</span>
+                                            </span>
+                                            <button @click="incrementBundleItemQty(idx)"
+                                                class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors rounded-r-lg font-black">+</button>
+                                        </div>
+                                        <div v-else
+                                            class="h-9 px-3 flex items-center justify-center bg-surface-100 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                                            1 Unit
+                                        </div>
+
+                                        <!-- Price Input -->
+                                        <div class="relative flex-1">
+                                            <span
+                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
+                                            <input type="text" :value="item.display_bundle_price"
+                                                @input="e => handleBundleItemPriceInput(idx, e)"
+                                                class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all h-9"
+                                                :placeholder="formatNumber(item.selling_price || item.price || 0)" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

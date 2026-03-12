@@ -498,7 +498,7 @@ class StockOutController extends Controller
                             } else {
                                 $allBundleNonHp[] = [
                                     'product_id' => $bItem['product_id'],
-                                    'quantity' => 1, // Bundles currently handle 1 qty per item
+                                    'quantity' => $bItem['quantity'] ?? 1,
                                     'selling_price' => $bItem['price'] ?? 0
                                 ];
                             }
