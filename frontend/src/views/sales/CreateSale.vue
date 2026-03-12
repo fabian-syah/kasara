@@ -176,9 +176,9 @@ function addToBundle(product) {
         }
     }
 
-    const status = getCartStatus(product.id);
-    if (status) {
-        alert(`Produk ini sudah ada ${status.toLowerCase()}.`);
+    if (isItemFullyOccupied(product)) {
+        const status = getCartStatus(product.id);
+        alert(`Produk ini sudah tidak tersedia (Sudah ada ${status?.toLowerCase() || 'di keranjang'}).`);
         return;
     }
     // Deep copy to avoid reference issues
@@ -382,24 +382,62 @@ function isItemInCart(itemId) {
 }
 
 function getCartStatus(itemId) {
-    const item = cartItems.value.find(i => i.id === itemId);
+    const item = cartItems.value.find(i => i.id === itemId && !i.is_bundle);
     if (item) return "Di Keranjang";
     const bundle = cartItems.value.find(i => i.is_bundle && i.bundle_items && i.bundle_items.some(bi => bi.id === itemId));
     if (bundle) return "Dalam Bundle";
     return null;
 }
 
+function getTotalSpentQuantity(itemId) {
+    let total = 0;
+    cartItems.value.forEach(item => {
+        if (item.id === itemId && !item.is_bundle) {
+            total += (item.quantity || 1);
+        }
+        if (item.is_bundle && item.bundle_items) {
+            const bi = item.bundle_items.find(b => b.id === itemId);
+            if (bi) {
+                total += (bi.quantity || 1);
+            }
+        }
+    });
+
+    // Also count items in the bundle currently being built
+    const inCurrentBundle = bundleItems.value.find(bi => bi.id === itemId);
+    if (inCurrentBundle) {
+        total += (inCurrentBundle.quantity || 1);
+    }
+
+    return total;
+}
+
+function isItemFullyOccupied(product) {
+    if (product.imei) {
+        return getCartStatus(product.id) !== null;
+    }
+    const spent = getTotalSpentQuantity(product.id);
+    const stock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 0);
+    return spent >= stock;
+}
+
 function addToCart(product) {
-    const status = getCartStatus(product.id);
-    if (status) {
-        alert(`Produk ini sudah ada ${status.toLowerCase()}.`);
+    if (isItemFullyOccupied(product)) {
+        const status = getCartStatus(product.id);
+        alert(`Produk ini sudah tidak tersedia (Sudah ada ${status?.toLowerCase() || 'di keranjang'}).`);
         return;
     }
 
-    const availableStock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 1);
-    if (availableStock > 0) {
-        cartStore.addItem(product);
+    if (!product.imei) {
+        // If already in cart (individual), increment quantity
+        const existingInCart = cartItems.value.find(i => i.id === product.id && !i.is_bundle);
+        if (existingInCart) {
+            cartStore.incrementQuantity(product.id);
+            return;
+        }
     }
+
+    cartStore.addItem(product);
 }
 
 function removeFromCart(productId) {
@@ -925,7 +963,7 @@ watch(() => currentStep.value, (newStep) => {
                                             formatCurrency(item.selling_price || item.price) }}</span>
                                     </td>
                                     <td class="px-6 py-5 text-right">
-                                        <button v-if="!getCartStatus(item.id)" @click="addToCart(item)"
+                                        <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
                                             class="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 hover:bg-primary-600 hover:text-white dark:bg-primary-900/50 dark:text-primary-400 dark:hover:bg-primary-600 dark:hover:text-white rounded-xl transition-all shadow-sm active:scale-95 ml-auto">
                                             <Plus :size="24" stroke-width="3" />
                                         </button>
@@ -951,7 +989,7 @@ watch(() => currentStep.value, (newStep) => {
                                         <span class="text-[10px] text-primary-600 font-bold uppercase tracking-wider">{{
                                             item.product?.brand || '-' }}</span>
                                     </div>
-                                    <button v-if="!getCartStatus(item.id)" @click="addToCart(item)"
+                                    <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
                                         class="w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
                                         <Plus :size="20" stroke-width="3" />
                                     </button>
@@ -1167,7 +1205,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1205,7 +1243,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1304,7 +1342,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1323,7 +1361,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1331,7 +1369,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -1385,7 +1423,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -1440,26 +1478,24 @@ watch(() => currentStep.value, (newStep) => {
                             <div class="space-y-3">
                                 <div v-for="item in filteredProducts" :key="item.id" @click="addToBundle(item)"
                                     class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group"
-                                    :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': bundleItems.some(bi => bi.id === item.id) || getCartStatus(item.id) }">
+                                    :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': isItemFullyOccupied(item) }">
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
                                                 item.name }}</p>
-                                            <CheckCircle
-                                                v-if="bundleItems.some(bi => bi.id === item.id) || getCartStatus(item.id)"
-                                                :size="14" class="text-emerald-500" />
+                                            <CheckCircle v-if="getCartStatus(item.id)" :size="14"
+                                                class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p class="text-xs text-primary-600 font-bold">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
-                                    <Plus v-if="!bundleItems.some(bi => bi.id === item.id) && !getCartStatus(item.id)"
-                                        :size="18"
+                                    <Plus v-if="!isItemFullyOccupied(item)" :size="18"
                                         class="text-surface-400 group-hover:text-primary-500 transition-colors" />
                                     <span v-else
                                         class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{{
-                                            getCartStatus(item.id) || 'Terpilih' }}</span>
+                                            getCartStatus(item.id) || 'Stok Habis' }}</span>
                                 </div>
                             </div>
                         </div>
