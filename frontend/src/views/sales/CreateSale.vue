@@ -160,6 +160,13 @@ function openBundlingModal() {
     showBundlingModal.value = true;
 }
 
+function closeBundlingModal() {
+    bundleItems.value = [];
+    bundleTotalPrice.value = 0;
+    displayBundleTotalPrice.value = "0";
+    showBundlingModal.value = false;
+}
+
 function addToBundle(product) {
     if (isItemFullyOccupied(product)) {
         const status = getCartStatus(product.id);
@@ -276,7 +283,7 @@ function finishBundling() {
         selling_price: item.bundle_price
     }));
     cartStore.addBundle(itemsWithPrices, bundleTotalPrice.value, description);
-    showBundlingModal.value = false;
+    closeBundlingModal();
 }
 
 function toggleBundling() {
@@ -1470,13 +1477,13 @@ watch(() => currentStep.value, (newStep) => {
         <!-- BUNDLING MODAL -->
         <Teleport to="body">
             <div v-if="showBundlingModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="showBundlingModal = false"></div>
+                <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="closeBundlingModal"></div>
                 <div
                     class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                     <div
                         class="p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
                         <h3 class="text-2xl font-black text-text-primary">Buat Sistem Bundling</h3>
-                        <button @click="showBundlingModal = false"
+                        <button @click="closeBundlingModal"
                             class="p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
                             <X :size="24" />
                         </button>
