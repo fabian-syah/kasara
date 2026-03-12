@@ -71,6 +71,9 @@ class StockOut extends Model
         'split_payments',
         'is_bundle',
         'bundle_description',
+        'total_discount',
+        'global_discount_value',
+        'global_discount_type',
     ];
 
     protected $casts = [

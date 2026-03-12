@@ -84,70 +84,51 @@ class AuditController extends Controller
             $details = [];
             $calculatedTotal = 0;
 
-            if ($trx->is_bundle && $trx->bundle_description) {
-                $allImeis = $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-';
+            // 1. HP Items
+            foreach ($trx->items as $item) {
+                $pivot = $item->pivot;
+                $sellingPrice = $pivot->selling_price ?? $item->selling_price;
+                $itemDiscount = $pivot->item_discount ?? 0;
+                $distributedDiscount = $pivot->distributed_discount ?? 0;
+                $realPrice = $sellingPrice - $itemDiscount - $distributedDiscount;
+
                 $details[] = [
-                    'name' => $trx->bundle_description ?: 'Paket Bundling',
+                    'name' => $item->product->name ?? 'Unknown HP',
                     'qty' => 1,
-                    'price' => $trx->selling_price + ($trx->total_discount ?? 0),
-                    'item_discount' => 0,
-                    'distributed_discount' => $trx->total_discount ?? 0,
-                    'real_price' => $trx->selling_price,
+                    'price' => $sellingPrice,
+                    'item_discount' => $itemDiscount,
+                    'distributed_discount' => $distributedDiscount,
+                    'real_price' => $realPrice,
                     'is_fixed' => true,
-                    'brand' => '-',
-                    'type' => 'Bundle',
-                    'imei' => $allImeis,
-                    'storage' => null,
-                    'condition' => null,
+                    'brand' => $item->product->brand ?? '-',
+                    'type' => 'HP',
+                    'imei' => $item->imei ?? '-',
+                    'storage' => $item->storage ?? null,
+                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                 ];
-                $calculatedTotal = $trx->selling_price;
-            } else {
-                // 1. HP Items
-                foreach ($trx->items as $item) {
-                    $pivot = $item->pivot;
-                    $sellingPrice = $pivot->selling_price ?? $item->selling_price;
-                    $itemDiscount = $pivot->item_discount ?? 0;
-                    $distributedDiscount = $pivot->distributed_discount ?? 0;
-                    $realPrice = $sellingPrice - $itemDiscount - $distributedDiscount;
+                $calculatedTotal += $sellingPrice;
+            }
 
-                    $details[] = [
-                        'name' => $item->product->name ?? 'Unknown HP',
-                        'qty' => 1,
-                        'price' => $sellingPrice,
-                        'item_discount' => $itemDiscount,
-                        'distributed_discount' => $distributedDiscount,
-                        'real_price' => $realPrice,
-                        'is_fixed' => true,
-                        'brand' => $item->product->brand ?? '-',
-                        'type' => 'HP',
-                        'imei' => $item->imei ?? '-',
-                        'storage' => $item->storage ?? null,
-                        'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
-                    ];
-                    $calculatedTotal += $sellingPrice;
-                }
+            // 2. Non-HP Items
+            foreach ($trx->nonHpItems as $item) {
+                $sellingPrice = $item->selling_price ?? 0;
+                $itemDiscount = $item->item_discount ?? 0;
+                $distributedDiscount = $item->distributed_discount ?? 0;
+                $realPrice = ($sellingPrice * $item->quantity) - ($itemDiscount * $item->quantity) - $distributedDiscount;
 
-                // 2. Non-HP Items
-                foreach ($trx->nonHpItems as $item) {
-                    $sellingPrice = $item->selling_price ?? 0;
-                    $itemDiscount = $item->item_discount ?? 0;
-                    $distributedDiscount = $item->distributed_discount ?? 0;
-                    $realPrice = ($sellingPrice * $item->quantity) - ($itemDiscount * $item->quantity) - $distributedDiscount;
-
-                    $details[] = [
-                        'name' => $item->product->name ?? 'Item Non-HP',
-                        'qty' => $item->quantity,
-                        'price' => $sellingPrice,
-                        'item_discount' => $itemDiscount,
-                        'distributed_discount' => $distributedDiscount,
-                        'real_price' => $item->quantity > 0 ? ($realPrice / $item->quantity) : 0,
-                        'is_fixed' => true,
-                        'brand' => $item->product->brand ?? '-',
-                        'type' => 'Non-HP',
-                        'imei' => '-',
-                    ];
-                    $calculatedTotal += ($sellingPrice * $item->quantity);
-                }
+                $details[] = [
+                    'name' => $item->product->name ?? 'Item Non-HP',
+                    'qty' => $item->quantity,
+                    'price' => $sellingPrice,
+                    'item_discount' => $itemDiscount,
+                    'distributed_discount' => $distributedDiscount,
+                    'real_price' => $item->quantity > 0 ? ($realPrice / $item->quantity) : 0,
+                    'is_fixed' => true,
+                    'brand' => $item->product->brand ?? '-',
+                    'type' => 'Non-HP',
+                    'imei' => '-',
+                ];
+                $calculatedTotal += ($sellingPrice * $item->quantity);
             }
 
             // 3. Final Adjustment / Gap Handling
@@ -261,11 +242,11 @@ class AuditController extends Controller
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
-                'product_names' => $trx->is_bundle ? ($trx->bundle_description ?: 'Paket Bundling') : (collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-'),
+                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: ($trx->is_bundle ? $trx->bundle_description : '-'),
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
                 'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
-                'qty' => $trx->is_bundle ? 1 : ($trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity'))),
+                'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
                 'payment_method' => $trx->category === 'penjualan_offline' ? 'Offline' : 'Online',
