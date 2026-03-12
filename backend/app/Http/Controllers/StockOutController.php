@@ -139,6 +139,8 @@ class StockOutController extends Controller
                     'promo',
                     'inventaris',
                     'penjualan',
+                    'shopee',
+                    'bundling',
                     'tukar_unit',
                     'downgrade',
                 ])
