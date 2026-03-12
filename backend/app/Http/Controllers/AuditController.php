@@ -84,73 +84,88 @@ class AuditController extends Controller
             $details = [];
             $calculatedTotal = 0;
 
-            // 1. HP Items
-            foreach ($trx->items as $item) {
-                // IMPORTANT: In audit reports, we use the selling_price from pivot table (stock_out_items) 
-                // but currently Pivot selling_price is in ProductDetail model or pivot? 
-                // Actually, AuditController uses $item->selling_price from ProductDetail model.
-                $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
-
+            if ($trx->is_bundle) {
                 $details[] = [
-                    'name' => $item->product->name ?? 'Unknown HP',
+                    'name' => $trx->bundle_description ?: 'Paket Bundling',
                     'qty' => 1,
-                    'price' => $price,
+                    'price' => $trx->selling_price,
                     'is_fixed' => true,
-                    'brand' => $item->product->brand ?? '-',
-                    'type' => 'HP',
-                    'imei' => $item->imei ?? '-',
-                    'storage' => $item->storage ?? null,
-                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
+                    'brand' => '-',
+                    'type' => 'Bundle',
+                    'imei' => '-',
+                    'storage' => null,
+                    'condition' => null,
                 ];
-                $calculatedTotal += $price;
-            }
-
-            // 2. Non-HP Items
-            // Priority: Use the JSON column `non_hp_items` which contains the historical `selling_price`
-            // Fallback: Use Relationship `nonHpItems` if JSON is empty (legacy data)
-
-            $jsonItems = $trx->non_hp_items; // Accessor for JSON column
-            $hasJsonData = is_array($jsonItems) && count($jsonItems) > 0;
-
-            if ($hasJsonData) {
-                // Map product IDs to Names using the eager-loaded relationship to avoid N+1 queries
-                $productMap = $trx->nonHpItems->pluck('product', 'product_id');
-                // Also fetch any prod not in relationship? Unlikely if integrity is kept.
-                // But if relationship is missing (e.g. deleted), we might need to fetch. 
-                // For now, rely on map.
-
-                foreach ($jsonItems as $itemData) {
-                    $pid = $itemData['product_id'] ?? null;
-                    $product = $productMap[$pid] ?? null;
-                    // Fallback name if product deleted
-                    $name = $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP');
-
-                    $price = $itemData['selling_price'] ?? 0;
-                    $qty = $itemData['quantity'] ?? 1;
+                $calculatedTotal = $trx->selling_price;
+            } else {
+                // 1. HP Items
+                foreach ($trx->items as $item) {
+                    // IMPORTANT: In audit reports, we use the selling_price from pivot table (stock_out_items) 
+                    // but currently Pivot selling_price is in ProductDetail model or pivot? 
+                    // Actually, AuditController uses $item->selling_price from ProductDetail model.
+                    $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
 
                     $details[] = [
-                        'name' => $name,
-                        'qty' => $qty,
+                        'name' => $item->product->name ?? 'Unknown HP',
+                        'qty' => 1,
                         'price' => $price,
                         'is_fixed' => true,
-                        'brand' => $product ? ($product->brand ?? '-') : '-',
-                        'type' => 'Non-HP'
+                        'brand' => $item->product->brand ?? '-',
+                        'type' => 'HP',
+                        'imei' => $item->imei ?? '-',
+                        'storage' => $item->storage ?? null,
+                        'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                     ];
-                    $calculatedTotal += ($price * $qty);
+                    $calculatedTotal += $price;
                 }
-            } else {
-                // FALLBACK: Use Relation + Base Price (Legacy)
-                foreach ($trx->nonHpItems as $nhp) {
-                    $basePrice = $nhp->product->price ?? 0;
-                    $details[] = [
-                        'name' => $nhp->product->name ?? 'Unknown Item',
-                        'qty' => $nhp->quantity,
-                        'price' => $basePrice,
-                        'is_fixed' => true,
-                        'brand' => $nhp->product->brand ?? '-',
-                        'type' => 'Non-HP'
-                    ];
-                    $calculatedTotal += ($basePrice * $nhp->quantity);
+
+                // 2. Non-HP Items
+                // Priority: Use the JSON column `non_hp_items` which contains the historical `selling_price`
+                // Fallback: Use Relationship `nonHpItems` if JSON is empty (legacy data)
+
+                $jsonItems = $trx->non_hp_items; // Accessor for JSON column
+                $hasJsonData = is_array($jsonItems) && count($jsonItems) > 0;
+
+                if ($hasJsonData) {
+                    // Map product IDs to Names using the eager-loaded relationship to avoid N+1 queries
+                    $productMap = $trx->nonHpItems->pluck('product', 'product_id');
+                    // Also fetch any prod not in relationship? Unlikely if integrity is kept.
+                    // But if relationship is missing (e.g. deleted), we might need to fetch. 
+                    // For now, rely on map.
+
+                    foreach ($jsonItems as $itemData) {
+                        $pid = $itemData['product_id'] ?? null;
+                        $product = $productMap[$pid] ?? null;
+                        // Fallback name if product deleted
+                        $name = $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP');
+
+                        $price = $itemData['selling_price'] ?? 0;
+                        $qty = $itemData['quantity'] ?? 1;
+
+                        $details[] = [
+                            'name' => $name,
+                            'qty' => $qty,
+                            'price' => $price,
+                            'is_fixed' => true,
+                            'brand' => $product ? ($product->brand ?? '-') : '-',
+                            'type' => 'Non-HP'
+                        ];
+                        $calculatedTotal += ($price * $qty);
+                    }
+                } else {
+                    // FALLBACK: Use Relation + Base Price (Legacy)
+                    foreach ($trx->nonHpItems as $nhp) {
+                        $basePrice = $nhp->product->price ?? 0;
+                        $details[] = [
+                            'name' => $nhp->product->name ?? 'Unknown Item',
+                            'qty' => $nhp->quantity,
+                            'price' => $basePrice,
+                            'is_fixed' => true,
+                            'brand' => $nhp->product->brand ?? '-',
+                            'type' => 'Non-HP'
+                        ];
+                        $calculatedTotal += ($basePrice * $nhp->quantity);
+                    }
                 }
             }
 
@@ -265,11 +280,11 @@ class AuditController extends Controller
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
-                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
-                'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
-                'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
-                'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
-                'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
+                'product_names' => $trx->is_bundle ? ($trx->bundle_description ?: 'Paket Bundling') : (collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-'),
+                'imeis' => $trx->is_bundle ? '-' : ($trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-'),
+                'storages' => $trx->is_bundle ? null : ($trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null),
+                'conditions' => $trx->is_bundle ? null : ($trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null),
+                'qty' => $trx->is_bundle ? 1 : ($trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity'))),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
                 'payment_method' => $trx->category === 'penjualan_offline' ? 'Offline' : 'Online',
