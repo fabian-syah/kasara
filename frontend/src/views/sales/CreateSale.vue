@@ -165,15 +165,16 @@ function addToBundle(product) {
         alert("Produk sudah ada di dalam bundle.");
         return;
     }
-    // Deep copy and ensure prices are numbers
-    const rawPrice = product.selling_price || product.price || 0;
-    const initialPrice = parseNumber(rawPrice);
+    const status = getCartStatus(product.id);
+    if (status) {
+        alert(`Produk ini sudah ada ${status.toLowerCase()}.`);
+        return;
+    }
+    // Deep copy to avoid reference issues
+    const itemToAdd = JSON.parse(JSON.stringify(product));
+    itemToAdd.bundle_price = itemToAdd.selling_price || itemToAdd.price || 0;
+    itemToAdd.display_bundle_price = formatNumber(itemToAdd.bundle_price);
 
-    const itemToAdd = {
-        ...product,
-        bundle_price: initialPrice,
-        display_bundle_price: formatNumber(initialPrice)
-    };
     bundleItems.value.push(itemToAdd);
     updateBundleTotal();
 }
@@ -1401,23 +1402,26 @@ watch(() => currentStep.value, (newStep) => {
                             <div class="space-y-3">
                                 <div v-for="item in filteredProducts" :key="item.id" @click="addToBundle(item)"
                                     class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group"
-                                    :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': bundleItems.some(bi => bi.id === item.id) }">
+                                    :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': bundleItems.some(bi => bi.id === item.id) || getCartStatus(item.id) }">
                                     <div>
                                         <div class="flex items-center gap-2">
                                             <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
                                                 item.name }}</p>
-                                            <CheckCircle v-if="bundleItems.some(bi => bi.id === item.id)" :size="14"
-                                                class="text-emerald-500" />
+                                            <CheckCircle
+                                                v-if="bundleItems.some(bi => bi.id === item.id) || getCartStatus(item.id)"
+                                                :size="14" class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
                                             }}</p>
                                         <p class="text-xs text-primary-600 font-bold">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
-                                    <Plus v-if="!bundleItems.some(bi => bi.id === item.id)" :size="18"
+                                    <Plus v-if="!bundleItems.some(bi => bi.id === item.id) && !getCartStatus(item.id)"
+                                        :size="18"
                                         class="text-surface-400 group-hover:text-primary-500 transition-colors" />
                                     <span v-else
-                                        class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Terpilih</span>
+                                        class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{{
+                                            getCartStatus(item.id) || 'Terpilih' }}</span>
                                 </div>
                             </div>
                         </div>
