@@ -189,16 +189,8 @@ class AuditController extends Controller
             }
 
             // 3. Final Adjustment / Gap Handling
-            $remainingBalance = $trx->selling_price - $calculatedTotal;
-
-            if (abs($remainingBalance) > 1) {
-                $details[] = [
-                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon',
-                    'qty' => 1,
-                    'price' => $remainingBalance
-                ];
-            }
-
+            // [REMOVED] We no longer show "Diskon" as a row item per user request.
+            // Any gaps will be handled by the "DISKON ALL" field in the summary.
             // Outlet Details
             $outletName = 'APEX POS';
             $outletAddress = 'Jl. Raya Example No. 123, Indonesia';

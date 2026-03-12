@@ -114,6 +114,7 @@
                                     <td class="py-3 px-1"></td>
                                     <td class="py-3 px-1"></td>
                                 </tr>
+                                <!-- No summary rows inside table to keep it clean -->
                             </tbody>
                         </table>
 
@@ -122,20 +123,21 @@
                             <div class="w-[240px] text-xs space-y-1">
                                 <!-- Subtotal before all discounts -->
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black">SUBTOTAL :</span>
+                                    <span class="font-bold text-black">SUB TOTAL :</span>
                                     <span class="text-black">
                                         {{ formatCurrency(transaction.original_price || 0) }}
                                     </span>
                                 </div>
 
-                                <!-- Global Discount Column -->
-                                <div v-if="transaction.global_discount_value > 0"
-                                    class="flex justify-between border-b border-gray-300 pb-1 text-primary-700 font-bold italic">
-                                    <span>DISKON ALL :</span>
+                                <!-- Dynamic Discount Row (Combined Item + Global) -->
+                                <div v-if="(transaction.total_discount > 0 || transaction.global_discount_value > 0)"
+                                    class="flex justify-between border-b border-gray-300 pb-1 text-black font-bold italic">
+                                    <span>DISKON :</span>
                                     <span>
-                                        -{{ formatCurrency(transaction.global_discount_type === 'percentage'
-                                            ? (transaction.original_price * transaction.global_discount_value / 100)
-                                            : transaction.global_discount_value) }}
+                                        -{{ formatCurrency(transaction.total_discount ||
+                                            (transaction.global_discount_type === 'percentage'
+                                                ? (transaction.original_price * transaction.global_discount_value / 100)
+                                                : transaction.global_discount_value)) }}
                                     </span>
                                 </div>
 
