@@ -167,12 +167,18 @@ function addToBundle(product) {
         return;
     }
 
+    const availableStock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 0);
+
     // If it's a non-IMEI item and already in the bundle, just increment quantity
     if (!product.imei) {
         const existingItem = bundleItems.value.find(item => item.id === product.id);
         if (existingItem) {
-            existingItem.quantity = (existingItem.quantity || 0) + 1;
-            updateBundleTotal();
+            if (!isItemFullyOccupied(existingItem)) {
+                existingItem.quantity = (existingItem.quantity || 0) + 1;
+                updateBundleTotal();
+            } else {
+                alert("Stok tidak mencukupi.");
+            }
             return;
         }
     } else {
@@ -184,6 +190,7 @@ function addToBundle(product) {
 
     // Deep copy to avoid reference issues
     const itemToAdd = JSON.parse(JSON.stringify(product));
+    itemToAdd.stock = availableStock; // Preserve original stock
     itemToAdd.bundle_price = itemToAdd.selling_price || itemToAdd.price || 0;
     itemToAdd.display_bundle_price = formatNumber(itemToAdd.bundle_price);
     itemToAdd.quantity = 1;
@@ -419,8 +426,9 @@ function isItemFullyOccupied(product) {
         return getCartStatus(product.id) !== null;
     }
     const spent = getTotalSpentQuantity(product.id);
-    const stock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 0);
-    return spent >= stock;
+    // PRIORITIZE .stock (limit) OVER .quantity (which might be order qty)
+    const stockLimit = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 0);
+    return spent >= stockLimit;
 }
 
 function addToCart(product) {
@@ -1213,7 +1221,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1251,7 +1259,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1350,7 +1358,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1369,7 +1377,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1377,7 +1385,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -1431,7 +1439,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -1495,7 +1503,7 @@ watch(() => currentStep.value, (newStep) => {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p class="text-xs text-primary-600 font-bold">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
