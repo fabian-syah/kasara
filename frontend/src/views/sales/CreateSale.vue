@@ -598,7 +598,7 @@ async function processPayment(pin = null) {
         }
         const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
         formData.append('paid_amount', totalPaid);
-        formData.append('selling_price', cartStore.total);
+        formData.append('selling_price', Number(cartStore.total || 0));
 
         // Form details
         formData.append('customer_name', customerForm.value.customer_name);
@@ -621,7 +621,7 @@ async function processPayment(pin = null) {
             } else {
                 formData.append(`non_hp_items[${nonHpIndex}][product_id]`, item.product_id || item.id);
                 formData.append(`non_hp_items[${nonHpIndex}][quantity]`, item.quantity);
-                formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, item.price || 0);
+                formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, Number(item.price || 0));
                 nonHpIndex++;
             }
         });
@@ -1232,7 +1232,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1270,7 +1270,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1369,7 +1369,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1388,7 +1388,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1396,7 +1396,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -1450,7 +1450,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -1514,7 +1514,7 @@ watch(() => currentStep.value, (newStep) => {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
