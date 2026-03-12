@@ -17,12 +17,12 @@ export const useCartStore = defineStore('cart', () => {
 
     // Subtotal before any discounts (Sum of Original Price * Qty)
     const subtotal = computed(() =>
-        items.value.reduce((total, item) => total + (item.price * item.quantity), 0)
+        items.value.reduce((total, item) => total + (Number(item.price || 0) * Number(item.quantity || 1)), 0)
     )
 
     // Sum of per-item discounts
     const itemDiscountTotal = computed(() =>
-        items.value.reduce((total, item) => total + ((item.discount || 0) * item.quantity), 0)
+        items.value.reduce((total, item) => total + (Number(item.discount || 0) * Number(item.quantity || 1)), 0)
     )
 
     // Total after item-level discounts but before global discount
@@ -64,7 +64,7 @@ export const useCartStore = defineStore('cart', () => {
             items.value.push({
                 id: product.id,
                 name: product.product?.name || product.name,
-                price: product.selling_price || product.price,
+                price: Number(product.selling_price || product.price || 0),
                 discount: 0,
                 stock: availableStock,
                 quantity: 1,
@@ -145,14 +145,17 @@ export const useCartStore = defineStore('cart', () => {
 
     // Helper for proportional global discount distribution
     function getDistributedGlobalDiscount(item) {
-        const itemPriceAfterItemDiscount = item.price - (item.discount || 0);
-        const itemTotalAfterItemDiscount = itemPriceAfterItemDiscount * item.quantity;
+        const itemPriceAfterItemDiscount = Number(item.price || 0) - Number(item.discount || 0);
+        const itemTotalAfterItemDiscount = itemPriceAfterItemDiscount * Number(item.quantity || 1);
 
-        if (totalAfterItemDiscounts.value === 0) return 0;
+        const netTotal = Number(totalAfterItemDiscounts.value || 0);
+        if (netTotal <= 0) return 0;
 
         // Ratio based on its share of total sales value
-        const ratio = itemTotalAfterItemDiscount / totalAfterItemDiscounts.value;
-        return discountAmount.value * ratio;
+        const ratio = itemTotalAfterItemDiscount / netTotal;
+        const distributed = Number(discountAmount.value || 0) * ratio;
+
+        return isNaN(distributed) ? 0 : distributed;
     }
 
     function addBundle(bundleItems, totalPrice, description) {

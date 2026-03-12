@@ -14,6 +14,8 @@ export function formatCurrency(amount, options = {}) {
         decimalSep = ','
     } = options
 
+    if (amount === null || amount === undefined || isNaN(amount)) return `${symbol} 0`
+
     const fixed = Math.abs(amount).toFixed(decimals)
     const parts = fixed.split('.')
     const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandSep)
