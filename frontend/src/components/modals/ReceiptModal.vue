@@ -291,35 +291,54 @@ const formatNumber = (value) => {
 }
 
 @media print {
-    body * {
-        visibility: hidden;
+    @page {
+        margin: 0;
+        size: auto;
     }
 
-    #receipt-modal-print-wrapper,
-    #receipt-modal-print-wrapper * {
-        visibility: visible;
-    }
-
-    #receipt-modal-print-wrapper {
-        position: fixed !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
+    body {
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
-        z-index: 999999 !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: flex-start !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide everything on the page */
+    body>* {
+        display: none !important;
+    }
+
+    /* Only show the modal wrapper and its content */
+    #receipt-modal-print-wrapper {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        z-index: 9999999 !important;
+    }
+
+    #receipt-modal-print-wrapper * {
+        visibility: visible !important;
+        color: black !important;
     }
 
     #receipt-modal-print-wrapper>div {
+        display: block !important;
         max-width: none !important;
+        width: 100% !important;
+        height: auto !important;
         box-shadow: none !important;
         border-radius: 0 !important;
-        width: 100% !important;
+        background: white !important;
+        overflow: visible !important;
+        max-height: none !important;
     }
 
     .nota-paper {
@@ -327,11 +346,22 @@ const formatNumber = (value) => {
         box-shadow: none !important;
         width: 100% !important;
         max-width: none !important;
-        padding: 10mm !important;
+        padding: 15mm !important;
+        /* Proper margin for printing */
+        margin: 0 auto !important;
+        transform: scale(1.15);
+        /* Automatic scaling as requested */
+        transform-origin: top center;
     }
 
-    .print\:hidden {
+    .print\:hidden,
+    .shrink-0 {
         display: none !important;
+    }
+
+    /* Force images to show in print */
+    img {
+        -webkit-print-color-adjust: exact;
     }
 }
 </style>
