@@ -334,7 +334,29 @@ const submitButtonText = computed(() => {
     return isFormValid.value ? 'SELESAIKAN TRANSAKSI' : 'ISI SEMUA DATA';
 });
 
+function isItemInCart(itemId) {
+    return cartItems.value.some(item => {
+        if (item.id === itemId) return true;
+        if (item.is_bundle && item.bundle_items && item.bundle_items.some(bi => bi.id === itemId)) return true;
+        return false;
+    });
+}
+
+function getCartStatus(itemId) {
+    const item = cartItems.value.find(i => i.id === itemId);
+    if (item) return "Di Keranjang";
+    const bundle = cartItems.value.find(i => i.is_bundle && i.bundle_items && i.bundle_items.some(bi => bi.id === itemId));
+    if (bundle) return "Dalam Bundle";
+    return null;
+}
+
 function addToCart(product) {
+    const status = getCartStatus(product.id);
+    if (status) {
+        alert(`Produk ini sudah ada ${status.toLowerCase()}.`);
+        return;
+    }
+
     if (currentStep.value === 3 && (transactionCategory.value === 'penjualan' || transactionCategory.value === 'bundling')) {
         if (cartItems.value.length >= 1 && !cartItems.value.some(item => item.is_bundle)) {
             alert("Mode Penjualan Normal hanya memperbolehkan 1 jenis barang. Gunakan sistem Bundling jika ingin menambah lebih banyak.");
@@ -802,7 +824,7 @@ watch(() => currentStep.value, (newStep) => {
                     </div>
 
                     <div
-                        class="flex-1 overflow-y-auto overflow-hidden custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 mb-4 shadow-sm">
+                        class="flex-1 overflow-y-auto overflow-x-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 mb-4 shadow-sm">
 
                         <!-- Table for Tablet/Desktop -->
                         <table class="w-full text-left border-collapse hidden md:table">
@@ -871,10 +893,17 @@ watch(() => currentStep.value, (newStep) => {
                                             formatCurrency(item.selling_price || item.price) }}</span>
                                     </td>
                                     <td class="px-6 py-5 text-right">
-                                        <button @click="addToCart(item)"
+                                        <button v-if="!getCartStatus(item.id)" @click="addToCart(item)"
                                             class="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 hover:bg-primary-600 hover:text-white dark:bg-primary-900/50 dark:text-primary-400 dark:hover:bg-primary-600 dark:hover:text-white rounded-xl transition-all shadow-sm active:scale-95 ml-auto">
                                             <Plus :size="24" stroke-width="3" />
                                         </button>
+                                        <div v-else class="flex flex-col items-end">
+                                            <div
+                                                class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded-lg">
+                                                <CheckCircle :size="14" />
+                                                {{ getCartStatus(item.id) }}
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
@@ -890,10 +919,15 @@ watch(() => currentStep.value, (newStep) => {
                                         <span class="text-[10px] text-primary-600 font-bold uppercase tracking-wider">{{
                                             item.product?.brand || '-' }}</span>
                                     </div>
-                                    <button @click="addToCart(item)"
+                                    <button v-if="!getCartStatus(item.id)" @click="addToCart(item)"
                                         class="w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
                                         <Plus :size="20" stroke-width="3" />
                                     </button>
+                                    <div v-else
+                                        class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg">
+                                        <CheckCircle :size="12" />
+                                        {{ getCartStatus(item.id) }}
+                                    </div>
                                 </div>
                                 <div class="flex flex-wrap gap-2">
                                     <span
@@ -1373,17 +1407,24 @@ watch(() => currentStep.value, (newStep) => {
 
                             <div class="space-y-3">
                                 <div v-for="item in filteredProducts" :key="item.id" @click="addToBundle(item)"
-                                    class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group">
+                                    class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group"
+                                    :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': bundleItems.some(bi => bi.id === item.id) }">
                                     <div>
-                                        <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
-                                            item.name }}</p>
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
+                                                item.name }}</p>
+                                            <CheckCircle v-if="bundleItems.some(bi => bi.id === item.id)" :size="14"
+                                                class="text-emerald-500" />
+                                        </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
                                         }}</p>
                                         <p class="text-xs text-primary-600 font-bold">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
-                                    <Plus :size="18"
+                                    <Plus v-if="!bundleItems.some(bi => bi.id === item.id)" :size="18"
                                         class="text-surface-400 group-hover:text-primary-500 transition-colors" />
+                                    <span v-else
+                                        class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Terpilih</span>
                                 </div>
                             </div>
                         </div>
