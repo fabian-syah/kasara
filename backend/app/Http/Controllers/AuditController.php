@@ -304,7 +304,7 @@ class AuditController extends Controller
                 'transfer' => $transfer,
                 'debit' => $debit,
                 'grand_total' => $trx->selling_price, // Final Paid Amount
-                'total_discount' => $trx->total_discount ?? 0,
+                'total_discount' => $calculatedGlobalDiscount,
                 'global_discount_value' => $calculatedGlobalDiscount,
                 'global_discount_type' => 'fixed',
                 'original_price' => $trx->selling_price + $calculatedGlobalDiscount,

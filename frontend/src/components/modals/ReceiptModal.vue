@@ -129,15 +129,14 @@
                                     </span>
                                 </div>
 
-                                <!-- Dynamic Discount Row (Combined Item + Global) -->
-                                <div v-if="(transaction.total_discount > 0 || transaction.global_discount_value > 0)"
+                                <!-- Dynamic Discount Row (ONLY Global Discount) -->
+                                <div v-if="transaction.global_discount_value > 0"
                                     class="flex justify-between border-b border-gray-300 pb-1 text-black font-bold italic">
                                     <span>DISKON :</span>
                                     <span>
-                                        -{{ formatCurrency(transaction.total_discount ||
-                                            (transaction.global_discount_type === 'percentage'
-                                                ? (transaction.original_price * transaction.global_discount_value / 100)
-                                                : transaction.global_discount_value)) }}
+                                        -{{ formatCurrency(transaction.global_discount_type === 'percentage'
+                                            ? (transaction.original_price * transaction.global_discount_value / 100)
+                                            : transaction.global_discount_value) }}
                                     </span>
                                 </div>
 
