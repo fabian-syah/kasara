@@ -289,54 +289,45 @@ const formatNumber = (value) => {
     color: #b45309 !important;
     /* Amber for item discount */
 }
+</style>
 
+<style>
 @media print {
     @page {
         margin: 0;
         size: auto;
     }
 
-    body {
+    /* Hide everything by default */
+    html,
+    body,
+    #app,
+    #app>* {
+        visibility: hidden !important;
         margin: 0 !important;
         padding: 0 !important;
-        background: white !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        height: auto !important;
     }
 
-    /* Hide everything on the page except the receipt */
-    body>*:not(#receipt-modal-print-wrapper) {
-        display: none !important;
+    /* Only show the receipt wrapper and its children */
+    #receipt-modal-print-wrapper,
+    #receipt-modal-print-wrapper * {
+        visibility: visible !important;
     }
 
     #receipt-modal-print-wrapper {
         display: block !important;
-        visibility: visible !important;
-        position: static !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
         width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 10mm !important;
-        /* Safety padding to avoid edge cutting */
         background: white !important;
-    }
-
-    #receipt-modal-print-wrapper * {
-        visibility: visible !important;
-        color: black !important;
+        z-index: 9999999 !important;
+        padding: 10mm !important;
     }
 
     #receipt-modal-print-wrapper>div {
         display: block !important;
-        max-width: none !important;
-        width: 100% !important;
-        height: auto !important;
-        max-height: none !important;
-        /* Critical to prevent cutoff */
-        box-shadow: none !important;
-        border-radius: 0 !important;
-        background: white !important;
-        overflow: visible !important;
     }
 
     .nota-paper {
@@ -347,16 +338,17 @@ const formatNumber = (value) => {
         padding: 0 !important;
         margin: 0 !important;
         zoom: 1.1;
-        /* Better for print flow than transform */
+        color: black !important;
+        background: white !important;
     }
 
-    /* Ensure specific sections don't break across pages */
     .nota-paper tr,
     .nota-paper .payment-section,
     .nota-paper .signature-area {
         break-inside: avoid;
     }
 
+    /* Target UI elements inside the wrapper to hide */
     .print\:hidden {
         display: none !important;
     }
@@ -364,11 +356,8 @@ const formatNumber = (value) => {
     /* Ensure images show */
     img {
         display: block !important;
-        opacity: 1 !important;
-        visibility: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 }
 </style>
-```
