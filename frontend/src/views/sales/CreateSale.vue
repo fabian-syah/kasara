@@ -161,6 +161,12 @@ function openBundlingModal() {
 }
 
 function addToBundle(product) {
+    if (isItemFullyOccupied(product)) {
+        const status = getCartStatus(product.id);
+        alert(`Produk ini sudah tidak tersedia (Sudah ada ${status?.toLowerCase() || 'di keranjang/memenuhi stok'}).`);
+        return;
+    }
+
     // If it's a non-IMEI item and already in the bundle, just increment quantity
     if (!product.imei) {
         const existingItem = bundleItems.value.find(item => item.id === product.id);
@@ -176,11 +182,6 @@ function addToBundle(product) {
         }
     }
 
-    if (isItemFullyOccupied(product)) {
-        const status = getCartStatus(product.id);
-        alert(`Produk ini sudah tidak tersedia (Sudah ada ${status?.toLowerCase() || 'di keranjang'}).`);
-        return;
-    }
     // Deep copy to avoid reference issues
     const itemToAdd = JSON.parse(JSON.stringify(product));
     itemToAdd.bundle_price = itemToAdd.selling_price || itemToAdd.price || 0;
@@ -193,10 +194,11 @@ function addToBundle(product) {
 
 function incrementBundleItemQty(index) {
     const item = bundleItems.value[index];
-    const availableStock = item.stock !== undefined ? item.stock : (item.quantity_available !== undefined ? item.quantity_available : 9999);
-    if (item.quantity < availableStock) {
+    if (!isItemFullyOccupied(item)) {
         item.quantity++;
         updateBundleTotal();
+    } else {
+        alert("Stok tidak mencukupi untuk menambah jumlah.");
     }
 }
 
@@ -445,6 +447,11 @@ function removeFromCart(productId) {
 }
 
 function incrementQty(productId) {
+    const item = cartItems.value.find(i => i.id === productId);
+    if (item && isItemFullyOccupied(item)) {
+        alert("Stok tidak mencukupi.");
+        return;
+    }
     cartStore.incrementQuantity(productId);
 }
 
@@ -1077,7 +1084,8 @@ watch(() => currentStep.value, (newStep) => {
                                                 class="text-text-secondary font-medium ml-1">x</span>
                                         </span>
                                         <button v-if="!item.imei" @click="incrementQty(item.id)"
-                                            class="w-8 h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black">+</button>
+                                            :disabled="isItemFullyOccupied(item)"
+                                            class="w-8 h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black">+</button>
                                     </div>
                                     <div v-if="!item.imei && !item.is_bundle" class="flex flex-col items-end">
                                         <div
@@ -1205,7 +1213,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1243,7 +1251,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1342,7 +1350,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1361,7 +1369,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1369,7 +1377,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -1423,7 +1431,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -1487,7 +1495,7 @@ watch(() => currentStep.value, (newStep) => {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p class="text-xs text-primary-600 font-bold">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
@@ -1537,7 +1545,8 @@ watch(() => currentStep.value, (newStep) => {
                                                     class="text-[10px] text-text-secondary ml-0.5">x</span>
                                             </span>
                                             <button @click="incrementBundleItemQty(idx)"
-                                                class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors rounded-r-lg font-black">+</button>
+                                                :disabled="isItemFullyOccupied(item)"
+                                                class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-r-lg font-black">+</button>
                                         </div>
                                         <div v-else
                                             class="h-9 px-3 flex items-center justify-center bg-surface-100 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg text-[10px] font-black uppercase tracking-widest text-text-secondary">
