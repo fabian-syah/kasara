@@ -193,7 +193,7 @@ class AuditController extends Controller
 
             if (abs($remainingBalance) > 1) {
                 $details[] = [
-                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
+                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon',
                     'qty' => 1,
                     'price' => $remainingBalance
                 ];
@@ -1072,7 +1072,7 @@ class AuditController extends Controller
             if (abs($remainingBalance) > 1) {
                 $details[] = [
                     'id' => 'gap_1',
-                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon / Penyesuaian',
+                    'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon',
                     'qty' => 1,
                     'price' => $remainingBalance,
                     'brand' => '-',
