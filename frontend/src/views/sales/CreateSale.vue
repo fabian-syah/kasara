@@ -802,11 +802,11 @@ watch(() => currentStep.value, (newStep) => {
                     </div>
 
                     <div
-                        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 mb-4 shadow-sm">
+                        class="flex-1 overflow-y-auto overflow-hidden custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 mb-4 shadow-sm">
 
                         <!-- Table for Tablet/Desktop -->
                         <table class="w-full text-left border-collapse hidden md:table">
-                            <thead class="sticky top-0 bg-surface-50/95 dark:bg-surface-900/95 backdrop-blur-sm z-10">
+                            <thead class="sticky top-0 bg-surface-50 dark:bg-surface-900 z-10">
                                 <tr>
                                     <th
                                         class="px-6 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
