@@ -165,18 +165,22 @@ function addToBundle(product) {
         alert("Produk sudah ada di dalam bundle.");
         return;
     }
+    // Deep copy and ensure prices are numbers
+    const rawPrice = product.selling_price || product.price || 0;
+    const initialPrice = parseNumber(rawPrice);
+
     const itemToAdd = {
         ...product,
-        // Use inventory price as initial value and placeholder
-        bundle_price: product.selling_price || product.price || 0,
-        display_bundle_price: formatNumber(product.selling_price || product.price || 0)
+        bundle_price: initialPrice,
+        display_bundle_price: formatNumber(initialPrice)
     };
     bundleItems.value.push(itemToAdd);
     updateBundleTotal();
 }
 
 function updateBundleTotal() {
-    const currentTotal = bundleItems.value.reduce((sum, item) => sum + (item.bundle_price || 0), 0);
+    // Force conversion to Number to avoid string concatenation
+    const currentTotal = bundleItems.value.reduce((sum, item) => sum + Number(item.bundle_price || 0), 0);
     bundleTotalPrice.value = currentTotal;
     displayBundleTotalPrice.value = formatNumber(currentTotal);
 }
@@ -186,7 +190,12 @@ function handleBundleItemPriceInput(idx, e) {
     const num = parseNumber(val);
     bundleItems.value[idx].bundle_price = num;
     bundleItems.value[idx].display_bundle_price = formatNumber(num);
+
+    // Immediately update the total
     updateBundleTotal();
+
+    // Sync the input value to the formatted string to avoid cursor jumps/artifacts
+    e.target.value = formatNumber(num);
 }
 
 function removeFromBundle(index) {
@@ -199,7 +208,6 @@ function handleBundlePriceInput(e) {
     const num = parseNumber(val);
     bundleTotalPrice.value = num;
     displayBundleTotalPrice.value = formatNumber(num);
-    // Correctly update the input value to the formatted string to prevent double input
     e.target.value = formatNumber(num);
 }
 
@@ -329,8 +337,8 @@ const submitButtonText = computed(() => {
 function addToCart(product) {
     if (currentStep.value === 3 && (transactionCategory.value === 'penjualan' || transactionCategory.value === 'bundling')) {
         if (cartItems.value.length >= 1 && !cartItems.value.some(item => item.is_bundle)) {
-             alert("Mode Penjualan Normal hanya memperbolehkan 1 jenis barang. Gunakan sistem Bundling jika ingin menambah lebih banyak.");
-             return;
+            alert("Mode Penjualan Normal hanya memperbolehkan 1 jenis barang. Gunakan sistem Bundling jika ingin menambah lebih banyak.");
+            return;
         }
     }
 
@@ -583,8 +591,17 @@ function formatNumber(n) {
 // Helper to get number from Rupiah string
 function parseNumber(s) {
     if (!s) return 0;
-    const clean = s.toString().replace(/[^0-9]/g, "");
-    return parseInt(clean) || 0;
+    if (typeof s === 'number') return s;
+
+    let clean = s.toString().replace(/Rp/g, "").replace(/\s/g, "");
+
+    // Remove .00 or ,00 suffix to avoid multiplying by 100 when stripping non-digits
+    if (clean.endsWith('.00') || clean.endsWith(',00')) {
+        clean = clean.slice(0, -3);
+    }
+
+    const finalClean = clean.replace(/[^0-9]/g, "");
+    return parseInt(finalClean) || 0;
 }
 
 // Sync displays when underlying values change (e.g. from cartTotal)
@@ -1332,61 +1349,74 @@ watch(() => currentStep.value, (newStep) => {
                 <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="showBundlingModal = false"></div>
                 <div
                     class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
-                    <div class="p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
+                    <div
+                        class="p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
                         <h3 class="text-2xl font-black text-text-primary">Buat Sistem Bundling</h3>
-                        <button @click="showBundlingModal = false" class="p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
+                        <button @click="showBundlingModal = false"
+                            class="p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
                             <X :size="24" />
                         </button>
                     </div>
 
                     <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
                         <!-- Left: Item Picker -->
-                        <div class="flex-1 p-6 overflow-y-auto custom-scrollbar border-r border-surface-100 dark:border-surface-700">
+                        <div
+                            class="flex-1 p-6 overflow-y-auto custom-scrollbar border-r border-surface-100 dark:border-surface-700">
                             <div class="mb-6 sticky top-0 bg-white dark:bg-surface-800 z-10 pb-4">
                                 <div class="relative">
-                                    <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
+                                    <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"
+                                        :size="18" />
                                     <input v-model="searchQuery" type="text" placeholder="Cari item untuk bundle..."
                                         class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl pl-11 pr-4 py-3 text-sm font-medium focus:outline-none focus:border-primary-500 transition-all" />
                                 </div>
                             </div>
 
                             <div class="space-y-3">
-                                <div v-for="item in filteredProducts" :key="item.id"
-                                    @click="addToBundle(item)"
+                                <div v-for="item in filteredProducts" :key="item.id" @click="addToBundle(item)"
                                     class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group">
                                     <div>
-                                        <p class="font-bold text-text-primary text-sm">{{ item.product?.name || item.name }}</p>
-                                        <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
-                                        <p class="text-xs text-primary-600 font-bold">{{ formatCurrency(item.selling_price || item.price) }}</p>
+                                        <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
+                                            item.name }}</p>
+                                        <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
+                                        }}</p>
+                                        <p class="text-xs text-primary-600 font-bold">{{
+                                            formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
-                                    <Plus :size="18" class="text-surface-400 group-hover:text-primary-500 transition-colors" />
+                                    <Plus :size="18"
+                                        class="text-surface-400 group-hover:text-primary-500 transition-colors" />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Right: Selected Items & Final Price -->
                         <div class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-6 flex flex-col">
-                            <h4 class="text-sm font-black text-text-secondary uppercase tracking-widest mb-4">Item Terpilih</h4>
-                            
+                            <h4 class="text-sm font-black text-text-secondary uppercase tracking-widest mb-4">Item
+                                Terpilih</h4>
+
                             <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 mb-6">
-                                <div v-if="bundleItems.length === 0" class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-10">
+                                <div v-if="bundleItems.length === 0"
+                                    class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-10">
                                     <ShoppingBag :size="48" class="mb-3" />
                                     <p class="text-xs font-medium text-center">Belum ada item dipilih</p>
                                 </div>
                                 <div v-for="(item, idx) in bundleItems" :key="item.id"
                                     class="p-4 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 animate-fade-in relative group/item">
-                                    <button @click="removeFromBundle(idx)" class="absolute top-2 right-2 text-surface-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors z-10">
+                                    <button @click="removeFromBundle(idx)"
+                                        class="absolute top-2 right-2 text-surface-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors z-10">
                                         <Trash2 :size="16" />
                                     </button>
-                                    
+
                                     <div class="mb-3 pr-6">
-                                        <p class="text-xs font-black text-text-primary truncate">{{ item.product?.name || item.name }}</p>
-                                        <p v-if="item.imei" class="text-[10px] font-mono text-text-secondary">{{ item.imei }}</p>
+                                        <p class="text-xs font-black text-text-primary truncate">{{ item.product?.name
+                                            || item.name }}</p>
+                                        <p v-if="item.imei" class="text-[10px] font-mono text-text-secondary">{{
+                                            item.imei }}</p>
                                     </div>
 
                                     <div class="relative">
-                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
-                                        <input type="text" :value="item.display_bundle_price" 
+                                        <span
+                                            class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="item.display_bundle_price"
                                             @input="e => handleBundleItemPriceInput(idx, e)"
                                             class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all"
                                             :placeholder="formatNumber(item.selling_price || item.price || 0)" />
@@ -1395,15 +1425,19 @@ watch(() => currentStep.value, (newStep) => {
                             </div>
 
                             <div class="pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
-                                <label class="block text-xs font-black text-text-secondary uppercase tracking-widest mb-3">Harga Total Bundle</label>
+                                <label
+                                    class="block text-xs font-black text-text-secondary uppercase tracking-widest mb-3">Harga
+                                    Total Bundle</label>
                                 <div class="relative mb-6">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold">Rp</span>
+                                    <span
+                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold">Rp</span>
                                     <input :value="displayBundleTotalPrice" @input="handleBundlePriceInput" type="text"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-4 bg-white dark:bg-surface-800 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-12"
                                         placeholder="Tentukan harga..." />
                                 </div>
 
-                                <button @click="finishBundling" :disabled="bundleItems.length < 2 || bundleTotalPrice <= 0"
+                                <button @click="finishBundling"
+                                    :disabled="bundleItems.length < 2 || bundleTotalPrice <= 0"
                                     class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
                                     <CheckCircle :size="20" />
                                     Selesai
