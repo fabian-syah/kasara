@@ -60,14 +60,26 @@
                                 <span class="font-medium text-gray-900 print:text-black block">{{ item.name }}</span>
                                 <span v-if="item.imei && item.imei !== '-'"
                                     class="font-mono text-[10px] text-primary-600 print:text-black block">IMEI: {{
-                                    item.imei }}</span>
-                                <span class="text-xs text-gray-500 print:text-black">
-                                    {{ item.qty }} x {{ formatCurrency(item.price) }}
+                                        item.imei }}</span>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-500 print:text-black">
+                                        {{ item.qty }} x {{ formatCurrency(item.price) }}
+                                    </span>
+                                    <span v-if="item.item_discount > 0"
+                                        class="text-[10px] text-amber-600 font-bold italic print:text-black">
+                                        Disk. Item: -{{ formatCurrency(item.item_discount) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="font-semibold text-gray-900 print:text-black whitespace-nowrap">
+                                    {{ formatCurrency(item.qty * item.price) }}
+                                </span>
+                                <span v-if="item.item_discount > 0"
+                                    class="text-[10px] text-amber-600 font-bold italic print:text-black">
+                                    -{{ formatCurrency(item.qty * item.item_discount) }}
                                 </span>
                             </div>
-                            <span class="font-semibold text-gray-900 print:text-black whitespace-nowrap">
-                                {{ formatCurrency(item.qty * item.price) }}
-                            </span>
                         </div>
 
                         <!-- Fallback if no detailed items (using grand total) -->
@@ -80,14 +92,25 @@
                     <div class="my-4 border-t border-dashed border-gray-300"></div>
 
                     <!-- Totals -->
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between font-bold text-gray-900 text-base print:text-black">
-                            <span>Total</span>
+                    <div class="space-y-1.5 text-sm">
+                        <div class="flex justify-between text-gray-600 print:text-black">
+                            <span>Subtotal</span>
+                            <span>{{ formatCurrency(transaction?.original_price || (transaction?.grand_total +
+                                (transaction?.total_discount || 0)) || 0) }}</span>
+                        </div>
+                        <div v-if="transaction?.total_discount > 0"
+                            class="flex justify-between text-amber-600 font-bold italic print:text-black">
+                            <span>Total Diskon</span>
+                            <span>-{{ formatCurrency(transaction?.total_discount) }}</span>
+                        </div>
+                        <div
+                            class="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-1 mt-1 print:text-black print:border-black">
+                            <span>Total Bayar</span>
                             <span>{{ formatCurrency(transaction?.grand_total || 0) }}</span>
                         </div>
-                        <div class="flex justify-between text-xs text-gray-500 print:text-black">
+                        <div class="flex justify-between text-[10px] text-gray-400 mt-2 print:text-black">
                             <span>Metode Pembayaran</span>
-                            <span class="uppercase">{{ transaction?.payment_method || 'Tunai' }}</span>
+                            <span class="uppercase font-bold">{{ transaction?.payment_method || 'Tunai' }}</span>
                         </div>
                     </div>
                 </div>

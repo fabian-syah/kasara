@@ -618,13 +618,17 @@ async function processPayment(pin = null) {
 
         let nonHpIndex = 0;
         cartItems.value.forEach(item => {
+            const distributedDiscount = cartStore.getDistributedGlobalDiscount(item);
+
             if (item.is_bundle && item.bundle_items) {
                 // UNPACK BUNDLE ITEMS
                 item.bundle_items.forEach(bi => {
                     if (bi.imei) {
                         formData.append('product_detail_ids[]', bi.id);
+                        // For bundle, we might need a way to distribute item discount? 
+                        // But usually item discount is on the bundle itself if specified.
+                        // For now we treat bundle as 1 item for discounts.
                     } else {
-                        // Support for non-HP bundle items
                         formData.append(`non_hp_items[${nonHpIndex}][product_id]`, bi.product_id || bi.id);
                         formData.append(`non_hp_items[${nonHpIndex}][quantity]`, bi.quantity || 1);
                         formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, Number(bi.price || 0));
@@ -633,13 +637,24 @@ async function processPayment(pin = null) {
                 });
             } else if (item.imei) {
                 formData.append('product_detail_ids[]', item.id);
+                // We need to send selling_price, item_discount, distributed_discount for each HP item
+                formData.append(`hp_items_meta[${item.id}][selling_price]`, Number(item.price || 0));
+                formData.append(`hp_items_meta[${item.id}][item_discount]`, Number(item.discount || 0));
+                formData.append(`hp_items_meta[${item.id}][distributed_discount]`, Number(distributedDiscount || 0));
             } else {
                 formData.append(`non_hp_items[${nonHpIndex}][product_id]`, item.product_id || item.id);
                 formData.append(`non_hp_items[${nonHpIndex}][quantity]`, item.quantity);
                 formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, Number(item.price || 0));
+                formData.append(`non_hp_items[${nonHpIndex}][item_discount]`, Number(item.discount || 0));
+                formData.append(`non_hp_items[${nonHpIndex}][distributed_discount]`, Number(distributedDiscount || 0));
                 nonHpIndex++;
             }
         });
+
+        // Global discount info
+        formData.append('global_discount_value', Number(cartStore.discount || 0));
+        formData.append('global_discount_type', cartStore.discountType);
+        formData.append('total_discount', Number(cartStore.discountAmount + cartStore.itemDiscountTotal));
 
         // Split Payments
         formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
@@ -665,8 +680,14 @@ async function processPayment(pin = null) {
 
         lastTransaction.value = {
             id: response.data?.data?.receipt_id || "TRX-" + Date.now(),
-            items: [...cartItems.value],
-            total: cartTotal.value,
+            items: cartItems.value.map(item => ({
+                ...item,
+                price: item.price,
+                item_discount: item.discount || 0,
+            })),
+            total_discount: cartStore.discountAmount + cartStore.itemDiscountTotal,
+            original_price: cartStore.subtotal,
+            grand_total: cartTotal.value,
             paid: paymentAmount.value,
             change: changeAmount.value,
             method: selectedPaymentMethod.value,
@@ -761,17 +782,16 @@ function handlePaymentInput(e) {
 
 function handleDiscountInput(e) {
     const val = e.target.value;
-    if (cartStore.discountType === 'fixed') {
-        const num = parseNumber(val);
-        cartStore.discount = num;
-        displayDiscount.value = formatNumber(num);
-    } else {
-        // Percentage (max 100)
-        let num = parseInt(val.replace(/[^0-9]/g, "")) || 0;
-        if (num > 100) num = 100;
-        cartStore.discount = num;
-        displayDiscount.value = num.toString();
-    }
+    const num = parseNumber(val);
+    cartStore.setDiscount(num, 'fixed');
+    displayDiscount.value = formatNumber(num);
+}
+
+function handleItemDiscountInput(item, e) {
+    const val = e.target.value;
+    const num = parseNumber(val);
+    cartStore.updateItemDiscount(item.id, num);
+    e.target.value = formatNumber(num);
 }
 
 function handleItemPriceInput(item, e) {
@@ -1123,28 +1143,73 @@ watch(() => currentStep.value, (newStep) => {
                                             :disabled="isItemFullyOccupied(item)"
                                             class="w-8 h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black">+</button>
                                     </div>
-                                    <div v-if="!item.imei && !item.is_bundle" class="flex flex-col items-end">
-                                        <div
-                                            class="flex items-center gap-2 border-2 border-surface-200 dark:border-surface-700 rounded-xl bg-surface-50 dark:bg-surface-900 px-3 py-2.5 focus-within:border-primary-500 transition-all">
-                                            <span class="text-xs text-text-secondary font-bold">Rp</span>
+                                    <div class="flex flex-col items-end gap-2">
+                                        <!-- Price/Subtotal -->
+                                        <div v-if="!item.imei && !item.is_bundle"
+                                            class="flex items-center gap-2 border-2 border-surface-200 dark:border-surface-700 rounded-xl bg-surface-50 dark:bg-surface-900 px-3 py-2 focus-within:border-primary-500 transition-all">
+                                            <span class="text-[10px] text-text-secondary font-bold">Harga</span>
                                             <input type="text" :value="formatNumber(item.price)"
                                                 @input="e => handleItemPriceInput(item, e)"
-                                                class="w-24 text-right text-sm font-black bg-transparent outline-none focus:text-primary-600" />
+                                                class="w-24 text-right text-xs font-black bg-transparent outline-none focus:text-primary-600" />
+                                        </div>
+                                        <p v-else class="text-sm font-black text-primary-600">{{
+                                            formatCurrency(item.price) }}</p>
+
+                                        <!-- Discount per Item -->
+                                        <div
+                                            class="flex items-center gap-2 border-2 border-amber-200 dark:border-amber-900/30 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 px-3 py-2 focus-within:border-amber-500 transition-all">
+                                            <span
+                                                class="text-[10px] text-amber-600 font-bold uppercase tracking-widest">Diskon</span>
+                                            <input type="text" :value="formatNumber(item.discount || 0)"
+                                                @input="e => handleItemDiscountInput(item, e)"
+                                                class="w-24 text-right text-xs font-black bg-transparent outline-none text-amber-600 placeholder:text-amber-300"
+                                                placeholder="0" />
                                         </div>
                                     </div>
-                                    <p v-else class="text-lg font-black text-primary-600">{{
-                                        formatCurrency(item.price) }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div
-                        class="p-6 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0">
-                        <div class="flex justify-between items-center mb-6 text-2xl font-black">
-                            <span class="text-text-primary text-lg uppercase tracking-widest">Total</span>
-                            <span class="text-primary-600">{{ formatCurrency(cartTotal) }}</span>
+                        class="p-6 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-4">
+
+                        <!-- Mini Summary -->
+                        <div class="space-y-2 border-b border-surface-200 dark:border-surface-700 pb-4">
+                            <div
+                                class="flex justify-between text-sm font-bold text-text-secondary uppercase tracking-widest">
+                                <span>Subtotal</span>
+                                <span>{{ formatCurrency(cartStore.subtotal) }}</span>
+                            </div>
+                            <div v-if="cartStore.itemDiscountTotal > 0"
+                                class="flex justify-between text-xs font-bold text-amber-600 uppercase tracking-widest">
+                                <span>Diskon Item</span>
+                                <span>-{{ formatCurrency(cartStore.itemDiscountTotal) }}</span>
+                            </div>
                         </div>
-                        <div class="flex gap-3">
+
+                        <!-- Global Discount Input -->
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex flex-col">
+                                <span
+                                    class="text-[10px] font-black text-text-secondary uppercase tracking-widest leading-none mb-1">Diskon
+                                    All</span>
+                                <span class="text-[9px] text-text-secondary/50 font-bold uppercase">(Diskon Nota)</span>
+                            </div>
+                            <div class="relative flex-1 max-w-[200px]">
+                                <span
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">Rp</span>
+                                <input type="text" :value="displayDiscount" @input="handleDiscountInput"
+                                    class="w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-9 pr-4 py-3 text-sm font-black text-primary-600 focus:outline-none focus:border-primary-500 transition-all text-right"
+                                    placeholder="0" />
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-2xl font-black pt-2">
+                            <span class="text-text-primary text-sm sm:text-lg uppercase tracking-widest">Total
+                                Bayar</span>
+                            <span class="text-primary-600">{{ formatCurrency(cartStore.total) }}</span>
+                        </div>
+                        <div class="flex gap-3 pt-2">
                             <button @click="prevStep"
                                 class="w-16 h-16 flex-none bg-white dark:bg-surface-800 text-text-primary border-2 border-surface-200 dark:border-surface-700 rounded-[1.25rem] font-bold transition-all flex items-center justify-center hover:bg-surface-50 hover:border-surface-300">
                                 <ArrowLeft :size="24" />

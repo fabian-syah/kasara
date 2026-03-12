@@ -5,8 +5,8 @@ export const useCartStore = defineStore('cart', () => {
     // State
     const items = ref([])
     const customer = ref(null)
-    const discount = ref(0)
-    const discountType = ref('percentage') // 'percentage' or 'fixed'
+    const discount = ref(0) // Global Discount value
+    const discountType = ref('fixed') // 'percentage' or 'fixed'
     const paymentMethod = ref('cash')
     const notes = ref('')
 
@@ -15,19 +15,32 @@ export const useCartStore = defineStore('cart', () => {
         items.value.reduce((total, item) => total + item.quantity, 0)
     )
 
+    // Subtotal before any discounts (Sum of Original Price * Qty)
     const subtotal = computed(() =>
         items.value.reduce((total, item) => total + (item.price * item.quantity), 0)
     )
 
+    // Sum of per-item discounts
+    const itemDiscountTotal = computed(() =>
+        items.value.reduce((total, item) => total + ((item.discount || 0) * item.quantity), 0)
+    )
+
+    // Total after item-level discounts but before global discount
+    const totalAfterItemDiscounts = computed(() =>
+        subtotal.value - itemDiscountTotal.value
+    )
+
+    // Global discount value in currency
     const discountAmount = computed(() => {
         if (discountType.value === 'percentage') {
-            return subtotal.value * (discount.value / 100)
+            return totalAfterItemDiscounts.value * (discount.value / 100)
         }
         return discount.value
     })
 
+    // Final total to be paid
     const total = computed(() =>
-        Math.max(0, subtotal.value - discountAmount.value)
+        Math.max(0, totalAfterItemDiscounts.value - discountAmount.value)
     )
 
     const isEmpty = computed(() => items.value.length === 0)
@@ -38,7 +51,6 @@ export const useCartStore = defineStore('cart', () => {
         const availableStock = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 1);
 
         if (existingItem) {
-            // Check stock before adding
             if (existingItem.quantity < availableStock) {
                 existingItem.quantity++
             }
@@ -47,12 +59,20 @@ export const useCartStore = defineStore('cart', () => {
                 id: product.id,
                 name: product.product?.name || product.name,
                 price: product.selling_price || product.price,
+                discount: 0,
                 stock: availableStock,
                 quantity: 1,
                 image: product.image || null,
                 imei: product.imei || null,
                 product_id: product.product_id || product.product?.id
             })
+        }
+    }
+
+    function updateItemDiscount(productId, amount) {
+        const item = items.value.find(item => item.id === productId)
+        if (item) {
+            item.discount = Number(amount) || 0;
         }
     }
 
@@ -96,8 +116,8 @@ export const useCartStore = defineStore('cart', () => {
         customer.value = customerData
     }
 
-    function setDiscount(amount, type = 'percentage') {
-        discount.value = amount
+    function setDiscount(amount, type = 'fixed') {
+        discount.value = Number(amount) || 0
         discountType.value = type
     }
 
@@ -113,8 +133,20 @@ export const useCartStore = defineStore('cart', () => {
         items.value = []
         customer.value = null
         discount.value = 0
-        discountType.value = 'percentage'
+        discountType.value = 'fixed'
         notes.value = ''
+    }
+
+    // Helper for proportional global discount distribution
+    function getDistributedGlobalDiscount(item) {
+        const itemPriceAfterItemDiscount = item.price - (item.discount || 0);
+        const itemTotalAfterItemDiscount = itemPriceAfterItemDiscount * item.quantity;
+
+        if (totalAfterItemDiscounts.value === 0) return 0;
+
+        // Ratio based on its share of total sales value
+        const ratio = itemTotalAfterItemDiscount / totalAfterItemDiscounts.value;
+        return discountAmount.value * ratio;
     }
 
     function addBundle(bundleItems, totalPrice, description) {
@@ -123,6 +155,7 @@ export const useCartStore = defineStore('cart', () => {
             id: bundleId,
             name: description,
             price: totalPrice,
+            discount: 0,
             quantity: 1,
             is_bundle: true,
             bundle_items: bundleItems.map(item => ({
@@ -137,44 +170,23 @@ export const useCartStore = defineStore('cart', () => {
         });
     }
 
-    function getTransactionData() {
-        return {
-            items: items.value.map(item => ({
-                product_id: item.id,
-                quantity: item.quantity,
-                price: item.price,
-                subtotal: item.price * item.quantity,
-                is_bundle: item.is_bundle || false,
-                bundle_items: item.bundle_items || null
-            })),
-            customer_id: customer.value?.id || null,
-            subtotal: subtotal.value,
-            discount: discountAmount.value,
-            discount_type: discountType.value,
-            discount_value: discount.value,
-            total: total.value,
-            payment_method: paymentMethod.value,
-            notes: notes.value
-        }
-    }
-
     return {
-        // State
         items,
         customer,
         discount,
         discountType,
         paymentMethod,
         notes,
-        // Getters
         itemCount,
         subtotal,
+        itemDiscountTotal,
+        totalAfterItemDiscounts,
         discountAmount,
         total,
         isEmpty,
-        // Actions
         addItem,
         addBundle,
+        updateItemDiscount,
         removeItem,
         updateQuantity,
         incrementQuantity,
@@ -184,6 +196,6 @@ export const useCartStore = defineStore('cart', () => {
         setPaymentMethod,
         setNotes,
         clearCart,
-        getTransactionData
+        getDistributedGlobalDiscount
     }
 })

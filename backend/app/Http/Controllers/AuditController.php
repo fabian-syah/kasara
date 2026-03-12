@@ -84,12 +84,15 @@ class AuditController extends Controller
             $details = [];
             $calculatedTotal = 0;
 
-            if ($trx->is_bundle) {
+            if ($trx->is_bundle && $trx->bundle_description) {
                 $allImeis = $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-';
                 $details[] = [
                     'name' => $trx->bundle_description ?: 'Paket Bundling',
                     'qty' => 1,
-                    'price' => $trx->selling_price,
+                    'price' => $trx->selling_price + ($trx->total_discount ?? 0),
+                    'item_discount' => 0,
+                    'distributed_discount' => $trx->total_discount ?? 0,
+                    'real_price' => $trx->selling_price,
                     'is_fixed' => true,
                     'brand' => '-',
                     'type' => 'Bundle',
@@ -101,15 +104,19 @@ class AuditController extends Controller
             } else {
                 // 1. HP Items
                 foreach ($trx->items as $item) {
-                    // IMPORTANT: In audit reports, we use the selling_price from pivot table (stock_out_items) 
-                    // but currently Pivot selling_price is in ProductDetail model or pivot? 
-                    // Actually, AuditController uses $item->selling_price from ProductDetail model.
-                    $price = ($item->selling_price > 0) ? $item->selling_price : ($item->product->price ?? 0);
+                    $pivot = $item->pivot;
+                    $sellingPrice = $pivot->selling_price ?? $item->selling_price;
+                    $itemDiscount = $pivot->item_discount ?? 0;
+                    $distributedDiscount = $pivot->distributed_discount ?? 0;
+                    $realPrice = $sellingPrice - $itemDiscount - $distributedDiscount;
 
                     $details[] = [
                         'name' => $item->product->name ?? 'Unknown HP',
                         'qty' => 1,
-                        'price' => $price,
+                        'price' => $sellingPrice,
+                        'item_discount' => $itemDiscount,
+                        'distributed_discount' => $distributedDiscount,
+                        'real_price' => $realPrice,
                         'is_fixed' => true,
                         'brand' => $item->product->brand ?? '-',
                         'type' => 'HP',
@@ -117,56 +124,29 @@ class AuditController extends Controller
                         'storage' => $item->storage ?? null,
                         'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                     ];
-                    $calculatedTotal += $price;
+                    $calculatedTotal += $sellingPrice;
                 }
 
                 // 2. Non-HP Items
-                // Priority: Use the JSON column `non_hp_items` which contains the historical `selling_price`
-                // Fallback: Use Relationship `nonHpItems` if JSON is empty (legacy data)
+                foreach ($trx->nonHpItems as $item) {
+                    $sellingPrice = $item->selling_price ?? 0;
+                    $itemDiscount = $item->item_discount ?? 0;
+                    $distributedDiscount = $item->distributed_discount ?? 0;
+                    $realPrice = ($sellingPrice * $item->quantity) - ($itemDiscount * $item->quantity) - $distributedDiscount;
 
-                $jsonItems = $trx->non_hp_items; // Accessor for JSON column
-                $hasJsonData = is_array($jsonItems) && count($jsonItems) > 0;
-
-                if ($hasJsonData) {
-                    // Map product IDs to Names using the eager-loaded relationship to avoid N+1 queries
-                    $productMap = $trx->nonHpItems->pluck('product', 'product_id');
-                    // Also fetch any prod not in relationship? Unlikely if integrity is kept.
-                    // But if relationship is missing (e.g. deleted), we might need to fetch. 
-                    // For now, rely on map.
-
-                    foreach ($jsonItems as $itemData) {
-                        $pid = $itemData['product_id'] ?? null;
-                        $product = $productMap[$pid] ?? null;
-                        // Fallback name if product deleted
-                        $name = $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP');
-
-                        $price = $itemData['selling_price'] ?? 0;
-                        $qty = $itemData['quantity'] ?? 1;
-
-                        $details[] = [
-                            'name' => $name,
-                            'qty' => $qty,
-                            'price' => $price,
-                            'is_fixed' => true,
-                            'brand' => $product ? ($product->brand ?? '-') : '-',
-                            'type' => 'Non-HP'
-                        ];
-                        $calculatedTotal += ($price * $qty);
-                    }
-                } else {
-                    // FALLBACK: Use Relation + Base Price (Legacy)
-                    foreach ($trx->nonHpItems as $nhp) {
-                        $basePrice = $nhp->product->price ?? 0;
-                        $details[] = [
-                            'name' => $nhp->product->name ?? 'Unknown Item',
-                            'qty' => $nhp->quantity,
-                            'price' => $basePrice,
-                            'is_fixed' => true,
-                            'brand' => $nhp->product->brand ?? '-',
-                            'type' => 'Non-HP'
-                        ];
-                        $calculatedTotal += ($basePrice * $nhp->quantity);
-                    }
+                    $details[] = [
+                        'name' => $item->product->name ?? 'Item Non-HP',
+                        'qty' => $item->quantity,
+                        'price' => $sellingPrice,
+                        'item_discount' => $itemDiscount,
+                        'distributed_discount' => $distributedDiscount,
+                        'real_price' => $item->quantity > 0 ? ($realPrice / $item->quantity) : 0,
+                        'is_fixed' => true,
+                        'brand' => $item->product->brand ?? '-',
+                        'type' => 'Non-HP',
+                        'imei' => '-',
+                    ];
+                    $calculatedTotal += ($sellingPrice * $item->quantity);
                 }
             }
 
@@ -292,7 +272,11 @@ class AuditController extends Controller
                 'cash' => $cash,
                 'transfer' => $transfer,
                 'debit' => $debit,
-                'grand_total' => $trx->selling_price,
+                'grand_total' => $trx->selling_price, // Final Paid Amount
+                'total_discount' => $trx->total_discount ?? 0,
+                'global_discount_value' => $trx->global_discount_value ?? 0,
+                'global_discount_type' => $trx->global_discount_type ?? 'fixed',
+                'original_price' => $trx->selling_price + ($trx->total_discount ?? 0),
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress,
                 'customer_wa' => $trx->customer_wa,

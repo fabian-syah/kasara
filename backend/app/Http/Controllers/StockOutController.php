@@ -175,6 +175,13 @@ class StockOutController extends Controller
             'split_payments' => 'nullable|string', // JSON string from frontend
             'is_bundle' => 'nullable|boolean',
             'bundle_description' => 'nullable|string',
+            'global_discount_value' => 'nullable|numeric|min:0',
+            'global_discount_type' => 'nullable|string|in:fixed,percentage',
+            'total_discount' => 'nullable|numeric|min:0',
+            'hp_items_meta' => 'nullable|array',
+            'hp_items_meta.*.selling_price' => 'nullable|numeric',
+            'hp_items_meta.*.item_discount' => 'nullable|numeric',
+            'hp_items_meta.*.distributed_discount' => 'nullable|numeric',
         ];
 
         // Mandatory fields for Sales
@@ -467,6 +474,9 @@ class StockOutController extends Controller
                 'payment_method_id' => $request->payment_method_id,
                 'paid_amount' => $request->paid_amount ?? 0,
                 'split_payments' => is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments,
+                'global_discount_value' => $request->global_discount_value ?? 0,
+                'global_discount_type' => $request->global_discount_type ?? 'fixed',
+                'total_discount' => $request->total_discount ?? 0,
             ]);
 
             // Create StockOutNonHpItem records
@@ -479,6 +489,9 @@ class StockOutController extends Controller
                             'stock_out_id' => $stockOut->id,
                             'product_id' => $item['product_id'],
                             'quantity' => $item['quantity'],
+                            'selling_price' => $item['selling_price'] ?? 0,
+                            'item_discount' => $item['item_discount'] ?? 0,
+                            'distributed_discount' => $item['distributed_discount'] ?? 0,
                             'received_quantity' => 0,
                             'returned_quantity' => 0,
                         ]);
@@ -567,17 +580,20 @@ class StockOutController extends Controller
 
             foreach ($productDetails as $detail) {
                 /** @var \App\Models\ProductDetail $detail */
-                $stockOut->items()->attach($detail->id);
+                $hpMeta = $request->hp_items_meta[$detail->id] ?? null;
 
-                $updateData = ['status' => $newStatus];
+                $stockOut->items()->attach($detail->id, [
+                    'selling_price' => $hpMeta['selling_price'] ?? $detail->selling_price,
+                    'item_discount' => $hpMeta['item_discount'] ?? 0,
+                    'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
+                ]);
 
-                // Update selling price if applicable (Shopee/Orderan Online - HP items)
-                if ($request->category === 'shopee' || $request->category === 'orderan_online') {
-                    // Find the selling price for this specific item from shopee_items array
-                    $itemData = collect($request->shopee_items)->firstWhere('product_detail_id', $detail->id);
-                    if ($itemData && isset($itemData['selling_price'])) {
-                        $updateData['selling_price'] = $itemData['selling_price'];
-                    }
+                $updateStatus = $newStatus;
+                $updateData = ['status' => $updateStatus];
+
+                // If specialized price sent (like Shopee legacy)
+                if ($hpMeta && isset($hpMeta['selling_price'])) {
+                    $updateData['selling_price'] = $hpMeta['selling_price'] - ($hpMeta['item_discount'] ?? 0) - ($hpMeta['distributed_discount'] ?? 0);
                 }
 
                 // If pindah_cabang, move location immediately BUT set status to in_transit
