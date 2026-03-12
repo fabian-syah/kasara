@@ -19,7 +19,8 @@
                     class="p-6 text-center border-b border-dashed border-gray-300 print:px-0 print:pb-0 print:pt-4 print:mb-4">
                     <!-- Modern Logo Implementation -->
                     <div class="mb-4 flex justify-center">
-                        <div class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-2">
+                        <div
+                            class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-2">
                             <span class="font-bold text-lg">K</span>
                         </div>
                     </div>
@@ -57,6 +58,9 @@
                             class="flex justify-between text-sm print:text-black">
                             <div class="flex-1 pr-4">
                                 <span class="font-medium text-gray-900 print:text-black block">{{ item.name }}</span>
+                                <span v-if="item.imei && item.imei !== '-'"
+                                    class="font-mono text-[10px] text-primary-600 print:text-black block">IMEI: {{
+                                    item.imei }}</span>
                                 <span class="text-xs text-gray-500 print:text-black">
                                     {{ item.qty }} x {{ formatCurrency(item.price) }}
                                 </span>

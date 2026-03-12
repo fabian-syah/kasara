@@ -1489,11 +1489,20 @@ watch(() => currentStep.value, (newStep) => {
             date: lastTransaction?.time,
             customer_name: lastTransaction?.customer_name,
             customer_phone: lastTransaction?.customer_phone,
-            items: lastTransaction?.items?.map(item => ({
-                name: item.name || item.product?.name,
-                qty: item.quantity,
-                price: item.price
-            })),
+            items: lastTransaction?.items?.map(item => {
+                let imei = '-';
+                if (item.is_bundle && item.bundle_items) {
+                    imei = item.bundle_items.map(bi => bi.imei).filter(i => i && i !== '-').join(', ') || '-';
+                } else {
+                    imei = item.imei || '-';
+                }
+                return {
+                    name: item.name || item.product?.name,
+                    qty: item.quantity,
+                    price: item.price,
+                    imei: imei
+                };
+            }),
             grand_total: lastTransaction?.total,
             payment_method: selectedPaymentMethodObj?.name || 'Tunai',
             outlet_name: 'KASARA',

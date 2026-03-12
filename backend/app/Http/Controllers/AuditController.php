@@ -85,6 +85,7 @@ class AuditController extends Controller
             $calculatedTotal = 0;
 
             if ($trx->is_bundle) {
+                $allImeis = $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-';
                 $details[] = [
                     'name' => $trx->bundle_description ?: 'Paket Bundling',
                     'qty' => 1,
@@ -92,7 +93,7 @@ class AuditController extends Controller
                     'is_fixed' => true,
                     'brand' => '-',
                     'type' => 'Bundle',
-                    'imei' => '-',
+                    'imei' => $allImeis,
                     'storage' => null,
                     'condition' => null,
                 ];
@@ -281,9 +282,9 @@ class AuditController extends Controller
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => $trx->is_bundle ? ($trx->bundle_description ?: 'Paket Bundling') : (collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-'),
-                'imeis' => $trx->is_bundle ? '-' : ($trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-'),
-                'storages' => $trx->is_bundle ? null : ($trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null),
-                'conditions' => $trx->is_bundle ? null : ($trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null),
+                'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
+                'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
+                'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
                 'qty' => $trx->is_bundle ? 1 : ($trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity'))),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
