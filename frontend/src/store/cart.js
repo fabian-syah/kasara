@@ -38,6 +38,12 @@ export const useCartStore = defineStore('cart', () => {
         return discount.value
     })
 
+    // Global discount percentage relative to subtotal after item discounts
+    const globalDiscountPercentage = computed(() => {
+        if (totalAfterItemDiscounts.value === 0) return 0;
+        return (discountAmount.value / totalAfterItemDiscounts.value) * 100;
+    })
+
     // Final total to be paid
     const total = computed(() =>
         Math.max(0, totalAfterItemDiscounts.value - discountAmount.value)
@@ -182,6 +188,7 @@ export const useCartStore = defineStore('cart', () => {
         itemDiscountTotal,
         totalAfterItemDiscounts,
         discountAmount,
+        globalDiscountPercentage,
         total,
         isEmpty,
         addItem,

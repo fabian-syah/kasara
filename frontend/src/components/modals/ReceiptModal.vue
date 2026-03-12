@@ -69,16 +69,27 @@
                                         class="text-[10px] text-amber-600 font-bold italic print:text-black">
                                         Disk. Item: -{{ formatCurrency(item.item_discount) }}
                                     </span>
+                                    <span v-if="item.distributed_discount > 0"
+                                        class="text-[10px] text-primary-600 font-bold italic print:text-black">
+                                        Disk. Global: -{{ formatCurrency(item.distributed_discount) }}
+                                    </span>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end">
                                 <span class="font-semibold text-gray-900 print:text-black whitespace-nowrap">
                                     {{ formatCurrency(item.qty * item.price) }}
                                 </span>
-                                <span v-if="item.item_discount > 0"
-                                    class="text-[10px] text-amber-600 font-bold italic print:text-black">
-                                    -{{ formatCurrency(item.qty * item.item_discount) }}
-                                </span>
+                                <div v-if="item.item_discount > 0 || item.distributed_discount > 0"
+                                    class="flex flex-col items-end leading-tight">
+                                    <span v-if="item.item_discount > 0"
+                                        class="text-[10px] text-amber-600 font-bold italic print:text-black">
+                                        -{{ formatCurrency(item.qty * item.item_discount) }}
+                                    </span>
+                                    <span v-if="item.distributed_discount > 0"
+                                        class="text-[10px] text-primary-600 font-bold italic print:text-black">
+                                        -{{ formatCurrency(item.distributed_discount) }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
