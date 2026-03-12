@@ -84,8 +84,57 @@ class AuditController extends Controller
             $details = [];
             $calculatedTotal = 0;
 
-            // 1. HP Items
-            foreach ($trx->items as $item) {
+            $hpItems = $trx->items;
+            $nonHpItems = $trx->nonHpItems;
+
+            $bundleHpId = null;
+            $bundleNonHpId = null;
+
+            // If it's a bundle, we group the first HP and first Non-HP into one line for the receipt
+            if ($trx->is_bundle && ($hpItems->isNotEmpty() || $nonHpItems->isNotEmpty())) {
+                $mainHp = $hpItems->first();
+                $mainNonHp = $nonHpItems->first();
+
+                $bundlePrice = 0;
+                $bundleItemDiscount = 0;
+                $bundleDistributedDiscount = 0;
+                $bundleName = $trx->bundle_description ?: ($mainHp ? $mainHp->product->name . ' + BUNDLING' : 'PAKET BUNDLING');
+                $bundleImei = $mainHp ? $mainHp->imei : '-';
+
+                if ($mainHp) {
+                    $pivot = $mainHp->pivot;
+                    $sellingPrice = $pivot->selling_price ?? $mainHp->selling_price;
+                    $bundlePrice += $sellingPrice;
+                    $bundleItemDiscount += ($pivot->item_discount ?? 0);
+                    $bundleDistributedDiscount += ($pivot->distributed_discount ?? 0);
+                    $bundleHpId = $mainHp->id;
+                }
+
+                if ($mainNonHp) {
+                    $bundlePrice += $mainNonHp->selling_price;
+                    $bundleItemDiscount += ($mainNonHp->item_discount ?? 0);
+                    $bundleDistributedDiscount += ($mainNonHp->distributed_discount ?? 0);
+                    $bundleNonHpId = $mainNonHp->id;
+                }
+
+                $details[] = [
+                    'name' => $bundleName,
+                    'qty' => 1,
+                    'price' => $bundlePrice,
+                    'item_discount' => $bundleItemDiscount,
+                    'distributed_discount' => $bundleDistributedDiscount,
+                    'is_fixed' => true,
+                    'type' => 'Bundle',
+                    'imei' => $bundleImei,
+                ];
+                $calculatedTotal += $bundlePrice;
+            }
+
+            // 1. HP Items (process non-bundled ones)
+            foreach ($hpItems as $item) {
+                if ($item->id === $bundleHpId)
+                    continue;
+
                 $pivot = $item->pivot;
                 $sellingPrice = $pivot->selling_price ?? $item->selling_price;
                 $itemDiscount = $pivot->item_discount ?? 0;
@@ -109,26 +158,34 @@ class AuditController extends Controller
                 $calculatedTotal += $sellingPrice;
             }
 
-            // 2. Non-HP Items
-            foreach ($trx->nonHpItems as $item) {
+            // 2. Non-HP Items (process non-bundled ones or remaining quantity)
+            foreach ($nonHpItems as $item) {
+                $isMainNonHp = ($item->id === $bundleNonHpId);
+                $qty = $isMainNonHp ? ($item->quantity - 1) : $item->quantity;
+
+                if ($qty <= 0)
+                    continue;
+
                 $sellingPrice = $item->selling_price ?? 0;
                 $itemDiscount = $item->item_discount ?? 0;
                 $distributedDiscount = $item->distributed_discount ?? 0;
-                $realPrice = ($sellingPrice * $item->quantity) - ($itemDiscount * $item->quantity) - $distributedDiscount;
+
+                // For simplicity, if we separated one from a bundle, we keep discount on the bundle
+                $realPrice = ($sellingPrice * $qty) - ($itemDiscount * $qty) - ($isMainNonHp ? 0 : $distributedDiscount);
 
                 $details[] = [
                     'name' => $item->product->name ?? 'Item Non-HP',
-                    'qty' => $item->quantity,
+                    'qty' => $qty,
                     'price' => $sellingPrice,
                     'item_discount' => $itemDiscount,
-                    'distributed_discount' => $distributedDiscount,
-                    'real_price' => $item->quantity > 0 ? ($realPrice / $item->quantity) : 0,
+                    'distributed_discount' => $isMainNonHp ? 0 : $distributedDiscount,
+                    'real_price' => $qty > 0 ? ($realPrice / $qty) : 0,
                     'is_fixed' => true,
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'Non-HP',
                     'imei' => '-',
                 ];
-                $calculatedTotal += ($sellingPrice * $item->quantity);
+                $calculatedTotal += ($sellingPrice * $qty);
             }
 
             // 3. Final Adjustment / Gap Handling

@@ -98,17 +98,7 @@
                                             </div>
                                             <div v-if="item.condition" class="text-[9px] text-gray-700 italic">
                                                 Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition ===
-                                                'ex_ibox' ? 'Ex iBox' : 'Second') }}
-                                            </div>
-                                            <!-- Item Discount (if any) -->
-                                            <div v-if="item.item_discount > 0"
-                                                class="text-[9px] text-amber-700 font-bold mt-0.5">
-                                                Disk. Item: -{{ formatCurrency(item.qty * item.item_discount) }}
-                                            </div>
-                                            <!-- Distributed Global Discount (if any) -->
-                                            <div v-if="item.distributed_discount > 0"
-                                                class="text-[9px] text-primary-700 font-bold">
-                                                Disk. Global: -{{ formatCurrency(item.distributed_discount) }}
+                                                    'ex_ibox' ? 'Ex iBox' : 'Second') }}
                                             </div>
                                         </td>
                                         <td class="py-2 px-1 text-black align-top text-right font-bold">
