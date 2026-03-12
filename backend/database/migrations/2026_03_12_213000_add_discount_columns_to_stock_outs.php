@@ -26,7 +26,7 @@ return new class extends Migration {
 
         // Add columns to stock_out_non_hp_items
         Schema::table('stock_out_non_hp_items', function (Blueprint $table) {
-            $table->decimal('selling_price', 15, 2)->default(0)->change(); // Ensure decimal and consistent
+            $table->decimal('selling_price', 15, 2)->default(0)->after('product_id');
             $table->decimal('item_discount', 15, 2)->default(0)->after('quantity');
             $table->decimal('distributed_discount', 15, 2)->default(0)->after('item_discount');
         });
@@ -46,7 +46,7 @@ return new class extends Migration {
         });
 
         Schema::table('stock_out_non_hp_items', function (Blueprint $table) {
-            $table->dropColumn(['item_discount', 'distributed_discount']);
+            $table->dropColumn(['selling_price', 'item_discount', 'distributed_discount']);
         });
     }
 };
