@@ -421,14 +421,18 @@ function getTotalSpentQuantity(itemId) {
     return total;
 }
 
+function getRemainingStock(product) {
+    if (product.imei) return 1;
+    const spent = getTotalSpentQuantity(product.id);
+    const stockLimit = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 0);
+    return Math.max(0, stockLimit - spent);
+}
+
 function isItemFullyOccupied(product) {
     if (product.imei) {
         return getCartStatus(product.id) !== null;
     }
-    const spent = getTotalSpentQuantity(product.id);
-    // PRIORITIZE .stock (limit) OVER .quantity (which might be order qty)
-    const stockLimit = product.stock !== undefined ? product.stock : (product.quantity !== undefined ? product.quantity : 0);
-    return spent >= stockLimit;
+    return getRemainingStock(product) <= 0;
 }
 
 function addToCart(product) {
@@ -965,7 +969,7 @@ watch(() => currentStep.value, (newStep) => {
                                         </code>
                                         <span v-else
                                             class="text-sm font-black text-primary-600 bg-primary-500/10 px-4 py-1.5 rounded-lg">
-                                            Stok: {{ item.quantity || 0 }}
+                                            Sisa: {{ getRemainingStock(item) }}
                                         </span>
                                     </td>
                                     <td class="hidden xl:table-cell px-6 py-5">
@@ -1024,8 +1028,8 @@ watch(() => currentStep.value, (newStep) => {
                                     </span>
                                     <code v-if="item.imei"
                                         class="text-[10px] font-mono font-bold text-text-secondary truncate max-w-[120px]">{{ item.imei }}</code>
-                                    <span v-else class="text-[10px] font-black text-primary-600">Stok: {{ item.quantity
-                                        || 0 }}</span>
+                                    <span v-else class="text-[10px] font-black text-primary-600">Sisa: {{
+                                        getRemainingStock(item) }}</span>
                                 </div>
                                 <div class="flex justify-between items-center mt-1">
                                     <span class="text-xs text-text-secondary">{{ item.distributor?.name ||
@@ -1504,7 +1508,11 @@ watch(() => currentStep.value, (newStep) => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
                                             }}</p>
-                                        <p class="text-xs text-primary-600 font-bold">{{
+                                        <p v-else
+                                            class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
+                                            Sisa: {{ getRemainingStock(item) }}
+                                        </p>
+                                        <p class="text-xs text-primary-600 font-bold mt-1">{{
                                             formatCurrency(item.selling_price || item.price) }}</p>
                                     </div>
                                     <Plus v-if="!isItemFullyOccupied(item)" :size="18"
