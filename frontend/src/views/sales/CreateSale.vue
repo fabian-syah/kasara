@@ -26,6 +26,7 @@ import {
     Shield,
     Loader2,
     Hash,
+    MessageSquare,
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
@@ -71,6 +72,7 @@ const isCompressing = ref(false);
 // Success modal
 const showSuccessModal = ref(false);
 const showReceiptModal = ref(false);
+const shouldAutoSendWA = ref(false);
 const lastTransaction = ref(null);
 
 const authStore = useAuthStore();
@@ -720,6 +722,7 @@ async function processPayment(pin = null) {
         };
 
         showSuccessModal.value = true;
+        shouldAutoSendWA.value = false; // Reset for new txn
         cartStore.clearCart();
         paymentAmount.value = 0;
         splitPayments.value = [];
@@ -1577,9 +1580,15 @@ watch(() => currentStep.value, (newStep) => {
                         class="w-full py-5 bg-primary-600 hover:bg-primary-500 text-white rounded-[1.25rem] font-bold text-lg transition-all shadow-xl shadow-primary-500/30 mb-4">
                         Mulai Transaksi Baru
                     </button>
-                    <button @click="showReceiptModal = true"
+                    <button @click="showReceiptModal = true; shouldAutoSendWA = false"
                         class="w-full py-4 text-text-secondary hover:text-text-primary hover:bg-surface-50 dark:hover:bg-surface-900 font-bold text-sm uppercase tracking-widest rounded-[1.25rem] flex items-center justify-center gap-2 transition-colors">
                         <Receipt :size="20" /> Cetak Struk Bukti
+                    </button>
+
+                    <button v-if="lastTransaction?.customer_phone"
+                        @click="showReceiptModal = true; shouldAutoSendWA = true"
+                        class="w-full py-4 mt-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-bold text-sm uppercase tracking-widest rounded-[1.25rem] flex items-center justify-center gap-2 transition-colors">
+                        <MessageSquare :size="20" /> WhatsApp Nota (PDF)
                     </button>
                 </div>
             </div>
@@ -1617,7 +1626,7 @@ watch(() => currentStep.value, (newStep) => {
             payment_method: selectedPaymentMethodObj?.name || 'Tunai',
             outlet_name: 'PSTORE',
             outlet_address: 'Pusat Perbelanjaan Gadget Terlengkap'
-        }" @close="showReceiptModal = false" />
+        }" :autoSend="shouldAutoSendWA" @close="showReceiptModal = false; shouldAutoSendWA = false" />
 
         <!-- PIN VERIFICATION MODAL -->
         <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" @close="showPinModal = false"

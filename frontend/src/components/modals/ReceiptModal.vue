@@ -227,16 +227,31 @@ const props = defineProps({
     showEditIcon: {
         type: Boolean,
         default: false
+    },
+    autoSend: {
+        type: Boolean,
+        default: false
     }
 });
 
-const emit = defineEmits(['close', 'open-checklist']);
+const emit = defineEmits(['close', 'open-checklist', 'sent']);
 
 const close = () => {
     emit('close');
 };
 
 const isGeneratingPDF = ref(false);
+
+// Auto-send if prop is true and modal opens
+import { watch } from 'vue';
+watch(() => props.isOpen, (newVal) => {
+    if (newVal && props.autoSend) {
+        // Short delay to ensure DOM is ready
+        setTimeout(() => {
+            generatePDFAndShare();
+        }, 500);
+    }
+});
 
 const printReceipt = () => {
     window.print();
@@ -269,7 +284,7 @@ const generatePDFAndShare = async () => {
         await window.html2pdf().set(opt).from(element).save();
 
         // Share to WhatsApp
-        const phone = props.transaction.customer_phone || props.transaction.customer_wa;
+        const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
         if (phone && phone !== '-') {
             // Clean phone number (remove non-digits, handle leading 0)
             let cleanPhone = phone.replace(/\D/g, '');
