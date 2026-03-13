@@ -204,10 +204,9 @@
                         <Printer :size="18" />
                         Cetak
                     </button>
-                    <button @click="generatePDFAndShare" :disabled="isGeneratingPDF"
-                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Loader2 v-if="isGeneratingPDF" :size="18" class="animate-spin" />
-                        <MessageSquare v-else :size="18" />
+                    <button @click="shareToWhatsApp"
+                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                        <MessageSquare :size="18" />
                         Kirim WA
                     </button>
                 </div>
@@ -248,7 +247,7 @@ watch(() => props.isOpen, (newVal) => {
     if (newVal && props.autoSend) {
         // Short delay to ensure DOM is ready
         setTimeout(() => {
-            generatePDFAndShare();
+            shareToWhatsApp();
         }, 500);
     }
 });
@@ -257,44 +256,16 @@ const printReceipt = () => {
     window.print();
 };
 
-const generatePDFAndShare = async () => {
-    if (isGeneratingPDF.value) return;
-
+const shareToWhatsApp = async () => {
     try {
-        isGeneratingPDF.value = true;
-
-        const element = document.getElementById('receipt-content');
-        if (!element) return;
-
-        // Custom style for PDF to ensure it looks good and fits well
-        const opt = {
-            margin: [10, 10, 10, 10],
-            filename: `Nota-${props.transaction.order_no || 'PSTORE'}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                letterRendering: true
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // Force solid white background and standard colors for the capture area to avoid oklab errors
-        element.style.backgroundColor = '#ffffff';
-        element.classList.add('pdf-capture-mode');
-
-        // Generate and download PDF
-        await window.html2pdf().set(opt).from(element).save();
-
-        // Cleanup
-        element.style.backgroundColor = '';
-        element.classList.remove('pdf-capture-mode');
-
-        // Share to WhatsApp
         const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
+        const receiptId = props.transaction.receipt_id || props.transaction.order_no || props.transaction.id;
+        const publicUrl = `https://api.stokps.com/n/${receiptId}`;
+
+        const message = `Halo Kak ${props.transaction.customer_name || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda:\n\n*Lihat Nota Online:* ${publicUrl}\n\n*Nota ini dapat Anda simpan atau cetak langsung dari browser Anda.*`;
+
         if (phone && phone !== '-') {
-            // Clean phone number (remove non-digits, handle leading 0)
+            // Clean phone number
             let cleanPhone = phone.replace(/\D/g, '');
             if (cleanPhone.startsWith('0')) {
                 cleanPhone = '62' + cleanPhone.substring(1);
@@ -302,7 +273,19 @@ const generatePDFAndShare = async () => {
                 cleanPhone = '62' + cleanPhone;
             }
 
-            const message = `Halo Kak ${props.transaction.customer_name || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda (No. Nota: ${props.transaction.order_no || '-'}).\n\n*Nota PDF sudah terunduh otomatis di perangkat Anda, silakan dilampirkan ke chat ini.*`;
+            // Try Web Share API (Mobile)
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Nota PSTORE',
+                        text: message,
+                        url: publicUrl
+                    });
+                    return;
+                } catch (e) {
+                    console.log('navigator.share failed, falling back to wa.me');
+                }
+            }
 
             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
             window.open(waUrl, '_blank');
@@ -311,8 +294,8 @@ const generatePDFAndShare = async () => {
         }
 
     } catch (error) {
-        console.error('PDF Generation failed:', error);
-        alert('Gagal membuat PDF. Silakan coba cetak manual.');
+        console.error('WhatsApp sharing failed:', error);
+        alert('Gagal memproses pengiriman WhatsApp.');
     } finally {
         isGeneratingPDF.value = false;
     }
@@ -381,6 +364,7 @@ const formatNumber = (value) => {
     border-color: #e5e7eb !important;
     /* Standard gray-200 hex */
     color: #000000 !important;
+    box-shadow: none !important;
 }
 
 .pdf-capture-mode .bg-gray-50\/50 {
