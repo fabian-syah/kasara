@@ -3,242 +3,445 @@
 
 <head>
     <meta charset="UTF-8">
+    <title>Nota Penjualan {{ $transaction->receipt_id }}</title>
     <style>
         @page {
             margin: 0;
+            size: 480px auto;
         }
 
         body {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 12px;
-            line-height: 1.2;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
             color: #000;
             margin: 0;
-            padding: 20px;
-            width: 480px;
+            padding: 24px;
+            width: 432px;
+            /* 480px - (24px * 2) */
             background: #fff;
         }
 
-        .text-center {
-            text-align: center;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .font-bold {
-            font-weight: bold;
-        }
-
-        .mb-10 {
-            margin-bottom: 10px;
-        }
-
-        .mb-20 {
-            margin-bottom: 20px;
-        }
-
-        .border-t {
-            border-top: 1px dashed #000;
-        }
-
-        .border-b {
-            border-bottom: 1px dashed #000;
-        }
-
-        .py-5 {
-            padding-top: 5px;
-            padding-bottom: 5px;
-        }
-
-        .header {
-            margin-bottom: 15px;
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: 800;
-            letter-spacing: 2px;
-        }
-
-        .address {
-            font-size: 10px;
-        }
-
-        .info-table,
-        .item-table {
+        .nota-header {
+            display: table;
             width: 100%;
-            border-collapse: collapse;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
         }
 
-        .info-table td {
-            padding: 2px 0;
-        }
-
-        .item-table th {
-            text-align: left;
-            border-top: 2px solid #000;
-            border-bottom: 1px solid #000;
-            padding: 5px 0;
-        }
-
-        .item-table td {
-            padding: 5px 0;
+        .logo-container {
+            display: table-cell;
+            width: 80px;
             vertical-align: top;
         }
 
+        .logo-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        .header-info {
+            display: table-cell;
+            vertical-align: top;
+            padding-left: 16px;
+        }
+
+        .brand-title {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .header-sub {
+            font-size: 9px;
+            color: #374151;
+            line-height: 1.2;
+            margin-top: 4px;
+        }
+
+        .header-cs {
+            font-size: 9px;
+            color: #4b5563;
+            margin-top: 2px;
+        }
+
+        .social-icons {
+            margin-top: 8px;
+            font-size: 9px;
+            color: #374151;
+        }
+
+        .social-item {
+            display: inline-block;
+            margin-right: 16px;
+        }
+
+        .social-icon {
+            width: 10px;
+            height: 10px;
+            vertical-align: middle;
+            margin-right: 4px;
+        }
+
+        .info-nota {
+            width: 100%;
+            margin-bottom: 16px;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+
+        .info-nota td {
+            padding: 2px 0;
+            vertical-align: top;
+        }
+
+        .label {
+            font-weight: 600;
+            width: 80px;
+        }
+
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+        .item-table th {
+            font-weight: 700;
+            text-align: left;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 8px 4px;
+            font-size: 12px;
+        }
+
+        .item-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+
+        .item-name {
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .item-meta {
+            font-size: 9px;
+            color: #374151;
+        }
+
+        .item-imei {
+            font-size: 9px;
+            color: #2563eb;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+
         .payment-section {
-            margin-top: 15px;
-            width: 250px;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .payment-container {
+            width: 240px;
             float: right;
         }
 
         .payment-row {
-            display: flex;
-            justify-content: space-between;
+            display: table;
+            width: 100%;
             padding: 2px 0;
+            border-bottom: 1px solid #d1d5db;
+        }
+
+        .payment-label {
+            display: table-cell;
+            text-align: left;
+            font-weight: 700;
+        }
+
+        .payment-value {
+            display: table-cell;
+            text-align: right;
         }
 
         .total-row {
             border-top: 2px solid #000;
-            margin-top: 5px;
-            padding-top: 5px;
-            font-size: 14px;
-            font-weight: bold;
+            padding-top: 4px;
+            border-bottom: none;
         }
 
-        .garansi {
-            margin-top: 100px;
+        .total-label {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .total-value {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .metode-info {
+            text-align: right;
             font-size: 9px;
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 4px;
             clear: both;
         }
 
+        .garansi-box {
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            clear: both;
+        }
+
+        .garansi-title {
+            font-weight: 700;
+            font-size: 9px;
+            margin-bottom: 2px;
+        }
+
+        .garansi-list {
+            margin: 0;
+            padding-left: 12px;
+            font-size: 9px;
+            color: #374151;
+        }
+
         .signature-area {
-            margin-top: 30px;
-            display: flex;
-            justify-content: space-between;
+            width: 100%;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            display: table;
         }
 
         .sig-box {
-            width: 120px;
+            display: table-cell;
+            width: 50%;
             text-align: center;
         }
 
-        .sig-space {
-            height: 50px;
+        .sig-penerima {
+            text-align: left;
+        }
+
+        .sig-title {
+            font-weight: 600;
+            margin-bottom: 48px;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid #9ca3af;
+            width: 112px;
+            margin: 0 auto;
+        }
+
+        .sig-penerima .sig-line {
+            margin-left: 0;
+        }
+
+        .sig-hormat .sig-line {
+            margin-right: 0;
+        }
+
+        .pstore-name {
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
         }
     </style>
 </head>
 
 <body>
-    <div class="header text-center">
-        <div class="logo">PSTORE</div>
-        <div class="address">
-            Pusat Perbelanjaan Online<br>
-            HP, Laptop, Barang Elektronik Bergaransi Terjamin Dan Terpercaya<br>
-            No Customer Service 0851 - 3300 - 5600
+    <!-- NOTA HEADER -->
+    <div class="nota-header">
+        <div class="logo-container">
+            <img src="https://stokps.com/images/logo-pstore.png" alt="PSTORE" class="logo-img">
+        </div>
+        <div class="header-info">
+            <h2 class="brand-title">PSTORE</h2>
+            <p class="header-sub">
+                Pusat Perbelanjaan Online<br>
+                HP, Laptop, Barang Elektronik Bergaransi Terjamin Dan Terpercaya
+            </p>
+            <p class="header-cs">
+                No Customer Service 0851 - 3300 - 5600
+            </p>
+            <div class="social-icons">
+                <span class="font-bold">Kami ada juga di :</span><br>
+                <div style="margin-top: 2px;">
+                    <span class="social-item">
+                        <img src="https://stokps.com/images/shopee-icon-small.png" class="social-icon" alt="">
+                        pstore_
+                    </span>
+                    <span class="social-item">
+                        <img src="https://stokps.com/images/tokopedia-icon-small.png" class="social-icon" alt="">
+                        pstore_
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <table class="info-table mb-10">
+    <!-- INFO NOTA -->
+    <table class="info-nota">
         <tr>
-            <td width="80" class="font-bold">No. Nota</td>
+            <td class="label">No. Nota</td>
             <td>: {{ $transaction->receipt_id }}</td>
         </tr>
         <tr>
-            <td class="font-bold">Atas Nama</td>
-            <td class="font-bold">: {{ $transaction->customer_name ?? 'Umum' }}</td>
+            <td class="label">Atas Nama</td>
+            <td style="font-weight: 700;">: {{ $transaction->customer_name ?? 'Umum' }}</td>
         </tr>
         <tr>
-            <td class="font-bold">Tanggal</td>
-            <td>: {{ $transaction->created_at->format('d M Y H:i') }}</td>
+            <td class="label">Tanggal</td>
+            <td>: {{ $transaction->created_at->format('d M Y H:i:s') }}</td>
         </tr>
-        @if($transaction->customer_phone)
+        @if($transaction->customer_phone && $transaction->customer_phone !== '-')
             <tr>
-                <td class="font-bold">No. HP</td>
+                <td class="label">No. HP</td>
                 <td>: {{ $transaction->customer_phone }}</td>
             </tr>
         @endif
     </table>
 
+    <!-- TABLE ITEMS -->
     <table class="item-table">
         <thead>
             <tr>
-                <th width="40">Qty</th>
+                <th style="width: 50px; text-align: center;">Banyak</th>
+                <th style="width: 100px;">IMEI</th>
                 <th>Keterangan</th>
-                <th class="text-right" width="100">Jumlah</th>
+                <th style="width: 100px; text-align: right;">Jumlah</th>
             </tr>
         </thead>
         <tbody>
             @foreach($transaction->items as $item)
                 <tr>
-                    <td class="text-center">1</td>
+                    <td style="text-align: center; font-weight: 700;">1</td>
+                    <td class="item-imei">{{ $item->pivot->imei ?? '-' }}</td>
                     <td>
-                        <div class="font-bold">{{ $item->product_name ?? 'Produk' }}</div>
-                        <div style="font-size: 9px;">IMEI: {{ $item->pivot->imei ?? '-' }}</div>
+                        <div class="item-name">{{ $item->product->name ?? ($item->product_name ?? 'Produk') }}</div>
+                        @if($item->pivot->storage || $item->storage)
+                            <div class="item-meta">{{ $item->pivot->storage ?? $item->storage }}</div>
+                        @endif
+                        @if($item->condition)
+                            <div class="item-meta" style="font-style: italic;">
+                                Condition:
+                                {{ $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}
+                            </div>
+                        @endif
                     </td>
-                    <td class="text-right">{{ number_format($item->pivot->selling_price, 0, ',', '.') }}</td>
+                    <td style="text-align: right; font-weight: 700;">
+                        {{ number_format(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0) - ($item->pivot->distributed_discount ?? 0), 0, ',', '.') }}
+                    </td>
                 </tr>
             @endforeach
 
-            @if($transaction->non_hp_items)
-                @foreach($transaction->non_hp_items as $item)
-                    <tr>
-                        <td class="text-center">{{ $item['qty'] ?? 1 }}</td>
-                        <td>
-                            <div class="font-bold">{{ $item['name'] ?? 'Item' }}</div>
-                        </td>
-                        <td class="text-right">{{ number_format(($item['qty'] ?? 1) * ($item['price'] ?? 0), 0, ',', '.') }}
-                        </td>
-                    </tr>
-                @endforeach
-            @endif
+            @foreach($transaction->nonHpItems as $item)
+                <tr>
+                    <td style="text-align: center; font-weight: 700;">{{ $item->quantity }}</td>
+                    <td class="item-imei">-</td>
+                    <td>
+                        <div class="item-name">{{ $item->product->name ?? $item->name }}</div>
+                    </td>
+                    <td style="text-align: right; font-weight: 700;">
+                        {{ number_format($item->quantity * (($item->selling_price ?? 0) - ($item->item_discount ?? 0)), 0, ',', '.') }}
+                    </td>
+                </tr>
+            @endforeach
+
+            {{-- Empty rows for physical feel --}}
+            @php
+                $itemCount = count($transaction->items) + count($transaction->nonHpItems);
+            @endphp
+            @for ($i = 0; $i < max(0, 3 - $itemCount); $i++)
+                <tr>
+                    <td style="padding: 12px;">&nbsp;</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            @endfor
         </tbody>
     </table>
 
-    <div class="payment-section">
-        <div class="payment-row">
-            <span>SUB TOTAL :</span>
-            <span>{{ number_format($total_original, 0, ',', '.') }}</span>
-        </div>
-
-        @if($transaction->global_discount_value > 0)
-            <div class="payment-row font-bold">
-                <span>DISKON :</span>
-                <span>-{{ number_format($total_discount, 0, ',', '.') }}</span>
+    <!-- PAYMENT SECTION -->
+    <div class="payment-section clearfix">
+        <div class="payment-container">
+            <div class="payment-row">
+                <span class="payment-label">SUB TOTAL :</span>
+                <span class="payment-value">{{ number_format($total_original, 0, ',', '.') }}</span>
             </div>
-        @endif
 
-        <div class="payment-row total-row">
-            <span>TOTAL :</span>
-            <span>{{ number_format($transaction->selling_price, 0, ',', '.') }}</span>
-        </div>
+            @if($transaction->global_discount_value > 0)
+                <div class="payment-row" style="font-weight: 700; font-style: italic;">
+                    <span class="payment-label">DISKON :</span>
+                    <span class="payment-value">-{{ number_format($total_discount, 0, ',', '.') }}</span>
+                </div>
+            @endif
 
-        <div class="text-right" style="font-size: 9px; margin-top: 5px; font-style: italic;">
-            Metode: {{ $transaction->payment_method_id ? 'Transfer/Debit' : 'Cash' }}
+            {{-- Split Payments Breakdown --}}
+            @if($transaction->split_payments && count($transaction->split_payments) > 0)
+                @foreach($transaction->split_payments as $payment)
+                    @if(($payment['amount'] ?? 0) > 0)
+                        <div class="payment-row" style="font-size: 10px;">
+                            <span class="payment-label" style="text-transform: uppercase;">{{ ($payment['method'] ?? ($payment['method_name'] ?? 'Pembayaran')) }} :</span>
+                            <span class="payment-value">{{ number_format($payment['amount'], 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+                @endforeach
+            @elseif($transaction->paid_amount > 0)
+                <div class="payment-row" style="font-size: 10px;">
+                    <span class="payment-label">BAYAR :</span>
+                    <span class="payment-value">{{ number_format($transaction->paid_amount, 0, ',', '.') }}</span>
+                </div>
+            @endif
+
+            <div class="payment-row total-row">
+                <span class="payment-label total-label">TOTAL :</span>
+                <span
+                    class="payment-value total-value">{{ number_format($transaction->selling_price, 0, ',', '.') }}</span>
+            </div>
+
+            <div class="metode-info">
+                Metode: {{ $transaction->payment_method_id ? 'Transfer/Debit' : 'Cash' }}
+            </div>
         </div>
     </div>
 
-    <div class="garansi">
-        <ul style="padding-left: 15px;">
-            <li class="font-bold">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
+    <!-- GARANSI NOTES -->
+    <div class="garansi-box">
+        <ul class="garansi-list">
+            <li style="font-weight: 700;">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
             <li>Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
             <li>Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
         </ul>
     </div>
 
-    <div style="margin-top: 20px;">
-        <div style="display: inline-block; width: 45%; text-align: center;">
-            <p class="font-bold">Penerima,</p>
-            <div
-                style="margin-top: 50px; border-bottom: 1px solid #000; width: 120px; margin-left: auto; margin-right: auto;">
-            </div>
+    <!-- SIGNATURE AREA -->
+    <div class="signature-area">
+        <div class="sig-box sig-penerima">
+            <p class="sig-title">Penerima,</p>
+            <div class="sig-line"></div>
         </div>
-        <div style="display: inline-block; width: 45%; text-align: center; float: right;">
-            <p class="font-bold">Hormat Kami,</p>
-            <div style="margin-top: 50px; font-weight: bold;">PSTORE</div>
-            <div style="border-bottom: 1px solid #000; width: 120px; margin-left: auto; margin-right: auto;"></div>
+        <div class="sig-box sig-hormat" style="float: right;">
+            <p class="sig-title" style="margin-bottom: 40px !important;">Hormat Kami,</p>
+            <div class="pstore-name">PSTORE</div>
+            <div class="sig-line"></div>
         </div>
     </div>
 </body>

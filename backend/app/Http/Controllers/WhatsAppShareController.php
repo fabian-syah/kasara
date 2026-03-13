@@ -14,7 +14,7 @@ class WhatsAppShareController extends Controller
     {
         try {
             // 1. Ambil Data Transaksi
-            $transaction = StockOut::with(['items', 'user', 'destinationBranch'])->findOrFail($id);
+            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch'])->findOrFail($id);
 
             // 2. Format Nomor WA
             $phone = $transaction->customer_phone ?: $transaction->customer_wa ?: $transaction->shopee_phone;
@@ -32,12 +32,12 @@ class WhatsAppShareController extends Controller
             // 3. Hitung Total & Diskon (Untuk View)
             $total_original = 0;
             foreach ($transaction->items as $item) {
-                $total_original += $item->pivot->selling_price;
+                $netPrice = ($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0) - ($item->pivot->distributed_discount ?? 0);
+                $total_original += $netPrice;
             }
-            if ($transaction->non_hp_items) {
-                foreach ($transaction->non_hp_items as $item) {
-                    $total_original += ($item['qty'] ?? 1) * ($item['price'] ?? 0);
-                }
+            foreach ($transaction->nonHpItems as $item) {
+                $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
+                $total_original += ($item->quantity ?? 1) * $netPrice;
             }
 
             $total_discount = 0;
