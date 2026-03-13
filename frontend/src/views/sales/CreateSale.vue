@@ -27,6 +27,8 @@ import {
     Loader2,
     Hash,
     MessageSquare,
+    Save,
+    Upload
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
@@ -59,6 +61,36 @@ const customerForm = ref({
     notes: "",
 });
 
+const tradeInForm = ref({
+    customer_name: "",
+    customer_phone: "",
+    source: "luar_pstore",
+    brand: "",
+    product_id: null,
+    ram: "",
+    storage: "",
+    condition: "second",
+    imei: "",
+    buy_price: 0,
+    payment_method_id: null,
+    reason: "",
+    notes: "",
+});
+
+const tradeInPhotos = ref({
+    unit: null,
+    unitPreview: null,
+    customer: null,
+    customerPreview: null
+});
+
+const brands = ref([]);
+const hpProducts = ref([]);
+const filteredProducts = computed(() => {
+    if (!tradeInForm.value.brand) return [];
+    return hpProducts.value.filter(p => p.brand === tradeInForm.value.brand);
+});
+
 // Payment state (Step 4)
 const paymentAmount = ref(0);
 const selectedPaymentMethod = ref(null);
@@ -89,7 +121,9 @@ onMounted(async () => {
             api.get('/inventory', { params: { type: 'non-hp', per_page: 1000 } }),
             api.get('/inventory/my-accounts'),
             api.get('/user'),
-            api.get('/payment-methods')
+            api.get('/payment-methods'),
+            api.get('/brands'),
+            api.get('/products', { params: { type: 'hp', per_page: 1000 } })
         ]);
 
         // Process HP items
@@ -127,7 +161,12 @@ onMounted(async () => {
             // Default to cash or first one
             const cashMethod = payments.find(p => p.category?.toLowerCase() === 'cash' || p.name?.toLowerCase() === 'tunai');
             selectedPaymentMethod.value = cashMethod ? cashMethod.id : payments[0].id;
+            tradeInForm.value.payment_method_id = selectedPaymentMethod.value;
         }
+
+        // Brands and HP Products
+        brands.value = brandsRes.data.data || brandsRes.data || [];
+        hpProducts.value = productsRes.data.data || productsRes.data || [];
 
         // Auto-select logged-in user if they are in the list
         if (currentUserData) {
@@ -850,6 +889,107 @@ watch(() => currentStep.value, (newStep) => {
         displayPaymentAmount.value = formatNumber(cartStore.total);
     }
 });
+
+const displayBuyPrice = ref("0");
+function handleBuyPriceInput(e) {
+    const val = e.target.value;
+    const num = parseNumber(val);
+    tradeInForm.value.buy_price = num;
+    displayBuyPrice.value = formatNumber(num);
+    e.target.value = formatNumber(num);
+}
+
+const handlePhotoUpload = (type, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    tradeInPhotos.value[type] = file;
+    tradeInPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+}
+
+async function submitTradeIn() {
+    if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.product_id || !tradeInForm.value.imei || !tradeInForm.value.buy_price) {
+        alert("Mohon lengkapi semua data wajib (Nama, WA, Produk, IMEI, Harga).");
+        return;
+    }
+
+    if (!tradeInPhotos.value.unit) {
+        alert("Foto unit wajib diupload.");
+        return;
+    }
+
+    isSubmitting.value = true;
+    const formData = new FormData();
+    Object.keys(tradeInForm.value).forEach(key => {
+        if (tradeInForm.value[key] !== null && tradeInForm.value[key] !== '') {
+            formData.append(key, tradeInForm.value[key]);
+        }
+    });
+
+    if (tradeInPhotos.value.unit) formData.append('photo_unit', tradeInPhotos.value.unit);
+    if (tradeInPhotos.value.customer) formData.append('photo_customer', tradeInPhotos.value.customer);
+
+    try {
+        const response = await api.post('/trade-ins', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        // Set last transaction for receipt modal
+        const data = response.data.data;
+        lastTransaction.value = {
+            id: data.id,
+            order_no: data.receipt_id,
+            items: [{
+                product: data.product,
+                name: data.product?.name,
+                imei: data.imei,
+                selling_price: data.buy_price,
+                condition: data.condition,
+                price: data.buy_price,
+                qty: 1
+            }],
+            original_price: data.buy_price,
+            grand_total: data.buy_price,
+            total: data.buy_price,
+            paid: data.buy_price,
+            cash: data.payment_method?.category?.toLowerCase() === 'cash' ? data.buy_price : 0,
+            transfer: data.payment_method?.category?.toLowerCase() === 'transfer' ? data.buy_price : 0,
+            payment_method_name: data.payment_method?.name,
+            category: 'angkat_barang',
+            customer_name: data.customer_name,
+            customer_phone: data.customer_phone,
+            time: new Date().toLocaleString("id-ID"),
+        };
+
+        showSuccessModal.value = true;
+        // Reset form
+        tradeInForm.value = {
+            customer_name: "",
+            customer_phone: "",
+            source: "luar_pstore",
+            brand: "",
+            product_id: null,
+            ram: "",
+            storage: "",
+            condition: "second",
+            imei: "",
+            buy_price: 0,
+            payment_method_id: availablePaymentMethods.value[0]?.id,
+            reason: "",
+            notes: "",
+        };
+        tradeInPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        displayBuyPrice.value = "0";
+        currentStep.value = 1;
+        salesAccount.value = "";
+
+    } catch (error) {
+        console.error("Trade-in failed", error);
+        alert(error.response?.data?.message || "Gagal memproses barang angkat");
+    } finally {
+        isSubmitting.value = false;
+    }
+}
 </script>
 
 <template>
@@ -975,7 +1115,7 @@ watch(() => currentStep.value, (newStep) => {
             <!-- STEP 3: ITEM SELECTION -->
             <div v-if="currentStep === 3" class="flex-1 flex flex-col lg:flex-row gap-8 min-h-0 animate-fade-in">
                 <!-- Products -->
-                <div class="flex-[2] flex flex-col min-w-0">
+                <div v-if="transactionCategory !== 'angkat_barang'" class="flex-[2] flex flex-col min-w-0">
                     <div
                         class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                         <div class="relative flex-1 w-full">
@@ -1132,8 +1272,236 @@ watch(() => currentStep.value, (newStep) => {
                     </div>
                 </div>
 
-                <!-- Cart Sidebar (Sticky in step 3) -->
-                <div
+                <!-- ANGAKAT BARANG FORM -->
+                <div v-else-if="transactionCategory === 'angkat_barang'"
+                    class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+                    <div class="max-w-4xl mx-auto">
+                        <h3 class="text-2xl font-black text-text-primary mb-8 flex items-center gap-3">
+                            <Receipt :size="28" class="text-primary-500" stroke-width="2.5" /> Formulir Angkat Barang
+                        </h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Customer Info -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Data Customer</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nama
+                                        Customer <span class="text-red-500">*</span></label>
+                                    <input v-model="tradeInForm.customer_name" type="text" placeholder="Nama lengkap..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">No
+                                        WhatsApp <span class="text-red-500">*</span></label>
+                                    <input v-model="tradeInForm.customer_phone" type="text" placeholder="08xxx..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Sumber
+                                        Handphone <span class="text-red-500">*</span></label>
+                                    <select v-model="tradeInForm.source"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                        <option value="pstore">Ex PStore</option>
+                                        <option value="luar_pstore">Luar PStore</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- HP Specs -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Spesifikasi Unit</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tradeInForm.brand"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option value="" disabled>Pilih Brand</option>
+                                            <option v-for="b in brands" :key="b.id" :value="b.name">{{ b.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tradeInForm.product_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!tradeInForm.brand">
+                                            <option :value="null" disabled>Pilih Tipe</option>
+                                            <option v-for="p in filteredProducts" :key="p.id" :value="p.id">{{ p.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
+                                            (RAM/Internal) <span class="text-red-500">*</span></label>
+                                        <div class="flex gap-2">
+                                            <input v-model="tradeInForm.ram" type="text" placeholder="RAM"
+                                                class="w-1/2 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-xs" />
+                                            <input v-model="tradeInForm.storage" type="text" placeholder="Internal"
+                                                class="w-1/2 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-xs" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kondisi
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tradeInForm.condition"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option value="new">New</option>
+                                            <option value="second">Second / SCD</option>
+                                            <option value="ex_ibox">Ex iBox</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">IMEI
+                                        <span class="text-red-500">*</span></label>
+                                    <input v-model="tradeInForm.imei" type="text"
+                                        placeholder="Masukkan 15 digit IMEI..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-mono" />
+                                </div>
+                            </div>
+
+                            <!-- Financial & Media -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Pembayaran & Bukti</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
+                                        Angkat <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <span
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="displayBuyPrice" @input="handleBuyPriceInput"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Metode
+                                        Pembayaran <span class="text-red-500">*</span></label>
+                                    <select v-model="tradeInForm.payment_method_id"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                        <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
+                                            }}</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Unit <span class="text-red-500">*</span></label>
+                                        <div @click="$refs.unitInput.click()"
+                                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                            <template v-if="tradeInPhotos.unitPreview">
+                                                <img :src="tradeInPhotos.unitPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Unit</span>
+                                            </template>
+                                            <input type="file" ref="unitInput"
+                                                @change="e => handlePhotoUpload('unit', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Customer</label>
+                                        <div @click="$refs.customerInput.click()"
+                                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                            <template v-if="tradeInPhotos.customerPreview">
+                                                <img :src="tradeInPhotos.customerPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Customer</span>
+                                            </template>
+                                            <input type="file" ref="customerInput"
+                                                @change="e => handlePhotoUpload('customer', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional info -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Informasi Tambahan</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Alasan
+                                        Angkat
+                                        (Opsional)</label>
+                                    <textarea v-model="tradeInForm.reason" rows="2"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                        placeholder="Kenapa barang ini diangkat?"></textarea>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Keterangan
+                                        Tambahan
+                                        (Opsional)</label>
+                                    <textarea v-model="tradeInForm.notes" rows="2"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                        placeholder="Catatan tambahan..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div
+                            class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
+                            <button @click="prevStep"
+                                class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
+                                Kembali ke Kategori
+                            </button>
+                            <button @click="submitTradeIn" :disabled="isSubmitting"
+                                class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
+                                <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
+                                <template v-else>
+                                    <Save :size="24" /> Selesaikan & Simpan ke Inventory
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Sidebar (Sticky in step 3) - Only show for other categories -->
+                <div v-if="transactionCategory !== 'angkat_barang'"
                     class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0">
                     <div
                         class="p-6 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center justify-between font-bold">
@@ -1369,7 +1737,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1407,7 +1775,7 @@ watch(() => currentStep.value, (newStep) => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1506,7 +1874,7 @@ watch(() => currentStep.value, (newStep) => {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1525,7 +1893,7 @@ watch(() => currentStep.value, (newStep) => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1533,7 +1901,7 @@ watch(() => currentStep.value, (newStep) => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -1587,7 +1955,7 @@ watch(() => currentStep.value, (newStep) => {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -1692,7 +2060,7 @@ watch(() => currentStep.value, (newStep) => {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}

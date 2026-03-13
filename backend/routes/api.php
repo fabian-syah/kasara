@@ -14,6 +14,7 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\TradeInController;
 
 // ... (previous routes)
 
@@ -107,6 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stock-outs/shopee-history', [\App\Http\Controllers\StockOutController::class, 'shopeeHistory']);
     Route::get('/stock-outs/{id}', [\App\Http\Controllers\StockOutController::class, 'show']);
     Route::get('/track', [\App\Http\Controllers\StockOutController::class, 'track']);
+    Route::post('/trade-ins', [TradeInController::class, 'store']);
 
     // Transfer confirmation (Pindah Cabang)
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);

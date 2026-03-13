@@ -25,7 +25,8 @@ class ProductDetail extends Model
         'selling_price',
         'distributor_id',
         'supplier_name',
-        'notes'
+        'notes',
+        'trade_in_id'
     ];
 
     protected $casts = [
@@ -76,5 +77,10 @@ class ProductDetail extends Model
             ->where('category', 'retur')
             ->latest()
             ->first();
+    }
+
+    public function tradeIn()
+    {
+        return $this->belongsTo(TradeIn::class);
     }
 }
