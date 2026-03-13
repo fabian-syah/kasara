@@ -259,83 +259,33 @@ const printReceipt = () => {
     window.print();
 };
 
-const GDriveScriptUrl = 'https://script.google.com/macros/s/AKfycbxJ4V2A4uX7Ft_FFsrRCx9A86KA9ev0eWZTxcHlmR-lBFzjeJthLWVrN7mDDBFJfmyM/exec';
+const shareToWhatsApp = async () => {
+    if (isGeneratingPDF.value) return;
 
-const shareToWhatsApp = async (isAuto = false) => {
     try {
-        const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
-        const receiptId = props.transaction.receipt_id || props.transaction.order_no || props.transaction.id;
-        const customerName = props.transaction.customer_name || 'Pelanggan';
-        let publicUrl = `${import.meta.env.VITE_API_URL || 'https://api.stokps.com'}/n/${encodeURIComponent(receiptId)}`;
+        isGeneratingPDF.value = true;
 
-        if (phone && phone !== '-') {
-            // Clean phone number
-            let cleanPhone = phone.replace(/\D/g, '');
-            if (cleanPhone.startsWith('0')) {
-                cleanPhone = '62' + cleanPhone.substring(1);
-            } else if (!cleanPhone.startsWith('62')) {
-                cleanPhone = '62' + cleanPhone;
+        // Call backend to handle EVERYTHING (PDF -> GDrive -> WA Link)
+        // This replaces the old client-side PDF generation that was causing issues
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.stokps.com'}/api/receipts/${props.transaction.id}/share-wa`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
             }
+        });
 
-            isGeneratingPDF.value = true;
-            let finalLink = publicUrl;
+        const result = await response.json();
 
-            try {
-                const element = document.querySelector('.nota-paper');
-                if (element) {
-                    element.classList.add('pdf-capture-mode');
-                    const opt = {
-                        margin: 0,
-                        filename: `Nota-${receiptId}.pdf`,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 480 },
-                        jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
-                    };
-
-                    const blob = await window.html2pdf().set(opt).from(element).output('blob');
-                    element.classList.remove('pdf-capture-mode');
-
-                    // Convert to Base64 for GDrive Upload
-                    const reader = new FileReader();
-                    const base64Promise = new Promise((resolve) => {
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.readAsDataURL(blob);
-                    });
-                    const fileBase64 = await base64Promise;
-
-                    // Upload to GDrive via Backend Proxy
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.stokps.com'}/api/receipts/gdrive-proxy`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                        },
-                        body: JSON.stringify({
-                            fileBase64: fileBase64,
-                            filename: `Nota-${receiptId}.pdf`
-                        })
-                    });
-
-                    const result = await response.json();
-                    if (result.success && result.url) {
-                        finalLink = result.url;
-                    }
-                }
-            } catch (e) {
-                console.error('GDrive upload failed, using fallback', e);
-            }
-
-            const message = `Halo Kak ${customerName || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda:\n\n*Lihat Nota (Direct PDF):* ${finalLink}\n\n*Nota ini dapat Anda simpan atau cetak langsung dari browser Anda.*`;
-
-            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-            window.open(waUrl, '_blank');
+        if (result.success && result.wa_url) {
+            window.open(result.wa_url, '_blank');
+            emit('sent');
         } else {
-            alert('Nomor WhatsApp pelanggan tidak ditemukan. Link nota: ' + publicUrl);
+            throw new Error(result.error || 'Gagal membuat link sharing');
         }
 
     } catch (error) {
         console.error('WhatsApp sharing failed:', error);
-        alert('Gagal memproses pengiriman WhatsApp.');
+        alert('Gagal memproses pengiriman WhatsApp: ' + error.message);
     } finally {
         isGeneratingPDF.value = false;
     }
