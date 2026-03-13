@@ -23,7 +23,7 @@ class StockOutController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product']);
+        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product', 'paymentMethod']);
 
         if ($request->category) {
             $query->byCategory($request->category);
@@ -645,7 +645,7 @@ class StockOutController extends Controller
     // Get single stock out
     public function show($id)
     {
-        $stockOut = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+        $stockOut = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'paymentMethod'])
             ->where('id', $id)
             ->orWhere('receipt_id', $id)
             ->firstOrFail();

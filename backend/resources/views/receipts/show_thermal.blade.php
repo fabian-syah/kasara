@@ -411,10 +411,18 @@
             @endif
 
             {{-- Split Payments Breakdown --}}
-            @if($transaction->split_payments && count($transaction->split_payments) > 0)
+            @if(isset($split_payments_data) && count($split_payments_data) > 0)
+                @foreach($split_payments_data as $payment)
+                    <div class="payment-row" style="font-size: 11px;">
+                        <span class="payment-label" style="text-transform: uppercase;">{{ $payment['method_name'] }}
+                            :</span>
+                        <span class="payment-value">{{ number_format($payment['amount'], 0, ',', '.') }}</span>
+                    </div>
+                @endforeach
+            @elseif($transaction->split_payments && count($transaction->split_payments) > 0)
                 @foreach($transaction->split_payments as $payment)
                     @if(($payment['amount'] ?? 0) > 0)
-                        <div class="payment-row" style="font-size: 10px;">
+                        <div class="payment-row" style="font-size: 11px;">
                             <span class="payment-label"
                                 style="text-transform: uppercase;">{{ ($payment['method'] ?? ($payment['method_name'] ?? 'Pembayaran')) }}
                                 :</span>
@@ -423,7 +431,7 @@
                     @endif
                 @endforeach
             @elseif($transaction->paid_amount > 0)
-                <div class="payment-row" style="font-size: 10px;">
+                <div class="payment-row" style="font-size: 11px;">
                     <span class="payment-label">BAYAR :</span>
                     <span class="payment-value">{{ number_format($transaction->paid_amount, 0, ',', '.') }}</span>
                 </div>
@@ -436,7 +444,8 @@
             </div>
 
             <div class="metode-info">
-                Metode: {{ $transaction->payment_method_id ? 'Transfer/Debit' : 'Cash' }}
+                Metode:
+                {{ $transaction->paymentMethod->name ?? ($transaction->payment_method_id ? 'Transfer/Debit' : 'Cash') }}
             </div>
         </div>
     </div>

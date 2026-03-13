@@ -74,7 +74,7 @@ class AuditController extends Controller
         $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
 
         // Load nonHpItems relationship for Product details, but we will use JSON column for price
-        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers'])
+        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
 
@@ -249,6 +249,7 @@ class AuditController extends Controller
             }
 
             // 4. Payment Breakdown
+            $processedSplitPayments = [];
             $cash = 0;
             $transfer = 0;
             $debit = 0;
@@ -256,22 +257,31 @@ class AuditController extends Controller
                 $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
                 if (is_array($splits)) {
                     foreach ($splits as $sp) {
-                        $methodId = $sp['payment_method_id'] ?? null;
+                        $methodId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
                         $amount = floatval($sp['amount'] ?? 0);
+
+                        $methodName = 'Unknown';
                         if ($methodId && isset($paymentMethods[$methodId])) {
-                            $cat = strtolower($paymentMethods[$methodId]->category ?? '');
-                            $name = strtolower($paymentMethods[$methodId]->name ?? '');
+                            $method = $paymentMethods[$methodId];
+                            $methodName = $method->name;
+                            $cat = strtolower($method->category ?? '');
+                            $name = strtolower($method->name ?? '');
+
                             if (str_contains($cat, 'cash') || str_contains($cat, 'tunai') || str_contains($name, 'cash') || str_contains($name, 'tunai')) {
                                 $cash += $amount;
-                            } elseif (str_contains($cat, 'debit') || str_contains($name, 'debit')) {
+                            } elseif (str_contains($cat, 'debit') || str_contains($name, 'debit') || str_contains($name, 'edc')) {
                                 $debit += $amount;
                             } else {
                                 $transfer += $amount;
                             }
                         } else {
-                            // Default to transfer if unknown
                             $transfer += $amount;
                         }
+
+                        $processedSplitPayments[] = [
+                            'method_name' => $methodName,
+                            'amount' => $amount
+                        ];
                     }
                 }
             } else {
@@ -299,7 +309,9 @@ class AuditController extends Controller
                 'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
-                'payment_method' => $trx->category === 'penjualan_offline' ? 'Offline' : 'Online',
+                'payment_method' => $trx->paymentMethod->name ?? ($trx->category === 'penjualan_offline' ? 'Offline' : 'Online'),
+                'payment_method_name' => $trx->paymentMethod->name ?? null,
+                'split_payments_data' => $processedSplitPayments,
                 'cash' => $cash,
                 'transfer' => $transfer,
                 'debit' => $debit,

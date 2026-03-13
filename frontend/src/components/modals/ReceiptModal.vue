@@ -116,7 +116,7 @@
                                     <td class="py-3 px-1"></td>
                                     <td class="py-3 px-1"></td>
                                     <td class="py-3 px-1"></td>
-                                </tr>chr
+                                </tr>
                                 <!-- No summary rows inside table to keep it clean -->
                             </tbody>
                         </table>
@@ -144,20 +144,33 @@
                                 </div>
 
                                 <!-- Payment Breakdown -->
-                                <div v-if="transaction.cash > 0"
-                                    class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black text-[10px]">CASH :</span>
-                                    <span class="text-black">
-                                        {{ formatCurrency(transaction.cash) }}
-                                    </span>
-                                </div>
-                                <div v-if="transaction.transfer > 0"
-                                    class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black text-[10px]">TF :</span>
-                                    <span class="text-black">
-                                        {{ formatCurrency(transaction.transfer) }}
-                                    </span>
-                                </div>
+                                <template
+                                    v-if="transaction.split_payments_data && transaction.split_payments_data.length > 0">
+                                    <div v-for="(payment, idx) in transaction.split_payments_data" :key="idx"
+                                        class="flex justify-between border-b border-gray-300 pb-1">
+                                        <span class="font-bold text-black text-[10px] uppercase">{{ payment.method_name
+                                            }} :</span>
+                                        <span class="text-black">
+                                            {{ formatCurrency(payment.amount) }}
+                                        </span>
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div v-if="transaction.cash > 0"
+                                        class="flex justify-between border-b border-gray-300 pb-1">
+                                        <span class="font-bold text-black text-[10px]">CASH :</span>
+                                        <span class="text-black">
+                                            {{ formatCurrency(transaction.cash) }}
+                                        </span>
+                                    </div>
+                                    <div v-if="transaction.transfer > 0"
+                                        class="flex justify-between border-b border-gray-300 pb-1">
+                                        <span class="font-bold text-black text-[10px]">TF :</span>
+                                        <span class="text-black">
+                                            {{ formatCurrency(transaction.transfer) }}
+                                        </span>
+                                    </div>
+                                </template>
 
                                 <!-- Final Total -->
                                 <div class="flex justify-between border-t-2 border-black pt-1">
@@ -167,7 +180,7 @@
                                     </span>
                                 </div>
                                 <div class="text-[9px] text-right text-gray-500 italic mt-1">
-                                    Metode: {{ transaction.payment_method || '-' }}
+                                    Metode: {{ transaction.payment_method_name || transaction.payment_method || '-' }}
                                 </div>
                             </div>
                         </div>

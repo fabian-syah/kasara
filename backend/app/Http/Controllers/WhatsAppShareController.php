@@ -14,7 +14,7 @@ class WhatsAppShareController extends Controller
     {
         try {
             // 1. Ambil Data Transaksi
-            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch'])->findOrFail($id);
+            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch', 'paymentMethod'])->findOrFail($id);
 
             // 2. Format Nomor WA
             $phone = $transaction->customer_phone ?: $transaction->customer_wa ?: $transaction->shopee_phone;
@@ -73,6 +73,21 @@ class WhatsAppShareController extends Controller
                 }
             }
 
+            // 3.5 Process split payments to get names
+            $processedSplitPayments = [];
+            if ($transaction->split_payments && count($transaction->split_payments) > 0) {
+                // Fetch only needed payment methods to avoid overhead
+                $methodIds = array_column($transaction->split_payments, 'payment_method_id');
+                $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
+
+                foreach ($transaction->split_payments as $sp) {
+                    $processedSplitPayments[] = [
+                        'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
+                        'amount' => $sp['amount'] ?? 0
+                    ];
+                }
+            }
+
             // 4. Generate HTML dari View (Thermal-Style)
             $htmlContent = view('receipts.show_thermal', [
                 'transaction' => $transaction,
@@ -81,6 +96,7 @@ class WhatsAppShareController extends Controller
                 'logoBase64' => $logoBase64,
                 'shopeeBase64' => $shopeeBase64,
                 'tokopediaBase64' => $tokopediaBase64,
+                'split_payments_data' => $processedSplitPayments,
             ])->render();
 
             // 5. Kirim ke GDrive Bridge (Apps Script baru yang bisa ubah HTML -> PDF)

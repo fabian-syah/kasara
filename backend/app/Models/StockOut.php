@@ -85,6 +85,44 @@ class StockOut extends Model
         'split_payments' => 'array',
     ];
 
+    protected $appends = ['payment_method_name', 'split_payments_data'];
+
+    public function getPaymentMethodNameAttribute()
+    {
+        return $this->paymentMethod->name ?? null;
+    }
+
+    public function getSplitPaymentsDataAttribute()
+    {
+        $splits = $this->split_payments;
+        if (!$splits)
+            return [];
+
+        if (is_string($splits)) {
+            $splits = json_decode($splits, true);
+        }
+
+        if (!is_array($splits))
+            return [];
+        return [];
+
+        // Check if names are already there
+        if (count($splits) > 0 && isset($splits[0]['method_name']))
+            return $splits;
+
+        $methodIds = array_column($splits, 'payment_method_id');
+        $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
+
+        $result = [];
+        foreach ($splits as $sp) {
+            $result[] = [
+                'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
+                'amount' => $sp['amount'] ?? 0
+            ];
+        }
+        return $result;
+    }
+
     // Relationships
     public function items()
     {
@@ -173,5 +211,10 @@ class StockOut extends Model
     public function auditProfit()
     {
         return $this->hasOne(AuditProfit::class, 'stock_out_id', 'id');
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 }
