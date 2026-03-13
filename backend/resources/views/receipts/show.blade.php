@@ -65,7 +65,7 @@
     <div id="receipt-content" class="nota-paper">
         <!-- HEADER -->
         <div class="flex items-start gap-4 mb-6 border-b pb-6">
-            <img src="https://api.stokps.com/images/logo-pstore.png" alt="PSTORE" class="w-16 h-16 object-contain" />
+            <img src="https://api.stokps.com/images/logo-pstore.png" alt="PSTORE" class="w-16 h-auto object-contain" />
             <div class="flex-1">
                 <h1 class="text-3xl font-black tracking-tighter text-black leading-none">PSTORE</h1>
                 <p class="text-[10px] leading-tight text-gray-700 mt-2">
@@ -167,11 +167,11 @@
         function downloadPDF() {
             const element = document.getElementById('receipt-content');
             const opt = {
-                margin: 10,
+                margin: 0,
                 filename: 'Nota-PSTORE-{{ $transaction->receipt_id }}.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
             };
             html2pdf().set(opt).from(element).save();
         }

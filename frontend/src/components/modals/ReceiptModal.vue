@@ -31,7 +31,8 @@
 
                         <!-- ===== NOTA HEADER ===== -->
                         <div class="flex items-start gap-4 mb-4 pb-4">
-                            <img src="/images/logo-pstore.png" alt="PSTORE" class="w-14 h-14 object-contain shrink-0" />
+                            <img src="/images/logo-pstore.png" alt="PSTORE"
+                                class="w-16 h-auto object-contain shrink-0" />
                             <div class="flex-1 min-w-0">
                                 <h2 class="text-2xl font-extrabold tracking-wider text-black leading-none">PSTORE</h2>
                                 <p class="text-[9px] leading-tight text-gray-700 mt-1">
@@ -277,15 +278,20 @@ const shareToWhatsApp = async () => {
             if (navigator.share && navigator.canShare) {
                 try {
                     isGeneratingPDF.value = true;
-                    const element = document.getElementById('receipt-content');
+                    const element = document.querySelector('.nota-paper');
                     if (element) {
                         element.classList.add('pdf-capture-mode');
                         const opt = {
-                            margin: [10, 10, 10, 10],
+                            margin: 0,
                             filename: `Nota-${receiptId}.pdf`,
                             image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                            html2canvas: {
+                                scale: 2,
+                                useCORS: true,
+                                backgroundColor: '#ffffff',
+                                width: 480 // Match the nota-paper max-width
+                            },
+                            jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
                         };
 
                         // Generate PDF Blob
@@ -317,7 +323,7 @@ const shareToWhatsApp = async () => {
             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
             window.open(waUrl, '_blank');
         } else {
-            alert('Nomor WhatsApp pelanggan tidak ditemukan. PDF berhasil diunduh.');
+            alert('Nomor WhatsApp pelanggan tidak ditemukan. Link nota: ' + publicUrl);
         }
 
     } catch (error) {
