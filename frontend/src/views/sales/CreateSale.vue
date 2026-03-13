@@ -68,6 +68,7 @@ const tradeInForm = ref({
     brand_id: null,
     product_type_id: null,
     storage: "",
+    condition: "",
     imei: "",
     buy_price: 0,
     payment_method_id: null,
@@ -93,7 +94,17 @@ const filteredTradeInTypes = computed(() => {
 
 const filteredTradeInCapacities = computed(() => {
     if (!tradeInForm.value.product_type_id) return [];
-    return productPrices.value.filter(p => p.product_type_id === tradeInForm.value.product_type_id && p.condition === 'second');
+    const prices = productPrices.value.filter(p => p.product_type_id === tradeInForm.value.product_type_id);
+    // Get unique storage values
+    return [...new Set(prices.map(p => p.storage))];
+});
+
+const filteredTradeInConditions = computed(() => {
+    if (!tradeInForm.value.product_type_id || !tradeInForm.value.storage) return [];
+    return productPrices.value.filter(p =>
+        p.product_type_id === tradeInForm.value.product_type_id &&
+        p.storage === tradeInForm.value.storage
+    );
 });
 
 // Payment state (Step 4)
@@ -104,6 +115,22 @@ const splitPayments = ref([]);
 const proofImage = ref(null);
 const proofImagePreview = ref(null);
 const isSubmitting = ref(false);
+
+// Reset dependent fields when brand or type changes
+watch(() => tradeInForm.value.brand_id, () => {
+    tradeInForm.value.product_type_id = null;
+    tradeInForm.value.storage = "";
+    tradeInForm.value.condition = "";
+});
+
+watch(() => tradeInForm.value.product_type_id, () => {
+    tradeInForm.value.storage = "";
+    tradeInForm.value.condition = "";
+});
+
+watch(() => tradeInForm.value.storage, () => {
+    tradeInForm.value.condition = "";
+});
 const isCompressing = ref(false);
 
 // Success modal
@@ -917,8 +944,8 @@ const handlePhotoUpload = (type, e) => {
 }
 
 async function submitTradeIn() {
-    if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.brand_id || !tradeInForm.value.product_type_id || !tradeInForm.value.storage || !tradeInForm.value.buy_price) {
-        alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Harga).");
+    if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.brand_id || !tradeInForm.value.product_type_id || !tradeInForm.value.storage || !tradeInForm.value.condition || !tradeInForm.value.buy_price) {
+        alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Kondisi, Harga).");
         return;
     }
 
@@ -981,6 +1008,7 @@ async function submitTradeIn() {
             brand_id: null,
             product_type_id: null,
             storage: "",
+            condition: "",
             imei: "",
             buy_price: 0,
             payment_method_id: availablePaymentMethods.value[0]?.id,
@@ -1352,17 +1380,34 @@ async function submitTradeIn() {
                                         </select>
                                     </div>
                                 </div>
-                                <div>
-                                    <label
-                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
-                                        (Internal) <span class="text-red-500">*</span></label>
-                                    <select v-model="tradeInForm.storage"
-                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
-                                        :disabled="!tradeInForm.product_type_id">
-                                        <option value="" disabled>Pilih Kapasitas</option>
-                                        <option v-for="p in filteredTradeInCapacities" :key="p.id" :value="p.storage">{{
-                                            p.storage }}</option>
-                                    </select>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
+                                            (Internal) <span class="text-red-500">*</span></label>
+                                        <select v-model="tradeInForm.storage"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!tradeInForm.product_type_id">
+                                            <option value="" disabled>Pilih Kapasitas</option>
+                                            <option v-for="storage in filteredTradeInCapacities" :key="storage"
+                                                :value="storage">{{
+                                                    storage }}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kondisi
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tradeInForm.condition"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!tradeInForm.storage">
+                                            <option value="" disabled>Pilih Kondisi</option>
+                                            <option v-for="p in filteredTradeInConditions" :key="p.id"
+                                                :value="p.condition">{{
+                                                    p.condition === 'new' ? 'New' : (p.condition === 'ex_ibox' ? 'Ex iBox' :
+                                                        'Second / SCD') }}</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label
