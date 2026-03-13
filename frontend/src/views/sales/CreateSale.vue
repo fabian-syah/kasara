@@ -697,7 +697,8 @@ async function processPayment(pin = null) {
         });
 
         lastTransaction.value = {
-            id: response.data?.data?.receipt_id || "TRX-" + Date.now(),
+            id: response.data?.data?.id,
+            order_no: response.data?.data?.receipt_id || "TRX-" + Date.now(),
             items: cartItems.value.map(item => ({
                 ...item,
                 price: item.price,
@@ -1562,7 +1563,7 @@ watch(() => currentStep.value, (newStep) => {
                             <span class="text-text-secondary font-bold uppercase tracking-widest">Receipt ID</span>
                             <span
                                 class="font-mono font-black text-text-primary bg-white dark:bg-surface-800 px-3 py-1 rounded-lg border border-surface-200 dark:border-surface-700">{{
-                                    lastTransaction.id }}</span>
+                                    lastTransaction.order_no }}</span>
                         </div>
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-text-secondary font-bold uppercase tracking-widest">Sales</span>
@@ -1596,7 +1597,8 @@ watch(() => currentStep.value, (newStep) => {
 
         <!-- RECEIPT MODAL -->
         <ReceiptModal :isOpen="showReceiptModal" :transaction="{
-            order_no: lastTransaction?.id,
+            id: lastTransaction?.id,
+            order_no: lastTransaction?.order_no,
             date: lastTransaction?.time,
             customer_name: lastTransaction?.customer_name,
             customer_phone: lastTransaction?.customer_phone,
