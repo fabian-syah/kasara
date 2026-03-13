@@ -196,6 +196,18 @@
                     </div>
                 </div>
 
+                <!-- LOADING OVERLAY -->
+                <div v-if="isGeneratingPDF"
+                    class="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 dark:bg-surface-800/90 backdrop-blur-sm transition-all duration-300">
+                    <div class="relative">
+                        <Loader2 class="w-12 h-12 text-primary-500 animate-spin" />
+                        <div class="absolute inset-0 animate-ping bg-primary-500/20 rounded-full"></div>
+                    </div>
+                    <h4 class="mt-4 text-lg font-bold text-text-primary">Menyiapkan Nota PDF</h4>
+                    <p class="mt-1 text-sm text-text-secondary">Mohon tunggu sebentar, sedang mengupload ke Google
+                        Drive...</p>
+                </div>
+
                 <!-- Footer / Actions (hide on print) -->
                 <div class="p-4 bg-white border-t border-gray-100 flex gap-3 print:hidden shrink-0">
                     <button @click="close"

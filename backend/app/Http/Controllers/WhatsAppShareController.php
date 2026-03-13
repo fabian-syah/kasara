@@ -29,6 +29,30 @@ class WhatsAppShareController extends Controller
                 $cleanPhone = '62' . $cleanPhone;
             }
 
+            // 2.5 Encode Base64 Images for PDF
+            $logoBase64 = '';
+            $shopeeBase64 = '';
+            $tokopediaBase64 = '';
+
+            try {
+                $logoPath = public_path('images/logo-pstore.png');
+                if (file_exists($logoPath)) {
+                    $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+                }
+
+                $shopeePath = public_path('images/shopee-icon-small.png');
+                if (file_exists($shopeePath)) {
+                    $shopeeBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($shopeePath));
+                }
+
+                $tokopediaPath = public_path('images/tokopedia-icon-small.png');
+                if (file_exists($tokopediaPath)) {
+                    $tokopediaBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($tokopediaPath));
+                }
+            } catch (\Exception $e) {
+                Log::warning('Base64 Image Encoding Failed: ' . $e->getMessage());
+            }
+
             // 3. Hitung Total & Diskon (Untuk View)
             $total_original = 0;
             foreach ($transaction->items as $item) {
@@ -54,6 +78,9 @@ class WhatsAppShareController extends Controller
                 'transaction' => $transaction,
                 'total_original' => $total_original,
                 'total_discount' => $total_discount,
+                'logoBase64' => $logoBase64,
+                'shopeeBase64' => $shopeeBase64,
+                'tokopediaBase64' => $tokopediaBase64,
             ])->render();
 
             // 5. Kirim ke GDrive Bridge (Apps Script baru yang bisa ubah HTML -> PDF)

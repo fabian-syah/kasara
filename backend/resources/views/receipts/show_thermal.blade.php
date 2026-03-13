@@ -7,18 +7,20 @@
     <style>
         @page {
             margin: 0;
-            size: 480px auto;
+            size: auto;
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            font-size: 13px;
-            line-height: 1.4;
+            font-size: 16px;
+            /* Larger font */
+            line-height: 1.6;
             color: #000;
-            margin: 0;
-            padding: 24px;
-            width: 432px;
-            /* 480px - (24px * 2) */
+            margin: 0 auto;
+            padding: 40px;
+            width: 100%;
+            max-width: 750px;
+            /* Much wider to fill A4 better if needed */
             background: #fff;
         }
 
@@ -48,42 +50,44 @@
         }
 
         .brand-title {
-            font-size: 24px;
-            font-weight: 800;
+            font-size: 32px;
+            font-weight: 900;
             letter-spacing: 0.05em;
             margin: 0;
-            line-height: 1;
+            line-height: 1.1;
         }
 
         .header-sub {
-            font-size: 9px;
+            font-size: 11px;
             color: #374151;
-            line-height: 1.2;
-            margin-top: 4px;
+            line-height: 1.3;
+            margin-top: 6px;
         }
 
         .header-cs {
-            font-size: 9px;
+            font-size: 11px;
             color: #4b5563;
-            margin-top: 2px;
+            margin-top: 4px;
+            font-weight: 600;
         }
 
         .social-icons {
-            margin-top: 8px;
-            font-size: 9px;
-            color: #374151;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #111;
         }
 
         .social-item {
             display: inline-block;
-            margin-right: 16px;
+            margin-right: 18px;
+            font-weight: 700;
         }
 
         .social-icon {
-            width: 10px;
-            height: 10px;
+            width: 14px;
+            height: 14px;
             vertical-align: middle;
-            margin-right: 4px;
+            margin-right: 6px;
         }
 
         .info-nota {
@@ -269,7 +273,11 @@
     <!-- NOTA HEADER -->
     <div class="nota-header">
         <div class="logo-container">
-            <img src="https://stokps.com/images/logo-pstore.png" alt="PSTORE" class="logo-img">
+            @if($logoBase64)
+                <img src="{{ $logoBase64 }}" alt="PSTORE" class="logo-img">
+            @else
+                <img src="https://stokps.com/images/logo-pstore.png" alt="PSTORE" class="logo-img">
+            @endif
         </div>
         <div class="header-info">
             <h2 class="brand-title">PSTORE</h2>
@@ -281,14 +289,22 @@
                 No Customer Service 0851 - 3300 - 5600
             </p>
             <div class="social-icons">
-                <span class="font-bold">Kami ada juga di :</span><br>
-                <div style="margin-top: 2px;">
+                <span style="font-weight: bold;">Kami ada juga di :</span><br>
+                <div style="margin-top: 4px;">
                     <span class="social-item">
-                        <img src="https://stokps.com/images/shopee-icon-small.png" class="social-icon" alt="">
+                        @if($shopeeBase64)
+                            <img src="{{ $shopeeBase64 }}" class="social-icon" alt="">
+                        @else
+                            <img src="https://stokps.com/images/shopee-icon-small.png" class="social-icon" alt="">
+                        @endif
                         pstore_
                     </span>
                     <span class="social-item">
-                        <img src="https://stokps.com/images/tokopedia-icon-small.png" class="social-icon" alt="">
+                        @if($tokopediaBase64)
+                            <img src="{{ $tokopediaBase64 }}" class="social-icon" alt="">
+                        @else
+                            <img src="https://stokps.com/images/tokopedia-icon-small.png" class="social-icon" alt="">
+                        @endif
                         pstore_
                     </span>
                 </div>
@@ -399,7 +415,9 @@
                 @foreach($transaction->split_payments as $payment)
                     @if(($payment['amount'] ?? 0) > 0)
                         <div class="payment-row" style="font-size: 10px;">
-                            <span class="payment-label" style="text-transform: uppercase;">{{ ($payment['method'] ?? ($payment['method_name'] ?? 'Pembayaran')) }} :</span>
+                            <span class="payment-label"
+                                style="text-transform: uppercase;">{{ ($payment['method'] ?? ($payment['method_name'] ?? 'Pembayaran')) }}
+                                :</span>
                             <span class="payment-value">{{ number_format($payment['amount'], 0, ',', '.') }}</span>
                         </div>
                     @endif
