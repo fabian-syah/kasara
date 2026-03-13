@@ -248,7 +248,7 @@ watch(() => props.isOpen, (newVal) => {
     if (newVal && props.autoSend) {
         // Short delay to ensure DOM is ready
         setTimeout(() => {
-            shareToWhatsApp();
+            shareToWhatsApp(true); // isAuto = true
         }, 500);
     }
 });
@@ -257,7 +257,7 @@ const printReceipt = () => {
     window.print();
 };
 
-const shareToWhatsApp = async () => {
+const shareToWhatsApp = async (isAuto = false) => {
     try {
         const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
         const receiptId = props.transaction.receipt_id || props.transaction.order_no || props.transaction.id;
@@ -275,7 +275,9 @@ const shareToWhatsApp = async () => {
             }
 
             // NEW: Try to Share as a real FILE on Mobile (Navigator Share API)
-            if (navigator.share && navigator.canShare) {
+            // CRITICAL: We can ONLY do this if it's a MANUAL CLICK (not isAuto)
+            // and if the browser supports it.
+            if (!isAuto && navigator.share && navigator.canShare) {
                 try {
                     isGeneratingPDF.value = true;
                     const element = document.querySelector('.nota-paper');
@@ -474,6 +476,13 @@ const formatNumber = (value) => {
         zoom: 1.1;
         color: black !important;
         background: white !important;
+    }
+
+    /* Fix logo gepeng in print/capture */
+    .nota-paper img {
+        height: auto !important;
+        max-height: none !important;
+        object-fit: contain !important;
     }
 
     .nota-paper tr,
