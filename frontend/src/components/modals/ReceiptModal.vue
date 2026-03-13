@@ -260,7 +260,7 @@ const shareToWhatsApp = async () => {
     try {
         const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
         const receiptId = props.transaction.receipt_id || props.transaction.order_no || props.transaction.id;
-        const publicUrl = `https://api.stokps.com/n/${receiptId}`;
+        const publicUrl = `https://api.stokps.com/n/${encodeURIComponent(receiptId)}`;
 
         const message = `Halo Kak ${props.transaction.customer_name || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda:\n\n*Lihat Nota Online:* ${publicUrl}\n\n*Nota ini dapat Anda simpan atau cetak langsung dari browser Anda.*`;
 
@@ -273,20 +273,47 @@ const shareToWhatsApp = async () => {
                 cleanPhone = '62' + cleanPhone;
             }
 
-            // Try Web Share API (Mobile)
-            if (navigator.share) {
+            // NEW: Try to Share as a real FILE on Mobile (Navigator Share API)
+            if (navigator.share && navigator.canShare) {
                 try {
-                    await navigator.share({
-                        title: 'Nota PSTORE',
-                        text: message,
-                        url: publicUrl
-                    });
-                    return;
+                    isGeneratingPDF.value = true;
+                    const element = document.getElementById('receipt-content');
+                    if (element) {
+                        element.classList.add('pdf-capture-mode');
+                        const opt = {
+                            margin: [10, 10, 10, 10],
+                            filename: `Nota-${receiptId}.pdf`,
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' },
+                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+
+                        // Generate PDF Blob
+                        const blob = await window.html2pdf().set(opt).from(element).output('blob');
+                        element.classList.remove('pdf-capture-mode');
+
+                        const file = new File([blob], `Nota-${receiptId}.pdf`, { type: 'application/pdf' });
+
+                        if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Nota PSTORE',
+                                text: message
+                            });
+                            isGeneratingPDF.value = false;
+                            return; // SUCCESS! Direct file share completed
+                        }
+                    }
                 } catch (e) {
-                    console.log('navigator.share failed, falling back to wa.me');
+                    console.log('navigator.share (file) failed, falling back to link share', e);
+                    const element = document.getElementById('receipt-content');
+                    if (element) element.classList.remove('pdf-capture-mode');
+                } finally {
+                    isGeneratingPDF.value = false;
                 }
             }
 
+            // Fallback for PC or older mobile
             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
             window.open(waUrl, '_blank');
         } else {
