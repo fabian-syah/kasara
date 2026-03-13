@@ -968,6 +968,14 @@ function handleBuyPriceInput(e) {
     e.target.value = formatNumber(num);
 }
 
+function handleImeiInput(e) {
+    const val = e.target.value;
+    // Allow digits, commas, and newlines
+    const filtered = val.replace(/[^0-9,\n]/g, "");
+    tradeInForm.value.imeis_raw = filtered;
+    e.target.value = filtered;
+}
+
 const handlePhotoUpload = (type, e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -1464,7 +1472,7 @@ async function submitTradeIn() {
                                 <label
                                     class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Daftar
                                     IMEI (Pisahkan tiap baris/koma) <span class="text-red-500">*</span></label>
-                                <textarea v-model="tradeInForm.imeis_raw" rows="3"
+                                <textarea :value="tradeInForm.imeis_raw" @input="handleImeiInput" rows="3"
                                     placeholder="Masukkan IMEI...&#10;Contoh:&#10;351234...&#10;355678..."
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-mono text-sm"></textarea>
                                 <div class="mt-2 flex items-center justify-between text-[10px] font-bold">
