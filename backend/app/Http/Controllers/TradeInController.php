@@ -21,16 +21,15 @@ class TradeInController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:50',
             'source' => 'required|in:pstore,luar_pstore',
-            'product_id' => 'required|exists:products,id',
+            'brand_id' => 'required|exists:brands,id',
+            'product_type_id' => 'required|exists:product_types,id',
             'imei' => 'required|string|max:20|unique:product_details,imei',
-            'ram' => 'nullable|string|max:50',
-            'storage' => 'nullable|string|max:50',
-            'condition' => 'required|in:new,second,ex_ibox',
+            'storage' => 'required|string|max:50',
             'buy_price' => 'required|numeric|min:0',
             'payment_method_id' => 'required|exists:payment_methods,id',
             'reason' => 'nullable|string',
             'notes' => 'nullable|string',
-            'photo_unit' => 'required|image|max:5120', // Wajib unit photo
+            'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
         ]);
 
@@ -47,17 +46,30 @@ class TradeInController extends Controller
                     $photoLog['customer'] = $pathCustomer;
                 }
 
+                // 2. Resolve Product (Master)
+                $productType = \App\Models\ProductType::with('brand')->findOrFail($request->product_type_id);
+                // Find or create a Product record that matches this ProductType
+                $product = \App\Models\Product::firstOrCreate(
+                    ['name' => $productType->name, 'brand' => $productType->brand->name],
+                    [
+                        'type' => 'hp',
+                        'has_imei' => true,
+                        'is_active' => true,
+                        'sku' => 'HP-' . strtoupper(Str::random(8))
+                    ]
+                );
+
                 // 2. Create TradeIn Record
                 $tradeIn = TradeIn::create([
                     'receipt_id' => TradeIn::generateReceiptId(),
                     'customer_name' => $request->customer_name,
                     'customer_phone' => $request->customer_phone,
                     'source' => $request->source,
-                    'product_id' => $request->product_id,
+                    'product_type_id' => $request->product_type_id,
                     'imei' => $request->imei,
-                    'ram' => $request->ram,
+                    'ram' => $productType->ram,
                     'storage' => $request->storage,
-                    'condition' => $request->condition,
+                    'condition' => 'second',
                     'buy_price' => $request->buy_price,
                     'payment_method_id' => $request->payment_method_id,
                     'reason' => $request->reason,
@@ -70,17 +82,17 @@ class TradeInController extends Controller
 
                 // 3. Create ProductDetail (Inventory)
                 $productDetail = ProductDetail::create([
-                    'product_id' => $request->product_id,
+                    'product_id' => $product->id,
                     'user_id' => $user->id,
                     'imei' => $request->imei,
-                    'ram' => $request->ram,
+                    'ram' => $productType->ram,
                     'storage' => $request->storage,
-                    'condition' => $request->condition,
+                    'condition' => 'second',
                     'status' => 'available',
                     'placement_type' => $user->branch_id ? 'branch' : ($user->warehouse_id ? 'warehouse' : 'distributor'),
                     'placement_id' => $user->branch_id ?? ($user->warehouse_id ?? $user->distributor_id),
-                    'cost_price' => $request->buy_price, // Harga angkat jadi harga modal
-                    'selling_price' => 0, // Should be set later by admin/owner
+                    'cost_price' => $request->buy_price,
+                    'selling_price' => 0,
                     'supplier_name' => 'Trade-In: ' . $request->customer_name,
                     'trade_in_id' => $tradeIn->id,
                     'notes' => $request->notes,
@@ -88,7 +100,7 @@ class TradeInController extends Controller
 
                 // 4. Create Inventory Log
                 InventoryLog::create([
-                    'product_id' => $request->product_id,
+                    'product_id' => $product->id,
                     'branch_id' => $user->branch_id,
                     'warehouse_id' => $user->warehouse_id,
                     'online_shop_id' => $user->online_shop_id,
@@ -104,7 +116,7 @@ class TradeInController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Barang angkat berhasil diproses dan masuk inventory.',
-                    'data' => $tradeIn->load('product', 'paymentMethod')
+                    'data' => $tradeIn->load('productType.brand', 'paymentMethod')
                 ]);
             });
         } catch (\Exception $e) {

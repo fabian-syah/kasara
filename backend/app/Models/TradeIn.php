@@ -15,7 +15,7 @@ class TradeIn extends Model
         'customer_name',
         'customer_phone',
         'source',
-        'product_id',
+        'product_type_id',
         'imei',
         'ram',
         'storage',
@@ -30,9 +30,9 @@ class TradeIn extends Model
         'branch_id',
     ];
 
-    public function product()
+    public function productType()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(ProductType::class);
     }
 
     public function user()

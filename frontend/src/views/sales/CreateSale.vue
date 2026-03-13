@@ -65,11 +65,9 @@ const tradeInForm = ref({
     customer_name: "",
     customer_phone: "",
     source: "luar_pstore",
-    brand: "",
-    product_id: null,
-    ram: "",
+    brand_id: null,
+    product_type_id: null,
     storage: "",
-    condition: "second",
     imei: "",
     buy_price: 0,
     payment_method_id: null,
@@ -86,9 +84,16 @@ const tradeInPhotos = ref({
 
 const brands = ref([]);
 const hpProducts = ref([]);
-const filteredTradeInProducts = computed(() => {
-    if (!tradeInForm.value.brand) return [];
-    return hpProducts.value.filter(p => p.brand === tradeInForm.value.brand);
+const productTypes = ref([]);
+const productPrices = ref([]);
+const filteredTradeInTypes = computed(() => {
+    if (!tradeInForm.value.brand_id) return [];
+    return productTypes.value.filter(t => t.brand_id === tradeInForm.value.brand_id);
+});
+
+const filteredTradeInCapacities = computed(() => {
+    if (!tradeInForm.value.product_type_id) return [];
+    return productPrices.value.filter(p => p.product_type_id === tradeInForm.value.product_type_id && p.condition === 'second');
 });
 
 // Payment state (Step 4)
@@ -116,14 +121,16 @@ const pinModalTitle = ref("Verifikasi PIN");
 
 onMounted(async () => {
     try {
-        const [hpRes, nonHpRes, accountsRes, userRes, paymentsRes] = await Promise.all([
+        const [hpRes, nonHpRes, accountsRes, userRes, paymentsRes, brandsRes, productsRes, typesRes, pricesRes] = await Promise.all([
             api.get('/inventory', { params: { type: 'hp', status: 'available', per_page: 1000 } }),
             api.get('/inventory', { params: { type: 'non-hp', per_page: 1000 } }),
             api.get('/inventory/my-accounts'),
             api.get('/user'),
             api.get('/payment-methods'),
             api.get('/brands'),
-            api.get('/products', { params: { type: 'hp', per_page: 1000 } })
+            api.get('/products', { params: { type: 'hp', per_page: 1000 } }),
+            api.get('/product-types', { params: { per_page: 1000 } }),
+            api.get('/product-prices', { params: { per_page: 1000 } })
         ]);
 
         // Process HP items
@@ -167,6 +174,8 @@ onMounted(async () => {
         // Brands and HP Products
         brands.value = brandsRes.data.data || brandsRes.data || [];
         hpProducts.value = productsRes.data.data || productsRes.data || [];
+        productTypes.value = typesRes.data.data || typesRes.data || [];
+        productPrices.value = pricesRes.data.data || pricesRes.data || [];
 
         // Auto-select logged-in user if they are in the list
         if (currentUserData) {
@@ -908,8 +917,8 @@ const handlePhotoUpload = (type, e) => {
 }
 
 async function submitTradeIn() {
-    if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.product_id || !tradeInForm.value.imei || !tradeInForm.value.buy_price) {
-        alert("Mohon lengkapi semua data wajib (Nama, WA, Produk, IMEI, Harga).");
+    if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.brand_id || !tradeInForm.value.product_type_id || !tradeInForm.value.storage || !tradeInForm.value.buy_price) {
+        alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Harga).");
         return;
     }
 
@@ -940,11 +949,13 @@ async function submitTradeIn() {
             id: data.id,
             order_no: data.receipt_id,
             items: [{
-                product: data.product,
-                name: data.product?.name,
+                product: data.product_type,
+                name: data.product_type?.name,
                 imei: data.imei,
                 selling_price: data.buy_price,
                 condition: data.condition,
+                storage: data.storage,
+                ram: data.ram,
                 price: data.buy_price,
                 qty: 1
             }],
@@ -967,11 +978,9 @@ async function submitTradeIn() {
             customer_name: "",
             customer_phone: "",
             source: "luar_pstore",
-            brand: "",
-            product_id: null,
-            ram: "",
+            brand_id: null,
+            product_type_id: null,
             storage: "",
-            condition: "second",
             imei: "",
             buy_price: 0,
             payment_method_id: availablePaymentMethods.value[0]?.id,
@@ -1322,10 +1331,10 @@ async function submitTradeIn() {
                                         <label
                                             class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
                                             <span class="text-red-500">*</span></label>
-                                        <select v-model="tradeInForm.brand"
+                                        <select v-model="tradeInForm.brand_id"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                                            <option value="" disabled>Pilih Brand</option>
-                                            <option v-for="b in brands" :key="b.id" :value="b.name">{{ b.name }}
+                                            <option :value="null" disabled>Pilih Brand</option>
+                                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}
                                             </option>
                                         </select>
                                     </div>
@@ -1333,39 +1342,27 @@ async function submitTradeIn() {
                                         <label
                                             class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe
                                             <span class="text-red-500">*</span></label>
-                                        <select v-model="tradeInForm.product_id"
+                                        <select v-model="tradeInForm.product_type_id"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
-                                            :disabled="!tradeInForm.brand">
+                                            :disabled="!tradeInForm.brand_id">
                                             <option :value="null" disabled>Pilih Tipe</option>
-                                            <option v-for="p in filteredTradeInProducts" :key="p.id" :value="p.id">{{
+                                            <option v-for="p in filteredTradeInTypes" :key="p.id" :value="p.id">{{
                                                 p.name }}
                                             </option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label
-                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
-                                            (RAM/Internal) <span class="text-red-500">*</span></label>
-                                        <div class="flex gap-2">
-                                            <input v-model="tradeInForm.ram" type="text" placeholder="RAM"
-                                                class="w-1/2 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-xs" />
-                                            <input v-model="tradeInForm.storage" type="text" placeholder="Internal"
-                                                class="w-1/2 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-xs" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kondisi
-                                            <span class="text-red-500">*</span></label>
-                                        <select v-model="tradeInForm.condition"
-                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                                            <option value="new">New</option>
-                                            <option value="second">Second / SCD</option>
-                                            <option value="ex_ibox">Ex iBox</option>
-                                        </select>
-                                    </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
+                                        (Internal) <span class="text-red-500">*</span></label>
+                                    <select v-model="tradeInForm.storage"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                        :disabled="!tradeInForm.product_type_id">
+                                        <option value="" disabled>Pilih Kapasitas</option>
+                                        <option v-for="p in filteredTradeInCapacities" :key="p.id" :value="p.storage">{{
+                                            p.storage }}</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label
@@ -1400,7 +1397,7 @@ async function submitTradeIn() {
                                     <select v-model="tradeInForm.payment_method_id"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                            }}</option>
+                                        }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -1738,7 +1735,7 @@ async function submitTradeIn() {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1776,7 +1773,7 @@ async function submitTradeIn() {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1875,7 +1872,7 @@ async function submitTradeIn() {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -1894,7 +1891,7 @@ async function submitTradeIn() {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -1902,7 +1899,7 @@ async function submitTradeIn() {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -1956,7 +1953,7 @@ async function submitTradeIn() {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -2061,7 +2058,7 @@ async function submitTradeIn() {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
