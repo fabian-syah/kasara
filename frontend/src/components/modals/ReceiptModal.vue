@@ -303,11 +303,13 @@ const shareToWhatsApp = async (isAuto = false) => {
                     });
                     const fileBase64 = await base64Promise;
 
-                    // Upload to GDrive bridge
-                    // Note: We use no-cors if fetch fails, but for GDrive Apps Script, 
-                    // a simple POST often works if deployed correctly.
-                    const response = await fetch(GDriveScriptUrl, {
+                    // Upload to GDrive via Backend Proxy
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.stokps.com'}/api/receipts/gdrive-proxy`, {
                         method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
                         body: JSON.stringify({
                             fileBase64: fileBase64,
                             filename: `Nota-${receiptId}.pdf`
