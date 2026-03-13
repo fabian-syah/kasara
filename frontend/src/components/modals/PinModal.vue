@@ -110,24 +110,24 @@ onMounted(() => {
 
             <!-- Modal Content -->
             <div
-                class="relative w-full max-w-sm bg-surface-900 border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-500 to-primary-800"></div>
+                class="relative w-full max-w-sm bg-white dark:bg-surface-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-800"></div>
 
                 <div class="p-8 text-center">
                     <div
-                        class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-500/10 text-primary-500 mb-6">
+                        class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-6 font-black font-mono">
                         <Lock :size="32" stroke-width="2.5" />
                     </div>
 
-                    <h3 class="text-2xl font-black text-white mb-2">{{ title }}</h3>
-                    <p class="text-white/60 text-sm mb-8 leading-relaxed px-4">
+                    <h3 class="text-2xl font-black text-text-primary mb-2">{{ title }}</h3>
+                    <p class="text-text-secondary text-sm mb-8 leading-relaxed px-4">
                         {{ description }}
                     </p>
 
                     <div class="flex justify-center gap-3 mb-4">
                         <input v-for="(digit, idx) in 4" :key="idx" :ref="el => inputs[idx] = el" v-model="pin[idx]"
                             type="password" inputmode="numeric" maxlength="1" autocomplete="new-password"
-                            class="w-14 h-16 bg-white/5 border border-white/10 rounded-2xl text-center text-3xl font-black text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+                            class="w-14 h-16 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl text-center text-3xl font-black text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/30"
                             @input="handleInput(idx, $event)" @keydown="handleKeydown(idx, $event)" />
                     </div>
 
@@ -154,7 +154,8 @@ onMounted(() => {
                         <div class="w-2 h-2 bg-primary-500 rounded-full animate-bounce"></div>
                     </div>
 
-                    <button @click="close" class="text-white/40 hover:text-white text-sm font-bold transition-colors">
+                    <button @click="close"
+                        class="text-text-secondary/60 hover:text-text-primary text-sm font-bold transition-colors">
                         Batal
                     </button>
                 </div>

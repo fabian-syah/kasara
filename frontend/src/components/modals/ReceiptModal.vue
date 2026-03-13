@@ -45,13 +45,13 @@
                                     <span class="font-bold">Kami ada juga di :</span>
                                     <div class="flex items-center gap-4 mt-0.5">
                                         <span class="flex items-center gap-1">
-                                            <img src="/images/shopee-icon.png" class="w-2.5 h-2.5 object-contain"
+                                            <img src="/images/shopee-icon-small.png" class="w-2.5 h-2.5 object-contain"
                                                 alt="" />
                                             pstore_
                                         </span>
                                         <span class="flex items-center gap-1">
-                                            <img src="/images/tokopedia-icon.png" class="w-2.5 h-2.5 object-contain"
-                                                alt="" />
+                                            <img src="/images/tokopedia-icon-small.png"
+                                                class="w-2.5 h-2.5 object-contain" alt="" />
                                             pstore_
                                         </span>
                                     </div>
@@ -280,8 +280,16 @@ const generatePDFAndShare = async () => {
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
+        // Force solid white background and standard colors for the capture area to avoid oklab errors
+        element.style.backgroundColor = '#ffffff';
+        element.classList.add('pdf-capture-mode');
+
         // Generate and download PDF
         await window.html2pdf().set(opt).from(element).save();
+
+        // Cleanup
+        element.style.backgroundColor = '';
+        element.classList.remove('pdf-capture-mode');
 
         // Share to WhatsApp
         const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
@@ -364,6 +372,39 @@ const formatNumber = (value) => {
 .nota-paper .text-amber-700 {
     color: #b45309 !important;
     /* Amber for item discount */
+}
+
+/* Force standard colors for PDF capture to avoid html2canvas oklab error */
+.pdf-capture-mode,
+.pdf-capture-mode * {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+    /* Standard gray-200 hex */
+    color: #000000 !important;
+}
+
+.pdf-capture-mode .bg-gray-50\/50 {
+    background-color: #f9fafb !important;
+}
+
+.pdf-capture-mode .border-gray-300 {
+    border-color: #d1d5db !important;
+}
+
+.pdf-capture-mode .border-gray-400 {
+    border-color: #9ca3af !important;
+}
+
+.pdf-capture-mode .text-gray-700 {
+    color: #374151 !important;
+}
+
+.pdf-capture-mode .text-gray-600 {
+    color: #4b5563 !important;
+}
+
+.pdf-capture-mode .text-gray-500 {
+    color: #6b7280 !important;
 }
 </style>
 
