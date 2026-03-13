@@ -113,7 +113,7 @@
                                     <td class="py-3 px-1"></td>
                                     <td class="py-3 px-1"></td>
                                     <td class="py-3 px-1"></td>
-                                </tr>
+                                </tr>chr
                                 <!-- No summary rows inside table to keep it clean -->
                             </tbody>
                         </table>
@@ -200,9 +200,15 @@
                         Tutup
                     </button>
                     <button @click="printReceipt"
-                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                        class="px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
                         <Printer :size="18" />
-                        Cetak Nota
+                        Cetak
+                    </button>
+                    <button @click="generatePDFAndShare" :disabled="isGeneratingPDF"
+                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <Loader2 v-if="isGeneratingPDF" :size="18" class="animate-spin" />
+                        <MessageSquare v-else :size="18" />
+                        Kirim WA
                     </button>
                 </div>
             </div>
@@ -212,7 +218,7 @@
 
 <script setup>
 import { defineProps, defineEmits, ref } from 'vue';
-import { Printer, Pencil, X } from 'lucide-vue-next';
+import { Printer, Pencil, X, MessageSquare, Loader2 } from 'lucide-vue-next';
 import { useEscapeKey } from '../../composables/useEscapeKey';
 
 const props = defineProps({
@@ -230,8 +236,63 @@ const close = () => {
     emit('close');
 };
 
+const isGeneratingPDF = ref(false);
+
 const printReceipt = () => {
     window.print();
+};
+
+const generatePDFAndShare = async () => {
+    if (isGeneratingPDF.value) return;
+
+    try {
+        isGeneratingPDF.value = true;
+
+        const element = document.getElementById('receipt-content');
+        if (!element) return;
+
+        // Custom style for PDF to ensure it looks good and fits well
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: `Nota-${props.transaction.order_no || 'PSTORE'}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                letterRendering: true
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        // Generate and download PDF
+        await window.html2pdf().set(opt).from(element).save();
+
+        // Share to WhatsApp
+        const phone = props.transaction.customer_phone || props.transaction.customer_wa;
+        if (phone && phone !== '-') {
+            // Clean phone number (remove non-digits, handle leading 0)
+            let cleanPhone = phone.replace(/\D/g, '');
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = '62' + cleanPhone.substring(1);
+            } else if (!cleanPhone.startsWith('62')) {
+                cleanPhone = '62' + cleanPhone;
+            }
+
+            const message = `Halo Kak ${props.transaction.customer_name || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda (No. Nota: ${props.transaction.order_no || '-'}).\n\n*Nota PDF sudah terunduh otomatis di perangkat Anda, silakan dilampirkan ke chat ini.*`;
+
+            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
+        } else {
+            alert('Nomor WhatsApp pelanggan tidak ditemukan. PDF berhasil diunduh.');
+        }
+
+    } catch (error) {
+        console.error('PDF Generation failed:', error);
+        alert('Gagal membuat PDF. Silakan coba cetak manual.');
+    } finally {
+        isGeneratingPDF.value = false;
+    }
 };
 
 useEscapeKey(() => {
