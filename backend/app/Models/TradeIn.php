@@ -21,6 +21,7 @@ class TradeIn extends Model
         'storage',
         'condition',
         'buy_price',
+        'quantity',
         'payment_method_id',
         'reason',
         'notes',
