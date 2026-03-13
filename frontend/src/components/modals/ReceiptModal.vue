@@ -31,8 +31,10 @@
 
                         <!-- ===== NOTA HEADER ===== -->
                         <div class="flex items-start gap-4 mb-4 pb-4">
-                            <img src="/images/logo-pstore.png" alt="PSTORE"
-                                class="w-16 h-auto object-contain shrink-0" />
+                            <div
+                                class="w-20 h-20 flex items-center justify-center bg-white rounded-xl shrink-0 overflow-hidden">
+                                <img src="/images/logo-pstore.png" alt="PSTORE" class="w-full h-full object-contain" />
+                            </div>
                             <div class="flex-1 min-w-0">
                                 <h2 class="text-2xl font-extrabold tracking-wider text-black leading-none">PSTORE</h2>
                                 <p class="text-[9px] leading-tight text-gray-700 mt-1">
@@ -274,12 +276,15 @@ const shareToWhatsApp = async (isAuto = false) => {
                 cleanPhone = '62' + cleanPhone;
             }
 
+            // Detection for Desktop (Windows/Mac)
+            const isDesktop = /Windows|Macintosh|Linux/.test(navigator.userAgent) && !/Mobile|Android|iPhone/.test(navigator.userAgent);
+
             // NEW: Try to Share as a real FILE on Mobile (Navigator Share API)
-            // CRITICAL: We can ONLY do this if it's a MANUAL CLICK (not isAuto)
-            // and if the browser supports it.
-            if (!isAuto && navigator.share && navigator.canShare) {
+            // Skip this for Desktop as it's often confusing or not supported for files
+            if (!isDesktop && !isAuto && navigator.share && navigator.canShare) {
                 try {
                     isGeneratingPDF.value = true;
+                    // Target ONLY the paper for clean capture
                     const element = document.querySelector('.nota-paper');
                     if (element) {
                         element.classList.add('pdf-capture-mode');
@@ -287,16 +292,10 @@ const shareToWhatsApp = async (isAuto = false) => {
                             margin: 0,
                             filename: `Nota-${receiptId}.pdf`,
                             image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: {
-                                scale: 2,
-                                useCORS: true,
-                                backgroundColor: '#ffffff',
-                                width: 480 // Match the nota-paper max-width
-                            },
+                            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 480 },
                             jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
                         };
 
-                        // Generate PDF Blob
                         const blob = await window.html2pdf().set(opt).from(element).output('blob');
                         element.classList.remove('pdf-capture-mode');
 
@@ -309,19 +308,40 @@ const shareToWhatsApp = async (isAuto = false) => {
                                 text: message
                             });
                             isGeneratingPDF.value = false;
-                            return; // SUCCESS! Direct file share completed
+                            return;
                         }
                     }
                 } catch (e) {
-                    console.log('navigator.share (file) failed, falling back to link share', e);
-                    const element = document.getElementById('receipt-content');
-                    if (element) element.classList.remove('pdf-capture-mode');
+                    console.log('Share failed', e);
                 } finally {
                     isGeneratingPDF.value = false;
                 }
             }
 
-            // Fallback for PC or older mobile
+            // Desktop specialized flow: Download PDF + Open WA instantly
+            if (isDesktop) {
+                try {
+                    isGeneratingPDF.value = true;
+                    const element = document.querySelector('.nota-paper');
+                    if (element) {
+                        element.classList.add('pdf-capture-mode');
+                        const opt = {
+                            margin: 0,
+                            filename: `Nota-${receiptId}.pdf`,
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 480 },
+                            jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
+                        };
+                        await window.html2pdf().set(opt).from(element).save();
+                        element.classList.remove('pdf-capture-mode');
+                    }
+                } catch (e) {
+                    console.error('Desktop PDF failed', e);
+                } finally {
+                    isGeneratingPDF.value = false;
+                }
+            }
+
             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
             window.open(waUrl, '_blank');
         } else {
