@@ -157,6 +157,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Settings
     Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);
-    // GDrive Proxy
-    Route::post('/receipts/gdrive-proxy', [\App\Http\Controllers\GDriveProxyController::class, 'upload']);
+    // WhatsApp GDrive Share (Livewire style)
+    Route::get('/receipts/{id}/share-wa', [\App\Http\Controllers\WhatsAppShareController::class, 'share']);
 });
