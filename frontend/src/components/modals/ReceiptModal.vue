@@ -259,13 +259,14 @@ const printReceipt = () => {
     window.print();
 };
 
+const GDriveScriptUrl = 'https://script.google.com/macros/s/AKfycbxJ4V2A4uX7Ft_FFsrRCx9A86KA9ev0eWZTxcHlmR-lBFzjeJthLWVrN7mDDBFJfmyM/exec';
+
 const shareToWhatsApp = async (isAuto = false) => {
     try {
         const phone = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone;
         const receiptId = props.transaction.receipt_id || props.transaction.order_no || props.transaction.id;
-        const publicUrl = `https://api.stokps.com/n/${encodeURIComponent(receiptId)}`;
-
-        const message = `Halo Kak ${props.transaction.customer_name || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda:\n\n*Lihat Nota Online:* ${publicUrl}\n\n*Nota ini dapat Anda simpan atau cetak langsung dari browser Anda.*`;
+        const customerName = props.transaction.customer_name || 'Pelanggan';
+        let publicUrl = `${import.meta.env.VITE_API_URL || 'https://api.stokps.com'}/n/${encodeURIComponent(receiptId)}`;
 
         if (phone && phone !== '-') {
             // Clean phone number
@@ -276,71 +277,53 @@ const shareToWhatsApp = async (isAuto = false) => {
                 cleanPhone = '62' + cleanPhone;
             }
 
-            // Detection for Desktop (Windows/Mac)
-            const isDesktop = /Windows|Macintosh|Linux/.test(navigator.userAgent) && !/Mobile|Android|iPhone/.test(navigator.userAgent);
+            isGeneratingPDF.value = true;
+            let finalLink = publicUrl;
 
-            // NEW: Try to Share as a real FILE on Mobile (Navigator Share API)
-            // Skip this for Desktop as it's often confusing or not supported for files
-            if (!isDesktop && !isAuto && navigator.share && navigator.canShare) {
-                try {
-                    isGeneratingPDF.value = true;
-                    // Target ONLY the paper for clean capture
-                    const element = document.querySelector('.nota-paper');
-                    if (element) {
-                        element.classList.add('pdf-capture-mode');
-                        const opt = {
-                            margin: 0,
-                            filename: `Nota-${receiptId}.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 480 },
-                            jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
-                        };
+            try {
+                const element = document.querySelector('.nota-paper');
+                if (element) {
+                    element.classList.add('pdf-capture-mode');
+                    const opt = {
+                        margin: 0,
+                        filename: `Nota-${receiptId}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 480 },
+                        jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
+                    };
 
-                        const blob = await window.html2pdf().set(opt).from(element).output('blob');
-                        element.classList.remove('pdf-capture-mode');
+                    const blob = await window.html2pdf().set(opt).from(element).output('blob');
+                    element.classList.remove('pdf-capture-mode');
 
-                        const file = new File([blob], `Nota-${receiptId}.pdf`, { type: 'application/pdf' });
+                    // Convert to Base64 for GDrive Upload
+                    const reader = new FileReader();
+                    const base64Promise = new Promise((resolve) => {
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                        reader.readAsDataURL(blob);
+                    });
+                    const fileBase64 = await base64Promise;
 
-                        if (navigator.canShare({ files: [file] })) {
-                            await navigator.share({
-                                files: [file],
-                                title: 'Nota PSTORE',
-                                text: message
-                            });
-                            isGeneratingPDF.value = false;
-                            return;
-                        }
+                    // Upload to GDrive bridge
+                    // Note: We use no-cors if fetch fails, but for GDrive Apps Script, 
+                    // a simple POST often works if deployed correctly.
+                    const response = await fetch(GDriveScriptUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            fileBase64: fileBase64,
+                            filename: `Nota-${receiptId}.pdf`
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success && result.url) {
+                        finalLink = result.url;
                     }
-                } catch (e) {
-                    console.log('Share failed', e);
-                } finally {
-                    isGeneratingPDF.value = false;
                 }
+            } catch (e) {
+                console.error('GDrive upload failed, using fallback', e);
             }
 
-            // Desktop specialized flow: Download PDF + Open WA instantly
-            if (isDesktop) {
-                try {
-                    isGeneratingPDF.value = true;
-                    const element = document.querySelector('.nota-paper');
-                    if (element) {
-                        element.classList.add('pdf-capture-mode');
-                        const opt = {
-                            margin: 0,
-                            filename: `Nota-${receiptId}.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', width: 480 },
-                            jsPDF: { unit: 'mm', format: [100, 180], orientation: 'portrait' }
-                        };
-                        await window.html2pdf().set(opt).from(element).save();
-                        element.classList.remove('pdf-capture-mode');
-                    }
-                } catch (e) {
-                    console.error('Desktop PDF failed', e);
-                } finally {
-                    isGeneratingPDF.value = false;
-                }
-            }
+            const message = `Halo Kak ${customerName || ''},\n\nTerima kasih telah berbelanja di PSTORE. Berikut adalah nota digital untuk pesanan Anda:\n\n*Lihat Nota (Direct PDF):* ${finalLink}\n\n*Nota ini dapat Anda simpan atau cetak langsung dari browser Anda.*`;
 
             const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
             window.open(waUrl, '_blank');
