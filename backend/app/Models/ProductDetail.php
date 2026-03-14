@@ -26,7 +26,8 @@ class ProductDetail extends Model
         'distributor_id',
         'supplier_name',
         'notes',
-        'trade_in_id'
+        'trade_in_id',
+        'refund_id'
     ];
 
     protected $casts = [

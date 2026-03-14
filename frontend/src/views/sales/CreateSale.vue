@@ -85,6 +85,27 @@ const tradeInPhotos = ref({
     customerPreview: null
 });
 
+const refundPhotos = ref({
+    unit: null,
+    unitPreview: null,
+    customer: null,
+    customerPreview: null
+});
+
+const refundForm = ref({
+    customer_name: "",
+    customer_phone: "",
+    brand_id: null,
+    product_type_id: null,
+    ram: "",
+    condition: "",
+    imei: "",
+    refund_price: 0,
+    payment_method_id: null,
+    reason: "",
+    notes: "",
+});
+
 const brands = ref([]);
 const hpProducts = ref([]);
 const productTypes = ref([]);
@@ -134,10 +155,36 @@ const filteredTradeInConditions = computed(() => {
 });
 
 const totalTradeInUnits = computed(() => {
-    if (isImeiTradeIn.value) {
-        return tradeInForm.value.imeis_raw.split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length;
-    }
     return tradeInForm.value.quantity || 0;
+});
+
+const filteredRefundTypes = computed(() => {
+    if (!refundForm.value.brand_id) return [];
+    return productTypes.value.filter(t => t.brand_id === refundForm.value.brand_id);
+});
+
+const selectedRefundType = computed(() => {
+    if (!refundForm.value.product_type_id) return null;
+    return productTypes.value.find(t => t.id === refundForm.value.product_type_id);
+});
+
+const isImeiRefund = computed(() => {
+    if (!selectedRefundType.value) return true;
+    const cat = selectedRefundType.value.category?.toLowerCase();
+    return cat === 'imei' || cat === 'hp / gadget';
+});
+
+const filteredRefundRAMs = computed(() => {
+    if (!refundForm.value.product_type_id) return [];
+    const set = new Set();
+    const type = selectedRefundType.value;
+    if (type?.ram) {
+        type.ram.split(/[,/]/).forEach(r => {
+            const clean = r.trim();
+            if (clean) set.add(clean);
+        });
+    }
+    return Array.from(set).sort();
 });
 
 // Payment state (Step 4)
@@ -163,6 +210,17 @@ watch(() => tradeInForm.value.product_type_id, () => {
 
 watch(() => tradeInForm.value.storage, () => {
     tradeInForm.value.condition = "";
+});
+
+watch(() => refundForm.value.brand_id, () => {
+    refundForm.value.product_type_id = null;
+    refundForm.value.ram = "";
+    refundForm.value.condition = "";
+});
+
+watch(() => refundForm.value.product_type_id, () => {
+    refundForm.value.ram = "";
+    refundForm.value.condition = "";
 });
 const isCompressing = ref(false);
 
@@ -984,6 +1042,23 @@ const handlePhotoUpload = (type, e) => {
     tradeInPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
 }
 
+const handleRefundPhotoUpload = (type, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    refundPhotos.value[type] = file;
+    refundPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+}
+
+const displayRefundPrice = ref("0");
+function handleRefundPriceInput(e) {
+    const val = e.target.value;
+    const num = parseNumber(val);
+    refundForm.value.refund_price = num;
+    displayRefundPrice.value = formatNumber(num);
+    e.target.value = formatNumber(num);
+}
+
 async function submitTradeIn() {
     if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.brand_id || !tradeInForm.value.product_type_id || !tradeInForm.value.storage || !tradeInForm.value.condition || !tradeInForm.value.buy_price) {
         alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Kondisi, Harga).");
@@ -1082,6 +1157,93 @@ async function submitTradeIn() {
     } catch (error) {
         console.error("Trade-in failed", error);
         alert(error.response?.data?.message || "Gagal memproses barang angkat");
+    } finally {
+        isSubmitting.value = false;
+    }
+}
+async function submitRefund() {
+    if (!refundForm.value.customer_name || !refundForm.value.customer_phone || !refundForm.value.brand_id || !refundForm.value.product_type_id || !refundForm.value.condition || !refundForm.value.refund_price || !refundForm.value.reason) {
+        alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kondisi, Harga Refund, Alasan).");
+        return;
+    }
+
+    if (!refundPhotos.value.unit) {
+        alert("Foto unit wajib diupload.");
+        return;
+    }
+
+    isSubmitting.value = true;
+    const formData = new FormData();
+    if (refundPhotos.value.unit) formData.append('photo_unit', refundPhotos.value.unit);
+    if (refundPhotos.value.customer) formData.append('photo_customer', refundPhotos.value.customer);
+
+    formData.append('customer_name', refundForm.value.customer_name);
+    formData.append('customer_phone', refundForm.value.customer_phone);
+    formData.append('brand_id', refundForm.value.brand_id);
+    formData.append('product_type_id', refundForm.value.product_type_id);
+    formData.append('ram', refundForm.value.ram);
+    formData.append('condition', refundForm.value.condition);
+    formData.append('imei', refundForm.value.imei);
+    formData.append('refund_price', refundForm.value.refund_price);
+    formData.append('payment_method_id', refundForm.value.payment_method_id);
+    formData.append('reason', refundForm.value.reason);
+    formData.append('notes', refundForm.value.notes);
+
+    try {
+        const response = await api.post('/refunds', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const data = response.data.data;
+        lastTransaction.value = {
+            id: data.id,
+            order_no: data.receipt_id,
+            items: [{
+                product: data.product_type,
+                name: data.product_type?.name,
+                imei: data.imei || '-',
+                selling_price: data.refund_price,
+                condition: data.condition,
+                ram: data.ram,
+                price: data.refund_price,
+                qty: 1
+            }],
+            original_price: data.refund_price,
+            grand_total: data.refund_price,
+            total: data.refund_price,
+            paid: data.refund_price,
+            cash: data.payment_method?.category?.toLowerCase() === 'cash' ? data.refund_price : 0,
+            transfer: data.payment_method?.category?.toLowerCase() === 'transfer' ? data.refund_price : 0,
+            payment_method_name: data.payment_method?.name,
+            category: 'refund',
+            customer_name: data.customer_name,
+            customer_phone: data.customer_phone,
+            time: new Date().toLocaleString("id-ID"),
+        };
+
+        showSuccessModal.value = true;
+        // Reset form
+        refundForm.value = {
+            customer_name: "",
+            customer_phone: "",
+            brand_id: null,
+            product_type_id: null,
+            ram: "",
+            condition: "",
+            imei: "",
+            refund_price: 0,
+            payment_method_id: availablePaymentMethods.value[0]?.id || null,
+            reason: "",
+            notes: "",
+        };
+        refundPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        displayRefundPrice.value = "0";
+        currentStep.value = 1;
+        salesAccount.value = "";
+
+    } catch (error) {
+        console.error("Refund failed", error);
+        alert(error.response?.data?.message || "Gagal memproses refund");
     } finally {
         isSubmitting.value = false;
     }
@@ -1211,7 +1373,8 @@ async function submitTradeIn() {
             <!-- STEP 3: ITEM SELECTION -->
             <div v-if="currentStep === 3" class="flex-1 flex flex-col lg:flex-row gap-8 min-h-0 animate-fade-in">
                 <!-- Products -->
-                <div v-if="transactionCategory !== 'angkat_barang'" class="flex-[2] flex flex-col min-w-0">
+                <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund'"
+                    class="flex-[2] flex flex-col min-w-0">
                     <div
                         class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                         <div class="relative flex-1 w-full">
@@ -1518,7 +1681,7 @@ async function submitTradeIn() {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -1614,8 +1777,241 @@ async function submitTradeIn() {
                     </div>
                 </div>
 
+                <!-- REFUND FORM -->
+                <div v-else-if="transactionCategory === 'refund'"
+                    class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-2xl font-black text-text-primary flex items-center gap-3">
+                                <ArrowLeft :size="28" class="text-primary-500 cursor-pointer" @click="prevStep" />
+                                Formulir Refund
+                                Barang
+                            </h3>
+                            <div
+                                class="px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-xs font-black uppercase tracking-widest">
+                                Masuk ke Inventory
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Customer Info -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Data Customer</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nama
+                                        Customer <span class="text-red-500">*</span></label>
+                                    <input v-model="refundForm.customer_name" type="text" placeholder="Nama lengkap..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">No
+                                        WhatsApp <span class="text-red-500">*</span></label>
+                                    <input v-model="refundForm.customer_phone" type="text" placeholder="08xxx..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                            </div>
+
+                            <!-- HP Specs -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Spesifikasi Unit</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="refundForm.brand_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option :value="null" disabled>Pilih Brand</option>
+                                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="refundForm.product_type_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!refundForm.brand_id">
+                                            <option :value="null" disabled>Pilih Tipe</option>
+                                            <option v-for="p in filteredRefundTypes" :key="p.id" :value="p.id">{{
+                                                p.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">RAM
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="refundForm.ram"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!refundForm.product_type_id">
+                                            <option value="" disabled>Pilih RAM</option>
+                                            <option v-for="r in filteredRefundRAMs" :key="r" :value="r">{{ r }}
+                                            </option>
+                                            <option value="Non-HP">Non-HP</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kategori
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="refundForm.condition"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option value="" disabled>Pilih Kategori</option>
+                                            <option value="new">New</option>
+                                            <option value="second">Second / SCD</option>
+                                            <option value="ex_ibox">Ex iBox</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div v-if="isImeiRefund">
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Masukkan
+                                        IMEI <span class="text-red-500">*</span></label>
+                                    <input v-model="refundForm.imei" type="text" placeholder="15 digit IMEI..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial & Media -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Pembayaran & Bukti</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
+                                        Refund <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <span
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="displayRefundPrice" @input="handleRefundPriceInput"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                                    </div>
+                                    <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Harga ini
+                                        akan otomatis menjadi
+                                        harga modal unit</p>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Metode
+                                        Pembayaran <span class="text-red-500">*</span></label>
+                                    <select v-model="refundForm.payment_method_id"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                        <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
+                                            m.name
+                                            }}</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Unit <span class="text-red-500">*</span></label>
+                                        <div @click="$refs.unitRefundInput.click()"
+                                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                            <template v-if="refundPhotos.unitPreview">
+                                                <img :src="refundPhotos.unitPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Unit</span>
+                                            </template>
+                                            <input type="file" ref="unitRefundInput"
+                                                @change="e => handleRefundPhotoUpload('unit', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Customer</label>
+                                        <div @click="$refs.customerRefundInput.click()"
+                                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                            <template v-if="refundPhotos.customerPreview">
+                                                <img :src="refundPhotos.customerPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Customer</span>
+                                            </template>
+                                            <input type="file" ref="customerRefundInput"
+                                                @change="e => handleRefundPhotoUpload('customer', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional info -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Informasi Tambahan</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Alasan
+                                        Refund <span class="text-red-500">*</span></label>
+                                    <textarea v-model="refundForm.reason" rows="3"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                        placeholder="Kenapa barang ini direfund? (Wajib diisi)"></textarea>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Keterangan
+                                        Tambahan (Opsional)</label>
+                                    <textarea v-model="refundForm.notes" rows="3"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                        placeholder="Catatan tambahan..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div
+                            class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
+                            <button @click="prevStep"
+                                class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
+                                Kembali ke Kategori
+                            </button>
+                            <button @click="submitRefund" :disabled="isSubmitting"
+                                class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3">
+                                <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
+                                <template v-else>
+                                    <Save :size="24" /> Proses Refund & Simpan ke Inventory
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Cart Sidebar (Sticky in step 3) - Only show for other categories -->
-                <div v-if="transactionCategory !== 'angkat_barang'"
+                <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund'"
                     class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0">
                     <div
                         class="p-6 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center justify-between font-bold">
@@ -1639,9 +2035,10 @@ async function submitTradeIn() {
                                 class="p-5 bg-white dark:bg-surface-800 border-2 border-surface-100 dark:border-surface-700 rounded-2xl relative shadow-sm group hover:border-surface-300 dark:hover:border-surface-600 transition-colors">
                                 <div class="flex justify-between items-start mb-4 pr-8">
                                     <div class="min-w-0 flex flex-col gap-1">
-                                        <p class="text-sm font-black text-text-primary line-clamp-2 leading-tight">{{
-                                            item.product?.name ||
-                                            item.name }}</p>
+                                        <p class="text-sm font-black text-text-primary line-clamp-2 leading-tight">
+                                            {{
+                                                item.product?.name ||
+                                                item.name }}</p>
                                         <span v-if="item.imei"
                                             class="text-xs font-mono font-bold text-text-secondary bg-surface-50 dark:bg-surface-900 px-2 py-1 rounded w-fit">{{
                                                 item.imei }}</span>
@@ -1700,8 +2097,10 @@ async function submitTradeIn() {
                                                 class="px-2 py-1.5 sm:py-1 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-100 dark:border-primary-900/20">
                                                 <p
                                                     class="text-[10px] sm:text-[9px] font-black text-primary-600 uppercase tracking-tighter">
-                                                    Pot. Global ({{ cartStore.globalDiscountPercentage.toFixed(1) }}%):
-                                                    -{{ formatCurrency(cartStore.getDistributedGlobalDiscount(item)) }}
+                                                    Pot. Global ({{ cartStore.globalDiscountPercentage.toFixed(1)
+                                                    }}%):
+                                                    -{{ formatCurrency(cartStore.getDistributedGlobalDiscount(item))
+                                                    }}
                                                 </p>
                                             </div>
                                         </div>
@@ -1860,7 +2259,8 @@ async function submitTradeIn() {
                     <div
                         class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-xl">
                         <h3 class="text-2xl font-black text-text-primary mb-8 flex items-center gap-3">
-                            <ShoppingCart :size="28" class="text-primary-500" stroke-width="2.5" /> Ringkasan Pembelian
+                            <ShoppingCart :size="28" class="text-primary-500" stroke-width="2.5" /> Ringkasan
+                            Pembelian
                         </h3>
                         <div class="space-y-4">
                             <div v-for="item in cartItems" :key="item.id"
@@ -1872,7 +2272,8 @@ async function submitTradeIn() {
                                     </div>
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
-                                        <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
+                                        <p class="text-sm font-bold text-text-secondary">{{
+                                            formatCurrency(item.price)
                                             }} / unit</p>
                                     </div>
                                 </div>
@@ -1917,7 +2318,8 @@ async function submitTradeIn() {
                         <div class="space-y-8">
                             <div>
                                 <div class="flex items-center justify-between mb-4">
-                                    <p class="text-sm font-black text-text-secondary uppercase tracking-widest">Metode
+                                    <p class="text-sm font-black text-text-secondary uppercase tracking-widest">
+                                        Metode
                                         Pembayaran (Split)</p>
                                     <button @click="addSplitPayment"
                                         class="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1 bg-primary-50 dark:bg-primary-900/20 px-3 py-2 rounded-lg transition-all active:scale-95">
@@ -1975,7 +2377,8 @@ async function submitTradeIn() {
                             <!-- Discount Section -->
                             <div class="pt-6 border-t border-surface-100 dark:border-surface-700">
                                 <div class="flex items-center justify-between mb-4">
-                                    <p class="text-sm font-black text-text-secondary uppercase tracking-widest">Diskon
+                                    <p class="text-sm font-black text-text-secondary uppercase tracking-widest">
+                                        Diskon
                                         Tambahan</p>
                                     <div class="flex gap-1.5 bg-surface-100 dark:bg-surface-800 p-1 rounded-xl">
                                         <button @click="cartStore.discountType = 'percentage'"
@@ -2009,7 +2412,8 @@ async function submitTradeIn() {
                                     class="p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex justify-between items-center">
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
-                                    <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
+                                    <span class="text-3xl font-black text-emerald-600">{{
+                                        formatCurrency(changeAmount)
                                         }}</span>
                                 </div>
                                 <div v-else
@@ -2090,7 +2494,8 @@ async function submitTradeIn() {
                         <div class="h-px bg-surface-200 dark:bg-surface-700 my-4"></div>
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
-                            <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
+                            <span class="text-3xl font-black text-emerald-500">{{
+                                formatCurrency(lastTransaction.total)
                                 }}</span>
                         </div>
                     </div>
@@ -2195,7 +2600,8 @@ async function submitTradeIn() {
                                             <CheckCircle v-if="getCartStatus(item.id)" :size="14"
                                                 class="text-emerald-500" />
                                         </div>
-                                        <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
+                                        <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
+                                            item.imei
                                             }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
@@ -2232,7 +2638,8 @@ async function submitTradeIn() {
                                     </button>
 
                                     <div class="mb-3 pr-6">
-                                        <p class="text-xs font-black text-text-primary truncate">{{ item.product?.name
+                                        <p class="text-xs font-black text-text-primary truncate">{{
+                                            item.product?.name
                                             || item.name }}</p>
                                         <p v-if="item.imei" class="text-[10px] font-mono text-text-secondary">{{
                                             item.imei }}</p>

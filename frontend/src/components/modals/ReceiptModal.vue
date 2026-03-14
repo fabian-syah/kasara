@@ -10,7 +10,8 @@
                 <div
                     class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-surface-700 print:hidden shrink-0">
                     <h3 class="text-lg font-bold text-text-primary">
-                        {{ transaction?.category === 'angkat_barang' ? 'Nota Angkat Barang' : 'Nota Penjualan' }}
+                        {{ transaction?.category === 'angkat_barang' ? 'Nota Angkat Barang' : (transaction?.category ===
+                            'refund' ? 'Nota Refund' : 'Nota Penjualan') }}
                     </h3>
                     <div class="flex items-center gap-2">
                         <button v-if="showEditIcon" @click="$emit('open-checklist')"
@@ -151,7 +152,7 @@
                                     <div v-for="(payment, idx) in transaction.split_payments_data" :key="idx"
                                         class="flex justify-between border-b border-gray-300 pb-1">
                                         <span class="font-bold text-black text-[10px] uppercase">{{ payment.method_name
-                                        }} :</span>
+                                            }} :</span>
                                         <span class="text-black">
                                             {{ formatCurrency(payment.amount) }}
                                         </span>
