@@ -222,6 +222,9 @@ watch(() => refundForm.value.brand_id, () => {
 watch(() => refundForm.value.product_type_id, () => {
     refundForm.value.storage = "";
     refundForm.value.condition = "";
+    if (!isImeiRefund.value && refundForm.value.product_type_id) {
+        refundForm.value.storage = "Non-HP";
+    }
 });
 const isCompressing = ref(false);
 
@@ -1858,7 +1861,7 @@ async function submitRefund() {
                                             <option value="" disabled>Pilih Kapasitas</option>
                                             <option v-for="s in filteredRefundStorages" :key="s" :value="s">{{ s }}
                                             </option>
-                                            <option value="Non-HP">Non-HP</option>
+                                            <option v-if="!isImeiRefund" value="Non-HP">Non-HP</option>
                                         </select>
                                     </div>
                                 </div>
