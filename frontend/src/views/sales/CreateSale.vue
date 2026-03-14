@@ -106,6 +106,28 @@ const refundForm = ref({
     notes: "",
 });
 
+const unitExchangeForm = ref({
+    customer_name: "",
+    customer_phone: "",
+    incoming_source: "luar_pstore",
+    incoming_brand_id: null,
+    incoming_product_type_id: null,
+    incoming_storage: "",
+    incoming_condition: "",
+    incoming_imei: "",
+    incoming_cost_price: 0,
+    outgoing_product_detail_id: null,
+    reason: "",
+    notes: "",
+});
+
+const unitExchangePhotos = ref({
+    unit: null,
+    unitPreview: null,
+    customer: null,
+    customerPreview: null
+});
+
 const brands = ref([]);
 const hpProducts = ref([]);
 const productTypes = ref([]);
@@ -173,12 +195,39 @@ const isImeiRefund = computed(() => {
     const cat = selectedRefundType.value.category?.toLowerCase();
     return cat === 'imei' || cat === 'hp / gadget';
 });
-
-
 const filteredRefundStorages = computed(() => {
     if (!refundForm.value.product_type_id) return [];
     const set = new Set();
     const type = selectedRefundType.value;
+    if (type?.storage) {
+        type.storage.split(/[,]/).forEach(s => {
+            const clean = s.trim();
+            if (clean) set.add(clean);
+        });
+    }
+    return Array.from(set).sort();
+});
+
+const filteredExchangeTypes = computed(() => {
+    if (!unitExchangeForm.value.incoming_brand_id) return [];
+    return productTypes.value.filter(t => t.brand_id === unitExchangeForm.value.incoming_brand_id);
+});
+
+const selectedExchangeType = computed(() => {
+    if (!unitExchangeForm.value.incoming_product_type_id) return null;
+    return productTypes.value.find(t => t.id === unitExchangeForm.value.incoming_product_type_id);
+});
+
+const isImeiExchange = computed(() => {
+    if (!selectedExchangeType.value) return true;
+    const cat = selectedExchangeType.value.category?.toLowerCase();
+    return cat === 'imei' || cat === 'hp / gadget';
+});
+
+const filteredExchangeStorages = computed(() => {
+    if (!unitExchangeForm.value.incoming_product_type_id) return [];
+    const set = new Set();
+    const type = selectedExchangeType.value;
     if (type?.storage) {
         type.storage.split(/[,]/).forEach(s => {
             const clean = s.trim();
@@ -224,6 +273,20 @@ watch(() => refundForm.value.product_type_id, () => {
     refundForm.value.condition = "";
     if (!isImeiRefund.value && refundForm.value.product_type_id) {
         refundForm.value.storage = "Non-HP";
+    }
+});
+
+watch(() => unitExchangeForm.value.incoming_brand_id, () => {
+    unitExchangeForm.value.incoming_product_type_id = null;
+    unitExchangeForm.value.incoming_storage = "";
+    unitExchangeForm.value.incoming_condition = "";
+});
+
+watch(() => unitExchangeForm.value.incoming_product_type_id, () => {
+    unitExchangeForm.value.incoming_storage = "";
+    unitExchangeForm.value.incoming_condition = "";
+    if (!isImeiExchange.value && unitExchangeForm.value.incoming_product_type_id) {
+        unitExchangeForm.value.incoming_storage = "Non-HP";
     }
 });
 const isCompressing = ref(false);
@@ -1046,12 +1109,16 @@ const handlePhotoUpload = (type, e) => {
     tradeInPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
 }
 
-const handleRefundPhotoUpload = (type, e) => {
+refundPhotos.value[type] = file;
+refundPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+}
+
+const handleExchangePhotoUpload = (type, e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    refundPhotos.value[type] = file;
-    refundPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+    unitExchangePhotos.value[type] = file;
+    unitExchangePhotos.value[type + 'Preview'] = URL.createObjectURL(file);
 }
 
 const displayRefundPrice = ref("0");
@@ -1248,6 +1315,99 @@ async function submitRefund() {
     } catch (error) {
         console.error("Refund failed", error);
         alert(error.response?.data?.message || "Gagal memproses refund");
+    } finally {
+        isSubmitting.value = false;
+    }
+}
+
+const selectOutgoingUnit = (item) => {
+    unitExchangeForm.value.outgoing_product_detail_id = item.id;
+    nextStep();
+}
+
+async function submitUnitExchange() {
+    if (!unitExchangeForm.value.customer_name || !unitExchangeForm.value.customer_phone || !unitExchangeForm.value.incoming_brand_id || !unitExchangeForm.value.incoming_product_type_id || !unitExchangeForm.value.incoming_storage || !unitExchangeForm.value.incoming_condition || !unitExchangeForm.value.incoming_cost_price || !unitExchangeForm.value.reason || !unitExchangeForm.value.outgoing_product_detail_id) {
+        alert("Mohon lengkapi semua data wajib (Customer, Unit Masuk, Unit Keluar, Alasan).");
+        return;
+    }
+
+    if (!unitExchangePhotos.value.unit) {
+        alert("Foto unit wajib diupload.");
+        return;
+    }
+
+    isSubmitting.value = true;
+    const formData = new FormData();
+    if (unitExchangePhotos.value.unit) formData.append('photo_unit', unitExchangePhotos.value.unit);
+    if (unitExchangePhotos.value.customer) formData.append('photo_customer', unitExchangePhotos.value.customer);
+
+    formData.append('customer_name', unitExchangeForm.value.customer_name);
+    formData.append('customer_phone', unitExchangeForm.value.customer_phone);
+    formData.append('incoming_source', unitExchangeForm.value.incoming_source);
+    formData.append('incoming_product_type_id', unitExchangeForm.value.incoming_product_type_id);
+    formData.append('incoming_storage', unitExchangeForm.value.incoming_storage);
+    formData.append('incoming_condition', unitExchangeForm.value.incoming_condition);
+    formData.append('incoming_imei', unitExchangeForm.value.incoming_imei);
+    formData.append('incoming_cost_price', unitExchangeForm.value.incoming_cost_price);
+    formData.append('outgoing_product_detail_id', unitExchangeForm.value.outgoing_product_detail_id);
+    formData.append('reason', unitExchangeForm.value.reason);
+    formData.append('notes', unitExchangeForm.value.notes);
+
+    try {
+        const response = await api.post('/unit-exchanges', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const data = response.data.data;
+        lastTransaction.value = {
+            id: data.id,
+            order_no: data.receipt_id,
+            items: [{
+                product: data.incoming_product_type,
+                name: data.incoming_product_type?.name,
+                imei: data.incoming_imei || '-',
+                selling_price: data.incoming_cost_price,
+                condition: data.incoming_condition,
+                storage: data.incoming_storage,
+                price: data.incoming_cost_price,
+                qty: 1
+            }],
+            original_price: data.incoming_cost_price,
+            grand_total: data.incoming_cost_price,
+            total: data.incoming_cost_price,
+            paid: data.incoming_cost_price,
+            cash: 0,
+            transfer: 0,
+            category: 'tukar_unit',
+            customer_name: data.customer_name,
+            customer_phone: data.customer_phone,
+            time: new Date().toLocaleString("id-ID"),
+        };
+
+        showSuccessModal.value = true;
+
+        // Reset form
+        unitExchangeForm.value = {
+            customer_name: "",
+            customer_phone: "",
+            incoming_source: "luar_pstore",
+            incoming_brand_id: null,
+            incoming_product_type_id: null,
+            incoming_storage: "",
+            incoming_condition: "",
+            incoming_imei: "",
+            incoming_cost_price: 0,
+            outgoing_product_detail_id: null,
+            reason: "",
+            notes: "",
+        };
+        unitExchangePhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        currentStep.value = 1;
+        salesAccount.value = "";
+
+    } catch (error) {
+        console.error("Unit exchange failed", error);
+        alert(error.response?.data?.message || "Gagal memproses tukar unit");
     } finally {
         isSubmitting.value = false;
     }
@@ -1468,17 +1628,25 @@ async function submitRefund() {
                                             formatCurrency(item.selling_price || item.price) }}</span>
                                     </td>
                                     <td class="px-6 py-5 text-right">
-                                        <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
-                                            class="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 hover:bg-primary-600 hover:text-white dark:bg-primary-900/50 dark:text-primary-400 dark:hover:bg-primary-600 dark:hover:text-white rounded-xl transition-all shadow-sm active:scale-95 ml-auto">
-                                            <Plus :size="24" stroke-width="3" />
-                                        </button>
-                                        <div v-else class="flex flex-col items-end">
-                                            <div
-                                                class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded-lg">
-                                                <CheckCircle :size="14" />
-                                                {{ getCartStatus(item.id) }}
+                                        <template v-if="transactionCategory === 'tukar_unit'">
+                                            <button @click="selectOutgoingUnit(item)"
+                                                class="px-6 py-3 bg-primary-600 text-white rounded-xl font-bold transition-all shadow-sm active:scale-95 ml-auto text-sm uppercase tracking-widest hover:bg-primary-500 flex items-center gap-2">
+                                                <ArrowRight :size="18" /> Pilih
+                                            </button>
+                                        </template>
+                                        <template v-else>
+                                            <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
+                                                class="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 hover:bg-primary-600 hover:text-white dark:bg-primary-900/50 dark:text-primary-400 dark:hover:bg-primary-600 dark:hover:text-white rounded-xl transition-all shadow-sm active:scale-95 ml-auto">
+                                                <Plus :size="24" stroke-width="3" />
+                                            </button>
+                                            <div v-else class="flex flex-col items-end">
+                                                <div
+                                                    class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-2 rounded-lg">
+                                                    <CheckCircle :size="14" />
+                                                    {{ getCartStatus(item.id) }}
+                                                </div>
                                             </div>
-                                        </div>
+                                        </template>
                                     </td>
                                 </tr>
 
@@ -1495,15 +1663,23 @@ async function submitRefund() {
                                         <span class="text-[10px] text-primary-600 font-bold uppercase tracking-wider">{{
                                             item.product?.brand || '-' }}</span>
                                     </div>
-                                    <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
-                                        class="w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
-                                        <Plus :size="20" stroke-width="3" />
-                                    </button>
-                                    <div v-else
-                                        class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg">
-                                        <CheckCircle :size="12" />
-                                        {{ getCartStatus(item.id) }}
-                                    </div>
+                                    <template v-if="transactionCategory === 'tukar_unit'">
+                                        <button @click="selectOutgoingUnit(item)"
+                                            class="px-4 py-2 bg-primary-600 text-white rounded-lg shadow-lg active:scale-95 text-xs font-black uppercase tracking-widest flex items-center gap-1">
+                                            <ArrowRight :size="14" /> Pilih
+                                        </button>
+                                    </template>
+                                    <template v-else>
+                                        <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
+                                            class="w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
+                                            <Plus :size="20" stroke-width="3" />
+                                        </button>
+                                        <div v-else
+                                            class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg">
+                                            <CheckCircle :size="12" />
+                                            {{ getCartStatus(item.id) }}
+                                        </div>
+                                    </template>
                                 </div>
                                 <div class="flex flex-wrap gap-2">
                                     <span
@@ -1514,7 +1690,8 @@ async function submitRefund() {
                                         {{ item.condition || 'Second' }}
                                     </span>
                                     <code v-if="item.imei"
-                                        class="text-[10px] font-mono font-bold text-text-secondary truncate max-w-[120px]">{{ item.imei }}</code>
+                                        class="text-[10px] font-mono font-bold text-text-secondary truncate max-w-[120px]">{{
+                                            item.imei }}</code>
                                     <span v-else class="text-[10px] font-black text-primary-600">Sisa: {{
                                         getRemainingStock(item) }}</span>
                                 </div>
@@ -1617,7 +1794,8 @@ async function submitRefund() {
                                             :disabled="!tradeInForm.product_type_id">
                                             <option value="" disabled>Pilih Kapasitas</option>
                                             <option v-for="storage in filteredTradeInCapacities" :key="storage"
-                                                :value="storage">{{ storage }}</option>
+                                                :value="storage">{{
+                                                    storage }}</option>
                                         </select>
                                     </div>
                                     <div>
@@ -1685,7 +1863,7 @@ async function submitRefund() {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -1917,7 +2095,7 @@ async function submitRefund() {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                        }}</option>
+                                            }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -2016,8 +2194,240 @@ async function submitRefund() {
                     </div>
                 </div>
 
+                <!-- TUKAR UNIT FORM -->
+                <div v-else-if="transactionCategory === 'tukar_unit'"
+                    class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-2xl font-black text-text-primary flex items-center gap-3">
+                                <ArrowLeft :size="28" class="text-primary-500 cursor-pointer" @click="prevStep" />
+                                Formulir Tukar Unit
+                            </h3>
+                            <div
+                                class="px-4 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full text-xs font-black uppercase tracking-widest">
+                                Tukar Barang Inventory
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Customer Info -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Data Customer</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nama
+                                        Customer <span class="text-red-500">*</span></label>
+                                    <input v-model="unitExchangeForm.customer_name" type="text"
+                                        placeholder="Nama lengkap..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">No
+                                        WhatsApp <span class="text-red-500">*</span></label>
+                                    <input v-model="unitExchangeForm.customer_phone" type="text" placeholder="08xxx..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Sumber
+                                        Barang Masuk <span class="text-red-500">*</span></label>
+                                    <select v-model="unitExchangeForm.incoming_source"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                        <option value="luar_pstore">Luar PStore</option>
+                                        <option value="ex_pstore">Ex PStore</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Incoming HP Specs -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Spesifikasi Unit Masuk</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="unitExchangeForm.incoming_brand_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option :value="null" disabled>Pilih Brand</option>
+                                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="unitExchangeForm.incoming_product_type_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!unitExchangeForm.incoming_brand_id">
+                                            <option :value="null" disabled>Pilih Tipe</option>
+                                            <option v-for="p in filteredExchangeTypes" :key="p.id" :value="p.id">{{
+                                                p.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="unitExchangeForm.incoming_storage"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!unitExchangeForm.incoming_product_type_id">
+                                            <option value="" disabled>Pilih Kapasitas</option>
+                                            <option v-for="s in filteredExchangeStorages" :key="s" :value="s">{{ s }}
+                                            </option>
+                                            <option v-if="!isImeiExchange" value="Non-HP">Non-HP</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kategori
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="unitExchangeForm.incoming_condition"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option value="" disabled>Pilih Kategori</option>
+                                            <option value="new">New</option>
+                                            <option value="second">Second / SCD</option>
+                                            <option value="ex_ibox">Ex iBox</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div v-if="isImeiExchange">
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Masukkan
+                                        IMEI <span class="text-red-500">*</span></label>
+                                    <input v-model="unitExchangeForm.incoming_imei" type="text"
+                                        placeholder="15 digit IMEI..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
+                                        Tukar Unit / Barang Masuk <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <span
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="formatNumber(unitExchangeForm.incoming_cost_price)"
+                                            @input="e => { unitExchangeForm.incoming_cost_price = parseNumber(e.target.value); e.target.value = formatNumber(unitExchangeForm.incoming_cost_price); }"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                                    </div>
+                                    <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi
+                                        harga modal</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Photos & Reasons -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Media Bukti</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Unit <span class="text-red-500">*</span></label>
+                                        <div @click="$refs.unitExchangeInput.click()"
+                                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                            <template v-if="unitExchangePhotos.unitPreview">
+                                                <img :src="unitExchangePhotos.unitPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Unit</span>
+                                            </template>
+                                            <input type="file" ref="unitExchangeInput"
+                                                @change="e => handleExchangePhotoUpload('unit', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Customer</label>
+                                        <div @click="$refs.customerExchangeInput.click()"
+                                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                            <template v-if="unitExchangePhotos.customerPreview">
+                                                <img :src="unitExchangePhotos.customerPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Customer</span>
+                                            </template>
+                                            <input type="file" ref="customerExchangeInput"
+                                                @change="e => handleExchangePhotoUpload('customer', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    Alasan & Catatan</h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Alasan
+                                        Tukar Unit <span class="text-red-500">*</span></label>
+                                    <textarea v-model="unitExchangeForm.reason" rows="3"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                        placeholder="Kenapa barang ini ditukar? (Wajib diisi)"></textarea>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Keterangan
+                                        Tambahan (Opsional)</label>
+                                    <textarea v-model="unitExchangeForm.notes" rows="2"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                        placeholder="Catatan tambahan..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div
+                            class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
+                            <button @click="prevStep"
+                                class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
+                                Kembali Pilih Unit
+                            </button>
+                            <button @click="submitUnitExchange" :disabled="isSubmitting"
+                                class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
+                                <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
+                                <template v-else>
+                                    <Save :size="24" /> Proses Tukar Unit & Simpan
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Cart Sidebar (Sticky in step 3) - Only show for other categories -->
-                <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund'"
+                <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit'"
                     class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0">
                     <div
                         class="p-6 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center justify-between font-bold">
@@ -2280,7 +2690,7 @@ async function submitRefund() {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -2318,7 +2728,7 @@ async function submitRefund() {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -2420,7 +2830,7 @@ async function submitRefund() {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -2439,7 +2849,7 @@ async function submitRefund() {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -2447,7 +2857,7 @@ async function submitRefund() {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -2502,7 +2912,7 @@ async function submitRefund() {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -2608,7 +3018,7 @@ async function submitRefund() {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}

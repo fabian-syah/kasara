@@ -27,7 +27,8 @@ class ProductDetail extends Model
         'supplier_name',
         'notes',
         'trade_in_id',
-        'refund_id'
+        'refund_id',
+        'unit_exchange_id'
     ];
 
     protected $casts = [
@@ -88,5 +89,10 @@ class ProductDetail extends Model
     public function refund()
     {
         return $this->belongsTo(Refund::class);
+    }
+
+    public function unitExchange()
+    {
+        return $this->belongsTo(UnitExchange::class);
     }
 }

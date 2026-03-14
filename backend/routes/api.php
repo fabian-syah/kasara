@@ -15,6 +15,7 @@ use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\TradeInController;
+use App\Http\Controllers\UnitExchangeController;
 
 // ... (previous routes)
 
@@ -110,6 +111,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/track', [\App\Http\Controllers\StockOutController::class, 'track']);
     Route::post('/trade-ins', [TradeInController::class, 'store']);
     Route::post('/refunds', [\App\Http\Controllers\RefundController::class, 'store']);
+    Route::post('/unit-exchanges', [UnitExchangeController::class, 'store']);
 
     // Transfer confirmation (Pindah Cabang)
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);
