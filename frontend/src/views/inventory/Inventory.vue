@@ -1403,19 +1403,44 @@ async function exportInventory() {
                   <div>
                     <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Foto
                       Bukti</label>
-                    <div class="flex gap-2 mt-2">
+                    <div class="flex gap-3 mt-2">
                       <a v-if="selectedItemDetail.refund.photo_unit"
                         :href="storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit" target="_blank"
-                        class="w-16 h-16 rounded-lg bg-surface-800 border border-surface-700 flex flex-col items-center justify-center hover:bg-surface-700 transition-all">
-                        <Smartphone :size="20" class="text-text-secondary" />
-                        <span class="text-[8px] text-text-secondary">Unit</span>
+                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all">
+                        <img :src="storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit"
+                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          alt="Unit" />
+                        <div
+                          class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye :size="16" class="text-white" />
+                        </div>
+                        <span
+                          class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Unit</span>
                       </a>
+                      <div v-else
+                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
+                        <Smartphone :size="20" class="text-surface-600" />
+                        <span class="text-[8px] text-surface-600">No Photo</span>
+                      </div>
+
                       <a v-if="selectedItemDetail.refund.photo_customer"
                         :href="storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer" target="_blank"
-                        class="w-16 h-16 rounded-lg bg-surface-800 border border-surface-700 flex flex-col items-center justify-center hover:bg-surface-700 transition-all">
-                        <UserCheck :size="20" class="text-text-secondary" />
-                        <span class="text-[8px] text-text-secondary">Customer</span>
+                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all">
+                        <img :src="storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer"
+                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          alt="Customer" />
+                        <div
+                          class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye :size="16" class="text-white" />
+                        </div>
+                        <span
+                          class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Customer</span>
                       </a>
+                      <div v-else
+                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
+                        <UserCheck :size="20" class="text-surface-600" />
+                        <span class="text-[8px] text-surface-600">No Photo</span>
+                      </div>
                     </div>
                   </div>
                   <div>
