@@ -509,7 +509,7 @@ function openEditModal(user, event) {
         name: user.full_name || user.name,
         phone: user.phone || "",
         photo_inventory: null,
-        photo_preview: user.photo_inventory ? `${import.meta.env.VITE_API_URL}/storage/${user.photo_inventory}` : null
+        photo_preview: user.photo_inventory ? `${storageUrl}/storage/${user.photo_inventory}` : null
     };
     showEditAccountModal.value = true;
 }
@@ -526,6 +526,7 @@ async function updateInventoryAccount() {
     isUpdatingAccount.value = true;
     try {
         const formData = new FormData();
+        formData.append('name', editForm.value.name);
         formData.append('phone', editForm.value.phone);
         if (editForm.value.photo_inventory) {
             formData.append('photo_inventory', editForm.value.photo_inventory);
@@ -769,7 +770,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -820,57 +821,58 @@ onMounted(fetchInitialData);
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Modal Edit Account -->
-                <div v-if="showEditAccountModal"
-                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div
-                        class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
-                        <h3 class="text-lg md:text-xl font-bold text-white mb-4">Edit Akun Inventory</h3>
+            <!-- Modal Edit Account -->
+            <div v-if="showEditAccountModal"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div
+                    class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-4">Edit Akun Inventory</h3>
+
+                    <div class="space-y-6">
+                        <!-- Photo Upload -->
+                        <div class="flex justify-center">
+                            <div class="relative group cursor-pointer" @click="photoInput.click()">
+                                <div
+                                    class="w-24 h-24 rounded-full bg-surface-800 border-2 border-surface-700 overflow-hidden flex items-center justify-center">
+                                    <img v-if="editForm.photo_preview" :src="editForm.photo_preview"
+                                        class="w-full h-full object-cover" />
+                                    <div v-else class="text-text-secondary">
+                                        <Camera :size="32" />
+                                    </div>
+                                </div>
+                                <div
+                                    class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Edit2 :size="20" class="text-white" />
+                                </div>
+                                <input type="file" ref="photoInput" class="hidden" accept="image/*"
+                                    @change="handlePhotoChange" />
+                            </div>
+                        </div>
 
                         <div class="space-y-4">
-                            <!-- Photo Upload -->
-                            <div class="flex justify-center mb-6">
-                                <div class="relative group cursor-pointer" @click="photoInput.click()">
-                                    <div
-                                        class="w-24 h-24 rounded-full bg-surface-800 border-2 border-surface-700 overflow-hidden flex items-center justify-center">
-                                        <img v-if="editForm.photo_preview" :src="editForm.photo_preview"
-                                            class="w-full h-full object-cover" />
-                                        <div v-else class="text-text-secondary">
-                                            <Camera :size="32" />
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Edit2 :size="20" class="text-white" />
-                                    </div>
-                                    <input type="file" ref="photoInput" class="hidden" accept="image/*"
-                                        @change="handlePhotoChange" />
-                                </div>
-                            </div>
-
                             <div>
-                                <label class="label text-xs uppercase">Nama Akun (Terkunci)</label>
-                                <input v-model="editForm.name"
-                                    class="input bg-surface-800 opacity-50 cursor-not-allowed" disabled />
-                                <p class="text-[10px] text-text-secondary mt-1">*Nama akun hanya bisa diubah oleh Super
-                                    Admin</p>
+                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun</label>
+                                <input v-model="editForm.name" type="text" class="input w-full"
+                                    placeholder="Masukkan nama akun..." />
                             </div>
-
                             <div>
-                                <label class="label text-xs uppercase">No HP / WhatsApp</label>
-                                <input v-model="editForm.phone" class="input bg-surface-800" placeholder="08..." />
+                                <label class="block text-sm font-medium text-text-secondary mb-2">No.
+                                    WhatsApp</label>
+                                <input v-model="editForm.phone" type="text" class="input w-full"
+                                    placeholder="08xxxxx" />
                             </div>
+                        </div>
 
-                            <div class="flex justify-end gap-3 mt-6">
-                                <button @click="showEditAccountModal = false"
-                                    class="btn btn-secondary px-6 rounded-xl">Batal</button>
-                                <button @click="updateInventoryAccount" :disabled="isUpdatingAccount"
-                                    class="btn btn-primary px-6 rounded-xl">
-                                    <Loader2 v-if="isUpdatingAccount" class="animate-spin mr-2" :size="16" />
-                                    {{ isUpdatingAccount ? 'Menyimpan...' : 'Simpan Perubahan' }}
-                                </button>
-                            </div>
+                        <div class="flex justify-end gap-3 mt-6">
+                            <button @click="showEditAccountModal = false"
+                                class="btn btn-secondary px-6 rounded-xl">Batal</button>
+                            <button @click="updateInventoryAccount" :disabled="isUpdatingAccount"
+                                class="btn btn-primary px-6 rounded-xl">
+                                <Loader2 v-if="isUpdatingAccount" class="animate-spin mr-2" :size="16" />
+                                {{ isUpdatingAccount ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -913,7 +915,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -1069,7 +1071,8 @@ onMounted(fetchInitialData);
                             </div>
                         </div>
                     </div>
-                    <p class="text-xs text-text-secondary italic">Sistem hanya mengabaikan IMEI yang duplikat. Barang
+                    <p class="text-xs text-text-secondary italic">Sistem hanya mengabaikan IMEI yang duplikat.
+                        Barang
                         lainnya sudah berhasil disimpan.</p>
                 </div>
 

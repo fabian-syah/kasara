@@ -1213,9 +1213,15 @@ class InventoryController extends Controller
         }
 
         $request->validate([
+            'name' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',
             'photo_inventory' => 'nullable|image|max:2048', // 2MB Max
         ]);
+
+        if ($request->has('name')) {
+            $account->name = $request->name;
+            $account->full_name = $request->name;
+        }
 
         $account->phone = $request->phone;
 
