@@ -1172,10 +1172,10 @@ class InventoryController extends Controller
                 'code_id' => 'INV-' . substr($tsString, -10) . $random,
                 'email' => $email,
                 'password' => $password,
-                'branch_id' => $user->branch_id,
-                'warehouse_id' => $user->warehouse_id,
-                'online_shop_id' => $user->online_shop_id,
-                'distributor_id' => $user->distributor_id,
+                'branch_id' => $request->branch_id ?? $user->branch_id,
+                'warehouse_id' => $request->warehouse_id ?? $user->warehouse_id,
+                'online_shop_id' => $request->online_shop_id ?? $user->online_shop_id,
+                'distributor_id' => $request->distributor_id ?? $user->distributor_id,
                 'created_by' => $user->id, // Mark ownership
                 'is_active' => true,
                 'theme_color' => 'default',
@@ -1215,6 +1215,10 @@ class InventoryController extends Controller
         $request->validate([
             'name' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',
+            'branch_id' => 'nullable|integer',
+            'warehouse_id' => 'nullable|integer',
+            'online_shop_id' => 'nullable|integer',
+            'distributor_id' => 'nullable|integer',
             'photo_inventory' => 'nullable|image|max:2048', // 2MB Max
         ]);
 
@@ -1222,6 +1226,15 @@ class InventoryController extends Controller
             $account->name = $request->name;
             $account->full_name = $request->name;
         }
+
+        if ($request->has('branch_id'))
+            $account->branch_id = $request->branch_id;
+        if ($request->has('warehouse_id'))
+            $account->warehouse_id = $request->warehouse_id;
+        if ($request->has('online_shop_id'))
+            $account->online_shop_id = $request->online_shop_id;
+        if ($request->has('distributor_id'))
+            $account->distributor_id = $request->distributor_id;
 
         $account->phone = $request->phone;
 
