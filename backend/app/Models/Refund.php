@@ -16,7 +16,6 @@ class Refund extends Model
         'customer_phone',
         'product_type_id',
         'imei',
-        'ram',
         'storage',
         'condition',
         'refund_price',

@@ -97,7 +97,6 @@ const refundForm = ref({
     customer_phone: "",
     brand_id: null,
     product_type_id: null,
-    ram: "",
     storage: "",
     condition: "",
     imei: "",
@@ -175,18 +174,6 @@ const isImeiRefund = computed(() => {
     return cat === 'imei' || cat === 'hp / gadget';
 });
 
-const filteredRefundRAMs = computed(() => {
-    if (!refundForm.value.product_type_id) return [];
-    const set = new Set();
-    const type = selectedRefundType.value;
-    if (type?.ram) {
-        type.ram.split(/[,/]/).forEach(r => {
-            const clean = r.trim();
-            if (clean) set.add(clean);
-        });
-    }
-    return Array.from(set).sort();
-});
 
 const filteredRefundStorages = computed(() => {
     if (!refundForm.value.product_type_id) return [];
@@ -228,13 +215,11 @@ watch(() => tradeInForm.value.storage, () => {
 
 watch(() => refundForm.value.brand_id, () => {
     refundForm.value.product_type_id = null;
-    refundForm.value.ram = "";
     refundForm.value.storage = "";
     refundForm.value.condition = "";
 });
 
 watch(() => refundForm.value.product_type_id, () => {
-    refundForm.value.ram = "";
     refundForm.value.storage = "";
     refundForm.value.condition = "";
 });
@@ -1197,7 +1182,6 @@ async function submitRefund() {
     formData.append('customer_phone', refundForm.value.customer_phone);
     formData.append('brand_id', refundForm.value.brand_id);
     formData.append('product_type_id', refundForm.value.product_type_id);
-    formData.append('ram', refundForm.value.ram);
     formData.append('storage', refundForm.value.storage);
     formData.append('condition', refundForm.value.condition);
     formData.append('imei', refundForm.value.imei);
@@ -1221,7 +1205,6 @@ async function submitRefund() {
                 imei: data.imei || '-',
                 selling_price: data.refund_price,
                 condition: data.condition,
-                ram: data.ram,
                 storage: data.storage,
                 price: data.refund_price,
                 qty: 1
@@ -1246,7 +1229,6 @@ async function submitRefund() {
             customer_phone: "",
             brand_id: null,
             product_type_id: null,
-            ram: "",
             storage: "",
             condition: "",
             imei: "",
@@ -1700,7 +1682,7 @@ async function submitRefund() {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -1865,20 +1847,7 @@ async function submitRefund() {
                                         </select>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label
-                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">RAM
-                                            <span class="text-red-500">*</span></label>
-                                        <select v-model="refundForm.ram"
-                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
-                                            :disabled="!refundForm.product_type_id">
-                                            <option value="" disabled>Pilih RAM</option>
-                                            <option v-for="r in filteredRefundRAMs" :key="r" :value="r">{{ r }}
-                                            </option>
-                                            <option value="Non-HP">Non-HP</option>
-                                        </select>
-                                    </div>
+                                <div class="grid grid-cols-1">
                                     <div>
                                         <label
                                             class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
@@ -1945,7 +1914,7 @@ async function submitRefund() {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                        }}</option>
+                                            }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -2308,7 +2277,7 @@ async function submitRefund() {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -2346,7 +2315,7 @@ async function submitRefund() {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -2448,7 +2417,7 @@ async function submitRefund() {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -2467,7 +2436,7 @@ async function submitRefund() {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -2475,7 +2444,7 @@ async function submitRefund() {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -2530,7 +2499,7 @@ async function submitRefund() {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -2636,7 +2605,7 @@ async function submitRefund() {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
