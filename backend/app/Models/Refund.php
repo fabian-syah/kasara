@@ -17,6 +17,7 @@ class Refund extends Model
         'product_type_id',
         'imei',
         'ram',
+        'storage',
         'condition',
         'refund_price',
         'payment_method_id',
