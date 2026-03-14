@@ -218,6 +218,14 @@ const openDetailModal = (item) => {
   showDetailModal.value = true;
 };
 
+// Image Lightbox
+const showLightbox = ref(false);
+const lightboxSource = ref("");
+const openLightbox = (src) => {
+  lightboxSource.value = src;
+  showLightbox.value = true;
+};
+
 // Tab Switch
 const activeTab = ref("hp"); // 'hp' or 'non-hp'
 
@@ -1403,10 +1411,10 @@ async function exportInventory() {
                   <div>
                     <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Foto
                       Bukti</label>
-                    <div class="flex gap-3 mt-2">
-                      <a v-if="selectedItemDetail.refund.photo_unit"
-                        :href="storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit" target="_blank"
-                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all">
+                    <div class="flex flex-wrap gap-3 mt-2">
+                      <div v-if="selectedItemDetail.refund.photo_unit"
+                        @click="openLightbox(storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit)"
+                        class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           alt="Unit" />
@@ -1416,16 +1424,15 @@ async function exportInventory() {
                         </div>
                         <span
                           class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Unit</span>
-                      </a>
-                      <div v-else
-                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
-                        <Smartphone :size="20" class="text-surface-600" />
-                        <span class="text-[8px] text-surface-600">No Photo</span>
                       </div>
-
-                      <a v-if="selectedItemDetail.refund.photo_customer"
-                        :href="storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer" target="_blank"
-                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all">
+                      <div v-else
+                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center text-surface-600">
+                        <Smartphone :size="20" />
+                        <span class="text-[8px]">No Photo</span>
+                      </div>
+                      <div v-if="selectedItemDetail.refund.photo_customer"
+                        @click="openLightbox(storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer)"
+                        class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           alt="Customer" />
@@ -1435,11 +1442,11 @@ async function exportInventory() {
                         </div>
                         <span
                           class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Customer</span>
-                      </a>
+                      </div>
                       <div v-else
-                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
-                        <UserCheck :size="20" class="text-surface-600" />
-                        <span class="text-[8px] text-surface-600">No Photo</span>
+                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center text-surface-600">
+                        <UserCheck :size="20" />
+                        <span class="text-[8px]">No Photo</span>
                       </div>
                     </div>
                   </div>
@@ -1481,7 +1488,7 @@ async function exportInventory() {
                     <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
                       Beli</label>
                     <p class="text-lg font-bold text-amber-400">{{ formatCurrency(selectedItemDetail.trade_in.buy_price)
-                      }}
+                    }}
                     </p>
                   </div>
                   <div v-if="selectedItemDetail.trade_in.reason">
@@ -1495,16 +1502,16 @@ async function exportInventory() {
                     <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Metode
                       Bayar</label>
                     <p class="text-text-primary font-medium">{{ selectedItemDetail.trade_in.payment_method?.name || '-'
-                      }}
+                    }}
                     </p>
                   </div>
                   <div>
                     <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Foto
                       Bukti</label>
-                    <div class="flex gap-3 mt-2">
-                      <a v-if="selectedItemDetail.trade_in.photo_unit"
-                        :href="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_unit" target="_blank"
-                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all">
+                    <div class="flex flex-wrap gap-3 mt-2">
+                      <div v-if="selectedItemDetail.trade_in.photo_unit"
+                        @click="openLightbox(storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_unit)"
+                        class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_unit"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           alt="Unit" />
@@ -1514,16 +1521,16 @@ async function exportInventory() {
                         </div>
                         <span
                           class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Unit</span>
-                      </a>
+                      </div>
                       <div v-else
-                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
-                        <Smartphone :size="20" class="text-surface-600" />
-                        <span class="text-[8px] text-surface-600">No Photo</span>
+                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center text-surface-600">
+                        <Smartphone :size="20" />
+                        <span class="text-[8px]">No Photo</span>
                       </div>
 
-                      <a v-if="selectedItemDetail.trade_in.photo_customer"
-                        :href="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_customer" target="_blank"
-                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all">
+                      <div v-if="selectedItemDetail.trade_in.photo_customer"
+                        @click="openLightbox(storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_customer)"
+                        class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_customer"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           alt="Customer" />
@@ -1533,11 +1540,11 @@ async function exportInventory() {
                         </div>
                         <span
                           class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Customer</span>
-                      </a>
+                      </div>
                       <div v-else
-                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
-                        <UserCheck :size="20" class="text-surface-600" />
-                        <span class="text-[8px] text-surface-600">No Photo</span>
+                        class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center text-surface-600">
+                        <UserCheck :size="20" />
+                        <span class="text-[8px]">No Photo</span>
                       </div>
                     </div>
                   </div>
@@ -1558,6 +1565,17 @@ async function exportInventory() {
           <button @click="showDetailModal = false" class="btn btn-secondary px-8">Tutup</button>
         </div>
       </div>
+    </div>
+
+    <!-- Image Lightbox Modal -->
+    <div v-if="showLightbox"
+      class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 transition-all animate-in"
+      @click="showLightbox = false">
+      <button @click="showLightbox = false"
+        class="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all">
+        <X :size="24" />
+      </button>
+      <img :src="lightboxSource" class="max-w-full max-h-[90vh] object-contain shadow-2xl rounded-lg" @click.stop />
     </div>
 
     <!-- Stock Out Modal Component -->
