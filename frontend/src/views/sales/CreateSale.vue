@@ -1517,7 +1517,7 @@ async function submitTradeIn() {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -1651,45 +1651,54 @@ async function submitTradeIn() {
                                     </button>
                                 </div>
                                 <div
-                                    class="flex justify-between items-end border-t border-surface-100 dark:border-surface-700 pt-4">
-                                    <div class="flex items-center gap-3">
+                                    class="flex flex-col sm:flex-row justify-between items-start sm:items-end border-t border-surface-100 dark:border-surface-700 pt-4 gap-4 sm:gap-0">
+                                    <div class="flex items-center gap-3 w-full sm:w-auto">
                                         <button v-if="!item.imei" @click="decrementQty(item.id)"
-                                            class="w-8 h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black">-</button>
-                                        <span class="text-sm font-black px-2">
+                                            class="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black text-lg sm:text-base">-</button>
+                                        <span class="text-base sm:text-sm font-black px-2">
                                             {{ item.quantity }}<span
                                                 class="text-text-secondary font-medium ml-1">x</span>
                                         </span>
                                         <button v-if="!item.imei" @click="incrementQty(item.id)"
                                             :disabled="isItemFullyOccupied(item)"
-                                            class="w-8 h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black">+</button>
+                                            class="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-surface-100 dark:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg text-text-primary hover:bg-surface-200 transition-colors font-black text-lg sm:text-base">+</button>
                                     </div>
-                                    <div class="flex flex-col items-end gap-2">
+                                    <div class="flex flex-col items-start sm:items-end gap-3 sm:gap-2 w-full sm:w-auto">
                                         <!-- Price/Subtotal -->
                                         <div v-if="!item.imei && !item.is_bundle"
-                                            class="flex items-center gap-2 border-2 border-surface-200 dark:border-surface-700 rounded-xl bg-surface-50 dark:bg-surface-900 px-3 py-2 focus-within:border-primary-500 transition-all">
-                                            <span class="text-[10px] text-text-secondary font-bold">Harga</span>
-                                            <input type="text" :value="formatNumber(item.price)"
-                                                @input="e => handleItemPriceInput(item, e)"
-                                                class="w-24 text-right text-xs font-black bg-transparent outline-none focus:text-primary-600" />
+                                            class="flex items-center justify-between sm:justify-end gap-2 border-2 border-surface-200 dark:border-surface-700 rounded-xl bg-surface-50 dark:bg-surface-900 px-3 py-2 focus-within:border-primary-500 transition-all w-full sm:w-auto">
+                                            <span
+                                                class="text-[10px] sm:text-[9px] font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">Harga
+                                                Unit</span>
+                                            <div class="flex items-center gap-1">
+                                                <span class="text-[10px] font-bold text-text-secondary">Rp</span>
+                                                <input type="text" :value="formatNumber(item.price)"
+                                                    @input="e => handleItemPriceInput(item, e)"
+                                                    class="w-24 sm:w-20 text-right text-sm sm:text-xs font-black bg-transparent outline-none focus:text-primary-600" />
+                                            </div>
                                         </div>
                                         <p v-else class="text-sm font-black text-primary-600">{{
                                             formatCurrency(item.price) }}</p>
 
                                         <!-- Discount per Item -->
-                                        <div class="flex flex-col gap-1 w-full">
+                                        <div class="flex flex-col gap-1 w-full sm:w-auto">
                                             <div
-                                                class="flex items-center gap-2 border-2 border-amber-200 dark:border-amber-900/30 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 px-3 py-2 focus-within:border-amber-500 transition-all">
+                                                class="flex items-center justify-between sm:justify-end gap-2 border-2 border-amber-200 dark:border-amber-900/30 rounded-xl bg-amber-50/50 dark:bg-amber-900/10 px-3 py-2 focus-within:border-amber-500 transition-all w-full sm:w-auto">
                                                 <span
-                                                    class="text-[10px] text-amber-600 font-bold uppercase tracking-widest">Diskon</span>
-                                                <input type="text" :value="formatNumber(item.discount || 0)"
-                                                    @input="e => handleItemDiscountInput(item, e)"
-                                                    class="w-24 text-right text-xs font-black bg-transparent outline-none text-amber-600 placeholder:text-amber-300"
-                                                    placeholder="0" />
+                                                    class="text-[10px] sm:text-[9px] font-black text-amber-600 uppercase tracking-widest whitespace-nowrap">Diskon
+                                                    Unit</span>
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-[10px] font-bold text-amber-600">Rp</span>
+                                                    <input type="text" :value="formatNumber(item.discount || 0)"
+                                                        @input="e => handleItemDiscountInput(item, e)"
+                                                        class="w-24 sm:w-20 text-right text-sm sm:text-xs font-black bg-transparent outline-none text-amber-600 placeholder:text-amber-300"
+                                                        placeholder="0" />
+                                                </div>
                                             </div>
                                             <div v-if="cartStore.getDistributedGlobalDiscount(item) > 0"
-                                                class="px-2 py-1 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-100 dark:border-primary-900/20">
+                                                class="px-2 py-1.5 sm:py-1 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-100 dark:border-primary-900/20">
                                                 <p
-                                                    class="text-[9px] font-black text-primary-600 uppercase tracking-tighter">
+                                                    class="text-[10px] sm:text-[9px] font-black text-primary-600 uppercase tracking-tighter">
                                                     Pot. Global ({{ cartStore.globalDiscountPercentage.toFixed(1) }}%):
                                                     -{{ formatCurrency(cartStore.getDistributedGlobalDiscount(item)) }}
                                                 </p>
@@ -1766,55 +1775,68 @@ async function submitTradeIn() {
                 <!-- Transaction Summary & Form -->
                 <div class="flex-[2] space-y-8 min-w-0">
                     <div
-                        class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-xl">
-                        <h3 class="text-2xl font-black text-text-primary mb-8 flex items-center gap-3">
+                        class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-8 shadow-xl">
+                        <h3
+                            class="text-xl sm:text-2xl font-black text-text-primary mb-6 sm:mb-8 flex items-center gap-3">
                             <User :size="28" class="text-primary-500" stroke-width="2.5" /> Detail Pelanggan
                         </h3>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                            <div class="space-y-2">
                                 <label
-                                    class="block text-sm font-bold text-text-secondary uppercase tracking-widest mb-3">
+                                    class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
                                     Nama Pelanggan <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="customerForm.customer_name" type="text" placeholder="Masukkan nama..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-3.5 sm:py-4 bg-surface-50 dark:bg-surface-900 text-base sm:text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all shadow-sm" />
                             </div>
-                            <div>
+                            <div class="space-y-2">
                                 <label
-                                    class="block text-sm font-bold text-text-secondary uppercase tracking-widest mb-3">
+                                    class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
                                     WhatsApp Customer <span class="text-red-500">*</span>
                                 </label>
                                 <input v-model="customerForm.customer_phone" type="text" placeholder="08xxx..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-3.5 sm:py-4 bg-surface-50 dark:bg-surface-900 text-base sm:text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all shadow-sm" />
                             </div>
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-2 space-y-2">
                                 <label
-                                    class="block text-sm font-bold text-text-secondary uppercase tracking-widest mb-3">
+                                    class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
                                     Keterangan / Notes <span class="text-red-500">*</span>
                                 </label>
                                 <textarea v-model="customerForm.notes" rows="2"
                                     placeholder="Catatan khusus untuk nota ini..."
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all resize-none"></textarea>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-3.5 sm:py-4 bg-surface-50 dark:bg-surface-900 text-base sm:text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 dark:text-white transition-all resize-none shadow-sm"></textarea>
                             </div>
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-2 space-y-3">
                                 <label
-                                    class="block text-sm font-bold text-text-secondary uppercase tracking-widest mb-3">
-                                    Foto Bukti (Max 10MB) <span class="text-red-500">*</span>
+                                    class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
+                                    Foto Bukti <span class="text-[10px] lowercase text-text-secondary font-medium">(Max
+                                        10MB)</span>
+                                    <span class="text-red-500">*</span>
                                 </label>
                                 <div class="flex flex-col gap-4">
-                                    <input type="file" @change="handleFileChange" accept="image/*" capture="environment"
-                                        class="block w-full text-sm text-text-secondary
-                                        file:mr-4 file:py-3 file:px-6
-                                        file:rounded-xl file:border-0
-                                        file:text-sm file:font-black
-                                        file:bg-primary-500/10 file:text-primary-500
-                                        hover:file:bg-primary-500/20
-                                        dark:file:bg-primary-500/20 dark:file:text-primary-400
-                                        transition-all cursor-pointer" />
+                                    <div class="relative group">
+                                        <input type="file" @change="handleFileChange" accept="image/*"
+                                            capture="environment"
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                        <div
+                                            class="w-full border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center gap-2 bg-surface-50 dark:bg-surface-900 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/10 group-hover:border-primary-500 transition-all">
+                                            <Upload class="text-text-secondary group-hover:text-primary-500" :size="24"
+                                                stroke-width="1.5" />
+                                            <div class="text-center">
+                                                <p
+                                                    class="text-sm font-black text-text-primary group-hover:text-primary-600 transition-colors">
+                                                    Pilih atau Ambil Foto</p>
+                                                <p
+                                                    class="text-[10px] text-text-secondary font-medium uppercase tracking-widest">
+                                                    Klik untuk mengupload bukti</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <!-- COMPRESSION LOADER -->
                                     <div v-if="isCompressing"
-                                        class="flex items-center gap-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-500/20 animate-pulse">
+                                        class="flex items-center gap-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-2xl border border-primary-100 dark:border-primary-500/20 animate-pulse">
                                         <Loader2 class="animate-spin text-primary-500" :size="20" />
                                         <span
                                             class="text-xs font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest">Mengompres
@@ -1822,10 +1844,10 @@ async function submitTradeIn() {
                                     </div>
 
                                     <div v-if="proofImagePreview && !isCompressing"
-                                        class="relative w-40 h-40 rounded-2xl overflow-hidden border-2 border-surface-200 dark:border-surface-700">
+                                        class="relative w-full sm:w-48 aspect-square sm:aspect-auto sm:h-48 rounded-2xl overflow-hidden border-2 border-surface-200 dark:border-surface-700 shadow-sm bg-surface-100">
                                         <img :src="proofImagePreview" class="w-full h-full object-cover" />
                                         <button @click="proofImage = null; proofImagePreview = null"
-                                            class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-lg transition-transform active:scale-90">
+                                            class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg transition-transform active:scale-90 hover:bg-red-600">
                                             <X :size="16" />
                                         </button>
                                     </div>
@@ -1850,7 +1872,7 @@ async function submitTradeIn() {
                                     <div class="flex flex-col gap-1">
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -1888,7 +1910,7 @@ async function submitTradeIn() {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -1987,7 +2009,7 @@ async function submitTradeIn() {
                                     <span
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{ formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -2006,7 +2028,7 @@ async function submitTradeIn() {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -2014,7 +2036,7 @@ async function submitTradeIn() {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -2044,7 +2066,7 @@ async function submitTradeIn() {
             <div v-if="showSuccessModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
                 <div
-                    class="relative bg-white dark:bg-surface-800 rounded-[2.5rem] border border-surface-200 dark:border-surface-700 w-full max-w-md p-10 text-center shadow-2xl">
+                    class="relative bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 w-full max-w-md p-6 sm:p-10 text-center shadow-2xl">
                     <div
                         class="w-28 h-28 mx-auto mb-8 bg-emerald-500/10 rounded-full flex items-center justify-center animate-bounce">
                         <CheckCircle class="text-emerald-500" :size="64" stroke-width="1.5" />
@@ -2068,7 +2090,7 @@ async function submitTradeIn() {
                         <div class="flex justify-between items-end">
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{ formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -2173,7 +2195,7 @@ async function submitTradeIn() {
                                                 class="text-emerald-500" />
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{ item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
