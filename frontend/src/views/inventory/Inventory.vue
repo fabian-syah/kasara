@@ -1470,19 +1470,84 @@ async function exportInventory() {
                 </h4>
               </div>
               <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Customer</label>
-                  <p class="text-text-primary font-bold">{{ selectedItemDetail.trade_in.customer_name }}</p>
-                  <p class="text-xs text-text-secondary">{{ selectedItemDetail.trade_in.customer_phone }}</p>
+                <div class="space-y-4">
+                  <div>
+                    <label
+                      class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Customer</label>
+                    <p class="text-text-primary font-bold">{{ selectedItemDetail.trade_in.customer_name }}</p>
+                    <p class="text-xs text-text-secondary">{{ selectedItemDetail.trade_in.customer_phone }}</p>
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
+                      Beli</label>
+                    <p class="text-lg font-bold text-amber-400">{{ formatCurrency(selectedItemDetail.trade_in.buy_price)
+                      }}
+                    </p>
+                  </div>
+                  <div v-if="selectedItemDetail.trade_in.reason">
+                    <label
+                      class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Alasan</label>
+                    <p class="text-sm text-text-primary italic">"{{ selectedItemDetail.trade_in.reason }}"</p>
+                  </div>
                 </div>
-                <div>
-                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
-                    Beli</label>
-                  <p class="text-lg font-bold text-amber-400">{{ formatCurrency(selectedItemDetail.trade_in.buy_price)
-                  }}
-                  </p>
+                <div class="space-y-4">
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Metode
+                      Bayar</label>
+                    <p class="text-text-primary font-medium">{{ selectedItemDetail.trade_in.payment_method?.name || '-'
+                      }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Foto
+                      Bukti</label>
+                    <div class="flex gap-3 mt-2">
+                      <a v-if="selectedItemDetail.trade_in.photo_unit"
+                        :href="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_unit" target="_blank"
+                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all">
+                        <img :src="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_unit"
+                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          alt="Unit" />
+                        <div
+                          class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye :size="16" class="text-white" />
+                        </div>
+                        <span
+                          class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Unit</span>
+                      </a>
+                      <div v-else
+                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
+                        <Smartphone :size="20" class="text-surface-600" />
+                        <span class="text-[8px] text-surface-600">No Photo</span>
+                      </div>
+
+                      <a v-if="selectedItemDetail.trade_in.photo_customer"
+                        :href="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_customer" target="_blank"
+                        class="group relative w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all">
+                        <img :src="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_customer"
+                          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          alt="Customer" />
+                        <div
+                          class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye :size="16" class="text-white" />
+                        </div>
+                        <span
+                          class="absolute bottom-0 left-0 right-0 bg-black/60 text-[8px] text-white text-center py-0.5">Customer</span>
+                      </a>
+                      <div v-else
+                        class="w-20 h-20 rounded-xl bg-surface-800 border border-surface-700 border-dashed flex flex-col items-center justify-center">
+                        <UserCheck :size="20" class="text-surface-600" />
+                        <span class="text-[8px] text-surface-600">No Photo</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </div>
+              <div v-if="selectedItemDetail.trade_in.notes" class="px-5 pb-5">
+                <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Catatan
+                  Tambahan</label>
+                <p class="text-xs text-text-primary bg-surface-800/50 p-3 rounded-xl border border-surface-700/50">{{
+                  selectedItemDetail.trade_in.notes }}</p>
               </div>
             </div>
 
