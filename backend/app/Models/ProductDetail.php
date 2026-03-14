@@ -84,4 +84,9 @@ class ProductDetail extends Model
     {
         return $this->belongsTo(TradeIn::class);
     }
+
+    public function refund()
+    {
+        return $this->belongsTo(Refund::class);
+    }
 }

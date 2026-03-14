@@ -210,6 +210,14 @@ const handleStockOutSuccess = () => {
   loadInventory(pagination.value.current_page);
 };
 
+// Detail Modal
+const showDetailModal = ref(false);
+const selectedItemDetail = ref(null);
+const openDetailModal = (item) => {
+  selectedItemDetail.value = item;
+  showDetailModal.value = true;
+};
+
 // Tab Switch
 const activeTab = ref("hp"); // 'hp' or 'non-hp'
 
@@ -1237,7 +1245,8 @@ async function exportInventory() {
               <td @click.stop>
                 <div class="flex items-center justify-center gap-2">
 
-                  <button class="p-2 hover:bg-surface-700 rounded-lg transition-colors">
+                  <button @click.stop="openDetailModal(item)"
+                    class="p-2 hover:bg-surface-700 rounded-lg transition-colors">
                     <Eye :size="16" class="text-text-secondary" />
                   </button>
                 </div>
@@ -1277,6 +1286,187 @@ async function exportInventory() {
           class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary">
           <ChevronRight :size="20" />
         </button>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div v-if="showDetailModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+      <div class="absolute inset-0 bg-surface-950/80 backdrop-blur-sm" @click="showDetailModal = false"></div>
+      <div
+        class="relative w-full max-w-2xl bg-surface-900 border border-surface-800 rounded-3xl shadow-2xl overflow-hidden animate-in">
+        <div class="p-6 border-b border-surface-800 flex justify-between items-center bg-surface-800/50">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
+              <Eye :size="20" class="text-primary-400" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-text-primary">Detail Barang</h3>
+              <p class="text-xs text-text-secondary mt-0.5">Informasi lengkap unit inventory</p>
+            </div>
+          </div>
+          <button @click="showDetailModal = false"
+            class="p-2 hover:bg-surface-700 rounded-xl transition-colors text-text-secondary">
+            <X :size="20" />
+          </button>
+        </div>
+
+        <div class="p-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div v-if="selectedItemDetail" class="space-y-6">
+            <!-- Basic Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-4">
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Merek &
+                    Tipe</label>
+                  <p class="text-lg font-bold text-text-primary">{{ selectedItemDetail.product?.brand }} {{
+                    selectedItemDetail.product?.name }}</p>
+                </div>
+                <div v-if="selectedItemDetail.imei">
+                  <label
+                    class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">IMEI</label>
+                  <p class="font-mono text-primary-400 font-bold tracking-wider">{{ selectedItemDetail.imei }}</p>
+                </div>
+                <div v-if="activeTab === 'non-hp'">
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Stok
+                    Tersedia</label>
+                  <p class="text-text-primary font-bold">{{ selectedItemDetail.quantity }} Pcs</p>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Kapasitas
+                    &
+                    Kondisi</label>
+                  <div class="flex flex-wrap gap-2 mt-1">
+                    <span v-if="selectedItemDetail.storage"
+                      class="bg-surface-800 px-3 py-1 rounded-lg text-sm text-text-primary border border-surface-700">
+                      {{ selectedItemDetail.storage }}
+                    </span>
+                    <span class="badge"
+                      :class="selectedItemDetail.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : (selectedItemDetail.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400')">
+                      {{
+                        selectedItemDetail.condition === 'new' ? 'Baru' :
+                          (selectedItemDetail.condition === 'ex_ibox' ?
+                            'ExiBox' : 'Bekas')
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Lokasi
+                    Saat
+                    Ini</label>
+                  <p class="text-text-primary font-medium">{{ selectedItemDetail.placement_name }}</p>
+                  <span class="text-[10px] text-text-secondary uppercase">{{
+                    selectedItemDetail.placement_type?.replace('_',
+                      ' ') }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Refund Info Section -->
+            <div v-if="selectedItemDetail.refund"
+              class="bg-primary-500/5 rounded-2xl border border-primary-500/20 overflow-hidden">
+              <div class="p-4 bg-primary-500/10 flex items-center gap-2 border-b border-primary-500/20">
+                <RotateCcw :size="16" class="text-primary-400" />
+                <h4 class="text-sm font-bold text-primary-400 uppercase tracking-widest">Informasi Refund (Barang Masuk)
+                </h4>
+              </div>
+              <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                  <div>
+                    <label
+                      class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Customer</label>
+                    <p class="text-text-primary font-bold">{{ selectedItemDetail.refund.customer_name }}</p>
+                    <p class="text-xs text-text-secondary">{{ selectedItemDetail.refund.customer_phone }}</p>
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
+                      Refund (Modal)</label>
+                    <p class="text-lg font-bold text-emerald-400">{{
+                      formatCurrency(selectedItemDetail.refund.refund_price)
+                    }}</p>
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Alasan
+                      Refund</label>
+                    <p class="text-sm text-text-primary italic">"{{ selectedItemDetail.refund.reason }}"</p>
+                  </div>
+                </div>
+                <div class="space-y-4">
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Metode
+                      Bayar Refund</label>
+                    <p class="text-text-primary font-medium">{{ selectedItemDetail.refund.payment_method?.name || '-' }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Foto
+                      Bukti</label>
+                    <div class="flex gap-2 mt-2">
+                      <a v-if="selectedItemDetail.refund.photo_unit"
+                        :href="storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit" target="_blank"
+                        class="w-16 h-16 rounded-lg bg-surface-800 border border-surface-700 flex flex-col items-center justify-center hover:bg-surface-700 transition-all">
+                        <Smartphone :size="20" class="text-text-secondary" />
+                        <span class="text-[8px] text-text-secondary">Unit</span>
+                      </a>
+                      <a v-if="selectedItemDetail.refund.photo_customer"
+                        :href="storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer" target="_blank"
+                        class="w-16 h-16 rounded-lg bg-surface-800 border border-surface-700 flex flex-col items-center justify-center hover:bg-surface-700 transition-all">
+                        <UserCheck :size="20" class="text-text-secondary" />
+                        <span class="text-[8px] text-text-secondary">Customer</span>
+                      </a>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Diinput
+                      Oleh</label>
+                    <p class="text-xs text-text-primary font-medium">{{ selectedItemDetail.user?.name || '-' }}</p>
+                    <p class="text-[10px] text-text-secondary">{{ selectedItemDetail.created_at ? new
+                      Date(selectedItemDetail.created_at).toLocaleString('id-ID') : '-' }}</p>
+                  </div>
+                </div>
+              </div>
+              <div v-if="selectedItemDetail.refund.notes" class="px-5 pb-5">
+                <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Catatan
+                  Tambahan</label>
+                <p class="text-xs text-text-primary bg-surface-800/50 p-3 rounded-xl border border-surface-700/50">{{
+                  selectedItemDetail.refund.notes }}</p>
+              </div>
+            </div>
+
+            <!-- Trade In Info Section -->
+            <div v-if="selectedItemDetail.trade_in"
+              class="bg-amber-500/5 rounded-2xl border border-amber-500/20 overflow-hidden">
+              <div class="p-4 bg-amber-500/10 flex items-center gap-2 border-b border-amber-500/20">
+                <RefreshCw :size="16" class="text-amber-400" />
+                <h4 class="text-sm font-bold text-amber-400 uppercase tracking-widest">Informasi Angkat Barang
+                  (Trade-In)
+                </h4>
+              </div>
+              <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label
+                    class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Customer</label>
+                  <p class="text-text-primary font-bold">{{ selectedItemDetail.trade_in.customer_name }}</p>
+                  <p class="text-xs text-text-secondary">{{ selectedItemDetail.trade_in.customer_phone }}</p>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
+                    Beli</label>
+                  <p class="text-lg font-bold text-amber-400">{{ formatCurrency(selectedItemDetail.trade_in.buy_price)
+                  }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-surface-800 bg-surface-800/30 flex justify-end">
+          <button @click="showDetailModal = false" class="btn btn-secondary px-8">Tutup</button>
+        </div>
       </div>
     </div>
 

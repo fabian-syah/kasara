@@ -50,7 +50,7 @@ class InventoryController extends Controller
                     $q->where('type', 'non-hp')->orWhere('has_imei', false);
                 });
         } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user'])
+            $query = ProductDetail::with(['product', 'distributor', 'user', 'refund', 'refund.paymentMethod', 'tradeIn'])
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'hp')->orWhere('has_imei', true);
                 });
