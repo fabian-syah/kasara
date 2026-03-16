@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\UnitExchange;
+use App\Models\StockOut;
 use App\Models\ProductDetail;
 use App\Models\InventoryLog;
 use App\Models\ProductType;
@@ -110,7 +111,28 @@ class UnitExchangeController extends Controller
                     'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
                 ]);
 
-                // 4. Handle Outgoing Unit (Exit from Inventory)
+                // 4. Create StockOut record for reporting and tracking visibility
+                $stockOut = StockOut::create([
+                    'receipt_id' => $receiptId,
+                    'category' => 'tukar_unit',
+                    'customer_name' => $request->customer_name,
+                    'customer_phone' => $request->customer_phone,
+                    'customer_wa' => $request->customer_wa ?? $request->customer_phone,
+                    'user_id' => $user->id,
+                    'inventory_user_id' => $user->id,
+                    'status' => 'received', // Mark as completed
+                    'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
+                    'proof_image' => $photoPathUnit,
+                    'selling_price' => 0, // Isolated from sales turnover
+                ]);
+
+                // Attach the outgoing unit to the StockOut record
+                $stockOut->items()->attach($request->outgoing_product_detail_id, [
+                    'selling_price' => 0,
+                    'item_discount' => 0,
+                ]);
+
+                // 5. Handle Outgoing Unit (Exit from Inventory)
                 $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
                 $oldStatus = $outgoingUnit->status;
 
@@ -119,7 +141,7 @@ class UnitExchangeController extends Controller
                     'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Unit: " . $receiptId
                 ]);
 
-                // 5. Log both movements
+                // 6. Log both movements
                 // In Log
                 InventoryLog::create([
                     'product_id' => $product->id,
