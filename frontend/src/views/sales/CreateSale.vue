@@ -1342,10 +1342,6 @@ async function submitRefund() {
     }
 }
 
-const selectOutgoingUnit = (item) => {
-    unitExchangeForm.value.outgoing_product_detail_id = item.id;
-    nextStep();
-}
 
 async function submitUnitExchange() {
     if (!unitExchangeForm.value.customer_name || !unitExchangeForm.value.customer_phone || !unitExchangeForm.value.incoming_brand_id || !unitExchangeForm.value.incoming_product_type_id || !unitExchangeForm.value.incoming_storage || !unitExchangeForm.value.incoming_condition || !unitExchangeForm.value.incoming_cost_price || !unitExchangeForm.value.reason || !unitExchangeForm.value.outgoing_product_detail_id) {
@@ -1886,7 +1882,7 @@ async function submitUnitExchange() {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                    }}</option>
+                                        }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -2118,7 +2114,7 @@ async function submitUnitExchange() {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                            }}</option>
+                                        }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -2233,18 +2229,25 @@ async function submitUnitExchange() {
                         </div>
 
                         <!-- 1. DATA CUSTOMER -->
-                        <div class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
-                            <h4 class="text-sm font-black text-primary-600 uppercase tracking-widest mb-6 flex items-center gap-2">
+                        <div
+                            class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
+                            <h4
+                                class="text-sm font-black text-primary-600 uppercase tracking-widest mb-6 flex items-center gap-2">
                                 <User :size="18" /> Data Customer
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nama Customer <span class="text-red-500">*</span></label>
-                                    <input v-model="unitExchangeForm.customer_name" type="text" placeholder="Nama lengkap..."
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nama
+                                        Customer <span class="text-red-500">*</span></label>
+                                    <input v-model="unitExchangeForm.customer_name" type="text"
+                                        placeholder="Nama lengkap..."
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">No WhatsApp <span class="text-red-500">*</span></label>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">No
+                                        WhatsApp <span class="text-red-500">*</span></label>
                                     <input v-model="unitExchangeForm.customer_phone" type="text" placeholder="08xxx..."
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                                 </div>
@@ -2254,11 +2257,14 @@ async function submitUnitExchange() {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <!-- 2. BARANG MASUK -->
                             <div class="space-y-6">
-                                <h4 class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
+                                <h4
+                                    class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
                                     [1] Barang Masuk (Dari User)
                                 </h4>
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Sumber Barang <span class="text-red-500">*</span></label>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Sumber
+                                        Barang <span class="text-red-500">*</span></label>
                                     <select v-model="unitExchangeForm.incoming_source"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option value="luar_pstore">Luar PStore</option>
@@ -2267,7 +2273,9 @@ async function submitUnitExchange() {
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand <span class="text-red-500">*</span></label>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
+                                            <span class="text-red-500">*</span></label>
                                         <select v-model="unitExchangeForm.incoming_brand_id"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                             <option :value="null" disabled>Pilih Brand</option>
@@ -2275,28 +2283,36 @@ async function submitUnitExchange() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe <span class="text-red-500">*</span></label>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe
+                                            <span class="text-red-500">*</span></label>
                                         <select v-model="unitExchangeForm.incoming_product_type_id"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
                                             :disabled="!unitExchangeForm.incoming_brand_id">
                                             <option :value="null" disabled>Pilih Tipe</option>
-                                            <option v-for="p in filteredExchangeTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+                                            <option v-for="p in filteredExchangeTypes" :key="p.id" :value="p.id">{{
+                                                p.name }}</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Storage <span class="text-red-500">*</span></label>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Storage
+                                            <span class="text-red-500">*</span></label>
                                         <select v-model="unitExchangeForm.incoming_storage"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
                                             :disabled="!unitExchangeForm.incoming_product_type_id">
                                             <option value="" disabled>Pilih Storage</option>
-                                            <option v-for="s in filteredExchangeStorages" :key="s" :value="s">{{ s }}</option>
+                                            <option v-for="s in filteredExchangeStorages" :key="s" :value="s">{{ s }}
+                                            </option>
                                             <option v-if="!isImeiExchange" value="Non-HP">Non-HP</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kategori <span class="text-red-500">*</span></label>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kategori
+                                            <span class="text-red-500">*</span></label>
                                         <select v-model="unitExchangeForm.incoming_condition"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                             <option value="" disabled>Pilih Kategori</option>
@@ -2307,78 +2323,111 @@ async function submitUnitExchange() {
                                     </div>
                                 </div>
                                 <div v-if="isImeiExchange">
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Masukkan IMEI <span class="text-red-500">*</span></label>
-                                    <input v-model="unitExchangeForm.incoming_imei" type="text" placeholder="15 digit IMEI..."
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Masukkan
+                                        IMEI <span class="text-red-500">*</span></label>
+                                    <input v-model="unitExchangeForm.incoming_imei" type="text"
+                                        placeholder="15 digit IMEI..."
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga Tukar Unit / Barang Masuk <span class="text-red-500">*</span></label>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
+                                        Tukar Unit / Barang Masuk <span class="text-red-500">*</span></label>
                                     <div class="relative">
-                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                                        <span
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
                                         <input type="text" :value="formatNumber(unitExchangeForm.incoming_cost_price)"
                                             @input="e => { unitExchangeForm.incoming_cost_price = parseNumber(e.target.value); e.target.value = formatNumber(unitExchangeForm.incoming_cost_price); }"
                                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                                     </div>
-                                    <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi harga modal</p>
+                                    <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi
+                                        harga modal</p>
                                 </div>
                             </div>
 
                             <!-- 3. BARANG KELUAR -->
                             <div class="space-y-6">
-                                <h4 class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
+                                <h4
+                                    class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
                                     [2] Barang Keluar (Pilih Stok Toko)
                                 </h4>
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Cari & Pilih Unit Keluar <span class="text-red-500">*</span></label>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Cari
+                                        &
+                                        Pilih Unit Keluar <span class="text-red-500">*</span></label>
                                     <select v-model="unitExchangeForm.outgoing_product_detail_id"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option :value="null" disabled>-- Pilih Unit dari Inventory --</option>
-                                        <option v-for="item in inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold')" :key="item.id" :value="item.id">
-                                            [{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }} 
-                                            - {{ item.storage || '-' }} - {{ item.condition || 'SCD' }} 
-                                            - {{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock || item.quantity) }}
+                                        <option
+                                            v-for="item in inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold')"
+                                            :key="item.id" :value="item.id">
+                                            [{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}
+                                            - {{ item.storage || '-' }} - {{ item.condition || 'SCD' }}
+                                            - {{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock ||
+                                            item.quantity) }}
                                         </option>
                                     </select>
-                                    <p v-if="selectedOutgoingItem" class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
-                                        Unit Terpilih: {{ selectedOutgoingItem.product?.name || selectedOutgoingItem.name }} ({{ selectedOutgoingItem.imei || 'Non-IMEI' }})
+                                    <p v-if="selectedOutgoingItem"
+                                        class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
+                                        Unit Terpilih: {{ selectedOutgoingItem.product?.name ||
+                                        selectedOutgoingItem.name }} ({{
+                                        selectedOutgoingItem.imei || 'Non-IMEI' }})
                                     </p>
                                 </div>
 
                                 <!-- Photo and Additional Media -->
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto Unit <span class="text-red-500">*</span></label>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Unit <span class="text-red-500">*</span></label>
                                         <div @click="$refs.unitExchangeInput.click()"
                                             class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
                                             <template v-if="unitExchangePhotos.unitPreview">
-                                                <img :src="unitExchangePhotos.unitPreview" class="w-full h-full object-cover" />
-                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <span class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                <img :src="unitExchangePhotos.unitPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
                                                 </div>
                                             </template>
                                             <template v-else>
                                                 <Plus :size="24" class="text-text-secondary mb-1" />
-                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload Unit</span>
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Unit</span>
                                             </template>
                                         </div>
-                                        <input type="file" ref="unitExchangeInput" @change="e => handleExchangePhotoUpload('unit', e)" accept="image/*" class="hidden" capture="environment" />
+                                        <input type="file" ref="unitExchangeInput"
+                                            @change="e => handleExchangePhotoUpload('unit', e)" accept="image/*"
+                                            class="hidden" capture="environment" />
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto Customer</label>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
+                                            Customer</label>
                                         <div @click="$refs.customerExchangeInput.click()"
                                             class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
                                             <template v-if="unitExchangePhotos.customerPreview">
-                                                <img :src="unitExchangePhotos.customerPreview" class="w-full h-full object-cover" />
-                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <span class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                                <img :src="unitExchangePhotos.customerPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <span
+                                                        class="text-white text-[10px] font-black uppercase">Ganti</span>
                                                 </div>
                                             </template>
                                             <template v-else>
                                                 <Plus :size="24" class="text-text-secondary mb-1" />
-                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload Customer</span>
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Customer</span>
                                             </template>
                                         </div>
-                                        <input type="file" ref="customerExchangeInput" @change="e => handleExchangePhotoUpload('customer', e)" accept="image/*" class="hidden" capture="environment" />
+                                        <input type="file" ref="customerExchangeInput"
+                                            @change="e => handleExchangePhotoUpload('customer', e)" accept="image/*"
+                                            class="hidden" capture="environment" />
                                     </div>
                                 </div>
                             </div>
@@ -2386,18 +2435,23 @@ async function submitUnitExchange() {
 
                         <!-- 4. ALASAN & CATATAN -->
                         <div class="mt-8 space-y-6">
-                            <h4 class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                            <h4
+                                class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
                                 Alasan & Catatan
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Alasan Tukar Unit <span class="text-red-500">*</span></label>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Alasan
+                                        Tukar Unit <span class="text-red-500">*</span></label>
                                     <textarea v-model="unitExchangeForm.reason" rows="3"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
                                         placeholder="Kenapa barang ini ditukar? (Wajib diisi)"></textarea>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Keterangan Tambahan (Opsional)</label>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Keterangan
+                                        Tambahan (Opsional)</label>
                                     <textarea v-model="unitExchangeForm.notes" rows="3"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
                                         placeholder="Catatan tambahan..."></textarea>
@@ -2406,7 +2460,8 @@ async function submitUnitExchange() {
                         </div>
 
                         <!-- Submit Section -->
-                        <div class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
+                        <div
+                            class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
                             <button @click="prevStep"
                                 class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
                                 Kembali Pilih Kategori
@@ -2686,7 +2741,7 @@ async function submitUnitExchange() {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -2724,7 +2779,7 @@ async function submitUnitExchange() {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -2826,7 +2881,7 @@ async function submitUnitExchange() {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -2845,7 +2900,7 @@ async function submitUnitExchange() {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -2853,7 +2908,7 @@ async function submitUnitExchange() {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -2908,7 +2963,7 @@ async function submitUnitExchange() {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -3014,7 +3069,7 @@ async function submitUnitExchange() {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
