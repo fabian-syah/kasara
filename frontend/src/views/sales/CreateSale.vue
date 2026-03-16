@@ -308,6 +308,7 @@ const showInitialPinSetup = ref(false);
 const showPinModal = ref(false);
 const pinModalMode = ref("verify");
 const pinModalTitle = ref("Verifikasi PIN");
+const pendingAction = ref(null);
 
 onMounted(async () => {
     try {
@@ -838,7 +839,12 @@ async function handleSubmitOrder() {
 
 async function handlePinSuccess(pin) {
     showPinModal.value = false;
-    await processPayment(pin);
+    if (pendingAction.value) {
+        await pendingAction.value(pin);
+        pendingAction.value = null;
+    } else {
+        await processPayment(pin);
+    }
 }
 
 async function processPayment(pin = null) {
@@ -1152,7 +1158,7 @@ function handleRefundPriceInput(e) {
     e.target.value = formatNumber(num);
 }
 
-async function submitTradeIn() {
+async function submitTradeIn(pin = null) {
     if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.brand_id || !tradeInForm.value.product_type_id || !tradeInForm.value.storage || !tradeInForm.value.condition || !tradeInForm.value.buy_price) {
         alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Kondisi, Harga).");
         return;
@@ -1163,10 +1169,20 @@ async function submitTradeIn() {
         return;
     }
 
+    // PIN Verification for Sales role
+    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+        pendingAction.value = (p) => submitTradeIn(p);
+        showPinModal.value = true;
+        pinModalMode.value = "verify";
+        pinModalTitle.value = "Verifikasi PIN Transaksi";
+        return;
+    }
+
     isSubmitting.value = true;
     const formData = new FormData();
     if (tradeInPhotos.value.unit) formData.append('photo_unit', tradeInPhotos.value.unit);
     if (tradeInPhotos.value.customer) formData.append('photo_customer', tradeInPhotos.value.customer);
+    if (pin) formData.append('transaction_pin', pin);
 
     formData.append('customer_name', tradeInForm.value.customer_name);
     formData.append('customer_phone', tradeInForm.value.customer_phone);
@@ -1254,7 +1270,7 @@ async function submitTradeIn() {
         isSubmitting.value = false;
     }
 }
-async function submitRefund() {
+async function submitRefund(pin = null) {
     if (!refundForm.value.customer_name || !refundForm.value.customer_phone || !refundForm.value.brand_id || !refundForm.value.product_type_id || !refundForm.value.storage || !refundForm.value.condition || !refundForm.value.refund_price || !refundForm.value.reason) {
         alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Kondisi, Harga Refund, Alasan).");
         return;
@@ -1265,10 +1281,20 @@ async function submitRefund() {
         return;
     }
 
+    // PIN Verification for Sales role
+    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+        pendingAction.value = (p) => submitRefund(p);
+        showPinModal.value = true;
+        pinModalMode.value = "verify";
+        pinModalTitle.value = "Verifikasi PIN Transaksi";
+        return;
+    }
+
     isSubmitting.value = true;
     const formData = new FormData();
     if (refundPhotos.value.unit) formData.append('photo_unit', refundPhotos.value.unit);
     if (refundPhotos.value.customer) formData.append('photo_customer', refundPhotos.value.customer);
+    if (pin) formData.append('transaction_pin', pin);
 
     formData.append('customer_name', refundForm.value.customer_name);
     formData.append('customer_phone', refundForm.value.customer_phone);
@@ -1343,7 +1369,7 @@ async function submitRefund() {
 }
 
 
-async function submitUnitExchange() {
+async function submitUnitExchange(pin = null) {
     if (!unitExchangeForm.value.customer_name || !unitExchangeForm.value.customer_phone || !unitExchangeForm.value.incoming_brand_id || !unitExchangeForm.value.incoming_product_type_id || !unitExchangeForm.value.incoming_storage || !unitExchangeForm.value.incoming_condition || !unitExchangeForm.value.incoming_cost_price || !unitExchangeForm.value.reason || !unitExchangeForm.value.outgoing_product_detail_id) {
         alert("Mohon lengkapi semua data wajib (Customer, Unit Masuk, Unit Keluar, Alasan).");
         return;
@@ -1354,10 +1380,20 @@ async function submitUnitExchange() {
         return;
     }
 
+    // PIN Verification for Sales role
+    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+        pendingAction.value = (p) => submitUnitExchange(p);
+        showPinModal.value = true;
+        pinModalMode.value = "verify";
+        pinModalTitle.value = "Verifikasi PIN Transaksi";
+        return;
+    }
+
     isSubmitting.value = true;
     const formData = new FormData();
     if (unitExchangePhotos.value.unit) formData.append('photo_unit', unitExchangePhotos.value.unit);
     if (unitExchangePhotos.value.customer) formData.append('photo_customer', unitExchangePhotos.value.customer);
+    if (pin) formData.append('transaction_pin', pin);
 
     formData.append('customer_name', unitExchangeForm.value.customer_name);
     formData.append('customer_phone', unitExchangeForm.value.customer_phone);
@@ -1882,7 +1918,7 @@ async function submitUnitExchange() {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -2114,7 +2150,7 @@ async function submitUnitExchange() {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                        }}</option>
+                                            }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -2366,14 +2402,14 @@ async function submitUnitExchange() {
                                             [{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}
                                             - {{ item.storage || '-' }} - {{ item.condition || 'SCD' }}
                                             - {{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock ||
-                                            item.quantity) }}
+                                                item.quantity) }}
                                         </option>
                                     </select>
                                     <p v-if="selectedOutgoingItem"
                                         class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
                                         Unit Terpilih: {{ selectedOutgoingItem.product?.name ||
-                                        selectedOutgoingItem.name }} ({{
-                                        selectedOutgoingItem.imei || 'Non-IMEI' }})
+                                            selectedOutgoingItem.name }} ({{
+                                            selectedOutgoingItem.imei || 'Non-IMEI' }})
                                     </p>
                                 </div>
 
@@ -2741,7 +2777,7 @@ async function submitUnitExchange() {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -2779,7 +2815,7 @@ async function submitUnitExchange() {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -2881,7 +2917,7 @@ async function submitUnitExchange() {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -2900,7 +2936,7 @@ async function submitUnitExchange() {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -2908,7 +2944,7 @@ async function submitUnitExchange() {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -2963,7 +2999,7 @@ async function submitUnitExchange() {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -3069,7 +3105,7 @@ async function submitUnitExchange() {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
