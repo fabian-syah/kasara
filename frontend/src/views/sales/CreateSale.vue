@@ -166,6 +166,13 @@ const brands = ref([]);
 const hpProducts = ref([]);
 const productTypes = ref([]);
 const productPrices = ref([]);
+const availablePaymentMethods = ref([]);
+const selectedPaymentMethod = ref(null);
+const paymentAmount = ref(0);
+const splitPayments = ref([]);
+const proofImage = ref(null);
+const proofImagePreview = ref(null);
+const isSubmitting = ref(false);
 const filteredTradeInTypes = computed(() => {
     if (!tradeInForm.value.brand_id) return [];
     return productTypes.value.filter(t => t.brand_id === tradeInForm.value.brand_id);
@@ -269,6 +276,11 @@ const filteredExchangeStorages = computed(() => {
         });
     }
     return Array.from(set).sort();
+});
+
+const selectedOutgoingItem = computed(() => {
+    if (!unitExchangeForm.value.outgoing_product_detail_id) return null;
+    return inventoryStore.products.find(p => p.id === unitExchangeForm.value.outgoing_product_detail_id);
 });
 
 const filteredTukarTambahTypes = computed(() => {
@@ -648,8 +660,8 @@ function prevStep() {
 
 const filteredProducts = computed(() => {
     let result = inventoryStore.products;
-    if (searchQuery.ref || searchQuery.value) {
-        const query = (searchQuery.value || "").toLowerCase();
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase();
         result = result.filter(
             (p) =>
                 (p.product?.name || p.name || "").toLowerCase().includes(query) ||
