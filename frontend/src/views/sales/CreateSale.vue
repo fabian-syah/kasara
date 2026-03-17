@@ -1607,141 +1607,142 @@ async function submitUnitExchange(pin = null) {
     } finally {
         isSubmitting.value = false;
     }
+}
 
-    async function submitTukarTambah(pin = null) {
-        if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || !tukarTambahForm.value.outgoing_product_detail_id || !tukarTambahForm.value.outgoing_price || !tukarTambahForm.value.reason || !tukarTambahForm.value.payment_method_id) {
-            alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
-            return;
-        }
-
-        if (!tukarTambahPhotos.value.unit) {
-            alert("Foto unit wajib diupload.");
-            return;
-        }
-
-        // PIN Verification for Sales role
-        if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-            pendingAction.value = (p) => submitTukarTambah(p);
-            showPinModal.value = true;
-            pinModalMode.value = "verify";
-            pinModalTitle.value = "Verifikasi PIN Transaksi";
-            return;
-        }
-
-        isSubmitting.value = true;
-        const formData = new FormData();
-        if (tukarTambahPhotos.value.unit) formData.append('photo_unit', tukarTambahPhotos.value.unit);
-        if (tukarTambahPhotos.value.customer) formData.append('photo_customer', tukarTambahPhotos.value.customer);
-        if (pin) formData.append('transaction_pin', pin);
-
-        formData.append('customer_name', tukarTambahForm.value.customer_name);
-        formData.append('customer_phone', tukarTambahForm.value.customer_phone);
-        formData.append('incoming_source', tukarTambahForm.value.incoming_source);
-        formData.append('incoming_product_type_id', tukarTambahForm.value.incoming_product_type_id);
-        formData.append('incoming_storage', tukarTambahForm.value.incoming_storage);
-        formData.append('incoming_condition', tukarTambahForm.value.incoming_condition);
-        formData.append('incoming_imei', tukarTambahForm.value.incoming_imei);
-        formData.append('incoming_cost_price', tukarTambahForm.value.incoming_cost_price);
-
-        formData.append('outgoing_product_detail_id', tukarTambahForm.value.outgoing_product_detail_id);
-        formData.append('outgoing_price', tukarTambahForm.value.outgoing_price);
-        formData.append('price_difference', tukarTambahPriceDiff.value); // This is the turnover (omset)
-        formData.append('payment_method_id', tukarTambahForm.value.payment_method_id);
-        formData.append('reason', tukarTambahForm.value.reason);
-        formData.append('notes', tukarTambahForm.value.notes);
-
-        try {
-            const response = await api.post('/tukar-tambah', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            const data = response.data.data;
-            lastTransaction.value = {
-                id: data.id,
-                order_no: data.receipt_id,
-                items: [
-                    {
-                        name: 'Tukar Tambah OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || ''),
-                        imei: selectedOutgoingTukarTambah.value?.imei || '-',
-                        price: tukarTambahForm.value.outgoing_price,
-                        qty: 1
-                    },
-                    {
-                        name: 'Tukar Tambah IN: ' + (selectedTukarTambahType.value?.name || ''),
-                        imei: tukarTambahForm.value.incoming_imei || '-',
-                        price: -tukarTambahForm.value.incoming_cost_price,
-                        qty: 1
-                    }
-                ],
-                original_price: tukarTambahPriceDiff.value,
-                grand_total: tukarTambahPriceDiff.value,
-                total: tukarTambahPriceDiff.value,
-                paid: tukarTambahPriceDiff.value,
-                category: 'tukar_tambah',
-                customer_name: data.customer_name,
-                customer_phone: data.customer_phone,
-                time: new Date().toLocaleString("id-ID"),
-            };
-
-            showSuccessModal.value = true;
-
-            // Reset form
-            tukarTambahForm.value = {
-                customer_name: "",
-                customer_phone: "",
-                incoming_source: "luar_pstore",
-                incoming_brand_id: null,
-                incoming_product_type_id: null,
-                incoming_storage: "",
-                incoming_condition: "second",
-                incoming_imei: "",
-                incoming_cost_price: 0,
-                outgoing_product_detail_id: null,
-                outgoing_price: 0,
-                payment_method_id: null,
-                reason: "",
-                notes: "",
-            };
-            tukarTambahPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
-            currentStep.value = 1;
-            salesAccount.value = "";
-
-        } catch (error) {
-            console.error("Tukar tambah failed", error);
-            alert(error.response?.data?.message || "Gagal memproses tukar tambah");
-        } finally {
-            isSubmitting.value = false;
-        }
+async function submitTukarTambah(pin = null) {
+    if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || !tukarTambahForm.value.outgoing_product_detail_id || !tukarTambahForm.value.outgoing_price || !tukarTambahForm.value.reason || !tukarTambahForm.value.payment_method_id) {
+        alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
+        return;
     }
 
-    function handleTukarTambahPhotoUpload(type, event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    if (!tukarTambahPhotos.value.unit) {
+        alert("Foto unit wajib diupload.");
+        return;
+    }
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (type === 'unit') {
-                tukarTambahPhotos.value.unit = file;
-                tukarTambahPhotos.value.unitPreview = e.target.result;
-            } else {
-                tukarTambahPhotos.value.customer = file;
-                tukarTambahPhotos.value.customerPreview = e.target.result;
-            }
+    // PIN Verification for Sales role
+    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+        pendingAction.value = (p) => submitTukarTambah(p);
+        showPinModal.value = true;
+        pinModalMode.value = "verify";
+        pinModalTitle.value = "Verifikasi PIN Transaksi";
+        return;
+    }
+
+    isSubmitting.value = true;
+    const formData = new FormData();
+    if (tukarTambahPhotos.value.unit) formData.append('photo_unit', tukarTambahPhotos.value.unit);
+    if (tukarTambahPhotos.value.customer) formData.append('photo_customer', tukarTambahPhotos.value.customer);
+    if (pin) formData.append('transaction_pin', pin);
+
+    formData.append('customer_name', tukarTambahForm.value.customer_name);
+    formData.append('customer_phone', tukarTambahForm.value.customer_phone);
+    formData.append('incoming_source', tukarTambahForm.value.incoming_source);
+    formData.append('incoming_product_type_id', tukarTambahForm.value.incoming_product_type_id);
+    formData.append('incoming_storage', tukarTambahForm.value.incoming_storage);
+    formData.append('incoming_condition', tukarTambahForm.value.incoming_condition);
+    formData.append('incoming_imei', tukarTambahForm.value.incoming_imei);
+    formData.append('incoming_cost_price', tukarTambahForm.value.incoming_cost_price);
+
+    formData.append('outgoing_product_detail_id', tukarTambahForm.value.outgoing_product_detail_id);
+    formData.append('outgoing_price', tukarTambahForm.value.outgoing_price);
+    formData.append('price_difference', tukarTambahPriceDiff.value); // This is the turnover (omset)
+    formData.append('payment_method_id', tukarTambahForm.value.payment_method_id);
+    formData.append('reason', tukarTambahForm.value.reason);
+    formData.append('notes', tukarTambahForm.value.notes);
+
+    try {
+        const response = await api.post('/tukar-tambah', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const data = response.data.data;
+        lastTransaction.value = {
+            id: data.id,
+            order_no: data.receipt_id,
+            items: [
+                {
+                    name: 'Tukar Tambah OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || ''),
+                    imei: selectedOutgoingTukarTambah.value?.imei || '-',
+                    price: tukarTambahForm.value.outgoing_price,
+                    qty: 1
+                },
+                {
+                    name: 'Tukar Tambah IN: ' + (selectedTukarTambahType.value?.name || ''),
+                    imei: tukarTambahForm.value.incoming_imei || '-',
+                    price: -tukarTambahForm.value.incoming_cost_price,
+                    qty: 1
+                }
+            ],
+            original_price: tukarTambahPriceDiff.value,
+            grand_total: tukarTambahPriceDiff.value,
+            total: tukarTambahPriceDiff.value,
+            paid: tukarTambahPriceDiff.value,
+            category: 'tukar_tambah',
+            customer_name: data.customer_name,
+            customer_phone: data.customer_phone,
+            time: new Date().toLocaleString("id-ID"),
         };
-        reader.readAsDataURL(file);
+
+        showSuccessModal.value = true;
+
+        // Reset form
+        tukarTambahForm.value = {
+            customer_name: "",
+            customer_phone: "",
+            incoming_source: "luar_pstore",
+            incoming_brand_id: null,
+            incoming_product_type_id: null,
+            incoming_storage: "",
+            incoming_condition: "second",
+            incoming_imei: "",
+            incoming_cost_price: 0,
+            outgoing_product_detail_id: null,
+            outgoing_price: 0,
+            payment_method_id: null,
+            reason: "",
+            notes: "",
+        };
+        tukarTambahPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        currentStep.value = 1;
+        salesAccount.value = "";
+
+    } catch (error) {
+        console.error("Tukar tambah failed", error);
+        alert(error.response?.data?.message || "Gagal memproses tukar tambah");
+    } finally {
+        isSubmitting.value = false;
     }
+}
 
-    watch(() => tukarTambahForm.value.incoming_brand_id, () => {
-        tukarTambahForm.value.incoming_product_type_id = null;
-        tukarTambahForm.value.incoming_storage = "";
-    });
+function handleTukarTambahPhotoUpload(type, event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
-        tukarTambahForm.value.incoming_storage = "";
-        if (!isImeiTukarTambah.value && tukarTambahForm.value.incoming_product_type_id) {
-            tukarTambahForm.value.incoming_storage = "Non-HP";
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        if (type === 'unit') {
+            tukarTambahPhotos.value.unit = file;
+            tukarTambahPhotos.value.unitPreview = e.target.result;
+        } else {
+            tukarTambahPhotos.value.customer = file;
+            tukarTambahPhotos.value.customerPreview = e.target.result;
         }
-    });
+    };
+    reader.readAsDataURL(file);
+}
+
+watch(() => tukarTambahForm.value.incoming_brand_id, () => {
+    tukarTambahForm.value.incoming_product_type_id = null;
+    tukarTambahForm.value.incoming_storage = "";
+});
+
+watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
+    tukarTambahForm.value.incoming_storage = "";
+    if (!isImeiTukarTambah.value && tukarTambahForm.value.incoming_product_type_id) {
+        tukarTambahForm.value.incoming_storage = "Non-HP";
+    }
+});
 </script>
 
 <template>
@@ -2194,7 +2195,7 @@ async function submitUnitExchange(pin = null) {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -2426,7 +2427,7 @@ async function submitUnitExchange(pin = null) {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                        }}</option>
+                                            }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -3053,7 +3054,7 @@ async function submitUnitExchange(pin = null) {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -3091,7 +3092,7 @@ async function submitUnitExchange(pin = null) {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -3193,7 +3194,7 @@ async function submitUnitExchange(pin = null) {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -3212,7 +3213,7 @@ async function submitUnitExchange(pin = null) {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -3220,7 +3221,7 @@ async function submitUnitExchange(pin = null) {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -3275,7 +3276,7 @@ async function submitUnitExchange(pin = null) {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -3381,7 +3382,7 @@ async function submitUnitExchange(pin = null) {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
