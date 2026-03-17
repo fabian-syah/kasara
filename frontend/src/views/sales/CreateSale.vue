@@ -18,6 +18,7 @@ import {
     QrCode,
     Receipt,
     CheckCircle,
+    CheckCircle2,
     AlertCircle,
     User,
     ArrowLeft,
@@ -2123,7 +2124,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                        }}</option>
+                                    }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -2355,7 +2356,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                        }}</option>
+                                            }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -2718,6 +2719,326 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                     </div>
                 </div>
 
+                <!-- TUKAR TAMBAH FORM (NEW) -->
+                <div v-else-if="transactionCategory === 'tukar_tambah'"
+                    class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="text-2xl font-black text-text-primary flex items-center gap-3">
+                                <ArrowLeft :size="28" class="text-primary-500 cursor-pointer" @click="prevStep" />
+                                Formulir Tukar Tambah (Trade-In)
+                            </h3>
+                            <div
+                                class="px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-xs font-black uppercase tracking-widest">
+                                Tukar Tambah
+                            </div>
+                        </div>
+
+                        <!-- 1. DATA CUSTOMER -->
+                        <div
+                            class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
+                            <h4
+                                class="text-sm font-black text-primary-600 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <User :size="18" /> Data Customer
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nama
+                                        Customer <span class="text-red-500">*</span></label>
+                                    <input v-model="tukarTambahForm.customer_name" type="text"
+                                        placeholder="Nama lengkap..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">No
+                                        WhatsApp <span class="text-red-500">*</span></label>
+                                    <input v-model="tukarTambahForm.customer_phone" type="text" placeholder="08xxx..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- 2. BARANG MASUK -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
+                                    [1] Barang Masuk (Dari User)
+                                </h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Sumber
+                                        Barang <span class="text-red-500">*</span></label>
+                                    <select v-model="tukarTambahForm.incoming_source"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                        <option value="luar_pstore">Luar PStore</option>
+                                        <option value="ex_pstore">Ex PStore</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tukarTambahForm.incoming_brand_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option :value="null" disabled>Pilih Brand</option>
+                                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Tipe
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tukarTambahForm.incoming_product_type_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!tukarTambahForm.incoming_brand_id">
+                                            <option :value="null" disabled>Pilih Tipe</option>
+                                            <option v-for="p in filteredTukarTambahTypes" :key="p.id" :value="p.id">{{
+                                                p.name }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Storage
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tukarTambahForm.incoming_storage"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
+                                            :disabled="!tukarTambahForm.incoming_product_type_id">
+                                            <option value="" disabled>Pilih Storage</option>
+                                            <option v-for="s in filteredTukarTambahStorages" :key="s" :value="s">{{ s }}
+                                            </option>
+                                            <option v-if="!isImeiTukarTambah" value="Non-HP">Non-HP</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kategori
+                                            <span class="text-red-500">*</span></label>
+                                        <select v-model="tukarTambahForm.incoming_condition"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                            <option value="" disabled>Pilih Kategori</option>
+                                            <option value="new">New</option>
+                                            <option value="second">Second / SCD</option>
+                                            <option value="ex_ibox">Ex iBox</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div v-if="isImeiTukarTambah">
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Masukkan
+                                        IMEI <span class="text-red-500">*</span></label>
+                                    <input v-model="tukarTambahForm.incoming_imei" type="text"
+                                        placeholder="15 digit IMEI..."
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
+                                        Barang Masuk / Tukar Tambah <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <span
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="formatNumber(tukarTambahForm.incoming_cost_price)"
+                                            @input="e => { tukarTambahForm.incoming_cost_price = parseNumber(e.target.value); e.target.value = formatNumber(tukarTambahForm.incoming_cost_price); }"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-emerald-600 shadow-inner" />
+                                    </div>
+                                    <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi
+                                        harga modal</p>
+                                </div>
+                            </div>
+
+                            <!-- 3. BARANG KELUAR -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
+                                    [2] Barang Keluar (Pilih Stok Toko)
+                                </h4>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Cari
+                                        &
+                                        Pilih Unit Keluar <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <Search :size="18"
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
+                                        <select v-model="tukarTambahForm.outgoing_product_detail_id"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-12 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none appearance-none">
+                                            <option :value="null">Pilih Unit Inventory...</option>
+                                            <option v-for="p in inventoryStore.products" :key="p.id" :value="p.id">
+                                                {{ p.product?.name }} - {{ p.storage }} - {{ p.condition }} - {{ p.imei
+                                                    || '-' }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div v-if="selectedOutgoingTukarTambah"
+                                    class="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border-2 border-amber-200 dark:border-amber-900/20 animate-fade-in shadow-sm">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <p class="text-sm font-black text-amber-900 dark:text-amber-100">{{
+                                            selectedOutgoingTukarTambah.product?.name }}</p>
+                                        <span
+                                            class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-black uppercase tracking-widest">STOCK
+                                            ACTIVE</span>
+                                    </div>
+                                    <p class="text-xs text-amber-700 dark:text-amber-400 font-bold mb-1">IMEI: {{
+                                        selectedOutgoingTukarTambah.imei || '-' }}</p>
+                                    <p class="text-xs text-amber-700 dark:text-amber-400 font-bold">Kapasitas: {{
+                                        selectedOutgoingTukarTambah.storage }} | {{
+                                            selectedOutgoingTukarTambah.condition }}</p>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
+                                        Barang Keluar / Jual <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <span
+                                            class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                                        <input type="text" :value="formatNumber(tukarTambahForm.outgoing_price)"
+                                            @input="e => { tukarTambahForm.outgoing_price = parseNumber(e.target.value); e.target.value = formatNumber(tukarTambahForm.outgoing_price); }"
+                                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600 shadow-inner" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. SUMMARY & PAYMENT -->
+                        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Photo Section -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    [3] Bukti Foto</h4>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label
+                                            class="block text-[10px] font-black text-text-secondary uppercase tracking-widest">Foto
+                                            Unit <span class="text-red-500">*</span></label>
+                                        <div @click="$refs.unitTTInput.click()"
+                                            class="aspect-square border-2 border-dashed border-surface-200 dark:border-surface-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-900 transition-all overflow-hidden relative shadow-sm">
+                                            <template v-if="tukarTambahPhotos.unitPreview">
+                                                <img :src="tukarTambahPhotos.unitPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-black uppercase">
+                                                    Ganti Foto</div>
+                                            </template>
+                                            <template v-else>
+                                                <Camera :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Unit</span>
+                                            </template>
+                                            <input type="file" ref="unitTTInput"
+                                                @change="e => handleTukarTambahPhotoUpload('unit', e)" accept="image/*"
+                                                class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label
+                                            class="block text-[10px] font-black text-text-secondary uppercase tracking-widest">Foto
+                                            Customer (Wajib) <span class="text-red-500">*</span></label>
+                                        <div @click="$refs.customerTTInput.click()"
+                                            class="aspect-square border-2 border-dashed border-surface-200 dark:border-surface-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-900 transition-all overflow-hidden relative shadow-sm">
+                                            <template v-if="tukarTambahPhotos.customerPreview">
+                                                <img :src="tukarTambahPhotos.customerPreview"
+                                                    class="w-full h-full object-cover" />
+                                                <div
+                                                    class="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-black uppercase">
+                                                    Ganti Foto</div>
+                                            </template>
+                                            <template v-else>
+                                                <User :size="24" class="text-text-secondary mb-1" />
+                                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                                    Customer</span>
+                                            </template>
+                                            <input type="file" ref="customerTTInput"
+                                                @change="e => handleTukarTambahPhotoUpload('customer', e)"
+                                                accept="image/*" class="hidden" capture="environment" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Financial Section -->
+                            <div class="space-y-6">
+                                <h4
+                                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                                    [4] Pembayaran & Selisih</h4>
+
+                                <div class="p-6 bg-primary-600 rounded-2xl shadow-xl shadow-primary-500/20 text-center">
+                                    <span
+                                        class="text-[10px] font-black text-primary-100 uppercase tracking-widest block mb-1">Selisih
+                                        Harga (Omset)</span>
+                                    <p class="text-4xl font-black text-white px-2 py-1 rounded-lg">
+                                        {{ formatCurrency(tukarTambahPriceDiff) }}
+                                    </p>
+                                    <div
+                                        class="mt-3 px-3 py-1 bg-white/20 rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-tighter">
+                                        <AlertCircle :size="12" />
+                                        <span>
+                                            {{
+                                                tukarTambahPriceDiff >= 0 ? 'User Bayar Ke Toko' : 'Toko Kembalikan Ke User'
+                                            }}</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Metode
+                                        Pembayaran <span class="text-red-500">*</span></label>
+                                    <div class="grid grid-cols-3 gap-3">
+                                        <button v-for="m in availablePaymentMethods" :key="m.id"
+                                            @click="tukarTambahForm.payment_method_id = m.id"
+                                            class="flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-1 shadow-sm"
+                                            :class="tukarTambahForm.payment_method_id === m.id
+                                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 ring-2 ring-primary-500/20'
+                                                : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-text-secondary hover:border-surface-300'">
+                                            <component
+                                                :is="m.name.toLowerCase().includes('cash') ? 'Banknote' : 'CreditCard'"
+                                                :size="18" />
+                                            <span
+                                                class="text-[9px] font-black uppercase tracking-tighter text-center leading-none">{{
+                                                    m.name
+                                                }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Alasan
+                                        Tukar Tambah <span class="text-red-500">*</span></label>
+                                    <textarea v-model="tukarTambahForm.reason" rows="2"
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm shadow-inner"
+                                        placeholder="Kenapa unit ini di tukar tambah?"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Section -->
+                        <div
+                            class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
+                            <button @click="prevStep"
+                                class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
+                                Kembali Pilih Kategori
+                            </button>
+                            <button @click="submitTukarTambah()" :disabled="isSubmitting"
+                                class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3">
+                                <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
+                                <template v-else>
+                                    <CheckCircle2 :size="24" /> Simpan Transaksi Tukar Tambah
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Cart Sidebar (Sticky in step 3) -->
                 <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
                     class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0">
@@ -2982,7 +3303,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                        }} / unit</p>
+                                            }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -3020,7 +3341,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                            }}</p>
+                                }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -3122,7 +3443,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -3141,7 +3462,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                }}</span>
+                                    }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -3149,7 +3470,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                }}</span>
+                                    }}</span>
                             </div>
 
 
@@ -3204,7 +3525,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                            }}</span>
+                                }}</span>
                         </div>
                     </div>
 
@@ -3310,7 +3631,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
