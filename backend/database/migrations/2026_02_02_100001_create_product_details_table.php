@@ -27,7 +27,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('placement_id');
 
             // Financials (Specific to this unit)
-            $table->decimal('cost_price', 15, 2)->default(0); // Harga Modal
+            $table->decimal('cost_price', 15, 2)->nullable(); // Harga Modal
             $table->decimal('selling_price', 15, 2)->default(0); // Harga Jual
 
             // Source

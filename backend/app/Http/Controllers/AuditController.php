@@ -1029,6 +1029,7 @@ class AuditController extends Controller
                     'imei' => $item->imei ?? '-',
                     'storage' => $item->ram && $item->storage ? $item->ram . ' / ' . $item->storage : ($item->storage ?? null),
                     'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
+                    'raw_cost_price' => (float) ($item->cost_price ?? 0),
                 ];
                 $calculatedTotal += $price;
             }
@@ -1052,7 +1053,8 @@ class AuditController extends Controller
                         'price' => $price,
                         'is_fixed' => true,
                         'brand' => $product ? ($product->brand ?? '-') : '-',
-                        'type' => 'Non-HP'
+                        'type' => 'Non-HP',
+                        'raw_cost_price' => (float) ($product ? ($product->cost_price ?? 0) : 0)
                     ];
                     $calculatedTotal += ($price * $qty);
                 }
@@ -1066,7 +1068,8 @@ class AuditController extends Controller
                         'price' => $basePrice,
                         'is_fixed' => true,
                         'brand' => $nhp->product->brand ?? '-',
-                        'type' => 'Non-HP'
+                        'type' => 'Non-HP',
+                        'raw_cost_price' => (float) ($nhp->product->cost_price ?? 0)
                     ];
                     $calculatedTotal += ($basePrice * $nhp->quantity);
                 }
@@ -1081,7 +1084,8 @@ class AuditController extends Controller
                     'qty' => 1,
                     'price' => $remainingBalance,
                     'brand' => '-',
-                    'type' => 'Lainnya'
+                    'type' => 'Lainnya',
+                    'raw_cost_price' => 0
                 ];
             }
 
@@ -1109,8 +1113,10 @@ class AuditController extends Controller
 
             foreach ($details as &$detail) {
                 $itemJualTotal = $detail['price'] * $detail['qty']; // Aggregated sell price for this item row
-                // For default modal, calculate off the total selling price of the row (price * qty)
-                $defaultItemModal = $itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0;
+                // Use actual cost price from item if available, otherwise fallback to 95%
+                $defaultItemModal = (isset($detail['raw_cost_price']) && $detail['raw_cost_price'] > 0)
+                    ? $detail['raw_cost_price']
+                    : ($itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0);
 
                 // If auditor saved a specific modal for this item row, use it
                 $savedItemModal = null;

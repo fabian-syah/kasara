@@ -1106,8 +1106,8 @@ async function exportInventory() {
                 <th class="hidden lg:table-cell">Kondisi</th>
                 <th>IMEI</th>
                 <th class="hidden md:table-cell">Lokasi</th>
-                <th class="hidden xl:table-cell">Distributor</th>
-                <th>Harga Jual</th>
+                <th class="hidden xl:table-cell text-right">Harga Modal</th>
+                <th class="text-right">Harga Jual</th>
                 <th>Status</th>
               </template>
 
@@ -1194,12 +1194,11 @@ async function exportInventory() {
                     }}</span>
                   </div>
                 </td>
-                <td class="text-sm text-text-secondary hidden xl:table-cell">
-                  {{ item.distributor?.name || item.supplier_name || '-' }}
+                <td class="text-sm font-bold text-amber-500 text-right hidden xl:table-cell">
+                  Rp {{ formatNumber(item.cost_price || 0) }}
                 </td>
-                <!-- Cost Price Removed -->
-                <td class="text-text-primary font-medium">
-                  {{ formatCurrency(item.selling_price) }}
+                <td class="text-sm font-bold text-blue-500 text-right">
+                  Rp {{ formatNumber(item.selling_price || item.price) }}
                 </td>
                 <td>
                   <span class="badge"
@@ -1338,6 +1337,17 @@ async function exportInventory() {
                   <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Stok
                     Tersedia</label>
                   <p class="text-text-primary font-bold">{{ selectedItemDetail.quantity }} Pcs</p>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
+                    Modal
+                    (HPP)</label>
+                  <p class="text-lg font-bold text-amber-500">{{ formatCurrency(selectedItemDetail.cost_price) }}</p>
+                </div>
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
+                    Jual</label>
+                  <p class="text-lg font-bold text-blue-500">{{ formatCurrency(selectedItemDetail.selling_price) }}</p>
                 </div>
               </div>
               <div class="space-y-4">
