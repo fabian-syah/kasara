@@ -638,12 +638,7 @@ function nextStep() {
     }
 
     if (currentStep.value < 4) {
-        if (currentStep.value === 2 && (transactionCategory.value === 'tukar_unit' || transactionCategory.value === 'tukar_tambah')) {
-            currentStep.value = 4;
-        } else {
-            currentStep.value++;
-        }
-
+        currentStep.value++;
         if (currentStep.value === 4) {
             paymentAmount.value = cartTotal.value;
             displayPaymentAmount.value = formatNumber(cartTotal.value);
@@ -658,9 +653,7 @@ function nextStep() {
 }
 
 function prevStep() {
-    if (currentStep.value === 4 && (transactionCategory.value === 'tukar_unit' || transactionCategory.value === 'tukar_tambah')) {
-        currentStep.value = 2;
-    } else if (currentStep.value > 1) {
+    if (currentStep.value > 1) {
         currentStep.value--;
     }
 }
@@ -683,6 +676,18 @@ const filteredProducts = computed(() => {
 });
 
 const categories = computed(() => inventoryStore.categories);
+
+function getStepLabel(step) {
+    if (step === 1) return 'Akun Sales';
+    if (step === 2) return 'Kategori';
+    if (step === 3) {
+        if (['tukar_unit', 'tukar_tambah', 'refund', 'angkat_barang'].includes(transactionCategory.value)) {
+            return 'Formulir';
+        }
+        return 'Pilih Barang';
+    }
+    return 'Pembayaran';
+}
 const cartItems = computed(() => cartStore.items);
 const cartTotal = computed(() => cartStore.total);
 const cartSubtotal = computed(() => cartStore.subtotal);
@@ -1714,7 +1719,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                     <span
                         class="hidden sm:block text-[10px] sm:text-xs font-bold uppercase tracking-widest transition-colors"
                         :class="currentStep >= step ? 'text-primary-600' : 'text-text-secondary'">
-                        {{ ['Akun Sales', 'Kategori', 'Pilih Barang', 'Pembayaran'][step - 1] }}
+                        {{ getStepLabel(step) }}
                     </span>
                 </div>
             </div>
@@ -1817,7 +1822,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
             <div v-if="currentStep === 3" class="flex-1 flex flex-col lg:flex-row gap-8 min-h-0 animate-fade-in">
                 <!-- Products -->
                 <!-- Products Selection (Original for non-consolidated categories) -->
-                <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit'"
+                <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
                     class="flex-[2] flex flex-col min-w-0">
                     <div
                         class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
