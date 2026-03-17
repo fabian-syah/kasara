@@ -381,7 +381,9 @@ watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
         if (item) {
-            tukarTambahForm.value.outgoing_price = item.selling_price || item.price || item.cost_price || 0;
+            const selling = parseFloat(item.selling_price || item.price || 0);
+            const cost = parseFloat(item.cost_price || 0);
+            tukarTambahForm.value.outgoing_price = selling > 0 ? selling : (cost > 0 ? cost : 0);
         }
     } else {
         tukarTambahForm.value.outgoing_price = 0;
@@ -3021,15 +3023,26 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 <!-- Financial summary card -->
                                 <div
                                     class="p-8 bg-primary-600 rounded-[2rem] shadow-2xl shadow-primary-500/30 text-center transform transition-all hover:scale-[1.02]">
-                                    <div class="mb-4">
-                                        <span
-                                            class="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] block mb-1">TOTAL
-                                            HARGA JUAL (OMSET)</span>
-                                        <p class="text-xl font-bold text-white leading-none">
-                                            {{ formatCurrency(tukarTambahForm.outgoing_price) }}
-                                        </p>
+                                    <div class="grid grid-cols-2 gap-4 mb-6">
+                                        <div class="text-left">
+                                            <span
+                                                class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">HARGA
+                                                UNIT KELUAR</span>
+                                            <p class="text-lg font-bold text-white">
+                                                {{ formatCurrency(tukarTambahForm.outgoing_price) }}
+                                            </p>
+                                        </div>
+                                        <div class="text-right">
+                                            <span
+                                                class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">HARGA
+                                                UNIT MASUK</span>
+                                            <p class="text-lg font-bold text-white">
+                                                {{ formatCurrency(tukarTambahForm.incoming_cost_price) }}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div class="pt-4 border-t border-white/20">
+
+                                    <div class="pt-6 border-t border-white/20">
                                         <span
                                             class="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] block mb-2">SELISIH
                                             HARGA (SISA BAYAR)</span>
