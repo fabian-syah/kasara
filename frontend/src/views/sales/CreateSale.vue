@@ -377,6 +377,17 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
     }
 });
 
+watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
+    if (newId) {
+        const item = inventoryStore.products.find(p => p.id === newId);
+        if (item) {
+            tukarTambahForm.value.outgoing_price = item.selling_price || item.price || 0;
+        }
+    } else {
+        tukarTambahForm.value.outgoing_price = 0;
+    }
+});
+
 const isCompressing = ref(false);
 
 // Success modal
@@ -2896,6 +2907,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                             - {{ item.storage || '-' }} - {{ item.condition || 'SCD' }}
                                             - {{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock ||
                                                 item.quantity) }}
+                                            - (Rp {{ formatNumber(item.selling_price || item.price) }})
                                         </option>
                                     </select>
                                     <p v-if="selectedOutgoingTukarTambah"
