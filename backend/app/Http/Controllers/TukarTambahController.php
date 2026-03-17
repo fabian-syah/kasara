@@ -129,8 +129,8 @@ class TukarTambahController extends Controller
                     'status' => 'received',
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
-                    'selling_price' => $request->price_difference, // This counts as Omset
-                    'total_amount' => $request->price_difference,
+                    'selling_price' => $request->outgoing_price, // Full price as Omset
+                    'total_amount' => $request->outgoing_price,
                     'payment_method_id' => $request->payment_method_id,
                 ]);
 

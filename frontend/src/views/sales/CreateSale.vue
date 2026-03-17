@@ -381,7 +381,7 @@ watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
         if (item) {
-            tukarTambahForm.value.outgoing_price = item.selling_price || item.price || 0;
+            tukarTambahForm.value.outgoing_price = item.selling_price || item.price || item.cost_price || 0;
         }
     } else {
         tukarTambahForm.value.outgoing_price = 0;
@@ -3021,12 +3021,22 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 <!-- Financial summary card -->
                                 <div
                                     class="p-8 bg-primary-600 rounded-[2rem] shadow-2xl shadow-primary-500/30 text-center transform transition-all hover:scale-[1.02]">
-                                    <span
-                                        class="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] block mb-2">SELISIH
-                                        HARGA (OMSET)</span>
-                                    <p class="text-4xl sm:text-5xl font-black text-white px-2 py-1 leading-none">
-                                        {{ formatCurrency(tukarTambahPriceDiff) }}
-                                    </p>
+                                    <div class="mb-4">
+                                        <span
+                                            class="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] block mb-1">TOTAL
+                                            HARGA JUAL (OMSET)</span>
+                                        <p class="text-xl font-bold text-white leading-none">
+                                            {{ formatCurrency(tukarTambahForm.outgoing_price) }}
+                                        </p>
+                                    </div>
+                                    <div class="pt-4 border-t border-white/20">
+                                        <span
+                                            class="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] block mb-2">SELISIH
+                                            HARGA (SISA BAYAR)</span>
+                                        <p class="text-4xl sm:text-5xl font-black text-white px-2 py-1 leading-none">
+                                            {{ formatCurrency(tukarTambahPriceDiff) }}
+                                        </p>
+                                    </div>
                                     <div
                                         class="mt-6 px-4 py-2 bg-white/10 rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-widest border border-white/20">
                                         <AlertCircle :size="14" />
