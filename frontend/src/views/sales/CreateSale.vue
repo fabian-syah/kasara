@@ -1218,78 +1218,6 @@ async function handleExchangePhotoUpload(type, event) {
     unitExchangePhotos.value[type + 'Preview'] = URL.createObjectURL(file);
 }
 
-async function handleTukarTambahPhotoUpload(type, event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    tukarTambahPhotos.value[type] = file;
-    tukarTambahPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
-}
-
-async function submitTukarTambah(pin = null) {
-    if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || !tukarTambahForm.value.reason || !tukarTambahForm.value.outgoing_product_detail_id || !tukarTambahForm.value.payment_method_id) {
-        alert("Mohon lengkapi semua data wajib (Customer, Unit Masuk, Unit Keluar, Alasan, Metode Bayar).");
-        return;
-    }
-
-    if (!tukarTambahPhotos.value.unit) {
-        alert("Foto unit wajib diupload.");
-        return;
-    }
-
-    // PIN Verification for Sales role
-    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-        pendingAction.value = (p) => submitTukarTambah(p);
-        showPinModal.value = true;
-        pinModalMode.value = "verify";
-        pinModalTitle.value = "Verifikasi PIN Transaksi";
-        return;
-    }
-
-    isSubmitting.value = true;
-    const formData = new FormData();
-    if (tukarTambahPhotos.value.unit) formData.append('photo_unit', tukarTambahPhotos.value.unit);
-    if (tukarTambahPhotos.value.customer) formData.append('photo_customer', tukarTambahPhotos.value.customer);
-    if (pin) formData.append('transaction_pin', pin);
-
-    formData.append('category', 'tukar_tambah');
-    formData.append('customer_name', tukarTambahForm.value.customer_name);
-    formData.append('customer_phone', tukarTambahForm.value.customer_phone);
-
-    // Incoming
-    formData.append('incoming_source', tukarTambahForm.value.incoming_source);
-    formData.append('incoming_brand_id', tukarTambahForm.value.incoming_brand_id);
-    formData.append('incoming_product_type_id', tukarTambahForm.value.incoming_product_type_id);
-    formData.append('incoming_storage', tukarTambahForm.value.incoming_storage);
-    formData.append('incoming_condition', tukarTambahForm.value.incoming_condition);
-    formData.append('incoming_imei', tukarTambahForm.value.incoming_imei);
-    formData.append('incoming_cost_price', tukarTambahForm.value.incoming_cost_price);
-
-    // Outgoing
-    formData.append('outgoing_product_detail_id', tukarTambahForm.value.outgoing_product_detail_id);
-    formData.append('outgoing_price', tukarTambahForm.value.outgoing_price);
-
-    // Pricing Difference is handled by backend or sent as omset
-    formData.append('price_difference', tukarTambahPriceDiff.value);
-
-    formData.append('payment_method_id', tukarTambahForm.value.payment_method_id);
-    formData.append('reason', tukarTambahForm.value.reason);
-    formData.append('notes', tukarTambahForm.value.notes);
-    formData.append('sales_account', salesAccount.value);
-
-    try {
-        const res = await api.post('/sales/tukar-tambah', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        lastTransaction.value = res.data.data;
-        showSuccessModal.value = true;
-        resetWizard();
-    } catch (e) {
-        console.error("Gagal proses tukar tambah", e);
-        alert(e.response?.data?.message || "Terjadi kesalahan saat memproses tukar tambah.");
-    } finally {
-        isSubmitting.value = false;
-    }
-}
 
 const displayRefundPrice = ref("0");
 function handleRefundPriceInput(e) {
@@ -2195,7 +2123,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 <select v-model="tradeInForm.payment_method_id"
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                     <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                                    }}</option>
+                                        }}</option>
                                 </select>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
@@ -2427,7 +2355,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                             m.name
-                                            }}</option>
+                                        }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4">
@@ -3054,7 +2982,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         <p class="font-black text-lg text-text-primary">{{ item.name }}</p>
                                         <p class="text-sm font-bold text-text-secondary">{{
                                             formatCurrency(item.price)
-                                            }} / unit</p>
+                                        }} / unit</p>
                                     </div>
                                 </div>
                                 <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price *
@@ -3092,7 +3020,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 TAGIHAN</p>
                             <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                                 formatCurrency(cartTotal)
-                                }}</p>
+                            }}</p>
                         </div>
 
                         <div class="space-y-8">
@@ -3194,7 +3122,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         class="text-sm font-black text-emerald-700 uppercase tracking-widest">Kembalian</span>
                                     <span class="text-3xl font-black text-emerald-600">{{
                                         formatCurrency(changeAmount)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div v-else
                                     class="p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex justify-between items-center">
@@ -3213,7 +3141,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                     Kurang</span>
                                 <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                                     formatCurrency(Math.abs(changeAmount))
-                                    }}</span>
+                                }}</span>
                             </div>
                             <div v-else-if="changeAmount >= 0"
                                 class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -3221,7 +3149,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                     class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                                 <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                                     formatCurrency(changeAmount)
-                                    }}</span>
+                                }}</span>
                             </div>
 
 
@@ -3276,7 +3204,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                             <span class="text-text-secondary font-bold uppercase tracking-widest mb-1">Total</span>
                             <span class="text-3xl font-black text-emerald-500">{{
                                 formatCurrency(lastTransaction.total)
-                                }}</span>
+                            }}</span>
                         </div>
                     </div>
 
@@ -3382,7 +3310,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
