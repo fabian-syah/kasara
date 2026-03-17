@@ -2858,7 +2858,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                 <div>
                                     <label
                                         class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
-                                        BARANG MASUK <span class="text-red-500">*</span></label>
+                                        TUKAR TAMBAH / BARANG MASUK <span class="text-red-500">*</span></label>
                                     <div class="relative">
                                         <span
                                             class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
