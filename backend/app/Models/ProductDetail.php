@@ -28,7 +28,8 @@ class ProductDetail extends Model
         'notes',
         'trade_in_id',
         'refund_id',
-        'unit_exchange_id'
+        'unit_exchange_id',
+        'tukar_tambah_id'
     ];
 
     protected $casts = [
@@ -94,5 +95,10 @@ class ProductDetail extends Model
     public function unitExchange()
     {
         return $this->belongsTo(UnitExchange::class);
+    }
+
+    public function tukarTambah()
+    {
+        return $this->belongsTo(TukarTambah::class);
     }
 }
