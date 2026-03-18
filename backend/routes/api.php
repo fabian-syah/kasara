@@ -113,6 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/refunds', [\App\Http\Controllers\RefundController::class, 'store']);
     Route::post('/unit-exchanges', [UnitExchangeController::class, 'store']);
     Route::post('/tukar-tambah', [\App\Http\Controllers\TukarTambahController::class, 'store']);
+    Route::post('/downgrades', [\App\Http\Controllers\DowngradeController::class, 'store']);
+
 
     // Transfer confirmation (Pindah Cabang)
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);

@@ -21,12 +21,11 @@ const props = defineProps({
     salesAccount: String,
 });
 
-const emit = defineEmits(["back", "transaction-complete"]);
+const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
-const showPinModal = ref(false);
 
 const downgradeForm = ref({
     customer_name: "",
@@ -66,7 +65,7 @@ const selectedDowngradeType = computed(() => {
 const isImeiDowngrade = computed(() => {
     if (!selectedDowngradeType.value) return true;
     const cat = selectedDowngradeType.value.category?.toLowerCase();
-    return cat === 'imei' || cat === 'hp / gadget';
+    return cat === 'imei' || cat === 'hp / gadget' || cat === 'hp/gadget';
 });
 
 const filteredDowngradeStorages = computed(() => {
@@ -161,17 +160,17 @@ function handleDowngradePhotoUpload(type, event) {
 
 async function submitDowngrade(pin = null) {
     if (!downgradeForm.value.customer_name || !downgradeForm.value.customer_phone || !downgradeForm.value.incoming_brand_id || !downgradeForm.value.incoming_product_type_id || !downgradeForm.value.incoming_storage || !downgradeForm.value.incoming_condition || !downgradeForm.value.incoming_cost_price || !downgradeForm.value.outgoing_product_detail_id || !downgradeForm.value.outgoing_price || !downgradeForm.value.reason || !downgradeForm.value.payment_method_id) {
-        alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
+        alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Metode Bayar, & Alasan).");
         return;
     }
 
-    if (!downgradePhotos.value.unit) {
-        alert("Foto unit wajib diupload.");
+    if (!downgradePhotos.value.unit && !downgradePhotos.value.customer) {
+        alert("Minimal pilih salah satu foto (Unit atau Customer).");
         return;
     }
 
     if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-        showPinModal.value = true;
+        emit('verify-pin', (verifiedPin) => submitDowngrade(verifiedPin));
         return;
     }
 
@@ -199,9 +198,10 @@ async function submitDowngrade(pin = null) {
     formData.append('category', 'downgrade');
 
     try {
-        const response = await api.post('/tukar-tambah', formData, {
+        const response = await api.post('/downgrades', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+
 
         const data = response.data.data;
         const transaction = {
@@ -209,7 +209,7 @@ async function submitDowngrade(pin = null) {
             order_no: data.receipt_id,
             items: [
                 {
-                    name: 'Downgrade OUT: ' + (selectedOutgoingDowngrade.value?.product?.name || ''),
+                    name: 'Downgrade OUT: ' + (selectedOutgoingDowngrade.value?.product?.name || selectedOutgoingDowngrade.value?.name || ''),
                     imei: selectedOutgoingDowngrade.value?.imei || '-',
                     price: downgradeForm.value.outgoing_price,
                     qty: 1
@@ -259,11 +259,6 @@ async function submitDowngrade(pin = null) {
         isSubmitting.value = false;
     }
 }
-
-function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    submitDowngrade(pin);
-}
 </script>
 
 <template>
@@ -277,7 +272,7 @@ function handlePinSuccess(pin) {
                 </h3>
                 <div
                     class="px-4 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full text-xs font-black uppercase tracking-widest">
-                    KONSOLIDASI TRANSAKSI
+                    DOWNGRADE SYSTEM
                 </div>
             </div>
 
@@ -308,21 +303,22 @@ function handlePinSuccess(pin) {
                 <div class="space-y-6">
                     <h4
                         class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
-                        [1] BARANG MASUK (UNIT DOWNGRADE)
+                        [1] BARANG MASUK
                     </h4>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">SUMBER
-                            BARANG <span class="text-red-500">*</span></label>
+                            HANDPHONE <span class="text-red-500">*</span></label>
                         <select v-model="downgradeForm.incoming_source"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                            <option value="luar_pstore">Luar PStore</option>
-                            <option value="ex_pstore">Ex PStore</option>
+                            <option value="ex_pstore">Ex PSTORE</option>
+                            <option value="luar_pstore">Luar PSTORE</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">BRAND
+                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
+                                BRAND
                                 <span class="text-red-500">*</span></label>
                             <select v-model="downgradeForm.incoming_brand_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
@@ -332,7 +328,8 @@ function handlePinSuccess(pin) {
                         </div>
                         <div>
                             <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">TIPE
+                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
+                                TIPE
                                 <span class="text-red-500">*</span></label>
                             <select v-model="downgradeForm.incoming_product_type_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
@@ -346,7 +343,8 @@ function handlePinSuccess(pin) {
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">STORAGE
+                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
+                                STORAGE
                                 <span class="text-red-500">*</span></label>
                             <select v-model="downgradeForm.incoming_storage"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
@@ -359,13 +357,14 @@ function handlePinSuccess(pin) {
                         </div>
                         <div>
                             <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">KATEGORI
+                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
+                                KATEGORI
                                 <span class="text-red-500">*</span></label>
                             <select v-model="downgradeForm.incoming_condition"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option value="" disabled>Pilih Kategori</option>
                                 <option value="new">New</option>
-                                <option value="second">Second / SCD</option>
+                                <option value="second">SCD</option>
                                 <option value="ex_ibox">Ex iBox</option>
                             </select>
                         </div>
@@ -375,7 +374,7 @@ function handlePinSuccess(pin) {
                             class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">MASUKKAN
                             IMEI <span class="text-red-500">*</span></label>
                         <input v-model="downgradeForm.incoming_imei" type="text" placeholder="15 digit IMEI..."
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-mono" />
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
@@ -396,14 +395,15 @@ function handlePinSuccess(pin) {
                 <div class="space-y-6">
                     <h4
                         class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
-                        [2] BARANG KELUAR (PILIH STOK TOKO)
+                        [2] BARANG KELUAR
                     </h4>
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">CARI
-                            & PILIH UNIT KELUAR <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
+                            STOK
+                            UNITS <span class="text-red-500">*</span></label>
                         <select v-model="downgradeForm.outgoing_product_detail_id"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                            <option :value="null" disabled>-- Pilih Unit dari Inventory --</option>
+                            <option :value="null" disabled>-- Pilih Stok Gudang --</option>
                             <option
                                 v-for="item in inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold')"
                                 :key="item.id" :value="item.id">
@@ -412,20 +412,27 @@ function handlePinSuccess(pin) {
                                 - {{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock ||
                                     item.quantity) }}
                                 - (Modal: Rp {{ formatNumber(item.cost_price || 0) }})
-                                - (Jual: Rp {{ formatNumber(item.selling_price || item.price) }})
                             </option>
                         </select>
-                        <p v-if="selectedOutgoingDowngrade"
-                            class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
-                            Unit Terpilih: {{ selectedOutgoingDowngrade.product?.name ||
-                                selectedOutgoingDowngrade.name }} ({{
-                                selectedOutgoingDowngrade.imei || 'Non-IMEI' }})
-                        </p>
+                        <div v-if="selectedOutgoingDowngrade"
+                            class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 space-y-1">
+                            <p class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Detail
+                                Terpilih:</p>
+                            <p class="text-xs font-bold text-primary-700 dark:text-primary-300">
+                                {{ selectedOutgoingDowngrade.product?.name || selectedOutgoingDowngrade.name }} ({{
+                                    selectedOutgoingDowngrade.storage || '-' }})
+                            </p>
+                            <p class="text-[10px] font-mono text-primary-600/70">
+                                {{ selectedOutgoingDowngrade.imei || 'Non-IMEI' }} | Modal: Rp {{
+                                    formatNumber(selectedOutgoingDowngrade.cost_price) }}
+                            </p>
+                        </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
-                            BARANG KELUAR / JUAL <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">ISI
+                            HARGA
+                            BARANG KELUAR <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
@@ -462,7 +469,7 @@ function handlePinSuccess(pin) {
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO
-                                CUSTOMER <span class="text-red-500">*</span></label>
+                                CUSTOMER</label>
                             <div @click="$refs.customerDGInput.click()"
                                 class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
                                 <template v-if="downgradePhotos.customerPreview">
@@ -483,6 +490,7 @@ function handlePinSuccess(pin) {
                                 capture="environment" />
                         </div>
                     </div>
+                    <p class="text-[10px] text-text-secondary italic text-center">*Minimal upload salah satu foto</p>
                 </div>
             </div>
 
@@ -490,7 +498,7 @@ function handlePinSuccess(pin) {
             <div class="mt-8 space-y-6">
                 <h4
                     class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
-                    PEMBAYARAN & RINGKASAN
+                    ALASAN & KETERANGAN
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     <div class="space-y-6">
@@ -498,9 +506,17 @@ function handlePinSuccess(pin) {
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">ALASAN
                                 DOWNGRADE <span class="text-red-500">*</span></label>
-                            <textarea v-model="downgradeForm.reason" rows="3"
+                            <textarea v-model="downgradeForm.reason" rows="2"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
                                 placeholder="Kenapa barang ini di-downgrade? (Wajib diisi)"></textarea>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">KETERANGAN
+                                (OPSIONAL)</label>
+                            <textarea v-model="downgradeForm.notes" rows="2"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                placeholder="Tambahan catatan jika ada..."></textarea>
                         </div>
                         <div>
                             <label
@@ -518,36 +534,36 @@ function handlePinSuccess(pin) {
 
                     <!-- Financial summary card -->
                     <div
-                        class="p-8 bg-red-600 rounded-[2rem] shadow-2xl shadow-red-500/30 text-center transform transition-all hover:scale-[1.02]">
+                        class="p-8 bg-surface-900 dark:bg-surface-950 rounded-[2rem] shadow-2xl border border-surface-800 text-center transform transition-all hover:scale-[1.02]">
                         <div class="grid grid-cols-2 gap-4 mb-6">
                             <div class="text-left">
                                 <span
-                                    class="text-[9px] font-black text-red-200 uppercase tracking-widest block mb-1">HARGA
+                                    class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">HARGA
                                     UNIT KELUAR</span>
-                                <p class="text-lg font-bold text-white">
+                                <p class="text-lg font-bold text-text-primary">
                                     {{ formatCurrency(downgradeForm.outgoing_price) }}
                                 </p>
                             </div>
                             <div class="text-right">
                                 <span
-                                    class="text-[9px] font-black text-red-200 uppercase tracking-widest block mb-1">HARGA
+                                    class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">HARGA
                                     UNIT MASUK</span>
-                                <p class="text-lg font-bold text-white">
+                                <p class="text-lg font-bold text-text-primary">
                                     {{ formatCurrency(downgradeForm.incoming_cost_price) }}
                                 </p>
                             </div>
                         </div>
 
-                        <div class="pt-6 border-t border-white/20">
+                        <div class="pt-6 border-t border-surface-800">
                             <span
-                                class="text-[10px] font-black text-red-100 uppercase tracking-[0.2em] block mb-2">SELISIH
+                                class="text-[10px] font-black text-primary-500 uppercase tracking-[0.2em] block mb-2">SELISIH
                                 HARGA (SISA BAYAR)</span>
                             <p class="text-4xl sm:text-5xl font-black text-white px-2 py-1 leading-none">
-                                {{ formatCurrency(downgradePriceDiff) }}
+                                {{ formatCurrency(Math.abs(downgradePriceDiff)) }}
                             </p>
                         </div>
                         <div
-                            class="mt-6 px-4 py-2 bg-white/10 rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-widest border border-white/20">
+                            class="mt-6 px-4 py-2 bg-primary-500/10 rounded-full inline-flex items-center gap-2 text-[10px] text-primary-500 font-black uppercase tracking-widest border border-primary-500/20">
                             <AlertCircle :size="14" />
                             <span>
                                 {{
@@ -561,14 +577,14 @@ function handlePinSuccess(pin) {
             <!-- Submit Section -->
             <div class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
                 <button @click="emit('back')"
-                    class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
-                    Kembali Pilih Kategori
+                    class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all active:scale-95">
+                    Kembali
                 </button>
                 <button @click="submitDowngrade()" :disabled="isSubmitting"
-                    class="flex-[2] py-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all flex items-center justify-center gap-3">
+                    class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
-                        <Save :size="24" /> Selesaikan Downgrade
+                        <Save :size="24" /> Simpan Downgrade (Selesai)
                     </template>
                 </button>
             </div>
