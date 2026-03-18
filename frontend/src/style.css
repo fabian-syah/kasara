@@ -452,10 +452,8 @@ input[type="checkbox"]:indeterminate {
   }
 
   /* Specific fix for iOS/Safari where bg-white overrides dark:bg-surface-800 in tables */
-  /* Exclude toggle switches and badges from the transparent override */
-  html.dark table *:not(button):not(button > span):not([class*="badge"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-orange"]):not([class*="bg-purple"]),
-  html.dark .bg-white.dark\:bg-surface-800,
-  html.dark tbody.bg-white {
+  /* Target only table-related elements if necessary, but avoid global surface overrides */
+  html.dark table *:not(button):not(button > span):not([class*="badge"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-orange"]):not([class*="bg-purple"]) {
     background-color: transparent !important;
   }
 }
