@@ -645,7 +645,7 @@ const selectOutgoingUnit = (item) => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
@@ -664,7 +664,7 @@ const selectOutgoingUnit = (item) => {
 
                         <!-- Right: Selected Items & Final Price -->
                         <div
-                            class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-3 sm:p-6 flex flex-col max-h-[40%] md:max-h-full border-t md:border-t-0 border-surface-200 dark:border-surface-700">
+                            class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-3 sm:p-6 flex flex-col h-[280px] sm:h-[350px] md:h-auto md:max-h-full flex-shrink-0 border-t md:border-t-0 border-surface-200 dark:border-surface-700">
                             <h4
                                 class="text-[10px] sm:text-sm font-black text-text-secondary uppercase tracking-widest mb-3 sm:mb-4">
                                 Item
@@ -672,7 +672,7 @@ const selectOutgoingUnit = (item) => {
 
                             <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 mb-6">
                                 <div v-if="bundleItems.length === 0"
-                                    class="h-full min-h-[60px] sm:min-h-[150px] flex flex-col items-center justify-center text-text-secondary opacity-50 py-2 sm:py-10">
+                                    class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-2 sm:py-10">
                                     <ShoppingBag class="w-6 h-6 sm:w-12 sm:h-12 mb-1 sm:mb-3" />
                                     <p class="text-[9px] sm:text-xs font-medium text-center">Belum ada item dipilih</p>
                                 </div>
