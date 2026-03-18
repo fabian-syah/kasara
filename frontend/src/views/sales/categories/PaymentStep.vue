@@ -460,7 +460,7 @@ async function processPayment(pin = null) {
             </div>
 
             <div
-                class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-5 sm:p-8 shadow-xl">
+                class="bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
                 <h3 class="text-2xl font-black text-text-primary mb-8 flex items-center gap-3">
                     <ShoppingCart :size="28" class="text-primary-500" stroke-width="2.5" /> Ringkasan Pembelian
                 </h3>
@@ -533,7 +533,7 @@ async function processPayment(pin = null) {
                                     <Trash2 :size="16" />
                                 </button>
 
-                                <div class="grid grid-cols-1 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label
                                             class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-2">Metode</label>

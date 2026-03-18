@@ -183,15 +183,19 @@ watch(transactionCategory, () => {
 
             <!-- STEP WIZARD NAV -->
             <div
-                class="bg-white dark:bg-surface-800 rounded-2xl p-2 mb-8 border border-surface-200 dark:border-surface-700 shadow-sm shrink-0">
-                <div class="flex items-center justify-between relative px-4">
+                class="bg-white dark:bg-surface-800 rounded-2xl p-2 mb-8 border border-surface-200 dark:border-surface-700 shadow-sm shrink-0 overflow-x-auto custom-scrollbar">
+                <div class="flex items-center justify-between relative px-4 min-w-[300px]">
                     <div v-for="step in 4" :key="step" class="z-10 flex flex-col items-center gap-2 py-2">
                         <div @click="step < currentStep ? currentStep = step : null"
-                            class="w-10 h-10 rounded-full flex items-center justify-center font-black transition-all cursor-pointer"
+                            class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black transition-all cursor-pointer text-xs sm:text-sm"
                             :class="currentStep === step ? 'bg-primary-600 text-white shadow-lg ring-4 ring-primary-500/20' : step < currentStep ? 'bg-emerald-500 text-white' : 'bg-surface-100 dark:bg-surface-900 text-text-secondary opacity-50'">
-                            <CheckCircle2 v-if="step < currentStep" :size="20" />
+                            <CheckCircle2 v-if="step < currentStep" :size="16" class="sm:w-5 sm:h-5" />
                             <span v-else>{{ step }}</span>
                         </div>
+                        <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest hidden xs:block"
+                            :class="currentStep === step ? 'text-primary-600' : 'text-text-secondary opacity-50'">
+                            {{ ['Akun', 'Kategori', 'Item', 'Bayar'][step - 1] }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -221,7 +225,7 @@ watch(transactionCategory, () => {
                                     :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
                                     <span class="font-black text-lg transition-colors"
                                         :class="salesAccount === acc.name ? 'text-primary-600' : 'text-text-primary'">{{
-                                        acc.name }}</span>
+                                            acc.name }}</span>
                                     <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
                                         :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
                                         <div v-if="salesAccount === acc.name" class="w-2 h-2 rounded-full bg-white">
@@ -241,18 +245,18 @@ watch(transactionCategory, () => {
             </div>
 
             <!-- STEP 2: CATEGORY SELECTION -->
-            <div v-if="currentStep === 2" class="flex-1 flex items-center justify-center animate-fade-in">
-                <div class="w-full max-w-4xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-if="currentStep === 2" class="flex-1 flex items-center justify-center animate-fade-in py-8">
+                <div class="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     <button v-for="cat in categoriesPenjualan" :key="cat.id"
                         @click="transactionCategory = cat.id; nextStep()"
-                        class="p-8 bg-white dark:bg-surface-800 rounded-[2rem] border-2 border-surface-100 dark:border-surface-700 hover:border-primary-500 hover:shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden text-left flex flex-col gap-4">
+                        class="p-6 sm:p-8 bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border-2 border-surface-100 dark:border-surface-700 hover:border-primary-500 hover:shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden text-left flex flex-col gap-3 sm:gap-4 active:scale-95">
                         <div
-                            class="w-14 h-14 bg-surface-50 dark:bg-surface-900 rounded-2xl flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
-                            <Plus v-if="cat.id === 'penjualan'" :size="32" />
-                            <DollarSign v-else :size="32" />
+                            class="w-10 h-10 sm:w-14 sm:h-14 bg-surface-50 dark:bg-surface-900 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
+                            <Plus v-if="cat.id === 'penjualan'" :size="20" class="sm:w-8 sm:h-8" />
+                            <DollarSign v-else :size="20" class="sm:w-8 sm:h-8" />
                         </div>
                         <h3
-                            class="text-xl font-black text-text-primary group-hover:text-primary-600 transition-colors uppercase tracking-tight">
+                            class="text-sm sm:text-xl font-black text-text-primary group-hover:text-primary-600 transition-colors uppercase tracking-tight">
                             {{ cat.label }}</h3>
                     </button>
                 </div>

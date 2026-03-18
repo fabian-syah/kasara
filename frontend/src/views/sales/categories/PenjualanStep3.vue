@@ -274,7 +274,7 @@ const selectOutgoingUnit = (item) => {
         <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
             class="flex-[2] flex flex-col min-w-0 w-full">
             <div
-                class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                 <div class="relative flex-1 w-full">
                     <Search class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
                     <input v-model="searchQuery" type="text" placeholder="Cari..."
@@ -644,7 +644,7 @@ const selectOutgoingUnit = (item) => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                        }}</p>
+                                            }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}

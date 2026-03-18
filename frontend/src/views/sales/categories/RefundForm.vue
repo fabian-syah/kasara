@@ -233,7 +233,7 @@ function handlePinSuccess(pin) {
 
 <template>
     <div
-        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 p-8 shadow-xl">
+        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
         <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8">
                 <h3 class="text-2xl font-black text-text-primary flex items-center gap-3">
@@ -272,7 +272,7 @@ function handlePinSuccess(pin) {
                     <h4
                         class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
                         Spesifikasi Unit</h4>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 xs:grid-cols-2 gap-4">
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Brand
@@ -298,7 +298,7 @@ function handlePinSuccess(pin) {
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
@@ -312,9 +312,7 @@ function handlePinSuccess(pin) {
                                 <option v-if="!isImeiRefund" value="Non-HP">Non-HP</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="grid grid-cols-1">
-                        <div class="mt-4">
+                        <div class="mt-4 sm:mt-0">
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kategori
                                 <span class="text-red-500">*</span></label>
