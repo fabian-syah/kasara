@@ -3133,7 +3133,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                     </div>
                                     <div class="flex flex-col items-start sm:items-end gap-3 sm:gap-2 w-full sm:w-auto">
                                         <!-- Price/Subtotal -->
-                                        <div v-if="!item.imei && !item.is_bundle"
+                                        <div v-if="!item.is_bundle"
                                             class="flex items-center justify-between sm:justify-end gap-2 border-2 border-surface-200 dark:border-surface-700 rounded-xl bg-surface-50 dark:bg-surface-900 px-3 py-2 focus-within:border-primary-500 transition-all w-full sm:w-auto">
                                             <span
                                                 class="text-[10px] sm:text-[9px] font-black text-text-secondary uppercase tracking-widest whitespace-nowrap">Harga
@@ -3142,7 +3142,8 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
                                                 <span class="text-[10px] font-bold text-text-secondary">Rp</span>
                                                 <input type="text" :value="formatNumber(item.price)"
                                                     @input="e => handleItemPriceInput(item, e)"
-                                                    class="w-24 sm:w-20 text-right text-sm sm:text-xs font-black bg-transparent outline-none focus:text-primary-600" />
+                                                    class="w-24 sm:w-20 text-right text-sm sm:text-xs font-black bg-transparent outline-none focus:text-primary-600"
+                                                    :placeholder="formatNumber(item.cost_price)" />
                                             </div>
                                         </div>
                                         <p v-else class="text-sm font-black text-primary-600">{{

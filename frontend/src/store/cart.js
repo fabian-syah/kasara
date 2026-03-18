@@ -70,6 +70,7 @@ export const useCartStore = defineStore('cart', () => {
                 quantity: 1,
                 image: product.image || null,
                 imei: product.imei || null,
+                cost_price: Number(product.cost_price || 0),
                 product_id: product.product_id || product.product?.id
             })
         }
@@ -173,6 +174,7 @@ export const useCartStore = defineStore('cart', () => {
                 name: item.product?.name || item.name,
                 imei: item.imei || null,
                 price: item.selling_price || item.price,
+                cost_price: item.cost_price || 0,
                 quantity: item.quantity || 1,
                 is_non_hp: !!item.is_non_hp
             }))
