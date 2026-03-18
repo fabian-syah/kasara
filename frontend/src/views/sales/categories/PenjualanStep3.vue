@@ -48,7 +48,7 @@ const filteredProducts = computed(() => {
 });
 
 const cartItems = computed(() => cartStore.items);
-const cartItemCount = computed(() => cartStore.totalItems);
+const cartItemCount = computed(() => cartStore.itemCount);
 const cartTotal = computed(() => cartStore.total);
 
 const displayDiscount = ref("0");
@@ -80,7 +80,15 @@ function parseNumber(s) {
 }
 
 function getRemainingStock(product) {
-    if (product.imei) return 1;
+    if (product.imei) {
+        // Check if this specific IMEI is in cart or in any bundle in cart
+        const inCart = cartStore.items.some(i => i.imei === product.imei);
+        const inBundles = cartStore.items.some(i =>
+            i.is_bundle && i.bundle_items?.some(bi => bi.imei === product.imei)
+        );
+        return (inCart || inBundles) ? 0 : 1;
+    }
+
     const inCart = cartStore.items
         .filter(i => i.id === product.id && !i.is_bundle)
         .reduce((sum, i) => sum + i.quantity, 0);
@@ -251,7 +259,7 @@ function finishBundling() {
     }
 
     const bundleName = "Paket Bundling: " + bundleItems.value.map(i => i.product?.name || i.name).join(", ");
-    cartStore.addBundle(bundleName, bundleTotalPrice.value, bundleItems.value);
+    cartStore.addBundle(bundleItems.value, bundleTotalPrice.value, bundleName);
     closeBundlingModal();
 }
 
@@ -636,7 +644,7 @@ const selectOutgoingUnit = (item) => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
