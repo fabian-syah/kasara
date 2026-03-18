@@ -168,15 +168,16 @@ watch(transactionCategory, () => {
         <div class="max-w-[1600px] mx-auto h-[calc(100vh-4rem)] flex flex-col">
 
             <!-- HEADER & LOGO -->
-            <div class="flex items-center justify-between mb-8 shrink-0">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shrink-0">
                 <div class="flex items-center gap-4">
                     <div
-                        class="w-12 h-12 bg-primary-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
-                        <ShoppingBag class="text-white" :size="28" stroke-width="2.5" />
+                        class="w-12 h-12 sm:w-16 sm:h-16 bg-primary-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+                        <ShoppingBag class="text-white sm:w-8 sm:h-8" :size="20" stroke-width="3" />
                     </div>
                     <div>
-                        <h1 class="text-2xl font-black text-text-primary tracking-tight">Buat Penjualan</h1>
-                        <p class="text-sm text-text-secondary font-bold uppercase tracking-widest">Sistem Kasir v2.0</p>
+                        <h1 class="text-xl sm:text-4xl font-black text-text-primary tracking-tight">Buat Penjualan</h1>
+                        <p class="text-[10px] sm:text-sm font-bold text-text-secondary uppercase tracking-widest">
+                            Sistem Kasir v2.0</p>
                     </div>
                 </div>
             </div>
@@ -200,10 +201,9 @@ watch(transactionCategory, () => {
                 </div>
             </div>
 
-            <!-- STEP 1: PILIH AKUN -->
-            <div v-if="currentStep === 1" class="flex-1 flex items-center justify-center animate-fade-in">
+            <div v-if="currentStep === 1" class="flex-1 flex items-center justify-center animate-fade-in p-2 sm:p-0">
                 <div
-                    class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
+                    class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-12 shadow-2xl relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl">
                     </div>
                     <div class="relative z-10">

@@ -610,24 +610,25 @@ const selectOutgoingUnit = (item) => {
                 <div
                     class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                     <div
-                        class="p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
-                        <h3 class="text-2xl font-black text-text-primary">Buat Sistem Bundling</h3>
+                        class="p-4 sm:p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
+                        <h3 class="text-lg sm:text-2xl font-black text-text-primary">Buat Sistem Bundling</h3>
                         <button @click="closeBundlingModal"
-                            class="p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
-                            <X :size="24" />
+                            class="p-1.5 sm:p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
+                            <X :size="20" class="sm:w-6 sm:h-6" />
                         </button>
                     </div>
 
                     <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
                         <!-- Left: Item Picker -->
                         <div
-                            class="flex-1 p-6 overflow-y-auto custom-scrollbar border-r border-surface-100 dark:border-surface-700">
-                            <div class="mb-6 sticky top-0 bg-white dark:bg-surface-800 z-10 pb-4">
+                            class="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar border-b md:border-b-0 md:border-r border-surface-100 dark:border-surface-700">
+                            <div class="mb-4 sm:mb-6 sticky top-0 bg-white dark:bg-surface-800 z-10 pb-4">
                                 <div class="relative">
-                                    <Search class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary"
-                                        :size="18" />
+                                    <Search
+                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary sm:w-[18px] sm:h-[18px]"
+                                        :size="16" />
                                     <input v-model="searchQuery" type="text" placeholder="Cari item untuk bundle..."
-                                        class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl pl-11 pr-4 py-3 text-sm font-medium focus:outline-none focus:border-primary-500 transition-all" />
+                                        class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium focus:outline-none focus:border-primary-500 transition-all" />
                                 </div>
                             </div>
 
@@ -662,8 +663,11 @@ const selectOutgoingUnit = (item) => {
                         </div>
 
                         <!-- Right: Selected Items & Final Price -->
-                        <div class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-6 flex flex-col">
-                            <h4 class="text-sm font-black text-text-secondary uppercase tracking-widest mb-4">Item
+                        <div
+                            class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-4 sm:p-6 flex flex-col max-h-[50%] md:max-h-full">
+                            <h4
+                                class="text-[10px] sm:text-sm font-black text-text-secondary uppercase tracking-widest mb-3 sm:mb-4">
+                                Item
                                 Terpilih</h4>
 
                             <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 mb-6">
@@ -720,22 +724,22 @@ const selectOutgoingUnit = (item) => {
                                 </div>
                             </div>
 
-                            <div class="pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
+                            <div class="pt-4 sm:pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
                                 <label
-                                    class="block text-xs font-black text-text-secondary uppercase tracking-widest mb-3">Harga
+                                    class="block text-[10px] sm:text-xs font-black text-text-secondary uppercase tracking-widest mb-2 sm:mb-3">Harga
                                     Total Bundle</label>
-                                <div class="relative mb-6">
+                                <div class="relative mb-4 sm:mb-6">
                                     <span
-                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold">Rp</span>
+                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm sm:text-base">Rp</span>
                                     <input :value="displayBundleTotalPrice" @input="handleBundlePriceInput" type="text"
-                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-4 bg-white dark:bg-surface-800 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-12"
-                                        placeholder="Tentukan harga..." />
+                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-surface-800 text-text-primary text-lg sm:text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-11 sm:pl-12"
+                                        placeholder="0" />
                                 </div>
 
                                 <button @click="finishBundling"
                                     :disabled="bundleItems.length < 2 || bundleTotalPrice <= 0"
-                                    class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
-                                    <CheckCircle :size="20" />
+                                    class="w-full py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95">
+                                    <CheckCircle :size="18" class="sm:w-5 sm:h-5" />
                                     Selesai
                                 </button>
                             </div>
