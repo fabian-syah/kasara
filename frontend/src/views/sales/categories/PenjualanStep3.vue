@@ -664,7 +664,7 @@ const selectOutgoingUnit = (item) => {
 
                         <!-- Right: Selected Items & Final Price -->
                         <div
-                            class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-4 sm:p-6 flex flex-col max-h-[50%] md:max-h-full">
+                            class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-3 sm:p-6 flex flex-col max-h-[40%] md:max-h-full border-t md:border-t-0 border-surface-200 dark:border-surface-700">
                             <h4
                                 class="text-[10px] sm:text-sm font-black text-text-secondary uppercase tracking-widest mb-3 sm:mb-4">
                                 Item
@@ -672,9 +672,9 @@ const selectOutgoingUnit = (item) => {
 
                             <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 mb-6">
                                 <div v-if="bundleItems.length === 0"
-                                    class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-10">
-                                    <ShoppingBag :size="48" class="mb-3" />
-                                    <p class="text-xs font-medium text-center">Belum ada item dipilih</p>
+                                    class="h-full min-h-[60px] sm:min-h-[150px] flex flex-col items-center justify-center text-text-secondary opacity-50 py-2 sm:py-10">
+                                    <ShoppingBag class="w-6 h-6 sm:w-12 sm:h-12 mb-1 sm:mb-3" />
+                                    <p class="text-[9px] sm:text-xs font-medium text-center">Belum ada item dipilih</p>
                                 </div>
                                 <div v-for="(item, idx) in bundleItems" :key="item.id"
                                     class="p-4 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 animate-fade-in relative group/item">
@@ -724,9 +724,9 @@ const selectOutgoingUnit = (item) => {
                                 </div>
                             </div>
 
-                            <div class="pt-4 sm:pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
+                            <div class="pt-3 sm:pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
                                 <label
-                                    class="block text-[10px] sm:text-xs font-black text-text-secondary uppercase tracking-widest mb-2 sm:mb-3">Harga
+                                    class="block text-[9px] sm:text-xs font-black text-text-secondary uppercase tracking-widest mb-1 sm:mb-3">Harga
                                     Total Bundle</label>
                                 <div class="relative mb-4 sm:mb-6">
                                     <span

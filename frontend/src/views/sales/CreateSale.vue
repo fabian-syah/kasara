@@ -8,12 +8,18 @@ import { useAuthStore } from "../../store/auth";
 
 // UI Components
 import {
-    Plus,
     CheckCircle2,
     ArrowLeft,
     ArrowRight,
     Shield,
-    DollarSign
+    DollarSign,
+    ShoppingCart,
+    PackageOpen,
+    RotateCcw,
+    RefreshCw,
+    TrendingUp,
+    TrendingDown,
+    ShoppingBag
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
@@ -38,12 +44,12 @@ const salesAccounts = ref([]);
 const transactionCategory = ref("penjualan");
 
 const categoriesPenjualan = [
-    { id: "penjualan", label: "Penjualan" },
-    { id: "angkat_barang", label: "Angkat Barang" },
-    { id: "refund", label: "Refund" },
-    { id: "tukar_unit", label: "Tukar Unit" },
-    { id: "tukar_tambah", label: "Tukar Tambah" },
-    { id: "downgrade", label: "Downgrade" },
+    { id: "penjualan", label: "Penjualan", icon: 'ShoppingCart' },
+    { id: "angkat_barang", label: "Angkat Barang", icon: 'PackageOpen' },
+    { id: "refund", label: "Refund", icon: 'RotateCcw' },
+    { id: "tukar_unit", label: "Tukar Unit", icon: 'RefreshCw' },
+    { id: "tukar_tambah", label: "Tukar Tambah", icon: 'TrendingUp' },
+    { id: "downgrade", label: "Downgrade", icon: 'TrendingDown' },
 ];
 
 const brands = ref([]);
@@ -171,8 +177,8 @@ watch(transactionCategory, () => {
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shrink-0">
                 <div class="flex items-center gap-4">
                     <div
-                        class="w-12 h-12 sm:w-16 sm:h-16 bg-primary-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
-                        <ShoppingBag class="text-white sm:w-8 sm:h-8" :size="20" stroke-width="3" />
+                        class="w-10 h-10 sm:w-16 sm:h-16 bg-primary-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
+                        <ShoppingBag class="text-white w-6 h-6 sm:w-8 sm:h-8" :size="24" stroke-width="3" />
                     </div>
                     <div>
                         <h1 class="text-xl sm:text-4xl font-black text-text-primary tracking-tight">Buat Penjualan</h1>
@@ -252,8 +258,12 @@ watch(transactionCategory, () => {
                         class="p-6 sm:p-8 bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border-2 border-surface-100 dark:border-surface-700 hover:border-primary-500 hover:shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden text-left flex flex-col gap-3 sm:gap-4 active:scale-95">
                         <div
                             class="w-10 h-10 sm:w-14 sm:h-14 bg-surface-50 dark:bg-surface-900 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
-                            <Plus v-if="cat.id === 'penjualan'" :size="20" class="sm:w-8 sm:h-8" />
-                            <DollarSign v-else :size="20" class="sm:w-8 sm:h-8" />
+                            <ShoppingCart v-if="cat.id === 'penjualan'" :size="20" class="sm:w-8 sm:h-8" />
+                            <PackageOpen v-else-if="cat.id === 'angkat_barang'" :size="20" class="sm:w-8 sm:h-8" />
+                            <RotateCcw v-else-if="cat.id === 'refund'" :size="20" class="sm:w-8 sm:h-8" />
+                            <RefreshCw v-else-if="cat.id === 'tukar_unit'" :size="20" class="sm:w-8 sm:h-8" />
+                            <TrendingUp v-else-if="cat.id === 'tukar_tambah'" :size="20" class="sm:w-8 sm:h-8" />
+                            <TrendingDown v-else-if="cat.id === 'downgrade'" :size="20" class="sm:w-8 sm:h-8" />
                         </div>
                         <h3
                             class="text-sm sm:text-xl font-black text-text-primary group-hover:text-primary-600 transition-colors uppercase tracking-tight">
