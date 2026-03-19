@@ -20,12 +20,13 @@ const props = defineProps({
     salesAccount: String,
 });
 
-const emit = defineEmits(["back", "transaction-complete"]);
+const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
+
 
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
-const showPinModal = ref(false);
+
 
 const unitExchangeForm = ref({
     customer_name: "",
@@ -135,9 +136,10 @@ async function submitUnitExchange(pin = null) {
     }
 
     if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-        showPinModal.value = true;
+        emit('verify-pin', (verifiedPin) => submitUnitExchange(verifiedPin));
         return;
     }
+
 
     isSubmitting.value = true;
     const formData = new FormData();
@@ -215,10 +217,7 @@ async function submitUnitExchange(pin = null) {
     }
 }
 
-function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    submitUnitExchange(pin);
-}
+
 </script>
 
 <template>

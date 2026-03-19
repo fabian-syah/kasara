@@ -21,12 +21,13 @@ const props = defineProps({
     salesAccount: String,
 });
 
-const emit = defineEmits(["back", "transaction-complete"]);
+const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
+
 
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
-const showPinModal = ref(false);
+
 
 const tukarTambahForm = ref({
     customer_name: "",
@@ -171,9 +172,10 @@ async function submitTukarTambah(pin = null) {
     }
 
     if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-        showPinModal.value = true;
+        emit('verify-pin', (verifiedPin) => submitTukarTambah(verifiedPin));
         return;
     }
+
 
     isSubmitting.value = true;
     const formData = new FormData();
@@ -259,10 +261,7 @@ async function submitTukarTambah(pin = null) {
     }
 }
 
-function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    submitTukarTambah(pin);
-}
+
 </script>
 
 <template>
@@ -510,7 +509,7 @@ function handlePinSuccess(pin) {
                                 <option :value="null" disabled>Pilih Metode Bayar...</option>
                                 <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                     m.name
-                                }}</option>
+                                    }}</option>
                             </select>
                         </div>
                     </div>

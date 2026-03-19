@@ -23,9 +23,7 @@ const emit = defineEmits(["back", "transaction-complete", "reset"]);
 
 const authStore = useAuthStore();
 const isSubmitting = ref(false);
-const showPinModal = ref(false);
-const pinModalMode = ref("verify");
-const pinModalTitle = ref("Verifikasi PIN");
+
 
 const tradeInForm = ref({
     customer_name: "",
@@ -174,11 +172,10 @@ async function submitTradeIn(pin = null) {
     }
 
     if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-        showPinModal.value = true;
-        pinModalMode.value = "verify";
-        pinModalTitle.value = "Verifikasi PIN Transaksi";
+        emit('verify-pin', (verifiedPin) => submitTradeIn(verifiedPin));
         return;
     }
+
 
     isSubmitting.value = true;
     const formData = new FormData();
@@ -271,10 +268,7 @@ async function submitTradeIn(pin = null) {
     }
 }
 
-function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    submitTradeIn(pin);
-}
+
 </script>
 
 <template>
@@ -419,7 +413,7 @@ function handlePinSuccess(pin) {
                     <select v-model="tradeInForm.payment_method_id"
                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                         <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name
-                        }}</option>
+                            }}</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -18,13 +18,12 @@ const props = defineProps({
     salesAccount: String,
 });
 
-const emit = defineEmits(["back", "transaction-complete"]);
+const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
+
 
 const authStore = useAuthStore();
 const isSubmitting = ref(false);
-const showPinModal = ref(false);
-const pinModalMode = ref("verify");
-const pinModalTitle = ref("Verifikasi PIN");
+
 
 const refundForm = ref({
     customer_name: "",
@@ -142,11 +141,10 @@ async function submitRefund(pin = null) {
     }
 
     if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
-        showPinModal.value = true;
-        pinModalMode.value = "verify";
-        pinModalTitle.value = "Verifikasi PIN Transaksi";
+        emit('verify-pin', (verifiedPin) => submitRefund(verifiedPin));
         return;
     }
+
 
     isSubmitting.value = true;
     const formData = new FormData();
@@ -225,10 +223,7 @@ async function submitRefund(pin = null) {
     }
 }
 
-function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    submitRefund(pin);
-}
+
 </script>
 
 <template>
@@ -361,7 +356,7 @@ function handlePinSuccess(pin) {
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                             <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                 m.name
-                            }}</option>
+                                }}</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
