@@ -334,8 +334,7 @@ const selectOutgoingUnit = (item) => {
                                 <div class="flex flex-col items-start gap-2">
                                     <span
                                         class="text-sm font-bold text-text-primary bg-surface-100 dark:bg-surface-800 px-3 py-1 rounded-lg">{{
-                                            item.ram || '-'
-                                        }} / {{ item.storage || '-' }}</span>
+                                            item.ram ? item.ram + ' / ' : '' }}{{ item.storage || '-' }}</span>
                                     <span class="text-xs uppercase px-3 py-1 rounded-lg font-bold"
                                         :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'">
                                         {{ item.condition || 'Second' }}
@@ -417,7 +416,7 @@ const selectOutgoingUnit = (item) => {
                         <div class="flex flex-wrap gap-2">
                             <span
                                 class="text-[10px] font-bold text-text-primary bg-surface-100 dark:bg-surface-800 px-2 py-0.5 rounded-md">{{
-                                    item.ram || '-' }} / {{ item.storage || '-' }}</span>
+                                    item.ram ? item.ram + ' / ' : '' }}{{ item.storage || '-' }}</span>
                             <span class="text-[10px] uppercase px-2 py-0.5 rounded-md font-bold"
                                 :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'">
                                 {{ item.condition || 'Second' }}
@@ -645,7 +644,7 @@ const selectOutgoingUnit = (item) => {
                                         </div>
                                         <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
                                             item.imei
-                                            }}</p>
+                                        }}</p>
                                         <p v-else
                                             class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
                                             Sisa: {{ getRemainingStock(item) }}
