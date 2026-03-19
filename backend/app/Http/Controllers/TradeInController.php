@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\TradeIn;
+use App\Models\StockOut;
 use App\Models\ProductDetail;
 use App\Models\InventoryLog;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class TradeInController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
+            'transaction_pin' => 'nullable|string|max:10',
         ]);
 
         try {
@@ -129,6 +131,23 @@ class TradeInController extends Controller
                         ]);
 
                         $processedTradeIns[] = $tradeIn;
+
+                        // Create StockOut record for reporting
+                        StockOut::create([
+                            'receipt_id' => $receiptId,
+                            'category' => 'angkat_barang',
+                            'customer_name' => $request->customer_name,
+                            'customer_phone' => $request->customer_phone,
+                            'customer_wa' => $request->customer_phone,
+                            'user_id' => $user->id,
+                            'inventory_user_id' => $user->id,
+                            'status' => 'received',
+                            'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
+                            'proof_image' => $photoLog['unit'] ?? null,
+                            'selling_price' => 0, // Manual transactions usually don't count towards regular sales omset unless set
+                            'transaction_pin' => $request->transaction_pin,
+                            'payment_method_id' => $request->payment_method_id,
+                        ])->items()->attach($tradeIn->id, ['selling_price' => 0]);
                     }
                 } else {
                     // Non-HP or fallback quantity based
@@ -152,6 +171,30 @@ class TradeInController extends Controller
                         'photo_customer' => $photoLog['customer'] ?? null,
                         'user_id' => $user->id,
                         'branch_id' => $user->branch_id,
+                    ]);
+
+                    // Create StockOut record for reporting
+                    StockOut::create([
+                        'receipt_id' => $receiptId,
+                        'category' => 'angkat_barang',
+                        'customer_name' => $request->customer_name,
+                        'customer_phone' => $request->customer_phone,
+                        'customer_wa' => $request->customer_phone,
+                        'user_id' => $user->id,
+                        'inventory_user_id' => $user->id,
+                        'status' => 'received',
+                        'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
+                        'proof_image' => $photoLog['unit'] ?? null,
+                        'selling_price' => 0,
+                        'transaction_pin' => $request->transaction_pin,
+                        'payment_method_id' => $request->payment_method_id,
+                        'non_hp_items' => [
+                            [
+                                'product_id' => $product->id,
+                                'quantity' => $quantity,
+                                'selling_price' => 0
+                            ]
+                        ]
                     ]);
 
                     // For non-HP, use Inventory model (quantity based)

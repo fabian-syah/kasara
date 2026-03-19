@@ -138,6 +138,7 @@ class DowngradeController extends Controller
                     'selling_price' => $request->outgoing_price,
                     'total_amount' => $request->outgoing_price,
                     'payment_method_id' => $request->payment_method_id,
+                    'transaction_pin' => $request->transaction_pin,
                 ]);
 
                 // Attach outgoing unit

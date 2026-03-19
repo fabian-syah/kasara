@@ -39,6 +39,7 @@ class UnitExchangeController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
+            'transaction_pin' => 'nullable|string|max:10',
         ]);
 
         try {
@@ -124,6 +125,7 @@ class UnitExchangeController extends Controller
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
                     'selling_price' => 0, // Isolated from sales turnover
+                    'transaction_pin' => $request->transaction_pin,
                 ]);
 
                 // Attach the outgoing unit to the StockOut record

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Refund;
+use App\Models\StockOut;
 use App\Models\ProductDetail;
 use App\Models\InventoryLog;
 use Illuminate\Http\Request;
@@ -31,6 +32,7 @@ class RefundController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
+            'transaction_pin' => 'nullable|string|max:10',
         ]);
 
         try {
@@ -133,6 +135,30 @@ class RefundController extends Controller
                     'description' => 'Refund Barang: ' . $productType->name . ($request->imei ? ' (' . $request->imei . ')' : ''),
                     'supplier_name' => 'Refund Customer',
                     'notes' => $request->notes,
+                ]);
+
+                // Create StockOut record to ensure visibility in Cek Penjualan
+                StockOut::create([
+                    'receipt_id' => $receiptId,
+                    'category' => 'refund',
+                    'customer_name' => $request->customer_name,
+                    'customer_phone' => $request->customer_phone,
+                    'customer_wa' => $request->customer_phone,
+                    'user_id' => $user->id,
+                    'inventory_user_id' => $user->id,
+                    'status' => 'received',
+                    'notes' => "Refund Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
+                    'proof_image' => $photoLog['unit'] ?? null,
+                    'selling_price' => 0,
+                    'transaction_pin' => $request->transaction_pin,
+                    'payment_method_id' => $request->payment_method_id,
+                    'non_hp_items' => [
+                        [
+                            'product_id' => $product->id,
+                            'quantity' => 1,
+                            'selling_price' => 0
+                        ]
+                    ]
                 ]);
 
                 return response()->json([

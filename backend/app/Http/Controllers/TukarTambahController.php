@@ -44,6 +44,7 @@ class TukarTambahController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
+            'transaction_pin' => 'nullable|string|max:10',
         ]);
 
         try {
@@ -132,6 +133,7 @@ class TukarTambahController extends Controller
                     'selling_price' => $request->outgoing_price, // Full price as Omset
                     'total_amount' => $request->outgoing_price,
                     'payment_method_id' => $request->payment_method_id,
+                    'transaction_pin' => $request->transaction_pin,
                 ]);
 
                 // Attach the outgoing unit to the StockOut record

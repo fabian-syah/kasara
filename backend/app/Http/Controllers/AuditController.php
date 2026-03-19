@@ -68,7 +68,7 @@ class AuditController extends Controller
             });
         };
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang'];
 
         // 1. Daily Sales
         $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
