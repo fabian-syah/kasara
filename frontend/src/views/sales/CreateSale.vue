@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from "vue";
 import api from "../../api/axios";
 import { useEscapeKey } from "../../composables/useEscapeKey";
+import { useToast } from "../../composables/useToast";
 import { useCartStore } from "../../store/cart";
 import { useInventoryStore } from "../../store/inventory";
 import { useAuthStore } from "../../store/auth";
@@ -36,6 +37,7 @@ import PaymentStep from "./categories/PaymentStep.vue";
 const cartStore = useCartStore();
 const inventoryStore = useInventoryStore();
 const authStore = useAuthStore();
+const toast = useToast();
 
 // Wizard Steps
 const currentStep = ref(1); // 1: Account, 2: Category, 3: Items/Form, 4: Payment
@@ -131,10 +133,23 @@ function prevStep() {
     if (currentStep.value > 1) currentStep.value--;
 }
 
+const categoryLabels = {
+    penjualan: 'Transaksi Penjualan berhasil! 🎉',
+    angkat_barang: 'Angkat Barang berhasil diproses! 📦',
+    refund: 'Refund berhasil diproses! 🔄',
+    tukar_unit: 'Tukar Unit berhasil! 🔁',
+    tukar_tambah: 'Tukar Tambah berhasil! 📈',
+    downgrade: 'Downgrade berhasil diproses! 📉',
+};
+
 function handleTransactionComplete(transaction) {
     lastTransaction.value = transaction;
     showSuccessModal.value = true;
     cartStore.clearCart();
+
+    const category = transaction?.category || transactionCategory.value;
+    toast.success(categoryLabels[category] || 'Transaksi berhasil! ✅', 4000);
+
     currentStep.value = 1;
 }
 
