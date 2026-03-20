@@ -403,7 +403,7 @@ async function submitDowngrade(pin = null) {
                             UNITS <span class="text-red-500">*</span></label>
                         <select v-model="downgradeForm.outgoing_product_detail_id"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                            <option :value="null" disabled>-- Pilih Stok Gudang --</option>
+                            <option :value="null" disabled>-- Pilih Stok --</option>
                             <option
                                 v-for="item in inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold')"
                                 :key="item.id" :value="item.id">
@@ -527,7 +527,7 @@ async function submitDowngrade(pin = null) {
                                 <option :value="null" disabled>Pilih Metode Bayar...</option>
                                 <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                     m.name
-                                    }}</option>
+                                }}</option>
                             </select>
                         </div>
                     </div>
