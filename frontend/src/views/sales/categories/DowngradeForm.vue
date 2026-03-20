@@ -527,7 +527,7 @@ async function submitDowngrade(pin = null) {
                                 <option :value="null" disabled>Pilih Metode Bayar...</option>
                                 <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                     m.name
-                                }}</option>
+                                    }}</option>
                             </select>
                         </div>
                     </div>
@@ -566,9 +566,7 @@ async function submitDowngrade(pin = null) {
                             class="mt-6 px-4 py-2 bg-primary-500/10 rounded-full inline-flex items-center gap-2 text-[10px] text-primary-500 font-black uppercase tracking-widest border border-primary-500/20">
                             <AlertCircle :size="14" />
                             <span>
-                                {{
-                                    downgradePriceDiff >= 0 ? 'USER BAYAR KE TOKO' : 'TOKO KEMBALIKAN KE USER'
-                                }}</span>
+                                TOKO BAYAR SELISIH KE CUSTOMER</span>
                         </div>
                     </div>
                 </div>
