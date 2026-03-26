@@ -27,7 +27,6 @@ export const ROLE_LABELS = {
     [ROLES.DISTRIBUTOR]: 'Distributor',
     [ROLES.DISTRIBUTION]: 'Distribution',
     [ROLES.SALES]: 'Sales',
-    [ROLES.INVENTORY]: 'Inventory',
     [ROLES.GUDANG]: 'Gudang',
     [ROLES.INVENTORY_KASIR]: 'Inventory & Kasir',
     [ROLES.TOKO_ONLINE]: 'Toko Online'
@@ -172,12 +171,6 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.INVENTORY_MANAGE // Allow confirming transfers
     ],
 
-    [ROLES.INVENTORY]: [
-        PERMISSIONS.INVENTORY_VIEW,
-        PERMISSIONS.INVENTORY_MANAGE,
-        PERMISSIONS.INVENTORY_STOCK_IN,
-        PERMISSIONS.REPORTS_VIEW
-    ],
 
     [ROLES.GUDANG]: [
         PERMISSIONS.INVENTORY_VIEW,
@@ -216,7 +209,6 @@ export const ROLE_MENUS = {
     [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'incoming_group', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'track'],
     [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_imei_history', 'sales_ranking', 'inventory', 'incoming_group', 'track'],
-    [ROLES.INVENTORY]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
     [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'inventory', 'incoming_group', 'reports', 'track']
