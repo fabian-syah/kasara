@@ -92,7 +92,7 @@ async function handleCreateAccount() {
 
     loadingCreate.value = true;
     try {
-        const res = await api.post('/inventory/accounts', {
+        const res = await api.post('/inventory/account', {
             name: newAccountName.value
         });
 
