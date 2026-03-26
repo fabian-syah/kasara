@@ -16,11 +16,11 @@ import {
     DollarSign,
     ShoppingCart,
     PackageOpen,
-    RotateCcw,
-    RefreshCw,
-    TrendingUp,
     TrendingDown,
-    ShoppingBag
+    ShoppingBag,
+    Plus,
+    UserPlus,
+    Loader2
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
@@ -68,6 +68,47 @@ const showPinModal = ref(false);
 const pinModalMode = ref("verify");
 const pinModalTitle = ref("Verifikasi PIN");
 const pendingPinCallback = ref(null);
+const showCreateAccount = ref(false);
+const newAccountName = ref("");
+const loadingCreate = ref(false);
+
+async function refreshAccounts() {
+    try {
+        const res = await api.get('/inventory/my-accounts');
+        const rawAccounts = res.data.data || res.data;
+        salesAccounts.value = rawAccounts.filter(acc =>
+            acc.roles && acc.roles.some(r => r.name === 'inventory')
+        );
+    } catch (e) {
+        console.error("Gagal refresh akun", e);
+    }
+}
+
+async function handleCreateAccount() {
+    if (!newAccountName.value.trim()) {
+        toast.error("Nama akun harus diisi.");
+        return;
+    }
+
+    loadingCreate.value = true;
+    try {
+        const res = await api.post('/inventory/accounts', {
+            name: newAccountName.value
+        });
+
+        if (res.data.success) {
+            toast.success("Akun inventory berhasil dibuat!");
+            await refreshAccounts();
+            salesAccount.value = res.data.data.name;
+            showCreateAccount.value = false;
+            newAccountName.value = "";
+        }
+    } catch (e) {
+        toast.error(e.response?.data?.message || "Gagal membuat akun inventory.");
+    } finally {
+        loadingCreate.value = false;
+    }
+}
 
 onMounted(async () => {
     try {
@@ -237,27 +278,66 @@ watch(transactionCategory, () => {
                             bertugas untuk transaksi ini.</p>
 
                         <div class="space-y-4">
-                            <label
-                                class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">Nama
-                                Akun Inventory</label>
-                            <div class="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div class="flex items-center justify-between px-1">
+                                <label class="block text-xs font-black text-text-secondary uppercase tracking-widest">
+                                    Daftar Akun Inventory
+                                </label>
+                                <button v-if="!showCreateAccount" @click="showCreateAccount = true"
+                                    class="flex items-center gap-1.5 text-xs font-black text-primary-600 uppercase hover:text-primary-700 transition-colors">
+                                    <UserPlus :size="14" />
+                                    Tambah Akun
+                                </button>
+                            </div>
+
+                            <!-- Create Account Form -->
+                            <div v-if="showCreateAccount"
+                                class="p-4 rounded-2xl border-2 border-dashed border-primary-500/30 bg-primary-500/5 mb-4 animate-fade-in">
+                                <label class="block text-[10px] font-black text-primary-600 uppercase mb-2 px-1">Nama
+                                    Akun Baru</label>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <input v-model="newAccountName" type="text" placeholder="Contoh: Sales A"
+                                        class="flex-1 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                        @keyup.enter="handleCreateAccount" />
+                                    <div class="flex gap-2">
+                                        <button @click="handleCreateAccount" :disabled="loadingCreate"
+                                            class="flex-1 sm:flex-none px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-500 transition-all flex items-center justify-center gap-2">
+                                            <Loader2 v-if="loadingCreate" :size="16" class="animate-spin" />
+                                            Simpan
+                                        </button>
+                                        <button @click="showCreateAccount = false; newAccountName = ''"
+                                            class="flex-1 sm:flex-none px-4 py-2.5 bg-surface-100 dark:bg-surface-700 text-text-secondary rounded-xl font-bold hover:bg-surface-200 transition-all">
+                                            Batal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name"
-                                    class="w-full p-5 rounded-2xl border-2 transition-all flex items-center justify-between group"
-                                    :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
-                                    <span class="font-black text-lg transition-colors"
-                                        :class="salesAccount === acc.name ? 'text-primary-600' : 'text-text-primary'">{{
-                                            acc.name }}</span>
-                                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all"
-                                        :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
-                                        <div v-if="salesAccount === acc.name" class="w-2 h-2 rounded-full bg-white">
+                                    class="w-full p-4 rounded-2xl border-2 transition-all flex flex-col items-start gap-1 relative overflow-hidden group"
+                                    :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/10' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
+                                    
+                                    <div class="flex items-center justify-between w-full">
+                                        <span class="font-black text-base sm:text-lg transition-colors truncate pr-8"
+                                            :class="salesAccount === acc.name ? 'text-primary-600' : 'text-text-primary'">
+                                            {{ acc.name }}
+                                        </span>
+                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all absolute top-4 right-4"
+                                            :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
+                                            <div v-if="salesAccount === acc.name" class="w-2 h-2 rounded-full bg-white">
+                                            </div>
                                         </div>
+                                    </div>
+                                    
+                                    <div v-if="acc.created_by" class="text-[10px] sm:text-xs font-bold text-text-secondary truncate max-w-full">
+                                        by {{ acc.created_by.full_name || acc.created_by.name }}
                                     </div>
                                 </button>
                             </div>
                         </div>
 
                         <button @click="nextStep" :disabled="!salesAccount"
-                            class="w-full mt-10 h-16 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-500/30 transition-all flex items-center justify-center gap-3">
+                            class="w-full mt-8 h-12 sm:h-16 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-500/30 transition-all flex items-center justify-center gap-3">
                             Lanjutkan
                             <ArrowRight :size="24" stroke-width="3" />
                         </button>
