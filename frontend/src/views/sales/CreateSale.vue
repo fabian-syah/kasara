@@ -96,7 +96,7 @@ onMounted(async () => {
         // Process accounts
         const rawAccounts = accountsRes.data.data || accountsRes.data;
         salesAccounts.value = rawAccounts.filter(acc =>
-            acc.roles && acc.roles.some(r => r.name === 'sales')
+            acc.roles && acc.roles.some(r => r.name === 'inventory')
         );
 
         // Process Payment Methods
@@ -232,14 +232,14 @@ watch(transactionCategory, () => {
                             class="w-20 h-20 bg-primary-50 dark:bg-primary-900/20 rounded-3xl flex items-center justify-center mb-8 mx-auto ring-8 ring-primary-500/5">
                             <Shield class="text-primary-600" :size="40" stroke-width="2.5" />
                         </div>
-                        <h2 class="text-3xl font-black text-text-primary text-center mb-4">Pilih Akun Kasir</h2>
-                        <p class="text-text-secondary text-center mb-10 font-medium">Silakan pilih akun sales yang
+                        <h2 class="text-3xl font-black text-text-primary text-center mb-4">Pilih Akun Inventory</h2>
+                        <p class="text-text-secondary text-center mb-10 font-medium">Silakan pilih akun inventory yang
                             bertugas untuk transaksi ini.</p>
 
                         <div class="space-y-4">
                             <label
                                 class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">Nama
-                                Sales / Admin</label>
+                                Akun Inventory</label>
                             <div class="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                 <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name"
                                     class="w-full p-5 rounded-2xl border-2 transition-all flex items-center justify-between group"

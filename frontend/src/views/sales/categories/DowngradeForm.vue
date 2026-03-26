@@ -527,7 +527,7 @@ async function submitDowngrade(pin = null) {
                                 <option :value="null" disabled>Pilih Metode Bayar...</option>
                                 <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
                                     m.name
-                                }}</option>
+                                    }}</option>
                             </select>
                         </div>
                     </div>
