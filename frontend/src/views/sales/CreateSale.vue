@@ -226,8 +226,8 @@ watch(transactionCategory, () => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-surface-50 dark:bg-surface-950 p-4 sm:p-6 lg:p-8 font-jakarta">
-        <div class="max-w-[1600px] mx-auto h-[calc(100vh-4rem)] flex flex-col">
+    <div class="h-full font-jakarta bg-transparent">
+        <div class="w-full h-full flex flex-col">
 
             <!-- HEADER & LOGO -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shrink-0">
