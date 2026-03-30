@@ -293,18 +293,12 @@ const exportToExcel = () => {
                             </td>
                             <!-- Capacity (HP only) -->
                             <td v-if="filters.category === 'hp'" class="px-5 py-3 text-center">
-                                <div class="flex items-center justify-center gap-1.5">
-                                    <span v-if="item.ram"
+                                    <span v-if="item.ram || item.storage"
                                         class="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-[11px] font-semibold border border-indigo-500/20">
-                                        {{ item.ram }}
+                                        {{ [item.ram, item.storage].filter(Boolean).join('/') }}
                                     </span>
-                                    <span v-if="item.storage"
-                                        class="inline-flex items-center px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 text-[11px] font-semibold border border-cyan-500/20">
-                                        {{ item.storage }}
-                                    </span>
-                                    <span v-if="!item.ram && !item.storage"
+                                    <span v-else
                                         class="text-text-secondary text-xs italic">-</span>
-                                </div>
                             </td>
                             <!-- Condition (HP only) -->
                             <td v-if="filters.category === 'hp'" class="px-5 py-3 text-center">
@@ -350,13 +344,9 @@ const exportToExcel = () => {
                                     {{ item.product_type?.brand?.name || '-' }} {{ item.product_type?.name || '' }}
                                 </p>
                                 <div class="flex flex-wrap items-center gap-1.5 mt-1">
-                                    <span v-if="item.ram"
+                                    <span v-if="item.ram || item.storage"
                                         class="inline-flex px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 text-[10px] font-semibold border border-indigo-500/20">
-                                        {{ item.ram }}
-                                    </span>
-                                    <span v-if="item.storage"
-                                        class="inline-flex px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-semibold border border-cyan-500/20">
-                                        {{ item.storage }}
+                                        {{ [item.ram, item.storage].filter(Boolean).join('/') }}
                                     </span>
                                     <span v-if="filters.category === 'hp'"
                                         class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"

@@ -1167,9 +1167,9 @@ async function exportInventory() {
               <!-- HP Specific Columns -->
               <template v-if="activeTab === 'hp'">
                 <td class="text-sm hidden lg:table-cell">
-                  <span class="bg-surface-800 px-3 py-1 rounded-lg text-text-secondary" v-if="item.storage">{{
-                    item.storage
-                  }}</span>
+                  <span class="bg-surface-800 px-3 py-1 rounded-lg text-text-secondary" v-if="item.ram || item.storage">
+                    {{ [item.ram, item.storage].filter(Boolean).join('/') }}
+                  </span>
                   <span v-else class="text-text-secondary">-</span>
                 </td>
                 <td class="text-sm hidden lg:table-cell">
@@ -1356,9 +1356,9 @@ async function exportInventory() {
                     &
                     Kondisi</label>
                   <div class="flex flex-wrap gap-2 mt-1">
-                    <span v-if="selectedItemDetail.storage"
+                    <span v-if="selectedItemDetail.ram || selectedItemDetail.storage"
                       class="bg-surface-800 px-3 py-1 rounded-lg text-sm text-text-primary border border-surface-700">
-                      {{ selectedItemDetail.storage }}
+                      {{ [selectedItemDetail.ram, selectedItemDetail.storage].filter(Boolean).join('/') }}
                     </span>
                     <span class="badge"
                       :class="selectedItemDetail.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : (selectedItemDetail.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400')">

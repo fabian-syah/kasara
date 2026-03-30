@@ -110,6 +110,34 @@ const capacityOptions = computed(() => {
     };
 });
 
+const combinedCapacityOptions = computed(() => {
+    if (!form.value.product_type_id) return [];
+    const type = types.value.find(t => t.id === form.value.product_type_id);
+    if (!type || !type.storage) return [];
+    
+    // We expect storage field in Type to have comma separated pairs like "4/64, 8/128"
+    return type.storage.split(',').map(s => s.trim()).filter(Boolean);
+});
+
+const selectedCapacity = computed({
+    get: () => [form.value.ram, form.value.storage].filter(Boolean).join('/'),
+    set: (val) => {
+        if (!val) {
+            form.value.ram = '';
+            form.value.storage = '';
+            return;
+        }
+        const parts = val.split('/');
+        if (parts.length === 2) {
+            form.value.ram = parts[0].trim();
+            form.value.storage = parts[1].trim();
+        } else {
+            form.value.ram = '';
+            form.value.storage = val.trim();
+        }
+    }
+});
+
 // Helper to populate brand/category from a price item
 const populateFromPrice = (priceItem) => {
     if (!priceItem || types.value.length === 0) return;
@@ -230,19 +258,14 @@ useEscapeKey(() => {
 
                 <!-- Capacity Selection (HP Only) -->
                 <div v-if="category === 'hp' && (capacityOptions.rams.length > 0 || capacityOptions.storages.length > 0)"
-                    class="grid grid-cols-2 gap-4 animate-in fade-in">
-                    <div v-if="capacityOptions.rams.length > 0">
-                        <label class="label">RAM (Opsional)</label>
-                        <select v-model="form.ram" class="input" :disabled="isEditing">
-                            <option value="">Semua RAM</option>
-                            <option v-for="r in capacityOptions.rams" :key="r" :value="r">{{ r }}</option>
-                        </select>
-                    </div>
-                    <div v-if="capacityOptions.storages.length > 0">
-                        <label class="label">Storage (Opsional)</label>
-                        <select v-model="form.storage" class="input" :disabled="isEditing">
-                            <option value="">Semua Storage</option>
-                            <option v-for="s in capacityOptions.storages" :key="s" :value="s">{{ s }}</option>
+                    class="animate-in fade-in">
+                    <div>
+                        <label class="label">Kapasitas (RAM / Storage)</label>
+                        <select v-model="selectedCapacity" class="input" :disabled="isEditing">
+                            <option value="">-- Pilih Kapasitas --</option>
+                            <option v-for="opt in combinedCapacityOptions" :key="opt" :value="opt">
+                                {{ opt }}
+                            </option>
                         </select>
                     </div>
                 </div>

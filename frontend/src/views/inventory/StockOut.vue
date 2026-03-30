@@ -719,7 +719,7 @@ onMounted(() => {
                                 <td class="p-4 text-center">
                                     <span v-if="item.ram || item.storage"
                                         class="inline-flex px-2 py-1 rounded-lg bg-primary-500/20 text-primary-400 text-xs font-bold">
-                                        {{ item.ram || '-' }}/{{ item.storage || '-' }}
+                                        {{ [item.ram, item.storage].filter(Boolean).join('/') }}
                                     </span>
                                     <span v-else class="text-text-secondary">-</span>
                                 </td>

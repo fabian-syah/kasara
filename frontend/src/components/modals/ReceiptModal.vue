@@ -100,7 +100,8 @@
                                         </td>
                                         <td class="py-2 px-1 text-black align-top">
                                             <div class="font-bold uppercase">{{ item.name }}</div>
-                                            <div v-if="item.storage" class="text-[9px] text-gray-700">{{ item.storage }}
+                                            <div v-if="item.ram || item.storage" class="text-[9px] text-gray-700">
+                                                {{ [item.ram, item.storage].filter(Boolean).join('/') }}
                                             </div>
                                             <div v-if="item.condition" class="text-[9px] text-gray-700 italic">
                                                 Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition ===

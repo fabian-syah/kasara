@@ -305,8 +305,7 @@ onMounted(() => {
                                     {{ item.imei }}
                                 </div>
                                 <div class="text-xs text-text-secondary flex gap-2">
-                                    <span v-if="item.ram">{{ item.ram }}</span>
-                                    <span v-if="item.storage">{{ item.storage }}</span>
+                                    <span v-if="item.ram || item.storage">{{ [item.ram, item.storage].filter(Boolean).join('/') }}</span>
                                     <span class="capitalize"
                                         :class="item.condition === 'new' ? 'text-green-400' : 'text-amber-400'">
                                         {{ item.condition }}

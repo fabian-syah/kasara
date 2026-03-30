@@ -147,8 +147,9 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
-                                        <div v-if="detail.storage" class="text-[10px] text-gray-500">{{ detail.storage
-                                        }}</div>
+                                        <div v-if="detail.ram || detail.storage" class="text-[10px] text-gray-500">
+                                            {{ [detail.ram, detail.storage].filter(Boolean).join('/') }}
+                                        </div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                             :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">

@@ -197,8 +197,7 @@ function formatCurrency(value) {
                                 </div>
                                 <div v-if="(result.ram || result.storage) && !result.is_arrival">
                                     <p class="text-text-secondary text-xs">RAM / Storage</p>
-                                    <p class="text-text-primary">{{ result.ram || '-' }}GB / {{ result.storage || '-'
-                                        }}GB</p>
+                                    <p class="text-text-primary">{{ [result.ram, result.storage].filter(Boolean).join('/') }}</p>
                                 </div>
                             </div>
                         </div>
