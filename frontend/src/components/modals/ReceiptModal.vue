@@ -251,6 +251,7 @@
 import { defineProps, defineEmits, ref } from 'vue';
 import { Printer, Pencil, X, MessageSquare, Loader2 } from 'lucide-vue-next';
 import { useEscapeKey } from '../../composables/useEscapeKey';
+import api from '../../api/axios';
 
 const props = defineProps({
     isOpen: Boolean,
@@ -282,28 +283,21 @@ watch(() => props.isOpen, (newVal) => {
             shareToWhatsApp(true); // isAuto = true
         }, 500);
     }
-});
+}, { immediate: true });
 
 const printReceipt = () => {
     window.print();
 };
 
-const shareToWhatsApp = async () => {
+const shareToWhatsApp = async (isAuto = false) => {
     if (isGeneratingPDF.value) return;
 
     try {
         isGeneratingPDF.value = true;
 
         // Call backend to handle EVERYTHING (PDF -> GDrive -> WA Link)
-        // This replaces the old client-side PDF generation that was causing issues
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://api.stokps.com'}/api/receipts/${props.transaction.id}/share-wa`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-        });
-
-        const result = await response.json();
+        const response = await api.get(`/receipts/${props.transaction.id}/share-wa`);
+        const result = response.data;
 
         if (result.success && result.wa_url) {
             window.open(result.wa_url, '_blank');
@@ -314,7 +308,12 @@ const shareToWhatsApp = async () => {
 
     } catch (error) {
         console.error('WhatsApp sharing failed:', error);
-        alert('Gagal memproses pengiriman WhatsApp: ' + error.message);
+        // Only alert if NOT automatic, to avoid intrusive popups right after a successful sale
+        if (!isAuto) {
+            alert('Gagal memproses pengiriman WhatsApp: ' + error.message);
+        } else {
+            console.warn('Auto-send WA failed, user can still click manually.');
+        }
     } finally {
         isGeneratingPDF.value = false;
     }

@@ -404,7 +404,8 @@ watch(transactionCategory, () => {
         <!-- SHARED MODALS -->
         <PinModal :show="showPinModal" :title="pinModalTitle" :mode="pinModalMode" @close="showPinModal = false"
             @success="handlePinSuccess" />
-        <ReceiptModal v-if="showSuccessModal" :show="showSuccessModal" :transaction="lastTransaction"
+        <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
+            :auto-send="lastTransaction?.category === 'penjualan' && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
             @close="closeSuccessModal" />
 
     </div>
