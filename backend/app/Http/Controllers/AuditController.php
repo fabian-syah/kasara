@@ -76,7 +76,7 @@ class AuditController extends Controller
         // Load nonHpItems relationship for Product details, but we will use JSON column for price
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         $scopeToAccess($dailySalesQuery);
 
@@ -402,7 +402,7 @@ class AuditController extends Controller
 
         // 3. Report per CS
         $csQuery = StockOut::whereIn('category', $salesCategories)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
         $scopeToAccess($csQuery);
 
         $csSales = $csQuery->with('inventoryUser')
@@ -511,8 +511,8 @@ class AuditController extends Controller
         // Helper to scope StockOut (Transfers) by Destination
         $scopeIn = function ($q) use ($branchIds, $onlineShopIds) {
             $q->where('stock_outs.status', 'received')
-                ->whereMonth('stock_outs.created_at', now()->month)
-                ->whereYear('stock_outs.created_at', now()->year)
+                ->whereMonth('stock_outs.reporting_date', now()->month)
+                ->whereYear('stock_outs.reporting_date', now()->year)
                 ->where(function ($sub) use ($branchIds, $onlineShopIds) {
                     if (!empty($branchIds)) {
                         $sub->orWhere(function ($deep) use ($branchIds) {
@@ -549,8 +549,8 @@ class AuditController extends Controller
         // 3. Stock Out (Sales + Transfers Out)
         // Helper to scope StockOut by Source
         $scopeOut = function ($q) use ($branchIds, $onlineShopIds) {
-            $q->whereMonth('stock_outs.created_at', now()->month)
-                ->whereYear('stock_outs.created_at', now()->year)
+            $q->whereMonth('stock_outs.reporting_date', now()->month)
+                ->whereYear('stock_outs.reporting_date', now()->year)
                 ->where(function ($sub) use ($branchIds, $onlineShopIds) {
                     if (!empty($branchIds)) {
                         $sub->whereIn('users.branch_id', $branchIds);
@@ -565,8 +565,8 @@ class AuditController extends Controller
         $outHp = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
-            ->whereMonth('stock_outs.created_at', now()->month)
-            ->whereYear('stock_outs.created_at', now()->year)
+            ->whereMonth('stock_outs.reporting_date', now()->month)
+            ->whereYear('stock_outs.reporting_date', now()->year)
             ->where(function ($q) use ($branchIds, $onlineShopIds) {
                 if (!empty($branchIds))
                     $q->orWhereIn('users.branch_id', $branchIds);
@@ -579,8 +579,8 @@ class AuditController extends Controller
         $outNonHp = DB::table('stock_out_non_hp_items')
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
-            ->whereMonth('stock_outs.created_at', now()->month)
-            ->whereYear('stock_outs.created_at', now()->year)
+            ->whereMonth('stock_outs.reporting_date', now()->month)
+            ->whereYear('stock_outs.reporting_date', now()->year)
             ->where(function ($q) use ($branchIds, $onlineShopIds) {
                 if (!empty($branchIds))
                     $q->orWhereIn('users.branch_id', $branchIds);
@@ -671,12 +671,12 @@ class AuditController extends Controller
         // Query StockOut (Transactions)
         $query = StockOut::with(['items', 'nonHpItems', 'user', 'inventoryUser'])
             ->whereIn('category', $salesCategories)
-            ->whereYear('created_at', $year);
+            ->whereYear('reporting_date', $year);
 
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $query->where('reporting_date', $request->date);
         } elseif ($month) {
-            $query->whereMonth('created_at', $month);
+            $query->whereMonth('reporting_date', $month);
         }
 
         // Scope to user access & location filter
@@ -716,7 +716,7 @@ class AuditController extends Controller
         $breakdown = [];
 
         foreach ($transactions as $trx) {
-            $date = $trx->created_at->format('Y-m-d');
+            $date = $trx->reporting_date;
 
             // Calculate Cost
             $trxCost = 0;
@@ -1007,7 +1007,7 @@ class AuditController extends Controller
 
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         $scopeToAccess($dailySalesQuery);
 
@@ -1424,7 +1424,7 @@ class AuditController extends Controller
 
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         $scopeToAccess($dailySalesQuery);
 
@@ -1517,7 +1517,7 @@ class AuditController extends Controller
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         // Only received transfers are relevant for "In"
         $query->where(function ($q) {
@@ -1675,7 +1675,7 @@ class AuditController extends Controller
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
-            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         // Filter by location
         $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {

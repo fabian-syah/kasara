@@ -101,9 +101,11 @@ class DashboardController extends Controller
 
     private function getAggregatedStats($user, $categories, $role)
     {
+        $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan', $user->branch ?: ($user->onlineShop ?: null));
+
         $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn('category', $categories)
-            ->whereDate('created_at', now());
+            ->where('reporting_date', $currentReportingDate);
 
         if ($role === 'online_shop' && $user->online_shop_id) {
             $todaySalesQuery->whereHas('user', function ($q) use ($user) {
@@ -227,9 +229,11 @@ class DashboardController extends Controller
     private function getRankingData($user, $categories)
     {
         // Count units based on user_id (who made the sale) as well for sales leaderboard
+        $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan', $user->branch ?: ($user->onlineShop ?: null));
+
         $todayRanking = DB::table('stock_outs')
             ->whereIn('category', $categories)
-            ->whereDate('created_at', now())
+            ->where('reporting_date', $currentReportingDate)
             ->select('user_id', DB::raw('count(*) as total_units'))
             ->groupBy('user_id')
             ->orderByDesc('total_units')
@@ -250,9 +254,10 @@ class DashboardController extends Controller
             $leaderboardQuery->where('branch_id', $user->branch_id);
         }
 
-        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories) {
+        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
             // Count units sold by this user
-            $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->whereDate('created_at', now())->count();
+            $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan', $user->branch ?: ($user->onlineShop ?: null));
+            $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->where('reporting_date', $currentReportingDate)->count();
             return [
                 'id' => $u->id,
                 'name' => $u->name,

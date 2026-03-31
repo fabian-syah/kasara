@@ -237,9 +237,9 @@ class ReportController extends Controller
             );
 
         if ($startDate)
-            $csQuery->whereDate('stock_outs.created_at', '>=', $startDate);
+            $csQuery->where('stock_outs.reporting_date', '>=', $startDate);
         if ($endDate)
-            $csQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+            $csQuery->where('stock_outs.reporting_date', '<=', $endDate);
         $csQuery = $applyIsolation($csQuery);
 
         $csBase = $csQuery->groupBy('users.id', 'users.name')->get();
@@ -249,10 +249,10 @@ class ReportController extends Controller
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
-        if ($startDate)
-            $hpCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
-        if ($endDate)
-            $hpCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+    if ($startDate)
+        $hpCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
+    if ($endDate)
+        $hpCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
         $hpCountsQuery = $applyIsolation($hpCountsQuery);
 
         $hpCountsPerUser = $hpCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('COUNT(*) as hp_count'))
@@ -264,10 +264,10 @@ class ReportController extends Controller
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
-        if ($startDate)
-            $accCountsQuery->whereDate('stock_outs.created_at', '>=', $startDate);
-        if ($endDate)
-            $accCountsQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+    if ($startDate)
+        $accCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
+    if ($endDate)
+        $accCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
         $accCountsQuery = $applyIsolation($accCountsQuery);
 
         $accCountsPerUser = $accCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('SUM(quantity) as acc_count'))
@@ -291,10 +291,10 @@ class ReportController extends Controller
             ->join('products', 'product_details.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
-        if ($startDate)
-            $hpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
-        if ($endDate)
-            $hpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+    if ($startDate)
+        $hpBaseQuery->where('stock_outs.reporting_date', '>=', $startDate);
+    if ($endDate)
+        $hpBaseQuery->where('stock_outs.reporting_date', '<=', $endDate);
         $hpBaseQuery = $applyIsolation($hpBaseQuery);
 
         $hpBrandStats = (clone $hpBaseQuery)->select(
@@ -311,10 +311,10 @@ class ReportController extends Controller
             ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories);
-        if ($startDate)
-            $nhpBaseQuery->whereDate('stock_outs.created_at', '>=', $startDate);
-        if ($endDate)
-            $nhpBaseQuery->whereDate('stock_outs.created_at', '<=', $endDate);
+    if ($startDate)
+        $nhpBaseQuery->where('stock_outs.reporting_date', '>=', $startDate);
+    if ($endDate)
+        $nhpBaseQuery->where('stock_outs.reporting_date', '<=', $endDate);
         $nhpBaseQuery = $applyIsolation($nhpBaseQuery);
 
         $nhpBrandStats = (clone $nhpBaseQuery)->select(

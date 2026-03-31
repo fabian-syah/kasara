@@ -58,8 +58,9 @@ class StockOut extends Model
         // Meta
         'user_id',
         'inventory_user_id',
-        'notes',
-        'non_hp_items',
+        'reporting_date',
+        'category',
+        'shopee_order_id',
         'customer_wa',
         'transaction_pin',
         // Confirmation
@@ -134,6 +135,58 @@ class StockOut extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Logic for custom reporting/business date reset.
+     * All sales: 17:00 (5 PM) reset.
+     * Everything else: 05:00 (5 AM) reset.
+     */
+    public static function calculateReportingDate($category, $branchOrTimezone, $timestamp = null)
+    {
+        $dt = $timestamp ? \Carbon\Carbon::parse($timestamp) : now();
+
+        // 1. Resolve Timezone
+        $tz = 'Asia/Jakarta'; // Default WIB
+        if ($branchOrTimezone instanceof Branch) {
+            $branchTz = strtoupper($branchOrTimezone->timezone ?? '');
+            $tz = match ($branchTz) {
+                'WITA', 'ASIA/MAKASSAR' => 'Asia/Makassar',
+                'WIT', 'ASIA/JAYAPURA' => 'Asia/Jayapura',
+                default => 'Asia/Jakarta',
+            };
+        } elseif (is_string($branchOrTimezone)) {
+            $tz = $branchOrTimezone;
+        }
+
+        // Convert UTC/System time to local branch time
+        $dt->setTimezone($tz);
+
+        // 2. Identify Reset Group
+        $salesCategories = [
+            'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade',
+            'penjualan_offline', 'shopee', 'orderan_online', 'refund', 'angkat_barang'
+        ];
+
+        // 3. Apply Cutoff Logic
+        $hour = (int) $dt->format('H');
+
+        if (in_array($category, $salesCategories)) {
+            // Sales Group: 5 PM (17:00) reset
+            // If before 5 PM (00:00 - 16:59), then it belongs to PREVIOUS DAY.
+            // If after 5 PM (17:00 - 23:59), then it belongs to TODAY.
+            if ($hour < 17) {
+                return $dt->subDay()->toDateString();
+            }
+        } else {
+            // Other/Expense Group: 5 AM (05:00) reset
+            // If before 5 AM (00:00 - 04:59), then it belongs to PREVIOUS DAY.
+            if ($hour < 5) {
+                return $dt->subDay()->toDateString();
+            }
+        }
+
+        return $dt->toDateString();
     }
 
     public function inventoryUser()

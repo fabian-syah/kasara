@@ -404,17 +404,21 @@ class StockOutController extends Controller
                 };
             }
 
-            // Create stock out record
-            // Pastikan destinationType diambil dari request dengan benar
-            // --- Tambahkan logika ini tepat sebelum StockOut::create ---
             $destinationType = $request->destination_type;
             $destinationId = $request->destination_id;
+
+            // Calculate Reporting Date based on business logic
+            $reportingDate = StockOut::calculateReportingDate(
+                $request->category,
+                $user->branch ?: ($user->onlineShop ?: null)
+            );
 
             // Membuat record stock out
             $stockOut = StockOut::create([
                 'receipt_id' => StockOut::generateReceiptId(),
                 'category' => $request->category,
-                'sub_category' => $request->sub_category, // Ambil sub_category jika kategori adalah 'keluar'
+                'reporting_date' => $reportingDate, // Save the calculated business date
+                'sub_category' => $request->sub_category, 
                 'user_id' => Auth::id(),
                 'inventory_user_id' => $request->inventory_user_id,
                 'selling_price' => $totalSellingPrice,
@@ -685,14 +689,14 @@ class StockOutController extends Controller
         }
 
         // DATE FILTERS
-        if ($request->has('date') && !empty($request->date)) {
-            $query->whereDate('created_at', $request->date);
+        if ($request->date) {
+            $query->where('reporting_date', $request->date);
         }
         if ($request->has('month') && !empty($request->month)) {
-            $query->whereMonth('created_at', $request->month);
+            $query->whereMonth('reporting_date', $request->month);
         }
         if ($request->has('year') && !empty($request->year)) {
-            $query->whereYear('created_at', $request->year);
+            $query->whereYear('reporting_date', $request->year);
         }
 
         $history = $query->latest()->paginate(20);
