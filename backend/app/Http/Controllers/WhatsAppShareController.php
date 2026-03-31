@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class WhatsAppShareController extends Controller
 {
@@ -30,102 +31,11 @@ class WhatsAppShareController extends Controller
                 $cleanPhone = '62' . $cleanPhone;
             }
 
-            // 2.5 Encode Base64 Images for PDF
-            $logoBase64 = '';
-            $shopeeBase64 = '';
-            $tokopediaBase64 = '';
-
-            try {
-                $logoPath = public_path('images/logo-pstore.png');
-                if (file_exists($logoPath)) {
-                    $logoBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
-                }
-
-                $shopeePath = public_path('images/shopee-icon-small.png');
-                if (file_exists($shopeePath)) {
-                    $shopeeBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($shopeePath));
-                }
-
-                $tokopediaPath = public_path('images/tokopedia-icon-small.png');
-                if (file_exists($tokopediaPath)) {
-                    $tokopediaBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($tokopediaPath));
-                }
-            } catch (\Exception $e) {
-                Log::warning('Base64 Image Encoding Failed: ' . $e->getMessage());
-            }
-
-            // 3. Hitung Total & Diskon (Untuk View)
-            $total_original = 0;
-            foreach ($transaction->items as $item) {
-                $netPrice = ($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0) - ($item->pivot->distributed_discount ?? 0);
-                $total_original += $netPrice;
-            }
-            foreach ($transaction->nonHpItems as $item) {
-                $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
-                $total_original += ($item->quantity ?? 1) * $netPrice;
-            }
-
-            $total_discount = 0;
-            if ($transaction->global_discount_value > 0) {
-                if ($transaction->global_discount_type === 'percentage') {
-                    $total_discount = ($total_original * $transaction->global_discount_value) / 100;
-                } else {
-                    $total_discount = $transaction->global_discount_value;
-                }
-            }
-
-            // 3.5 Process split payments to get names
-            $processedSplitPayments = [];
-            if ($transaction->split_payments && count($transaction->split_payments) > 0) {
-                // Fetch only needed payment methods to avoid overhead
-                $methodIds = array_column($transaction->split_payments, 'payment_method_id');
-                $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
-
-                foreach ($transaction->split_payments as $sp) {
-                    $processedSplitPayments[] = [
-                        'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
-                        'amount' => $sp['amount'] ?? 0
-                    ];
-                }
-            }
-
-            // 4. Generate HTML dari View (Thermal-Style)
-            $htmlContent = view('receipts.show_thermal', [
-                'transaction' => $transaction,
-                'total_original' => $total_original,
-                'total_discount' => $total_discount,
-                'logoBase64' => $logoBase64,
-                'shopeeBase64' => $shopeeBase64,
-                'tokopediaBase64' => $tokopediaBase64,
-                'split_payments_data' => $processedSplitPayments,
-            ])->render();
-
-            // 5. Kirim ke GDrive Bridge (Apps Script baru yang bisa ubah HTML -> PDF)
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbwZIhLxZK_AhiC5k1JPctPfjOa2zPLUO8vcYfwSbyVt2nKF3dVOlRptkF07M0xdDBbY/exec';
-
-            // Logika Folder: Tahun / Bulan / Nama_Cabang
-            $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
-            $folderPath = date('Y') . '/' . date('m') . '/' . Str::slug($branchName);
-            $filename = "Nota-{$transaction->receipt_id}.pdf";
-
-            Log::info("GDrive: Uploading PDF for {$transaction->receipt_id} to {$folderPath}");
-
-            $response = Http::timeout(120)->post($scriptUrl, [
-                'htmlContent' => $htmlContent,
-                'filename' => $filename,
-                'folderPath' => $folderPath
-            ]);
-
-            if (!$response->successful()) {
-                Log::error('GDrive Error: ' . $response->body());
-                throw new \Exception('Gagal upload ke Google Drive: ' . $response->status());
-            }
-
-            $result = $response->json();
-            $driveLink = $result['url'] ?? null;
+            // 3. Ambil/Generate Link Google Drive (Bisa dari Cache hasil Pre-generation)
+            $driveLink = self::getDriveLink($id);
 
             if (!$driveLink) {
-                throw new \Exception('Link Google Drive tidak didapatkan dari server');
+                throw new \Exception('Gagal mendapatkan Link Google Drive. Silakan coba lagi.');
             }
 
             // 6. Susun Pesan WA
@@ -152,5 +62,123 @@ class WhatsAppShareController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Heavy lifting for PDF Generation & Upload
+     * Can be called synchronously or from a background job
+     */
+    public static function getDriveLink($id)
+    {
+        $cacheKey = "receipt_drive_link_{$id}";
+        
+        // 0. Cek Cache
+        if ($cachedLink = Cache::get($cacheKey)) {
+            return $cachedLink;
+        }
+
+        try {
+            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch', 'paymentMethod'])->findOrFail($id);
+            
+            // 1. Get Cached Logos
+            $logos = self::getBase64Images();
+
+            // 2. Hitung Total & Diskon
+            $total_original = 0;
+            foreach ($transaction->items as $item) {
+                $netPrice = ($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0) - ($item->pivot->distributed_discount ?? 0);
+                $total_original += $netPrice;
+            }
+            foreach ($transaction->nonHpItems as $item) {
+                $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
+                $total_original += ($item->quantity ?? 1) * $netPrice;
+            }
+
+            $total_discount = 0;
+            if ($transaction->global_discount_value > 0) {
+                if ($transaction->global_discount_type === 'percentage') {
+                    $total_discount = ($total_original * $transaction->global_discount_value) / 100;
+                } else {
+                    $total_discount = $transaction->global_discount_value;
+                }
+            }
+
+            // 3. Process split payments
+            $processedSplitPayments = [];
+            if ($transaction->split_payments && count($transaction->split_payments) > 0) {
+                $methodIds = array_column($transaction->split_payments, 'payment_method_id');
+                $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
+
+                foreach ($transaction->split_payments as $sp) {
+                    $processedSplitPayments[] = [
+                        'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
+                        'amount' => $sp['amount'] ?? 0
+                    ];
+                }
+            }
+
+            // 4. Render HTML
+            $htmlContent = view('receipts.show_thermal', [
+                'transaction' => $transaction,
+                'total_original' => $total_original,
+                'total_discount' => $total_discount,
+                'logoBase64' => $logos['logo'] ?? '',
+                'shopeeBase64' => $logos['shopee'] ?? '',
+                'tokopediaBase64' => $logos['tokopedia'] ?? '',
+                'split_payments_data' => $processedSplitPayments,
+            ])->render();
+
+            // 5. Kirim ke GDrive Bridge
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbwZIhLxZK_AhiC5k1JPctPfjOa2zPLUO8vcYfwSbyVt2nKF3dVOlRptkF07M0xdDBbY/exec';
+            $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
+            $folderPath = date('Y') . '/' . date('m') . '/' . Str::slug($branchName);
+            $filename = "Nota-{$transaction->receipt_id}.pdf";
+
+            $response = Http::timeout(120)->post($scriptUrl, [
+                'htmlContent' => $htmlContent,
+                'filename' => $filename,
+                'folderPath' => $folderPath
+            ]);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                $driveLink = $result['url'] ?? null;
+                
+                if ($driveLink) {
+                    // Simpan di cache selama 24 jam
+                    Cache::put($cacheKey, $driveLink, now()->addHours(24));
+                    return $driveLink;
+                }
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            Log::error("GDrive Generation Failed for ID {$id}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Cache logo base64 to speed up generation
+     */
+    private static function getBase64Images()
+    {
+        return Cache::rememberForever('receipt_logos_base64', function() {
+            $images = [
+                'logo' => 'logo-pstore.png', 
+                'shopee' => 'shopee-icon-small.png', 
+                'tokopedia' => 'tokopedia-icon-small.png'
+            ];
+            $res = [];
+            foreach ($images as $key => $file) {
+                $path = public_path("images/{$file}");
+                if (file_exists($path)) {
+                    $res[$key] = 'data:image/png;base64,' . base64_encode(file_get_contents($path));
+                } else {
+                    $res[$key] = '';
+                }
+            }
+            return $res;
+        });
     }
 }

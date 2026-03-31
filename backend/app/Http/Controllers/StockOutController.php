@@ -484,6 +484,17 @@ class StockOutController extends Controller
                 'total_discount' => $request->total_discount ?? 0,
             ]);
 
+            // Pre-generate PDF in the background to speed up WhatsApp sharing later
+            if ($stockOut->category === 'penjualan') {
+                dispatch(function () use ($stockOut) {
+                    try {
+                        \App\Http\Controllers\WhatsAppShareController::getDriveLink($stockOut->id);
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::warning("Pre-generation failed for StockOut ID {$stockOut->id}: " . $e->getMessage());
+                    }
+                })->afterResponse();
+            }
+
             // Create StockOutNonHpItem records
             if ($request->non_hp_items) {
                 foreach ($request->non_hp_items as $item) {
