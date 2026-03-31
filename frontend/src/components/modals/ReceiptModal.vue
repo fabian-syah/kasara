@@ -296,7 +296,10 @@ const shareToWhatsApp = async (isAuto = false) => {
         isGeneratingPDF.value = true;
 
         // Call backend to handle EVERYTHING (PDF -> GDrive -> WA Link)
-        const response = await api.get(`/receipts/${props.transaction.id}/share-wa`);
+        // Increased timeout to 90 seconds since GDrive PDF generation is heavy
+        const response = await api.get(`/receipts/${props.transaction.id}/share-wa`, {
+            timeout: 90000 
+        });
         const result = response.data;
 
         if (result.success && result.wa_url) {

@@ -12,6 +12,7 @@ class WhatsAppShareController extends Controller
 {
     public function share($id)
     {
+        set_time_limit(150); // Increase execution time for this specific long-running task
         try {
             // 1. Ambil Data Transaksi
             $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch', 'paymentMethod'])->findOrFail($id);
@@ -109,7 +110,7 @@ class WhatsAppShareController extends Controller
 
             Log::info("GDrive: Uploading PDF for {$transaction->receipt_id} to {$folderPath}");
 
-            $response = Http::timeout(60)->post($scriptUrl, [
+            $response = Http::timeout(120)->post($scriptUrl, [
                 'htmlContent' => $htmlContent,
                 'filename' => $filename,
                 'folderPath' => $folderPath
