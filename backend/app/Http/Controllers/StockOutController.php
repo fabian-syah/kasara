@@ -65,16 +65,16 @@ class StockOutController extends Controller
         // DATE FILTER
         if ($request->category !== 'recap_harian') {
             if ($request->month && $request->year) {
-                $query->whereMonth('created_at', $request->month)
-                    ->whereYear('created_at', $request->year);
+                $query->whereMonth('reporting_date', $request->month)
+                    ->whereYear('reporting_date', $request->year);
             }
         }
 
         // DATE FILTER FOR INVENTORY ROLE
         $user = Auth::user();
         if ($user && $user->hasRole('inventory')) {
-            $startDate = \Carbon\Carbon::now()->subMonth()->startOfMonth();
-            $query->where('created_at', '>=', $startDate);
+            $startDate = \Carbon\Carbon::now()->subMonth()->startOfMonth()->toDateString();
+            $query->where('reporting_date', '>=', $startDate);
         }
 
         $results = $query->latest()->paginate($request->per_page ?? 20);
@@ -282,6 +282,7 @@ class StockOutController extends Controller
                         $itemsToRemove = $hpQuery->latest()->take($item['quantity'])->get();
 
                         foreach ($itemsToRemove as $detail) {
+                            /** @var ProductDetail $detail */
                             $detail->delete();
                         }
                         continue;

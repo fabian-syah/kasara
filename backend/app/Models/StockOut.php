@@ -81,7 +81,6 @@ class StockOut extends Model
         'user_id',
         'inventory_user_id',
         'reporting_date',
-        'category',
         'shopee_order_id',
         'customer_wa',
         'transaction_pin',
@@ -170,7 +169,7 @@ class StockOut extends Model
 
         // 1. Resolve Timezone
         $tz = 'Asia/Jakarta'; // Default WIB
-        if ($branchOrTimezone instanceof Branch) {
+        if ($branchOrTimezone instanceof Branch || $branchOrTimezone instanceof OnlineShop) {
             $branchTz = strtoupper($branchOrTimezone->timezone ?? '');
             $tz = match ($branchTz) {
                 'WITA', 'ASIA/MAKASSAR' => 'Asia/Makassar',
