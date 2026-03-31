@@ -9,6 +9,28 @@ use Illuminate\Support\Str;
 class StockOut extends Model
 {
     use SoftDeletes;
+    
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (!$model->reporting_date) {
+                $location = null;
+                // Try to get location from inventory_user_id or user_id
+                $user = User::find($model->inventory_user_id ?? $model->user_id);
+                if ($user) {
+                    if ($user->branch_id) {
+                        $location = $user->branch;
+                    } elseif ($user->online_shop_id) {
+                        $location = $user->onlineShop;
+                    }
+                }
+                
+                $model->reporting_date = static::calculateReportingDate($model->category, $location);
+            }
+        });
+    }
 
     protected $fillable = [
         'receipt_id',
@@ -162,31 +184,16 @@ class StockOut extends Model
         // Convert UTC/System time to local branch time
         $dt->setTimezone($tz);
 
-        // 2. Identify Reset Group
-        $salesCategories = [
-            'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade',
-            'penjualan_offline', 'shopee', 'orderan_online', 'refund', 'angkat_barang'
-        ];
-
-        // 3. Apply Cutoff Logic
+        // 2. Apply Cutoff Logic (5:00 AM)
         $hour = (int) $dt->format('H');
 
-        if (in_array($category, $salesCategories)) {
-            // Sales Group: 5 PM (17:00) reset
-            // If before 5 PM (00:00 - 16:59), then it belongs to PREVIOUS DAY.
-            // If after 5 PM (17:00 - 23:59), then it belongs to TODAY.
-            if ($hour < 17) {
-                return $dt->subDay()->toDateString();
-            }
+        if ($hour >= 5) {
+            // Already past 5 AM, so reporting_date is TODAY
+            return $dt->format('Y-m-d');
         } else {
-            // Other/Expense Group: 5 AM (05:00) reset
-            // If before 5 AM (00:00 - 04:59), then it belongs to PREVIOUS DAY.
-            if ($hour < 5) {
-                return $dt->subDay()->toDateString();
-            }
+            // It's before 5 AM (e.g., 4:59 AM), so reporting_date is YESTERDAY
+            return $dt->subDay()->format('Y-m-d');
         }
-
-        return $dt->toDateString();
     }
 
     public function inventoryUser()
