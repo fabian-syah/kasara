@@ -199,33 +199,33 @@
                                 <!-- Single item row -->
                                 <tr v-else
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
-                                    <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
+                                    <td class="px-6 py-4 text-text-primary">{{ index + 1 }}</td>
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
-                                    <td class="px-6 py-4 font-mono text-xs">{{ item.order_no }}</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-text-primary">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
-                                    <td class="px-6 py-4">{{ item.customer_wa || item.customer_phone }}</td>
+                                    <td class="px-6 py-4 text-text-primary">{{ item.customer_wa || item.customer_phone }}</td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
                                             {{ categoryLabels[item.category] || item.category }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm">{{ item.product_names || '-' }}</td>
+                                    <td class="px-6 py-4 text-sm text-text-primary">{{ item.product_names || '-' }}</td>
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ item.imeis && item.imeis
                                         !== '-' ? item.imeis : '-' }}</td>
-                                    <td class="px-6 py-4 font-bold">{{ item.qty }}</td>
+                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
                                     <td class="px-6 py-4">
                                         <div v-if="item.transaction_pin" class="flex flex-col">
                                             <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
                                                 item.transaction_pin }}</span>
                                             <span v-if="item.notes"
-                                                class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                                class="text-[10px] text-text-primary truncate max-w-[150px]"
                                                 :title="item.notes">{{ item.notes }}</span>
                                         </div>
                                         <span v-else-if="item.notes"
-                                            class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                            class="text-[10px] text-text-primary truncate max-w-[150px]"
                                             :title="item.notes">{{ item.notes }}</span>
-                                        <span v-else class="text-text-secondary">-</span>
+                                        <span v-else class="text-text-primary">-</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"

@@ -228,8 +228,8 @@
                 <!-- Footer / Actions (hide on print) -->
                 <div class="p-4 bg-white border-t border-gray-100 flex gap-3 print:hidden shrink-0">
                     <button @click="close"
-                        class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-2xl hover:bg-gray-50 transition-colors">
-                        Tutup
+                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                        Tutup / Selesai
                     </button>
                     <button @click="printReceipt"
                         class="px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
@@ -355,17 +355,27 @@ const formatNumber = (value) => {
 /* PSTORE Receipt Paper Styles */
 .nota-paper,
 .nota-paper * {
-    color: #000 !important;
+    color: #000000 !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+.nota-paper h2 {
+    font-weight: 900 !important;
 }
 
 .nota-paper {
-    background-color: #fff !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
 }
 
 .nota-paper .text-gray-700,
 .nota-paper .text-gray-600,
 .nota-paper .text-gray-500 {
-    color: #374151 !important;
+    color: #000000 !important;
+    opacity: 1 !important;
 }
 
 .nota-paper .text-primary-700 {
