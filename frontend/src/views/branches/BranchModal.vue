@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue';
 import { X, Save, Building2, MapPin, Clock } from 'lucide-vue-next';
-import { branches as api } from '../../api/axios';
+import api, { branches } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { useEscapeKey } from '../../composables/useEscapeKey';
 
@@ -88,10 +88,10 @@ const save = async () => {
         };
 
         if (isEditing.value) {
-            await api.update(props.branch.id, payload);
+            await branches.update(props.branch.id, payload);
             toast.success('Cabang berhasil diperbarui');
         } else {
-            await api.create(payload);
+            await branches.create(payload);
             toast.success('Cabang berhasil ditambahkan');
         }
         emit('saved');
