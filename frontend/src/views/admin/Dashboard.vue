@@ -39,7 +39,7 @@ if (authStore.hasRole('admin_produk')) {
   dashboardRole.value = 'admin_produk';
 } else if (authStore.hasRole('online_shop') || authStore.hasRole('toko_online') || authStore.user?.online_shop_id) {
   dashboardRole.value = 'online_shop';
-} else if (authStore.hasRole('toko_offline') || authStore.hasRole('offline_shop') || authStore.hasRole('sales') || authStore.user?.branch_id) {
+} else if (authStore.hasRole('toko_offline') || authStore.hasRole('offline_shop') || authStore.user?.branch_id) {
   dashboardRole.value = 'toko_offline';
 }
 

@@ -10,7 +10,7 @@ export const ROLES = {
     LEADER: 'leader',
     DISTRIBUTOR: 'distributor',
     DISTRIBUTION: 'distribution',
-    SALES: 'sales',
+    SALES: 'toko_offline',
     INVENTORY: 'inventory',
     GUDANG: 'gudang',
     INVENTORY_KASIR: 'inventory_kasir',
@@ -26,7 +26,7 @@ export const ROLE_LABELS = {
     [ROLES.LEADER]: 'Leader',
     [ROLES.DISTRIBUTOR]: 'Distributor',
     [ROLES.DISTRIBUTION]: 'Distribution',
-    [ROLES.SALES]: 'Sales',
+    [ROLES.SALES]: 'Toko Offline',
     [ROLES.GUDANG]: 'Gudang',
     [ROLES.INVENTORY_KASIR]: 'Inventory & Kasir',
     [ROLES.TOKO_ONLINE]: 'Toko Online'

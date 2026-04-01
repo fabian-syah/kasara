@@ -50,7 +50,7 @@ class DowngradeController extends Controller
         try {
             return DB::transaction(function () use ($request, $user) {
                 // Pin Verification (if applicable)
-                if ($user->role === 'sales' && $user->pin_enabled && $request->transaction_pin !== $user->transaction_pin) {
+                if ($user->role === 'toko_offline' && $user->pin_enabled && $request->transaction_pin !== $user->transaction_pin) {
                     throw new \Exception('PIN Transaksi Salah');
                 }
 

@@ -29,7 +29,7 @@ class DashboardController extends Controller
             return $this->getOnlineShopStats($user);
         }
 
-        if ($user->branch_id || $user->hasRole('toko_offline') || $user->hasRole('offline_shop') || $user->hasRole('staff_cabang') || $user->hasRole('sales')) {
+        if ($user->branch_id || $user->hasRole('toko_offline') || $user->hasRole('offline_shop') || $user->hasRole('staff_cabang')) {
             return $this->getTokoOfflineStats($user);
         }
 
@@ -246,7 +246,7 @@ class DashboardController extends Controller
         }
 
         // Include both inventory and sales roles in the leaderboard
-        $leaderboardQuery = User::role(['inventory', 'sales'])->select('id', 'name', 'photo_inventory');
+        $leaderboardQuery = User::role(['inventory', 'toko_offline'])->select('id', 'name', 'photo_inventory');
 
         if ($user->online_shop_id) {
             $leaderboardQuery->where('online_shop_id', $user->online_shop_id);

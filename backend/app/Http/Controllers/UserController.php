@@ -36,7 +36,7 @@ class UserController extends Controller
             // Untuk role Toko Online, Sales, dll yang sifatnya "Individual" bukan Branch, 
             // maka hanya bisa melihat akun yang DIA BUAT SENDIRI (e.g. Inventory Account nya).
             // Atau dirinya sendiri.
-            if ($user->hasAnyRole(['toko_online', 'sales', 'inventory', 'leader_shopee'])) {
+            if ($user->hasAnyRole(['toko_online', 'toko_offline', 'inventory', 'leader_shopee'])) {
                 $query->where(function ($q) use ($user) {
                     // 1. Own accounts or Self
                     $q->where('created_by', $user->id)

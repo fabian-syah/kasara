@@ -815,7 +815,7 @@ class InventoryController extends Controller
         $user = Auth::user();
 
         // PIN Verification - Only for Sales role if enabled
-        if ($user->hasRole('sales') && $user->pin_enabled) {
+        if ($user->hasRole('toko_offline') && $user->pin_enabled) {
             if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
                 return response()->json([
                     'success' => false,
@@ -1139,7 +1139,7 @@ class InventoryController extends Controller
         $user = Auth::user();
 
         // PIN Verification - Only for Sales role if enabled
-        if ($user->hasRole('sales') && $user->pin_enabled) {
+        if ($user->hasRole('toko_offline') && $user->pin_enabled) {
             if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
                 return response()->json([
                     'success' => false,
@@ -1432,7 +1432,7 @@ class InventoryController extends Controller
         }
 
         $user = Auth::user();
-        $inventoryUsers = \App\Models\User::role(['inventory', 'sales'])
+        $inventoryUsers = \App\Models\User::role(['inventory', 'toko_offline'])
             ->with(['roles', 'createdBy' => function($q) {
                 $q->select('id', 'name', 'full_name');
             }])

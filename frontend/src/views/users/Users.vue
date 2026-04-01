@@ -156,7 +156,7 @@ const filteredRolesOptions = computed(() => {
 
   // Roles that an audit user can assign based on their own placements
   if (hasBranchAccess) {
-    ['sales', 'inventory_kasir', 'security', 'leader'].forEach(r => allowedRoles.add(r));
+    ['toko_offline', 'inventory_kasir', 'security', 'leader'].forEach(r => allowedRoles.add(r));
   }
   if (hasWarehouseAccess) {
     ['gudang', 'inventory'].forEach(r => allowedRoles.add(r));

@@ -151,7 +151,7 @@ onMounted(async () => {
         // Auto-select user account
         const userData = userRes.data.data || userRes.data;
         if (userData) {
-            if (userData.roles?.some(r => r.name === 'sales') && !userData.transaction_pin) {
+            if (userData.roles?.some(r => r.name === 'toko_offline') && !userData.transaction_pin) {
                 showInitialPinSetup.value = true;
             }
             const match = salesAccounts.value.find(acc => acc.name === userData.name || acc.id === userData.id);

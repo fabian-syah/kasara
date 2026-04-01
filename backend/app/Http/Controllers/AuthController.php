@@ -109,7 +109,7 @@ class AuthController extends Controller
     public function setPin(Request $request)
     {
         $user = $request->user();
-        if (!$user->hasRole('sales')) {
+        if (!$user->hasRole('toko_offline')) {
             return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
         }
         $request->validate(['transaction_pin' => 'required|string|size:4']);
@@ -122,7 +122,7 @@ class AuthController extends Controller
     public function updatePin(Request $request)
     {
         $user = $request->user();
-        if (!$user->hasRole('sales')) {
+        if (!$user->hasRole('toko_offline')) {
             return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
         }
         $request->validate([
@@ -140,7 +140,7 @@ class AuthController extends Controller
     public function togglePin(Request $request)
     {
         $user = $request->user();
-        if (!$user->hasRole('sales')) {
+        if (!$user->hasRole('toko_offline')) {
             return response()->json(['success' => false, 'message' => 'Hanya role Sales yang dapat menggunakan PIN.'], 403);
         }
         $request->validate(['transaction_pin' => 'required|string|size:4']);
@@ -155,7 +155,7 @@ class AuthController extends Controller
     public function verifyPin(Request $request)
     {
         $user = $request->user();
-        if (!$user->hasRole('sales')) {
+        if (!$user->hasRole('toko_offline')) {
             return response()->json(['success' => true]); // Non-sales always pass
         }
         $request->validate(['transaction_pin' => 'required|string|size:4']);

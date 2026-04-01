@@ -652,7 +652,7 @@ async function submitStockIn(pin = null) {
 
     // If user has PIN enabled and we don't have a verified PIN yet
     // PIN only required for Sales role
-    if (authStore.userRole === 'sales' && authStore.user?.pin_enabled && !pin) {
+    if (authStore.userRole === 'toko_offline' && authStore.user?.pin_enabled && !pin) {
         showPinModal.value = true;
         return;
     }
