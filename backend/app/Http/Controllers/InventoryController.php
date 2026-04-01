@@ -886,6 +886,7 @@ class InventoryController extends Controller
                                 'type' => 'non-hp'
                             ],
                             [
+                                'sku' => 'NHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
                                 'category' => 'NON HP / NON IMEI',
                                 'has_imei' => false,
                                 'price' => $item['selling_price'] ?? 0,
