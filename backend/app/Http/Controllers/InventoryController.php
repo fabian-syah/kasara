@@ -806,6 +806,7 @@ class InventoryController extends Controller
             'notes' => 'nullable|string|max:5000',
         ]);
 
+        $request->merge(['type' => strtolower($request->type)]);
         $user = Auth::user();
 
         // PIN Verification - Only for Sales role if enabled
@@ -847,7 +848,7 @@ class InventoryController extends Controller
                 $product = Product::find($request->product_id);
             }
 
-            if (!$product && $request->type === 'hp') {
+            if (!$product && strtolower($request->type) === 'hp') {
                 return response()->json(['message' => 'Produk tidak ditemukan. Pastikan nama Tipe sesuai.'], 404);
             }
 

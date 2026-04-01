@@ -87,6 +87,7 @@ const nonHpItems = ref([
         type_name: "", 
         quantity: 1, 
         selling_price: 0, 
+        selling_price_display: "",
         filteredTypes: [], 
         uniqueTypeNames: [],
         isLoadingTypes: false
@@ -99,10 +100,18 @@ const addNonHpItem = () => {
         type_name: "", 
         quantity: 1, 
         selling_price: 0, 
+        selling_price_display: "",
         filteredTypes: [], 
         uniqueTypeNames: [],
         isLoadingTypes: false
     });
+};
+
+const updateNonHpItemPrice = (index) => {
+    const item = nonHpItems.value[index];
+    const numeric = parseCurrency(item.selling_price_display);
+    item.selling_price = numeric;
+    item.selling_price_display = formatNumber(numeric);
 };
 
 const removeNonHpItem = (index) => {
@@ -650,74 +659,7 @@ async function submitStockIn(pin = null) {
 
     isSubmitting.value = true;
     try {
-        let productId = selectedProduct.value;
-        if (!productId && selectedTypeName.value) {
-            const brandObj = brands.value.find(b => b.id === selectedBrand.value);
-            const brandName = brandObj ? brandObj.name.toLowerCase().trim() : "";
-            const targetName = selectedTypeName.value.toLowerCase().trim();
-
-            // Fallback 1: Local Search (Strict)
-            let fallback = products.value.find(p => {
-                const pBrand = (p.brand || "").toLowerCase().trim();
-                const pName = p.name.toLowerCase().trim();
-                return pBrand === brandName && pName === targetName;
-            });
-
-            if (!fallback) {
-                try {
-                    const resp = await inventoryApi.getProductsLookup({
-                        type: 'hp',
-                        name: selectedTypeName.value
-                    });
-
-                    // Fallback 2: API Search (Strict Validation)
-                    if (resp.data.length > 0) {
-                        fallback = resp.data.find(p => {
-                            const pBrand = (p.brand || "").toLowerCase().trim();
-                            const pName = p.name.toLowerCase().trim();
-                            // Allow exact match OR if database name contains the target name AND brand matches
-                            // But strict brand match is mandatory
-                            return pBrand === brandName && pName === targetName;
-                        });
-                    }
-
-                    if (!fallback) {
-                        // AUTO CREATE PRODUCT
-                        const brandObjRaw = brands.value.find(b => b.id === selectedBrand.value);
-                        const brandNameRaw = brandObjRaw ? brandObjRaw.name : "Unknown";
-
-                        const createResp = await productsApi.create({
-                            name: selectedTypeName.value,
-                            brand: brandNameRaw,
-                            type: itemType.value,
-                            brand_id: !selectedProduct.value ? selectedBrand.value : null,
-                            type_name: !selectedProduct.value ? selectedTypeName.value : null,
-                            ram: selectedRam.value || null,
-                            storage: selectedStorage.value || null,
-                            category: itemType.value === 'hp' ? 'HP / Gadget' : 'NON HP / NON IMEI',
-                            has_imei: itemType.value === 'hp',
-                            sku: null
-                        });
-
-                        fallback = createResp.data;
-                        toast.success(`Produk pattern "${selectedTypeName.value}" otomatis dibuat.`);
-                    }
-                } catch (err) {
-                    console.error("API Lookup/Create failed", err);
-                    toast.error("Gagal membuat produk otomatis: " + (err.response?.data?.message || err.message));
-                    isSubmitting.value = false;
-                    return;
-                }
-            }
-            productId = fallback ? fallback.id : null;
-        }
-
-        if (!productId) {
-            toast.error("Produk tidak ditemukan. Pastikan nama Tipe sesuai.");
-            isSubmitting.value = false;
-            return;
-        }
-
+        let productId = null;
         const payload = {
             distributor_id: isManualDistributor.value ? null : selectedDistributor.value,
             new_distributor_name: isManualDistributor.value ? newDistributorName.value : null,
@@ -730,10 +672,70 @@ async function submitStockIn(pin = null) {
         };
 
         if (itemType.value === 'hp') {
+            productId = selectedProduct.value;
+            if (!productId && selectedTypeName.value) {
+                const brandObj = brands.value.find(b => b.id === selectedBrand.value);
+                const brandName = brandObj ? brandObj.name.toLowerCase().trim() : "";
+                const targetName = selectedTypeName.value.toLowerCase().trim();
+
+                let fallback = products.value.find(p => {
+                    const pBrand = (p.brand || "").toLowerCase().trim();
+                    const pName = p.name.toLowerCase().trim();
+                    return pBrand === brandName && pName === targetName;
+                });
+
+                if (!fallback) {
+                    try {
+                        const resp = await inventoryApi.getProductsLookup({
+                            type: 'hp',
+                            name: selectedTypeName.value
+                        });
+
+                        if (resp.data.length > 0) {
+                            fallback = resp.data.find(p => {
+                                const pBrand = (p.brand || "").toLowerCase().trim();
+                                const pName = p.name.toLowerCase().trim();
+                                return pBrand === brandName && pName === targetName;
+                            });
+                        }
+
+                        if (!fallback) {
+                            const brandObjRaw = brands.value.find(b => b.id === selectedBrand.value);
+                            const brandNameRaw = brandObjRaw ? brandObjRaw.name : "Unknown";
+
+                            const createResp = await productsApi.create({
+                                name: selectedTypeName.value,
+                                brand: brandNameRaw,
+                                type: 'hp',
+                                brand_id: selectedBrand.value,
+                                ram: selectedRam.value || null,
+                                storage: selectedStorage.value || null,
+                                category: 'HP / Gadget',
+                                has_imei: true,
+                                sku: null
+                            });
+                            fallback = createResp.data;
+                            toast.success(`Produk "${selectedTypeName.value}" otomatis dibuat.`);
+                        }
+                    } catch (err) {
+                        console.error("API Lookup/Create failed", err);
+                        toast.error("Gagal membuat produk otomatis: " + (err.response?.data?.message || err.message));
+                        isSubmitting.value = false;
+                        return;
+                    }
+                }
+                productId = fallback ? fallback.id : null;
+            }
+
+            if (!productId) {
+                toast.error("Produk tidak ditemukan. Pastikan nama Tipe sesuai.");
+                isSubmitting.value = false;
+                return;
+            }
+
             payload.product_id = productId;
             payload.ram = selectedRam.value;
             payload.storage = selectedStorage.value;
-            // Generate Array from Bulk Text
             payload.imeis = parsedImeis.value.map(imei => ({
                 imei: imei,
                 condition: batchDetails.value.condition,
@@ -1089,7 +1091,7 @@ onMounted(fetchInitialData);
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga Jual</label>
                                     <div class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">IDR</span>
-                                        <input v-model.number="item.selling_price" type="number" min="0" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold" />
+                                        <input v-model="item.selling_price_display" @input="updateNonHpItemPrice(idx)" type="text" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
                                     </div>
                                 </div>
                              </div>
