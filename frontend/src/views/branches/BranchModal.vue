@@ -46,7 +46,10 @@ watch(() => props.branch, (newVal) => {
             timezone: newVal.timezone || 'WIB',
             is_active: !!newVal.is_active, // Pastikan boolean
             type: newVal.type || props.type || 'physical',
-            payment_method_ids: newVal.payment_methods ? newVal.payment_methods.map(p => p.id) : []
+            // Default to all selected IF it's a new config (empty list) AND we have the methods loaded
+            payment_method_ids: (newVal.payment_methods && newVal.payment_methods.length > 0) 
+                ? newVal.payment_methods.map(p => p.id) 
+                : (allPaymentMethods.value.length > 0 ? allPaymentMethods.value.map(p => p.id) : [])
         };
     } else {
         resetForm();
@@ -57,6 +60,14 @@ onMounted(async () => {
     try {
         const res = await api.get('/payment-methods');
         allPaymentMethods.value = res.data.filter(p => p.is_active);
+        
+        // Re-apply defaults now that allPaymentMethods is populated
+        if (!isEditing.value) {
+            form.value.payment_method_ids = allPaymentMethods.value.map(p => p.id);
+        } else if (!props.branch.payment_methods || props.branch.payment_methods.length === 0) {
+            // ONLY check all if the branch has ZERO payment methods (first time config)
+            form.value.payment_method_ids = allPaymentMethods.value.map(p => p.id);
+        }
     } catch (e) {
         console.error("Gagal ambil metode pembayaran", e);
     }
