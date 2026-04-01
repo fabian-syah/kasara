@@ -846,59 +846,105 @@ class InventoryController extends Controller
 
             // 1. Handle Non-HP (Quantity Based)
             if ($request->type === 'non-hp') {
-                $inventory = Inventory::firstOrCreate(
-                    [
-                        'product_id' => $product->id,
-                        'placement_type' => $request->placement_type,
-                        'placement_id' => $request->placement_id,
-                        'user_id' => $ownerUserId // Separate inventory by user (account)
-                    ],
-                    ['quantity' => 0]
-                );
-
-                $inventory->increment('quantity', $request->quantity);
-
-                // Log
-                $log = InventoryLog::create([
-                    'product_id' => $product->id,
-                    'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
-                    'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
-                    'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
-                    'user_id' => $ownerUserId, // Use the Owner User ID (Inventory Account)
-                    'distributor_id' => $distributorId,
-                    'supplier_name' => $supplierName,
-                    'type' => 'in',
+                $items = $request->items ?? [[
+                    'product_id' => $request->product_id,
                     'quantity' => $request->quantity,
-                    'balance_after' => $inventory->quantity,
-                    'description' => "Stock In from " . ($supplierName ?: "Distributor"),
-                    'reference_id' => 'STOCK-IN-' . time(),
-                    'notes' => $request->notes,
-                ]);
+                    'selling_price' => $request->selling_price,
+                    // Brand/Type for auto-creation if product_id is null
+                    'brand_id' => $request->brand_id,
+                    'brand_name' => $request->brand_name,
+                    'type_name' => $request->type_name,
+                ]];
 
-                // Create StockOut Record for Audit Purposes (Manual Stock In)
-                $stockOutAudit = StockOut::create([
-                    'receipt_id' => 'IN-' . strtoupper(\Illuminate\Support\Str::random(6)),
-                    'category' => 'barang_masuk',
-                    'user_id' => Auth::id(),
-                    'inventory_user_id' => $ownerUserId,
-                    'status' => 'received',
-                    'notes' => $request->notes,
-                ]);
+                $results = [];
 
-                StockOutNonHpItem::create([
-                    'stock_out_id' => $stockOutAudit->id,
-                    'product_id' => $product->id,
-                    'quantity' => $request->quantity,
-                    'received_quantity' => $request->quantity,
-                    'selling_price' => $request->selling_price ?? $product->price ?? 0,
-                ]);
+                foreach ($items as $item) {
+                    $pId = $item['product_id'] ?? null;
+                    
+                    if (!$pId && !empty($item['type_name'])) {
+                        // AUTO CREATE PRODUCT IF NOT EXISTS
+                        $brandName = $item['brand_name'] ?? 'Unknown';
+                        $typeName = $item['type_name'];
+                        
+                        $prod = Product::firstOrCreate(
+                            [
+                                'name' => $typeName,
+                                'brand' => $brandName,
+                                'type' => 'non-hp'
+                            ],
+                            [
+                                'category' => 'NON HP / NON IMEI',
+                                'has_imei' => false,
+                                'price' => $item['selling_price'] ?? 0,
+                                'brand_id' => $item['brand_id'] ?? null
+                            ]
+                        );
+                        $pId = $prod->id;
+                    }
 
-                // Dispatch History Event
-                try {
-                    event(new \App\Events\InventoryLogEvent($log->load(['product', 'user', 'distributor'])));
-                } catch (\Exception $e) {
-                    \Log::error("Failed to broadcast InventoryLogEvent: " . $e->getMessage());
+                    if (!$pId) continue;
+
+                    $inventory = Inventory::firstOrCreate(
+                        [
+                            'product_id' => $pId,
+                            'placement_type' => $request->placement_type,
+                            'placement_id' => $request->placement_id,
+                            'user_id' => $ownerUserId
+                        ],
+                        ['quantity' => 0]
+                    );
+
+                    $quantity = $item['quantity'] ?? 1;
+                    $inventory->increment('quantity', $quantity);
+
+                    // Log
+                    $log = InventoryLog::create([
+                        'product_id' => $pId,
+                        'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
+                        'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
+                        'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
+                        'user_id' => $ownerUserId,
+                        'distributor_id' => $distributorId,
+                        'supplier_name' => $supplierName,
+                        'type' => 'in',
+                        'quantity' => $quantity,
+                        'balance_after' => $inventory->quantity,
+                        'description' => "Stock In Batch from " . ($supplierName ?: "Distributor"),
+                        'reference_id' => 'STOCK-IN-NHP-' . time() . '-' . $pId,
+                        'notes' => $request->notes,
+                    ]);
+
+                    // Audit StockOut Record
+                    $stockOutAudit = StockOut::create([
+                        'receipt_id' => 'IN-NHP-' . strtoupper(\Illuminate\Support\Str::random(6)),
+                        'category' => 'barang_masuk',
+                        'user_id' => Auth::id(),
+                        'inventory_user_id' => $ownerUserId,
+                        'status' => 'received',
+                        'notes' => $request->notes,
+                    ]);
+
+                    StockOutNonHpItem::create([
+                        'stock_out_id' => $stockOutAudit->id,
+                        'product_id' => $pId,
+                        'quantity' => $quantity,
+                        'received_quantity' => $quantity,
+                        'selling_price' => $item['selling_price'] ?? 0,
+                    ]);
+
+                    $results[] = $inventory->load(['product', 'user']);
                 }
+
+                DB::commit();
+
+                // Dispatch events outside transaction
+                foreach ($results as $inv) {
+                    try {
+                        event(new \App\Events\StockInEvent($inv));
+                    } catch (\Exception $e) { \Log::error("Event fail: " . $e->getMessage()); }
+                }
+
+                return response()->json(['message' => 'Multiple stock in successful', 'count' => count($results)], 201);
             }
 
             // 2. Handle HP (IMEI Based)

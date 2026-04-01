@@ -80,6 +80,53 @@ const imeiRows = ref([
 ]);
 const nonHpForm = ref({ quantity: 1 });
 
+// NEW: Sub-form for Multiple Non-HP Items
+const nonHpItems = ref([
+    { 
+        brand_id: null, 
+        type_name: "", 
+        quantity: 1, 
+        selling_price: 0, 
+        filteredTypes: [], 
+        uniqueTypeNames: [],
+        isLoadingTypes: false
+    }
+]);
+
+const addNonHpItem = () => {
+    nonHpItems.value.push({ 
+        brand_id: null, 
+        type_name: "", 
+        quantity: 1, 
+        selling_price: 0, 
+        filteredTypes: [], 
+        uniqueTypeNames: [],
+        isLoadingTypes: false
+    });
+};
+
+const removeNonHpItem = (index) => {
+    if (nonHpItems.value.length > 1) {
+        nonHpItems.value.splice(index, 1);
+    }
+};
+
+const handleBrandChangeNonHp = (index) => {
+    const item = nonHpItems.value[index];
+    item.type_name = "";
+    if (!item.brand_id) {
+        item.filteredTypes = [];
+        item.uniqueTypeNames = [];
+        return;
+    }
+    
+    // Filter types locally based on brand_id
+    item.filteredTypes = allowedTypes.value.filter(t => 
+        t.brand_id === item.brand_id && !isImeiCategory(t.category)
+    );
+    item.uniqueTypeNames = Array.from(new Set(item.filteredTypes.map(t => t.name)));
+};
+
 // --- REFACTORED: Single Bulk Input Logic ---
 const bulkImeiText = ref("");
 const batchDetails = ref({
@@ -401,18 +448,17 @@ const sellingPriceDisplay = computed({
 
 
 const canSubmit = computed(() => {
-    if (!selectedTypeName.value) return false;
-
     if (itemType.value === 'hp') {
+        if (!selectedTypeName.value) return false;
         if (!selectedCapacity.value) return false;
-        // Check if we have at least one valid IMEI in the bulk text
         if (parsedImeis.value.length === 0) return false;
-        // Check prices - Selling Price is REQUIRED (Visual * added)
         if (batchDetails.value.selling_price <= 0) return false;
-
         return true;
     }
-    return nonHpForm.value.quantity > 0;
+
+    // For Non-HP multiple items
+    if (nonHpItems.value.length === 0) return false;
+    return nonHpItems.value.every(item => item.brand_id && item.type_name && item.quantity > 0);
 });
 
 // CARI DAN GANTI FUNGSI submitStockIn AGAR SELALU KIRIM ID MESKIPUN MAPPING
@@ -673,12 +719,10 @@ async function submitStockIn(pin = null) {
         }
 
         const payload = {
-            product_id: productId,
             distributor_id: isManualDistributor.value ? null : selectedDistributor.value,
             new_distributor_name: isManualDistributor.value ? newDistributorName.value : null,
             type: itemType.value,
             placement_type: placementType.value,
-            placement_id: placementId.value,
             placement_id: placementId.value,
             inventory_user_id: selectedInventoryUserId.value,
             notes: notes.value,
@@ -686,6 +730,7 @@ async function submitStockIn(pin = null) {
         };
 
         if (itemType.value === 'hp') {
+            payload.product_id = productId;
             payload.ram = selectedRam.value;
             payload.storage = selectedStorage.value;
             // Generate Array from Bulk Text
@@ -699,7 +744,17 @@ async function submitStockIn(pin = null) {
                 storage: ""
             }));
         } else {
-            payload.quantity = nonHpForm.value.quantity;
+            // NEW: Multi-item Non-HP
+            payload.items = nonHpItems.value.map(item => {
+                const brandObj = brands.value.find(b => b.id === item.brand_id);
+                return {
+                    brand_name: brandObj ? brandObj.name : "",
+                    brand_id: item.brand_id,
+                    type_name: item.type_name,
+                    quantity: item.quantity,
+                    selling_price: item.selling_price || 0
+                };
+            });
         }
 
         const response = await inventoryApi.stockIn(payload);
@@ -936,104 +991,117 @@ onMounted(fetchInitialData);
                         selectedDistributorName }}</span></div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-5 bg-surface-900/50 p-8 rounded-3xl border border-surface-700">
-                    <div><label class="label text-[10px] uppercase">Merk <span
-                                class="text-red-500">*</span></label><select v-model="selectedBrand"
-                            class="input bg-surface-900">
-                            <option :value="null">-- Pilih Merk --</option>
-                            <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
-                        </select></div>
-                    <div><label class="label text-[10px] uppercase">Tipe <span
-                                class="text-red-500">*</span></label><select v-model="selectedTypeName"
-                            :disabled="!selectedBrand" class="input bg-surface-900 disabled:opacity-30">
-                            <option value="">-- Pilih Tipe --</option>
-                            <option v-for="n in uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
-                        </select></div>
+                <div class="space-y-6">
+                    <!-- HP MODE: Single Product Selection + Batch Details + Multiple IMEIs -->
+                    <div v-if="itemType === 'hp'" class="space-y-6">
+                        <div class="grid grid-cols-2 gap-5 bg-surface-900/50 p-8 rounded-3xl border border-surface-700">
+                             <div><label class="label text-[10px] uppercase">Merk <span
+                                         class="text-red-500">*</span></label><select v-model="selectedBrand"
+                                     class="input bg-surface-900">
+                                     <option :value="null">-- Pilih Merk --</option>
+                                     <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                 </select></div>
+                             <div><label class="label text-[10px] uppercase">Tipe <span
+                                         class="text-red-500">*</span></label><select v-model="selectedTypeName"
+                                     :disabled="!selectedBrand" class="input bg-surface-900 disabled:opacity-30">
+                                     <option value="">-- Pilih Tipe --</option>
+                                     <option v-for="n in uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
+                                 </select></div>
 
-                    <!-- Kapasitas (HP Only) -->
-                    <div v-if="itemType === 'hp'"><label class="label text-[10px] uppercase">Kapasitas</label><select
-                            v-model="selectedCapacity" :disabled="!selectedTypeName"
-                            class="input bg-surface-900 disabled:opacity-30">
-                            <option value="">-- Semua --</option>
-                            <option v-for="c in availableSpecs.combinations" :key="c" :value="c">{{ c }}</option>
-                        </select>
-                    </div>
-
-                    <!-- Quantity (Non-HP Only) -->
-                    <div v-if="itemType === 'non-hp'">
-                        <label class="label text-[10px] uppercase">Jumlah Stok (Pcs/Unit) <span
-                                class="text-red-500">*</span></label>
-                        <input v-model.number="nonHpForm.quantity" type="number" min="1"
-                            class="input bg-surface-900 h-[42px]" placeholder="Jumlah..." />
-                    </div>
-
-                    <div v-if="!selectedProduct && selectedTypeName"
-                        class="col-span-full text-green-400 text-[10px] animate-pulse">
-                        <CheckCircle :size="12" class="inline mr-1" /> Lanjutkan.
-                    </div>
-                </div>
-
-                <div v-if="itemType === 'hp'" class="space-y-6">
-                    <!-- Global Settings for Batch -->
-                    <div
-                        class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-surface-900/50 p-6 rounded-3xl border border-surface-700">
-                        <div>
-                            <label class="label text-[10px] uppercase">Kondisi (Batch) <span
-                                    class="text-red-500">*</span></label>
-                            <select v-model="batchDetails.condition" class="input bg-surface-900 h-12 text-sm">
-                                <option value="new">Baru</option>
-                                <option value="second">Bekas</option>
-                                <option v-if="selectedBrand === 1" value="ex_ibox">Ex iBox (Khusus iPhone)</option>
-                            </select>
+                             <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas</label><select
+                                     v-model="selectedCapacity" :disabled="!selectedTypeName"
+                                     class="input bg-surface-900 disabled:opacity-30">
+                                     <option value="">-- Semua --</option>
+                                     <option v-for="c in availableSpecs.combinations" :key="c" :value="c">{{ c }}</option>
+                                 </select>
+                             </div>
                         </div>
-                        <div>
-                            <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
-                            <div
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
-                                <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                <input v-model="costPriceDisplay" type="text"
-                                    class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary"
-                                    placeholder="0" />
+
+                        <!-- Global Settings for Batch HP -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-surface-900/50 p-6 rounded-3xl border border-surface-700">
+                            <div>
+                                <label class="label text-[10px] uppercase">Kondisi (Batch) <span
+                                        class="text-red-500">*</span></label>
+                                <select v-model="batchDetails.condition" class="input bg-surface-900 h-12 text-sm">
+                                    <option value="new">Baru</option>
+                                    <option value="second">Bekas</option>
+                                    <option v-if="selectedBrand === 1" value="ex_ibox">Ex iBox (Khusus iPhone)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
+                                <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
+                                    <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
+                                    <input v-model="costPriceDisplay" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" placeholder="0" />
+                                </div>
+                            </div>
+                            <div class="col-span-full md:col-span-1">
+                                <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span class="text-red-500">*</span></label>
+                                <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
+                                    <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
+                                    <input v-model="sellingPriceDisplay" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span
-                                    class="text-red-500">*</span></label>
-                            <div
-                                class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
-                                <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                <input v-model="sellingPriceDisplay" type="text"
-                                    class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary"
-                                    :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
-                            </div>
+
+                        <!-- Multi IMEI Field -->
+                        <div class="space-y-2">
+                            <label class="label text-sm uppercase font-bold flex justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span>Input IMEI (Scan / Copy-Paste)</span>
+                                    <span class="text-red-500">*</span>
+                                </div>
+                                <span class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total: {{ parsedImeis.length }} items</span>
+                            </label>
+                            <textarea v-model="bulkImeiText" rows="8" class="input bg-surface-900 font-mono text-sm leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500 transition-all placeholder:text-text-secondary/30" placeholder="Contoh: &#10;123456789012345&#10;987654321098765&#10;Paste banyak IMEI sekaligus disini..."></textarea>
+                            <p class="text-[10px] text-text-secondary flex items-center gap-1">
+                                <CheckCircle2 :size="12" class="text-emerald-500" /> Otomatis memisahkan spasi, koma, enter, atau strip.
+                            </p>
                         </div>
                     </div>
 
-                    <!-- Notes Field -->
-                    <div class="space-y-2">
-                        <label class="label text-[10px] uppercase">Catatan / Keterangan (Opsional)</label>
-                        <textarea v-model="notes" rows="2" class="input bg-surface-900 h-24 text-sm p-3 resize-none"
-                            placeholder="Tambahkan catatan untuk stok masuk ini..."></textarea>
+                    <!-- NON-HP MODE: Multiple Product Table Selection -->
+                    <div v-if="itemType === 'non-hp'" class="space-y-4">
+                        <div class="flex items-center justify-between px-2">
+                            <label class="text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Daftar Barang Non-HP / Aksesoris</label>
+                            <button @click="addNonHpItem" class="text-[10px] font-black text-primary-500 hover:text-primary-400 flex items-center gap-1 uppercase transition-all">
+                                <Plus :size="14" /> Tambah Baris
+                            </button>
+                        </div>
+
+                        <div v-for="(item, idx) in nonHpItems" :key="idx" class="bg-surface-800/30 p-5 rounded-2xl border border-surface-700 relative group animate-in slide-in-from-right duration-300">
+                             <button v-if="nonHpItems.length > 1" @click="removeNonHpItem(idx)" class="absolute -top-2 -right-2 w-7 h-7 bg-red-500/80 hover:bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"><Trash2 :size="14" /></button>
+                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                                <div class="md:col-span-3">
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk</label>
+                                    <select v-model="item.brand_id" @change="handleBrandChangeNonHp(idx)" class="input bg-surface-900 text-xs h-10 px-3"><option :value="null">-- Merk --</option><option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option></select>
+                                </div>
+                                <div class="md:col-span-4">
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama Barang</label>
+                                    <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..." class="input bg-surface-900 text-xs h-10 px-3 disabled:opacity-30 font-bold" list="type-options" />
+                                    <datalist id="type-options"><option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option></datalist>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">QTY</label>
+                                    <input v-model.number="item.quantity" type="number" min="1" class="input bg-surface-900 text-xs h-10 text-center px-2 font-bold" />
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga Jual</label>
+                                    <div class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
+                                        <span class="text-[9px] text-text-secondary mr-1 font-black">IDR</span>
+                                        <input v-model.number="item.selling_price" type="number" min="0" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold" />
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+
+                        <button @click="addNonHpItem" class="w-full py-4 border-2 border-dashed border-surface-700/50 rounded-2xl text-text-secondary hover:text-primary-500 hover:border-primary-500 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest bg-surface-900/10 active:scale-95"><Plus :size="18" /> Klik Disini Untuk Tambah Item Lain</button>
                     </div>
 
-                    <!-- Single Bulk Textarea -->
-                    <div class="space-y-2">
-                        <label class="label text-sm uppercase font-bold flex justify-between">
-                            <div class="flex items-center gap-2">
-                                <span>Input IMEI (Scan / Copy-Paste)</span>
-                                <span class="text-red-500">*</span>
-                            </div>
-                            <span
-                                class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
-                                {{ parsedImeis.length }} items</span>
-                        </label>
-                        <textarea v-model="bulkImeiText" rows="8"
-                            class="input bg-surface-900 font-mono text-sm leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500 transition-all placeholder:text-text-secondary/30"
-                            placeholder="Contoh: &#10;123456789012345&#10;987654321098765&#10;Paste banyak IMEI sekaligus disini..."></textarea>
-                        <p class="text-[10px] text-text-secondary flex items-center gap-1">
-                            <CheckCircle2 :size="12" class="text-emerald-500" />
-                            Otomatis memisahkan spasi, koma, enter, atau strip.
-                        </p>
+                    <!-- Shared Notes Field -->
+                    <div class="space-y-2 pt-4 border-t border-surface-700/50">
+                        <label class="label text-[10px] uppercase font-black opacity-60">Catatan Transaksi (Opsional)</label>
+                        <textarea v-model="notes" rows="2" class="input bg-surface-900 h-16 text-sm p-3 resize-none border-surface-700" placeholder="Keterangan tambahan untuk batch ini..."></textarea>
                     </div>
                 </div>
             </div>
