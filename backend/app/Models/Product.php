@@ -21,6 +21,7 @@ class Product extends Model
         'description',
         'category',
         'brand',
+        'brand_id',
         'image',
         'is_active',
     ];
@@ -40,5 +41,10 @@ class Product extends Model
     public function inventories()
     {
         return $this->hasMany(Inventory::class);
+    }
+
+    public function brandRelation()
+    {
+        return $this->belongsTo(Brand::class, 'brand_id');
     }
 }

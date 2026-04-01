@@ -842,7 +842,14 @@ class InventoryController extends Controller
             if (!$distributorId && !$supplierName) {
                 throw new \Exception("Distributor harus dipilih atau diisi manual.");
             }
-            $product = Product::findOrFail($request->product_id);
+            $product = null;
+            if ($request->product_id) {
+                $product = Product::find($request->product_id);
+            }
+
+            if (!$product && $request->type === 'hp') {
+                return response()->json(['message' => 'Produk tidak ditemukan. Pastikan nama Tipe sesuai.'], 404);
+            }
 
             // 1. Handle Non-HP (Quantity Based)
             if ($request->type === 'non-hp') {
