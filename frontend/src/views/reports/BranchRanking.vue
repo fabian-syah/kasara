@@ -164,8 +164,12 @@ const remainingRanking = computed(() => {
                     <div class="mt-6 text-center">
                         <h3 class="font-bold text-lg text-text-primary">{{ top3[1].name }}</h3>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{{ top3[1].type }} Branch</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg mb-2">
                             <span class="text-xl font-black text-slate-400">{{ formatCurrency(top3[1].omset) }}</span>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <span class="text-[10px] font-bold bg-primary-500/10 text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20">iP: {{ top3[1].iphone_count }}</span>
+                            <span class="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">And: {{ top3[1].android_count }}</span>
                         </div>
                     </div>
                     <div class="w-full h-32 mt-6 bg-gradient-to-t from-surface-800 to-surface-800/40 rounded-t-2xl border-x border-t border-surface-700/50"></div>
@@ -184,8 +188,12 @@ const remainingRanking = computed(() => {
                     <div class="mt-6 text-center">
                         <h3 class="font-black text-2xl text-text-primary">{{ top3[0].name }}</h3>
                         <p class="text-xs font-black text-primary-500 uppercase tracking-widest mt-1">{{ top3[0].type }} Branch</p>
-                        <div class="mt-4 px-6 py-3 bg-primary-500/10 rounded-2xl border-2 border-primary-500/20 shadow-xl">
+                        <div class="mt-4 px-6 py-3 bg-primary-500/10 rounded-2xl border-2 border-primary-500/20 shadow-xl mb-3">
                             <span class="text-2xl font-black text-primary-400">{{ formatCurrency(top3[0].omset) }}</span>
+                        </div>
+                        <div class="flex gap-3 justify-center mb-1">
+                            <span class="text-xs font-black bg-primary-500/10 text-primary-400 px-3 py-1 rounded-full border border-primary-500/20">iPhone: {{ top3[0].iphone_count }}</span>
+                            <span class="text-xs font-black bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">Android: {{ top3[0].android_count }}</span>
                         </div>
                     </div>
                     <div class="w-full h-44 mt-6 bg-gradient-to-t from-primary-500/20 to-primary-500/5 rounded-t-3xl border-x border-t border-primary-500/30 relative overflow-hidden">
@@ -205,8 +213,12 @@ const remainingRanking = computed(() => {
                     <div class="mt-6 text-center">
                         <h3 class="font-bold text-text-primary">{{ top3[2].name }}</h3>
                         <p class="text-[10px] font-bold text-amber-700 uppercase tracking-widest mt-1">{{ top3[2].type }} Branch</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg mb-2">
                             <span class="text-lg font-black text-amber-700">{{ formatCurrency(top3[2].omset) }}</span>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <span class="text-[10px] font-bold bg-primary-500/10 text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20">iP: {{ top3[2].iphone_count }}</span>
+                            <span class="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">And: {{ top3[2].android_count }}</span>
                         </div>
                     </div>
                     <div class="w-full h-24 mt-6 bg-gradient-to-t from-surface-800 to-surface-800/40 rounded-t-2xl border-x border-t border-surface-700/50"></div>
@@ -234,7 +246,8 @@ const remainingRanking = computed(() => {
                                 <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700">Rank</th>
                                 <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700">Cabang</th>
                                 <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700">Tipe</th>
-                                <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700 text-center">Transaksi</th>
+                                <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700 text-center">Iphone</th>
+                                <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700 text-center">Android</th>
                                 <th class="px-8 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-700 text-right">Total Omset</th>
                             </tr>
                         </thead>
@@ -267,7 +280,10 @@ const remainingRanking = computed(() => {
                                     </span>
                                 </td>
                                 <td class="px-8 py-5 border-b border-surface-800/50 text-center">
-                                    <span class="text-sm font-bold text-text-secondary group-hover:text-text-primary">{{ formatNumber(item.transaction_count) }}</span>
+                                    <span class="text-sm font-bold text-primary-400 group-hover:text-primary-300">{{ formatNumber(item.iphone_count) }}</span>
+                                </td>
+                                <td class="px-8 py-5 border-b border-surface-800/50 text-center">
+                                    <span class="text-sm font-bold text-emerald-400 group-hover:text-emerald-300">{{ formatNumber(item.android_count) }}</span>
                                 </td>
                                 <td class="px-8 py-5 border-b border-surface-800/50 text-right">
                                     <div class="flex flex-col items-end">
@@ -280,7 +296,7 @@ const remainingRanking = computed(() => {
                                 </td>
                             </tr>
                             <tr v-if="filteredRanking.length === 0">
-                                <td colspan="5" class="px-8 py-20 text-center space-y-3">
+                                <td colspan="6" class="px-8 py-20 text-center space-y-3">
                                     <div class="flex justify-center">
                                         <Search class="w-12 h-12 text-surface-700" />
                                     </div>

@@ -404,8 +404,8 @@ class ReportController extends Controller
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
-        // 1. Get Offline Branches Stats
-        $branchStats = DB::table('branches')
+        // 1. Get Base Stats (Omset & Transaction Count)
+        $branchBase = DB::table('branches')
             ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
                 $join->on('users.id', '=', 'stock_outs.user_id')
@@ -416,16 +416,49 @@ class ReportController extends Controller
             })
             ->select(
                 'branches.id',
-                'branches.name',
-                DB::raw("'Offline' as type"),
                 DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset'),
-                DB::raw('COUNT(stock_outs.id) as transaction_count')
+                DB::raw('COUNT(DISTINCT stock_outs.id) as transaction_count')
             )
-            ->groupBy('branches.id', 'branches.name')
-            ->get();
+            ->groupBy('branches.id')
+            ->get()->keyBy('id');
 
-        // 2. Get Online Shop Stats
-        $onlineStats = DB::table('online_shops')
+        // 2. Get Item Counts (Iphone vs Android)
+        $branchItemCounts = DB::table('branches')
+            ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
+            ->join('stock_outs', 'users.id', '=', 'stock_outs.user_id')
+            ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+            ->join('products', 'product_details.product_id', '=', 'products.id')
+            ->whereIn('stock_outs.category', $salesCategories)
+            ->whereNull('stock_outs.deleted_at')
+            ->where('products.type', 'hp')
+            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
+            ->select(
+                'branches.id',
+                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) LIKE '%iphone%' OR LOWER(products.brand) LIKE '%apple%') THEN 1 END) as iphone_count"),
+                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) NOT LIKE '%iphone%' AND LOWER(products.brand) NOT LIKE '%apple%') THEN 1 END) as android_count")
+            )
+            ->groupBy('branches.id')
+            ->get()->keyBy('id');
+
+        $branches = DB::table('branches')->get();
+        $branchStats = $branches->map(function($b) use ($branchBase, $branchItemCounts) {
+            $base = $branchBase[$b->id] ?? null;
+            $items = $branchItemCounts[$b->id] ?? null;
+            return (object) [
+                'id' => $b->id,
+                'name' => $b->name,
+                'type' => 'Offline',
+                'omset' => $base ? (float) $base->omset : 0,
+                'transaction_count' => $base ? (int) $base->transaction_count : 0,
+                'iphone_count' => $items ? (int) $items->iphone_count : 0,
+                'android_count' => $items ? (int) $items->android_count : 0
+            ];
+        });
+
+        // 3. Get Online Shop Stats
+        $onlineBase = DB::table('online_shops')
             ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
             ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
                 $join->on('users.id', '=', 'stock_outs.user_id')
@@ -436,19 +469,47 @@ class ReportController extends Controller
             })
             ->select(
                 'online_shops.id',
-                'online_shops.name',
-                DB::raw("'Online' as type"),
                 DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset'),
-                DB::raw('COUNT(stock_outs.id) as transaction_count')
+                DB::raw('COUNT(DISTINCT stock_outs.id) as transaction_count')
             )
-            ->groupBy('online_shops.id', 'online_shops.name')
-            ->get();
+            ->groupBy('online_shops.id')
+            ->get()->keyBy('id');
+
+        $onlineItemCounts = DB::table('online_shops')
+            ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
+            ->join('stock_outs', 'users.id', '=', 'stock_outs.user_id')
+            ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+            ->join('products', 'product_details.product_id', '=', 'products.id')
+            ->whereIn('stock_outs.category', $salesCategories)
+            ->whereNull('stock_outs.deleted_at')
+            ->where('products.type', 'hp')
+            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
+            ->select(
+                'online_shops.id',
+                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) LIKE '%iphone%' OR LOWER(products.brand) LIKE '%apple%') THEN 1 END) as iphone_count"),
+                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) NOT LIKE '%iphone%' AND LOWER(products.brand) NOT LIKE '%apple%') THEN 1 END) as android_count")
+            )
+            ->groupBy('online_shops.id')
+            ->get()->keyBy('id');
+
+        $shops = DB::table('online_shops')->get();
+        $onlineStats = $shops->map(function($s) use ($onlineBase, $onlineItemCounts) {
+            $base = $onlineBase[$s->id] ?? null;
+            $items = $onlineItemCounts[$s->id] ?? null;
+            return (object) [
+                'id' => $s->id,
+                'name' => $s->name,
+                'type' => 'Online',
+                'omset' => $base ? (float) $base->omset : 0,
+                'transaction_count' => $base ? (int) $base->transaction_count : 0,
+                'iphone_count' => $items ? (int) $items->iphone_count : 0,
+                'android_count' => $items ? (int) $items->android_count : 0
+            ];
+        });
 
         $report = $branchStats->concat($onlineStats)
-            ->map(function($item) {
-                $item->omset = (float) $item->omset;
-                return $item;
-            })
             ->sortByDesc('omset')
             ->values();
 
