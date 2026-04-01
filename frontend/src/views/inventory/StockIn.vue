@@ -1080,8 +1080,8 @@ onMounted(fetchInitialData);
                                 </div>
                                 <div class="md:col-span-4">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama Barang</label>
-                                    <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..." class="input bg-surface-900 text-xs h-10 px-3 disabled:opacity-30 font-bold" list="type-options" />
-                                    <datalist id="type-options"><option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option></datalist>
+                                    <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..." class="input bg-surface-900 text-xs h-10 px-3 disabled:opacity-30 font-bold" :list="'type-options-' + idx" />
+                                    <datalist :id="'type-options-' + idx"><option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option></datalist>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">QTY</label>
