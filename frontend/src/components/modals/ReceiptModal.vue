@@ -236,11 +236,11 @@
                         <Printer :size="18" />
                         Cetak
                     </button>
-                    <button @click="shareToWhatsApp"
+                    <!-- <button @click="shareToWhatsApp"
                         class="flex-1 px-4 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
                         <MessageSquare :size="18" />
                         Kirim WA
-                    </button>
+                    </button> -->
                 </div>
             </div>
         </div>
@@ -276,14 +276,14 @@ const isGeneratingPDF = ref(false);
 
 // Auto-send if prop is true and modal opens
 import { watch } from 'vue';
-watch(() => props.isOpen, (newVal) => {
+/* watch(() => props.isOpen, (newVal) => {
     if (newVal && props.autoSend) {
         // Short delay to ensure DOM is ready
         setTimeout(() => {
             shareToWhatsApp(true); // isAuto = true
         }, 500);
     }
-}, { immediate: true });
+}, { immediate: true }); */
 
 const printReceipt = () => {
     window.print();

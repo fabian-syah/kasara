@@ -61,7 +61,7 @@
             <div
                 class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
                 <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Total Penjualan</p>
-                <p class="text-2xl font-bold text-text-primary mt-1">{{ totalSales }}</p>
+                <p class="text-2xl font-bold text-text-primary mt-1">{{ formatCurrency(totalSales) }}</p>
             </div>
             <div
                 class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
@@ -71,12 +71,12 @@
             <div
                 class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
                 <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Lunas</p>
-                <p class="text-2xl font-bold text-emerald-500 mt-1">{{ totalLunas }}</p>
+                <p class="text-2xl font-bold text-emerald-500 mt-1">{{ formatCurrency(totalLunas) }}</p>
             </div>
             <div
                 class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
                 <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Belum Lunas</p>
-                <p class="text-2xl font-bold text-amber-500 mt-1">{{ totalBelumLunas }}</p>
+                <p class="text-2xl font-bold text-amber-500 mt-1">{{ formatCurrency(totalBelumLunas) }}</p>
             </div>
         </div>
 
@@ -470,10 +470,18 @@ const formattedDateDisplay = computed(() => {
 })
 
 // Summary stats
-const totalSales = computed(() => salesRecords.value.daily_sales.length)
+const totalSales = computed(() => salesRecords.value.daily_sales.reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
 const totalUnits = computed(() => salesRecords.value.daily_sales.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
-const totalLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status === 'Lunas').length)
-const totalBelumLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status !== 'Lunas').length)
+const totalLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status === 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
+const totalBelumLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status !== 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
+
+const formatCurrency = (val) => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(val || 0);
+}
 
 const handlePeriodChange = () => {
     if (selectedPeriod.value === 'daily') {
