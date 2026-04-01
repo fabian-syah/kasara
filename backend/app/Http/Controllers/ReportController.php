@@ -565,7 +565,6 @@ class ReportController extends Controller
         });
 
         $report = $branchStats->concat($onlineStats)
-            ->filter(fn($item) => $item->omset > 0) // Hide 0 omzet
             ->sortByDesc('omset')
             ->values();
 
