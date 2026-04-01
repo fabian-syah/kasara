@@ -23,7 +23,7 @@ class BranchController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $query->latest()->get()
+            'data' => $query->with('paymentMethods')->latest()->get()
         ]);
     }
 
@@ -44,9 +44,17 @@ class BranchController extends Controller
 
         $branch = Branch::create($validated);
 
+        // Sync payment methods if provided, otherwise sync all active ones as default
+        if ($request->has('payment_method_ids')) {
+            $branch->paymentMethods()->sync($request->payment_method_ids);
+        } else {
+            $allMethods = \App\Models\PaymentMethod::where('is_active', true)->pluck('id');
+            $branch->paymentMethods()->sync($allMethods);
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $branch
+            'data' => $branch->load('paymentMethods')
         ], 201);
     }
 
@@ -72,7 +80,11 @@ class BranchController extends Controller
 
         $branch->update($validated);
 
-        return response()->json(['success' => true, 'data' => $branch]);
+        if ($request->has('payment_method_ids')) {
+            $branch->paymentMethods()->sync($request->payment_method_ids);
+        }
+
+        return response()->json(['success' => true, 'data' => $branch->load('paymentMethods')]);
     }
 
     public function destroy(Branch $branch)

@@ -32,4 +32,9 @@ class Branch extends Model
     {
         return $query->where('type', 'physical');
     }
+
+    public function paymentMethods()
+    {
+        return $this->belongsToMany(PaymentMethod::class, 'branch_payment_method');
+    }
 }

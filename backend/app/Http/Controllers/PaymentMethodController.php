@@ -7,11 +7,31 @@ use Illuminate\Http\Request;
 
 class PaymentMethodController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Simple list, ordered by active then name
+        $query = PaymentMethod::query();
+        $branchId = $request->branch_id;
+
+        // If no branch_id in request, check if user is assigned to a branch
+        if (!$branchId && auth()->check() && auth()->user()->branch_id) {
+            $branchId = auth()->user()->branch_id;
+        }
+
+        if ($branchId) {
+            // Check if this branch has ANY payment methods assigned
+            $hasSpecificMethods = \Illuminate\Support\Facades\DB::table('branch_payment_method')
+                ->where('branch_id', $branchId)
+                ->exists();
+
+            if ($hasSpecificMethods) {
+                $query->whereHas('branches', function ($q) use ($branchId) {
+                    $q->where('branches.id', $branchId);
+                });
+            }
+        }
+
         return response()->json(
-            PaymentMethod::orderBy('is_active', 'desc')
+            $query->where('is_active', true)
                 ->orderBy('name', 'asc')
                 ->get()
         );

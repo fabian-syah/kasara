@@ -256,6 +256,7 @@ const top3 = computed(() => {
                             </div>
                         </div>
 
+<!-- 
                         <div class="flex gap-12 justify-center mt-10">
                             <div class="text-center">
                                 <p class="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-2">Unit
@@ -274,6 +275,7 @@ const top3 = computed(() => {
                                 </div>
                             </div>
                         </div>
+-->
                     </div>
                 </div>
 
@@ -333,12 +335,14 @@ const top3 = computed(() => {
                                     <th
                                         class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
                                         Unit Bisnis</th>
+<!-- 
                                     <th
                                         class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-center">
                                         iPhone Unit</th>
                                     <th
                                         class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-center">
                                         Android & Terlaris</th>
+-->
                                     <th
                                         class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
                                         Hasil Omset</th>
@@ -373,11 +377,14 @@ const top3 = computed(() => {
                                             </div>
                                         </div>
                                     </td>
+<!-- 
                                     <td class="px-8 py-7 text-center">
                                         <span
                                             class="text-base font-black text-text-primary font-mono bg-primary-500/5 px-4 py-1 rounded-xl border border-primary-500/10 group-hover:bg-primary-500/10 transition-colors">{{
                                             formatNumber(item.iphone_count) }}</span>
                                     </td>
+-->
+<!-- 
                                     <td class="px-8 py-7">
                                         <div class="flex flex-col items-center">
                                             <span
@@ -391,6 +398,7 @@ const top3 = computed(() => {
                                             </div>
                                         </div>
                                     </td>
+-->
                                     <td class="px-8 py-7 text-right">
                                         <span
                                             class="text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{

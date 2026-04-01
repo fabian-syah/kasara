@@ -22,8 +22,11 @@ const form = ref({
     address: '',
     timezone: 'WIB',
     is_active: true,
-    type: props.type || 'physical'
+    type: props.type || 'physical',
+    payment_method_ids: []
 });
+
+const allPaymentMethods = ref([]);
 
 const timezones = [
     { value: 'WIB', label: 'WIB (GMT+7)' },
@@ -42,12 +45,22 @@ watch(() => props.branch, (newVal) => {
             address: newVal.address,
             timezone: newVal.timezone || 'WIB',
             is_active: !!newVal.is_active, // Pastikan boolean
-            type: newVal.type || props.type || 'physical'
+            type: newVal.type || props.type || 'physical',
+            payment_method_ids: newVal.payment_methods ? newVal.payment_methods.map(p => p.id) : []
         };
     } else {
         resetForm();
     }
 }, { immediate: true });
+
+onMounted(async () => {
+    try {
+        const res = await api.get('/payment-methods');
+        allPaymentMethods.value = res.data.filter(p => p.is_active);
+    } catch (e) {
+        console.error("Gagal ambil metode pembayaran", e);
+    }
+});
 
 // 3. METHODS
 function resetForm() {
@@ -57,7 +70,8 @@ function resetForm() {
         address: '',
         timezone: 'WIB',
         is_active: true,
-        type: props.type || 'physical'
+        type: props.type || 'physical',
+        payment_method_ids: allPaymentMethods.value.map(p => p.id)
     };
 }
 
@@ -163,6 +177,24 @@ useEscapeKey(() => {
                             :class="form.is_active ? 'translate-x-6' : 'translate-x-0'"></span>
                     </button>
                 </div>
+
+                <!-- Payment Methods Selection -->
+                <div v-if="allPaymentMethods.length > 0" class="space-y-3">
+                    <label class="block text-sm font-medium text-text-secondary">Metode Pembayaran Tersedia</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label v-for="pm in allPaymentMethods" :key="pm.id" 
+                            class="flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer group"
+                            :class="form.payment_method_ids.includes(pm.id) ? 'bg-primary-500/10 border-primary-500 text-white' : 'bg-surface-900 border-surface-700 text-text-secondary hover:border-surface-600'">
+                            <input type="checkbox" :value="pm.id" v-model="form.payment_method_ids" class="hidden" />
+                            <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all"
+                                :class="form.payment_method_ids.includes(pm.id) ? 'bg-primary-500 border-primary-500' : 'border-surface-600 group-hover:border-surface-500'">
+                                <div v-if="form.payment_method_ids.includes(pm.id)" class="w-2.5 h-2.5 bg-white rounded-sm"></div>
+                            </div>
+                            <span class="text-xs font-bold uppercase truncate">{{ pm.name }}</span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
 
             <div class="px-6 py-4 border-t border-surface-700 flex justify-end gap-3 bg-surface-900/50">

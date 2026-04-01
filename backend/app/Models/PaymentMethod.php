@@ -21,4 +21,9 @@ class PaymentMethod extends Model
         'is_active' => 'boolean',
     ];
 
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'branch_payment_method');
+    }
+
 }
