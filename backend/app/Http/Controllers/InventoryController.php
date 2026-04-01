@@ -783,7 +783,7 @@ class InventoryController extends Controller
         $request->validate([
             'product_id' => 'required_if:type,hp|nullable|exists:products,id',
             'distributor_id' => 'nullable|exists:distributors,id',
-            'type' => 'required|in:hp,non-hp,HP,NON-HP', // Allow casing variations
+            'type' => 'required|in:hp,non-hp,HP,NON-HP',
             'transaction_pin' => 'nullable|string|size:4',
 
             'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
@@ -796,15 +796,15 @@ class InventoryController extends Controller
             'items.*.quantity' => 'required_with:items|integer|min:1',
             'items.*.selling_price' => 'nullable|numeric|min:0',
 
-            // Legacy/Single for Non-HP (Fallback)
-            'quantity' => 'required_if:type,non-hp|integer|min:1',
+            // Fallback for Legacy/Single Input
+            'quantity' => 'required_without:items|nullable|integer|min:1',
 
             // For HP
             'imeis' => 'required_if:type,hp|array',
             'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'], 
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
-            'storage' => 'nullable|string',
+            'storage' => 'nullable|string', 
             'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
             'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
