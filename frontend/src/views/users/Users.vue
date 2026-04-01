@@ -40,14 +40,7 @@ const distributors = ref([]); // New
 const isLoading = ref(false);
 const isSaving = ref(false);
 
-const timezones = [
-  { value: "WIB", label: "WIB (GMT+7)" },
-  { value: "WITA", label: "WITA (GMT+8)" },
-  { value: "WIT", label: "WIT (GMT+9)" },
-  { value: "Asia/Jakarta", label: "Asia/Jakarta" },
-  { value: "Asia/Makassar", label: "Asia/Makassar" },
-  { value: "Asia/Jayapura", label: "Asia/Jayapura" },
-];
+// Timezones are inherited from placements
 
 // Roles list
 const rolesList = Object.entries(ROLE_LABELS).map(([value, label]) => ({
@@ -178,14 +171,12 @@ const filteredRolesOptions = computed(() => {
 const form = ref({
   full_name: "",
   username: "",
-  code_id: "",
   email: "",
   role: "",
   branch_id: "", // For Physical Branches
   warehouse_id: "", // For Warehouse
   online_shop_id: "", // For Online Shop
   distributor_id: "", // For Distributor
-  timezone: "WIB",
   address: "",
   password: "",
   is_active: true,
@@ -203,14 +194,12 @@ function resetForm() {
   form.value = {
     full_name: "",
     username: "",
-    code_id: "",
     email: "",
     role: "",
     branch_id: "",
     warehouse_id: "",
     online_shop_id: "",
     distributor_id: "",
-    timezone: "WIB",
     address: "",
     password: "",
     is_active: true,
@@ -416,14 +405,12 @@ function openEditModal(user) {
   form.value = {
     full_name: user.full_name,
     username: user.username,
-    code_id: user.code_id || "",
     email: user.email,
     role: user.roles?.length ? user.roles[0].name : '',
     branch_id: user.branch_id,
     warehouse_id: user.warehouse_id,
     online_shop_id: user.online_shop_id,
     distributor_id: user.distributor_id,
-    timezone: user.timezone || "WIB",
     address: user.address,
     is_active: !!user.is_active,
     password: "",
@@ -724,7 +711,7 @@ function getUserRoleName(user) {
                   <MapPin :size="14" class="text-text-secondary" />
                   <span class="text-sm text-text-primary">{{ getPlacementName(user) }}</span>
                 </div>
-                <div class="text-[10px] text-text-secondary mt-1 pl-5 font-mono">{{ user.timezone || 'WIB' }}</div>
+                <div class="text-[10px] text-text-secondary mt-1 pl-5 font-mono">{{ user.branch?.timezone || user.warehouse?.timezone || 'WIB' }}</div>
               </td>
               <td class="px-6 py-4 text-sm text-text-secondary">
                 {{ formatLastSeen(user.last_seen, user.timezone) }}
@@ -879,15 +866,9 @@ function getUserRoleName(user) {
               <input v-model="form.full_name" type="text" class="input" placeholder="Nama Lengkap..." required />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="label">Kode ID (Opsional)</label>
-                <input v-model="form.code_id" class="input font-mono" placeholder="EMP-001" />
-              </div>
-              <div>
-                <label class="label">Username</label>
-                <input v-model="form.username" class="input" placeholder="username" required />
-              </div>
+            <div>
+              <label class="label">Username</label>
+              <input v-model="form.username" class="input" placeholder="username" required />
             </div>
 
             <!-- Password -->
@@ -929,19 +910,13 @@ function getUserRoleName(user) {
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label class="label">Role</label>
                 <select v-model="form.role" class="input" required>
                   <option value="">Pilih Role</option>
                   <option v-for="role in filteredRolesOptions" :key="role.value" :value="role.value">{{ role.label
                   }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="label">Zona Waktu</label>
-                <select v-model="form.timezone" class="input">
-                  <option v-for="tz in timezones" :key="tz.value" :value="tz.value">{{ tz.label }}</option>
                 </select>
               </div>
             </div>

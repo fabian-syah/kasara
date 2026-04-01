@@ -167,7 +167,6 @@ class UserController extends Controller
 
         $request->validate([
             'username' => 'required|string|unique:users,username',
-            'code_id' => 'nullable|string|unique:users,code_id',
             'full_name' => 'required|string',
             'password' => 'required|string|min:6',
         ]);
@@ -183,7 +182,6 @@ class UserController extends Controller
                 'name' => $request->full_name,
                 'full_name' => $request->full_name,
                 'username' => $request->username,
-                'code_id' => $request->code_id,
                 'email' => $request->username . '@apexpos.com',
                 'password' => $request->password,
                 'branch_id' => $branchId,
@@ -272,7 +270,6 @@ class UserController extends Controller
         $validated = $request->validate([
             'full_name' => 'sometimes|string|max:255',
             'username' => ['sometimes', 'string', Rule::unique('users')->ignore($user->id)],
-            'code_id' => ['nullable', 'string', Rule::unique('users')->ignore($user->id)],
             'password' => 'nullable|string|min:6',
             'role' => 'sometimes|string|exists:roles,name',
             'branch_id' => 'nullable|exists:branches,id',
