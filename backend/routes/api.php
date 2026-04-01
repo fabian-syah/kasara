@@ -133,6 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/type', [\App\Http\Controllers\ReportController::class, 'getTypeReport']);
     Route::get('/reports/sales', [\App\Http\Controllers\ReportController::class, 'getSalesReport']);
     Route::get('/reports/profit', [\App\Http\Controllers\AuditController::class, 'profit']);
+    Route::get('/reports/ranking', [\App\Http\Controllers\ReportController::class, 'getRankingReport']);
     Route::get('/reports/filters', [\App\Http\Controllers\ReportController::class, 'getReportFilters']);
 
     // Audit

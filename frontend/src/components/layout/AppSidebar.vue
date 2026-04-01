@@ -88,6 +88,7 @@ const menuItems = [
         icon: BarChart3,
         items: [
             { id: "report_sales", path: "/reports/sales", label: "Laporan Penjualan (Laku)" },
+            { id: "report_ranking", path: "/reports/ranking", label: "Ranking Cabang (Omset)" },
             { id: "report_brand", path: "/reports/brand", label: "Laporan Brand (Stok)" },
             { id: "report_type", path: "/reports/type", label: "Laporan Tipe (Stok)" },
             { id: "stock_in_history", path: "/inventory/history/in", label: "Riwayat Stok Masuk" },

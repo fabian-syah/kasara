@@ -397,6 +397,64 @@ class ReportController extends Controller
         ]);
     }
 
+    public function getRankingReport(Request $request)
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+
+        // 1. Get Offline Branches Stats
+        $branchStats = DB::table('branches')
+            ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
+                $join->on('users.id', '=', 'stock_outs.user_id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
+                if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
+                if ($endDate) $join->where('stock_outs.reporting_date', '<=', $endDate);
+            })
+            ->select(
+                'branches.id',
+                'branches.name',
+                DB::raw("'Offline' as type"),
+                DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset'),
+                DB::raw('COUNT(stock_outs.id) as transaction_count')
+            )
+            ->groupBy('branches.id', 'branches.name')
+            ->get();
+
+        // 2. Get Online Shop Stats
+        $onlineStats = DB::table('online_shops')
+            ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
+            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
+                $join->on('users.id', '=', 'stock_outs.user_id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
+                if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
+                if ($endDate) $join->where('stock_outs.reporting_date', '<=', $endDate);
+            })
+            ->select(
+                'online_shops.id',
+                'online_shops.name',
+                DB::raw("'Online' as type"),
+                DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset'),
+                DB::raw('COUNT(stock_outs.id) as transaction_count')
+            )
+            ->groupBy('online_shops.id', 'online_shops.name')
+            ->get();
+
+        $report = $branchStats->concat($onlineStats)
+            ->map(function($item) {
+                $item->omset = (float) $item->omset;
+                return $item;
+            })
+            ->sortByDesc('omset')
+            ->values();
+
+        return response()->json($report);
+    }
+
     public function getReportFilters(Request $request)
     {
         $user = $request->user();

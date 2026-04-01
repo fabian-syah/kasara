@@ -83,6 +83,16 @@ const routes = [
                 }
             },
             {
+                path: 'reports/ranking',
+                name: 'BranchRanking',
+                component: () => import('../views/reports/BranchRanking.vue'),
+                meta: {
+                    title: 'Ranking Cabang',
+                    menu: 'reports',
+                    permissions: ['super_admin', 'analist']
+                }
+            },
+            {
                 path: 'distributor/monitoring',
                 name: 'DistributorMonitoring',
                 component: () => import('../views/distributor/StockMonitoring.vue'),
