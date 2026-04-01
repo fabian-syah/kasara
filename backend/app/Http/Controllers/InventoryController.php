@@ -781,27 +781,32 @@ class InventoryController extends Controller
     public function stockIn(Request $request)
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required_if:type,hp|nullable|exists:products,id',
             'distributor_id' => 'nullable|exists:distributors,id',
-            'type' => 'required|in:hp,non-hp', // Matches product type
+            'type' => 'required|in:hp,non-hp,HP,NON-HP', // Allow casing variations
             'transaction_pin' => 'nullable|string|size:4',
 
-            // Placement (Ideally auto-detected from user, but allowed if explicit)
             'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
             'placement_id' => 'required|integer',
 
-            // For Non-HP
+            // Multi-item support for Non-HP
+            'items' => 'required_if:type,non-hp|array',
+            'items.*.brand_name' => 'nullable|string',
+            'items.*.type_name' => 'required_with:items|string',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.selling_price' => 'nullable|numeric|min:0',
+
+            // Legacy/Single for Non-HP (Fallback)
             'quantity' => 'required_if:type,non-hp|integer|min:1',
 
             // For HP
             'imeis' => 'required_if:type,hp|array',
-            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'], // Only numbers allowed
-            // 'imeis.*.color' => 'nullable|string',
+            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'], 
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
-            'storage' => 'nullable|string', // Allow root storage
+            'storage' => 'nullable|string',
             'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
-            'imeis.*.cost_price' => 'nullable|numeric|min:0', // Optional now
+            'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
         ]);
