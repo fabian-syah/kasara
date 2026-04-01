@@ -61,6 +61,19 @@ const showPassword = ref(false);
 const fileInput = ref(null);
 const selectedUserForPhoto = ref(null);
 const isUploadingPhoto = ref(false);
+const processingUserIds = ref(new Set());
+
+function startProcessing(userId) {
+  processingUserIds.value.add(userId);
+}
+
+function stopProcessing(userId) {
+  processingUserIds.value.delete(userId);
+}
+
+function isProcessing(userId) {
+  return processingUserIds.value.has(userId);
+}
 
 const isAudit = computed(() => authStore.userRole === 'audit');
 const isLeader = computed(() => authStore.userRole === 'leader');
@@ -276,6 +289,8 @@ async function handlePhotoUpload(event) {
     const index = users.value.findIndex(u => u.id === selectedUserForPhoto.value.id);
     if (index !== -1) {
       users.value[index].photo = updatedUser.photo;
+      // Also update photo_inventory if it's the same user or if the API returns both
+      users.value[index].photo_inventory = updatedUser.photo_inventory || updatedUser.photo;
     }
     toast.success("Foto profil berhasil diperbarui");
   } catch (error) {
@@ -489,26 +504,32 @@ async function saveUser() {
 }
 
 async function toggleStatus(user) {
-  if (isReadOnlyAccess.value) return;
+  if (isReadOnlyAccess.value || isProcessing(user.id)) return;
+  startProcessing(user.id);
   try {
     const newStatus = !user.is_active;
-    user.is_active = newStatus;
     await usersApi.update(user.id, { is_active: newStatus });
+    user.is_active = newStatus;
     toast.info(newStatus ? "User diaktifkan." : "User dinonaktifkan.");
   } catch (error) {
-    user.is_active = !user.is_active;
     toast.error("Gagal mengubah status user.");
+  } finally {
+    stopProcessing(user.id);
   }
 }
 
 async function permanentDeleteUser(id) {
+  if (isProcessing(id)) return;
   if (!confirm("HAPUS PERMANEN? Data tidak dapat dikembalikan!")) return;
+  startProcessing(id);
   try {
     await usersApi.delete(id);
     users.value = users.value.filter(u => u.id !== id);
     toast.success("User berhasil dihapus permanen.");
   } catch (error) {
     toast.error("Gagal menghapus user.");
+  } finally {
+    stopProcessing(id);
   }
 }
 
@@ -650,14 +671,20 @@ function getUserRoleName(user) {
                     title="Klik untuk ubah foto">
                     <img :src="getAvatarUrl(user)"
                       class="w-full h-full rounded-xl object-cover shadow-sm group-hover:opacity-50 transition-opacity duration-200"
+                      :class="{ 'opacity-30': isUploadingPhoto && selectedUserForPhoto?.id === user.id }"
                       :alt="user.full_name" />
                     <div
                       class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-inner rounded-xl bg-black/40">
-                      <Camera class="text-white drop-shadow-md" :size="20" />
+                      <Camera v-if="!(isUploadingPhoto && selectedUserForPhoto?.id === user.id)"
+                        class="text-white drop-shadow-md" :size="20" />
+                      <Loader2 v-else class="text-white animate-spin" :size="20" />
                     </div>
                     <!-- Status Indicator Dot -->
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-800"
+                    <div v-if="!isProcessing(user.id)" class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-800 transition-colors"
                       :class="user.is_active ? 'bg-emerald-500' : 'bg-red-500'"></div>
+                    <div v-else class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-800 bg-surface-700 flex items-center justify-center">
+                      <Loader2 class="text-primary-400 animate-spin" :size="8" />
+                    </div>
                   </div>
 
                   <div>
@@ -735,13 +762,14 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4" v-if="!isReadOnlyAccess">
                 <div class="flex justify-end gap-2">
-                  <button @click="openEditModal(user)"
-                    class="p-2 hover:bg-surface-700 rounded-lg text-blue-400 transition-colors" title="Edit">
+                  <button @click="openEditModal(user)" :disabled="isProcessing(user.id)"
+                    class="p-2 hover:bg-surface-700 disabled:opacity-50 rounded-lg text-blue-400 transition-colors" title="Edit">
                     <Edit :size="16" />
                   </button>
-                  <button @click="permanentDeleteUser(user.id)"
-                    class="p-2 hover:bg-surface-700 rounded-lg text-red-400 transition-colors" title="Hapus">
-                    <Trash2 :size="16" />
+                  <button @click="permanentDeleteUser(user.id)" :disabled="isProcessing(user.id)"
+                    class="p-2 hover:bg-surface-700 disabled:opacity-50 rounded-lg text-red-400 transition-colors" title="Hapus">
+                    <Loader2 v-if="isProcessing(user.id)" :size="16" class="animate-spin" />
+                    <Trash2 v-else :size="16" />
                   </button>
                 </div>
               </td>

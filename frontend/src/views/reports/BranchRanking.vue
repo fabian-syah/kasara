@@ -16,7 +16,8 @@ import {
     Store,
     Globe,
     Crown,
-    Flame
+    Flame,
+    Loader2
 } from 'lucide-vue-next';
 
 const loading = ref(true);
@@ -35,7 +36,7 @@ const formatDateStr = (date) => {
 
 const setRange = (type) => {
     const today = new Date();
-    
+
     if (type === 'today') {
         filters.value.start_date = formatDateStr(today);
         filters.value.end_date = formatDateStr(today);
@@ -53,11 +54,11 @@ const setRange = (type) => {
 const fetchRanking = async () => {
     loading.value = true;
     try {
-        const response = await api.get('/reports/ranking', { 
+        const response = await api.get('/reports/ranking', {
             params: {
                 start_date: filters.value.start_date,
                 end_date: filters.value.end_date
-            } 
+            }
         });
         rankingData.value = response.data;
     } catch (error) {
@@ -79,8 +80,8 @@ const searchQuery = ref('');
 const filteredRanking = computed(() => {
     if (!searchQuery.value) return rankingData.value;
     const search = searchQuery.value.toLowerCase();
-    return rankingData.value.filter(item => 
-        item.name.toLowerCase().includes(search) || 
+    return rankingData.value.filter(item =>
+        item.name.toLowerCase().includes(search) ||
         item.type.toLowerCase().includes(search)
     );
 });
@@ -100,37 +101,50 @@ const top3 = computed(() => {
                     <Trophy class="w-6 h-6 text-primary-500" />
                 </div>
                 <div>
-                    <h1 class="text-xl md:text-2xl font-black text-text-primary tracking-tight leading-none uppercase">Ranking Performa</h1>
-                    <p class="text-text-secondary text-[10px] md:text-xs font-bold mt-1.5 uppercase tracking-widest opacity-80">Cabang & Toko Online (Omset > 0)</p>
+                    <h1 class="text-xl md:text-2xl font-black text-text-primary tracking-tight leading-none uppercase">
+                        Ranking Performa</h1>
+                    <p
+                        class="text-text-secondary text-[10px] md:text-xs font-bold mt-1.5 uppercase tracking-widest opacity-80">
+                        Cabang & Toko Online (Seluruh Data)</p>
                 </div>
             </div>
 
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50">
-                    <button @click="setRange('today')" 
-                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all"
+                    <button @click="setRange('today')" :disabled="loading"
+                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
                         :class="filters.start_date === filters.end_date && filters.start_date !== '' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && filters.start_date === filters.end_date && filters.start_date === formatDateStr(new Date())" class="w-2.5 h-2.5 animate-spin" />
                         HARI INI
                     </button>
-                    <button @click="setRange('month')" 
-                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all"
+                    <button @click="setRange('month')" :disabled="loading"
+                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
                         :class="filters.start_date !== filters.end_date && filters.start_date !== '' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && filters.start_date !== filters.end_date && filters.start_date !== ''" class="w-2.5 h-2.5 animate-spin" />
                         BULAN INI
                     </button>
-                    <button @click="setRange('all')" 
-                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all"
+                    <button @click="setRange('all')" :disabled="loading"
+                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
                         :class="!filters.start_date ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && !filters.start_date" class="w-2.5 h-2.5 animate-spin" />
                         SEMUA
                     </button>
                 </div>
 
                 <div class="flex items-center gap-2 bg-surface-800 p-1 rounded-xl border border-surface-700/50">
                     <Calendar class="w-4 h-4 text-primary-500 ml-2" />
-                    <input type="date" v-model="filters.start_date" class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-28" />
+                    <input type="date" v-model="filters.start_date"
+                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-28" />
                     <span class="text-surface-600 font-bold">-</span>
-                    <input type="date" v-model="filters.end_date" class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-28" />
-                    <button @click="fetchRanking" class="p-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all">
-                        <Filter class="w-3.5 h-3.5" />
+                    <input type="date" v-model="filters.end_date"
+                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-28" />
+                    <button @click="fetchRanking" :disabled="loading"
+                        class="p-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center min-w-[120px] gap-2 font-black text-[10px] uppercase">
+                        <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
+                        <span v-else class="flex items-center gap-2">
+                             <Filter class="w-3.5 h-3.5" />
+                             Terapkan Filter
+                        </span>
                     </button>
                 </div>
             </div>
@@ -143,81 +157,119 @@ const top3 = computed(() => {
 
         <div v-else class="space-y-16 animate-in">
             <!-- Podium Layout - RANK 1 UNIK & SPESIAL -->
-            <div v-if="top3.length > 0" class="flex flex-wrap items-center md:items-end justify-center gap-6 md:gap-4 lg:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-3xl overflow-hidden border border-surface-800/50">
-                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-500/20 to-transparent"></div>
-                
+            <div v-if="top3.length > 0"
+                class="flex flex-wrap items-center md:items-end justify-center gap-6 md:gap-4 lg:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-3xl overflow-hidden border border-surface-800/50">
+                <div
+                    class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-500/20 to-transparent">
+                </div>
+
                 <!-- Juara 2 -->
-                <div v-if="top3[1]" class="order-2 md:order-1 flex flex-col items-center w-full md:w-[240px] lg:w-[280px]">
+                <div v-if="top3[1]"
+                    class="order-2 md:order-1 flex flex-col items-center w-full md:w-[240px] lg:w-[280px]">
                     <div class="relative group">
-                        <div class="absolute -inset-4 bg-slate-400/5 rounded-full blur-xl group-hover:bg-slate-400/10 transition-all"></div>
-                        <div class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-surface-800 border-2 border-slate-400/30 flex items-center justify-center shadow-xl">
-                             <component :is="top3[1].type === 'Offline' ? Store : Globe" class="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
-                             <div class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg border-4 border-surface-900">2</div>
+                        <div
+                            class="absolute -inset-4 bg-slate-400/5 rounded-full blur-xl group-hover:bg-slate-400/10 transition-all">
+                        </div>
+                        <div
+                            class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-surface-800 border-2 border-slate-400/30 flex items-center justify-center shadow-xl">
+                            <component :is="top3[1].type === 'Offline' ? Store : Globe"
+                                class="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
+                            <div
+                                class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg border-4 border-surface-900">
+                                2</div>
                         </div>
                     </div>
                     <div class="mt-6 text-center w-full px-2">
-                        <h3 class="font-black text-base lg:text-lg text-text-primary truncate uppercase leading-tight">{{ top3[1].name }}</h3>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{{ top3[1].type }} UNIT</p>
+                        <h3 class="font-black text-base lg:text-lg text-text-primary truncate uppercase leading-tight">
+                            {{ top3[1].name }}</h3>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{{ top3[1].type
+                            }} UNIT</p>
                         <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
-                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums">{{ formatCurrency(top3[1].omset) }}</span>
+                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums">{{
+                                formatCurrency(top3[1].omset) }}</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Juara 1 (THE KING - UNIK & BEDA) -->
-                <div v-if="top3[0]" class="order-1 md:order-2 flex flex-col items-center w-full md:w-[320px] lg:w-[380px] relative">
+                <div v-if="top3[0]"
+                    class="order-1 md:order-2 flex flex-col items-center w-full md:w-[320px] lg:w-[380px] relative">
                     <!-- BACKGROUND GLOW PULSE -->
                     <div class="absolute inset-0 bg-primary-500/10 blur-[100px] rounded-full animate-pulse-slow"></div>
-                    
+
                     <div class="relative group mb-4">
                         <!-- SHINY EFFECT -->
-                        <div class="absolute inset-0 bg-gradient-to-tr from-primary-500/0 via-white/20 to-primary-500/0 opacity-0 group-hover:animate-shine pointer-events-none rounded-[40px]"></div>
-                        
-                        <div class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] bg-surface-800 border-4 border-primary-500 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.25)] transition-all hover:scale-105 duration-500 ring-8 ring-primary-500/5 overflow-visible">
-                             <component :is="top3[0].type === 'Offline' ? Store : Globe" class="w-16 h-16 lg:w-20 lg:h-20 text-primary-500" />
-                             
-                             <!-- Floater Badge 1 -->
-                             <div class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl border-8 border-surface-900 shadow-2xl animate-bounce-slow">1</div>
-                             
-                             <!-- TOP BADGE -->
-                             <div class="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                                <Crown class="w-10 h-10 text-primary-500 fill-primary-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-bounce" />
-                             </div>
+                        <div
+                            class="absolute inset-0 bg-gradient-to-tr from-primary-500/0 via-white/20 to-primary-500/0 opacity-0 group-hover:animate-shine pointer-events-none rounded-[40px]">
+                        </div>
 
-                             <!-- KING OF SALES LABEL -->
-                             <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-surface-900 whitespace-nowrap uppercase tracking-[0.2em] z-10">
-                                 THE KING OF SALES
-                             </div>
+                        <div
+                            class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] bg-surface-800 border-4 border-primary-500 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.25)] transition-all hover:scale-105 duration-500 ring-8 ring-primary-500/5 overflow-visible">
+                            <component :is="top3[0].type === 'Offline' ? Store : Globe"
+                                class="w-16 h-16 lg:w-20 lg:h-20 text-primary-500" />
+
+                            <!-- Floater Badge 1 -->
+                            <div
+                                class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl border-8 border-surface-900 shadow-2xl animate-bounce-slow">
+                                1</div>
+
+                            <!-- TOP BADGE -->
+                            <div class="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                                <Crown
+                                    class="w-10 h-10 text-primary-500 fill-primary-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-bounce" />
+                            </div>
+
+                            <!-- KING OF SALES LABEL -->
+                            <div
+                                class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-surface-900 whitespace-nowrap uppercase tracking-[0.2em] z-10">
+                                THE KING OF SALES
+                            </div>
                         </div>
                     </div>
 
                     <div class="mt-8 text-center w-full px-2 relative z-10">
                         <div class="flex items-center justify-center gap-2 mb-2">
-                             <Flame class="w-4 h-4 text-primary-500 fill-primary-500 animate-pulse" />
-                             <h3 class="font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight leading-none">{{ top3[0].name }}</h3>
-                             <Flame class="w-4 h-4 text-primary-500 fill-primary-500 animate-pulse" />
+                            <Flame class="w-4 h-4 text-primary-500 fill-primary-500 animate-pulse" />
+                            <h3
+                                class="font-black text-2xl lg:text-3xl text-text-primary uppercase tracking-tight leading-none">
+                                {{ top3[0].name }}</h3>
+                            <Flame class="w-4 h-4 text-primary-500 fill-primary-500 animate-pulse" />
                         </div>
-                        <p class="text-xs font-black text-primary-500 uppercase tracking-[0.3em] mt-3">WINNER OF THE PERIOD</p>
-                        
+                        <p class="text-xs font-black text-primary-500 uppercase tracking-[0.3em] mt-3">WINNER OF THE
+                            PERIOD</p>
+
                         <div class="mt-8 relative group cursor-default">
-                             <div class="absolute -inset-4 bg-primary-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full"></div>
-                             <div class="relative px-12 py-6 bg-gradient-to-br from-primary-500 to-primary-600 shadow-[0_15px_35px_rgba(245,158,11,0.3)] rounded-[32px] border-4 border-white/20 overflow-hidden group">
-                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine-fast"></div>
-                                <p class="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1.5 leading-none">Total Omset Perolehan</p>
-                                <span class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none">{{ formatCurrency(top3[0].omset) }}</span>
-                             </div>
+                            <div
+                                class="absolute -inset-4 bg-primary-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                            </div>
+                            <div
+                                class="relative px-12 py-6 bg-gradient-to-br from-primary-500 to-primary-600 shadow-[0_15px_35px_rgba(245,158,11,0.3)] rounded-[32px] border-4 border-white/20 overflow-hidden group">
+                                <div
+                                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine-fast">
+                                </div>
+                                <p
+                                    class="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1.5 leading-none">
+                                    Total Omset Perolehan</p>
+                                <span
+                                    class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none">{{
+                                    formatCurrency(top3[0].omset) }}</span>
+                            </div>
                         </div>
 
                         <div class="flex gap-12 justify-center mt-10">
                             <div class="text-center">
-                                <p class="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-2">Unit iPhone</p>
-                                <div class="px-5 py-2 bg-surface-800 rounded-xl border border-primary-500/20 shadow-inner">
+                                <p class="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-2">Unit
+                                    iPhone</p>
+                                <div
+                                    class="px-5 py-2 bg-surface-800 rounded-xl border border-primary-500/20 shadow-inner">
                                     <p class="text-3xl font-black text-text-primary">{{ top3[0].iphone_count }}</p>
                                 </div>
                             </div>
                             <div class="text-center">
-                                <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Unit Android</p>
-                                <div class="px-5 py-2 bg-surface-800 rounded-xl border border-emerald-500/20 shadow-inner">
+                                <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Unit
+                                    Android</p>
+                                <div
+                                    class="px-5 py-2 bg-surface-800 rounded-xl border border-emerald-500/20 shadow-inner">
                                     <p class="text-3xl font-black text-text-primary">{{ top3[0].android_count }}</p>
                                 </div>
                             </div>
@@ -228,17 +280,26 @@ const top3 = computed(() => {
                 <!-- Juara 3 -->
                 <div v-if="top3[2]" class="order-3 flex flex-col items-center w-full md:w-[240px] lg:w-[280px]">
                     <div class="relative group">
-                        <div class="absolute -inset-4 bg-amber-700/5 rounded-full blur-xl group-hover:bg-amber-700/10 transition-all"></div>
-                        <div class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-surface-800 border-2 border-amber-700/30 flex items-center justify-center shadow-xl">
-                             <component :is="top3[2].type === 'Offline' ? Store : Globe" class="w-6 h-6 lg:w-8 lg:h-8 text-amber-700" />
-                             <div class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base border-4 border-surface-900">3</div>
+                        <div
+                            class="absolute -inset-4 bg-amber-700/5 rounded-full blur-xl group-hover:bg-amber-700/10 transition-all">
+                        </div>
+                        <div
+                            class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-surface-800 border-2 border-amber-700/30 flex items-center justify-center shadow-xl">
+                            <component :is="top3[2].type === 'Offline' ? Store : Globe"
+                                class="w-6 h-6 lg:w-8 lg:h-8 text-amber-700" />
+                            <div
+                                class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base border-4 border-surface-900">
+                                3</div>
                         </div>
                     </div>
                     <div class="mt-6 text-center w-full px-2">
-                        <h3 class="font-black text-base text-text-primary truncate uppercase leading-tight">{{ top3[2].name }}</h3>
-                        <p class="text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-1.5">{{ top3[2].type }} UNIT</p>
+                        <h3 class="font-black text-base text-text-primary truncate uppercase leading-tight">{{
+                            top3[2].name }}</h3>
+                        <p class="text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-1.5">{{ top3[2].type
+                            }} UNIT</p>
                         <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
-                            <span class="text-lg font-black text-amber-700 tabular-nums">{{ formatCurrency(top3[2].omset) }}</span>
+                            <span class="text-lg font-black text-amber-700 tabular-nums">{{
+                                formatCurrency(top3[2].omset) }}</span>
                         </div>
                     </div>
                 </div>
@@ -248,31 +309,43 @@ const top3 = computed(() => {
             <div class="space-y-6">
                 <!-- Similar styling for table... -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
-                    <h2 class="text-lg md:text-xl font-black text-text-primary tracking-tight flex items-center gap-2 uppercase">
+                    <h2
+                        class="text-lg md:text-xl font-black text-text-primary tracking-tight flex items-center gap-2 uppercase">
                         <TrendingUp class="w-5 h-5 text-emerald-500" />
                         Kualifikasi Lengkap
                     </h2>
                     <div class="relative w-full sm:w-72">
                         <Search class="absolute left-3.5 w-4 h-4 text-text-secondary top-1/2 -translate-y-1/2" />
-                        <input v-model="searchQuery" type="text" placeholder="Cari unit..." 
+                        <input v-model="searchQuery" type="text" placeholder="Cari unit..."
                             class="bg-surface-800 text-xs py-2.5 pl-10 pr-4 rounded-xl border border-surface-700 shadow-inner w-full outline-none focus:border-primary-500 transition-all font-bold" />
                     </div>
                 </div>
 
-                <div class="bg-surface-800/10 rounded-3xl border border-surface-800 overflow-hidden shadow-2xl relative">
+                <div
+                    class="bg-surface-800/10 rounded-3xl border border-surface-800 overflow-hidden shadow-2xl relative">
                     <div class="overflow-x-auto scrollbar-thin">
                         <table class="w-full text-left border-collapse min-w-[900px]">
                             <thead>
                                 <tr class="bg-surface-800/50">
-                                    <th class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">No</th>
-                                    <th class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">Unit Bisnis</th>
-                                    <th class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-center">iPhone Unit</th>
-                                    <th class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-center">Android & Terlaris</th>
-                                    <th class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">Hasil Omset</th>
+                                    <th
+                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
+                                        No</th>
+                                    <th
+                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
+                                        Unit Bisnis</th>
+                                    <th
+                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-center">
+                                        iPhone Unit</th>
+                                    <th
+                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-center">
+                                        Android & Terlaris</th>
+                                    <th
+                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Hasil Omset</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
-                                <tr v-for="(item, index) in filteredRanking" :key="item.id" 
+                                <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
                                     <td class="px-8 py-7">
                                         <div class="flex items-center justify-center w-9 h-9 rounded-xl font-black text-sm"
@@ -285,28 +358,43 @@ const top3 = computed(() => {
                                     </td>
                                     <td class="px-8 py-7">
                                         <div class="flex items-center gap-4">
-                                            <div class="w-10 h-10 rounded-2xl bg-surface-800 flex items-center justify-center border border-surface-700 shadow-inner group-hover:scale-110 transition-transform">
-                                                <component :is="item.type === 'Offline' ? Store : Globe" class="w-5 h-5" :class="item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
+                                            <div
+                                                class="w-10 h-10 rounded-2xl bg-surface-800 flex items-center justify-center border border-surface-700 shadow-inner group-hover:scale-110 transition-transform">
+                                                <component :is="item.type === 'Offline' ? Store : Globe" class="w-5 h-5"
+                                                    :class="item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
                                             </div>
                                             <div class="flex flex-col">
-                                                <span class="font-black text-text-primary text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight">{{ item.name }}</span>
-                                                <span class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{ item.type }} UNIT</span>
+                                                <span
+                                                    class="font-black text-text-primary text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight">{{
+                                                    item.name }}</span>
+                                                <span
+                                                    class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{
+                                                    item.type }} UNIT</span>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-8 py-7 text-center">
-                                        <span class="text-base font-black text-text-primary font-mono bg-primary-500/5 px-4 py-1 rounded-xl border border-primary-500/10 group-hover:bg-primary-500/10 transition-colors">{{ formatNumber(item.iphone_count) }}</span>
+                                        <span
+                                            class="text-base font-black text-text-primary font-mono bg-primary-500/5 px-4 py-1 rounded-xl border border-primary-500/10 group-hover:bg-primary-500/10 transition-colors">{{
+                                            formatNumber(item.iphone_count) }}</span>
                                     </td>
                                     <td class="px-8 py-7">
                                         <div class="flex flex-col items-center">
-                                            <span class="text-base font-black text-text-primary font-mono bg-emerald-500/5 px-4 py-1 rounded-xl border border-emerald-500/10 group-hover:bg-emerald-500/10 transition-colors">{{ formatNumber(item.android_count) }}</span>
-                                            <div v-if="item.top_android_models && item.top_android_models.length > 0" class="flex flex-wrap justify-center gap-1.5 mt-3 max-w-[280px]">
-                                                <span v-for="model in item.top_android_models" :key="model" class="text-[7px] font-black bg-surface-900 border border-surface-700/50 text-text-secondary px-2 py-1 rounded-lg uppercase tracking-tight group-hover:text-emerald-500/70 transition-colors">{{ model }}</span>
+                                            <span
+                                                class="text-base font-black text-text-primary font-mono bg-emerald-500/5 px-4 py-1 rounded-xl border border-emerald-500/10 group-hover:bg-emerald-500/10 transition-colors">{{
+                                                formatNumber(item.android_count) }}</span>
+                                            <div v-if="item.top_android_models && item.top_android_models.length > 0"
+                                                class="flex flex-wrap justify-center gap-1.5 mt-3 max-w-[280px]">
+                                                <span v-for="model in item.top_android_models" :key="model"
+                                                    class="text-[7px] font-black bg-surface-900 border border-surface-700/50 text-text-secondary px-2 py-1 rounded-lg uppercase tracking-tight group-hover:text-emerald-500/70 transition-colors">{{
+                                                    model }}</span>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="px-8 py-7 text-right">
-                                        <span class="text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{ formatCurrency(item.omset) }}</span>
+                                        <span
+                                            class="text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{
+                                            formatCurrency(item.omset) }}</span>
                                     </td>
                                 </tr>
                             </tbody>
@@ -324,19 +412,41 @@ const top3 = computed(() => {
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes shine {
-    0% { transform: translateX(-150%) skewX(-30deg); opacity: 0; }
-    50% { opacity: 0.5; }
-    100% { transform: translateX(150%) skewX(-30deg); opacity: 0; }
+    0% {
+        transform: translateX(-150%) skewX(-30deg);
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateX(150%) skewX(-30deg);
+        opacity: 0;
+    }
 }
 
 @keyframes shine-fast {
-    0% { transform: translateX(-150%) skewX(-20deg); }
-    100% { transform: translateX(150%) skewX(-20deg); }
+    0% {
+        transform: translateX(-150%) skewX(-20deg);
+    }
+
+    100% {
+        transform: translateX(150%) skewX(-20deg);
+    }
 }
 
 .animate-shine {
@@ -348,8 +458,17 @@ const top3 = computed(() => {
 }
 
 @keyframes pulse-slow {
-    0%, 100% { opacity: 0.1; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(1.1); }
+
+    0%,
+    100% {
+        opacity: 0.1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.3;
+        transform: scale(1.1);
+    }
 }
 
 .animate-pulse-slow {
@@ -357,14 +476,27 @@ const top3 = computed(() => {
 }
 
 @keyframes bounce-slow {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 .animate-bounce-slow {
     animation: bounce-slow 2s infinite ease-in-out;
 }
 
-.scrollbar-thin::-webkit-scrollbar { height: 6px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 10px; }
+.scrollbar-thin::-webkit-scrollbar {
+    height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #1e1e1e;
+    border-radius: 10px;
+}
 </style>

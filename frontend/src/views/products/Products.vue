@@ -18,6 +18,7 @@ import {
   X,
   Save,
   Image,
+  Loader2,
 } from "lucide-vue-next";
 
 const inventoryStore = useInventoryStore();
@@ -27,6 +28,7 @@ const searchQuery = ref("");
 const selectedCategory = ref("");
 const showModal = ref(false);
 const editingProduct = ref(null);
+const isSaving = ref(false);
 
 // Form
 const form = ref({
@@ -97,13 +99,20 @@ useEscapeKey(() => {
   if (showModal.value) closeModal();
 });
 
-function saveProduct() {
-  if (editingProduct.value) {
-    inventoryStore.updateProduct(editingProduct.value.id, form.value);
-  } else {
-    inventoryStore.addProduct(form.value);
+async function saveProduct() {
+  isSaving.value = true;
+  try {
+    if (editingProduct.value) {
+      await inventoryStore.updateProduct(editingProduct.value.id, form.value);
+    } else {
+      await inventoryStore.addProduct(form.value);
+    }
+    closeModal();
+  } catch (error) {
+    console.error("Failed to save product", error);
+  } finally {
+    isSaving.value = false;
   }
-  closeModal();
 }
 
 function deleteProduct(id) {
@@ -295,9 +304,10 @@ function deleteProduct(id) {
               <button type="button" @click="closeModal" class="btn btn-secondary flex-1">
                 Batal
               </button>
-              <button type="submit" class="btn btn-primary flex-1">
-                <Save :size="16" />
-                Simpan
+              <button type="submit" class="btn btn-primary flex-1 items-center justify-center gap-2" :disabled="isSaving">
+                <Loader2 v-if="isSaving" :size="16" class="animate-spin" />
+                <Save v-else :size="16" />
+                {{ isSaving ? 'Menyimpan...' : 'Simpan' }}
               </button>
             </div>
           </form>

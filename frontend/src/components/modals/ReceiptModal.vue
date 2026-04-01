@@ -39,16 +39,16 @@
                                 <img src="/images/logo-pstore.png" alt="PSTORE" class="w-full h-full object-contain" />
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h2 class="text-2xl font-extrabold tracking-wider text-black leading-none">PSTORE</h2>
-                                <p class="text-[9px] leading-tight text-gray-700 mt-1">
+                                <h2 class="text-2xl font-black tracking-wider text-black leading-none">PSTORE</h2>
+                                <p class="text-[9px] font-bold leading-tight text-black mt-1">
                                     Pusat Perbelanjaan Online<br />
                                     HP, Laptop, Barang Elektronik Bergaransi Terjamin Dan Terpercaya
                                 </p>
-                                <p class="text-[9px] text-gray-600 mt-0.5">
+                                <p class="text-[9px] font-bold text-black mt-0.5">
                                     No Customer Service 0851 - 3300 - 5600
                                 </p>
-                                <div class="mt-2 text-[9px] text-gray-700">
-                                    <span class="font-bold">Kami ada juga di :</span>
+                                <div class="mt-2 text-[9px] text-black">
+                                    <span class="font-black">Kami ada juga di :</span>
                                     <div class="flex items-center gap-4 mt-0.5">
                                         <span class="flex items-center gap-1">
                                             <img src="/images/shopee-icon-small.png" class="w-2.5 h-2.5 object-contain"
@@ -99,11 +99,11 @@
                                             {{ item.imei && item.imei !== '-' ? item.imei : '-' }}
                                         </td>
                                         <td class="py-2 px-1 text-black align-top">
-                                            <div class="font-bold uppercase">{{ item.name }}</div>
-                                            <div v-if="item.ram || item.storage" class="text-[9px] text-gray-700">
+                                            <div class="font-black uppercase text-black">{{ item.name }}</div>
+                                            <div v-if="item.ram || item.storage" class="text-[10px] text-black font-medium">
                                                 {{ [item.ram, item.storage].filter(Boolean).join('/') }}
                                             </div>
-                                            <div v-if="item.condition" class="text-[9px] text-gray-700 italic">
+                                            <div v-if="item.condition" class="text-[9px] text-black font-bold italic">
                                                 Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition ===
                                                     'ex_ibox' ? 'Ex iBox' : 'Second') }}
                                             </div>
@@ -190,11 +190,11 @@
                         </div>
 
                         <!-- ===== GARANSI NOTES ===== -->
-                        <div class="bg-gray-50/50 border border-gray-300 rounded p-2.5 mb-5 print:bg-white">
-                            <ul class="text-[9px] text-gray-700 space-y-0.5 list-disc pl-3">
-                                <li class="font-bold">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
-                                <li>Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
-                                <li>Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
+                        <div class="bg-gray-100/80 border border-black/20 rounded p-2.5 mb-5 print:bg-white print:border-black">
+                            <ul class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
+                                <li class="font-black underline italic">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
+                                <li class="font-black underline italic">Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
+                                <li class="font-black underline italic">Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
                             </ul>
                         </div>
 
@@ -228,8 +228,8 @@
                 <!-- Footer / Actions (hide on print) -->
                 <div class="p-4 bg-white border-t border-gray-100 flex gap-3 print:hidden shrink-0">
                     <button @click="close"
-                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95">
-                        Tutup / Selesai
+                        class="flex-1 px-4 py-4 text-base font-black text-white bg-primary-600 rounded-[1.5rem] hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary-500/30 active:scale-95 uppercase tracking-widest">
+                        Selesai & Keluar
                     </button>
                     <button @click="printReceipt"
                         class="px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">

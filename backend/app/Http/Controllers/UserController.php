@@ -20,12 +20,25 @@ class UserController extends Controller
             ->get();
         if ($desynced->count() > 0) {
             foreach ($desynced as $u) {
-                // If the user's login username is 'distributortrial' but full_name is 'adminproduk',
-                // we want the profile to show the full_name. We shouldn't necessarily overwrite 
-                // username but 'name' which is the display name.
-                $u->name = $u->full_name;
-                $u->save();
+                // Use update() instead of save() to avoid potential stdClass issues
+                \App\Models\User::where('id', $u->id)->update(['name' => $u->full_name]);
             }
+        }
+
+        // Auto-migrate roles from 'sales' to 'toko_offline'
+        try {
+            $salesRole = \Illuminate\Support\Facades\DB::table('roles')->where('name', 'sales')->first();
+            if ($salesRole) {
+                $offlineRole = \Illuminate\Support\Facades\DB::table('roles')->where('name', 'toko_offline')->first();
+                if ($offlineRole) {
+                    \Illuminate\Support\Facades\DB::table('model_has_roles')->where('role_id', $salesRole->id)->update(['role_id' => $offlineRole->id]);
+                    \Illuminate\Support\Facades\DB::table('roles')->where('id', $salesRole->id)->delete();
+                } else {
+                    \Illuminate\Support\Facades\DB::table('roles')->where('id', $salesRole->id)->update(['name' => 'toko_offline']);
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Role migration failed: " . $e->getMessage());
         }
 
         $query = User::with(['branch', 'warehouse', 'onlineShop', 'distributor', 'roles', 'createdBy', 'createdUsers', 'placements']);
@@ -236,10 +249,10 @@ class UserController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("User store failed: " . $e->getMessage());
             return response()->json([
-                'error_message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'success' => false,
+                'message' => 'Gagal membuat user: ' . $e->getMessage()
             ], 500);
         }
     }
