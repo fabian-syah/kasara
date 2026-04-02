@@ -470,6 +470,7 @@ class ReportController extends Controller
         $branches = DB::table('branches')
             ->where('is_active', true)
             ->where('name', 'NOT ILIKE', '%TRIAL%')
+            ->where('name', 'NOT ILIKE', '%ANU%')
             ->get();
         $branchStats = $branches->map(function($b) use ($branchBase, $branchItemCounts, $branchAndroidModels) {
             $base = $branchBase[$b->id] ?? null;
@@ -552,6 +553,7 @@ class ReportController extends Controller
         $shops = DB::table('online_shops')
             ->where('is_active', true)
             ->where('name', 'NOT ILIKE', '%TRIAL%')
+            ->where('name', 'NOT ILIKE', '%ANU%')
             ->get();
         $onlineStats = $shops->map(function($s) use ($onlineBase, $onlineItemCounts, $onlineAndroidModels) {
             $base = $onlineBase[$s->id] ?? null;
