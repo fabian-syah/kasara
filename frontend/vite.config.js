@@ -9,6 +9,6 @@ export default defineConfig({
     tailwindcss(),
   ],
   optimizeDeps: {
-    include: ["chart.js", "vue-chartjs"]
+    include: ["chart.js", "vue-chartjs", "html-to-image"]
   },
 })
