@@ -168,7 +168,10 @@ const exportToPNG = async (mode = 'share') => {
 </script>
 
 <template>
-    <div class="p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto overflow-x-hidden">
+    <div :class="[
+        'p-3 md:p-6 space-y-6 md:space-y-8 transition-all duration-300',
+        exportPart === 0 ? 'max-w-7xl mx-auto' : 'w-[1400px] !max-w-none !mx-0 overflow-visible bg-[#0a0a0a]'
+    ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
             <div class="flex items-center gap-4">
