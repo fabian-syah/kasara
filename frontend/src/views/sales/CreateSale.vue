@@ -79,6 +79,8 @@ const showCreateAccount = ref(false);
 const newAccountName = ref("");
 const newAccountPin = ref("");
 const loadingCreate = ref(false);
+const loadingStep3Data = ref(false);
+const isDataLoaded = ref(false);
 
 async function refreshAccounts() {
     try {
@@ -119,14 +121,13 @@ async function handleCreateAccount() {
         loadingCreate.value = false;
     }
 }
-
-onMounted(async () => {
+async function fetchHeavyData() {
+    if (isDataLoaded.value) return;
+    loadingStep3Data.value = true;
     try {
-        const [hpRes, nonHpRes, accountsRes, userRes, paymentsRes, brandsRes, typesRes, pricesRes] = await Promise.all([
+        const [hpRes, nonHpRes, paymentsRes, brandsRes, typesRes, pricesRes] = await Promise.all([
             api.get('/inventory', { params: { type: 'hp', status: 'available', per_page: 1000 } }),
             api.get('/inventory', { params: { type: 'non-hp', per_page: 1000 } }),
-            api.get('/inventory/my-accounts'),
-            api.get('/user'),
             api.get('/payment-methods'),
             api.get('/brands'),
             api.get('/product-types', { params: { per_page: 1000 } }),
@@ -144,12 +145,6 @@ onMounted(async () => {
         }));
         inventoryStore.products = [...hpData, ...nonHpData];
 
-        // Process accounts
-        const rawAccounts = accountsRes.data.data || accountsRes.data;
-        salesAccounts.value = rawAccounts.filter(acc =>
-            acc.roles && acc.roles.some(r => r.name === 'inventory')
-        );
-
         // Process Payment Methods
         availablePaymentMethods.value = (paymentsRes.data.data || paymentsRes.data).filter(p => p.is_active);
 
@@ -157,6 +152,28 @@ onMounted(async () => {
         brands.value = brandsRes.data.data || brandsRes.data || [];
         productTypes.value = typesRes.data.data || typesRes.data || [];
         productPrices.value = pricesRes.data.data || pricesRes.data || [];
+        
+        isDataLoaded.value = true;
+    } catch (e) {
+        console.error("Gagal memuat data transaksi", e);
+    } finally {
+        loadingStep3Data.value = false;
+    }
+}
+
+onMounted(async () => {
+    try {
+        // Phase 1: Essential data for Step 1
+        const [accountsRes, userRes] = await Promise.all([
+            api.get('/inventory/my-accounts'),
+            api.get('/user')
+        ]);
+
+        // Process accounts
+        const rawAccounts = accountsRes.data.data || accountsRes.data;
+        salesAccounts.value = rawAccounts.filter(acc =>
+            acc.roles && acc.roles.some(r => r.name === 'inventory')
+        );
 
         // Auto-select user account
         const userData = userRes.data.data || userRes.data;
@@ -167,6 +184,9 @@ onMounted(async () => {
             const match = salesAccounts.value.find(acc => acc.name === userData.name || acc.id === userData.id);
             if (match) salesAccount.value = match.name;
         }
+
+        // Background Phase 2: Start fetching heavy data in background
+        fetchHeavyData();
     } catch (e) {
         console.error("Gagal memuat data awal", e);
     }
@@ -177,6 +197,12 @@ function nextStep() {
         alert("Silakan pilih Akun Sales terlebih dahulu.");
         return;
     }
+    
+    // Safety check: ensure heavy data is fetched before moving to Step 3
+    if (currentStep.value === 2 && !isDataLoaded.value && !loadingStep3Data.value) {
+        fetchHeavyData();
+    }
+    
     if (currentStep.value < 4) currentStep.value++;
 }
 
@@ -380,8 +406,22 @@ watch(transactionCategory, () => {
                 </div>
             </div>
 
+            <!-- LOADING OVERLAY FOR STEP 3 DATA -->
+            <div v-if="currentStep === 3 && loadingStep3Data" class="flex-1 flex flex-col items-center justify-center animate-fade-in">
+                <div class="flex flex-col items-center gap-6 p-12 rounded-[2.5rem] bg-white/40 dark:bg-surface-800/40 backdrop-blur-md">
+                    <div class="relative w-20 h-20">
+                        <Loader2 class="w-20 h-20 text-primary-600 animate-spin" stroke-width="2" />
+                        <ShoppingCart class="absolute inset-0 m-auto w-8 h-8 text-primary-600" />
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-2xl font-black text-text-primary mb-2">Menyiapkan Inventori...</h3>
+                        <p class="text-text-secondary font-medium">Mohon tunggu sebentar, sedang memuat data terbaru.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- STEP 3: TRANSACTION COMPONENTS -->
-            <div v-if="currentStep === 3" class="flex-1 flex flex-col min-h-0">
+            <div v-if="currentStep === 3 && !loadingStep3Data" class="flex-1 flex flex-col min-h-0">
                 <PenjualanStep3 v-if="transactionCategory === 'penjualan'" :transactionCategory="transactionCategory"
                     :availablePaymentMethods="availablePaymentMethods" @prev="prevStep" @next="currentStep = 4" />
 
