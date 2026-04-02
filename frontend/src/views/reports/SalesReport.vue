@@ -173,24 +173,24 @@ const filteredProducts = computed(() => {
 
             <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
                 <!-- Group 1: Quick Filters -->
-                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                <div class="flex flex-wrap bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
                     <button @click="setRange('today')" :disabled="loading"
-                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                        class="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                         :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         HARI INI
                     </button>
                     <button @click="setRange('yesterday')" :disabled="loading"
-                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                        class="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                         :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         KEMARIN
                     </button>
                     <button @click="setRange('month')" :disabled="loading"
-                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                        class="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                         :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         BULAN INI
                     </button>
                     <button @click="setRange('all')" :disabled="loading"
-                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                        class="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                         :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         SEMUA
                     </button>
@@ -208,13 +208,13 @@ const filteredProducts = computed(() => {
                     </div>
 
                     <!-- Selectors Group -->
-                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <!-- Branch Selector -->
                         <div v-if="filterOptions.branches.length > 0"
                             class="flex-1 sm:flex-none flex items-center gap-2 bg-surface-800 p-2 rounded-xl border border-surface-700">
                             <Building2 class="w-4 h-4 text-text-secondary shrink-0" />
                             <select v-model="filters.branch_id" @change="fetchReport"
-                                class="bg-transparent text-[11px] text-text-primary outline-none w-full appearance-none cursor-pointer pr-4">
+                                class="bg-transparent text-[11px] text-text-primary outline-none w-full appearance-none cursor-pointer pr-4 uppercase">
                                 <option value="">Semua Cabang</option>
                                 <option v-for="branch in filterOptions.branches" :key="branch.id" :value="branch.id">
                                     {{ branch.name }}
@@ -227,7 +227,7 @@ const filteredProducts = computed(() => {
                             class="flex-1 sm:flex-none flex items-center gap-2 bg-surface-800 p-2 rounded-xl border border-surface-700">
                             <Smartphone class="w-4 h-4 text-text-secondary shrink-0" />
                             <select v-model="filters.online_shop_id" @change="fetchReport"
-                                class="bg-transparent text-[11px] text-text-primary outline-none w-full appearance-none cursor-pointer pr-4">
+                                class="bg-transparent text-[11px] text-text-primary outline-none w-full appearance-none cursor-pointer pr-4 uppercase">
                                 <option value="">Semua Online</option>
                                 <option v-for="shop in filterOptions.online_shops" :key="shop.id" :value="shop.id">
                                     {{ shop.name }}
@@ -236,7 +236,7 @@ const filteredProducts = computed(() => {
                         </div>
 
                         <!-- Apply Button -->
-                        <button @click="fetchReport" class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap">
+                        <button @click="fetchReport" class="flex-1 sm:flex-none px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap">
                             <Filter :size="14" />
                             Filter
                         </button>

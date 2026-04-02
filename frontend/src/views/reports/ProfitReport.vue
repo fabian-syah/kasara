@@ -13,24 +13,24 @@
 
                 <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
                     <!-- Group 1: Quick Filters -->
-                    <div class="flex bg-surface-100 dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <div class="flex flex-wrap bg-surface-100 dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 w-full sm:w-auto">
                         <button @click="setRange('today')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                            class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                             :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             HARI INI
                         </button>
                         <button @click="setRange('yesterday')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                            class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                             :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             KEMARIN
                         </button>
                         <button @click="setRange('month')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                            class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                             :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             BULAN INI
                         </button>
                         <button @click="setRange('all')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+                            class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                             :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             SEMUA
                         </button>
@@ -49,7 +49,7 @@
                             <button @click="fetchData" :disabled="loading"
                                 class="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase ml-1">
                                 <Filter class="w-3 h-3" />
-                                Terapan
+                                Terapkan
                             </button>
                         </div>
 

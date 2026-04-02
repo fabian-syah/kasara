@@ -219,27 +219,27 @@ const exportToPNG = async (mode = 'share') => {
             <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
                 <div class="flex flex-wrap lg:flex-nowrap items-center gap-3">
                     <!-- Quick Presets -->
-                    <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
+                    <div class="flex flex-wrap bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
                         <button @click="setRange('today')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
                             :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             <Loader2 v-if="loading && activeRange === 'today'" class="w-2.5 h-2.5 animate-spin" />
                             HARI INI
                         </button>
                         <button @click="setRange('yesterday')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
                             :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             <Loader2 v-if="loading && activeRange === 'yesterday'" class="w-2.5 h-2.5 animate-spin" />
                             KEMARIN
                         </button>
                         <button @click="setRange('month')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
                             :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             <Loader2 v-if="loading && activeRange === 'month'" class="w-2.5 h-2.5 animate-spin" />
                             BULAN INI
                         </button>
                         <button @click="setRange('all')" :disabled="loading"
-                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
                             :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             <Loader2 v-if="loading && activeRange === 'all'" class="w-2.5 h-2.5 animate-spin" />
                             SEMUA
@@ -259,7 +259,7 @@ const exportToPNG = async (mode = 'share') => {
                         <button @click="fetchRanking" :disabled="loading"
                             class="w-full sm:w-auto px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap">
                             <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
-                            <span v-else class="flex items-center gap-2">
+                            <span v-else class="flex items-center gap-2 uppercase">
                                 <Filter class="w-3.5 h-3.5" />
                                 Terapkan
                             </span>
@@ -268,7 +268,7 @@ const exportToPNG = async (mode = 'share') => {
                 </div>
 
                 <!-- Export Buttons -->
-                <div class="flex items-center gap-2 w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 lg:pb-0">
+                <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto pb-1 lg:pb-0">
                     <button @click="exportToPNG('share')" :disabled="loading || exportLoading || rankingData.length === 0"
                         class="flex-1 lg:flex-none px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50 whitespace-nowrap">
                         <Download v-if="!exportLoading" class="w-4 h-4" />
