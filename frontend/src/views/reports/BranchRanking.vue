@@ -144,7 +144,7 @@ const exportLoading = ref(false);
 const exportPart = ref(0); // 0: none, 1: part 1 (Podium + 1-20), 2: part 2 (21-end)
 const exportRef = ref(null);
 
-const exportToPNG = async (mode = 'share') => {
+const exportToPNG = async () => {
     if (!exportRef.value) return;
     exportLoading.value = true;
     
@@ -179,15 +179,11 @@ const exportToPNG = async (mode = 'share') => {
         } catch (e) { console.error(e); }
     };
 
-    if (mode === 'share') {
-        await runExport(3, 'top-3-podium'); // 3 is dedicated for TOP 3 ONLY
-    } else {
-        // Export Part 1
-        await runExport(1, 'part-1');
-        // Export Part 2 if there's more than 20 items
-        if (rankingData.value.length > 20) {
-            await runExport(2, 'part-2');
-        }
+    // Export Part 1
+    await runExport(1, 'part-1');
+    // Export Part 2 if there's more than 20 items
+    if (rankingData.value.length > 20) {
+        await runExport(2, 'part-2');
     }
     
     exportPart.value = 0;
@@ -269,17 +265,11 @@ const exportToPNG = async (mode = 'share') => {
 
                 <!-- Export Buttons -->
                 <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto pb-1 lg:pb-0">
-                    <button @click="exportToPNG('share')" :disabled="loading || exportLoading || rankingData.length === 0"
-                        class="flex-1 lg:flex-none px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50 whitespace-nowrap">
-                        <Download v-if="!exportLoading" class="w-4 h-4" />
-                        <Loader2 v-else class="w-4 h-4 animate-spin" />
-                        <span>Share Top 3</span>
-                    </button>
-                    <button @click="exportToPNG('full')" :disabled="loading || exportLoading || rankingData.length === 0"
+                    <button @click="exportToPNG" :disabled="loading || exportLoading || rankingData.length === 0"
                         class="flex-1 lg:flex-none px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50 whitespace-nowrap">
                         <Download v-if="!exportLoading" class="w-3.5 h-3.5" />
                         <Loader2 v-else class="w-3.5 h-3.5 animate-spin" />
-                        <span>Export Full</span>
+                        <span>Export Full (PNG)</span>
                     </button>
                 </div>
             </div>
@@ -462,7 +452,7 @@ const exportToPNG = async (mode = 'share') => {
             </div>
 
             <!-- List Table -->
-            <div v-show="exportPart !== 3" class="space-y-6">
+            <div class="space-y-6">
                 <!-- Similar styling for table... -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
                     <h2
@@ -504,7 +494,7 @@ const exportToPNG = async (mode = 'share') => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
-                                    v-show="exportPart === 0 || (exportPart === 1 && index < 20) || (exportPart === 2 && index >= 20) || exportPart === 3"
+                                    v-show="exportPart === 0 || (exportPart === 1 && index < 20) || (exportPart === 2 && index >= 20)"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
@@ -539,7 +529,7 @@ const exportToPNG = async (mode = 'share') => {
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && exportPart !== 3 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
