@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from "vue";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useCartStore } from "../../store/cart";
 import { useInventoryStore } from "../../store/inventory";
-import { formatCurrency } from "../../utils/formatters";
+import { formatCurrency, parseCurrency } from "../../utils/formatters";
 import {
   Search,
   ShoppingCart,
@@ -139,6 +139,11 @@ useEscapeKey(() => {
 function setQuickAmount(amount) {
   paymentAmount.value = amount;
 }
+
+const paymentAmountDisplay = computed({
+  get: () => paymentAmount.value ? paymentAmount.value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
+  set: (v) => paymentAmount.value = parseCurrency(v)
+});
 
 const changeAmount = computed(() => paymentAmount.value - cartTotal.value);
 
@@ -372,7 +377,7 @@ function scrollToCart() {
           <!-- Cash Amount -->
           <div v-if="selectedPaymentMethod === 'cash'" class="mb-6">
             <p class="text-sm text-slate-400 mb-3">Jumlah Uang</p>
-            <input v-model.number="paymentAmount" type="number" class="input text-center text-xl font-bold" />
+            <input v-model="paymentAmountDisplay" v-money type="text" class="input text-center text-xl font-bold" />
 
             <!-- Quick Amounts -->
             <div class="grid grid-cols-4 gap-2 mt-3">

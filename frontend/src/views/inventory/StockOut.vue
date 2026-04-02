@@ -2,8 +2,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../../composables/useToast";
-import { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
-import api from "../../api/axios";
+import api, { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
+import { formatCurrency, parseCurrency } from "../../utils/formatters";
 import { Html5Qrcode } from "html5-qrcode";
 import {
     Package,
@@ -113,6 +113,16 @@ const form = ref({
     shopee_tracking_no: '',
     selling_price: null,
     notes: '',
+});
+
+const sellingPriceDisplay = computed({
+    get: () => form.value.selling_price ? form.value.selling_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
+    set: (v) => form.value.selling_price = parseCurrency(v)
+});
+
+const newNonHpItemSellingPriceDisplay = computed({
+    get: () => newNonHpItem.value.selling_price ? newNonHpItem.value.selling_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
+    set: (v) => newNonHpItem.value.selling_price = parseCurrency(v)
 });
 
 // Region State
@@ -883,7 +893,7 @@ onMounted(() => {
                         <label class="label text-emerald-500">SRP (Rp) *</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="form.selling_price" type="number" class="input pl-10 bg-surface-800"
+                            <input v-model="sellingPriceDisplay" v-money type="text" class="input pl-10 bg-surface-800"
                                 placeholder="0" />
                         </div>
                     </div>
@@ -1032,7 +1042,7 @@ onMounted(() => {
                                 </div>
                                 <div v-if="selectedCategory === 'shopee'">
                                     <label class="label">Harga Jual (per unit)</label>
-                                    <input v-model="newNonHpItem.selling_price" type="number" min="0" class="input" />
+                                    <input v-model="newNonHpItemSellingPriceDisplay" v-money type="text" class="input" placeholder="0" />
                                 </div>
                                 <div class="flex justify-end gap-2 mt-6">
                                     <button @click="showNonHpModal = false"

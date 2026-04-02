@@ -109,9 +109,7 @@ const addNonHpItem = () => {
 
 const updateNonHpItemPrice = (index) => {
     const item = nonHpItems.value[index];
-    const numeric = parseCurrency(item.selling_price_display);
-    item.selling_price = numeric;
-    item.selling_price_display = formatNumber(numeric);
+    item.selling_price = parseCurrency(item.selling_price_display);
 };
 
 const removeNonHpItem = (index) => {
@@ -1051,14 +1049,14 @@ onMounted(fetchInitialData);
                                 <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
                                 <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
                                     <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                    <input v-model="costPriceDisplay" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" placeholder="0" />
+                                    <input v-model="costPriceDisplay" v-money type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" placeholder="0" />
                                 </div>
                             </div>
                             <div class="col-span-full md:col-span-1">
                                 <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span class="text-red-500">*</span></label>
                                 <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
                                     <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                    <input v-model="sellingPriceDisplay" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
+                                    <input v-model="sellingPriceDisplay" v-money type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
                                 </div>
                             </div>
                         </div>
@@ -1108,7 +1106,7 @@ onMounted(fetchInitialData);
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga Jual</label>
                                     <div class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">IDR</span>
-                                        <input v-model="item.selling_price_display" @input="updateNonHpItemPrice(idx)" type="text" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
+                                        <input v-model="item.selling_price_display" v-money @input="updateNonHpItemPrice(idx)" type="text" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
                                     </div>
                                 </div>
                              </div>

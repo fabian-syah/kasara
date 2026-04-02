@@ -131,13 +131,7 @@ function parseNumber(s) {
 }
 
 const displayBuyPrice = ref("0");
-function handleBuyPriceInput(e) {
-    const val = e.target.value;
-    const num = parseNumber(val);
-    tradeInForm.value.buy_price = num;
-    displayBuyPrice.value = formatNumber(num);
-    e.target.value = formatNumber(num);
-}
+// No longer needed: handleBuyPriceInput replaced by v-money
 
 function handleImeiInput(e) {
     const val = e.target.value;
@@ -405,7 +399,7 @@ async function submitTradeIn(pin = null) {
                     <div class="relative">
                         <span
                             class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                        <input type="text" :value="displayBuyPrice" @input="handleBuyPriceInput"
+                        <input v-money="tradeInForm.buy_price" type="text"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                     </div>
                 </div>

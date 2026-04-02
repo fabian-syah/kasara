@@ -298,14 +298,14 @@ useEscapeKey(() => {
                         <label class="label">Harga Modal</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="costPriceDisplay" type="text" class="input pl-8" placeholder="0">
+                            <input v-model="costPriceDisplay" v-money type="text" class="input pl-8" placeholder="0">
                         </div>
                     </div>
                     <div>
                         <label class="label">Harga Jual</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="priceDisplay" type="text" class="input pl-8" placeholder="0">
+                            <input v-model="priceDisplay" v-money type="text" class="input pl-8" placeholder="0">
                         </div>
                     </div>
                 </div>

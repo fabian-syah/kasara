@@ -286,7 +286,7 @@ function deleteProduct(id) {
 
               <div>
                 <label class="block text-sm font-medium text-slate-400 mb-2">Harga (Rp)</label>
-                <input v-model.number="form.price" type="number" class="input" placeholder="21999000" required />
+                <input v-money="form.price" type="text" class="input" placeholder="0" required />
               </div>
 
               <div>

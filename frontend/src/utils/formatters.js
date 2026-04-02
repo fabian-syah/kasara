@@ -45,51 +45,24 @@ export function formatNumber(num) {
  * @returns {number} Parsed number
  */
 export function parseCurrency(val) {
-    if (typeof val === 'number') return val
-    if (!val) return 0
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
 
-    // Remove Rp and whitespace
-    let clean = val.toString().replace(/Rp\s?/g, '').trim()
+    let str = val.toString().trim();
+    
+    // Remove currency symbol and whitespace
+    str = str.replace(/Rp\s?/g, '');
 
-    // Normalize decimals: if it has digits at the end preceded by a dot or comma
-    // e.g. "2.750.000.00" -> "2750000"
-    // e.g. "2.750.000,00" -> "2750000"
+    // For Rupiah, we usually don't have decimals. 
+    // If there's a comma (standard ID decimal) at the end followed by exactly 2 zeros, strip it.
+    str = str.replace(/,00$/, '');
 
-    // If it ends with ,00 or .00, strip it
-    clean = clean.replace(/[.,]00$/, '')
-
-    // Also handle general decimals if they are 1-2 digits
-    // but ONLY if there's a dot/comma before them and at least one other dot before (indicating thousands)
-    // or if it's just a simple decimal like "100.5"
-    if (clean.includes(',') && clean.includes('.')) {
-        // Standard ID: 1.234.567,89
-        clean = clean.replace(/\./g, '').replace(',', '.')
-    } else if (clean.includes(',')) {
-        // Check if comma is decimal or thousand
-        const parts = clean.split(',')
-        if (parts.length === 2 && parts[1].length <= 2) {
-            clean = parts[0].replace(/\D/g, '') + '.' + parts[1]
-        } else {
-            clean = clean.replace(/\D/g, '')
-        }
-    } else if (clean.includes('.')) {
-        // "2.750.000" or "2750000.00" (already handled trailing 00 above)
-        const parts = clean.split('.')
-        // If there are multiple dots, they are thousands
-        if (parts.length > 2) {
-            clean = clean.replace(/\./g, '')
-        } else if (parts.length === 2 && parts[1].length <= 2) {
-            // 100.50
-            clean = parts[0] + '.' + parts[1]
-        } else {
-            clean = clean.replace(/\./g, '')
-        }
-    } else {
-        clean = clean.replace(/\D/g, '')
-    }
-
-    const result = parseFloat(clean)
-    return isNaN(result) ? 0 : Math.round(result) // Round for IDR
+    // NEW LOGIC: Just strip everything that is not a digit.
+    // This is the safest for IDR input fields where dots are thousands separators.
+    const clean = str.replace(/\D/g, '');
+    
+    const result = parseInt(clean, 10);
+    return isNaN(result) ? 0 : result;
 }
 
 /**

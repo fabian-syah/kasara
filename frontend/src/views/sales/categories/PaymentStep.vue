@@ -84,6 +84,12 @@ const submitButtonText = computed(() => {
 });
 
 const displayDiscount = ref("0");
+const discountValue = computed({
+    get: () => cartStore.discount,
+    set: (val) => {
+        cartStore.setDiscount(val, 'fixed');
+    }
+});
 
 // Initialize split payment
 onMounted(() => {
@@ -134,19 +140,9 @@ function removeSplitPayment(index) {
     }
 }
 
-function handleSplitAmountInput(index, e) {
-    const val = e.target.value;
-    const num = parseNumber(val);
-    splitPayments.value[index].amount = num;
-    splitPayments.value[index].display_amount = formatNumber(num);
-}
+// No longer needed: handleSplitAmountInput replaced by v-money
 
-function handleDiscountInput(e) {
-    const val = e.target.value;
-    const num = parseNumber(val);
-    cartStore.setDiscount(num, 'fixed');
-    displayDiscount.value = formatNumber(num);
-}
+// No longer needed: handleDiscountInput handled via computed or simplified logic
 
 async function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.7) {
     return new Promise((resolve, reject) => {
@@ -564,8 +560,7 @@ async function processPayment(pin = null) {
                                         <div class="relative">
                                             <span
                                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-black">Rp</span>
-                                            <input :value="payment.display_amount"
-                                                @input="e => handleSplitAmountInput(index, e)" type="text"
+                                            <input v-money="payment.amount" type="text"
                                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-10"
                                                 placeholder="0" />
                                         </div>
@@ -592,9 +587,12 @@ async function processPayment(pin = null) {
                         <div class="relative">
                             <span v-if="cartStore.discountType === 'fixed'"
                                 class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">Rp</span>
-                            <input :value="displayDiscount" @input="handleDiscountInput" type="text"
+                            <input v-if="cartStore.discountType === 'fixed'" v-money="discountValue" type="text"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all pl-14"
+                                placeholder="0" />
+                            <input v-else v-model.number="cartStore.discount" type="number"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all"
-                                :class="cartStore.discountType === 'fixed' ? 'pl-14' : ''" placeholder="0" />
+                                placeholder="0" />
                             <span v-if="cartStore.discountType === 'percentage'"
                                 class="absolute right-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">%</span>
                         </div>
