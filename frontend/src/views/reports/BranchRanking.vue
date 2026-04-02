@@ -79,6 +79,8 @@ onMounted(() => {
     fetchRanking();
 });
 
+const searchQuery = ref('');
+
 const totalOmset = computed(() => {
     return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
 });
