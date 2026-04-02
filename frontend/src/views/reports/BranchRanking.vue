@@ -121,18 +121,25 @@ const exportToPNG = async (mode = 'share') => {
     if (!exportRef.value) return;
     exportLoading.value = true;
     
+    // Ensure we are scrolled to top for correct capture
+    window.scrollTo(0, 0);
+
     const runExport = async (part, suffix) => {
         exportPart.value = part;
-        await new Promise(r => setTimeout(r, 200)); // Wait for DOM
+        await new Promise(r => setTimeout(r, 300)); // More time for layout
         try {
-            const dataUrl = await toPng(exportRef.value, { 
+            const el = exportRef.value;
+            const dataUrl = await toPng(el, { 
                 quality: 1,
                 backgroundColor: '#0a0a0a',
                 pixelRatio: 2,
                 style: { 
-                    padding: '40px',
+                    padding: '80px',
                     background: '#0a0a0a',
-                    borderRadius: '0px'
+                    width: '1400px',
+                    margin: '0',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }
             });
             const link = document.createElement('a');
@@ -552,6 +559,7 @@ const exportToPNG = async (mode = 'share') => {
 }
 
 .is-exporting-png {
+    width: 1400px !important;
     --color-text-primary: #f8fafc !important;
     --color-text-secondary: #94a3b8 !important;
     color: #f8fafc !important;
@@ -559,6 +567,7 @@ const exportToPNG = async (mode = 'share') => {
 
 .is-exporting-png * {
     color: inherit;
+    overflow: visible !important;
 }
 
 .is-exporting-png .text-primary-500,
