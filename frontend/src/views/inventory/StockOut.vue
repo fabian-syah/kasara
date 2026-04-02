@@ -325,10 +325,7 @@ function isSelected(item) {
     return selectedItems.value.some(i => i.id === item.id);
 }
 
-function formatCurrency(val) {
-    if (!val) return '-';
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
-}
+// Removed redundant formatCurrency; using imported one from utils/formatters instead
 
 async function openStockOutForm() {
     if (selectedItems.value.length === 0) {
