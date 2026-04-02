@@ -126,17 +126,18 @@ const exportToPNG = async (mode = 'share') => {
 
     const runExport = async (part, suffix) => {
         exportPart.value = part;
-        await new Promise(r => setTimeout(r, 300)); // More time for layout
+        await new Promise(r => setTimeout(r, 400)); // More time for layout
         try {
             const el = exportRef.value;
             const dataUrl = await toPng(el, { 
-                quality: 1,
                 backgroundColor: '#0a0a0a',
                 pixelRatio: 2,
+                width: 1400,
                 style: { 
-                    padding: '80px',
+                    padding: '40px',
                     background: '#0a0a0a',
                     width: '1400px',
+                    maxWidth: 'none',
                     margin: '0',
                     display: 'flex',
                     flexDirection: 'column'
@@ -560,6 +561,7 @@ const exportToPNG = async (mode = 'share') => {
 
 .is-exporting-png {
     width: 1400px !important;
+    max-width: none !important;
     --color-text-primary: #f8fafc !important;
     --color-text-secondary: #94a3b8 !important;
     color: #f8fafc !important;
