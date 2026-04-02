@@ -130,12 +130,12 @@ const exportToPNG = async (mode = 'share') => {
         try {
             const el = exportRef.value;
             const dataUrl = await toPng(el, { 
-                backgroundColor: '#0a0a0a',
+                backgroundColor: '#ffffff',
                 pixelRatio: 2,
                 width: 1500, // Slightly wider for centering room
                 style: { 
                     padding: '80px',
-                    background: '#0a0a0a',
+                    background: '#ffffff',
                     width: '1500px',
                     maxWidth: 'none',
                     margin: '0',
@@ -172,7 +172,7 @@ const exportToPNG = async (mode = 'share') => {
 <template>
     <div :class="[
         'p-3 md:p-6 space-y-6 md:space-y-8 transition-all duration-300',
-        exportPart === 0 ? 'max-w-7xl mx-auto' : 'w-[1500px] !max-w-none !mx-0 overflow-visible bg-[#0a0a0a]'
+        exportPart === 0 ? 'max-w-7xl mx-auto' : 'w-[1500px] !max-w-none !mx-0 overflow-visible bg-white'
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -567,16 +567,17 @@ const exportToPNG = async (mode = 'share') => {
 .is-exporting-png {
     width: 1240px !important;
     max-width: none !important;
-    --color-text-primary: #f8fafc !important;
-    --color-text-secondary: #94a3b8 !important;
-    color: #f8fafc !important;
+    --color-text-primary: #000000 !important;
+    --color-text-secondary: #333333 !important;
+    color: #000000 !important;
 }
 
 .is-exporting-png * {
-    color: inherit;
+    color: inherit !important;
     overflow: visible !important;
 }
 
+/* Keep accent colors but adjust for visibility on white */
 .is-exporting-png .text-primary-500,
 .is-exporting-png .text-emerald-500,
 .is-exporting-png .text-emerald-400,
