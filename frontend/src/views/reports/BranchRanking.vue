@@ -126,13 +126,13 @@ const exportToPNG = async (mode = 'share') => {
 
     const runExport = async (part, suffix) => {
         exportPart.value = part;
-        await new Promise(r => setTimeout(r, 450)); // More time for layout
+        await new Promise(r => setTimeout(r, 600)); // More time for HD layout
         try {
             const el = exportRef.value;
             const dataUrl = await toPng(el, { 
                 backgroundColor: '#ffffff',
-                pixelRatio: 2,
-                width: 1500, // Slightly wider for centering room
+                pixelRatio: 4, // 4K Quality
+                width: 1500,
                 style: { 
                     padding: '80px',
                     background: '#ffffff',
@@ -497,7 +497,7 @@ const exportToPNG = async (mode = 'share') => {
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
