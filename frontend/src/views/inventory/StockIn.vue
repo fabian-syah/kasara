@@ -746,6 +746,7 @@ async function submitStockIn(pin = null) {
                 ram: selectedRam.value, // Fix: pass actual ram
                 storage: selectedStorage.value // Fix: pass actual storage
             }));
+            payload.quantity = parsedImeis.value.length;
         } else {
             // NEW: Multi-item Non-HP
             payload.items = nonHpItems.value.map(item => {
