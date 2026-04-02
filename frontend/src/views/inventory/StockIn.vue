@@ -734,6 +734,7 @@ async function submitStockIn(pin = null) {
             }
 
             payload.product_id = productId;
+            payload.brand_id = selectedBrand.value; // Send brand_id
             payload.ram = selectedRam.value;
             payload.storage = selectedStorage.value;
             payload.imeis = parsedImeis.value.map(imei => ({
@@ -742,8 +743,8 @@ async function submitStockIn(pin = null) {
                 cost_price: batchDetails.value.cost_price,
                 selling_price: batchDetails.value.selling_price,
                 color: "",
-                ram: "",
-                storage: ""
+                ram: selectedRam.value, // Fix: pass actual ram
+                storage: selectedStorage.value // Fix: pass actual storage
             }));
         } else {
             // NEW: Multi-item Non-HP
@@ -777,8 +778,13 @@ async function submitStockIn(pin = null) {
         }
 
     } catch (error) {
-        console.error(error);
-        toast.error(error.response?.data?.message || "Gagal input stok");
+        console.error("Stock in submit failed:", error);
+        if (error.response?.data?.errors) {
+            const firstError = Object.values(error.response.data.errors)[0][0];
+            toast.error(firstError);
+        } else {
+            toast.error(error.response?.data?.message || "Gagal input stok");
+        }
     } finally {
         isSubmitting.value = false;
     }
