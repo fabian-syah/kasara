@@ -114,40 +114,43 @@ const filteredRanking = computed(() => {
 });
 
 const exportLoading = ref(false);
-const isExporting = ref(false);
+const exportPart = ref(0); // 0: none, 1: part 1 (Podium + 1-20), 2: part 2 (21-end)
 const exportRef = ref(null);
 
-const exportToPNG = async (isFull = false) => {
+const exportToPNG = async (mode = 'share') => {
     if (!exportRef.value) return;
     exportLoading.value = true;
-    isExporting.value = !isFull;
     
-    // Tiny delay to allow DOM to react
-    await new Promise(r => setTimeout(r, 100));
+    const runExport = async (part, suffix) => {
+        exportPart.value = part;
+        await new Promise(r => setTimeout(r, 200)); // Wait for DOM
+        try {
+            const dataUrl = await toPng(exportRef.value, { 
+                quality: 1,
+                backgroundColor: '#0a0a0a',
+                pixelRatio: 2,
+                style: { padding: '40px' }
+            });
+            const link = document.createElement('a');
+            link.download = `ranking-${suffix}-${formatDateStr(new Date())}.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (e) { console.error(e); }
+    };
 
-    try {
-        const el = exportRef.value;
-        const options = { 
-            quality: 1,
-            backgroundColor: '#0a0a0a', 
-            cacheBust: true,
-            pixelRatio: 2,
-            style: {
-                padding: '40px'
-            }
-        };
-
-        const dataUrl = await toPng(el, options);
-        const link = document.createElement('a');
-        link.download = `ranking-${isFull ? 'lengkap' : 'top10'}-${formatDateStr(new Date())}.png`;
-        link.href = dataUrl;
-        link.click();
-    } catch (err) {
-        console.error('Export failed:', err);
-    } finally {
-        exportLoading.value = false;
-        isExporting.value = false;
+    if (mode === 'share') {
+        await runExport(1, 'top-ranking');
+    } else {
+        // Export Part 1
+        await runExport(1, 'part-1');
+        // Export Part 2 if there's more than 20 items
+        if (rankingData.value.length > 20) {
+            await runExport(2, 'part-2');
+        }
     }
+    
+    exportPart.value = 0;
+    exportLoading.value = false;
 };
 
 </script>
@@ -210,14 +213,16 @@ const exportToPNG = async (isFull = false) => {
 
                 <!-- Export Buttons -->
                 <div class="flex items-center gap-2">
-                    <button @click="exportToPNG(false)" :disabled="loading || exportLoading || rankingData.length === 0"
+                    <button @click="exportToPNG('share')" :disabled="loading || exportLoading || rankingData.length === 0"
                         class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50">
-                        <Download class="w-4 h-4" />
+                        <Download v-if="!exportLoading" class="w-4 h-4" />
+                        <Loader2 v-else class="w-4 h-4 animate-spin" />
                         <span>Share Top 3</span>
                     </button>
-                    <button @click="exportToPNG(true)" :disabled="loading || exportLoading || rankingData.length === 0"
+                    <button @click="exportToPNG('full')" :disabled="loading || exportLoading || rankingData.length === 0"
                         class="px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50">
-                        <Download class="w-3.5 h-3.5" />
+                        <Download v-if="!exportLoading" class="w-3.5 h-3.5" />
+                        <Loader2 v-else class="w-3.5 h-3.5 animate-spin" />
                         <span>Export Full</span>
                     </button>
                 </div>
@@ -229,9 +234,15 @@ const exportToPNG = async (isFull = false) => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div v-else ref="exportRef" class="space-y-12 bg-surface-900 p-4 rounded-[40px]">
-            <!-- Search & Sort Row -->
-            <div class="flex flex-col md:flex-row items-center gap-6">
+        <div ref="exportRef" class="space-y-12 bg-surface-900 p-4 rounded-[40px]">
+            <!-- HEADER KHUSUS PART 2 -->
+            <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
+                <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
+                <p class="text-text-secondary text-xs font-bold mt-2 uppercase tracking-widest">Halaman 2 / Selesai</p>
+            </div>
+
+            <!-- Search & Sort Row (HIDE IN EXPORT) -->
+            <div v-show="exportPart === 0" class="flex flex-col md:flex-row items-center gap-6">
                 <!-- Search Bar -->
                 <div class="relative group w-full md:flex-1">
                     <div
@@ -260,8 +271,8 @@ const exportToPNG = async (isFull = false) => {
                     </button>
                 </div>
             </div>
-            <!-- Podium Layout - RANK 1 UNIK & SPESIAL -->
-            <div v-if="top3.length > 0"
+            <!-- Podium Layout (HIDE IN PART 2) -->
+            <div v-if="top3.length > 0 && exportPart !== 2"
                 class="flex flex-col lg:flex-row items-center lg:items-end justify-center gap-10 lg:gap-4 xl:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-[40px] overflow-hidden border border-surface-800/50">
                 <div
                     class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-500/20 to-transparent">
@@ -434,7 +445,7 @@ const exportToPNG = async (isFull = false) => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
-                                    v-show="!isExporting || index < 10"
+                                    v-show="exportPart === 0 || (exportPart === 1 && index < 20) || (exportPart === 2 && index >= 20)"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
