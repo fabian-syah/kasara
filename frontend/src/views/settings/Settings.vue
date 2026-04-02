@@ -206,17 +206,20 @@ async function handlePinSuccess(pin) {
                 fd.append('pin_enabled', 1);
                 await inventoryApi.updateAccount(selectedAccountId.value, fd);
             }
-            toast.success("PIN berhasil dipasang!");
+            toast.success("PIN berhasil dipasang dan diaktifkan!");
         } else {
             // Toggle Logic
+            let newState;
             if (selectedAccountId.value === 'main') {
-                await authStore.togglePin(pin);
+                const res = await authStore.togglePin(pin);
+                newState = res.data.pin_enabled;
             } else {
-                await inventoryApi.togglePin(selectedAccountId.value, pin);
+                const res = await inventoryApi.togglePin(selectedAccountId.value, pin);
+                newState = res.data.data.pin_enabled;
             }
-            toast.success(`PIN berhasil diperbarui!`);
+            toast.success(`PIN berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}!`);
         }
-        // Refresh user data based on what changed
+        // Refresh user data
         if (selectedAccountId.value === 'main') {
             const res = await usersApi.get(authStore.user.id);
             user.value = res.data.data;

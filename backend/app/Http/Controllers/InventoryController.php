@@ -1484,7 +1484,7 @@ class InventoryController extends Controller
                     ->orWhere('id', $user->id);
             })
             ->where('is_active', true)
-            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled')
+            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at')
             ->get();
 
         return response()->json($inventoryUsers);
