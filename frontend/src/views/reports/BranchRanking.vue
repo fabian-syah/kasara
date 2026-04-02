@@ -114,33 +114,46 @@ const filteredRanking = computed(() => {
 });
 
 const exportLoading = ref(false);
+const isExporting = ref(false);
 const exportRef = ref(null);
 
-const exportToPNG = async () => {
+const exportToPNG = async (isFull = false) => {
     if (!exportRef.value) return;
     exportLoading.value = true;
+    isExporting.value = !isFull;
+    
+    // Tiny delay to allow DOM to react
+    await new Promise(r => setTimeout(r, 100));
+
     try {
-        const dataUrl = await toPng(exportRef.value, { 
+        const el = exportRef.value;
+        const options = { 
             quality: 1,
-            backgroundColor: '#050505',
+            backgroundColor: '#0a0a0a', 
             cacheBust: true,
-            pixelRatio: 2, // High quality
-        });
+            pixelRatio: 2,
+            style: {
+                padding: '40px'
+            }
+        };
+
+        const dataUrl = await toPng(el, options);
         const link = document.createElement('a');
-        link.download = `ranking-performa-${formatDateStr(new Date())}.png`;
+        link.download = `ranking-${isFull ? 'lengkap' : 'top10'}-${formatDateStr(new Date())}.png`;
         link.href = dataUrl;
         link.click();
     } catch (err) {
         console.error('Export failed:', err);
     } finally {
         exportLoading.value = false;
+        isExporting.value = false;
     }
 };
 
 </script>
 
 <template>
-    <div class="p-4 md:p-6 space-y-8 max-w-7xl mx-auto overflow-x-hidden">
+    <div class="p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto overflow-x-hidden">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
             <div class="flex items-center gap-4">
@@ -178,13 +191,13 @@ const exportToPNG = async () => {
                     </button>
                 </div>
 
-                <div class="flex items-center gap-2 bg-surface-800 p-1 rounded-xl border border-surface-700/50">
-                    <Calendar class="w-4 h-4 text-primary-500 ml-2" />
+                <div class="flex flex-wrap items-center gap-2 bg-surface-800 p-1 rounded-xl border border-surface-700/50">
+                    <Calendar class="w-4 h-4 text-primary-500 ml-2 shrink-0" />
                     <input type="date" v-model="filters.start_date"
-                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-28" />
+                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
                     <span class="text-surface-600 font-bold">-</span>
                     <input type="date" v-model="filters.end_date"
-                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-28" />
+                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
                     <button @click="fetchRanking" :disabled="loading"
                         class="p-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center min-w-[120px] gap-2 font-black text-[10px] uppercase">
                         <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
@@ -195,13 +208,19 @@ const exportToPNG = async () => {
                     </button>
                 </div>
 
-                <!-- Export Button -->
-                <button @click="exportToPNG" :disabled="loading || exportLoading || rankingData.length === 0"
-                    class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50">
-                    <Loader2 v-if="exportLoading" class="w-4 h-4 animate-spin" />
-                    <Download v-else class="w-4 h-4" />
-                    <span>Export PNG</span>
-                </button>
+                <!-- Export Buttons -->
+                <div class="flex items-center gap-2">
+                    <button @click="exportToPNG(false)" :disabled="loading || exportLoading || rankingData.length === 0"
+                        class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50">
+                        <Download class="w-4 h-4" />
+                        <span>Share Top 3</span>
+                    </button>
+                    <button @click="exportToPNG(true)" :disabled="loading || exportLoading || rankingData.length === 0"
+                        class="px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50">
+                        <Download class="w-3.5 h-3.5" />
+                        <span>Export Full</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -226,15 +245,15 @@ const exportToPNG = async () => {
                 </div>
 
                 <!-- Alphabet Filter -->
-                <div class="flex bg-surface-800 p-1.5 rounded-[18px] border border-surface-700/50 shrink-0">
+                <div class="flex w-full md:w-auto bg-surface-800 p-1 rounded-2xl border border-surface-700/50 shrink-0 overflow-x-auto no-scrollbar">
                     <button @click="sortBy = 'omset'"
-                        class="px-6 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-2"
+                        class="flex-1 md:flex-none px-4 lg:px-6 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                         :class="sortBy === 'omset' ? 'bg-primary-500 text-white shadow-xl shadow-primary-500/10' : 'text-text-secondary hover:text-text-primary'">
                         <TrendingUp class="w-3.5 h-3.5" />
                         OMSET TERBANYAK
                     </button>
                     <button @click="sortBy = 'name'"
-                        class="px-6 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-2"
+                        class="flex-1 md:flex-none px-4 lg:px-6 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                         :class="sortBy === 'name' ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/10' : 'text-text-secondary hover:text-text-primary'">
                         <SortAsc class="w-3.5 h-3.5" />
                         ABJAD (A-Z)
@@ -390,15 +409,15 @@ const exportToPNG = async () => {
 
                 <div
                     class="bg-surface-800/10 rounded-3xl border border-surface-800 overflow-hidden shadow-2xl relative">
-                    <div class="overflow-x-auto scrollbar-thin">
-                        <table class="w-full text-left border-collapse min-w-[900px]">
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-left border-collapse min-w-[700px] md:min-w-[900px]">
                             <thead>
                                 <tr class="bg-surface-800/50">
                                     <th
-                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
                                         No</th>
                                     <th
-                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
                                         Unit Bisnis</th>
 <!-- 
                                     <th
@@ -409,15 +428,16 @@ const exportToPNG = async () => {
                                         Android & Terlaris</th>
 -->
                                     <th
-                                        class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
                                         Hasil Omset</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
+                                    v-show="!isExporting || index < 10"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
-                                    <td class="px-8 py-7">
-                                        <div class="flex items-center justify-center w-9 h-9 rounded-xl font-black text-sm"
+                                    <td class="px-4 md:px-8 py-5 md:py-7">
+                                        <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
                                             :class="{
                                                 'bg-primary-500 text-white shadow-xl shadow-primary-500/20': index === 0,
                                                 'bg-slate-400 text-surface-900': index === 1,
@@ -425,16 +445,16 @@ const exportToPNG = async () => {
                                                 'bg-surface-800 text-text-secondary border border-surface-700': index > 2
                                             }">{{ index + 1 }}</div>
                                     </td>
-                                    <td class="px-8 py-7">
-                                        <div class="flex items-center gap-4">
+                                    <td class="px-4 md:px-8 py-5 md:py-7">
+                                        <div class="flex items-center gap-3 md:gap-4">
                                             <div
-                                                class="w-10 h-10 rounded-2xl bg-surface-800 flex items-center justify-center border border-surface-700 shadow-inner group-hover:scale-110 transition-transform">
-                                                <component :is="item.type === 'Offline' ? Store : Globe" class="w-5 h-5"
+                                                class="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-surface-800 flex items-center justify-center border border-surface-700 shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                                                <component :is="item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
                                                     :class="item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
                                             </div>
-                                            <div class="flex flex-col">
+                                            <div class="flex flex-col min-w-0">
                                                 <span
-                                                    class="font-black text-text-primary text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight">{{
+                                                    class="font-black text-text-primary text-xs md:text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight truncate">{{
                                                     item.name }}</span>
                                                 <span
                                                     class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{
@@ -442,9 +462,9 @@ const exportToPNG = async () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-8 py-7 text-right">
+                                    <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                         <span
-                                            class="text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{
+                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{
                                             formatCurrency(item.omset) }}</span>
                                     </td>
                                 </tr>
@@ -510,6 +530,15 @@ const exportToPNG = async () => {
     100% {
         transform: translateX(150%) skewX(-20deg);
     }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .animate-shine {
