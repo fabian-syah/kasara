@@ -9,7 +9,9 @@ import {
     Users,
     ArrowUpDown,
     ArrowUp,
-    Building2
+    Building2,
+    Filter,
+    Loader2
 } from 'lucide-vue-next';
 
 const loading = ref(true);
@@ -29,6 +31,58 @@ const filters = ref({
 const filterOptions = ref({
     branches: [],
     online_shops: []
+});
+
+const formatDateStr = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const setRange = (type) => {
+    const today = new Date();
+
+    if (type === 'today') {
+        filters.value.start_date = formatDateStr(today);
+        filters.value.end_date = formatDateStr(today);
+    } else if (type === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        filters.value.start_date = formatDateStr(yesterday);
+        filters.value.end_date = formatDateStr(yesterday);
+    } else if (type === 'month') {
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        filters.value.start_date = formatDateStr(startOfMonth);
+        filters.value.end_date = formatDateStr(today);
+    } else if (type === 'all') {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
+    }
+    fetchReport();
+};
+
+const activeRange = computed(() => {
+    const today = new Date();
+    const todayStr = formatDateStr(today);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = formatDateStr(yesterday);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfMonthStr = formatDateStr(startOfMonth);
+
+    if (!filters.value.start_date && !filters.value.end_date) return 'all';
+    
+    if (filters.value.start_date === filters.value.end_date) {
+        if (filters.value.start_date === todayStr) return 'today';
+        if (filters.value.start_date === yesterdayStr) return 'yesterday';
+    }
+    
+    if (filters.value.start_date === startOfMonthStr && filters.value.end_date === todayStr) return 'month';
+    
+    return 'custom';
 });
 
 const fetchFilters = async () => {
@@ -55,6 +109,9 @@ const fetchReport = async () => {
 };
 
 onMounted(() => {
+    const today = new Date();
+    filters.value.start_date = formatDateStr(today);
+    filters.value.end_date = formatDateStr(today);
     fetchFilters();
     fetchReport();
 });
@@ -114,45 +171,70 @@ const filteredProducts = computed(() => {
                 </p>
             </div>
 
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2 bg-surface-800 p-1 rounded-lg border border-surface-700">
-                    <input type="date" v-model="filters.start_date"
-                        class="bg-transparent text-xs text-text-primary outline-none px-2" />
-                    <span class="text-text-secondary">to</span>
-                    <input type="date" v-model="filters.end_date"
-                        class="bg-transparent text-xs text-text-primary outline-none px-2" />
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 flex-wrap sm:flex-nowrap">
+                    <button @click="setRange('today')" :disabled="loading"
+                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        HARI INI
+                    </button>
+                    <button @click="setRange('yesterday')" :disabled="loading"
+                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        KEMARIN
+                    </button>
+                    <button @click="setRange('month')" :disabled="loading"
+                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        BULAN INI
+                    </button>
+                    <button @click="setRange('all')" :disabled="loading"
+                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        SEMUA
+                    </button>
                 </div>
 
-                <!-- Branch Selector (Admins Only) -->
-                <div v-if="filterOptions.branches.length > 0"
-                    class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
-                    <Building2 class="w-4 h-4 text-text-secondary ml-1" />
-                    <select v-model="filters.branch_id" @change="fetchReport"
-                        class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
-                        <option value="">Semua Cabang</option>
-                        <option v-for="branch in filterOptions.branches" :key="branch.id" :value="branch.id">
-                            {{ branch.name }}
-                        </option>
-                    </select>
-                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2 bg-surface-800 p-1 rounded-lg border border-surface-700">
+                        <input type="date" v-model="filters.start_date"
+                            class="bg-transparent text-xs text-text-primary outline-none px-2" />
+                        <span class="text-text-secondary">to</span>
+                        <input type="date" v-model="filters.end_date"
+                            class="bg-transparent text-xs text-text-primary outline-none px-2" />
+                    </div>
 
-                <!-- Online Shop Selector (Admins Only) -->
-                <div v-if="filterOptions.online_shops.length > 0"
-                    class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
-                    <Smartphone class="w-4 h-4 text-text-secondary ml-1" />
-                    <select v-model="filters.online_shop_id" @change="fetchReport"
-                        class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
-                        <option value="">Semua Online Shop</option>
-                        <option v-for="shop in filterOptions.online_shops" :key="shop.id" :value="shop.id">
-                            {{ shop.name }}
-                        </option>
-                    </select>
-                </div>
+                    <!-- Branch Selector -->
+                    <div v-if="filterOptions.branches.length > 0"
+                        class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
+                        <Building2 class="w-4 h-4 text-text-secondary ml-1" />
+                        <select v-model="filters.branch_id" @change="fetchReport"
+                            class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
+                            <option value="">Semua Cabang</option>
+                            <option v-for="branch in filterOptions.branches" :key="branch.id" :value="branch.id">
+                                {{ branch.name }}
+                            </option>
+                        </select>
+                    </div>
 
-                <button @click="fetchReport" class="btn btn-primary btn-sm">
-                    <Filter :size="14" />
-                    Filter
-                </button>
+                    <!-- Online Shop Selector -->
+                    <div v-if="filterOptions.online_shops.length > 0"
+                        class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
+                        <Smartphone class="w-4 h-4 text-text-secondary ml-1" />
+                        <select v-model="filters.online_shop_id" @change="fetchReport"
+                            class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
+                            <option value="">Semua Online Shop</option>
+                            <option v-for="shop in filterOptions.online_shops" :key="shop.id" :value="shop.id">
+                                {{ shop.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <button @click="fetchReport" class="btn btn-primary btn-sm h-9 px-4">
+                        <Filter :size="14" />
+                        Terapkan
+                    </button>
+                </div>
             </div>
         </div>
 

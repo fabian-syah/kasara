@@ -11,56 +11,48 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    <!-- Period Filter -->
-                    <div class="relative min-w-[140px]">
-                        <select v-model="selectedPeriod" @change="handlePeriodChange"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                            <option value="daily">Harian</option>
-                            <option value="monthly">Bulanan</option>
-                        </select>
-                        <ChevronDown :size="16"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    <!-- Quick Filters -->
+                    <div class="flex bg-surface-100 dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 flex-wrap sm:flex-nowrap">
+                        <button @click="setRange('today')" :disabled="loading"
+                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            HARI INI
+                        </button>
+                        <button @click="setRange('yesterday')" :disabled="loading"
+                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            KEMARIN
+                        </button>
+                        <button @click="setRange('month')" :disabled="loading"
+                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            BULAN INI
+                        </button>
+                        <button @click="setRange('all')" :disabled="loading"
+                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            SEMUA
+                        </button>
                     </div>
 
-                    <!-- Daily: Date Picker -->
-                    <div v-if="selectedPeriod === 'daily'" class="relative group">
-                        <div
-                            class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
-                            <Calendar :size="18"
-                                class="text-gray-500 dark:text-gray-400 group-hover:text-primary-500" />
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[100px]">
-                                {{ formattedDateDisplay }}
-                            </span>
-                        </div>
-                        <input type="date" v-model="filters.start_date" @change="handleDateChange"
-                            @click="$event.target.showPicker()"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
-                    </div>
-
-                    <!-- Monthly: Month & Year Selectors -->
-                    <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2">
-                        <div class="relative min-w-[140px]">
-                            <select v-model="selectedMonth" @change="handleMonthChange"
-                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
-                            </select>
-                            <ChevronDown :size="16"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                        </div>
-                        <div class="relative min-w-[100px]">
-                            <select v-model="selectedYear" @change="handleMonthChange"
-                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-                            </select>
-                            <ChevronDown :size="16"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                        </div>
+                    <!-- Custom Date Range -->
+                    <div class="flex items-center gap-2 bg-white dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700">
+                        <Calendar class="w-4 h-4 text-primary-500 ml-2" />
+                        <input type="date" v-model="filters.start_date"
+                            class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
+                        <span class="text-surface-400 font-bold">-</span>
+                        <input type="date" v-model="filters.end_date"
+                            class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
+                        <button @click="fetchData" :disabled="loading"
+                            class="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase ml-1">
+                            TERAPKAN
+                        </button>
                     </div>
 
                     <!-- Branch Filter -->
                     <div v-if="canFilterBranch" class="relative min-w-[200px]">
                         <select v-model="selectedLocationKey" @change="fetchData"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
                             <option value="all">Semua Cabang/Toko</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                                 :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
@@ -462,16 +454,58 @@ const formattedDateDisplay = computed(() => {
     }
 })
 
-const handlePeriodChange = () => {
-    if (selectedPeriod.value === 'daily') {
-        const today = getTodayLocal();
-        filters.value.start_date = today;
-        filters.value.end_date = today;
-    } else {
-        handleMonthChange();
+const setRange = (type) => {
+    const today = new Date();
+
+    if (type === 'today') {
+        filters.value.start_date = getTodayLocal();
+        filters.value.end_date = getTodayLocal();
+    } else if (type === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yStr = formatDateStr(yesterday);
+        filters.value.start_date = yStr;
+        filters.value.end_date = yStr;
+    } else if (type === 'month') {
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        filters.value.start_date = formatDateStr(startOfMonth);
+        filters.value.end_date = getTodayLocal();
+    } else if (type === 'all') {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
     }
     fetchData();
-}
+};
+
+const formatDateStr = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const activeRange = computed(() => {
+    const today = new Date();
+    const todayStr = getTodayLocal();
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = formatDateStr(yesterday);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfMonthStr = formatDateStr(startOfMonth);
+
+    if (!filters.value.start_date && !filters.value.end_date) return 'all';
+    
+    if (filters.value.start_date === filters.value.end_date) {
+        if (filters.value.start_date === todayStr) return 'today';
+        if (filters.value.start_date === yesterdayStr) return 'yesterday';
+    }
+    
+    if (filters.value.start_date === startOfMonthStr && filters.value.end_date === todayStr) return 'month';
+    
+    return 'custom';
+});
 
 const handleDateChange = () => {
     if (selectedPeriod.value === 'daily') {

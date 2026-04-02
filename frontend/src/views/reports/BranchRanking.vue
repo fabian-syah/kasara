@@ -43,6 +43,11 @@ const setRange = (type) => {
     if (type === 'today') {
         filters.value.start_date = formatDateStr(today);
         filters.value.end_date = formatDateStr(today);
+    } else if (type === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        filters.value.start_date = formatDateStr(yesterday);
+        filters.value.end_date = formatDateStr(yesterday);
     } else if (type === 'month') {
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         filters.value.start_date = formatDateStr(startOfMonth);
@@ -53,6 +58,29 @@ const setRange = (type) => {
     }
     fetchRanking();
 };
+
+const activeRange = computed(() => {
+    const today = new Date();
+    const todayStr = formatDateStr(today);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = formatDateStr(yesterday);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfMonthStr = formatDateStr(startOfMonth);
+
+    if (!filters.value.start_date && !filters.value.end_date) return 'all';
+    
+    if (filters.value.start_date === filters.value.end_date) {
+        if (filters.value.start_date === todayStr) return 'today';
+        if (filters.value.start_date === yesterdayStr) return 'yesterday';
+    }
+    
+    if (filters.value.start_date === startOfMonthStr && filters.value.end_date === todayStr) return 'month';
+    
+    return 'custom';
+});
 
 const fetchRanking = async () => {
     loading.value = true;
@@ -73,8 +101,7 @@ const fetchRanking = async () => {
 
 onMounted(() => {
     const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    filters.value.start_date = formatDateStr(startOfMonth);
+    filters.value.start_date = formatDateStr(today);
     filters.value.end_date = formatDateStr(today);
     fetchRanking();
 });
@@ -190,23 +217,29 @@ const exportToPNG = async (mode = 'share') => {
             </div>
 
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50">
+                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 flex-wrap sm:flex-nowrap">
                     <button @click="setRange('today')" :disabled="loading"
-                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="filters.start_date === filters.end_date && filters.start_date !== '' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && filters.start_date === filters.end_date && filters.start_date === formatDateStr(new Date())" class="w-2.5 h-2.5 animate-spin" />
+                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && activeRange === 'today'" class="w-2.5 h-2.5 animate-spin" />
                         HARI INI
                     </button>
+                    <button @click="setRange('yesterday')" :disabled="loading"
+                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && activeRange === 'yesterday'" class="w-2.5 h-2.5 animate-spin" />
+                        KEMARIN
+                    </button>
                     <button @click="setRange('month')" :disabled="loading"
-                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="filters.start_date !== filters.end_date && filters.start_date !== '' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && filters.start_date !== filters.end_date && filters.start_date !== ''" class="w-2.5 h-2.5 animate-spin" />
+                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && activeRange === 'month'" class="w-2.5 h-2.5 animate-spin" />
                         BULAN INI
                     </button>
                     <button @click="setRange('all')" :disabled="loading"
-                        class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="!filters.start_date ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && !filters.start_date" class="w-2.5 h-2.5 animate-spin" />
+                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        <Loader2 v-if="loading && activeRange === 'all'" class="w-2.5 h-2.5 animate-spin" />
                         SEMUA
                     </button>
                 </div>
