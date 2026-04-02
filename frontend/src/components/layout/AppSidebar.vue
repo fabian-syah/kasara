@@ -105,7 +105,17 @@ const menuItems = [
     { id: "warehouse_monitoring", path: "/monitoring/warehouse", label: "Monitoring Stok Gudang", icon: Warehouse },
     { id: "stock_summary", path: "/monitoring/summary", label: "Ringkasan Stok", icon: Box },
 
-    { id: "inventory", path: "/inventory", label: "Inventory", icon: Box },
+    {
+        id: "inventory",
+        label: "Inventory",
+        icon: Box,
+        items: [
+            { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
+            { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Konfirmasi Masuk (OTW)" },
+            { id: "incoming_transfer_history", path: "/inventory/incoming-history", label: "Riwayat Masuk" },
+            { id: "outgoing_transfer_history", path: "/inventory/outgoing-history", label: "Riwayat Keluar" },
+        ]
+    },
     { id: "products", path: "/products", label: "Produk", icon: Package },
     { id: "users", path: "/users", label: "Staff & Role", icon: Users },
     {
@@ -143,16 +153,6 @@ const menuItems = [
     { id: "audit_analysis", path: "/audit/analysis", label: "Analisa Cabang", icon: BarChart3 },
 
     // Incoming Transfer (Barang Masuk)
-    {
-        id: "incoming_group",
-        label: "OTW",
-        icon: ArrowDownRight,
-        items: [
-            { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Konfirmasi Masuk" },
-            { id: "incoming_transfer_history", path: "/inventory/incoming-history", label: "Riwayat Masuk" },
-            { id: "outgoing_transfer_history", path: "/inventory/outgoing-history", label: "Riwayat Keluar" },
-        ]
-    },
 
     // Master Data
     { id: "warehouses", path: "/warehouses", label: "Cabang & Gudang", icon: Warehouse },
@@ -165,13 +165,27 @@ const menuItems = [
 
     // Sales Menus
     { id: "sales_create", path: "/sales/create", label: "Buat Penjualan", icon: ShoppingCart },
-    { id: "sales_check", path: "/sales/check", label: "Cek Penjualan", icon: ClipboardList },
-    { id: "sales_imei_history", path: "/sales/imei-history", label: "History IMEI", icon: History },
-    { id: "sales_ranking", path: "/sales/ranking", label: "Peringkat & Foto", icon: Trophy },
+    {
+        id: "sales_check",
+        label: "Cek Penjualan",
+        icon: ClipboardList,
+        items: [
+            { id: "sales_check_main", path: "/sales/check", label: "Riwayat Penjualan" },
+            { id: "sales_ranking", path: "/sales/ranking", label: "Peringkat & Foto" },
+        ]
+    },
 
     // Lacak Barang
     { id: "questions", path: "/questions", label: "Pertanyaan", icon: HelpCircle },
-    { id: "track", path: "/track", label: "Lacak Barang", icon: Search },
+    {
+        id: "track", 
+        label: "Lacak Barang / IMEI", 
+        icon: Search,
+        items: [
+            { id: "track_main", path: "/track", label: "Cari Status Barang" },
+            { id: "sales_imei_history", path: "/sales/imei-history", label: "History IMEI" },
+        ]
+    },
 
     // Retur Masuk (Gudang)
     { id: "retur_items", path: "/retur-items", label: "Retur Masuk", icon: ArrowDownRight },
@@ -307,7 +321,7 @@ watch(() => route.path, () => {
                     <!-- Submenu Items -->
                     <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
                         class="ml-8 space-y-1 mt-1.5 border-l-2 border-neutral-100 dark:border-neutral-800/60 pl-2">
-                        <router-link v-for="subitem in item.items" :key="subitem.id" :to="subitem.path"
+                        <router-link v-for="subitem in item.items.filter(si => visibleMenuItems.some(v => v.id === si.id) || getMenuForRole(authStore.userRole).includes(si.id))" :key="subitem.id" :to="subitem.path"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
                             :class="isActiveRoute(subitem.path)
                                 ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'

@@ -200,18 +200,18 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'incoming_group', 'retur_items', 'users', 'transactions', 'audit_sales', 'audit', 'audit_pin_resets', 'reports', 'report_sales', 'report_ranking', 'settings', 'warehouses', 'distributors', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track'],
-    [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'report_ranking', 'audit_sales', 'track'],
-    [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
-    [ROLES.AUDIT]: ['dashboard', 'audit_cabang', 'audit', 'audit_pin_resets', 'users', 'incoming_group', 'track'],
-    [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
-    [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track'],
-    [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'incoming_group', 'track'],
-    [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'incoming_group', 'track'],
-    [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_imei_history', 'sales_ranking', 'inventory', 'incoming_group', 'track'],
-    [ROLES.GUDANG]: ['dashboard', 'inventory', 'incoming_group', 'retur_items', 'track'],
-    [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'inventory', 'incoming_group', 'reports', 'track']
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_scan', 'online_sales', 'online_analysis', 'shopee_history', 'pos', 'inventory', 'inventory_main', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'retur_items', 'users', 'transactions', 'audit_sales', 'audit', 'audit_pin_resets', 'reports', 'report_sales', 'report_ranking', 'settings', 'warehouses', 'distributors', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track', 'track_main', 'sales_imei_history', 'sales_check', 'sales_check_main', 'sales_ranking'],
+    [ROLES.ANALIST]: ['dashboard', 'reports', 'report_sales', 'report_ranking', 'audit_sales', 'track', 'track_main'],
+    [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track', 'track_main'],
+    [ROLES.AUDIT]: ['dashboard', 'audit_cabang', 'audit', 'audit_pin_resets', 'users', 'inventory', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'track', 'track_main'],
+    [ROLES.SECURITY]: ['dashboard', 'transactions', 'track', 'track_main'],
+    [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track', 'track_main'],
+    [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'inventory_main', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'track', 'track_main'],
+    [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'inventory_main', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'track', 'track_main'],
+    [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'sales_ranking', 'inventory', 'inventory_main', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'track', 'track_main', 'sales_imei_history'],
+    [ROLES.GUDANG]: ['dashboard', 'inventory', 'inventory_main', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'retur_items', 'track', 'track_main'],
+    [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'transactions', 'track', 'track_main'],
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'inventory', 'inventory_main', 'incoming_transfers', 'incoming_transfer_history', 'outgoing_transfer_history', 'reports', 'track', 'track_main']
 }
 
 // Helper functions
