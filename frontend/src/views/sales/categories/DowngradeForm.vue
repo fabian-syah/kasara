@@ -19,6 +19,7 @@ const props = defineProps({
     productPrices: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
+    selectedAccountObject: Object
 });
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
@@ -169,7 +170,7 @@ async function submitDowngrade(pin = null) {
         return;
     }
 
-    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+    if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitDowngrade(verifiedPin));
         return;
     }
@@ -180,6 +181,7 @@ async function submitDowngrade(pin = null) {
     if (downgradePhotos.value.customer) formData.append('photo_customer', downgradePhotos.value.customer);
     if (pin) formData.append('transaction_pin', pin);
 
+    if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', downgradeForm.value.customer_name);
     formData.append('customer_phone', downgradeForm.value.customer_phone);
     formData.append('incoming_source', downgradeForm.value.incoming_source);

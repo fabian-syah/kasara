@@ -60,6 +60,10 @@ const categoriesPenjualan = [
 const brands = ref([]);
 const productTypes = ref([]);
 const productPrices = ref([]);
+
+const selectedAccountObject = computed(() => {
+    return salesAccounts.value.find(acc => acc.name === salesAccount.value) || null;
+});
 const availablePaymentMethods = ref([]);
 
 // Modals State
@@ -377,29 +381,35 @@ watch(transactionCategory, () => {
 
                 <AngkatBarangForm v-else-if="transactionCategory === 'angkat_barang'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
-                    :productPrices="productPrices" @back="prevStep" @transaction-complete="handleTransactionComplete"
+                    :productPrices="productPrices" :selectedAccountObject="selectedAccountObject" 
+                    @back="prevStep" @transaction-complete="handleTransactionComplete"
                     @verify-pin="handleVerifyPin" />
 
                 <RefundForm v-else-if="transactionCategory === 'refund'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
+                    :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <TukarUnitForm v-else-if="transactionCategory === 'tukar_unit'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
+                    :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <TukarTambahForm v-else-if="transactionCategory === 'tukar_tambah'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
+                    :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <DowngradeForm v-else-if="transactionCategory === 'downgrade'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
+                    :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
             </div>
 
             <!-- STEP 4: PAYMENT -->
             <PaymentStep v-if="currentStep === 4" :availablePaymentMethods="availablePaymentMethods"
-                :transactionCategory="transactionCategory" :salesAccount="salesAccount" @prev="prevStep"
+                :transactionCategory="transactionCategory" :salesAccount="salesAccount" 
+                :selectedAccountObject="selectedAccountObject" @prev="prevStep"
                 @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
         </div>

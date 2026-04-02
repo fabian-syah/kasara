@@ -13,9 +13,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Traits\VerifiesPin;
 
 class DowngradeController extends Controller
 {
+    use VerifiesPin;
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -47,12 +49,12 @@ class DowngradeController extends Controller
             'transaction_pin' => 'nullable|string'
         ]);
 
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
+
         try {
             return DB::transaction(function () use ($request, $user) {
-                // Pin Verification (if applicable)
-                if ($user->role === 'toko_offline' && $user->pin_enabled && $request->transaction_pin !== $user->transaction_pin) {
-                    throw new \Exception('PIN Transaksi Salah');
-                }
 
                 // 1. Handle File Uploads
                 $photoPathUnit = null;

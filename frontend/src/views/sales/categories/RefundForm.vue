@@ -16,6 +16,7 @@ const props = defineProps({
     productPrices: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
+    selectedAccountObject: Object
 });
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
@@ -140,7 +141,7 @@ async function submitRefund(pin = null) {
         return;
     }
 
-    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+    if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitRefund(verifiedPin));
         return;
     }
@@ -152,6 +153,7 @@ async function submitRefund(pin = null) {
     if (refundPhotos.value.customer) formData.append('photo_customer', refundPhotos.value.customer);
     if (pin) formData.append('transaction_pin', pin);
 
+    if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', refundForm.value.customer_name);
     formData.append('customer_phone', refundForm.value.customer_phone);
     formData.append('brand_id', refundForm.value.brand_id);

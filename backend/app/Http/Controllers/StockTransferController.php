@@ -10,9 +10,11 @@ use App\Models\InventoryLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\VerifiesPin;
 
 class StockTransferController extends Controller
 {
+    use VerifiesPin;
     // List Incoming Transfers
     public function indexIncoming(Request $request)
     {
@@ -89,7 +91,13 @@ class StockTransferController extends Controller
         $request->validate([
             'accepted_items' => 'array', // List of IMEI IDs
             'non_hp_quantities' => 'array', // Map: [ non_hp_item_id => quantity_received ]
+            'inventory_user_id' => 'sometimes|nullable|exists:users,id',
+            'transaction_pin' => 'nullable|string|max:10',
         ]);
+
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
 
         DB::beginTransaction();
         try {

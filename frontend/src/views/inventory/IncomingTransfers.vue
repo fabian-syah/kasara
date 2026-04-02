@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
+import PinModal from "../../components/modals/PinModal.vue";
 import {
     Package,
     Loader2,
@@ -37,6 +38,22 @@ const form = ref({
     accepted_items: [], // HP IDs
     non_hp_quantities: {} // { id: qty }
 });
+
+const showPinModal = ref(false);
+const pinCallback = ref(null);
+
+function handleVerifyPin(callback) {
+    pinCallback.value = callback;
+    showPinModal.value = true;
+}
+
+function onPinVerified(pin) {
+    showPinModal.value = false;
+    if (pinCallback.value) {
+        pinCallback.value(pin);
+        pinCallback.value = null;
+    }
+}
 
 // Helper for icons based on destination type (though incoming is usually for US)
 const destinationIcon = {
@@ -119,15 +136,23 @@ function closeModal() {
 }
 
 // Submit Confirmation
-async function submitConfirmation() {
+async function submitConfirmation(pin = null) {
     if (!selectedTransfer.value) return;
+
+    // Check PIN if needed
+    const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
+    if (!pin && selectedAccount?.pin_enabled) {
+        handleVerifyPin((verifiedPin) => submitConfirmation(verifiedPin));
+        return;
+    }
 
     isSubmitting.value = true;
     try {
         const payload = {
             items: form.value.accepted_items,
             non_hp_items: form.value.non_hp_quantities,
-            inventory_user_id: selectedInventoryAccount.value
+            inventory_user_id: selectedInventoryAccount.value,
+            transaction_pin: pin
         };
 
         const response = await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
@@ -390,6 +415,9 @@ onMounted(() => {
             </div>
         </div>
     </div>
+
+    <!-- PIN Modal -->
+    <PinModal :show="showPinModal" @close="showPinModal = false" @verified="onPinVerified" />
 </template>
 
 <style scoped>

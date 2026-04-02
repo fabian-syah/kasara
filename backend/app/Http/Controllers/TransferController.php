@@ -7,9 +7,11 @@ use App\Models\ProductDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Traits\VerifiesPin;
 
 class TransferController extends Controller
 {
+    use VerifiesPin;
     /**
      * Get pending incoming transfers for the current user's branch
      * Returns stock_outs with category=pindah_cabang where destination_branch_id = user's branch
@@ -81,13 +83,17 @@ class TransferController extends Controller
             ], 404);
         }
 
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
+
+        /** @var \App\Models\StockOut $stockOut */
         DB::beginTransaction();
         try {
             // Update stock out record
-            $stockOut->update([
-                'confirmed_at' => now(),
-                'confirmed_by' => $user->id,
-            ]);
+            $stockOut->confirmed_at = now();
+            $stockOut->confirmed_by = $user->id;
+            $stockOut->save();
 
             // Update each item's status and placement
             foreach ($stockOut->items as $item) {

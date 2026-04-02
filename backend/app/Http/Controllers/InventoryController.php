@@ -13,9 +13,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Traits\VerifiesPin;
 
 class InventoryController extends Controller
 {
+    use VerifiesPin;
     // List Inventory
     // List Inventory (Granular / Unit based)
     // Filtered by branch - only super_admin can see all
@@ -815,24 +817,19 @@ class InventoryController extends Controller
         $request->merge(['type' => strtolower($request->type)]);
         $user = Auth::user();
 
-        // PIN Verification - Only for Sales role if enabled
-        if ($user->hasRole('toko_offline') && $user->pin_enabled) {
-            if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'PIN transaksi salah atau diperlukan.'
-                ], 422);
-            }
-        }
-
         // Determine Ownership User (Who 'owns' the stock)
         // If inventory_user_id is passed (from shared account selection), use that.
         // Otherwise use logged in user.
         $ownerUserId = $user->id;
         if ($request->has('inventory_user_id') && $request->inventory_user_id) {
-            // Verify access? For now assume if they can see it they can use it (filtered by UI)
             $ownerUserId = $request->inventory_user_id;
         }
+
+        $targetUser = \App\Models\User::find($ownerUserId);
+
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request, $ownerUserId);
+        if ($pinError) return $pinError;
 
         DB::beginTransaction();
 
@@ -1137,17 +1134,14 @@ class InventoryController extends Controller
             'transaction_pin' => 'nullable|string|size:4',
         ]);
 
-        $user = Auth::user();
-
-        // PIN Verification - Only for Sales role if enabled
-        if ($user->hasRole('toko_offline') && $user->pin_enabled) {
-            if (!$request->transaction_pin || !\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'PIN transaksi salah atau diperlukan.'
-                ], 422);
-            }
+        $targetUser = Auth::user();
+        if ($request->has('inventory_user_id') && $request->inventory_user_id) {
+            $targetUser = \App\Models\User::find($request->inventory_user_id);
         }
+
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
 
         $item = ProductDetail::findOrFail($id);
         $oldStatus = $item->status;
@@ -1240,6 +1234,8 @@ class InventoryController extends Controller
                 'created_by' => $user->id, // Mark ownership
                 'is_active' => true,
                 'theme_color' => 'default',
+                'transaction_pin' => '0000', // Auto-hashed by Model casts
+                'pin_enabled' => true,
             ]);
 
             // Auto-create distribution location if needed? No, user just picks branch. 
@@ -1442,7 +1438,7 @@ class InventoryController extends Controller
                     ->orWhere('id', $user->id);
             })
             ->where('is_active', true)
-            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by')
+            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled')
             ->get();
 
         return response()->json($inventoryUsers);

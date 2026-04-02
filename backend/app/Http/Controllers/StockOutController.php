@@ -16,9 +16,11 @@ use App\Models\Branch;
 use App\Models\Warehouse;
 use App\Models\OnlineShop;
 use App\Models\Distributor;
+use App\Traits\VerifiesPin;
 
 class StockOutController extends Controller
 {
+    use VerifiesPin;
     // List all stock outs
     public function index(Request $request)
     {
@@ -237,6 +239,10 @@ class StockOutController extends Controller
         }
 
         $request->validate($rules);
+
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
 
         DB::beginTransaction();
 
@@ -1026,7 +1032,13 @@ class StockOutController extends Controller
         $request->validate([
             'items' => 'nullable|array', // List of Accepted Item IDs (HP)
             'non_hp_items' => 'nullable|array', // List of Accepted Quantities
+            'inventory_user_id' => 'sometimes|nullable|exists:users,id',
+            'transaction_pin' => 'nullable|string|size:4'
         ]);
+
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
 
         DB::beginTransaction();
         try {

@@ -17,6 +17,7 @@ const props = defineProps({
     productPrices: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
+    selectedAccountObject: Object
 });
 
 const emit = defineEmits(["back", "transaction-complete", "reset"]);
@@ -171,7 +172,7 @@ async function submitTradeIn(pin = null) {
         return;
     }
 
-    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+    if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitTradeIn(verifiedPin));
         return;
     }
@@ -183,6 +184,7 @@ async function submitTradeIn(pin = null) {
     if (tradeInPhotos.value.customer) formData.append('photo_customer', tradeInPhotos.value.customer);
     if (pin) formData.append('transaction_pin', pin);
 
+    if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', tradeInForm.value.customer_name);
     formData.append('customer_phone', tradeInForm.value.customer_phone);
     formData.append('brand_id', tradeInForm.value.brand_id);

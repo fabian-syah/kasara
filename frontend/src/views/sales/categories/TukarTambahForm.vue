@@ -19,6 +19,7 @@ const props = defineProps({
     productPrices: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
+    selectedAccountObject: Object
 });
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
@@ -171,7 +172,7 @@ async function submitTukarTambah(pin = null) {
         return;
     }
 
-    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+    if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitTukarTambah(verifiedPin));
         return;
     }
@@ -183,6 +184,7 @@ async function submitTukarTambah(pin = null) {
     if (tukarTambahPhotos.value.customer) formData.append('photo_customer', tukarTambahPhotos.value.customer);
     if (pin) formData.append('transaction_pin', pin);
 
+    if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', tukarTambahForm.value.customer_name);
     formData.append('customer_phone', tukarTambahForm.value.customer_phone);
     formData.append('incoming_source', tukarTambahForm.value.incoming_source);

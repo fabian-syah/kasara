@@ -18,6 +18,7 @@ const props = defineProps({
     productPrices: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
+    selectedAccountObject: Object
 });
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
@@ -135,7 +136,7 @@ async function submitUnitExchange(pin = null) {
         return;
     }
 
-    if (!pin && authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+    if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitUnitExchange(verifiedPin));
         return;
     }
@@ -147,6 +148,7 @@ async function submitUnitExchange(pin = null) {
     if (unitExchangePhotos.value.customer) formData.append('photo_customer', unitExchangePhotos.value.customer);
     if (pin) formData.append('transaction_pin', pin);
 
+    if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', unitExchangeForm.value.customer_name);
     formData.append('customer_phone', unitExchangeForm.value.customer_phone);
     formData.append('incoming_source', unitExchangeForm.value.incoming_source);

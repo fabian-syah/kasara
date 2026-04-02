@@ -21,7 +21,8 @@ import {
 const props = defineProps({
     availablePaymentMethods: Array,
     transactionCategory: String,
-    salesAccount: String
+    salesAccount: String,
+    selectedAccountObject: Object
 });
 
 const emit = defineEmits(["prev", "transaction-complete", "verify-pin"]);
@@ -219,7 +220,7 @@ async function handleSubmitOrder() {
         return;
     }
 
-    if (authStore.userRole === 'sales' && authStore.user?.pin_enabled) {
+    if (props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (pin) => processPayment(pin));
     } else {
         await processPayment();
@@ -240,6 +241,9 @@ async function processPayment(pin = null) {
 
         formData.append('customer_name', customerForm.value.customer_name);
         formData.append('customer_wa', customerForm.value.customer_phone);
+        if (props.selectedAccountObject?.id) {
+            formData.append('inventory_user_id', props.selectedAccountObject.id);
+        }
         if (pin) {
             formData.append('transaction_pin', pin);
         }

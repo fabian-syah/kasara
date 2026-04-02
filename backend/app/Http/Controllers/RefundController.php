@@ -11,9 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Traits\VerifiesPin;
 
 class RefundController extends Controller
 {
+    use VerifiesPin;
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -34,6 +36,10 @@ class RefundController extends Controller
             'photo_customer' => 'nullable|image|max:5120',
             'transaction_pin' => 'nullable|string|max:10',
         ]);
+
+        // PIN Verification using Trait
+        $pinError = $this->verifyPin($request);
+        if ($pinError) return $pinError;
 
         try {
             return DB::transaction(function () use ($request, $user) {
