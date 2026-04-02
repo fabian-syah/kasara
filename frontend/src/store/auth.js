@@ -174,6 +174,10 @@ export const useAuthStore = defineStore('auth', () => {
         return await authApi.verifyPin(pin)
     }
 
+    async function requestResetPin() {
+        return await authApi.requestResetPin()
+    }
+
     // Initialize - try to restore user from localStorage
     function initialize() {
         const savedUserHash = localStorage.getItem('user')
@@ -219,6 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
         updatePin,
         togglePin,
         verifyPin,
+        requestResetPin,
         initialize,
         updateUserData(userData) {
             if (!userData) return;

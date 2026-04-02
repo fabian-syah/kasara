@@ -308,7 +308,7 @@ watch(transactionCategory, () => {
                                     <input v-model="newAccountName" type="text" placeholder="Nama Akun (Sales A)"
                                         class="flex-1 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                         @keyup.enter="handleCreateAccount" />
-                                    <input v-model="newAccountPin" type="password" maxlength="4" placeholder="PIN (4 Angka)"
+                                    <input v-model="newAccountPin" type="password" maxlength="4" placeholder="PIN (Opsional)"
                                         class="w-full sm:w-32 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                         @keyup.enter="handleCreateAccount" />
                                     <div class="flex gap-2">

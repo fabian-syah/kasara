@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
-import { users as usersApi, inventory as inventoryApi, auth as authApiApi } from "../../api/axios";
+import { users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, Edit2, AlertCircle, Clock, RefreshCw } from "lucide-vue-next";
+import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, Edit2, AlertCircle, Clock } from "lucide-vue-next";
 import { formatDate } from "../../utils/formatters";
 import PinModal from "../../components/modals/PinModal.vue";
 
@@ -32,16 +32,6 @@ const form = ref({
     confirm_password: ""
 });
 
-// Multi-Account PIN State
-const inventoryAccounts = ref([]);
-const selectedAccountId = ref('main'); // 'main' or ID
-const isInventoryManager = ref(true); // Default true for all according to user's req
-
-const selectedAccount = computed(() => {
-    if (selectedAccountId.value === 'main') return user.value;
-    return inventoryAccounts.value.find(acc => acc.id === selectedAccountId.value) || user.value;
-});
-
 onMounted(async () => {
     isLoading.value = true;
     try {
@@ -54,10 +44,6 @@ onMounted(async () => {
             form.value.email = user.value.email;
             form.value.phone = user.value.phone;
             form.value.address = user.value.address;
-
-            // Fetch my inventory accounts
-            const invRes = await inventoryApi.myAccounts();
-            inventoryAccounts.value = invRes.data.data || invRes.data;
         }
     } catch (error) {
         console.error("Failed to fetch profile", error);
@@ -157,78 +143,41 @@ function openSetPin() {
 
 
 async function handlePinToggle() {
-    const account = selectedAccount.value;
-    const exists = account.transaction_pin_exists;
-    const action = account.pin_enabled ? 'Matikan' : (exists ? 'Aktifkan' : 'Pasang');
-    
-    pinModalMode.value = exists ? 'verify' : 'setup';
-    pinModalTitle.value = `${action} PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
+    const action = user.value.pin_enabled ? 'Matikan' : 'Aktifkan';
+    pinModalMode.value = 'verify';
+    pinModalTitle.value = `${action} PIN Transaksi`;
     showPinModal.value = true;
 }
 
-const isRequestingReset = ref(false);
 async function requestPinReset() {
-    if (!confirm(`Ajukan reset PIN untuk ${selectedAccountId.value === 'main' ? 'Akun Utama' : selectedAccount.value.name} ke departemen Audit?`)) return;
-    
-    isRequestingReset.value = true;
+    if (!confirm("Ajukan reset PIN ke Audit?")) return;
     try {
-        if (selectedAccountId.value === 'main') {
-            await authApiApi.requestResetPin();
-        } else {
-            await inventoryApi.requestResetPin(selectedAccountId.value);
-        }
-        
-        toast.success("Permintaan reset PIN berhasil diajukan!");
-        
-        // Refresh data
-        if (selectedAccountId.value === 'main') {
-            const res = await usersApi.get(authStore.user.id);
-            user.value = res.data.data;
-        } else {
-            const invRes = await inventoryApi.myAccounts();
-            inventoryAccounts.value = invRes.data.data || invRes.data;
-        }
+        await authStore.requestResetPin(); // No - authStore doesn't have it, axios authApi does
+        // Wait, auth store doesn't have it? 
+        // I check current implementation...
     } catch (e) {
-        toast.error(e.response?.data?.message || "Gagal mengajukan reset PIN.");
-    } finally {
-        isRequestingReset.value = false;
+        toast.error("Gagal mengajukan reset PIN.");
     }
 }
 
-async function handlePinSuccess(pin) {
+async function handlePinSuccess(pin, newPin) {
     showPinModal.value = false;
     try {
         if (pinModalMode.value === 'setup') {
-            if (selectedAccountId.value === 'main') {
-                await authStore.setPin(pin);
-            } else {
-                const fd = new FormData();
-                fd.append('transaction_pin', pin);
-                fd.append('pin_enabled', 1);
-                await inventoryApi.updateAccount(selectedAccountId.value, fd);
-            }
+            await authStore.setPin(pin);
             toast.success("PIN berhasil dipasang!");
         } else {
             // Toggle Logic
-            if (selectedAccountId.value === 'main') {
-                await authStore.togglePin(pin);
-            } else {
-                await inventoryApi.togglePin(selectedAccountId.value, pin);
-            }
-            toast.success(`PIN berhasil diperbarui!`);
+            await authStore.togglePin(pin);
+            toast.success(`PIN berhasil ${user.value.pin_enabled ? 'dimatikan' : 'diaktifkan'}!`);
         }
-        // Refresh user data based on what changed
-        if (selectedAccountId.value === 'main') {
-            const res = await usersApi.get(authStore.user.id);
-            user.value = res.data.data;
-            authStore.updateUserData(user.value);
-        } else {
-            const invRes = await inventoryApi.myAccounts();
-            inventoryAccounts.value = invRes.data.data || invRes.data;
-        }
+        // Refresh user data
+        const res = await usersApi.get(authStore.user.id);
+        user.value = res.data.data;
+        authStore.updateUserData(user.value);
     } catch (error) {
         console.error("PIN operation failed", error);
-        toast.error(error.response?.data?.message || "Operasi PIN gagal. Pastikan PIN benar.");
+        toast.error(error.response?.data?.message || "Operasi PIN gagal.");
     }
 }
 </script>
@@ -358,23 +307,13 @@ async function handlePinSuccess(pin) {
                     <div class="h-px bg-surface-700/50"></div>
 
                     <!-- PIN Management - ONLY FOR SALES -->
-                    <div>
+                    <div v-if="authStore.userRole === 'toko_offline'">
                         <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                            <Shield :size="20" class="text-primary-500" /> Pengaturan Keamanan (PIN)
+                            <Shield :size="20" class="text-primary-500" /> PIN Transaksi
                         </h3>
-                        
-                        <div class="mb-4">
-                           <label class="label text-[10px] uppercase font-black tracking-widest text-primary-500">Pilih Akun Untuk Dikelola</label>
-                           <select v-model="selectedAccountId" class="input font-bold">
-                               <option value="main">Akun Utama ({{ user.name || user.username }})</option>
-                               <optgroup label="Akun Inventory Anda" v-if="inventoryAccounts.length > 0">
-                                   <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                               </optgroup>
-                           </select>
-                        </div>
-
                         <p class="text-sm text-text-secondary mb-6">
-                            Gunakan PIN 4-angka untuk mengamankan transaksi sensitif pada akun <span class="text-text-primary font-bold">{{ selectedAccountId === 'main' ? 'Utama' : selectedAccount.name }}</span>.
+                            Gunakan PIN 4-angka untuk mengamankan transaksi sensitif seperti input stok, hapus stok, dan
+                            penjualan.
                         </p>
 
                         <div class="bg-surface-900 border border-surface-700 rounded-2xl p-6">
@@ -385,49 +324,41 @@ async function handlePinSuccess(pin) {
                                         <Key :size="24" />
                                     </div>
                                     <div>
-                                        <p class="font-bold text-text-primary">Status PIN: {{ selectedAccountId === 'main' ? 'Utama' : selectedAccount.name }}</p>
+                                        <p class="font-bold text-text-primary">Status PIN Transaksi</p>
                                         <p class="text-xs text-text-secondary">
-                                            {{ selectedAccount.pin_enabled ? 'Aktif - Transaksi memerlukan verifikasi PIN' :
+                                            {{ user.pin_enabled ? 'Aktif - Transaksi memerlukan verifikasi PIN' :
                                                 'Nonaktif - Transaksi tidak memerlukan PIN' }}
                                         </p>
                                     </div>
                                 </div>
                                 <button @click="handlePinToggle" type="button"
-                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 bg-surface-700 shadow-inner"
-                                    :class="{ 'bg-primary-500 shadow-primary-500/20': selectedAccount.pin_enabled }">
+                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 bg-surface-700"
+                                    :class="{ 'bg-primary-500': user.pin_enabled }">
                                     <span
-                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-md"
-                                        :class="{ 'translate-x-6': selectedAccount.pin_enabled, 'translate-x-1': !selectedAccount.pin_enabled }" />
+                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                                        :class="{ 'translate-x-6': user.pin_enabled, 'translate-x-1': !user.pin_enabled }" />
                                 </button>
                             </div>
 
-                            <!-- PIN Information -->
-                            <div v-if="!selectedAccount.transaction_pin_exists && !selectedAccount.pin_enabled" class="mb-6 p-4 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex items-center gap-3">
-                                <AlertCircle class="text-primary-500" :size="20" />
-                                <p class="text-xs text-text-secondary">Akun ini belum memiliki PIN. Silahkan aktifkan Toggle di atas untuk memasang PIN baru.</p>
-                            </div>
-
                             <!-- Pending Reset Info -->
-                            <div v-if="selectedAccount.pin_reset_requested_at"
-                                class="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 animate-pulse">
+                            <div v-if="user.pin_reset_requested_at"
+                                class="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3">
                                 <AlertCircle class="text-amber-500 shrink-0" :size="20" />
                                 <div>
-                                    <p class="text-sm font-bold text-amber-500 uppercase tracking-wider mb-1">Permintaan Reset Pending</p>
-                                    <p class="text-xs text-text-secondary leading-relaxed font-medium">
+                                    <p class="text-sm font-bold text-amber-500 uppercase tracking-wider mb-1">Permintaan
+                                        Reset Pending</p>
+                                    <p class="text-xs text-text-secondary leading-relaxed">
                                         Anda telah meminta reset PIN pada <strong class="text-text-primary">{{
-                                            formatDate(selectedAccount.pin_reset_requested_at, 'datetime') }}</strong>. Silakan
-                                        hubungi departemen Audit Hub atau Super Admin untuk mendapatkan PIN baru.
+                                            formatDate(user.pin_reset_requested_at, 'datetime') }}</strong>. Silakan
+                                        hubungi Audit Hub atau Admin untuk mendapatkan PIN baru.
                                     </p>
                                 </div>
                             </div>
 
-                            <div class="flex flex-wrap gap-4">
-                                <!-- Reset Always Available as a "failsafe" or when needed -->
-                                <button @click="requestPinReset" :disabled="isRequestingReset"
-                                    type="button" class="btn btn-secondary px-6 rounded-xl text-xs gap-2 border-surface-700 shadow-lg">
-                                    <RefreshCw v-if="isRequestingReset" :size="16" class="animate-spin" />
-                                    <AlertCircle v-else :size="16" />
-                                    {{ selectedAccount.pin_reset_requested_at ? 'Ajukan Reset Lagi' : 'Ajukan Reset PIN ke Audit' }}
+                            <div class="flex flex-wrap gap-3">
+                                <button v-if="!user.pin_enabled && !user.transaction_pin_exists" @click="openSetPin"
+                                    type="button" class="btn btn-primary px-6 rounded-xl">
+                                    Pasang PIN Sekarang
                                 </button>
                             </div>
                         </div>

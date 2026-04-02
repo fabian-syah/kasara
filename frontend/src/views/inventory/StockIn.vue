@@ -558,7 +558,8 @@ const editForm = ref({
     phone: "",
     photo_inventory: null,
     photo_preview: null,
-    transaction_pin: ""
+    transaction_pin: "",
+    pin_enabled: false
 });
 const isUpdatingAccount = ref(false);
 const photoInput = ref(null);
@@ -571,7 +572,8 @@ function openEditModal(user, event) {
         phone: user.phone || "",
         photo_inventory: null,
         photo_preview: user.photo_inventory ? `${storageUrl}/storage/${user.photo_inventory}` : null,
-        transaction_pin: ""
+        transaction_pin: "",
+        pin_enabled: !!user.pin_enabled
     };
     showEditAccountModal.value = true;
 }
@@ -596,6 +598,7 @@ async function updateInventoryAccount() {
         if (editForm.value.transaction_pin) {
             formData.append('transaction_pin', editForm.value.transaction_pin);
         }
+        formData.append('pin_enabled', editForm.value.pin_enabled ? 1 : 0);
 
         const response = await inventoryApi.updateAccount(editForm.value.id, formData);
 
@@ -962,6 +965,27 @@ onMounted(fetchInitialData);
                                 <label class="block text-sm font-medium text-text-secondary mb-2">Set/Ganti PIN Transaksi (4 Angka)</label>
                                 <input v-model="editForm.transaction_pin" type="password" maxlength="4" class="input w-full"
                                     placeholder="Kosongkan jika tidak ingin diubah" />
+                            </div>
+
+                            <!-- PIN Toggle -->
+                            <div class="pt-4 border-t border-surface-700/50">
+                                <div class="flex items-center justify-between p-4 bg-surface-800 rounded-2xl border border-surface-700">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
+                                            <Shield :size="20" />
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-text-primary">Status PIN</p>
+                                            <p class="text-[10px] text-text-secondary">{{ editForm.pin_enabled ? 'Verifikasi Aktif' : 'Verifikasi Nonaktif' }}</p>
+                                        </div>
+                                    </div>
+                                    <button @click="editForm.pin_enabled = !editForm.pin_enabled" type="button"
+                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-offset-surface-900 focus:ring-2 focus:ring-primary-500"
+                                        :class="editForm.pin_enabled ? 'bg-primary-500' : 'bg-surface-700'">
+                                        <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out"
+                                            :class="editForm.pin_enabled ? 'translate-x-6' : 'translate-x-1'" />
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

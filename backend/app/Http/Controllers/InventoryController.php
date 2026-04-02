@@ -1314,7 +1314,6 @@ class InventoryController extends Controller
 
         if ($request->has('transaction_pin')) {
             $account->transaction_pin = $request->transaction_pin;
-            $account->pin_enabled = true; // Auto-enable if PIN is set/changed
         }
 
         if ($request->has('pin_enabled')) {
