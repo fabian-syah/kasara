@@ -90,6 +90,10 @@ const top3 = computed(() => {
     return filteredRanking.value.slice(0, 3);
 });
 
+const totalOmset = computed(() => {
+    return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
+});
+
 </script>
 
 <template>
@@ -377,28 +381,6 @@ const top3 = computed(() => {
                                             </div>
                                         </div>
                                     </td>
-<!-- 
-                                    <td class="px-8 py-7 text-center">
-                                        <span
-                                            class="text-base font-black text-text-primary font-mono bg-primary-500/5 px-4 py-1 rounded-xl border border-primary-500/10 group-hover:bg-primary-500/10 transition-colors">{{
-                                            formatNumber(item.iphone_count) }}</span>
-                                    </td>
--->
-<!-- 
-                                    <td class="px-8 py-7">
-                                        <div class="flex flex-col items-center">
-                                            <span
-                                                class="text-base font-black text-text-primary font-mono bg-emerald-500/5 px-4 py-1 rounded-xl border border-emerald-500/10 group-hover:bg-emerald-500/10 transition-colors">{{
-                                                formatNumber(item.android_count) }}</span>
-                                            <div v-if="item.top_android_models && item.top_android_models.length > 0"
-                                                class="flex flex-wrap justify-center gap-1.5 mt-3 max-w-[280px]">
-                                                <span v-for="model in item.top_android_models" :key="model"
-                                                    class="text-[7px] font-black bg-surface-900 border border-surface-700/50 text-text-secondary px-2 py-1 rounded-lg uppercase tracking-tight group-hover:text-emerald-500/70 transition-colors">{{
-                                                    model }}</span>
-                                            </div>
-                                        </div>
-                                    </td>
--->
                                     <td class="px-8 py-7 text-right">
                                         <span
                                             class="text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{
@@ -406,6 +388,18 @@ const top3 = computed(() => {
                                     </td>
                                 </tr>
                             </tbody>
+                            <tfoot v-if="filteredRanking.length > 0">
+                                <tr class="bg-surface-800/50 border-t border-surface-700">
+                                    <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
+                                        TOTAL KESELURUHAN OMSET
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <span class="text-xl font-black text-primary-500 tabular-nums tracking-tighter drop-shadow-sm">
+                                            {{ formatCurrency(totalOmset) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>

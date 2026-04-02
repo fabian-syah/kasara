@@ -467,7 +467,7 @@ class ReportController extends Controller
             ->orderBy('count', 'desc')
             ->get()->groupBy('branch_id');
 
-        $branches = DB::table('branches')->get();
+        $branches = DB::table('branches')->where('is_active', true)->get();
         $branchStats = $branches->map(function($b) use ($branchBase, $branchItemCounts, $branchAndroidModels) {
             $base = $branchBase[$b->id] ?? null;
             $items = $branchItemCounts[$b->id] ?? null;
@@ -546,7 +546,7 @@ class ReportController extends Controller
             ->orderBy('count', 'desc')
             ->get()->groupBy('shop_id');
 
-        $shops = DB::table('online_shops')->get();
+        $shops = DB::table('online_shops')->where('is_active', true)->get();
         $onlineStats = $shops->map(function($s) use ($onlineBase, $onlineItemCounts, $onlineAndroidModels) {
             $base = $onlineBase[$s->id] ?? null;
             $items = $onlineItemCounts[$s->id] ?? null;
@@ -565,6 +565,7 @@ class ReportController extends Controller
         });
 
         $report = $branchStats->concat($onlineStats)
+            ->filter(fn($item) => $item->omset > 0)
             ->sortByDesc('omset')
             ->values();
 
