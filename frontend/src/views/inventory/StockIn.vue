@@ -558,7 +558,6 @@ const editForm = ref({
     phone: "",
     photo_inventory: null,
     photo_preview: null,
-    transaction_pin: "",
     pin_enabled: false
 });
 const isUpdatingAccount = ref(false);
@@ -572,7 +571,6 @@ function openEditModal(user, event) {
         phone: user.phone || "",
         photo_inventory: null,
         photo_preview: user.photo_inventory ? `${storageUrl}/storage/${user.photo_inventory}` : null,
-        transaction_pin: "",
         pin_enabled: !!user.pin_enabled
     };
     showEditAccountModal.value = true;
@@ -594,9 +592,6 @@ async function updateInventoryAccount() {
         formData.append('phone', editForm.value.phone);
         if (editForm.value.photo_inventory) {
             formData.append('photo_inventory', editForm.value.photo_inventory);
-        }
-        if (editForm.value.transaction_pin) {
-            formData.append('transaction_pin', editForm.value.transaction_pin);
         }
         formData.append('pin_enabled', editForm.value.pin_enabled ? 1 : 0);
 
@@ -960,11 +955,6 @@ onMounted(fetchInitialData);
                                     WhatsApp</label>
                                 <input v-model="editForm.phone" type="text" class="input w-full"
                                     placeholder="08xxxxx" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">Set/Ganti PIN Transaksi (4 Angka)</label>
-                                <input v-model="editForm.transaction_pin" type="password" maxlength="4" class="input w-full"
-                                    placeholder="Kosongkan jika tidak ingin diubah" />
                             </div>
 
                             <!-- PIN Toggle -->
