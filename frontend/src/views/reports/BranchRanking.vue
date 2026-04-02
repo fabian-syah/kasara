@@ -234,11 +234,11 @@ const exportToPNG = async (mode = 'share') => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12 bg-surface-900 p-4 rounded-[40px]">
+        <div ref="exportRef" class="space-y-12 bg-[#0a0a0a] p-4 md:p-8 rounded-[40px] export-container">
             <!-- HEADER KHUSUS PART 2 -->
-            <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
+            <div v-show="exportPart === 2" class="text-center py-6 border-b border-white/10 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
-                <p class="text-text-secondary text-xs font-bold mt-2 uppercase tracking-widest">Halaman 2 / Selesai</p>
+                <p class="text-white/60 text-xs font-bold mt-2 uppercase tracking-widest">Halaman 2 / Selesai</p>
             </div>
 
             <!-- Search & Sort Row (HIDE IN EXPORT) -->
@@ -541,6 +541,25 @@ const exportToPNG = async (mode = 'share') => {
     100% {
         transform: translateX(150%) skewX(-20deg);
     }
+}
+
+.export-container {
+    --color-text-primary: #f8fafc !important;
+    --color-text-secondary: #94a3b8 !important;
+    color: #f8fafc !important;
+}
+
+.export-container * {
+    color: inherit;
+}
+
+/* Keep accent colors */
+.export-container .text-primary-500,
+.export-container .text-emerald-500,
+.export-container .text-emerald-400,
+.export-container .text-amber-700,
+.export-container .text-slate-400 {
+    color: unset !important;
 }
 
 .no-scrollbar::-webkit-scrollbar {
