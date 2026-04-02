@@ -17,8 +17,11 @@ import {
     Globe,
     Crown,
     Flame,
-    Loader2
+    Loader2,
+    Download,
+    SortAsc
 } from 'lucide-vue-next';
+import { toPng } from 'html-to-image';
 
 const loading = ref(true);
 const rankingData = ref([]);
@@ -76,23 +79,61 @@ onMounted(() => {
     fetchRanking();
 });
 
-const searchQuery = ref('');
-const filteredRanking = computed(() => {
-    if (!searchQuery.value) return rankingData.value;
-    const search = searchQuery.value.toLowerCase();
-    return rankingData.value.filter(item =>
-        item.name.toLowerCase().includes(search) ||
-        item.type.toLowerCase().includes(search)
-    );
+const totalOmset = computed(() => {
+    return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
 });
 
 const top3 = computed(() => {
     return filteredRanking.value.slice(0, 3);
 });
 
-const totalOmset = computed(() => {
-    return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
+const sortBy = ref('omset'); // 'omset', 'name'
+
+const filteredRanking = computed(() => {
+    let result = [...rankingData.value];
+    
+    // Filter
+    if (searchQuery.value) {
+        const search = searchQuery.value.toLowerCase();
+        result = result.filter(item =>
+            item.name.toLowerCase().includes(search) ||
+            item.type.toLowerCase().includes(search)
+        );
+    }
+    
+    // Sort
+    if (sortBy.value === 'omset') {
+        result.sort((a, b) => b.omset - a.omset);
+    } else {
+        result.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    return result;
 });
+
+const exportLoading = ref(false);
+const exportRef = ref(null);
+
+const exportToPNG = async () => {
+    if (!exportRef.value) return;
+    exportLoading.value = true;
+    try {
+        const dataUrl = await toPng(exportRef.value, { 
+            quality: 1,
+            backgroundColor: '#050505',
+            cacheBust: true,
+            pixelRatio: 2, // High quality
+        });
+        const link = document.createElement('a');
+        link.download = `ranking-performa-${formatDateStr(new Date())}.png`;
+        link.href = dataUrl;
+        link.click();
+    } catch (err) {
+        console.error('Export failed:', err);
+    } finally {
+        exportLoading.value = false;
+    }
+};
 
 </script>
 
@@ -151,6 +192,14 @@ const totalOmset = computed(() => {
                         </span>
                     </button>
                 </div>
+
+                <!-- Export Button -->
+                <button @click="exportToPNG" :disabled="loading || exportLoading || rankingData.length === 0"
+                    class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50">
+                    <Loader2 v-if="exportLoading" class="w-4 h-4 animate-spin" />
+                    <Download v-else class="w-4 h-4" />
+                    <span>Export PNG</span>
+                </button>
             </div>
         </div>
 
@@ -159,7 +208,37 @@ const totalOmset = computed(() => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div v-else class="space-y-16 animate-in">
+        <div v-else ref="exportRef" class="space-y-12 bg-surface-900 p-4 rounded-[40px]">
+            <!-- Search & Sort Row -->
+            <div class="flex flex-col md:flex-row items-center gap-6">
+                <!-- Search Bar -->
+                <div class="relative group w-full md:flex-1">
+                    <div
+                        class="absolute -inset-1 bg-gradient-to-r from-primary-600 to-primary-400 rounded-[22px] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200">
+                    </div>
+                    <div class="relative flex items-center bg-surface-800 rounded-[18px] border border-surface-700/50">
+                        <Search class="absolute left-5 w-5 h-5 text-surface-400" />
+                        <input type="text" v-model="searchQuery" placeholder="Cari nama cabang atau tipe..."
+                            class="w-full bg-transparent text-text-primary px-14 py-4.5 rounded-[18px] outline-none placeholder:text-surface-500 font-bold uppercase tracking-widest text-[11px]" />
+                    </div>
+                </div>
+
+                <!-- Alphabet Filter -->
+                <div class="flex bg-surface-800 p-1.5 rounded-[18px] border border-surface-700/50 shrink-0">
+                    <button @click="sortBy = 'omset'"
+                        class="px-6 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-2"
+                        :class="sortBy === 'omset' ? 'bg-primary-500 text-white shadow-xl shadow-primary-500/10' : 'text-text-secondary hover:text-text-primary'">
+                        <TrendingUp class="w-3.5 h-3.5" />
+                        OMSET TERBANYAK
+                    </button>
+                    <button @click="sortBy = 'name'"
+                        class="px-6 py-2.5 rounded-xl text-[10px] font-black transition-all flex items-center gap-2"
+                        :class="sortBy === 'name' ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/10' : 'text-text-secondary hover:text-text-primary'">
+                        <SortAsc class="w-3.5 h-3.5" />
+                        ABJAD (A-Z)
+                    </button>
+                </div>
+            </div>
             <!-- Podium Layout - RANK 1 UNIK & SPESIAL -->
             <div v-if="top3.length > 0"
                 class="flex flex-col lg:flex-row items-center lg:items-end justify-center gap-10 lg:gap-4 xl:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-[40px] overflow-hidden border border-surface-800/50">
