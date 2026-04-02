@@ -43,15 +43,7 @@ const formatCurrency = (value) => {
     }).format(value);
 };
 
-const costPriceDisplay = computed({
-    get: () => form.value.cost_price ? formatCurrency(form.value.cost_price) : '',
-    set: (val) => form.value.cost_price = parseInt(val.replace(/\D/g, '') || '0')
-});
-
-const priceDisplay = computed({
-    get: () => form.value.price ? formatCurrency(form.value.price) : '',
-    set: (val) => form.value.price = parseInt(val.replace(/\D/g, '') || '0')
-});
+// costPriceDisplay and priceDisplay computed properties removed in favor of v-money sync syntax
 
 // Load brands and types
 onMounted(async () => {
@@ -294,20 +286,20 @@ useEscapeKey(() => {
 
                 <!-- Prices -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="label">Harga Modal</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="costPriceDisplay" v-money type="text" class="input pl-8" placeholder="0">
+                        <div>
+                            <label class="label">Harga Modal</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                                <input v-money:cost_price="form" type="text" class="input pl-8" placeholder="0">
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label class="label">Harga Jual</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="priceDisplay" v-money type="text" class="input pl-8" placeholder="0">
+                        <div>
+                            <label class="label">Harga Jual</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                                <input v-money:price="form" type="text" class="input pl-8" placeholder="0">
+                            </div>
                         </div>
-                    </div>
                 </div>
             </div>
 

@@ -55,11 +55,8 @@ const displayDiscount = ref("0");
 
 // Sync discount display
 watch(() => cartStore.discount, (newVal) => {
-    if (cartStore.discountType === 'fixed') {
-        displayDiscount.value = formatNumber(newVal);
-    } else {
-        displayDiscount.value = newVal?.toString() || "0";
-    }
+    // With v-money, we usually work with the raw numeric value directly.
+    // However, the input expects a formatted string or the v-money directive handles it.
 }, { immediate: true });
 
 // Helpers
@@ -504,8 +501,7 @@ const selectOutgoingUnit = (item) => {
                                         Unit</span>
                                     <div class="flex items-center gap-1">
                                         <span class="text-[10px] font-bold text-text-secondary">Rp</span>
-                                        <input type="text" :value="formatNumber(item.price)"
-                                            @input="e => handleItemPriceInput(item, e)"
+                                        <input v-money:price="item" type="text"
                                             class="w-24 sm:w-20 text-right text-sm sm:text-xs font-black bg-transparent outline-none focus:text-primary-600"
                                             :placeholder="formatNumber(item.cost_price)" />
                                     </div>
@@ -522,8 +518,7 @@ const selectOutgoingUnit = (item) => {
                                             Unit</span>
                                         <div class="flex items-center gap-1">
                                             <span class="text-[10px] font-bold text-amber-600">Rp</span>
-                                            <input type="text" :value="formatNumber(item.discount || 0)"
-                                                @input="e => handleItemDiscountInput(item, e)"
+                                            <input v-money:discount="item" type="text"
                                                 class="w-24 sm:w-20 text-right text-sm sm:text-xs font-black bg-transparent outline-none text-amber-600 placeholder:text-amber-300"
                                                 placeholder="0" />
                                         </div>
@@ -577,7 +572,7 @@ const selectOutgoingUnit = (item) => {
                     <div class="relative flex-1 max-w-[200px]">
                         <span
                             class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">Rp</span>
-                        <input type="text" :value="displayDiscount" @input="handleDiscountInput"
+                        <input v-money:discount="cartStore" type="text"
                             class="w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-9 pr-4 py-3 text-sm font-black text-primary-600 focus:outline-none focus:border-primary-500 transition-all text-right"
                             placeholder="0" />
                     </div>
@@ -714,8 +709,7 @@ const selectOutgoingUnit = (item) => {
                                         <div class="relative flex-1">
                                             <span
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
-                                            <input type="text" :value="item.display_bundle_price"
-                                                @input="e => handleBundleItemPriceInput(idx, e)"
+                                            <input v-money:bundle_price="item" type="text"
                                                 class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all h-9"
                                                 :placeholder="formatNumber(item.selling_price || item.price || 0)" />
                                         </div>
@@ -730,7 +724,7 @@ const selectOutgoingUnit = (item) => {
                                 <div class="relative mb-4 sm:mb-6">
                                     <span
                                         class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm sm:text-base">Rp</span>
-                                    <input :value="displayBundleTotalPrice" @input="handleBundlePriceInput" type="text"
+                                    <input v-money="val => $emit('update:bundleTotalPrice', val)" type="text"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-surface-800 text-text-primary text-lg sm:text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-11 sm:pl-12"
                                         placeholder="0" />
                                 </div>

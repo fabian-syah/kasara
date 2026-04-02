@@ -115,15 +115,7 @@ const form = ref({
     notes: '',
 });
 
-const sellingPriceDisplay = computed({
-    get: () => form.value.selling_price ? form.value.selling_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
-    set: (v) => form.value.selling_price = parseCurrency(v)
-});
-
-const newNonHpItemSellingPriceDisplay = computed({
-    get: () => newNonHpItem.value.selling_price ? newNonHpItem.value.selling_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
-    set: (v) => newNonHpItem.value.selling_price = parseCurrency(v)
-});
+// sellingPriceDisplay and newNonHpItemSellingPriceDisplay computed properties removed in favor of v-money sync syntax
 
 // Region State
 const provinces = ref([]);
@@ -890,7 +882,7 @@ onMounted(() => {
                         <label class="label text-emerald-500">SRP (Rp) *</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
-                            <input v-model="sellingPriceDisplay" v-money type="text" class="input pl-10 bg-surface-800"
+                            <input v-money:selling_price="form" type="text" class="input pl-10 bg-surface-800 font-bold"
                                 placeholder="0" />
                         </div>
                     </div>
@@ -1039,7 +1031,7 @@ onMounted(() => {
                                 </div>
                                 <div v-if="selectedCategory === 'shopee'">
                                     <label class="label">Harga Jual (per unit)</label>
-                                    <input v-model="newNonHpItemSellingPriceDisplay" v-money type="text" class="input" placeholder="0" />
+                                    <input v-money:selling_price="newNonHpItem" type="text" class="input font-bold" placeholder="0" />
                                 </div>
                                 <div class="flex justify-end gap-2 mt-6">
                                     <button @click="showNonHpModal = false"

@@ -560,7 +560,7 @@ async function processPayment(pin = null) {
                                         <div class="relative">
                                             <span
                                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary text-sm font-black">Rp</span>
-                                            <input v-money="payment.amount" type="text"
+                                            <input v-money:amount="payment" type="text"
                                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-10"
                                                 placeholder="0" />
                                         </div>
@@ -587,7 +587,7 @@ async function processPayment(pin = null) {
                         <div class="relative">
                             <span v-if="cartStore.discountType === 'fixed'"
                                 class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">Rp</span>
-                            <input v-if="cartStore.discountType === 'fixed'" v-money="discountValue" type="text"
+                            <input v-if="cartStore.discountType === 'fixed'" v-money="val => discountValue = val" type="text"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all pl-14"
                                 placeholder="0" />
                             <input v-else v-model.number="cartStore.discount" type="number"

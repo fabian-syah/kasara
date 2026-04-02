@@ -107,10 +107,7 @@ const addNonHpItem = () => {
     });
 };
 
-const updateNonHpItemPrice = (index) => {
-    const item = nonHpItems.value[index];
-    item.selling_price = parseCurrency(item.selling_price_display);
-};
+// updateNonHpItemPrice removed in favor of v-money sync syntax
 
 const removeNonHpItem = (index) => {
     if (nonHpItems.value.length > 1) {
@@ -438,19 +435,7 @@ const canNext = computed(() => {
 });
 
 // CARI DAN GANTI LOGIKA INI DI StockIn.vue
-const costPriceDisplay = computed({
-    get: () => batchDetails.value.cost_price ? formatNumber(batchDetails.value.cost_price) : '',
-    set: (val) => {
-        batchDetails.value.cost_price = parseCurrency(val);
-    }
-});
-
-const sellingPriceDisplay = computed({
-    get: () => batchDetails.value.selling_price ? formatNumber(batchDetails.value.selling_price) : '',
-    set: (val) => {
-        batchDetails.value.selling_price = parseCurrency(val);
-    }
-});
+// costPriceDisplay and sellingPriceDisplay computed properties removed in favor of v-money sync syntax
 
 
 
@@ -1049,14 +1034,14 @@ onMounted(fetchInitialData);
                                 <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
                                 <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
                                     <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                    <input v-model="costPriceDisplay" v-money type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" placeholder="0" />
+                                    <input v-money:cost_price="batchDetails" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" placeholder="0" />
                                 </div>
                             </div>
                             <div class="col-span-full md:col-span-1">
                                 <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span class="text-red-500">*</span></label>
                                 <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
                                     <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                    <input v-model="sellingPriceDisplay" v-money type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
+                                    <input v-money:selling_price="batchDetails" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
                                 </div>
                             </div>
                         </div>
@@ -1106,7 +1091,7 @@ onMounted(fetchInitialData);
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga Jual</label>
                                     <div class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">IDR</span>
-                                        <input v-model="item.selling_price_display" v-money @input="updateNonHpItemPrice(idx)" type="text" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
+                                        <input v-money:selling_price="item" type="text" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
                                     </div>
                                 </div>
                              </div>
