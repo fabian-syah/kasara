@@ -126,21 +126,23 @@ const exportToPNG = async (mode = 'share') => {
 
     const runExport = async (part, suffix) => {
         exportPart.value = part;
-        await new Promise(r => setTimeout(r, 400)); // More time for layout
+        await new Promise(r => setTimeout(r, 450)); // More time for layout
         try {
             const el = exportRef.value;
             const dataUrl = await toPng(el, { 
                 backgroundColor: '#0a0a0a',
                 pixelRatio: 2,
-                width: 1400,
+                width: 1500, // Slightly wider for centering room
                 style: { 
-                    padding: '40px',
+                    padding: '80px',
                     background: '#0a0a0a',
-                    width: '1400px',
+                    width: '1500px',
                     maxWidth: 'none',
                     margin: '0',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                 }
             });
             const link = document.createElement('a');
@@ -170,7 +172,7 @@ const exportToPNG = async (mode = 'share') => {
 <template>
     <div :class="[
         'p-3 md:p-6 space-y-6 md:space-y-8 transition-all duration-300',
-        exportPart === 0 ? 'max-w-7xl mx-auto' : 'w-[1400px] !max-w-none !mx-0 overflow-visible bg-[#0a0a0a]'
+        exportPart === 0 ? 'max-w-7xl mx-auto' : 'w-[1500px] !max-w-none !mx-0 overflow-visible bg-[#0a0a0a]'
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -249,7 +251,7 @@ const exportToPNG = async (mode = 'share') => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12" :class="{ 'is-exporting-png': exportPart > 0 }">
+        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1240px] mx-auto is-exporting-png' : ''">
             <!-- HEADER KHUSUS PART 2 -->
             <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
@@ -563,7 +565,7 @@ const exportToPNG = async (mode = 'share') => {
 }
 
 .is-exporting-png {
-    width: 1400px !important;
+    width: 1240px !important;
     max-width: none !important;
     --color-text-primary: #f8fafc !important;
     --color-text-secondary: #94a3b8 !important;
