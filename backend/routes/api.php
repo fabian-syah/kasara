@@ -102,6 +102,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory/account', [InventoryController::class, 'createAccount']);
     Route::post('/inventory/account/{id}/update', [InventoryController::class, 'updateAccount']);
     Route::get('/inventory/my-accounts', [InventoryController::class, 'getMyInventoryUsers']);
+    Route::post('/inventory/account/{id}/toggle-pin', [InventoryController::class, 'togglePin']);
+    Route::post('/inventory/account/{id}/request-reset', [InventoryController::class, 'requestResetPin']);
 
     // Stock Out (Pengeluaran Stok)
     Route::get('/stock-outs', [\App\Http\Controllers\StockOutController::class, 'index']);

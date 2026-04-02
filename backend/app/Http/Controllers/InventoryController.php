@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use App\Traits\VerifiesPin;
 
 class InventoryController extends Controller
@@ -1326,6 +1328,38 @@ class InventoryController extends Controller
             'success' => true,
             'message' => 'Akun inventory berhasil diupdate.',
             'data' => $account
+        ]);
+    }
+
+    public function togglePin(Request $request, $id)
+    {
+        $user = Auth::user();
+        /** @var \App\Models\User $account */
+        $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
+
+        $request->validate(['transaction_pin' => 'required|string|size:4']);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $account->transaction_pin)) {
+            return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+        }
+
+        $account->pin_enabled = !$account->pin_enabled;
+        $account->save();
+
+        return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
+    }
+
+    public function requestResetPin(Request $request, $id)
+    {
+        $user = Auth::user();
+        $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
+
+        $account->pin_reset_requested_at = now();
+        $account->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permintaan reset PIN telah dicatat.'
         ]);
     }
 

@@ -116,7 +116,10 @@ export const inventory = {
     lookupPrice: (data) => api.post('/product-prices/lookup', data),
     updateAccount: (id, data) => api.post(`/inventory/account/${id}/update`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    }),
+    myAccounts: () => api.get('/inventory/my-accounts'),
+    togglePin: (id, pin) => api.post(`/inventory/account/${id}/toggle-pin`, { transaction_pin: pin }),
+    requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`)
 }
 
 export const stockOut = {
