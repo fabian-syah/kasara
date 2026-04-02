@@ -19,12 +19,15 @@ import {
     Flame,
     Loader2,
     Download,
-    SortAsc
+    SortAsc,
+    Eye,
+    EyeOff
 } from 'lucide-vue-next';
 import { toPng } from 'html-to-image';
 
 const loading = ref(true);
 const rankingData = ref([]);
+const showZero = ref(false);
 const filters = ref({
     start_date: '',
     end_date: ''
@@ -88,7 +91,8 @@ const fetchRanking = async () => {
         const response = await api.get('/reports/ranking', {
             params: {
                 start_date: filters.value.start_date,
-                end_date: filters.value.end_date
+                end_date: filters.value.end_date,
+                include_zero: showZero.value ? 1 : 0
             }
         });
         rankingData.value = response.data;
@@ -97,6 +101,11 @@ const fetchRanking = async () => {
     } finally {
         loading.value = false;
     }
+};
+
+const toggleShowZero = () => {
+    showZero.value = !showZero.value;
+    fetchRanking();
 };
 
 onMounted(() => {
@@ -265,6 +274,16 @@ const exportToPNG = async () => {
 
                 <!-- Export Buttons -->
                 <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto pb-1 lg:pb-0">
+                    <!-- Toggle Zero Omset (Only for Today/Yesterday) -->
+                    <button v-if="activeRange === 'today' || activeRange === 'yesterday'"
+                        @click="toggleShowZero"
+                        class="flex-1 lg:flex-none px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap border"
+                        :class="showZero ? 'bg-orange-500/10 border-orange-500 text-orange-500' : 'bg-surface-800 border-surface-700 text-text-secondary hover:text-text-primary'">
+                        <Eye v-if="!showZero" class="w-3.5 h-3.5" />
+                        <EyeOff v-else class="w-3.5 h-3.5" />
+                        <span>{{ showZero ? 'Sembunyikan Kosong' : 'Tampilkan Belum Ada Penjualan' }}</span>
+                    </button>
+
                     <button @click="exportToPNG" :disabled="loading || exportLoading || rankingData.length === 0"
                         class="flex-1 lg:flex-none px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50 whitespace-nowrap">
                         <Download v-if="!exportLoading" class="w-3.5 h-3.5" />
@@ -523,9 +542,13 @@ const exportToPNG = async () => {
                                         </div>
                                     </td>
                                     <td class="px-4 md:px-8 py-5 md:py-7 text-right">
-                                        <span
-                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">{{
-                                            formatCurrency(item.omset) }}</span>
+                                        <span v-if="item.omset > 0"
+                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
+                                            {{ formatCurrency(item.omset) }}
+                                        </span>
+                                        <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
+                                            Belum ada penjualan
+                                        </span>
                                     </td>
                                 </tr>
                             </tbody>

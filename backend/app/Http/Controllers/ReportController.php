@@ -572,10 +572,15 @@ class ReportController extends Controller
             ];
         });
 
-        $report = $branchStats->concat($onlineStats)
-            ->filter(fn($item) => $item->omset > 0)
-            ->sortByDesc('omset')
-            ->values();
+        $report = $branchStats->concat($onlineStats);
+        
+        $includeZero = $request->boolean('include_zero', false);
+        
+        if (!$includeZero) {
+            $report = $report->filter(fn($item) => $item->omset > 0);
+        }
+
+        $report = $report->sortByDesc('omset')->values();
 
         return response()->json($report);
     }
