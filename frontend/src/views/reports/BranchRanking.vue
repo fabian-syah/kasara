@@ -162,14 +162,14 @@ const totalOmset = computed(() => {
         <div v-else class="space-y-16 animate-in">
             <!-- Podium Layout - RANK 1 UNIK & SPESIAL -->
             <div v-if="top3.length > 0"
-                class="flex flex-wrap items-center md:items-end justify-center gap-6 md:gap-4 lg:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-3xl overflow-hidden border border-surface-800/50">
+                class="flex flex-col lg:flex-row items-center lg:items-end justify-center gap-10 lg:gap-4 xl:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-[40px] overflow-hidden border border-surface-800/50">
                 <div
                     class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-500/20 to-transparent">
                 </div>
 
                 <!-- Juara 2 -->
                 <div v-if="top3[1]"
-                    class="order-2 md:order-1 flex flex-col items-center w-full md:w-[240px] lg:w-[280px]">
+                    class="order-2 lg:order-1 flex flex-col items-center w-full lg:flex-1 max-w-[285px]">
                     <div class="relative group">
                         <div
                             class="absolute -inset-4 bg-slate-400/5 rounded-full blur-xl group-hover:bg-slate-400/10 transition-all">
@@ -197,7 +197,7 @@ const totalOmset = computed(() => {
 
                 <!-- Juara 1 (THE KING - UNIK & BEDA) -->
                 <div v-if="top3[0]"
-                    class="order-1 md:order-2 flex flex-col items-center w-full md:w-[320px] lg:w-[380px] relative">
+                    class="order-1 lg:order-2 flex flex-col items-center w-full lg:w-[350px] xl:w-[400px] relative shrink-0">
                     <!-- BACKGROUND GLOW PULSE -->
                     <div class="absolute inset-0 bg-primary-500/10 blur-[100px] rounded-full animate-pulse-slow"></div>
 
@@ -260,31 +260,11 @@ const totalOmset = computed(() => {
                             </div>
                         </div>
 
-<!-- 
-                        <div class="flex gap-12 justify-center mt-10">
-                            <div class="text-center">
-                                <p class="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-2">Unit
-                                    iPhone</p>
-                                <div
-                                    class="px-5 py-2 bg-surface-800 rounded-xl border border-primary-500/20 shadow-inner">
-                                    <p class="text-3xl font-black text-text-primary">{{ top3[0].iphone_count }}</p>
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Unit
-                                    Android</p>
-                                <div
-                                    class="px-5 py-2 bg-surface-800 rounded-xl border border-emerald-500/20 shadow-inner">
-                                    <p class="text-3xl font-black text-text-primary">{{ top3[0].android_count }}</p>
-                                </div>
-                            </div>
-                        </div>
--->
                     </div>
                 </div>
 
                 <!-- Juara 3 -->
-                <div v-if="top3[2]" class="order-3 flex flex-col items-center w-full md:w-[240px] lg:w-[280px]">
+                <div v-if="top3[2]" class="order-3 flex flex-col items-center w-full lg:flex-1 max-w-[285px]">
                     <div class="relative group">
                         <div
                             class="absolute -inset-4 bg-amber-700/5 rounded-full blur-xl group-hover:bg-amber-700/10 transition-all">
