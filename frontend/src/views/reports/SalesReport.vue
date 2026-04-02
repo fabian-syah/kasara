@@ -159,8 +159,8 @@ const filteredProducts = computed(() => {
 <template>
     <div class="p-6 space-y-6">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div class="shrink-0">
                 <h1 class="text-2xl font-bold text-text-primary tracking-tight">Laporan Penjualan</h1>
                 <p class="text-text-secondary text-sm">
                     {{
@@ -171,69 +171,76 @@ const filteredProducts = computed(() => {
                 </p>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 flex-wrap sm:flex-nowrap">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
+                <!-- Group 1: Quick Filters -->
+                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto overflow-x-auto no-scrollbar">
                     <button @click="setRange('today')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                         :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         HARI INI
                     </button>
                     <button @click="setRange('yesterday')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                         :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         KEMARIN
                     </button>
                     <button @click="setRange('month')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                         :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         BULAN INI
                     </button>
                     <button @click="setRange('all')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                        class="flex-1 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                         :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         SEMUA
                     </button>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-2 bg-surface-800 p-1 rounded-lg border border-surface-700">
+                <!-- Group 2: Selectors & Filters -->
+                <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 bg-transparent w-full lg:w-auto">
+                    <!-- Date Inputs -->
+                    <div class="flex items-center gap-1 bg-surface-800 p-1 rounded-xl border border-surface-700 w-full sm:w-auto">
                         <input type="date" v-model="filters.start_date"
-                            class="bg-transparent text-xs text-text-primary outline-none px-2" />
-                        <span class="text-text-secondary">to</span>
+                            class="bg-transparent text-[11px] text-text-primary outline-none px-2 w-full sm:w-28" />
+                        <span class="text-surface-600 font-bold">-</span>
                         <input type="date" v-model="filters.end_date"
-                            class="bg-transparent text-xs text-text-primary outline-none px-2" />
+                            class="bg-transparent text-[11px] text-text-primary outline-none px-2 w-full sm:w-28" />
                     </div>
 
-                    <!-- Branch Selector -->
-                    <div v-if="filterOptions.branches.length > 0"
-                        class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
-                        <Building2 class="w-4 h-4 text-text-secondary ml-1" />
-                        <select v-model="filters.branch_id" @change="fetchReport"
-                            class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
-                            <option value="">Semua Cabang</option>
-                            <option v-for="branch in filterOptions.branches" :key="branch.id" :value="branch.id">
-                                {{ branch.name }}
-                            </option>
-                        </select>
-                    </div>
+                    <!-- Selectors Group -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <!-- Branch Selector -->
+                        <div v-if="filterOptions.branches.length > 0"
+                            class="flex-1 sm:flex-none flex items-center gap-2 bg-surface-800 p-2 rounded-xl border border-surface-700">
+                            <Building2 class="w-4 h-4 text-text-secondary shrink-0" />
+                            <select v-model="filters.branch_id" @change="fetchReport"
+                                class="bg-transparent text-[11px] text-text-primary outline-none w-full appearance-none cursor-pointer pr-4">
+                                <option value="">Semua Cabang</option>
+                                <option v-for="branch in filterOptions.branches" :key="branch.id" :value="branch.id">
+                                    {{ branch.name }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <!-- Online Shop Selector -->
-                    <div v-if="filterOptions.online_shops.length > 0"
-                        class="flex items-center gap-2 bg-surface-800 p-1.5 rounded-lg border border-surface-700 font-medium">
-                        <Smartphone class="w-4 h-4 text-text-secondary ml-1" />
-                        <select v-model="filters.online_shop_id" @change="fetchReport"
-                            class="bg-transparent text-xs text-text-primary outline-none px-2 pr-4 appearance-none cursor-pointer">
-                            <option value="">Semua Online Shop</option>
-                            <option v-for="shop in filterOptions.online_shops" :key="shop.id" :value="shop.id">
-                                {{ shop.name }}
-                            </option>
-                        </select>
-                    </div>
+                        <!-- Online Shop Selector -->
+                        <div v-if="filterOptions.online_shops.length > 0"
+                            class="flex-1 sm:flex-none flex items-center gap-2 bg-surface-800 p-2 rounded-xl border border-surface-700">
+                            <Smartphone class="w-4 h-4 text-text-secondary shrink-0" />
+                            <select v-model="filters.online_shop_id" @change="fetchReport"
+                                class="bg-transparent text-[11px] text-text-primary outline-none w-full appearance-none cursor-pointer pr-4">
+                                <option value="">Semua Online</option>
+                                <option v-for="shop in filterOptions.online_shops" :key="shop.id" :value="shop.id">
+                                    {{ shop.name }}
+                                </option>
+                            </select>
+                        </div>
 
-                    <button @click="fetchReport" class="btn btn-primary btn-sm h-9 px-4">
-                        <Filter :size="14" />
-                        Terapkan
-                    </button>
+                        <!-- Apply Button -->
+                        <button @click="fetchReport" class="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap">
+                            <Filter :size="14" />
+                            Filter
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

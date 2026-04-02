@@ -4,71 +4,76 @@
         <div
             class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
             <!-- Header & Filters -->
-            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-                <div>
-                    <h2 class="text-xl font-bold text-text-primary">Audit Profit</h2>
-                    <p class="text-sm text-gray-500 mt-1">Analisis profit per transaksi penjualan</p>
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
+                <div class="shrink-0">
+                    <h2 class="text-2xl font-black text-text-primary uppercase tracking-tight">Audit Profit</h2>
+                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1 opacity-70">
+                        Analisis profit per transaksi penjualan</p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    <!-- Quick Filters -->
-                    <div class="flex bg-surface-100 dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 flex-wrap sm:flex-nowrap">
+                <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
+                    <!-- Group 1: Quick Filters -->
+                    <div class="flex bg-surface-100 dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 w-full sm:w-auto overflow-x-auto no-scrollbar">
                         <button @click="setRange('today')" :disabled="loading"
-                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                             :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             HARI INI
                         </button>
                         <button @click="setRange('yesterday')" :disabled="loading"
-                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                             :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             KEMARIN
                         </button>
                         <button @click="setRange('month')" :disabled="loading"
-                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                             :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             BULAN INI
                         </button>
                         <button @click="setRange('all')" :disabled="loading"
-                            class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            class="flex-1 sm:px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap"
                             :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             SEMUA
                         </button>
                     </div>
 
-                    <!-- Custom Date Range -->
-                    <div class="flex items-center gap-2 bg-white dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700">
-                        <Calendar class="w-4 h-4 text-primary-500 ml-2" />
-                        <input type="date" v-model="filters.start_date"
-                            class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
-                        <span class="text-surface-400 font-bold">-</span>
-                        <input type="date" v-model="filters.end_date"
-                            class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
-                        <button @click="fetchData" :disabled="loading"
-                            class="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase ml-1">
-                            TERAPKAN
+                    <!-- Group 2: Custom Controls -->
+                    <div class="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                        <!-- Custom Date Range -->
+                        <div class="flex items-center gap-2 bg-white dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 flex-1 sm:flex-none">
+                            <Calendar class="w-4 h-4 text-primary-500 ml-2" />
+                            <input type="date" v-model="filters.start_date"
+                                class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full sm:w-28" />
+                            <span class="text-surface-400 font-bold">-</span>
+                            <input type="date" v-model="filters.end_date"
+                                class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full sm:w-28" />
+                            <button @click="fetchData" :disabled="loading"
+                                class="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase ml-1">
+                                <Filter class="w-3 h-3" />
+                                Terapan
+                            </button>
+                        </div>
+
+                        <!-- Branch Filter -->
+                        <div v-if="canFilterBranch" class="relative flex-1 sm:flex-none min-w-[180px]">
+                            <select v-model="selectedLocationKey" @change="fetchData"
+                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary pr-10 uppercase tracking-tighter">
+                                <option value="all">Semua Cabang/Toko</option>
+                                <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                                    :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                                    {{ loc.name }}
+                                </option>
+                            </select>
+                            <ChevronDown :size="14"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        </div>
+
+                        <!-- Export Button -->
+                        <button @click="exportExcel" :disabled="exporting"
+                            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-[10px] font-black uppercase shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50 whitespace-nowrap">
+                            <Download :size="16" :class="{ 'animate-bounce': exporting }" />
+                            <span>{{ exporting ? 'Exporting...' : 'Export Excel' }}</span>
                         </button>
                     </div>
-
-                    <!-- Branch Filter -->
-                    <div v-if="canFilterBranch" class="relative min-w-[200px]">
-                        <select v-model="selectedLocationKey" @change="fetchData"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                            <option value="all">Semua Cabang/Toko</option>
-                            <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                                :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
-                                {{ loc.name }}
-                            </option>
-                        </select>
-                        <ChevronDown :size="16"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                    </div>
-
-                    <!-- Export Button -->
-                    <button @click="exportExcel" :disabled="exporting"
-                        class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-bold shadow-lg shadow-gray-200 dark:shadow-none hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50">
-                        <Download :size="18" :class="{ 'animate-bounce': exporting }" />
-                        <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
-                    </button>
                 </div>
             </div>
 

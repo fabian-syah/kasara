@@ -180,7 +180,7 @@ const exportToPNG = async (mode = 'share') => {
     };
 
     if (mode === 'share') {
-        await runExport(1, 'top-ranking');
+        await runExport(3, 'top-3-podium'); // 3 is dedicated for TOP 3 ONLY
     } else {
         // Export Part 1
         await runExport(1, 'part-1');
@@ -203,7 +203,7 @@ const exportToPNG = async (mode = 'share') => {
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-4 shrink-0">
                 <div class="p-2.5 bg-primary-500/10 rounded-xl">
                     <Trophy class="w-6 h-6 text-primary-500" />
                 </div>
@@ -216,61 +216,67 @@ const exportToPNG = async (mode = 'share') => {
                 </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 flex-wrap sm:flex-nowrap">
-                    <button @click="setRange('today')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && activeRange === 'today'" class="w-2.5 h-2.5 animate-spin" />
-                        HARI INI
-                    </button>
-                    <button @click="setRange('yesterday')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && activeRange === 'yesterday'" class="w-2.5 h-2.5 animate-spin" />
-                        KEMARIN
-                    </button>
-                    <button @click="setRange('month')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && activeRange === 'month'" class="w-2.5 h-2.5 animate-spin" />
-                        BULAN INI
-                    </button>
-                    <button @click="setRange('all')" :disabled="loading"
-                        class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
-                        :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                        <Loader2 v-if="loading && activeRange === 'all'" class="w-2.5 h-2.5 animate-spin" />
-                        SEMUA
-                    </button>
-                </div>
+            <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
+                <div class="flex flex-wrap lg:flex-nowrap items-center gap-3">
+                    <!-- Quick Presets -->
+                    <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
+                        <button @click="setRange('today')" :disabled="loading"
+                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            <Loader2 v-if="loading && activeRange === 'today'" class="w-2.5 h-2.5 animate-spin" />
+                            HARI INI
+                        </button>
+                        <button @click="setRange('yesterday')" :disabled="loading"
+                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            <Loader2 v-if="loading && activeRange === 'yesterday'" class="w-2.5 h-2.5 animate-spin" />
+                            KEMARIN
+                        </button>
+                        <button @click="setRange('month')" :disabled="loading"
+                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            <Loader2 v-if="loading && activeRange === 'month'" class="w-2.5 h-2.5 animate-spin" />
+                            BULAN INI
+                        </button>
+                        <button @click="setRange('all')" :disabled="loading"
+                            class="flex-1 sm:px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2"
+                            :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                            <Loader2 v-if="loading && activeRange === 'all'" class="w-2.5 h-2.5 animate-spin" />
+                            SEMUA
+                        </button>
+                    </div>
 
-                <div class="flex flex-wrap items-center gap-2 bg-surface-800 p-1 rounded-xl border border-surface-700/50">
-                    <Calendar class="w-4 h-4 text-primary-500 ml-2 shrink-0" />
-                    <input type="date" v-model="filters.start_date"
-                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
-                    <span class="text-surface-600 font-bold">-</span>
-                    <input type="date" v-model="filters.end_date"
-                        class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-24 sm:w-28" />
-                    <button @click="fetchRanking" :disabled="loading"
-                        class="p-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center min-w-[120px] gap-2 font-black text-[10px] uppercase">
-                        <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
-                        <span v-else class="flex items-center gap-2">
-                             <Filter class="w-3.5 h-3.5" />
-                             Terapkan Filter
-                        </span>
-                    </button>
+                    <!-- Date Range Input -->
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
+                        <div class="flex items-center flex-1 px-2 gap-2 min-w-[240px]">
+                            <Calendar class="w-4 h-4 text-primary-500 shrink-0" />
+                            <input type="date" v-model="filters.start_date"
+                                class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full" />
+                            <span class="text-surface-600 font-bold">-</span>
+                            <input type="date" v-model="filters.end_date"
+                                class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full" />
+                        </div>
+                        <button @click="fetchRanking" :disabled="loading"
+                            class="w-full sm:w-auto px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap">
+                            <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
+                            <span v-else class="flex items-center gap-2">
+                                <Filter class="w-3.5 h-3.5" />
+                                Terapkan
+                            </span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Export Buttons -->
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 lg:pb-0">
                     <button @click="exportToPNG('share')" :disabled="loading || exportLoading || rankingData.length === 0"
-                        class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50">
+                        class="flex-1 lg:flex-none px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase shadow-lg shadow-emerald-500/20 disabled:opacity-50 whitespace-nowrap">
                         <Download v-if="!exportLoading" class="w-4 h-4" />
                         <Loader2 v-else class="w-4 h-4 animate-spin" />
                         <span>Share Top 3</span>
                     </button>
                     <button @click="exportToPNG('full')" :disabled="loading || exportLoading || rankingData.length === 0"
-                        class="px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50">
+                        class="flex-1 lg:flex-none px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50 whitespace-nowrap">
                         <Download v-if="!exportLoading" class="w-3.5 h-3.5" />
                         <Loader2 v-else class="w-3.5 h-3.5 animate-spin" />
                         <span>Export Full</span>
@@ -349,8 +355,10 @@ const exportToPNG = async (mode = 'share') => {
                             {{ top3[1].name }}</h3>
                         <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{{ top3[1].type
                             }} UNIT</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
-                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums">{{
+                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
+                            :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
+                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums"
+                                :class="{ '!text-slate-600': exportPart > 0 }">{{
                                 formatCurrency(top3[1].omset) }}</span>
                         </div>
                     </div>
@@ -444,7 +452,8 @@ const exportToPNG = async (mode = 'share') => {
                             top3[2].name }}</h3>
                         <p class="text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-1.5">{{ top3[2].type
                             }} UNIT</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
+                            :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
                             <span class="text-lg font-black text-amber-700 tabular-nums">{{
                                 formatCurrency(top3[2].omset) }}</span>
                         </div>
@@ -453,7 +462,7 @@ const exportToPNG = async (mode = 'share') => {
             </div>
 
             <!-- List Table -->
-            <div class="space-y-6">
+            <div v-show="exportPart !== 3" class="space-y-6">
                 <!-- Similar styling for table... -->
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
                     <h2
@@ -495,7 +504,7 @@ const exportToPNG = async (mode = 'share') => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
-                                    v-show="exportPart === 0 || (exportPart === 1 && index < 20) || (exportPart === 2 && index >= 20)"
+                                    v-show="exportPart === 0 || (exportPart === 1 && index < 20) || (exportPart === 2 && index >= 20) || exportPart === 3"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
@@ -530,7 +539,7 @@ const exportToPNG = async (mode = 'share') => {
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
+                            <tfoot v-if="filteredRanking.length > 0 && exportPart !== 3 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
