@@ -496,6 +496,7 @@ function prevStep() {
 
 const showCreateAccountModal = ref(false);
 const newAccountName = ref("");
+const newAccountPin = ref("");
 const isCreatingAccount = ref(false);
 
 // Duplicate Modal State
@@ -530,10 +531,14 @@ async function createInventoryAccount() {
     if (!newAccountName.value) return;
     isCreatingAccount.value = true;
     try {
-        await inventoryApi.createAccount({ name: newAccountName.value });
+        await inventoryApi.createAccount({ 
+            name: newAccountName.value,
+            transaction_pin: newAccountPin.value
+        });
         toast.success("Akun inventory berhasil dibuat!");
         showCreateAccountModal.value = false;
         newAccountName.value = "";
+        newAccountPin.value = "";
         fetchInitialData(); // Reload list
     } catch (e) {
         console.error("Create account error:", e);
@@ -552,7 +557,8 @@ const editForm = ref({
     name: "",
     phone: "",
     photo_inventory: null,
-    photo_preview: null
+    photo_preview: null,
+    transaction_pin: ""
 });
 const isUpdatingAccount = ref(false);
 const photoInput = ref(null);
@@ -564,7 +570,8 @@ function openEditModal(user, event) {
         name: user.full_name || user.name,
         phone: user.phone || "",
         photo_inventory: null,
-        photo_preview: user.photo_inventory ? `${storageUrl}/storage/${user.photo_inventory}` : null
+        photo_preview: user.photo_inventory ? `${storageUrl}/storage/${user.photo_inventory}` : null,
+        transaction_pin: ""
     };
     showEditAccountModal.value = true;
 }
@@ -585,6 +592,9 @@ async function updateInventoryAccount() {
         formData.append('phone', editForm.value.phone);
         if (editForm.value.photo_inventory) {
             formData.append('photo_inventory', editForm.value.photo_inventory);
+        }
+        if (editForm.value.transaction_pin) {
+            formData.append('transaction_pin', editForm.value.transaction_pin);
         }
 
         const response = await inventoryApi.updateAccount(editForm.value.id, formData);
@@ -889,6 +899,11 @@ onMounted(fetchInitialData);
                                 <input v-model="newAccountName" class="input bg-surface-800"
                                     placeholder="Contoh: Gudang Fisik A" autoFocus />
                             </div>
+                            <div>
+                                <label class="label text-[10px] uppercase">PIN Transaksi (Opsional)</label>
+                                <input v-model="newAccountPin" type="password" maxlength="4" class="input bg-surface-800"
+                                    placeholder="4 angka (Default: 0000)" />
+                            </div>
                             <div class="flex justify-end gap-3 mt-6">
                                 <button @click="showCreateAccountModal = false"
                                     class="btn btn-secondary px-6 rounded-xl">Batal</button>
@@ -942,6 +957,11 @@ onMounted(fetchInitialData);
                                     WhatsApp</label>
                                 <input v-model="editForm.phone" type="text" class="input w-full"
                                     placeholder="08xxxxx" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-text-secondary mb-2">Set/Ganti PIN Transaksi (4 Angka)</label>
+                                <input v-model="editForm.transaction_pin" type="password" maxlength="4" class="input w-full"
+                                    placeholder="Kosongkan jika tidak ingin diubah" />
                             </div>
                         </div>
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import api from "../../api/axios";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { useToast } from "../../composables/useToast";
@@ -77,6 +77,7 @@ const pinModalTitle = ref("Verifikasi PIN");
 const pendingPinCallback = ref(null);
 const showCreateAccount = ref(false);
 const newAccountName = ref("");
+const newAccountPin = ref("");
 const loadingCreate = ref(false);
 
 async function refreshAccounts() {
@@ -100,7 +101,8 @@ async function handleCreateAccount() {
     loadingCreate.value = true;
     try {
         const res = await api.post('/inventory/account', {
-            name: newAccountName.value
+            name: newAccountName.value,
+            transaction_pin: newAccountPin.value
         });
 
         if (res.data.success) {
@@ -109,6 +111,7 @@ async function handleCreateAccount() {
             salesAccount.value = res.data.data.name;
             showCreateAccount.value = false;
             newAccountName.value = "";
+            newAccountPin.value = "";
         }
     } catch (e) {
         toast.error(e.response?.data?.message || "Gagal membuat akun inventory.");
@@ -302,8 +305,11 @@ watch(transactionCategory, () => {
                                 <label class="block text-[10px] font-black text-primary-600 uppercase mb-2 px-1">Nama
                                     Akun Baru</label>
                                 <div class="flex flex-col sm:flex-row gap-2">
-                                    <input v-model="newAccountName" type="text" placeholder="Contoh: Sales A"
+                                    <input v-model="newAccountName" type="text" placeholder="Nama Akun (Sales A)"
                                         class="flex-1 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
+                                        @keyup.enter="handleCreateAccount" />
+                                    <input v-model="newAccountPin" type="password" maxlength="4" placeholder="PIN (4 Angka)"
+                                        class="w-full sm:w-32 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                                         @keyup.enter="handleCreateAccount" />
                                     <div class="flex gap-2">
                                         <button @click="handleCreateAccount" :disabled="loadingCreate"

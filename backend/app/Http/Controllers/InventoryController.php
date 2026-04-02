@@ -1194,6 +1194,7 @@ class InventoryController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:50',
+            'transaction_pin' => 'nullable|string|size:4'
         ]);
 
         $user = Auth::user();
@@ -1234,8 +1235,8 @@ class InventoryController extends Controller
                 'created_by' => $user->id, // Mark ownership
                 'is_active' => true,
                 'theme_color' => 'default',
-                'transaction_pin' => '0000', // Auto-hashed by Model casts
-                'pin_enabled' => true,
+                'transaction_pin' => $request->transaction_pin ?? '0000', // Auto-hashed by Model casts
+                'pin_enabled' => false, // Initially disabled for new accounts
             ]);
 
             // Auto-create distribution location if needed? No, user just picks branch. 
@@ -1277,6 +1278,8 @@ class InventoryController extends Controller
             'online_shop_id' => 'nullable|integer',
             'distributor_id' => 'nullable|integer',
             'photo_inventory' => 'nullable|image|max:2048', // 2MB Max
+            'transaction_pin' => 'nullable|string|size:4',
+            'pin_enabled' => 'nullable|boolean'
         ]);
 
         if ($request->has('name')) {
@@ -1307,6 +1310,16 @@ class InventoryController extends Controller
             $account->photo = $path;
         }
 
+        if ($request->has('transaction_pin')) {
+            $account->transaction_pin = $request->transaction_pin;
+            $account->pin_enabled = true; // Auto-enable if PIN is set/changed
+        }
+
+        if ($request->has('pin_enabled')) {
+            $account->pin_enabled = (bool) $request->pin_enabled;
+        }
+
+        $account->load(['roles', 'createdBy']);
         $account->save();
 
         return response()->json([
