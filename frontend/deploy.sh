@@ -3,18 +3,28 @@
 # Kasih tau user kalau proses mulai
 echo "🚀 Memulai proses update APEX POS..."
 
-# 1. Masuk ke folder frontend
-cd ~/apex-pos/apex-frontend/frontend || exit
+# 1. Masuk ke folder project
+cd ~/apex-pos/apex-frontend || exit
 
 # 2. Tarik kode terbaru dari GitHub
 echo "📥 Menarik kode terbaru dari GitHub..."
 git pull origin main
 
-# 3. Rakit (Build) project
-echo "🛠️ Sedang merakit (Build) project Vue..."
+# 3. Backend: Jalankan migrasi database & bersihkan cache
+echo "🛠️ Menjalankan migrasi database..."
+cd backend
+php artisan migrate --force
+php artisan optimize:clear
+php artisan route:clear
+php artisan cache:clear
+cd ..
+
+# 4. Frontend: Rakit (Build) project
+echo "🎨 Sedang merakit (Build) project Vue..."
+cd frontend
 npm run build
 
-# 4. Jika build sukses, baru pindahkan file
+# 5. Jika build sukses, baru pindahkan file
 if [ $? -eq 0 ]; then
     echo "✅ Build sukses! Memindahkan ke folder server..."
     sudo rm -rf /var/www/stokps/*
