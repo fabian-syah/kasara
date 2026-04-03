@@ -2056,12 +2056,9 @@ class InventoryController extends Controller
 
     public function pendingPhotos()
     {
-        // Remove role filter and check both pending columns to ensure 100% visibility
+        // Only return users who have pending_photo_inventory to avoid duplication with standard user photos
         $users = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
-            ->where(function($q) {
-                $q->whereNotNull('pending_photo')
-                  ->orWhereNotNull('pending_photo_inventory');
-            })
+            ->whereNotNull('pending_photo_inventory')
             ->select('id', 'name', 'full_name', 'username', 'photo_inventory', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
             ->get();
 

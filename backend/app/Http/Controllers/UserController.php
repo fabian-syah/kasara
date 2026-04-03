@@ -456,10 +456,7 @@ class UserController extends Controller
     {
         // Check both pending columns to ensure visibility
         $users = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
-            ->where(function($q) {
-                $q->whereNotNull('pending_photo')
-                  ->orWhereNotNull('pending_photo_inventory');
-            })
+            ->whereNotNull('pending_photo')
             ->select('id', 'name', 'full_name', 'username', 'photo', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
             ->get();
 
@@ -485,7 +482,7 @@ class UserController extends Controller
         $user->photo = $user->pending_photo;
         $user->photo_inventory = $user->pending_photo; // Sync
         $user->pending_photo = null;
-        $user->pending_photo_inventory = null; // Also clear this
+        $user->pending_photo_inventory = null; 
         $user->save();
 
         return response()->json(['success' => true, 'message' => 'Foto profil berhasil disetujui.']);
