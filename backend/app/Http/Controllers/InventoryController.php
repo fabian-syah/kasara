@@ -2054,8 +2054,9 @@ class InventoryController extends Controller
 
     public function pendingPhotos()
     {
-        $users = User::whereNotNull('pending_photo_inventory')
-            ->select('id', 'name', 'full_name', 'username', 'photo_inventory', 'pending_photo_inventory')
+        $users = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
+            ->whereNotNull('pending_photo_inventory')
+            ->select('id', 'name', 'full_name', 'username', 'photo_inventory', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
             ->get();
 
         return response()->json([

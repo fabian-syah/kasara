@@ -414,8 +414,9 @@ class UserController extends Controller
 
     public function pendingPhotos()
     {
-        $users = User::whereNotNull('pending_photo')
-            ->select('id', 'name', 'full_name', 'username', 'photo', 'pending_photo')
+        $users = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
+            ->whereNotNull('pending_photo')
+            ->select('id', 'name', 'full_name', 'username', 'photo', 'pending_photo', 'branch_id', 'warehouse_id', 'online_shop_id')
             ->get();
 
         return response()->json([
