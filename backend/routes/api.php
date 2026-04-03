@@ -54,8 +54,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{id}/approve-photo', [UserController::class, 'approvePhoto']);
     Route::post('/users/{id}/reject-photo', [UserController::class, 'rejectPhoto']);
 
-    Route::apiResource('users', UserController::class);
-    Route::apiResource('users', UserController::class);
+    // Direct POST for updates (Fix for 422 issues with file uploads)
+    Route::post('/users/{user}', [UserController::class, 'update']);
+    Route::apiResource('users', UserController::class)->except(['update']);
+    
     Route::post('/branches/{branch}/toggle-status', [BranchController::class, 'toggleStatus']);
     Route::apiResource('branches', BranchController::class);
     Route::apiResource('warehouses', WarehouseController::class);
@@ -102,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/inventory/stock-in', [InventoryController::class, 'stockIn']);
+    Route::post('/inventory/{id}', [InventoryController::class, 'update']);
     Route::put('/inventory/{id}', [InventoryController::class, 'update']);
     Route::patch('/inventory/{id}/status', [InventoryController::class, 'updateStatus']);
     Route::get('/inventory/products-lookup', [InventoryController::class, 'getProducts']);
