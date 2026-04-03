@@ -429,7 +429,7 @@ onMounted(() => {
                     <button @click="closeModal" class="close-btn"><X :size="20"/></button>
                 </div>
                 
-                <div class="modal-body space-y-12 pb-12">
+                <div class="modal-body space-y-12 pb-12 custom-scrollbar">
                     <!-- Verifikator Selection -->
                     <div class="p-8 bg-blue-500/5 border border-blue-500/20 rounded-[2rem] space-y-4">
                         <div class="flex items-center gap-3">
@@ -582,7 +582,7 @@ onMounted(() => {
                     <h2 class="text-2xl font-black text-white">Terima Kembali Barang</h2>
                     <button @click="closeModal" class="close-btn"><X :size="20"/></button>
                 </div>
-                <div class="modal-body space-y-8 pb-12">
+                <div class="modal-body space-y-8 pb-12 custom-scrollbar">
                      <!-- Verifikator Selection -->
                      <div class="p-8 bg-red-500/5 border border-red-500/20 rounded-[2rem] space-y-4">
                         <div class="flex items-center gap-3">
@@ -618,7 +618,7 @@ onMounted(() => {
 .modal-content { @apply bg-surface-900 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl overflow-hidden; animation: var(--animate-fade-in); }
 .modal-header { @apply px-8 py-8 border-b border-surface-700 flex justify-between items-start; }
 .close-btn { @apply p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all active:scale-90; }
-.modal-body { @apply p-6 sm:p-12 overflow-y-auto flex-1 custom-scrollbar; }
+.modal-body { @apply p-6 sm:p-12 overflow-y-auto flex-1; }
 .modal-footer { @apply px-8 py-8 border-t border-surface-700; }
 
 .label { @apply text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-50 mb-1; }
