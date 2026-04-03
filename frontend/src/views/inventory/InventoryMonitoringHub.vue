@@ -267,7 +267,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Search for History Tabs -->
-                    <div v-if="activeTab.includes('history')" class="relative flex-1 max-w-md animate-in slide-in-from-right-4">
+                    <div v-if="activeTab.includes('history')" class="relative flex-1 max-w-md slide-in">
                         <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
                         <input v-model="searchQuery" type="text" placeholder="Cari Resi atau Cabang..."
                             class="w-full bg-surface-800 border border-surface-700 rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500 transition-all shadow-inner" />
@@ -312,7 +312,7 @@ onMounted(() => {
             </div>
 
             <!-- Content Grid (OTW Tabs) -->
-            <div v-else-if="!activeTab.includes('history')" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+            <div v-else-if="!activeTab.includes('history')" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in duration-500">
                 <div v-for="transfer in transfers" :key="transfer.id" @click="openModal(transfer)"
                     class="card group cursor-pointer hover:bg-surface-750 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl hover:-translate-y-1"
                     :class="{
@@ -360,7 +360,7 @@ onMounted(() => {
             </div>
 
             <!-- Content Grid (History Tabs) -->
-            <div v-else class="space-y-8 animate-in fade-in duration-500">
+            <div v-else class="space-y-8 animate-in duration-500">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
                         class="card group cursor-pointer hover:bg-surface-750 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl overflow-hidden"
@@ -614,8 +614,8 @@ onMounted(() => {
 <style scoped>
 @reference "../../style.css";
 
-.modal-backdrop { @apply fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md animate-in fade-in duration-300; }
-.modal-content { @apply bg-surface-850 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl animate-in zoom-in-95 overflow-hidden; }
+.modal-backdrop { @apply fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md animate-in duration-300; }
+.modal-content { @apply bg-surface-850 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl animate-in overflow-hidden; }
 .modal-header { @apply px-8 py-8 border-b border-surface-700 flex justify-between items-start; }
 .close-btn { @apply p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all active:scale-90; }
 .modal-body { @apply p-6 sm:p-12 overflow-y-auto flex-1 custom-scrollbar; }
