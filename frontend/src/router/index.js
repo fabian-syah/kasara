@@ -203,6 +203,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/monitoring-otw',
+                name: 'InventoryMonitoringHub',
+                component: () => import('../views/inventory/InventoryMonitoringHub.vue'),
+                meta: {
+                    title: 'Monitoring Transfer (OTW)',
+                    menu: 'inventory',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'inventory/incoming-transfers',
                 name: 'IncomingTransfers',
                 component: () => import('../views/inventory/IncomingTransfers.vue'),

@@ -111,11 +111,7 @@ const menuItems = [
         icon: Box,
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
-            { id: "incoming_transfers", path: "/inventory/incoming-transfers", label: "Konfirmasi Masuk (OTW)" },
-            { id: "outgoing_transfers", path: "/inventory/outgoing-transfers", label: "Menunggu Konfirmasi (OTW)" },
-            { id: "incoming_transfer_history", path: "/inventory/incoming-history", label: "Riwayat Masuk" },
-            { id: "outgoing_transfer_history", path: "/inventory/outgoing-history", label: "Riwayat Keluar" },
-            { id: "failed_transfers", path: "/inventory/failed-otw", label: "Gagal Kirim (OTW)" },
+            { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
         ]
     },
     { id: "products", path: "/products", label: "Produk", icon: Package },
