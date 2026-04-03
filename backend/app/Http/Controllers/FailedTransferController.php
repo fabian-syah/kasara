@@ -57,7 +57,7 @@ class FailedTransferController extends Controller
         }
 
         // Verify PIN against confirming user (current user or selected inventory account)
-        $pinError = $this->verifyPin($request);
+        $pinError = $this->verifyPin($request, $request->inventory_user_id);
         if ($pinError) return $pinError;
 
         $confirmingUserId = $user->id;

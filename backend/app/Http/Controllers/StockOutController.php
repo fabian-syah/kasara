@@ -20,7 +20,7 @@ use App\Traits\VerifiesPin;
 
 class StockOutController extends Controller
 {
-    use VerifiesPin;
+    use \App\Traits\VerifiesPin;
     // List all stock outs
     public function index(Request $request)
     {
@@ -1039,7 +1039,7 @@ class StockOutController extends Controller
         ]);
 
         // PIN Verification using Trait
-        $pinError = $this->verifyPin($request);
+        $pinError = $this->verifyPin($request, $request->inventory_user_id);
         if ($pinError) return $pinError;
 
         DB::beginTransaction();

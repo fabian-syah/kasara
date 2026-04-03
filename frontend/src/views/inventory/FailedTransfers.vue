@@ -27,6 +27,24 @@ const processingId = ref(null)
 const showPinModal = ref(false)
 const selectedTransfer = ref(null)
 
+// Inventory Accounts
+const inventoryAccounts = ref([])
+const selectedInventoryAccount = ref("")
+
+// Fetch Inventory Accounts
+async function fetchInventoryAccounts() {
+    try {
+        const response = await api.get('/inventory/my-accounts')
+        inventoryAccounts.value = response.data || []
+        // Auto-select first if available
+        if (inventoryAccounts.value.length > 0) {
+            selectedInventoryAccount.value = inventoryAccounts.value[0].id
+        }
+    } catch (e) {
+        console.error("Failed to fetch inventory accounts", e)
+    }
+}
+
 const fetchFailedTransfers = async () => {
     loading.value = true
     try {
@@ -45,14 +63,14 @@ const confirmReturn = (transfer) => {
     showPinModal.value = true
 }
 
-const handlePinConfirm = async (pinData) => {
+const handlePinConfirm = async (pinStr) => {
     if (!selectedTransfer.value) return
     
     processingId.value = selectedTransfer.value.id
     try {
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm-return`, {
-            transaction_pin: pinData.pin,
-            inventory_user_id: pinData.inventory_user_id
+            transaction_pin: pinStr,
+            inventory_user_id: selectedInventoryAccount.value
         })
         success('Barang telah diterima kembali ke stok.')
         fetchFailedTransfers()
@@ -94,6 +112,7 @@ const getBrandName = (item) => {
 
 onMounted(() => {
     fetchFailedTransfers()
+    fetchInventoryAccounts()
 })
 </script>
 
@@ -258,14 +277,30 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <!-- Account Selection -->
+                <div v-if="inventoryAccounts.length > 0" class="px-6 py-4 border-t border-surface-700 bg-surface-800/50">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <label class="shrink-0 text-xs font-bold text-text-secondary uppercase tracking-wider">Penerima Stok:</label>
+                        <select 
+                            v-model="selectedInventoryAccount"
+                            class="flex-1 bg-surface-800 border border-surface-700 rounded-xl px-4 py-2 text-sm text-text-primary focus:outline-none focus:border-blue-500 transition-colors"
+                        >
+                            <option value="" disabled>Pilih Akun Inventory</option>
+                            <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
+                                {{ acc.full_name }} ({{ acc.code_id }})
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Action Footer -->
                 <div class="px-6 py-4 bg-surface-800/10 border-t border-surface-700 flex justify-end">
                     <button 
                         @click="confirmReturn(transfer)"
-                        :disabled="processingId === transfer.id"
+                        :disabled="processingId === transfer.id || !selectedInventoryAccount"
                         class="btn btn-primary"
                     >
-                        <RefreshCw v-if="processingId === transfer.id" class="w-4 h-4 animate-spin" />
+                        <RefreshCw v-if="processingId === transfer.id" class="w-4 h-4 animate-spin mr-2" />
                         <CheckCircle2 v-else class="w-4 h-4" />
                         <span>Terima Kembali ke Stok</span>
                     </button>
@@ -277,12 +312,12 @@ onMounted(() => {
     <!-- PIN Modal -->
     <PinModal
         v-if="showPinModal"
-        :is-open="showPinModal"
+        :show="showPinModal"
         title="Konfirmasi Terima Balik"
         description="Masukkan PIN untuk mengonfirmasi penerimaan barang kembali ke stok."
         :processing="processingId !== null"
         @close="showPinModal = false"
-        @confirm="handlePinConfirm"
+        @success="handlePinConfirm"
     />
 </template>
 
