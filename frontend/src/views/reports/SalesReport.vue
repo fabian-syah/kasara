@@ -125,7 +125,22 @@ const activeTab = ref('brand'); // brand, product, cs
 const fetchReport = async () => {
     loading.value = true;
     try {
-        const response = await api.get('/reports/sales', { params: filters.value });
+        const isOnlineShopRole = authStore.hasRole(['online_shop', 'toko_online']) || authStore.user?.online_shop_id;
+        const activeParams = { ...filters.value };
+        
+        // Aggressively ensure we don't pass branch_id if we are an online shop role
+        // This stops the backend from falling back to branch_id grouping
+        if (isOnlineShopRole) {
+            delete activeParams.branch_id;
+            
+            // Try to extract online shop ID from permissions/user context if empty
+            if (!activeParams.online_shop_id && authStore.user?.placements && authStore.user.placements.length > 0) {
+                 const placement = authStore.user.placements.find(p => p.online_shop_id);
+                 if (placement) activeParams.online_shop_id = placement.online_shop_id;
+            }
+        }
+
+        const response = await api.get('/reports/sales', { params: activeParams });
         stats.value = response.data;
     } catch (error) {
         console.error('Error fetching sales report:', error);
