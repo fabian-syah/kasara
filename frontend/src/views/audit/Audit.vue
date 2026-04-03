@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { useEscapeKey } from "../../composables/useEscapeKey";
 import { formatCurrency, formatDate } from "../../utils/formatters";
 import {
@@ -181,7 +182,14 @@ useEscapeKey(() => {
 });
 
 const toast = useToast();
-const currentTab = ref("transactions"); // 'transactions' or 'photos'
+const route = useRoute();
+const currentTab = ref(route.path.includes('photo-approvals') ? 'photos' : 'transactions');
+
+onMounted(() => {
+  if (currentTab.value === 'photos') {
+    fetchPendingPhotos();
+  }
+});
 
 // Photo Approval State
 const pendingPhotos = ref([]);
