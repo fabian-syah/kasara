@@ -254,6 +254,22 @@ useEscapeKey(() => {
     if (showSuccessModal.value) closeSuccessModal();
 });
 
+// Computed & Helpers for Account Photo
+const storageBaseUrl = computed(() => authStore.storageBaseUrl);
+
+function getInitials(name) {
+    if (!name) return '?';
+    const words = name.trim().split(/\s+/);
+    if (words.length > 1) return (words[0][0] + words[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+}
+
+function getPhotoUrl(acc) {
+    const p = acc?.photo || acc?.photo_inventory;
+    if (!p) return null;
+    return p.startsWith('http') ? p : `${storageBaseUrl.value}/storage/${p}`;
+}
+
 // Watch for category changes to potentially skip steps or reset
 watch(transactionCategory, () => {
     if (currentStep.value > 2) currentStep.value = 3;
@@ -353,23 +369,33 @@ watch(transactionCategory, () => {
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name"
-                                    class="w-full p-4 rounded-2xl border-2 transition-all flex flex-col items-start gap-1 relative overflow-hidden group"
+                                    class="w-full p-3 sm:p-4 rounded-2xl border-2 transition-all flex flex-col justify-center gap-1 relative overflow-hidden group"
                                     :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/10' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
                                     
-                                    <div class="flex items-center justify-between w-full">
-                                        <span class="font-black text-base sm:text-lg transition-colors truncate pr-8"
-                                            :class="salesAccount === acc.name ? 'text-primary-600' : 'text-text-primary'">
-                                            {{ acc.name }}
-                                        </span>
-                                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all absolute top-4 right-4"
-                                            :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
-                                            <div v-if="salesAccount === acc.name" class="w-2 h-2 rounded-full bg-white">
-                                            </div>
+                                    <div class="flex items-center gap-3 w-full pr-8">
+                                        <!-- Photo or Initials -->
+                                        <div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full bg-surface-200 dark:bg-surface-700 flex items-center justify-center overflow-hidden border border-surface-300 dark:border-surface-600">
+                                            <img v-if="getPhotoUrl(acc)" :src="getPhotoUrl(acc)" class="w-full h-full object-cover" alt="Profile" @error="$event.target.style.display='none'; $event.target.nextSibling.style.display='flex'" />
+                                            <span v-if="!getPhotoUrl(acc)" class="text-xs sm:text-sm font-black text-text-secondary">{{ getInitials(acc.name) }}</span>
+                                            <span style="display:none;" class="text-xs sm:text-sm font-black text-text-secondary w-full h-full items-center justify-center">{{ getInitials(acc.name) }}</span>
                                         </div>
-                                    </div>
-                                    
-                                    <div v-if="acc.created_by" class="text-[10px] sm:text-xs font-bold text-text-secondary truncate max-w-full">
-                                        by {{ acc.created_by.full_name || acc.created_by.name }}
+
+                                        <!-- Account Info -->
+                                        <div class="flex flex-col items-start truncate text-left flex-1 min-w-0 pt-0.5">
+                                            <span class="font-black text-sm sm:text-base transition-colors truncate w-full"
+                                                :class="salesAccount === acc.name ? 'text-primary-600' : 'text-text-primary'">
+                                                {{ acc.name }}
+                                            </span>
+                                            <span v-if="acc.created_by" class="text-[10px] sm:text-xs font-bold text-text-secondary truncate w-full mt-0.5">
+                                                by {{ acc.created_by.full_name || acc.created_by.name }}
+                                            </span>
+                                        </div>
+                                        
+                                        <!-- Radio UI -->
+                                        <div class="w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all absolute top-1/2 -translate-y-1/2 right-4"
+                                            :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
+                                            <div v-if="salesAccount === acc.name" class="w-2 h-2 rounded-full bg-white"></div>
+                                        </div>
                                     </div>
                                 </button>
                             </div>
