@@ -133,6 +133,7 @@ const menuItems = [
             { id: "audit_stock_in_uc", path: "/audit/uc/stock-in", label: "Audit Barang Masuk" },
             { id: "audit_stock_out_uc", path: "/audit/uc/stock-out", label: "Audit Barang Keluar" },
             { id: "audit_pin_resets", path: "/audit/pin-resets", label: "Permintaan PIN" },
+            { id: "audit_photo_approvals", path: "/audit/photo-approvals", label: "Persetujuan Foto" },
         ]
     },
 

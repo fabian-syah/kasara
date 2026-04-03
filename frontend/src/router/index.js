@@ -313,6 +313,16 @@ const routes = [
                 }
             },
             {
+                path: 'audit/photo-approvals',
+                name: 'AuditPhotoApprovals',
+                component: Audit,
+                meta: {
+                    title: 'Persetujuan Foto',
+                    menu: 'audit_photo_approvals',
+                    permissions: ['audit.view']
+                }
+            },
+            {
                 path: 'transactions',
                 name: 'Transactions',
                 component: Transactions,
