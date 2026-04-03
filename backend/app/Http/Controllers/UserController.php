@@ -296,8 +296,14 @@ class UserController extends Controller
             $path = $request->file('photo')->store('profile-photos', 'public');
             
             // Logic: Jika sudah ada foto, kirim ke pending dulu. 
-            if ($user->photo) {
+            if ($user->photo || $user->photo_inventory) {
                 $user->pending_photo = $path;
+                
+                // Jika ini akun inventory, masukkan juga ke pending_photo_inventory agar muncul di Audit filter inventory
+                if ($user->hasAnyRole(['toko_offline', 'toko_online', 'admin_produk'])) {
+                    $user->pending_photo_inventory = $path;
+                }
+                
                 // Jangan masukkan ke $validated agar tidak menimpa foto asli di $user->update()
                 unset($validated['photo']);
             } else {
@@ -406,9 +412,13 @@ class UserController extends Controller
 
     public function pendingPhotos()
     {
+        // Check both pending columns to ensure visibility
         $users = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
-            ->whereNotNull('pending_photo')
-            ->select('id', 'name', 'full_name', 'username', 'photo', 'pending_photo', 'branch_id', 'warehouse_id', 'online_shop_id')
+            ->where(function($q) {
+                $q->whereNotNull('pending_photo')
+                  ->orWhereNotNull('pending_photo_inventory');
+            })
+            ->select('id', 'name', 'full_name', 'username', 'photo', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
             ->get();
 
         return response()->json([
