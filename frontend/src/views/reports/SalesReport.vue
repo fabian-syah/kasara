@@ -140,7 +140,13 @@ const fetchReport = async () => {
             }
         }
 
+        console.log('[DEBUG] SalesReport - Sending Params:', activeParams);
+
         const response = await api.get('/reports/sales', { params: activeParams });
+        
+        console.log('[DEBUG] SalesReport - Received CS array length:', response.data.cs?.length);
+        console.log('[DEBUG] SalesReport - Received CS array:', response.data.cs);
+        
         stats.value = response.data;
     } catch (error) {
         console.error('Error fetching sales report:', error);
