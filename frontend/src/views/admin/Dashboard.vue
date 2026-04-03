@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { formatCurrency, formatNumber } from "../../utils/formatters";
-import api from "../../api/axios";
+import api, { users as usersApi } from "../../api/axios";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -33,6 +33,25 @@ const brandSales = ref([]);
 const typeSales = ref([]);
 const csPerformance = ref([]);
 const ranking = ref({ my_rank: '-', leaderboard: [] });
+
+const usersList = ref([]);
+const usersMap = computed(() => {
+  const map = {};
+  usersList.value.forEach(u => {
+    if (u.name) map[u.name.toLowerCase()] = u;
+    if (u.full_name) map[u.full_name.toLowerCase()] = u;
+  });
+  return map;
+});
+
+const fetchUsers = async () => {
+    try {
+        const response = await usersApi.list();
+        usersList.value = response.data || [];
+    } catch (error) {
+        console.error('Failed to fetch users for photo mapping', error);
+    }
+};
 
 // Determine initial role immediately to prevent flash of wrong dashboard
 if (authStore.hasRole('admin_produk')) {
@@ -153,9 +172,14 @@ const resolveIcon = (name) => {
 };
 
 const resolvePhoto = (user, name) => {
-  // Check multiple potential photo fields for robustness
-  const photo = user?.photo || user?.photo_inventory || user?.avatar || user?.profile_photo;
-  if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
+  // 1. Try to find user in our detailed usersMap first (more likely to have photo)
+  const mappedUser = name ? usersMap.value[name.toLowerCase()] : null;
+  
+  // 2. Check multiple potential photo fields for robustness (from mapped user or provided user)
+  const source = mappedUser || user;
+  const photo = source?.photo || source?.photo_inventory || source?.avatar || source?.profile_photo || source?.image;
+  
+  if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff&size=128`;
   if (photo.startsWith('http')) return photo;
   return `${storageBaseUrl.value}/storage/${photo}`;
 };
@@ -221,6 +245,7 @@ function refreshData() {
 
 onMounted(() => {
   fetchDashboardData();
+  fetchUsers();
 });
 
 const getColorClasses = (color) => {
