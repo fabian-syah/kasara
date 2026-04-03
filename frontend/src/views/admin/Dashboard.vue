@@ -37,7 +37,8 @@ const ranking = ref({ my_rank: '-', leaderboard: [] });
 const usersList = ref([]);
 const usersMap = computed(() => {
   const map = {};
-  usersList.value.forEach(u => {
+  const list = Array.isArray(usersList.value) ? usersList.value : (usersList.value?.data || []);
+  list.forEach(u => {
     if (u.name) map[u.name.toLowerCase()] = u;
     if (u.full_name) map[u.full_name.toLowerCase()] = u;
   });
@@ -47,7 +48,8 @@ const usersMap = computed(() => {
 const fetchUsers = async () => {
     try {
         const response = await usersApi.list();
-        usersList.value = response.data || [];
+        // Handle both raw array and nested data object
+        usersList.value = response.data?.data || response.data || [];
     } catch (error) {
         console.error('Failed to fetch users for photo mapping', error);
     }
