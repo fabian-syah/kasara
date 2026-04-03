@@ -1093,28 +1093,9 @@ class StockOutController extends Controller
                         'placement_id' => $destPlacementId
                     ]);
                 } else {
-                    // Rejected: Return to Sender
-                    // We need to know who sent it. $stockOut->user_id -> User -> Branch/Warehouse?
-                    // Or check stockOut log?
-                    // Easiest: Set placement back to Source.
-                    // Problem: We didn't store explicit source_type/id in StockOut, only implied by creator.
-                    // Let's assume creator's CURRENT location? No, insecure.
-                    // We should have stored source.
-                    // Fallback: If rejection happens, set status 'returned' and keep placement? 
-                    // Or set placement to $stockOut->user->branch_id?
-
-                    // For now, let's assume ALL accepted for simplicity or minimal rejection flow.
-                    // If rejected, change status to 'in_transit' (return trip) or 'available' at SOURCE.
-
-                    $sender = $stockOut->user; // Creator
-                    // Revert placement
-                    if ($sender->branch_id) {
-                        $item->update(['placement_type' => 'branch', 'placement_id' => $sender->branch_id, 'status' => 'available']);
-                    } elseif ($sender->warehouse_id) {
-                        $item->update(['placement_type' => 'warehouse', 'placement_id' => $sender->warehouse_id, 'status' => 'available']);
-                    } elseif ($sender->online_shop_id) {
-                        $item->update(['placement_type' => 'online_shop', 'placement_id' => $sender->online_shop_id, 'status' => 'available']);
-                    }
+                    // Rejected: Set to 'returning' status (OTW back)
+                    // The original sender must confirm receiving it back in 'Gagal Kirim' menu.
+                    $item->update(['status' => 'returning']);
                 }
             }
 

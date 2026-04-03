@@ -16,6 +16,7 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\TradeInController;
 use App\Http\Controllers\UnitExchangeController;
+use App\Http\Controllers\FailedTransferController;
 
 // ... (previous routes)
 
@@ -122,7 +123,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);
     Route::get('/transfers/history', [\App\Http\Controllers\StockOutController::class, 'historyIncoming']); // NEW
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
-    // Route::get('/transfers/history', [\App\Http\Controllers\StockTransferController::class, 'history']);
+
+    // Failed Transfers (Gagal Kirim/OTW)
+    Route::get('/transfers/failed', [FailedTransferController::class, 'indexFailed']);
+    Route::post('/transfers/{id}/confirm-return', [FailedTransferController::class, 'confirmReturn']);
 
     // System Status
     Route::get('/system-status', [\App\Http\Controllers\SystemStatusController::class, 'index']);

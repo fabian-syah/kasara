@@ -233,6 +233,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/failed-otw',
+                name: 'failed_transfers',
+                component: () => import('../views/inventory/FailedTransfers.vue'),
+                meta: {
+                    title: 'Gagal Kirim (OTW)',
+                    menu: 'inventory',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'retur-items',
                 name: 'ReturItems',
                 component: () => import('../views/inventory/ReturItems.vue'),
