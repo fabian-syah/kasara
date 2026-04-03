@@ -281,19 +281,19 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'full_name' => 'sometimes|string|max:255',
-            'username' => ['sometimes', 'string', Rule::unique('users')->ignore($user->id)],
-            'password' => 'nullable|string|min:6',
-            'role' => 'sometimes|string|exists:roles,name',
-            'branch_id' => 'nullable|exists:branches,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
-            'online_shop_id' => 'nullable|exists:online_shops,id',
-            'distributor_id' => 'nullable|exists:distributors,id',
-            'birth_date' => 'nullable|date',
-            'is_active' => 'boolean',
-            'transaction_pin' => 'nullable|string|size:4',
-            'photo' => 'nullable|image|max:2048',
-            'photo_inventory' => 'nullable|image|max:2048',
+            'full_name' => 'sometimes|nullable|string|max:255',
+            'username' => ['sometimes', 'nullable', 'string', Rule::unique('users')->ignore($user->id)],
+            'password' => 'sometimes|nullable|string|min:6',
+            'role' => 'sometimes|nullable|string|exists:roles,name',
+            'branch_id' => 'sometimes|nullable|exists:branches,id',
+            'warehouse_id' => 'sometimes|nullable|exists:warehouses,id',
+            'online_shop_id' => 'sometimes|nullable|exists:online_shops,id',
+            'distributor_id' => 'sometimes|nullable|exists:distributors,id',
+            'birth_date' => 'sometimes|nullable|date',
+            'is_active' => 'sometimes|boolean',
+            'transaction_pin' => 'sometimes|nullable|string|size:4',
+            'photo' => 'sometimes|nullable|image|max:2048',
+            'photo_inventory' => 'sometimes|nullable|image|max:2048',
         ]);
 
         // Logic to clear other placements if one is selected? 
