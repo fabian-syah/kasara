@@ -1107,8 +1107,9 @@ class StockOutController extends Controller
                         'placement_id' => $destPlacementId
                     ]);
                 } else {
-                    // Rejected: Set to 'returning' status (OTW back)
-                    $item->update(['status' => 'returning']);
+                    // Rejected: Set to 'transfer' status (OTW back)
+                    // Note: 'returning' is not in the DB enum constraint on some systems, using 'transfer' is safer.
+                    $item->update(['status' => 'transfer']);
                 }
             }
 
@@ -1122,6 +1123,7 @@ class StockOutController extends Controller
                     if ($record && $record->stock_out_id == $stockOut->id) {
                         $record->update([
                             'received_quantity' => $acceptedQty,
+                            'returned_quantity' => max(0, $record->quantity - $acceptedQty),
                             'notes' => $nonHpRejectionNotes[$itemId] ?? null
                         ]);
 

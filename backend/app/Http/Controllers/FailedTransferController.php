@@ -19,13 +19,20 @@ class FailedTransferController extends Controller
         $user = Auth::user();
         if (!$user) return response()->json(['data' => []]);
 
-        // Find transfers where items are in 'returning' status
+        // Find transfers where items are rejected in the pivot table
         // AND the user is the sender
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'destination', 'items' => function($q) {
+                $q->withPivot('status', 'notes');
+            }])
             ->where('user_id', $user->id)
             ->where('category', 'pindah_cabang')
-            ->whereHas('items', function($q) {
-                $q->where('status', 'returning');
+            ->where(function($query) {
+                $query->whereHas('items', function($q) {
+                    $q->where('stock_out_items.status', 'rejected');
+                })
+                ->orWhereHas('nonHpItems', function($q) {
+                    $q->where('received_quantity', '<', DB::raw('quantity'));
+                });
             });
 
         $transfers = $query->latest()->get();

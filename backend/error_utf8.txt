@@ -1,0 +1,44 @@
+﻿
+   Error 
+
+  Call to undefined method ReflectionFunction::isAnonymous()
+
+  at vendor\laravel\framework\src\Illuminate\Container\Container.php:817
+    813Γûò      */
+    814Γûò     protected function getClassForCallable($callback)
+    815Γûò     {
+    816Γûò         if (is_callable($callback) &&
+  Γ₧£ 817Γûò             ! ($reflector = new ReflectionFunction($callback(...)))->isAnonymous()) {
+    818Γûò             return $reflector->getClosureScopeClass()->name ?? false;
+    819Γûò         }
+    820Γûò 
+    821Γûò         return false;
+
+  1   vendor\laravel\framework\src\Illuminate\Container\Container.php:789
+      Illuminate\Container\Container::getClassForCallable()
+
+  2   vendor\laravel\framework\src\Illuminate\Foundation\Application.php:1151
+      Illuminate\Container\Container::call()
+
+
+   Error 
+
+  Call to undefined method ReflectionFunction::isAnonymous()
+
+  at vendor\laravel\framework\src\Illuminate\Container\Container.php:817
+    813Γûò      */
+    814Γûò     protected function getClassForCallable($callback)
+    815Γûò     {
+    816Γûò         if (is_callable($callback) &&
+  Γ₧£ 817Γûò             ! ($reflector = new ReflectionFunction($callback(...)))->isAnonymous()) {
+    818Γûò             return $reflector->getClosureScopeClass()->name ?? false;
+    819Γûò         }
+    820Γûò 
+    821Γûò         return false;
+
+  1   vendor\laravel\framework\src\Illuminate\Container\Container.php:789
+      Illuminate\Container\Container::getClassForCallable(Object(Closure))
+
+  2   vendor\laravel\framework\src\Illuminate\Foundation\Application.php:1466
+      Illuminate\Container\Container::call(Object(Closure))
+
