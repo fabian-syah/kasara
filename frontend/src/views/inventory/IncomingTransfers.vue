@@ -307,17 +307,17 @@ onMounted(() => {
 
         <!-- Confirmation Modal -->
         <div v-if="showModal && selectedTransfer"
-            class="fixed inset-0 bg-black/40 dark:bg-black/80 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-md transition-all duration-300">
+            class="fixed inset-0 bg-black/60 dark:bg-black/90 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300">
             <div
-                class="bg-surface-50 dark:bg-surface-800 w-full max-w-2xl h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col border-t sm:border border-surface-200 dark:border-surface-700 rounded-t-[2.5rem] sm:rounded-[2rem] shadow-2xl animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in duration-300 overflow-hidden">
+                class="bg-white dark:bg-surface-800 w-full max-w-2xl h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col border-t sm:border border-surface-200 dark:border-surface-700 rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in duration-300 overflow-hidden">
                 <!-- Modal Header -->
                 <div
-                    class="p-6 sm:p-8 border-b border-surface-200 dark:border-surface-700 flex justify-between items-center bg-white/50 dark:bg-surface-800/50 backdrop-blur-xl z-20 sticky top-0">
+                    class="p-5 sm:p-6 border-b border-surface-200 dark:border-surface-700 flex justify-between items-center bg-white dark:bg-surface-800 z-20 sticky top-0">
                     <div>
-                        <h2 class="text-xl sm:text-2xl font-black text-text-primary">Konfirmasi Terima Barang</h2>
+                        <h2 class="text-xl sm:text-2xl font-bold text-text-primary">Konfirmasi Terima Barang</h2>
                         <p class="text-text-secondary text-sm font-medium">{{ selectedTransfer.receipt_id }}</p>
                     </div>
-                    <button @click="closeModal" class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-100 dark:bg-white/5 text-text-secondary hover:text-text-primary hover:scale-110 transition-all">
+                    <button @click="closeModal" class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-100 dark:bg-white/10 text-text-secondary hover:text-text-primary transition-all">
                         <X :size="24" />
                     </button>
                 </div>
@@ -404,14 +404,14 @@ onMounted(() => {
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="p-6 sm:p-8 border-t border-surface-200 dark:border-surface-700 bg-white/50 dark:bg-surface-800/50 backdrop-blur-xl sticky bottom-0 z-20">
+                <div class="p-5 sm:p-6 border-t border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 sticky bottom-0 z-20">
                     <button @click="submitConfirmation()" :disabled="isSubmitting"
-                        class="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white text-lg font-black rounded-2xl shadow-xl shadow-blue-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+                        class="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3">
                         <Loader2 v-if="isSubmitting" :size="20" class="animate-spin" />
-                        {{ isSubmitting ? 'Memproses Verifikasi...' : 'Konfirmasi Penerimaan' }}
+                        {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Penerimaan' }}
                     </button>
                     <button @click="closeModal" :disabled="isSubmitting"
-                        class="w-full mt-4 text-text-secondary hover:text-text-primary text-sm font-bold transition-colors">
+                        class="w-full mt-3 text-text-secondary hover:text-text-primary text-sm font-medium transition-colors">
                         Batal
                     </button>
                 </div>
