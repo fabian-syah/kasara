@@ -281,7 +281,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Responsive Tab Bar -->
-                <div class="mt-8 flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar touches-none snap-x mask-fade-right">
+                <div class="mt-8 flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar touch-pan-x snap-x mask-fade-right">
                     <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
                         class="flex items-center gap-3 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 snap-start border shrink-0"
                         :class="activeTab === tab.id 
@@ -320,7 +320,7 @@ onMounted(() => {
                         'border-l-purple-500 hover:shadow-purple-500/5': activeTab === 'outgoing_otw',
                         'border-l-red-500 hover:shadow-red-500/5': activeTab === 'failed_otw'
                     }">
-                    <div class="p-8">
+                    <div class="p-6 sm:p-8">
                         <div class="flex items-center justify-between mb-6">
                             <div class="px-4 py-1.5 rounded-xl bg-surface-700/50 border border-surface-600/30 text-xs font-black text-white tracking-widest uppercase">
                                 {{ transfer.receipt_id }}
@@ -365,7 +365,7 @@ onMounted(() => {
                     <div v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
                         class="card group cursor-pointer hover:bg-surface-700 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl overflow-hidden"
                         :class="activeTab === 'history_in' ? 'border-l-green-500' : 'border-l-amber-500'">
-                        <div class="p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                        <div class="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                             <div class="flex items-center gap-5">
                                 <div class="w-14 h-14 rounded-2xl bg-surface-700/50 flex items-center justify-center transition-all border border-surface-600/30"
                                      :class="activeTab === 'history_in' ? 'text-green-500' : 'text-amber-500'">
