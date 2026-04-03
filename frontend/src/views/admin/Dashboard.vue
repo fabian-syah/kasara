@@ -152,6 +152,12 @@ const resolveIcon = (name) => {
   return icons[name] || Package;
 };
 
+const resolvePhoto = (photo, name) => {
+  if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
+  if (photo.startsWith('http')) return photo;
+  return `${storageBaseUrl.value}/storage/${photo}`;
+};
+
 async function fetchDashboardData() {
   isLoading.value = true;
   try {
@@ -190,7 +196,8 @@ async function fetchDashboardData() {
         if (hasNoUnits && csPerformance.value.length > 0) {
           ranking.value.leaderboard = csPerformance.value.map((cs, idx) => ({
             ...cs,
-            units: cs.total_sales || (cs.hp_count + (cs.non_hp_count || 0)),
+            units: (cs.hp_count || 0) + (cs.non_hp_count || cs.acc_count || 0),
+            revenue: cs.total_sales || cs.omset,
             rank: idx + 1
           })).sort((a, b) => (b.units || 0) - (a.units || 0));
         }
@@ -420,16 +427,17 @@ const getColorClasses = (color) => {
                 </td>
                 <td class="py-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-700 shrink-0 border border-surface-600">
-                      <img v-if="user.photo" :src="user.photo" class="w-full h-full object-cover" />
-                      <User v-else :size="16" class="m-2 text-text-secondary" />
+                    <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden shrink-0">
+                      <img :src="resolvePhoto(user.photo, user.name)"
+                        class="w-full h-full object-cover"
+                        @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=10b981&color=fff`" />
                     </div>
                     <span class="font-medium text-text-primary group-hover:text-primary-400 transition-colors">{{
                       user.name }}</span>
                   </div>
                 </td>
                 <td class="py-3 text-center">
-                  <span class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</span>
+                  <span class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</span>
                   <span class="text-[10px] text-text-secondary ml-1">Unit</span>
                 </td>
                 <td class="py-3 text-right">
@@ -455,9 +463,10 @@ const getColorClasses = (color) => {
                 {{ idx + 1 }}
               </div>
               <div class="flex items-center gap-2 min-w-0">
-                <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-700 shrink-0 border border-surface-600">
-                  <img v-if="user.photo" :src="user.photo" class="w-full h-full object-cover" />
-                  <User v-else :size="14" class="m-2 text-text-secondary" />
+                <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden">
+                  <img :src="resolvePhoto(user.photo, user.name)"
+                    class="w-full h-full object-cover"
+                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=10b981&color=fff`" />
                 </div>
                 <div class="truncate">
                   <p class="font-medium text-text-primary text-sm truncate">{{ user.name }}</p>
@@ -466,7 +475,7 @@ const getColorClasses = (color) => {
               </div>
             </div>
             <div class="text-right shrink-0">
-              <p class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</p>
+              <p class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</p>
               <p class="text-[10px] text-text-secondary">Unit</p>
             </div>
           </div>
