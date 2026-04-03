@@ -414,11 +414,11 @@ const getColorClasses = (color) => {
                   </div>
                 </td>
                 <td class="py-3 text-center">
-                  <span class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? 0 }}</span>
+                  <span class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? 0 }}</span>
                   <span class="text-[10px] text-text-secondary ml-1">Unit</span>
                 </td>
                 <td class="py-3 text-right">
-                  <span class="font-mono text-text-secondary">#{{ user.rank }}</span>
+                   <span class="font-mono text-text-secondary">#{{ user.rank ?? (idx + 1) }}</span>
                 </td>
               </tr>
               <tr v-if="!ranking?.leaderboard || ranking.leaderboard.length === 0">
@@ -446,12 +446,12 @@ const getColorClasses = (color) => {
                 </div>
                 <div class="truncate">
                   <p class="font-medium text-text-primary text-sm truncate">{{ user.name }}</p>
-                  <p class="text-[10px] text-text-secondary font-mono">#{{ user.rank }} Global</p>
+                  <p class="text-[10px] text-text-secondary font-mono">#{{ user.rank ?? (idx + 1) }} Global</p>
                 </div>
               </div>
             </div>
             <div class="text-right shrink-0">
-              <p class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? 0 }}</p>
+              <p class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? 0 }}</p>
               <p class="text-[10px] text-text-secondary">Unit</p>
             </div>
           </div>
