@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
@@ -17,10 +17,12 @@ import {
     RefreshCw,
     X,
     AlertTriangle,
-    Warehouse,
     Store,
     ShoppingCart,
-    Truck
+    Search,
+    ChevronLeft,
+    ChevronRight,
+    FileText
 } from "lucide-vue-next";
 
 const toast = useToast();
@@ -57,14 +59,6 @@ function onPinVerified(pin) {
     }
 }
 
-// Helper for icons based on destination type (though incoming is usually for US)
-const destinationIcon = {
-    branch: Store,
-    warehouse: Warehouse,
-    online_shop: ShoppingCart,
-    distributor: Truck
-};
-
 // Inventory Accounts
 const inventoryAccounts = ref([]);
 const selectedInventoryAccount = ref("");
@@ -74,7 +68,6 @@ async function fetchInventoryAccounts() {
     try {
         const response = await api.get('/inventory/my-accounts');
         inventoryAccounts.value = response.data || [];
-        // Auto-select first if available
         if (inventoryAccounts.value.length > 0) {
             selectedInventoryAccount.value = inventoryAccounts.value[0].id;
         }
@@ -90,7 +83,6 @@ async function fetchPending() {
         const response = await api.get('/transfers/pending');
         transfers.value = response.data.data || response.data || [];
     } catch (e) {
-        // toast.error(e.response?.data?.message || "Gagal memuat data transfer");
         console.error(e);
     } finally {
         isLoading.value = false;
@@ -101,12 +93,10 @@ async function fetchPending() {
 function openConfirmModal(transfer) {
     selectedTransfer.value = transfer;
 
-    // Reset selection if not set
     if (inventoryAccounts.value.length > 0 && !selectedInventoryAccount.value) {
         selectedInventoryAccount.value = inventoryAccounts.value[0].id;
     }
 
-    // Initialize form
     const accepted = [];
     if (transfer.items) {
         transfer.items.forEach(item => accepted.push(item.id));
@@ -115,7 +105,7 @@ function openConfirmModal(transfer) {
     const quantities = {};
     if (transfer.non_hp_items) {
         transfer.non_hp_items.forEach(item => {
-            quantities[item.id] = item.quantity; // Default receive all
+            quantities[item.id] = item.quantity;
         });
     }
 
@@ -139,10 +129,8 @@ function closeModal() {
 async function submitConfirmation(verifiedPin = null) {
     if (!selectedTransfer.value) return;
 
-    // Use either the provided verifiedPin or the local pin state
     const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
 
-    // Check PIN if needed
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
     if (!pin && selectedAccount?.pin_enabled) {
         handleVerifyPin((vPin) => submitConfirmation(vPin));
@@ -163,7 +151,6 @@ async function submitConfirmation(verifiedPin = null) {
         const response = await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
         toast.success(response.data.message || "Transfer berhasil dikonfirmasi!");
 
-        // Remove from list
         transfers.value = transfers.value.filter(t => t.id !== selectedTransfer.value.id);
         closeModal();
     } catch (e) {
@@ -173,7 +160,6 @@ async function submitConfirmation(verifiedPin = null) {
     }
 }
 
-// Toggle HP Item
 function toggleHpItem(id) {
     const idx = form.value.accepted_items.indexOf(id);
     if (idx === -1) {
@@ -183,7 +169,6 @@ function toggleHpItem(id) {
     }
 }
 
-// Format date
 function formatDate(dateString) {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -196,17 +181,6 @@ function formatDate(dateString) {
     });
 }
 
-function formatCondition(condition) {
-    if (!condition) return '';
-    const map = {
-        'new': 'Baru',
-        'second': 'Second',
-        'ex_ibox': 'Ex iBox',
-        'refurbished': 'Refurbished'
-    };
-    return map[condition.toLowerCase()] || condition;
-}
-
 function getBrandName(item) {
     const product = item?.product;
     if (!product) return '';
@@ -217,18 +191,6 @@ function getBrandName(item) {
     return brand || '';
 }
 
-function formatCapacity(ram, storage) {
-    if (!ram && !storage) return '';
-    if (ram && storage) {
-        const r = /^\d+$/.test(ram) ? ram : ram.replace(/GB/gi, '');
-        const s = /^\d+$/.test(storage) ? storage : storage.replace(/GB/gi, '');
-        return `${r}/${s}GB`;
-    }
-    const val = storage || ram;
-    if (/^\d+$/.test(val)) return val + 'GB';
-    return val;
-}
-
 onMounted(() => {
     fetchPending();
     fetchInventoryAccounts();
@@ -236,23 +198,27 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 animate-in fade-in max-w-6xl mx-auto pb-24">
-        <!-- Header -->
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-text-primary flex items-center gap-3">
-                    <div class="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center">
-                        <ArrowDownRight :size="24" class="text-blue-500" />
-                    </div>
-                    Barang Masuk Transfer
-                </h1>
-                <p class="text-text-secondary mt-1">
-                    Konfirmasi penerimaan barang dari cabang/gudang lain
-                </p>
+    <div class="space-y-8 animate-in fade-in max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-surface-700/50">
+            <div class="flex items-start gap-5">
+                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-3xl flex items-center justify-center border border-blue-500/20 shadow-xl shadow-blue-500/5 shrink-0">
+                    <ArrowDownRight :size="32" class="text-blue-500" />
+                </div>
+                <div class="pt-1">
+                    <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                        Konfirmasi <span class="text-blue-500">Masuk</span> (OTW)
+                    </h1>
+                    <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
+                        Daftar barang yang sedang dalam perjalanan menuju lokasi Anda. Silakan verifikasi barang saat tiba.
+                    </p>
+                </div>
             </div>
-            <button @click="fetchPending" :disabled="isLoading" class="btn btn-secondary gap-2 rounded-xl h-10 px-4">
-                <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
-                Refresh
+
+            <button @click="fetchPending" :disabled="isLoading"
+                class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-blue-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0 self-start lg:self-end">
+                <RefreshCw :size="20" :class="{ 'animate-spin': isLoading }" />
+                <span>{{ isLoading ? 'Memuat...' : 'Refresh Data' }}</span>
             </button>
         </div>
 
@@ -263,76 +229,63 @@ onMounted(() => {
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="transfers.length === 0" class="text-center py-20">
-            <div class="w-24 h-24 mx-auto bg-surface-700/50 rounded-3xl flex items-center justify-center mb-6">
+        <div v-else-if="transfers.length === 0" class="text-center py-20 bg-surface-800 rounded-3xl border border-surface-700">
+            <div class="w-24 h-24 mx-auto bg-green-500/10 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle2 :size="48" class="text-green-500" />
             </div>
-            <h2 class="text-xl font-bold text-text-primary mb-2">Tidak Ada Transfer Masuk</h2>
-            <p class="text-text-secondary">Semua transfer sudah dikonfirmasi 🎉</p>
+            <h2 class="text-2xl font-black text-text-primary mb-2">Semua Aman!</h2>
+            <p class="text-text-secondary max-w-xs mx-auto">Tidak ada barang OTW yang perlu dikonfirmasi saat ini.</p>
         </div>
 
-        <!-- Transfer List -->
-        <div v-else class="space-y-4">
-            <p class="text-text-secondary text-sm">
-                <Clock :size="14" class="inline mr-1" />
-                {{ transfers.length }} transfer menunggu konfirmasi
-            </p>
+        <!-- Transfer Grid -->
+        <div v-else class="space-y-6">
+            <div class="flex items-center gap-3 px-2">
+                <Clock :size="18" class="text-amber-500" />
+                <p class="text-text-secondary font-bold text-sm uppercase tracking-widest">
+                    {{ transfers.length }} Transfer Menunggu Konfirmasi
+                </p>
+            </div>
 
-            <div v-for="transfer in transfers" :key="transfer.id"
-                class="card border-l-4 border-l-blue-500 hover:bg-surface-700/30 transition-all cursor-pointer group"
-                @click="openConfirmModal(transfer)">
-                <!-- Header -->
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-500/20 text-blue-500">
-                            <Building2 :size="24" />
-                        </div>
-                        <div>
-                            <p class="font-bold text-text-primary text-lg group-hover:text-blue-400 transition-colors">
-                                {{ transfer.receipt_id }}</p>
-                            <p class="text-sm text-text-secondary flex items-center gap-1">
-                                <User :size="12" />
-                                Dari: <span class="text-text-primary font-medium">{{ transfer.user?.name || 'Unknown'
-                                }}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="flex items-center gap-2 text-text-secondary text-sm justify-end">
-                            <Calendar :size="14" />
-                            {{ formatDate(transfer.created_at) }}
-                        </div>
-                        <span
-                            class="inline-block mt-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 text-xs font-bold">
-                            Menunggu Konfirmasi
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Items Preview -->
-                <div class="sm:pl-[64px] mt-2 sm:mt-0">
-                    <div class="flex gap-4">
-                        <div v-if="transfer.items && transfer.items.length > 0">
-                            <p class="text-xs uppercase font-bold text-text-secondary mb-1">HP ({{ transfer.items.length
-                            }})</p>
-                            <div class="flex flex-wrap gap-2">
-                                <span v-for="item in transfer.items.slice(0, 3)" :key="item.id"
-                                    class="text-xs bg-surface-700 px-2 py-1 rounded text-text-secondary font-mono">
-                                    {{ item.imei.slice(-4) }}
-                                </span>
-                                <span v-if="transfer.items.length > 3" class="text-xs text-text-secondary self-center">
-                                    +{{ transfer.items.length - 3 }} more
-                                </span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                <div v-for="transfer in transfers" :key="transfer.id"
+                    class="card hover:bg-surface-750 transition-all cursor-pointer group relative overflow-hidden border-l-4 border-l-blue-500 p-0 shadow-xl hover:shadow-blue-500/5 rounded-[2rem]"
+                    @click="openConfirmModal(transfer)">
+                    
+                    <div class="p-6 lg:p-8">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-5">
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-700/50 text-blue-500 group-hover:scale-110 transition-transform border border-surface-600/30">
+                                    <Building2 :size="32" />
+                                </div>
+                                <div>
+                                    <p class="font-black text-xl lg:text-2xl text-white group-hover:text-blue-400 transition-colors mb-1">
+                                        {{ transfer.receipt_id }}
+                                    </p>
+                                    <p class="text-base text-text-secondary font-medium flex items-center gap-2">
+                                        <User :size="16" class="text-blue-500/70" />
+                                        Dari: <span class="text-white font-bold">{{ transfer.user?.name || 'Unknown' }}</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div v-if="transfer.non_hp_items && transfer.non_hp_items.length > 0">
-                            <p class="text-xs uppercase font-bold text-text-secondary mb-1">Non-HP ({{
-                                transfer.non_hp_items.length }})</p>
-                            <div class="flex flex-wrap gap-2">
-                                <span v-for="item in transfer.non_hp_items.slice(0, 3)" :key="item.id"
-                                    class="text-xs bg-surface-700 px-2 py-1 rounded text-text-secondary">
-                                    <span v-if="getBrandName(item)" class="text-blue-400 mr-1">[{{ getBrandName(item) }}]</span>
-                                    {{ item.product?.name }}
+
+                        <div class="mt-8 pt-6 border-t border-surface-700/50 flex items-center justify-between">
+                            <div class="flex flex-col gap-1.5">
+                                <p class="text-[10px] text-text-secondary uppercase font-black tracking-widest opacity-60">
+                                    Tanggal Kirim
+                                </p>
+                                <p class="text-sm lg:text-base font-bold text-text-primary flex items-center gap-2">
+                                    <Calendar :size="16" class="text-blue-500 opacity-70" />
+                                    {{ formatDate(transfer.created_at) }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl lg:text-2xl font-black text-white">
+                                    {{ (transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }}
+                                    <span class="text-xs font-bold text-text-secondary uppercase ml-1">Unit</span>
+                                </p>
+                                <span class="px-3 py-1 rounded-lg bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm border border-amber-500/20">
+                                    PENDING
                                 </span>
                             </div>
                         </div>
@@ -343,158 +296,190 @@ onMounted(() => {
 
         <!-- Confirmation Modal -->
         <div v-if="showModal && selectedTransfer"
-            class="fixed inset-0 bg-black/60 dark:bg-black/90 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300">
+            class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md"
+            @click.self="closeModal">
             <div
-                class="bg-white dark:bg-surface-800 w-full max-w-2xl h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col border-t sm:border border-surface-200 dark:border-surface-700 rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in duration-300 overflow-hidden">
+                class="bg-surface-800 rounded-[2.5rem] w-full max-w-4xl max-h-[95vh] flex flex-col border border-surface-700 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 overflow-hidden">
                 <!-- Modal Header -->
                 <div
-                    class="p-5 sm:p-6 border-b border-surface-200 dark:border-surface-700 flex justify-between items-center bg-white dark:bg-surface-800 z-20 sticky top-0">
+                    class="px-8 py-8 border-b border-surface-700 flex justify-between items-start bg-surface-800/80 backdrop-blur-xl z-20">
                     <div>
-                        <h2 class="text-xl sm:text-2xl font-bold text-text-primary">Konfirmasi Terima Barang</h2>
-                        <p class="text-text-secondary text-sm font-medium">{{ selectedTransfer.receipt_id }}</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2.5 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                                <ArrowDownRight :size="20" class="text-blue-500" />
+                            </div>
+                            <h2 class="text-3xl font-black text-white tracking-tight">Konfirmasi Terima</h2>
+                        </div>
+                        <div class="flex items-center gap-3 text-base text-text-secondary mt-1 ml-0.5">
+                            <span class="font-bold text-white">{{ selectedTransfer.receipt_id }}</span>
+                            <span class="opacity-30">•</span>
+                            <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-amber-500 border-amber-500/20 bg-amber-500/5">
+                                Verifikasi Unit
+                            </span>
+                        </div>
                     </div>
-                    <button @click="closeModal"
-                        class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-100 dark:bg-white/10 text-text-secondary hover:text-text-primary transition-all">
+                    <button @click="closeModal" class="p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all shadow-lg active:scale-90">
                         <X :size="24" />
                     </button>
                 </div>
 
-
                 <!-- Modal Body -->
-                <div class="p-6 overflow-y-auto flex-1 space-y-8">
-
-                    <!-- Account Selection -->
+                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-gradient-to-b from-surface-800 via-surface-800 to-surface-900/40">
+                    
+                    <!-- Account Selection Card -->
                     <div v-if="inventoryAccounts.length > 0"
-                        class="bg-surface-700/30 p-4 rounded-xl border border-surface-600">
-                        <label class="block text-sm font-medium text-text-primary mb-2">Konfirmasi Menggunakan
-                            Akun:</label>
-                        <select v-model="selectedInventoryAccount"
-                            class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                            <option value="" disabled>Pilih Akun Inventory</option>
-                            <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
-                                {{ acc.full_name }} ({{ acc.code_id }})
-                            </option>
-                        </select>
-                        <p class="text-xs text-text-secondary mt-2">
-                            Stok akan tercatat diterima oleh akun ini.
-                        </p>
+                        class="bg-blue-500/5 p-8 rounded-[2.5rem] border border-blue-500/20 backdrop-blur-sm shadow-inner group transition-all hover:bg-blue-500/10">
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 group-hover:scale-110 transition-transform">
+                                <User :size="24" class="text-blue-500" />
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-black text-white uppercase tracking-tight">Akun Verifikator</h3>
+                                <p class="text-sm text-text-secondary font-medium italic opacity-70">Pilih identitas yang akan memproses stok ini</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 gap-4">
+                            <select v-model="selectedInventoryAccount"
+                                class="w-full bg-surface-900/80 border-2 border-surface-700 rounded-2xl px-6 py-4 text-lg font-bold text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer shadow-xl">
+                                <option value="" disabled>Pilih Akun Inventory...</option>
+                                <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
+                                    {{ acc.full_name }} — ({{ acc.code_id }})
+                                </option>
+                            </select>
+                        </div>
                     </div>
 
-                    <!-- HP Items -->
-                    <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
-                        <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2">
-                            <Smartphone :size="18" class="text-blue-500" /> Barang HP
-                        </h3>
-                        <div class="space-y-2">
-                            <div v-for="item in selectedTransfer.items" :key="item.id"
-                                class="flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer"
-                                :class="form.accepted_items.includes(item.id)
-                                    ? 'bg-blue-500/10 border-blue-500/50'
-                                    : 'bg-surface-700/50 border-transparent opacity-60 hover:opacity-100'"
-                                @click="toggleHpItem(item.id)">
-                                <div class="space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                                                :class="form.accepted_items.includes(item.id) ? 'border-blue-500 bg-blue-500' : 'border-text-secondary'">
-                                                <CheckCircle2 v-if="form.accepted_items.includes(item.id)" :size="14"
-                                                    class="text-white" />
-                                            </div>
-                                            <div>
-                                                <p
-                                                    class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-x-1">
-                                                    <span
-                                                        v-if="getBrandName(item)"
-                                                        class="text-blue-500 mr-1">
-                                                        [{{ getBrandName(item) }}]
-                                                    </span>
-                                                    <span>{{ item.product?.name }}</span>
-                                                    <span v-if="item.storage || item.ram"
-                                                        class="text-blue-500 font-black ml-1">• {{
-                                                            formatCapacity(item.ram,
-                                                        item.storage) }}</span>
-                                                    <span v-if="item.condition"
-                                                        class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">
-                                                        {{ formatCondition(item.condition) }}
-                                                    </span>
+                    <!-- Items Detail Sections -->
+                    <div class="space-y-16">
+                        <!-- HP Items -->
+                        <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
+                            <div class="flex items-center justify-between mb-8">
+                                <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
+                                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5">
+                                        <Smartphone :size="20" class="text-blue-500" />
+                                    </div>
+                                    Unit Barang HP <span class="text-text-secondary opacity-40 ml-2">({{ selectedTransfer.items.length }})</span>
+                                </h3>
+                                <div class="flex items-center gap-2 text-[10px] font-black text-text-secondary bg-surface-700/50 px-4 py-2 rounded-full border border-surface-600">
+                                    <AlertTriangle :size="14" class="text-amber-500" /> TAP UNTUK TOLAK
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="item in selectedTransfer.items" :key="item.id"
+                                    class="relative group cursor-pointer overflow-hidden p-6 rounded-[2rem] border-2 transition-all duration-300 shadow-lg"
+                                    :class="form.accepted_items.includes(item.id)
+                                        ? 'bg-blue-500/5 border-blue-500/30 ring-1 ring-blue-500/20'
+                                        : 'bg-red-500/5 border-red-500/30 grayscale hover:grayscale-0'"
+                                    @click="toggleHpItem(item.id)">
+                                    
+                                    <div class="flex items-start justify-between">
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <p class="font-black text-xl text-white tracking-tight group-hover:text-blue-400 transition-colors">
+                                                    <span v-if="getBrandName(item)" class="text-blue-500/70 mr-1">[{{ getBrandName(item) }}]</span>
+                                                    {{ item.product?.name }}
                                                 </p>
-                                                <p
-                                                    class="text-xs font-mono text-text-secondary mt-0.5 tracking-tighter">
-                                                    {{ item.imei }}</p>
+                                            </div>
+                                            <p class="text-xs font-mono font-black text-text-secondary tracking-[0.2em] pt-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                {{ item.imei }}
+                                            </p>
+                                            <div class="flex items-center gap-2 pt-2">
+                                                <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-black border border-blue-500/10 uppercase">
+                                                    {{ item.ram }}/{{ item.storage }}
+                                                </span>
+                                                <span v-if="item.condition" class="px-2 py-0.5 rounded-md bg-surface-700 text-text-secondary text-[10px] font-black border border-surface-600 uppercase tracking-widest">
+                                                    {{ item.condition }}
+                                                </span>
                                             </div>
                                         </div>
-                                        <span class="text-xs font-bold"
-                                            :class="form.accepted_items.includes(item.id) ? 'text-blue-400' : 'text-red-400'">
-                                            {{ form.accepted_items.includes(item.id) ? 'DITERIMA' : 'DITOLAK' }}
-                                        </span>
+                                        
+                                        <div class="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-inner"
+                                            :class="form.accepted_items.includes(item.id) ? 'bg-green-500 text-white' : 'bg-red-500 text-white rotate-45'">
+                                            <CheckCircle2 v-if="form.accepted_items.includes(item.id)" :size="24" />
+                                            <X v-else :size="24" />
+                                        </div>
                                     </div>
 
-                                    <!-- Rejection Note for HP -->
+                                    <!-- Rejection Note -->
                                     <div v-if="!form.accepted_items.includes(item.id)"
-                                        class="mt-2 animate-in zoom-in duration-200" @click.stop>
+                                        class="mt-6 pt-6 border-t border-red-500/20 animate-in slide-in-from-top-4 duration-300" @click.stop>
+                                        <p class="text-[10px] font-black text-red-400 uppercase tracking-[0.3em] mb-2 px-1">Alasan Penolakan</p>
                                         <textarea v-model="form.items_rejection[item.id]"
-                                            placeholder="Alasan penolakan..."
-                                            class="w-full bg-surface-800/80 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 transition-all min-h-[60px]"
-                                            rows="2"></textarea>
+                                            placeholder="Jelaskan kenapa unit ditolak (misal: IMEI beda, pecah, dsb)..."
+                                            class="w-full bg-surface-900/50 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all min-h-[80px] shadow-inner font-medium"></textarea>
+                                    </div>
+                                    
+                                    <!-- Status Badge -->
+                                    <div class="absolute top-2 right-14" v-if="!form.accepted_items.includes(item.id)">
+                                        <span class="text-[8px] font-black text-red-500 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 uppercase tracking-widest">Reject</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Non-HP Items Section -->
+                        <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
+                            <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
+                                <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                                    <Package :size="20" class="text-orange-500" />
+                                </div>
+                                Barang Aksesoris <span class="text-text-secondary opacity-40 ml-2">({{ selectedTransfer.non_hp_items.length }})</span>
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 gap-6">
+                                <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
+                                    class="p-8 rounded-[2.5rem] border border-surface-700 bg-surface-800/50 shadow-xl hover:border-orange-500/30 transition-all group">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                                        <div class="flex items-center gap-5">
+                                            <div class="w-14 h-14 bg-surface-700/50 rounded-2xl flex items-center justify-center border border-surface-600/30 text-orange-500">
+                                                <Package :size="24" />
+                                            </div>
+                                            <div>
+                                                <p class="font-black text-xl text-white leading-tight group-hover:text-orange-400 transition-colors">
+                                                    <span v-if="getBrandName(item)" class="text-orange-500/70 mr-1">[{{ getBrandName(item) }}]</span>
+                                                    {{ item.product?.name }}
+                                                </p>
+                                                <p class="text-sm font-bold text-text-secondary mt-1 tracking-tight">Total Dikirim: <span class="text-white">{{ item.quantity }} Unit</span></p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-1.5 p-2 bg-surface-900 rounded-3xl border border-surface-700 shadow-inner w-full sm:w-auto overflow-hidden">
+                                            <div class="px-6 py-1.5 font-black text-xs text-text-secondary uppercase tracking-[0.15em] border-r border-surface-700 shrink-0">QUANTITY RECEIVED</div>
+                                            <input type="number" v-model="form.non_hp_quantities[item.id]"
+                                                class="bg-transparent border-none w-24 text-center text-2xl font-black text-orange-500 focus:ring-0 focus:outline-none" 
+                                                min="0" :max="item.quantity" />
+                                            <div class="px-4 py-1.5 font-bold text-text-secondary grow text-right">UNIT</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Rejection Note for Non-HP -->
+                                    <div v-if="form.non_hp_quantities[item.id] < item.quantity"
+                                        class="mt-8 pt-8 border-t border-red-500/20 animate-in slide-in-from-top-4 duration-300">
+                                        <p class="text-[10px] text-red-400 mb-3 flex items-center gap-2 font-black uppercase tracking-[0.3em] px-2">
+                                            <AlertTriangle :size="14" />
+                                            {{ item.quantity - form.non_hp_quantities[item.id] }} unit dikembalikan / ditolak
+                                        </p>
+                                        <textarea v-model="form.non_hp_rejection_notes[item.id]"
+                                            placeholder="Jelaskan alasan pengurangan unit..."
+                                            class="w-full bg-surface-900/50 border border-red-500/20 rounded-[1.5rem] px-6 py-4 text-sm text-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all min-h-[100px] shadow-inner font-medium"></textarea>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Non-HP Items -->
-                    <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
-                        <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2">
-                            <Package :size="18" class="text-orange-500" /> Barang Non-HP
-                        </h3>
-                        <div class="space-y-3">
-                            <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
-                                class="bg-surface-700/50 p-4 rounded-xl border border-surface-600">
-                                <div class="flex justify-between mb-2">
-                                    <p class="font-bold text-sm text-text-primary">
-                                        <span v-if="getBrandName(item)" class="text-blue-500 mr-1">[{{ getBrandName(item) }}]</span>
-                                        {{ item.product?.name }}
-                                    </p>
-                                    <span class="text-xs text-text-secondary whitespace-nowrap ml-2">Qty: {{ item.quantity }}</span>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <label class="text-xs text-text-secondary">Diterima:</label>
-                                    <input type="number" v-model="form.non_hp_quantities[item.id]"
-                                        class="input w-24 text-center py-1 px-2" min="0" :max="item.quantity" />
-                                    <span class="text-xs text-text-secondary">Unit</span>
-                                </div>
-
-                                <!-- Rejection Note for Non-HP -->
-                                <div v-if="form.non_hp_quantities[item.id] < item.quantity"
-                                    class="mt-3 animate-in fade-in duration-300">
-                                    <p
-                                        class="text-[10px] text-red-400 mb-1.5 flex items-center gap-1 font-bold uppercase tracking-wider">
-                                        <AlertTriangle :size="10" />
-                                        {{ item.quantity - form.non_hp_quantities[item.id] }} unit akan dikembalikan
-                                    </p>
-                                    <textarea v-model="form.non_hp_rejection_notes[item.id]"
-                                        placeholder="Alasan penolakan unit..."
-                                        class="w-full bg-surface-800/80 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 transition-all"
-                                        rows="2"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
 
                 <!-- Modal Footer -->
-                <div
-                    class="p-5 sm:p-6 border-t border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 sticky bottom-0 z-20">
+                <div class="px-8 py-8 border-t border-surface-700 bg-surface-800/90 backdrop-blur-xl z-20">
                     <button @click="submitConfirmation()" :disabled="isSubmitting"
-                        class="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-                        <Loader2 v-if="isSubmitting" :size="20" class="animate-spin" />
-                        {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Penerimaan' }}
+                        class="w-full h-16 bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-500/20 text-white font-black text-lg rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
+                        <Loader2 v-if="isSubmitting" :size="24" class="animate-spin" />
+                        {{ isSubmitting ? 'MEMPROSES VERIFIKASI...' : 'TERIMA & INTEGRASIKAN KE STOK' }}
+                        <CheckCircle2 v-if="!isSubmitting" :size="24" />
                     </button>
-                    <button @click="closeModal" :disabled="isSubmitting"
-                        class="w-full mt-3 text-text-secondary hover:text-text-primary text-sm font-medium transition-colors">
-                        Batal
-                    </button>
+                    <p class="text-[10px] font-black text-text-secondary/40 text-center uppercase tracking-[0.4em] mt-5">Verified Transaction Protocol v2.4</p>
                 </div>
             </div>
         </div>
@@ -507,10 +492,6 @@ onMounted(() => {
 <style scoped>
 @reference "../../style.css";
 
-.input {
-    @apply bg-surface-800 border border-surface-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all;
-}
-
 .btn {
     @apply transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
 }
@@ -519,11 +500,20 @@ onMounted(() => {
     @apply bg-surface-700 hover:bg-surface-600 text-text-primary;
 }
 
-.btn-primary {
-    @apply bg-blue-600 hover:bg-blue-500 text-white;
+.card {
+    @apply bg-surface-800 rounded-xl p-5 border border-surface-700;
 }
 
-.card {
-    @apply bg-surface-800 rounded-2xl p-6 border border-surface-700;
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-surface-700 rounded-full border-4 border-transparent bg-clip-padding;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-600;
 }
 </style>

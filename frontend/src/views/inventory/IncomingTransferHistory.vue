@@ -6,7 +6,6 @@ import { useRouter } from "vue-router";
 import {
     Package,
     Loader2,
-    ArrowDownRight,
     Calendar,
     User,
     Smartphone,
@@ -16,10 +15,8 @@ import {
     RefreshCw,
     X,
     AlertTriangle,
-    Warehouse,
     Store,
     ShoppingCart,
-    Truck,
     Search,
     ChevronLeft,
     ChevronRight,
@@ -51,7 +48,8 @@ async function fetchHistory(page = 1) {
         const response = await api.get('/transfers/history', {
             params: {
                 page: page,
-                q: searchQuery.value
+                q: searchQuery.value,
+                type: 'incoming'
             }
         });
         transfers.value = response.data;
@@ -110,30 +108,33 @@ onMounted(() => fetchHistory(1));
 </script>
 
 <template>
-    <div class="space-y-6 animate-in fade-in max-w-6xl mx-auto pb-24">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-text-primary flex items-center gap-3">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-2xl flex items-center justify-center">
-                        <FileText :size="24" class="text-green-500" />
-                    </div>
-                    Riwayat Transfer Masuk
-                </h1>
-                <p class="text-text-secondary mt-1">
-                    Daftar transfer barang yang sudah diterima/dikonfirmasi
-                </p>
+    <div class="space-y-8 animate-in fade-in max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-surface-700/50">
+            <div class="flex items-start gap-5">
+                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-3xl flex items-center justify-center border border-green-500/20 shadow-xl shadow-green-500/5 shrink-0">
+                    <FileText :size="32" class="text-green-500" />
+                </div>
+                <div class="pt-1">
+                    <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                        Riwayat <span class="text-green-500">Transfer</span> Masuk
+                    </h1>
+                    <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
+                        Monitor barang masuk yang telah diterima dan dikonfirmasi dengan detail lengkap unit dan verifikator.
+                    </p>
+                </div>
             </div>
 
-            <div class="flex items-center gap-3">
-                <div class="relative">
-                    <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-                    <input v-model="searchQuery" type="text" placeholder="Cari No. Resi..."
-                        class="bg-surface-800 border border-surface-600 rounded-xl pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 w-64" />
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+                <div class="relative group flex-1 sm:w-80">
+                    <Search :size="20" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-green-500 transition-colors" />
+                    <input v-model="searchQuery" type="text" placeholder="Cari No. Resi atau Pengirim..."
+                        class="w-full bg-surface-800 border border-surface-600 rounded-2xl pl-12 pr-4 py-3.5 text-base text-white focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all placeholder:text-text-secondary/50 shadow-inner" />
                 </div>
                 <button @click="fetchHistory(currentPage)" :disabled="isLoading"
-                    class="btn btn-secondary gap-2 rounded-xl h-10 px-4">
-                    <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
+                    class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-green-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0">
+                    <RefreshCw :size="20" :class="{ 'animate-spin': isLoading }" />
+                    <span class="sm:hidden lg:block">{{ isLoading ? 'Memuat...' : 'Refresh' }}</span>
                 </button>
             </div>
         </div>
@@ -152,70 +153,80 @@ onMounted(() => fetchHistory(1));
                 <FileText :size="32" />
             </div>
             <h2 class="text-lg font-bold text-text-primary mb-1">Belum ada riwayat</h2>
-            <p class="text-text-secondary text-sm">Transfer yang sudah dikonfirmasi akan muncul di sini</p>
+            <p class="text-text-secondary text-sm">Transfer yang sudah diterima akan muncul di sini</p>
         </div>
 
-        <!-- List -->
-        <div v-else class="space-y-4">
-            <div v-for="transfer in transfers.data" :key="transfer.id"
-                class="card hover:bg-surface-750 transition-all cursor-pointer group relative overflow-hidden"
-                @click="openDetail(transfer)">
-
-                <div class="flex items-start justify-between">
-                    <div class="flex items-center gap-4">
-                        <div
-                            class="w-10 h-10 rounded-xl flex items-center justify-center bg-surface-700 text-text-secondary">
-                            <Building2 :size="20" />
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <p class="font-bold text-text-primary group-hover:text-green-400 transition-colors">
-                                    {{ transfer.receipt_id }}
-                                </p>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                                    :class="transfer.status === 'received' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'">
-                                    {{ transfer.status }}
-                                </span>
+        <!-- List Section -->
+        <div v-else class="space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                <div v-for="transfer in transfers.data" :key="transfer.id"
+                    class="card hover:bg-surface-750 transition-all cursor-pointer group relative overflow-hidden border-surface-700/50 hover:border-green-500/30 p-0 shadow-xl hover:shadow-green-500/5 rounded-[2rem]"
+                    @click="openDetail(transfer)">
+                    
+                    <div class="p-6 lg:p-8">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-5">
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-700/50 text-green-500 group-hover:scale-110 transition-transform border border-surface-600/30">
+                                    <Building2 :size="32" />
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <p class="font-black text-xl lg:text-2xl text-white group-hover:text-green-400 transition-colors">
+                                            {{ transfer.receipt_id }}
+                                        </p>
+                                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] shadow-sm border bg-green-500/10 text-green-500 border-green-500/20">
+                                            {{ transfer.status }}
+                                        </span>
+                                    </div>
+                                    <p class="text-base text-text-secondary font-medium">
+                                        Dari: <span class="text-white font-bold">
+                                            {{ transfer.inventory_user?.full_name || transfer.inventory_user?.name || transfer.user?.name || 'Unknown' }}
+                                        </span>
+                                    </p>
+                                </div>
                             </div>
-                            <p class="text-xs text-text-secondary mt-0.5">
-                                Dari: <span class="text-text-primary font-medium">
-                                    {{ transfer.inventory_user?.full_name || transfer.inventory_user?.name ||
-                                        transfer.user?.name || 'Unknown' }}
-                                </span>
-                                <span class="mx-1">•</span>
-                                {{ formatDate(transfer.confirmed_at || transfer.updated_at) }}
-                            </p>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-surface-700/50 flex items-center justify-between">
+                            <div class="flex flex-col gap-1.5">
+                                <p class="text-[10px] text-text-secondary uppercase font-black tracking-widest opacity-60">
+                                    Dikonfirmasi Pada
+                                </p>
+                                <p class="text-sm lg:text-base font-bold text-text-primary flex items-center gap-2">
+                                    <Calendar :size="16" class="text-green-500 opacity-70" />
+                                    {{ formatDate(transfer.confirmed_at || transfer.updated_at) }}
+                                </p>
+                            </div>
+                            <div class="text-right space-y-1">
+                                <p class="text-sm font-black text-white/70 uppercase tracking-tighter">
+                                    {{ (transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }} Unit Barang
+                                </p>
+                                <p class="text-[10px] text-text-secondary uppercase font-black tracking-widest opacity-50">
+                                    Verifikator: {{ transfer.confirmed_by?.name || 'System' }}
+                                </p>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Items Summary -->
-                    <div class="text-right">
-                        <p class="text-sm font-medium text-text-primary">
-                            Total: {{(transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc +
-                                i.quantity, 0) || 0)}} Unit
-                        </p>
-                        <p class="text-xs text-text-secondary">
-                            Diterima oleh: {{ transfer.confirmed_by?.full_name || transfer.confirmed_by?.name ||
-                                'Unknown' }}
-                        </p>
-                    </div>
+                    
+                    <!-- Hover Effect Bar -->
+                    <div class="h-1.5 w-full bg-surface-700 group-hover:bg-green-500 transition-colors opacity-30"></div>
                 </div>
             </div>
 
             <!-- Pagination -->
-            <div class="flex items-center justify-between pt-4 border-t border-surface-700/50">
-                <p class="text-sm text-text-secondary">
-                    Halaman {{ transfers.current_page }} dari {{ transfers.last_page }}
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-10 border-t border-surface-700/50">
+                <p class="text-base text-text-secondary font-medium order-2 sm:order-1">
+                    Menampilkan halaman <span class="text-white font-black">{{ transfers.current_page }}</span> dari <span class="text-white font-black">{{ transfers.last_page }}</span>
                 </p>
-                <div class="flex gap-2">
+                <div class="flex gap-4 order-1 sm:order-2 w-full sm:w-auto">
                     <button @click="fetchHistory(currentPage - 1)" :disabled="currentPage === 1 || isLoading"
-                        class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 text-text-secondary">
-                        <ChevronLeft :size="20" />
+                        class="flex-1 sm:flex-none p-4 rounded-2xl bg-surface-800 border border-surface-700 hover:border-green-500/50 hover:bg-surface-700 disabled:opacity-30 text-text-secondary transition-all active:scale-95">
+                        <ChevronLeft :size="24" />
                     </button>
                     <button @click="fetchHistory(currentPage + 1)"
                         :disabled="currentPage === transfers.last_page || isLoading"
-                        class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 text-text-secondary">
-                        <ChevronRight :size="20" />
+                        class="flex-1 sm:flex-none p-4 rounded-2xl bg-surface-800 border border-surface-700 hover:border-green-500/50 hover:bg-surface-700 disabled:opacity-30 text-text-secondary transition-all active:scale-95">
+                        <ChevronRight :size="24" />
                     </button>
                 </div>
             </div>
@@ -223,132 +234,165 @@ onMounted(() => fetchHistory(1));
 
         <!-- Detail Modal -->
         <div v-if="showDetailModal && selectedTransfer"
-            class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md"
             @click.self="closeDetail">
             <div
-                class="bg-surface-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-surface-700 shadow-2xl animate-in zoom-in duration-200">
+                class="bg-surface-800 rounded-[2.5rem] w-full max-w-4xl max-h-[95vh] flex flex-col border border-surface-700 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 overflow-hidden">
                 <!-- Modal Header -->
                 <div
-                    class="p-6 border-b border-surface-700 flex justify-between items-center bg-surface-800 rounded-t-2xl z-10">
+                    class="px-8 py-8 border-b border-surface-700 flex justify-between items-start bg-surface-800/80 backdrop-blur-xl z-20">
                     <div>
-                        <h2 class="text-xl font-bold text-white">Detail Transfer</h2>
-                        <div class="flex items-center gap-2 text-sm text-text-secondary mt-1">
-                            <span>{{ selectedTransfer.receipt_id }}</span>
-                            <span>•</span>
-                            <span class="capitalize"
-                                :class="selectedTransfer.status === 'received' ? 'text-green-500' : 'text-red-500'">
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2.5 bg-green-500/10 rounded-2xl border border-green-500/20">
+                                <FileText :size="20" class="text-green-500" />
+                            </div>
+                            <h2 class="text-3xl font-black text-white tracking-tight">Detail Transfer Masuk</h2>
+                        </div>
+                        <div class="flex items-center gap-3 text-base text-text-secondary mt-1 ml-0.5">
+                            <span class="font-bold text-white">{{ selectedTransfer.receipt_id }}</span>
+                            <span class="opacity-30">•</span>
+                            <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-green-500 border-green-500/20 bg-green-500/5">
                                 {{ selectedTransfer.status }}
                             </span>
                         </div>
                     </div>
-                    <button @click="closeDetail" class="text-text-secondary hover:text-white transition-colors">
+                    <button @click="closeDetail" class="p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all shadow-lg active:scale-90">
                         <X :size="24" />
                     </button>
                 </div>
 
                 <!-- Modal Body -->
-                <div class="p-6 overflow-y-auto flex-1 space-y-6">
-                    <!-- Info Grid -->
-                    <div class="grid grid-cols-2 gap-4 bg-surface-900/50 p-4 rounded-xl border border-surface-700">
-                        <div>
-                            <p class="text-xs text-text-secondary mb-1">Pengirim</p>
-                            <p class="font-medium text-text-primary">{{ selectedTransfer.inventory_user?.full_name ||
-                                selectedTransfer.inventory_user?.name || selectedTransfer.user?.name || 'Unknown' }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-text-secondary mb-1">Diterima Tanggal</p>
-                            <p class="font-medium text-text-primary">{{ formatDate(selectedTransfer.confirmed_at ||
-                                selectedTransfer.updated_at) }}</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-text-secondary mb-1">Asal</p>
-                            <p class="font-medium text-text-primary">
-                                {{ selectedTransfer.user?.branch?.name || selectedTransfer.user?.warehouse?.name ||
-                                    'Unknown' }}
+                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-gradient-to-b from-surface-800 via-surface-800 to-surface-900/40">
+                    <!-- High Level Info Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-green-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Pengirim</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-green-500/10 rounded-lg"><User :size="20" class="text-green-500" /></div>
+                                {{ selectedTransfer.inventory_user?.full_name || selectedTransfer.inventory_user?.name || selectedTransfer.user?.name || 'Unknown' }}
                             </p>
                         </div>
-                        <div>
-                            <p class="text-xs text-text-secondary mb-1">Total Barang</p>
-                            <p class="font-medium text-text-primary">
-                                {{(selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc,
-                                    i) => acc + i.quantity, 0) || 0)}} Unit
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-green-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Diterima Tanggal</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-green-500/10 rounded-lg"><Calendar :size="20" class="text-green-500" /></div>
+                                {{ formatDate(selectedTransfer.confirmed_at || selectedTransfer.updated_at) }}
                             </p>
                         </div>
-                        <div>
-                            <p class="text-xs text-text-secondary mb-1">Diterima Oleh</p>
-                            <p class="font-medium text-text-primary">
-                                {{ selectedTransfer.confirmed_by?.full_name || selectedTransfer.confirmed_by?.name ||
-                                'Unknown' }}
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-green-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Cabang Asal</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-green-500/10 rounded-lg"><Store :size="20" class="text-green-500" /></div>
+                                {{ selectedTransfer.user?.branch?.name || selectedTransfer.user?.warehouse?.name || 'Unknown' }}
+                            </p>
+                        </div>
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-green-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Total Muatan</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-green-500/10 rounded-lg"><Package :size="20" class="text-green-500" /></div>
+                                {{ (selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }} Unit
+                            </p>
+                        </div>
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-green-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Verifikator</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-green-500/10 rounded-lg"><CheckCircle2 :size="20" class="text-green-500" /></div>
+                                {{ selectedTransfer.confirmed_by?.full_name || selectedTransfer.confirmed_by?.name || 'System' }}
+                            </p>
+                        </div>
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-green-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Status Stok</p>
+                            <p class="text-xl font-black text-green-400 flex items-center gap-3">
+                                <div class="p-2 bg-green-500/10 rounded-lg"><ShoppingCart :size="20" class="text-green-500" /></div>
+                                Terintegrasi
                             </p>
                         </div>
                     </div>
 
-                </div>
-
-                <!-- HP Items (Accepted) -->
-                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')"
-                    class="mt-4">
-                    <h3
-                        class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <Smartphone :size="16" class="text-blue-500" /> Barang HP (Diterima)
-                    </h3>
-                    <div class="space-y-2">
-                        <div v-for="item in selectedTransfer.items.filter(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')"
-                            :key="item.id"
-                            class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
-                            <div>
-                                <p class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-1">
-                                    <span v-if="getBrandName(item)" class="text-blue-500 mr-1">[{{ getBrandName(item) }}]</span>
-                                    <span>{{ item.product?.name }}</span>
-                                </p>
-                                <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
+                    <!-- Items Detail Sections -->
+                    <div class="space-y-12">
+                        <!-- HP Items (Accepted) -->
+                        <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
+                                    <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20 shadow-lg shadow-green-500/5">
+                                        <Smartphone :size="20" class="text-green-500" />
+                                    </div>
+                                    Unit HP <span class="text-green-500/50">(Diterima)</span>
+                                </h3>
+                                <span class="px-4 py-1.5 rounded-full bg-green-500/10 text-green-500 text-[10px] font-black tracking-[0.2em] border border-green-500/20">SUCCESS</span>
                             </div>
-                            <span
-                                class="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded">DITERIMA</span>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="item in selectedTransfer.items.filter(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')"
+                                    :key="item.id"
+                                    class="flex items-center justify-between p-5 rounded-[1.5rem] border border-surface-700 bg-surface-800/80 shadow-md hover:border-green-500/30 transition-all group">
+                                    <div class="space-y-1.5 text-left">
+                                        <p class="font-black text-lg text-white group-hover:text-green-400 transition-colors">
+                                            <span v-if="getBrandName(item)" class="text-green-500 opacity-80 mr-1">[{{ getBrandName(item) }}]</span>
+                                            {{ item.product?.name }}
+                                        </p>
+                                        <p class="text-xs font-mono font-bold text-text-secondary tracking-widest pt-1">{{ item.imei }}</p>
+                                    </div>
+                                    <CheckCircle2 :size="24" class="text-green-500 shrink-0 opacity-40" />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- REJECTED ITEMS (HP) -->
-                <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.status === 'in_transit' || i.pivot?.status === 'rejected')"
-                    class="mt-4">
-                    <h3 class="font-bold text-red-500 mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <AlertTriangle :size="16" /> Barang Ditolak / Belum Diterima
-                    </h3>
-                    <div class="space-y-2">
-                        <div v-for="item in selectedTransfer.items.filter(i => i.status === 'in_transit' || i.pivot?.status === 'rejected')"
-                            :key="item.id"
-                            class="flex items-center justify-between p-3 rounded-xl border border-red-500/30 bg-red-500/10">
-                            <div>
-                                <p class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-1">
-                                    <span v-if="getBrandName(item)" class="text-red-400 mr-1">[{{ getBrandName(item) }}]</span>
-                                    <span>{{ item.product?.name }}</span>
-                                </p>
-                                <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
+                        <!-- HP Items (Rejected) -->
+                        <div v-if="selectedTransfer.items && selectedTransfer.items.some(i => i.pivot?.status === 'rejected')">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
+                                    <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
+                                        <AlertTriangle :size="20" class="text-red-500" />
+                                    </div>
+                                    Unit HP <span class="text-red-500/50">(Ditolak)</span>
+                                </h3>
+                                <span class="px-4 py-1.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black tracking-[0.2em] border border-red-500/20">REJECTED</span>
                             </div>
-                            <span class="text-xs font-bold text-red-500">DITOLAK</span>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="item in selectedTransfer.items.filter(i => i.pivot?.status === 'rejected')"
+                                    :key="item.id"
+                                    class="flex items-center justify-between p-5 rounded-[1.5rem] border border-red-500/20 bg-red-500/5">
+                                    <div class="space-y-1.5 text-left">
+                                        <p class="font-black text-lg text-white/70">
+                                            <span v-if="getBrandName(item)" class="text-red-500 opacity-60 mr-1">[{{ getBrandName(item) }}]</span>
+                                            {{ item.product?.name }}
+                                        </p>
+                                        <p class="text-xs font-mono font-bold text-text-secondary tracking-widest leading-none">{{ item.imei }}</p>
+                                    </div>
+                                    <X :size="24" class="text-red-500" />
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Non-HP Items -->
-                <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
-                    <h3
-                        class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <Package :size="16" class="text-orange-500" /> Barang Non-HP
-                    </h3>
-                    <div class="space-y-2">
-                        <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
-                            class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
-                            <div>
-                                <p class="font-bold text-sm text-text-primary">
-                                    <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
-                                    {{ item.product_name || item.product?.name }}
-                                </p>
+                        <!-- Non-HP Items Section -->
+                        <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
+                                    <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                                        <Package :size="20" class="text-orange-500" />
+                                    </div>
+                                    Barang Aksesoris <span class="text-orange-500/50">& Non-HP</span>
+                                </h3>
                             </div>
-                            <div class="text-right">
-                                <span class="text-sm font-bold text-text-primary">{{ item.quantity }} Unit</span>
-                                <p class="text-xs text-text-secondary">Diterima</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
+                                    class="flex items-center justify-between p-6 rounded-[2rem] border border-surface-700 bg-surface-800 shadow-lg hover:border-orange-500/30 transition-all">
+                                    <div class="text-left">
+                                        <p class="font-black text-lg text-white">
+                                            <span v-if="getBrandName(item)" class="text-orange-500 opacity-80 mr-1">[{{ getBrandName(item) }}]</span>
+                                            {{ item.product_name || item.product?.name }}
+                                        </p>
+                                    </div>
+                                    <div class="text-right flex flex-col items-end gap-1">
+                                        <span class="text-xl font-black text-white px-4 py-1 bg-surface-700 rounded-xl border border-surface-600 shadow-inner">
+                                            {{ item.quantity }} <span class="text-xs font-bold opacity-40">UNIT</span>
+                                        </span>
+                                        <p class="text-[10px] font-black tracking-widest uppercase text-green-500">
+                                            RECEIVED
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -361,10 +405,6 @@ onMounted(() => fetchHistory(1));
 <style scoped>
 @reference "../../style.css";
 
-.input {
-    @apply bg-surface-800 border border-surface-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all;
-}
-
 .btn {
     @apply transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
 }
@@ -375,5 +415,18 @@ onMounted(() => fetchHistory(1));
 
 .card {
     @apply bg-surface-800 rounded-xl p-5 border border-surface-700;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-surface-600 rounded-full;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-500;
 }
 </style>

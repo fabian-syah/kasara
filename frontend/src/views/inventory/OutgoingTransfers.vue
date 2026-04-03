@@ -1,6 +1,7 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import api from "../../api/axios";
+import { useToast } from "../../composables/useToast";
 import {
     Package,
     Loader2,
@@ -13,10 +14,13 @@ import {
     RefreshCw,
     X,
     ShoppingCart,
-    Truck,
-    Warehouse,
+    Search,
+    ChevronLeft,
+    ChevronRight,
     Store
 } from "lucide-vue-next";
+
+const toast = useToast();
 
 // State
 const isLoading = ref(true);
@@ -30,12 +34,13 @@ async function fetchOutgoing() {
         transfers.value = response.data.data || response.data || [];
     } catch (e) {
         console.error("Failed to fetch outgoing transfers", e);
+        toast.error("Gagal memuat data OTW");
     } finally {
         isLoading.value = false;
     }
 }
 
-// Modal State (for detail view only)
+// Detail Modal State
 const showModal = ref(false);
 const selectedTransfer = ref(null);
 
@@ -101,105 +106,95 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 animate-in fade-in max-w-6xl mx-auto pb-24">
-        <!-- Header -->
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-text-primary flex items-center gap-3">
-                    <div class="w-12 h-12 bg-purple-500/20 rounded-2xl flex items-center justify-center">
-                        <ArrowUpRight :size="24" class="text-purple-500" />
-                    </div>
-                    Menunggu Konfirmasi (OTW)
-                </h1>
-                <p class="text-text-secondary mt-1">
-                    Daftar barang yang dikirim keluar dan belum dikonfirmasi oleh penerima
-                </p>
+    <div class="space-y-8 animate-in fade-in max-w-7xl mx-auto pb-24 px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-surface-700/50">
+            <div class="flex items-start gap-5">
+                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-3xl flex items-center justify-center border border-purple-500/20 shadow-xl shadow-purple-500/5 shrink-0">
+                    <ArrowUpRight :size="32" class="text-purple-500" />
+                </div>
+                <div class="pt-1">
+                    <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                        Menunggu <span class="text-purple-500">Konfirmasi</span> (OTW)
+                    </h1>
+                    <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
+                        Daftar barang yang telah Anda kirim dan saat ini sedang menunggu verifikasi oleh pihak penerima.
+                    </p>
+                </div>
             </div>
-            <button @click="fetchOutgoing" :disabled="isLoading" class="btn btn-secondary gap-2 rounded-xl h-10 px-4">
-                <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
-                Refresh
+
+            <button @click="fetchOutgoing" :disabled="isLoading"
+                class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-purple-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0 self-start lg:self-end">
+                <RefreshCw :size="20" :class="{ 'animate-spin': isLoading }" />
+                <span>{{ isLoading ? 'Memuat...' : 'Refresh Data' }}</span>
             </button>
         </div>
 
         <!-- Loading State -->
         <div v-if="isLoading" class="text-center py-20 text-text-secondary">
             <Loader2 :size="40" class="animate-spin mx-auto mb-4" />
-            <p>Memuat data transfer keluar...</p>
+            <p>Memuat transfer keluar...</p>
         </div>
 
         <!-- Empty State -->
-        <div v-else-if="transfers.length === 0" class="text-center py-20">
-            <div class="w-24 h-24 mx-auto bg-surface-700/50 rounded-3xl flex items-center justify-center mb-6">
-                <Clock :size="48" class="text-text-secondary" />
+        <div v-else-if="transfers.length === 0" class="text-center py-20 bg-surface-800 rounded-3xl border border-surface-700">
+            <div class="w-24 h-24 mx-auto bg-purple-500/10 rounded-full flex items-center justify-center mb-6">
+                <Clock :size="48" class="text-purple-500/50" />
             </div>
-            <h2 class="text-xl font-bold text-text-primary mb-2">Tidak Ada Transfer Menunggu</h2>
-            <p class="text-text-secondary">Semua barang yang dikirim sudah diterima oleh tujuan.</p>
+            <h2 class="text-2xl font-black text-text-primary mb-2">Semua Sudah Diterima</h2>
+            <p class="text-text-secondary max-w-xs mx-auto">Tidak ada pengiriman OTW yang tertunda untuk saat ini.</p>
         </div>
 
-        <!-- Transfer List -->
-        <div v-else class="space-y-4">
-            <p class="text-text-secondary text-sm">
-                <Clock :size="14" class="inline mr-1" />
-                {{ transfers.length }} transfer belum dikonfirmasi oleh penerima
-            </p>
+        <!-- Transfer Grid -->
+        <div v-else class="space-y-6">
+            <div class="flex items-center gap-3 px-2">
+                <Clock :size="18" class="text-purple-500" />
+                <p class="text-text-secondary font-bold text-sm uppercase tracking-widest">
+                    {{ transfers.length }} Pengiriman Sedang Berlangsung
+                </p>
+            </div>
 
-            <div v-for="transfer in transfers" :key="transfer.id"
-                class="card border-l-4 border-l-purple-500 hover:bg-surface-700/30 transition-all cursor-pointer group"
-                @click="openDetailModal(transfer)">
-                <!-- Header -->
-                <div class="flex items-start justify-between mb-4">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-purple-500/20 text-purple-500">
-                            <Building2 :size="24" />
-                        </div>
-                        <div>
-                            <p class="font-bold text-text-primary text-lg group-hover:text-purple-400 transition-colors">
-                                {{ transfer.receipt_id }}
-                            </p>
-                            <p class="text-sm text-text-secondary flex items-center gap-1">
-                                <User :size="12" />
-                                Tujuan: <span class="text-text-primary font-medium">{{ transfer.destination?.name || transfer.receiver_name || 'Unknown' }}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="flex items-center gap-2 text-text-secondary text-sm justify-end">
-                            <Calendar :size="14" />
-                            {{ formatDate(transfer.created_at) }}
-                        </div>
-                        <span class="inline-block mt-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-500 text-xs font-bold uppercase tracking-wider">
-                            Sedang Dikirim
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Items Preview -->
-                <div class="sm:pl-[64px] mt-2 sm:mt-0">
-                    <div class="flex gap-8">
-                        <div v-if="transfer.items && transfer.items.length > 0">
-                            <p class="text-[10px] uppercase font-black text-text-secondary mb-2 tracking-widest">Barang HP ({{ transfer.items.length }})</p>
-                            <div class="flex flex-wrap gap-2">
-                                <div v-for="item in transfer.items.slice(0, 5)" :key="item.id" 
-                                     class="flex items-center gap-2 bg-surface-700/50 border border-surface-600 px-2 py-1 rounded-lg">
-                                    <Smartphone :size="10" class="text-purple-400" />
-                                    <span v-if="getBrandName(item)" class="text-[10px] text-purple-400 mr-1">[{{ getBrandName(item) }}]</span>
-                                    <span class="text-[11px] text-text-primary font-mono">{{ item.imei.slice(-4) }}</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+                <div v-for="transfer in transfers" :key="transfer.id"
+                    class="card hover:bg-surface-750 transition-all cursor-pointer group relative overflow-hidden border-l-4 border-l-purple-500 p-0 shadow-xl hover:shadow-purple-500/5 rounded-[2rem]"
+                    @click="openDetailModal(transfer)">
+                    
+                    <div class="p-6 lg:p-8">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-5">
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-700/50 text-purple-500 group-hover:scale-110 transition-transform border border-surface-600/30">
+                                    <Building2 :size="32" />
                                 </div>
-                                <span v-if="transfer.items.length > 5" class="text-[11px] text-text-secondary self-center font-bold px-2">
-                                    +{{ transfer.items.length - 5 }} lainnya
-                                </span>
+                                <div>
+                                    <p class="font-black text-xl lg:text-2xl text-white group-hover:text-purple-400 transition-colors mb-1">
+                                        {{ transfer.receipt_id }}
+                                    </p>
+                                    <p class="text-base text-text-secondary font-medium flex items-center gap-2">
+                                        <Store :size="16" class="text-purple-500/70" />
+                                        Tujuan: <span class="text-white font-bold">{{ transfer.destination?.name || transfer.receiver_name || 'Unknown' }}</span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div v-if="transfer.non_hp_items && transfer.non_hp_items.length > 0">
-                            <p class="text-[10px] uppercase font-black text-text-secondary mb-2 tracking-widest">Aksesoris/Non-HP ({{ transfer.non_hp_items.length }})</p>
-                            <div class="flex flex-wrap gap-2">
-                                <div v-for="item in transfer.non_hp_items.slice(0, 3)" :key="item.id"
-                                     class="flex items-center gap-2 bg-surface-700/50 border border-surface-600 px-2 py-1 rounded-lg">
-                                    <Package :size="10" class="text-orange-400" />
-                                    <span v-if="getBrandName(item)" class="text-[10px] text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
-                                    <span class="text-[11px] text-text-primary">{{ item.product_name || item.product?.name }}</span>
-                                    <span class="text-[10px] bg-orange-500/20 text-orange-400 px-1 rounded">{{ item.quantity }}x</span>
-                                </div>
+
+                        <div class="mt-8 pt-6 border-t border-surface-700/50 flex items-center justify-between">
+                            <div class="flex flex-col gap-1.5">
+                                <p class="text-[10px] text-text-secondary uppercase font-black tracking-widest opacity-60">
+                                    Tanggal Kirim
+                                </p>
+                                <p class="text-sm lg:text-base font-bold text-text-primary flex items-center gap-2">
+                                    <Calendar :size="16" class="text-purple-500 opacity-70" />
+                                    {{ formatDate(transfer.created_at) }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl lg:text-2xl font-black text-white">
+                                    {{ (transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }}
+                                    <span class="text-xs font-bold text-text-secondary uppercase ml-1">Unit</span>
+                                </p>
+                                <span class="px-3 py-1 rounded-lg bg-purple-500/10 text-purple-500 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm border border-purple-500/20">
+                                    SEDANG DIKIRIM
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -209,130 +204,122 @@ onMounted(() => {
 
         <!-- Detail Modal (Read Only) -->
         <div v-if="showModal && selectedTransfer"
-            class="fixed inset-0 bg-black/60 dark:bg-black/90 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300">
+            class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md"
+            @click.self="closeModal">
             <div
-                class="bg-white dark:bg-surface-800 w-full max-w-2xl h-[95vh] sm:h-auto sm:max-h-[85vh] flex flex-col border-t sm:border border-surface-200 dark:border-surface-700 rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom sm:slide-in-from-bottom-0 sm:zoom-in duration-300 overflow-hidden">
-                
+                class="bg-surface-800 rounded-[2.5rem] w-full max-w-4xl max-h-[95vh] flex flex-col border border-surface-700 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 overflow-hidden">
                 <!-- Modal Header -->
-                <div class="p-5 sm:p-6 border-b border-surface-200 dark:border-surface-700 flex justify-between items-center bg-white dark:bg-surface-800 z-20 sticky top-0">
+                <div
+                    class="px-8 py-8 border-b border-surface-700 flex justify-between items-start bg-surface-800/80 backdrop-blur-xl z-20">
                     <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-500 text-[10px] font-bold uppercase">OTW</span>
-                            <span class="text-text-secondary text-sm font-medium">{{ selectedTransfer.receipt_id }}</span>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="p-2.5 bg-purple-500/10 rounded-2xl border border-purple-500/20">
+                                <ArrowUpRight :size="20" class="text-purple-500" />
+                            </div>
+                            <h2 class="text-3xl font-black text-white tracking-tight">Detail Pengiriman</h2>
                         </div>
-                        <h2 class="text-xl sm:text-2xl font-bold text-text-primary">Detail Pengiriman</h2>
+                        <div class="flex items-center gap-3 text-base text-text-secondary mt-1 ml-0.5">
+                            <span class="font-bold text-white">{{ selectedTransfer.receipt_id }}</span>
+                            <span class="opacity-30">•</span>
+                            <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-purple-500 border-purple-500/20 bg-purple-500/5">
+                                Menunggu Penerimaan
+                            </span>
+                        </div>
                     </div>
-                    <button @click="closeModal"
-                        class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-100 dark:bg-white/10 text-text-secondary hover:text-text-primary transition-all font-bold">
+                    <button @click="closeModal" class="p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all shadow-lg active:scale-90">
                         <X :size="24" />
                     </button>
                 </div>
 
                 <!-- Modal Body -->
-                <div class="p-6 overflow-y-auto flex-1 space-y-8 bg-surface-900/10">
-                    
-                    <!-- Info Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div class="bg-surface-800/50 p-4 rounded-2xl border border-surface-700">
-                            <p class="text-[10px] uppercase font-black text-text-secondary mb-3 tracking-widest">Informasi Pengiriman</p>
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                        <User :size="16" />
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] text-text-secondary">Pengirim</p>
-                                        <p class="text-sm font-bold text-text-primary">{{ selectedTransfer.user?.name || 'Unknown' }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500">
-                                        <Building2 :size="16" />
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] text-text-secondary">Tujuan</p>
-                                        <p class="text-sm font-bold text-text-primary">{{ selectedTransfer.destination?.name || selectedTransfer.receiver_name || 'Unknown' }}</p>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-gradient-to-b from-surface-800 via-surface-800 to-surface-900/40">
+                    <!-- High Level Info Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Dikirim Oleh</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-purple-500/10 rounded-lg"><User :size="20" class="text-purple-500" /></div>
+                                {{ selectedTransfer.user?.name || 'Unknown' }}
+                            </p>
                         </div>
-
-                        <div class="bg-surface-800/50 p-4 rounded-2xl border border-surface-700">
-                            <p class="text-[10px] uppercase font-black text-text-secondary mb-3 tracking-widest">Status & Waktu</p>
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
-                                        <Calendar :size="16" />
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] text-text-secondary">Waktu Kirim</p>
-                                        <p class="text-sm font-bold text-text-primary">{{ formatDate(selectedTransfer.created_at) }}</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                                        <Clock :size="16" />
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] text-text-secondary">Status</p>
-                                        <p class="text-sm font-bold text-amber-500 uppercase tracking-tighter">BELUM DIKONFIRMASI</p>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Waktu Kirim</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-purple-500/10 rounded-lg"><Calendar :size="20" class="text-purple-500" /></div>
+                                {{ formatDate(selectedTransfer.created_at) }}
+                            </p>
+                        </div>
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
+                            <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Cabang Tujuan</p>
+                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                                <div class="p-2 bg-purple-500/10 rounded-lg"><Store :size="20" class="text-purple-500" /></div>
+                                {{ selectedTransfer.destination?.name || selectedTransfer.receiver_name || 'Unknown' }}
+                            </p>
                         </div>
                     </div>
 
-                    <!-- Items List -->
-                    <div class="space-y-4">
+                    <!-- Items Detail Sections -->
+                    <div class="space-y-12">
                         <!-- HP Items -->
                         <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
-                            <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                                <Smartphone :size="16" class="text-purple-500" /> Daftar HP
+                            <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
+                                <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                                    <Smartphone :size="20" class="text-purple-500" />
+                                </div>
+                                Daftar Barang HP <span class="text-text-secondary opacity-40 ml-2">({{ selectedTransfer.items.length }})</span>
                             </h3>
-                            <div class="grid grid-cols-1 gap-2">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.items" :key="item.id"
-                                    class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/30">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded flex items-center justify-center bg-surface-700 text-text-secondary">
-                                            <Smartphone :size="14" />
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-xs text-text-primary uppercase flex items-center flex-wrap gap-1">
-                                                <span v-if="getBrandName(item)" class="text-purple-400">[{{ getBrandName(item) }}]</span>
-                                                <span>{{ item.product?.name }}</span>
-                                                <span v-if="item.storage || item.ram" class="text-purple-400 ml-1">
-                                                    {{ formatCapacity(item.ram, item.storage) }}
-                                                </span>
-                                            </p>
-                                            <p class="text-[10px] font-mono text-text-secondary mt-0.5 tracking-tighter">{{ item.imei }}</p>
+                                    class="p-6 rounded-[2rem] border border-surface-700 bg-surface-800/80 shadow-md hover:border-purple-500/30 transition-all group">
+                                    <div class="space-y-2 text-left">
+                                        <p class="font-black text-lg text-white group-hover:text-purple-400 transition-colors">
+                                            <span v-if="getBrandName(item)" class="text-purple-500/70 mr-1">[{{ getBrandName(item) }}]</span>
+                                            {{ item.product?.name }}
+                                        </p>
+                                        <p class="text-xs font-mono font-black text-text-secondary tracking-[0.2em] pt-1 opacity-70">
+                                            {{ item.imei }}
+                                        </p>
+                                        <div class="flex items-center gap-2 pt-2">
+                                            <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 text-[10px] font-black border border-purple-500/10 uppercase">
+                                                {{ item.ram }}/{{ item.storage }}
+                                            </span>
+                                            <span v-if="item.condition" class="px-2 py-0.5 rounded-md bg-surface-700 text-text-secondary text-[10px] font-black border border-surface-600 uppercase tracking-widest">
+                                                {{ formatCondition(item.condition) }}
+                                            </span>
                                         </div>
                                     </div>
-                                    <span class="text-[10px] px-2 py-0.5 bg-surface-700 rounded text-text-secondary uppercase">
-                                        {{ formatCondition(item.condition) }}
-                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Non-HP Items -->
+                        <!-- Non-HP Items Section -->
                         <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
-                            <h3 class="font-bold text-text-primary mb-3 flex items-center gap-2 text-sm uppercase tracking-wider">
-                                <Package :size="16" class="text-orange-500" /> Daftar Aksesoris/Lainnya
+                            <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
+                                <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                                    <Package :size="20" class="text-orange-500" />
+                                </div>
+                                Barang Aksesoris <span class="text-text-secondary opacity-40 ml-2">({{ selectedTransfer.non_hp_items.length }})</span>
                             </h3>
-                            <div class="grid grid-cols-1 gap-2">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
-                                    class="bg-surface-800/30 p-3 rounded-xl border border-surface-700 flex justify-between items-center">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded flex items-center justify-center bg-surface-700 text-orange-400">
-                                            <Package :size="14" />
+                                    class="p-8 rounded-[2.5rem] border border-surface-700 bg-surface-800 shadow-xl hover:border-orange-500/30 transition-all group">
+                                    <div class="flex justify-between items-center gap-4">
+                                        <div class="flex items-center gap-5">
+                                            <div class="w-14 h-14 bg-surface-700/50 rounded-2xl flex items-center justify-center border border-surface-600/30 text-orange-500">
+                                                <Package :size="24" />
+                                            </div>
+                                            <div>
+                                                <p class="font-black text-xl text-white leading-tight group-hover:text-orange-400 transition-colors">
+                                                    <span v-if="getBrandName(item)" class="text-orange-500/70 mr-1">[{{ getBrandName(item) }}]</span>
+                                                    {{ item.product_name || item.product?.name }}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <p class="font-bold text-xs text-text-primary">
-                                            <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
-                                            {{ item.product_name || item.product?.name }}
-                                        </p>
-                                    </div>
-                                    <div class="text-right">
-                                        <p class="text-xs font-bold text-orange-400">{{ item.quantity }} Unit</p>
+                                        <div class="px-5 py-2.5 bg-surface-900 rounded-2xl border border-surface-700 shadow-inner shrink-0">
+                                            <p class="text-2xl font-black text-white">{{ item.quantity }} <span class="text-[10px] font-bold text-text-secondary uppercase block leading-none">Unit</span></p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -340,21 +327,24 @@ onMounted(() => {
                     </div>
 
                     <!-- Transfer Notes -->
-                    <div v-if="selectedTransfer.transfer_notes" class="bg-amber-500/5 border border-amber-500/20 p-4 rounded-2xl">
-                        <p class="text-[10px] uppercase font-black text-amber-500 mb-2 tracking-widest">Catatan Pengiriman</p>
-                        <p class="text-sm text-text-primary italic">"{{ selectedTransfer.transfer_notes }}"</p>
+                    <div v-if="selectedTransfer.transfer_notes" class="bg-amber-500/5 border border-amber-500/20 p-8 rounded-[2.5rem] backdrop-blur-sm">
+                        <div class="flex items-center gap-3 mb-4">
+                            <Clock :size="20" class="text-amber-500/50" />
+                            <p class="text-[10px] uppercase font-black text-amber-500 tracking-[0.4em]">Catatan Pengiriman</p>
+                        </div>
+                        <p class="text-lg font-medium text-white/90 italic leading-relaxed pl-8">"{{ selectedTransfer.transfer_notes }}"</p>
                     </div>
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="p-5 border-t border-surface-700 bg-surface-800 text-center">
-                    <p class="text-xs text-text-secondary mb-4 italic flex items-center justify-center gap-2">
-                        <Clock :size="12" />
-                        Silakan hubungi cabang tujuan untuk mempercepat konfirmasi.
+                <div class="px-8 py-8 border-t border-surface-700 bg-surface-800/90 backdrop-blur-xl z-20 text-center">
+                    <p class="text-sm text-text-secondary/60 mb-6 font-medium italic flex items-center justify-center gap-3 bg-surface-900/50 py-3 rounded-full border border-surface-700/30">
+                        <Clock :size="16" class="text-amber-500/60 transition-pulse animate-pulse" />
+                        Silakan hubungi cabang tujuan untuk mempercepat konfirmasi penerimaan.
                     </p>
                     <button @click="closeModal"
-                        class="w-full h-11 bg-surface-700 hover:bg-surface-600 text-text-primary font-bold rounded-xl transition-all">
-                        Tutup
+                        class="w-full h-16 bg-surface-700 hover:bg-surface-600 text-white font-black text-lg rounded-2xl active:scale-[0.98] transition-all border border-surface-600 shadow-xl">
+                        TUTUP DETAIL
                     </button>
                 </div>
             </div>
@@ -366,14 +356,27 @@ onMounted(() => {
 @reference "../../style.css";
 
 .btn {
-    @apply transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-bold;
+    @apply transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
 }
 
 .btn-secondary {
-    @apply bg-surface-700 hover:bg-surface-600 text-text-primary border border-surface-600;
+    @apply bg-surface-700 hover:bg-surface-600 text-text-primary;
 }
 
 .card {
-    @apply bg-surface-800 rounded-2xl p-6 border border-surface-700 shadow-sm;
+    @apply bg-surface-800 rounded-xl p-5 border border-surface-700;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-surface-700 rounded-full border-4 border-transparent bg-clip-padding;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-600;
 }
 </style>
