@@ -25,6 +25,7 @@ import {
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
+const storageBaseUrl = computed(() => authStore.storageBaseUrl);
 const dashboardRole = ref('general');
 const recentTypes = ref([]);
 const recentPrices = ref([]);
