@@ -119,9 +119,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/downgrades', [\App\Http\Controllers\DowngradeController::class, 'store']);
 
 
-    // Transfer confirmation (Pindah Cabang)
+    // Incoming Transfers (Pindah Cabang)
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);
-    Route::get('/transfers/history', [\App\Http\Controllers\StockOutController::class, 'historyIncoming']); // NEW
+    Route::get('/transfers/history', [\App\Http\Controllers\StockOutController::class, 'historyIncoming']);
+    Route::get('/transfers/outgoing', [\App\Http\Controllers\StockOutController::class, 'indexOutgoing']); // NEW
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
 
     // Failed Transfers (Gagal Kirim/OTW)

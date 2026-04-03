@@ -243,6 +243,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/outgoing-transfers',
+                name: 'outgoing_transfers',
+                component: () => import('../views/inventory/OutgoingTransfers.vue'),
+                meta: {
+                    title: 'Menunggu Konfirmasi (OTW)',
+                    menu: 'inventory',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'retur-items',
                 name: 'ReturItems',
                 component: () => import('../views/inventory/ReturItems.vue'),

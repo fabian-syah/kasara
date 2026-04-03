@@ -1026,6 +1026,53 @@ class StockOutController extends Controller
         return response()->json(['data' => $transfers]);
     }
 
+    // List outgoing transfers sent FROM current user's location
+    public function indexOutgoing()
+    {
+        $user = Auth::user();
+        if (!$user)
+            return response()->json(['data' => []]);
+
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+            ->where('category', 'pindah_cabang')
+            ->where('status', 'pending');
+
+        // Filter by Source (Created by user in the same location)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            $query->whereHas('user', function ($q) use ($user) {
+                if ($user->branch_id) {
+                    $q->where('branch_id', $user->branch_id);
+                } elseif ($user->warehouse_id) {
+                    $q->where('warehouse_id', $user->warehouse_id);
+                } elseif ($user->online_shop_id) {
+                    $q->where('online_shop_id', $user->online_shop_id);
+                } else {
+                    $q->where('id', $user->id);
+                }
+            });
+        }
+
+        $transfers = $query->latest()->get();
+
+        // Enrich Non-HP Items
+        foreach ($transfers as $transfer) {
+            if ($transfer->non_hp_items) {
+                $nonHpItems = is_string($transfer->non_hp_items) ? json_decode($transfer->non_hp_items, true) : $transfer->non_hp_items;
+                $pIds = array_column($nonHpItems, 'product_id');
+                if (!empty($pIds)) {
+                    $products = Product::whereIn('id', $pIds)->pluck('name', 'id');
+                    foreach ($nonHpItems as &$item) {
+                        $item['product_name'] = $products[$item['product_id']] ?? 'Unknown';
+                    }
+                }
+                $transfer->non_hp_items = $nonHpItems;
+            }
+        }
+
+        return response()->json(['data' => $transfers]);
+    }
+
     // Confirm Incoming Transfer
     public function confirm(Request $request, $id)
     {
