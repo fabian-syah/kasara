@@ -180,6 +180,21 @@ async function fetchDashboardData() {
       brandSales.value = response.data.brandSales || [];
       typeSales.value = response.data.typeSales || [];
       csPerformance.value = response.data.csPerformance || [];
+
+      // Unified ranking fallback for online_shop/toko_online
+      if (dashboardRole.value === 'online_shop' || dashboardRole.value === 'toko_online') {
+        const hasNoUnits = !ranking.value.leaderboard || 
+                          ranking.value.leaderboard.length === 0 || 
+                          ranking.value.leaderboard.every(u => !(u.units || u.total_sales || u.count || u.sold || (u.hp_count + (u.non_hp_count || 0))));
+        
+        if (hasNoUnits && csPerformance.value.length > 0) {
+          ranking.value.leaderboard = csPerformance.value.map((cs, idx) => ({
+            ...cs,
+            units: cs.total_sales || (cs.hp_count + (cs.non_hp_count || 0)),
+            rank: idx + 1
+          })).sort((a, b) => (b.units || 0) - (a.units || 0));
+        }
+      }
     } else {
       dashboardRole.value = 'general';
       // Logic for other roles or keep static
@@ -414,7 +429,7 @@ const getColorClasses = (color) => {
                   </div>
                 </td>
                 <td class="py-3 text-center">
-                  <span class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? 0 }}</span>
+                  <span class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</span>
                   <span class="text-[10px] text-text-secondary ml-1">Unit</span>
                 </td>
                 <td class="py-3 text-right">
@@ -451,7 +466,7 @@ const getColorClasses = (color) => {
               </div>
             </div>
             <div class="text-right shrink-0">
-              <p class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? 0 }}</p>
+              <p class="font-bold text-text-primary">{{ user.units ?? user.total_sales ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</p>
               <p class="text-[10px] text-text-secondary">Unit</p>
             </div>
           </div>
