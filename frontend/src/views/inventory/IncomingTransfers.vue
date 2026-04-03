@@ -205,11 +205,16 @@ function formatCondition(condition) {
     return map[condition.toLowerCase()] || condition;
 }
 
-function formatStorage(storage) {
-    if (!storage) return '';
-    // Ensure GB or TB suffix if missing and it's a number-like
-    if (/^\d+$/.test(storage)) return storage + 'GB';
-    return storage;
+function formatCapacity(ram, storage) {
+    if (!ram && !storage) return '';
+    if (ram && storage) {
+        const r = /^\d+$/.test(ram) ? ram : ram.replace(/GB/gi, '');
+        const s = /^\d+$/.test(storage) ? storage : storage.replace(/GB/gi, '');
+        return `${r}/${s}GB`;
+    }
+    const val = storage || ram;
+    if (/^\d+$/.test(val)) return val + 'GB';
+    return val;
 }
 
 onMounted(() => {
@@ -383,7 +388,7 @@ onMounted(() => {
                                         <p class="font-bold text-sm text-text-primary uppercase">
                                             <span v-if="item.product?.brand_relation?.name" class="mr-1">{{ item.product.brand_relation.name }}</span>
                                             {{ item.product?.name }} 
-                                            <span v-if="item.storage" class="text-blue-500">• {{ formatStorage(item.storage) }}</span>
+                                            <span v-if="item.storage || item.ram" class="text-blue-500">• {{ formatCapacity(item.ram, item.storage) }}</span>
                                             <span v-if="item.condition" class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">
                                                 {{ formatCondition(item.condition) }}
                                             </span>
