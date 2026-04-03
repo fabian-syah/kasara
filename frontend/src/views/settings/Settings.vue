@@ -77,31 +77,42 @@ async function handlePhotoChange(event) {
         return;
     }
 
+    const hasExistingPhoto = !!user.value.photo;
+    if (hasExistingPhoto) {
+        if (!confirm("Anda sudah memiliki foto profil. Penggantian foto memerlukan persetujuan dari Audit/Super Admin. Lanjutkan?")) {
+            event.target.value = '';
+            return;
+        }
+    }
+
     // Immediate Upload
     isUploadingPhoto.value = true;
     const formData = new FormData();
     formData.append("photo", file);
-    formData.append("_method", "PUT"); // Ensure method spoofing if needed, though updateProfile handles it
+    formData.append("_method", "PUT"); 
 
     try {
-        // Use the correct API method: updateProfile
         const res = await usersApi.updateProfile(user.value.id, formData);
 
-        toast.success("Foto profil berhasil diperbarui!");
+        if (hasExistingPhoto) {
+            toast.success("Permintaan pembaruan foto dikirim! Menunggu persetujuan Audit.");
+        } else {
+            toast.success("Foto profil berhasil diperbarui!");
+        }
 
-        // Update local state
-        user.value.photo = res.data.data.photo;
-        photoPreview.value = null; // Clear preview to use actual URL
-
-        // Update Auth Store (persists to localStorage)
-        authStore.updateUserData(res.data.data);
+        // Refresh user data from server to get pending_photo status
+        const freshRes = await usersApi.get(user.value.id);
+        user.value = freshRes.data.data;
+        
+        // Update Auth Store
+        authStore.updateUserData(user.value);
+        photoPreview.value = null;
 
     } catch (error) {
         console.error("Upload photo error", error);
-        toast.error("Gagal mengupload foto.");
+        toast.error(error.response?.data?.message || "Gagal mengupload foto.");
     } finally {
         isUploadingPhoto.value = false;
-        // Reset input
         event.target.value = '';
     }
 }
@@ -253,18 +264,34 @@ async function handlePinSuccess(pin) {
                     <div class="relative group">
                         <div
                             class="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-200 dark:border-surface-700 shadow-xl relative">
+                            <!-- Uploading Loader -->
                             <div v-if="isUploadingPhoto"
                                 class="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                                 <Loader2 class="animate-spin text-white" :size="32" />
                             </div>
-                            <img :src="user.photo
-                                ? (user.photo.startsWith('http') ? user.photo : `${authStore.storageBaseUrl}/storage/${user.photo}`)
+
+                            <!-- Pending Approval Overlay -->
+                            <div v-if="user.pending_photo" class="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center z-[5] group-hover:opacity-0 transition-opacity">
+                                <Clock class="text-amber-500" :size="24" />
+                                <span class="text-[8px] font-black text-amber-600 bg-white/80 px-1 rounded mt-1 uppercase">Pending Audit</span>
+                            </div>
+
+                            <!-- Image Display (Show pending if exists, otherwise actual) -->
+                            <img :src="(user.pending_photo || user.photo)
+                                ? ((user.pending_photo || user.photo).startsWith('http') ? (user.pending_photo || user.photo) : `${authStore.storageBaseUrl}/storage/${user.pending_photo || user.photo}`)
                                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff&size=512`"
-                                class="w-full h-full object-cover" alt="Profile Photo"
+                                class="w-full h-full object-cover" 
+                                :class="{ 'opacity-50 grayscale-[0.5]': user.pending_photo }"
+                                alt="Profile Photo"
                                 @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff&size=512`" />
+                            
+                            <!-- Status Badge -->
+                            <div v-if="user.pending_photo" class="absolute top-0 right-0 p-1.5 bg-amber-500 rounded-full border-2 border-white dark:border-surface-900 shadow-lg z-10">
+                                <Clock class="text-white" :size="10" />
+                            </div>
                         </div>
                         <label
-                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
+                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full z-20"
                             :class="{ 'pointer-events-none': isUploadingPhoto }">
                             <Camera class="text-white" :size="32" />
                             <input type="file" class="hidden" accept="image/*" @change="handlePhotoChange"

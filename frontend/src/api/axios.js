@@ -119,7 +119,10 @@ export const inventory = {
     }),
     myAccounts: () => api.get('/inventory/my-accounts'),
     togglePin: (id, pin) => api.post(`/inventory/account/${id}/toggle-pin`, { transaction_pin: pin }),
-    requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`)
+    requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`),
+    listPendingPhotos: () => api.get('/inventory/accounts/pending-photos'),
+    approvePhoto: (id) => api.post(`/inventory/account/${id}/approve-photo`),
+    rejectPhoto: (id, reason) => api.post(`/inventory/account/${id}/reject-photo`, { reason })
 }
 
 export const stockOut = {
@@ -137,7 +140,10 @@ export const users = {
     updateProfile: (id, data) => api.post(`/users/${id}?_method=PUT`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
-    delete: (id) => api.delete(`/users/${id}`)
+    delete: (id) => api.delete(`/users/${id}`),
+    listPendingPhotos: () => api.get('/users/pending-photos'),
+    approvePhoto: (id) => api.post(`/users/${id}/approve-photo`),
+    rejectPhoto: (id, reason) => api.post(`/users/${id}/reject-photo`, { reason })
 }
 
 // Tambahkan ini di src/api/axios.js

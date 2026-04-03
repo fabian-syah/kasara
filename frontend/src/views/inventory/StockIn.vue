@@ -567,6 +567,13 @@ function handlePhotoChange(event) {
 }
 
 async function updateInventoryAccount() {
+    const hasExistingPhoto = !!editForm.value.photo_preview && !editForm.value.photo_inventory;
+    if (hasExistingPhoto && editForm.value.photo_inventory) {
+        if (!confirm("Akun ini sudah memiliki foto. Penggantian foto memerlukan persetujuan dari Audit/Super Admin. Lanjutkan?")) {
+            return;
+        }
+    }
+
     isUpdatingAccount.value = true;
     try {
         const formData = new FormData();
@@ -578,16 +585,17 @@ async function updateInventoryAccount() {
 
         const response = await inventoryApi.updateAccount(editForm.value.id, formData);
 
-        // Update local state instantly
-        const updatedUser = response.data.data;
-        const index = targetUsers.value.findIndex(u => u.id === updatedUser.id);
-        if (index !== -1) {
-            targetUsers.value[index] = { ...targetUsers.value[index], ...updatedUser };
+        if (hasExistingPhoto && editForm.value.photo_inventory) {
+            toast.success("Permintaan pembaruan foto dikirim! Menunggu persetujuan Audit.");
+        } else {
+            toast.success("Akun berhasil diupdate!");
         }
 
-        toast.success("Akun berhasil diupdate!");
+        // Refresh specifically this user to get pending status
+        const usersRes = await usersApi.list({ role: 'inventory' });
+        targetUsers.value = (usersRes.data.data || usersRes.data);
+        
         showEditAccountModal.value = false;
-        // fetchInitialData(); // No need to reload entire list
     } catch (e) {
         console.error("Update error:", e);
         if (e.response?.data?.errors) {
@@ -833,10 +841,23 @@ onMounted(fetchInitialData);
                         </div>
                         <div class="flex items-center gap-4">
                             <div
-                                class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative">
-                                <img v-if="user.photo_inventory" :src="`${storageUrl}/storage/${user.photo_inventory}`"
-                                    class="w-full h-full object-cover" />
+                                class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative group/pic">
+                                
+                                <!-- Pending Approval Badge -->
+                                <div v-if="user.pending_photo_inventory" class="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex items-center justify-center z-[5]">
+                                    <Clock class="text-amber-500" :size="16" />
+                                </div>
+
+                                <img v-if="user.pending_photo_inventory || user.photo_inventory" 
+                                    :src="`${storageUrl}/storage/${user.pending_photo_inventory || user.photo_inventory}`"
+                                    class="w-full h-full object-cover" 
+                                    :class="{ 'opacity-50 grayscale-[0.5]': user.pending_photo_inventory }" />
                                 <span v-else class="text-primary-500">{{ user.name[0] }}</span>
+
+                                <!-- Corner Icon for Pending -->
+                                <div v-if="user.pending_photo_inventory" class="absolute top-0 right-0 p-0.5 bg-amber-500 rounded-bl-lg z-10">
+                                    <Clock class="text-white" :size="8" />
+                                </div>
                             </div>
                             <div>
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
@@ -912,11 +933,17 @@ onMounted(fetchInitialData);
                         <div class="flex justify-center">
                             <div class="relative group cursor-pointer" @click="photoInput.click()">
                                 <div
-                                    class="w-24 h-24 rounded-full bg-surface-800 border-2 border-surface-700 overflow-hidden flex items-center justify-center">
+                                    class="w-24 h-24 rounded-full bg-surface-800 border-2 border-surface-700 overflow-hidden flex items-center justify-center relative">
                                     <img v-if="editForm.photo_preview" :src="editForm.photo_preview"
                                         class="w-full h-full object-cover" />
                                     <div v-else class="text-text-secondary">
                                         <Camera :size="32" />
+                                    </div>
+
+                                    <!-- Pending Approval Ribbon for Edit Modal -->
+                                    <div v-if="targetUsers.find(u => u.id === editForm.id)?.pending_photo_inventory && !editForm.photo_inventory" 
+                                        class="absolute bottom-0 inset-x-0 bg-amber-500 py-0.5 text-center z-10">
+                                        <p class="text-[8px] font-black text-white uppercase tracking-tighter">Pending Audit</p>
                                     </div>
                                 </div>
                                 <div
