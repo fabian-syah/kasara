@@ -73,6 +73,16 @@ function formatCondition(condition) {
     return map[condition.toLowerCase()] || condition;
 }
 
+function getBrandName(item) {
+    const product = item?.product;
+    if (!product) return '';
+    const brand = product.brand_relation || product.brandRelation || product.brand;
+    if (brand && typeof brand === 'object') {
+        return brand.name || '';
+    }
+    return brand || '';
+}
+
 function formatCapacity(ram, storage) {
     if (!ram && !storage) return '';
     if (ram && storage) {
@@ -164,7 +174,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Items Preview -->
-                <div class="pl-[64px]">
+                <div class="sm:pl-[64px] mt-2 sm:mt-0">
                     <div class="flex gap-8">
                         <div v-if="transfer.items && transfer.items.length > 0">
                             <p class="text-[10px] uppercase font-black text-text-secondary mb-2 tracking-widest">Barang HP ({{ transfer.items.length }})</p>
@@ -172,6 +182,7 @@ onMounted(() => {
                                 <div v-for="item in transfer.items.slice(0, 5)" :key="item.id" 
                                      class="flex items-center gap-2 bg-surface-700/50 border border-surface-600 px-2 py-1 rounded-lg">
                                     <Smartphone :size="10" class="text-purple-400" />
+                                    <span v-if="getBrandName(item)" class="text-[10px] text-purple-400 mr-1">[{{ getBrandName(item) }}]</span>
                                     <span class="text-[11px] text-text-primary font-mono">{{ item.imei.slice(-4) }}</span>
                                 </div>
                                 <span v-if="transfer.items.length > 5" class="text-[11px] text-text-secondary self-center font-bold px-2">
@@ -185,6 +196,7 @@ onMounted(() => {
                                 <div v-for="item in transfer.non_hp_items.slice(0, 3)" :key="item.id"
                                      class="flex items-center gap-2 bg-surface-700/50 border border-surface-600 px-2 py-1 rounded-lg">
                                     <Package :size="10" class="text-orange-400" />
+                                    <span v-if="getBrandName(item)" class="text-[10px] text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
                                     <span class="text-[11px] text-text-primary">{{ item.product_name || item.product?.name }}</span>
                                     <span class="text-[10px] bg-orange-500/20 text-orange-400 px-1 rounded">{{ item.quantity }}x</span>
                                 </div>
@@ -285,8 +297,9 @@ onMounted(() => {
                                             <Smartphone :size="14" />
                                         </div>
                                         <div>
-                                            <p class="font-bold text-xs text-text-primary uppercase">
-                                                {{ item.product?.name }} 
+                                            <p class="font-bold text-xs text-text-primary uppercase flex items-center flex-wrap gap-1">
+                                                <span v-if="getBrandName(item)" class="text-purple-400">[{{ getBrandName(item) }}]</span>
+                                                <span>{{ item.product?.name }}</span>
                                                 <span v-if="item.storage || item.ram" class="text-purple-400 ml-1">
                                                     {{ formatCapacity(item.ram, item.storage) }}
                                                 </span>
@@ -313,7 +326,10 @@ onMounted(() => {
                                         <div class="w-8 h-8 rounded flex items-center justify-center bg-surface-700 text-orange-400">
                                             <Package :size="14" />
                                         </div>
-                                        <p class="font-bold text-xs text-text-primary">{{ item.product_name || item.product?.name }}</p>
+                                        <p class="font-bold text-xs text-text-primary">
+                                            <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                            {{ item.product_name || item.product?.name }}
+                                        </p>
                                     </div>
                                     <div class="text-right">
                                         <p class="text-xs font-bold text-orange-400">{{ item.quantity }} Unit</p>

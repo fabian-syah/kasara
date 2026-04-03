@@ -86,6 +86,16 @@ function formatDate(dateString) {
     });
 }
 
+function getBrandName(item) {
+    const product = item?.product;
+    if (!product) return '';
+    const brand = product.brand_relation || product.brandRelation || product.brand;
+    if (brand && typeof brand === 'object') {
+        return brand.name || '';
+    }
+    return brand || '';
+}
+
 function openDetail(transfer) {
     selectedTransfer.value = transfer;
     showDetailModal.value = true;
@@ -287,7 +297,10 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <p class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-1">
+                                    <span v-if="getBrandName(item)" class="text-blue-500 mr-1">[{{ getBrandName(item) }}]</span>
+                                    <span>{{ item.product?.name }}</span>
+                                </p>
                                 <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
                             </div>
                             <span
@@ -307,7 +320,10 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-red-500/30 bg-red-500/10">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <p class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-1">
+                                    <span v-if="getBrandName(item)" class="text-red-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                    <span>{{ item.product?.name }}</span>
+                                </p>
                                 <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
                             </div>
                             <span class="text-xs font-bold text-red-500">DITOLAK</span>
@@ -325,8 +341,10 @@ onMounted(() => fetchHistory(1));
                         <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product_name ||
-                                    item.product?.name }}</p>
+                                <p class="font-bold text-sm text-text-primary">
+                                    <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                    {{ item.product_name || item.product?.name }}
+                                </p>
                             </div>
                             <div class="text-right">
                                 <span class="text-sm font-bold text-text-primary">{{ item.quantity }} Unit</span>

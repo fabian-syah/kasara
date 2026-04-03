@@ -119,7 +119,7 @@ onMounted(() => {
 <template>
     <div class="p-6 space-y-6 max-w-7xl mx-auto min-h-screen animate-in">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-text-primary tracking-tight">Gagal Kirim (OTW Kembali)</h1>
                 <p class="text-text-secondary mt-1">Barang yang ditolak oleh cabang penerima dan sedang dalam perjalanan kembali.</p>
@@ -128,7 +128,7 @@ onMounted(() => {
             <button 
                 @click="fetchFailedTransfers"
                 :disabled="loading"
-                class="btn btn-secondary"
+                class="btn btn-secondary w-full sm:w-auto flex items-center justify-center gap-2"
             >
                 <RefreshCw :class="{'animate-spin': loading}" class="w-4 h-4 text-primary-500" />
                 <span>Refresh</span>
@@ -136,14 +136,14 @@ onMounted(() => {
         </div>
 
         <!-- Filter/Search -->
-        <div class="card p-4 flex flex-col md:flex-row gap-4">
+        <div class="card p-4 flex flex-col sm:flex-row gap-4">
             <div class="relative flex-1">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary" />
                 <input 
                     v-model="searchQuery"
                     type="text" 
                     placeholder="Cari ID Nota atau Cabang..." 
-                    class="input pl-10"
+                    class="input pl-10 w-full"
                 />
             </div>
         </div>
@@ -169,7 +169,7 @@ onMounted(() => {
                 class="card overflow-hidden hover:border-primary-500/30 transition-all group p-0"
             >
                 <!-- Card Header -->
-                <div class="bg-surface-800/50 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-surface-700">
+                <div class="bg-surface-800/50 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-surface-700">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-danger/10 rounded-2xl flex items-center justify-center text-danger border border-danger/20 italic font-bold text-sm shrink-0">
                             TRF
@@ -186,12 +186,12 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3">
-                        <div class="text-right hidden md:block mr-2">
+                    <div class="flex items-center justify-between sm:justify-end gap-3">
+                        <div class="text-left sm:text-right">
                             <p class="text-[10px] text-text-secondary uppercase font-bold tracking-tighter">Tujuan</p>
                             <p class="font-semibold text-text-primary">{{ transfer.destination?.name || 'Unknown' }}</p>
                         </div>
-                        <ChevronRight class="w-5 h-5 text-text-secondary opacity-30 hidden md:block" />
+                        <ChevronRight class="w-5 h-5 text-text-secondary opacity-30" />
                     </div>
                 </div>
 
@@ -214,9 +214,9 @@ onMounted(() => {
                                             <Smartphone class="w-5 h-5 text-primary-500" />
                                         </div>
                                         <div>
-                                            <h5 class="font-bold text-text-primary">
-                                                <span class="text-primary-500 mr-1">[{{ getBrandName(item) }}]</span>
-                                                {{ item.product?.name || item.product?.model_name }}
+                                            <h5 class="font-bold text-text-primary flex items-center flex-wrap gap-1">
+                                                <span v-if="getBrandName(item)" class="text-blue-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                                <span>{{ item.product?.name || item.product?.model_name }}</span>
                                             </h5>
                                             <div class="flex flex-wrap items-center gap-2 mt-1">
                                                 <span class="text-xs font-medium text-text-secondary bg-surface-700 px-2 py-0.5 rounded-md">
@@ -259,7 +259,10 @@ onMounted(() => {
                                             <Box class="w-5 h-5 text-orange-500" />
                                         </div>
                                         <div>
-                                            <h5 class="font-bold text-text-primary">{{ item.product?.name }}</h5>
+                                            <h5 class="font-bold text-text-primary">
+                                                <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                                {{ item.product?.name }}
+                                            </h5>
                                             <p class="text-xs text-text-secondary mt-1">
                                                 Ditolak: <span class="text-danger font-bold">{{ item.returned_quantity }}</span> Unit
                                             </p>

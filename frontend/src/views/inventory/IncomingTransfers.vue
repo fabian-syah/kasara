@@ -207,6 +207,16 @@ function formatCondition(condition) {
     return map[condition.toLowerCase()] || condition;
 }
 
+function getBrandName(item) {
+    const product = item?.product;
+    if (!product) return '';
+    const brand = product.brand_relation || product.brandRelation || product.brand;
+    if (brand && typeof brand === 'object') {
+        return brand.name || '';
+    }
+    return brand || '';
+}
+
 function formatCapacity(ram, storage) {
     if (!ram && !storage) return '';
     if (ram && storage) {
@@ -300,7 +310,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Items Preview -->
-                <div class="pl-[64px]">
+                <div class="sm:pl-[64px] mt-2 sm:mt-0">
                     <div class="flex gap-4">
                         <div v-if="transfer.items && transfer.items.length > 0">
                             <p class="text-xs uppercase font-bold text-text-secondary mb-1">HP ({{ transfer.items.length
@@ -321,6 +331,7 @@ onMounted(() => {
                             <div class="flex flex-wrap gap-2">
                                 <span v-for="item in transfer.non_hp_items.slice(0, 3)" :key="item.id"
                                     class="text-xs bg-surface-700 px-2 py-1 rounded text-text-secondary">
+                                    <span v-if="getBrandName(item)" class="text-blue-400 mr-1">[{{ getBrandName(item) }}]</span>
                                     {{ item.product?.name }}
                                 </span>
                             </div>
@@ -393,13 +404,9 @@ onMounted(() => {
                                                 <p
                                                     class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-x-1">
                                                     <span
-                                                        v-if="item.product?.brand_relation?.name || item.product?.brandRelation?.name"
-                                                        class="text-text-primary">
-                                                        {{ item.product?.brand_relation?.name ||
-                                                            item.product?.brandRelation?.name }}
-                                                    </span>
-                                                    <span v-else-if="item.product?.brand" class="text-text-primary">
-                                                        {{ item.product.brand }}
+                                                        v-if="getBrandName(item)"
+                                                        class="text-blue-500 mr-1">
+                                                        [{{ getBrandName(item) }}]
                                                     </span>
                                                     <span>{{ item.product?.name }}</span>
                                                     <span v-if="item.storage || item.ram"
@@ -444,8 +451,11 @@ onMounted(() => {
                             <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
                                 class="bg-surface-700/50 p-4 rounded-xl border border-surface-600">
                                 <div class="flex justify-between mb-2">
-                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
-                                    <span class="text-xs text-text-secondary">Dikirim: {{ item.quantity }}</span>
+                                    <p class="font-bold text-sm text-text-primary">
+                                        <span v-if="getBrandName(item)" class="text-blue-500 mr-1">[{{ getBrandName(item) }}]</span>
+                                        {{ item.product?.name }}
+                                    </p>
+                                    <span class="text-xs text-text-secondary whitespace-nowrap ml-2">Qty: {{ item.quantity }}</span>
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <label class="text-xs text-text-secondary">Diterima:</label>

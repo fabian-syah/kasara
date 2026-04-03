@@ -87,6 +87,16 @@ function formatDate(dateString) {
     });
 }
 
+function getBrandName(item) {
+    const product = item?.product;
+    if (!product) return '';
+    const brand = product.brand_relation || product.brandRelation || product.brand;
+    if (brand && typeof brand === 'object') {
+        return brand.name || '';
+    }
+    return brand || '';
+}
+
 function openDetail(transfer) {
     selectedTransfer.value = transfer;
     showDetailModal.value = true;
@@ -310,8 +320,11 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
                             <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                    <p class="font-bold text-sm text-text-primary">
+                                        <span v-if="getBrandName(item)" class="text-blue-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                        {{ item.product?.name }}
+                                    </p>
                                     <span v-if="item.ram || item.storage"
                                         class="px-2 py-0.5 rounded border border-surface-600 text-[10px] font-medium text-blue-400 bg-blue-500/10 whitespace-nowrap">
                                         {{ item.ram }} {{ item.storage }}
@@ -340,8 +353,11 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-amber-500/30 bg-amber-500/10">
                             <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                    <p class="font-bold text-sm text-text-primary">
+                                        <span v-if="getBrandName(item)" class="text-amber-500 mr-1">[{{ getBrandName(item) }}]</span>
+                                        {{ item.product?.name }}
+                                    </p>
                                     <span v-if="item.ram || item.storage"
                                         class="px-2 py-0.5 rounded border border-amber-500/30 text-[10px] font-medium text-blue-400 bg-surface-800/80 whitespace-nowrap">
                                         {{ item.ram }} {{ item.storage }}
@@ -369,8 +385,11 @@ onMounted(() => fetchHistory(1));
                             :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-red-500/30 bg-red-500/10">
                             <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
+                                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                    <p class="font-bold text-sm text-text-primary">
+                                        <span v-if="getBrandName(item)" class="text-red-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                        {{ item.product?.name }}
+                                    </p>
                                     <span v-if="item.ram || item.storage"
                                         class="px-2 py-0.5 rounded border border-red-500/30 text-[10px] font-medium text-blue-400 bg-surface-800/80 whitespace-nowrap">
                                         {{ item.ram }} {{ item.storage }}
@@ -397,8 +416,10 @@ onMounted(() => fetchHistory(1));
                         <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
                             class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/50">
                             <div>
-                                <p class="font-bold text-sm text-text-primary">{{ item.product_name ||
-                                    item.product?.name }}</p>
+                                <p class="font-bold text-sm text-text-primary">
+                                    <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                    {{ item.product_name || item.product?.name }}
+                                </p>
                             </div>
                             <div class="text-right">
                                 <span class="text-sm font-bold text-text-primary">{{ item.quantity }} Unit</span>
