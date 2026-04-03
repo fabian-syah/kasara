@@ -122,7 +122,8 @@ onMounted(async () => {
     if (authStore.user?.online_shop_id) {
         filters.value.online_shop_id = authStore.user.online_shop_id;
     }
-    if (authStore.user?.branch_id) {
+    // Only auto-set branch_id if NOT an online shop (to avoid filtering out team members in other branches)
+    if (authStore.user?.branch_id && !authStore.user?.online_shop_id) {
         filters.value.branch_id = authStore.user.branch_id;
     }
 
@@ -130,7 +131,9 @@ onMounted(async () => {
     fetchReport();
 });
 
-const resolvePhoto = (photo, name) => {
+const resolvePhoto = (user, name) => {
+    // Check multiple potential photo fields for robustness
+    const photo = user?.photo || user?.photo_inventory || user?.avatar || user?.profile_photo;
     if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
     if (photo.startsWith('http')) return photo;
     return `${storageBaseUrl.value}/storage/${photo}`;
@@ -452,7 +455,7 @@ const filteredProducts = computed(() => {
                             <td class="px-6 py-4 border-b border-surface-800">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden shrink-0">
-                                        <img :src="resolvePhoto(c.photo || c.photo_inventory, c.name)"
+                                        <img :src="resolvePhoto(c, c.name)"
                                             class="w-full h-full object-cover"
                                             @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=10b981&color=fff`" />
                                     </div>

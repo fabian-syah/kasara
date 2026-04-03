@@ -158,6 +158,14 @@ const resolvePhoto = (photo, name) => {
   return `${storageBaseUrl.value}/storage/${photo}`;
 };
 
+const resolvePhoto = (user, name) => {
+  // Check multiple potential photo fields for robustness
+  const photo = user?.photo || user?.photo_inventory || user?.avatar || user?.profile_photo;
+  if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
+  if (photo.startsWith('http')) return photo;
+  return `${storageBaseUrl.value}/storage/${photo}`;
+};
+
 async function fetchDashboardData() {
   isLoading.value = true;
   try {
@@ -428,7 +436,7 @@ const getColorClasses = (color) => {
                 <td class="py-3">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden shrink-0">
-                      <img :src="resolvePhoto(user.photo, user.name)"
+                      <img :src="resolvePhoto(user, user.name)"
                         class="w-full h-full object-cover"
                         @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=10b981&color=fff`" />
                     </div>
