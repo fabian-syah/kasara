@@ -381,6 +381,7 @@ onMounted(() => {
                                     </div>
                                     <div>
                                         <p class="font-bold text-sm text-text-primary uppercase">
+                                            <span v-if="item.product?.brand_relation?.name" class="mr-1">{{ item.product.brand_relation.name }}</span>
                                             {{ item.product?.name }} 
                                             <span v-if="item.storage" class="text-blue-500">• {{ formatStorage(item.storage) }}</span>
                                             <span v-if="item.condition" class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">

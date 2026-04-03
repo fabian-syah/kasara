@@ -46,7 +46,7 @@ class StockTransferController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki lokasi untuk menerima barang.'], 403);
         }
 
-        $query = StockOut::with(['user', 'items.product', 'nonHpItems.product', 'destination'])
+        $query = StockOut::with(['user', 'items.product.brandRelation', 'nonHpItems.product.brandRelation', 'destination'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
