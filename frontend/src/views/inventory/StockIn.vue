@@ -50,6 +50,7 @@ const newDistributorName = ref("");
 const showPinModal = ref(false);
 
 const targetUsers = ref([]);
+const selectedInventoryUserPinEnabled = ref(false);
 const placementLabel = ref("");
 const notes = ref("");
 
@@ -627,6 +628,7 @@ function selectUserPlacement(user) {
 
     placementLabel.value = user.full_name || user.name;
     selectedInventoryUserId.value = user.id; // Capture Inventory Account ID
+    selectedInventoryUserPinEnabled.value = user.pin_enabled || false;
     nextStep();
 }
 
@@ -638,9 +640,8 @@ async function handlePinSuccess(pin) {
 async function submitStockIn(pin = null) {
     if (!canSubmit.value) return;
 
-    // If user has PIN enabled and we don't have a verified PIN yet
-    // PIN only required for Sales role
-    if (authStore.userRole === 'toko_offline' && authStore.user?.pin_enabled && !pin) {
+    // If the targeted inventory account has PIN enabled and we don't have a verified PIN yet
+    if (selectedInventoryUserPinEnabled.value && !pin) {
         showPinModal.value = true;
         return;
     }
