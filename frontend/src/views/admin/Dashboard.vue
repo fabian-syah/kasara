@@ -152,12 +152,6 @@ const resolveIcon = (name) => {
   return icons[name] || Package;
 };
 
-const resolvePhoto = (photo, name) => {
-  if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
-  if (photo.startsWith('http')) return photo;
-  return `${storageBaseUrl.value}/storage/${photo}`;
-};
-
 const resolvePhoto = (user, name) => {
   // Check multiple potential photo fields for robustness
   const photo = user?.photo || user?.photo_inventory || user?.avatar || user?.profile_photo;
