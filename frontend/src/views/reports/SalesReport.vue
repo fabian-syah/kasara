@@ -11,9 +11,14 @@ import {
     ArrowUp,
     Building2,
     Filter,
-    Loader2
+    Loader2,
+    Camera,
+    User
 } from 'lucide-vue-next';
+import { useAuthStore } from '../../store/auth';
 
+const authStore = useAuthStore();
+const storageBaseUrl = computed(() => authStore.storageBaseUrl);
 const loading = ref(true);
 const stats = ref({
     brands: [],
@@ -108,13 +113,28 @@ const fetchReport = async () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     const today = new Date();
     filters.value.start_date = formatDateStr(today);
     filters.value.end_date = formatDateStr(today);
-    fetchFilters();
+    
+    // Auto-set filters for specific roles
+    if (authStore.user?.online_shop_id) {
+        filters.value.online_shop_id = authStore.user.online_shop_id;
+    }
+    if (authStore.user?.branch_id) {
+        filters.value.branch_id = authStore.user.branch_id;
+    }
+
+    await fetchFilters();
     fetchReport();
 });
+
+const resolvePhoto = (photo, name) => {
+    if (!photo) return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=10b981&color=fff`;
+    if (photo.startsWith('http')) return photo;
+    return `${storageBaseUrl.value}/storage/${photo}`;
+};
 
 // Sorting logic for CS
 const csSort = ref({
@@ -431,9 +451,10 @@ const filteredProducts = computed(() => {
                         <tr v-for="c in sortedCS" :key="c.name" class="hover:bg-surface-800/50 transition-colors">
                             <td class="px-6 py-4 border-b border-surface-800">
                                 <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-primary-400 border border-surface-600">
-                                        {{ c.name.charAt(0).toUpperCase() }}
+                                    <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden shrink-0">
+                                        <img :src="resolvePhoto(c.photo || c.photo_inventory, c.name)"
+                                            class="w-full h-full object-cover"
+                                            @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=10b981&color=fff`" />
                                     </div>
                                     <span class="font-bold text-text-primary">{{ c.name }}</span>
                                 </div>
