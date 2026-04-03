@@ -58,6 +58,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['post', 'put'], '/users/{user}', [UserController::class, 'update']);
     Route::apiResource('users', UserController::class)->except(['update']);
     
+    // DEBUG: Raw data check
+    Route::get('/debug-pending', [UserController::class, 'debugPendingDump']);
+    
     Route::post('/branches/{branch}/toggle-status', [BranchController::class, 'toggleStatus']);
     Route::apiResource('branches', BranchController::class);
     Route::apiResource('warehouses', WarehouseController::class);

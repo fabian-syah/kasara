@@ -304,11 +304,20 @@ class UserController extends Controller
                     $user->pending_photo_inventory = $path;
                 }
                 
+                // DEBUG LOG
+                \Illuminate\Support\Facades\Log::info("Saving pending photo for user: " . $user->id, [
+                    'path' => $path,
+                    'is_inventory' => $user->hasAnyRole(['toko_offline', 'toko_online', 'admin_produk'])
+                ]);
+                
                 // Jangan masukkan ke $validated agar tidak menimpa foto asli di $user->update()
                 unset($validated['photo']);
             } else {
                 $user->photo = $path;
                 $user->photo_inventory = $path;
+                
+                \Illuminate\Support\Facades\Log::info("Setting immediate photo for user: " . $user->id, ['path' => $path]);
+                
                 unset($validated['photo']);
             }
         }
@@ -443,6 +452,7 @@ class UserController extends Controller
         $user->photo = $user->pending_photo;
         $user->photo_inventory = $user->pending_photo; // Sync
         $user->pending_photo = null;
+        $user->pending_photo_inventory = null; // Also clear this
         $user->save();
 
         return response()->json(['success' => true, 'message' => 'Foto profil berhasil disetujui.']);
@@ -451,15 +461,29 @@ class UserController extends Controller
     public function rejectPhoto($id)
     {
         $user = User::findOrFail($id);
-        if ($user->pending_photo) {
-            // Hapus file pending dari storage
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($user->pending_photo)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->pending_photo);
-            }
-            $user->pending_photo = null;
-            $user->save();
+        
+        if ($user->pending_photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->pending_photo)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->pending_photo);
         }
+        
+        $user->pending_photo = null;
+        $user->pending_photo_inventory = null; 
+        $user->save();
 
         return response()->json(['success' => true, 'message' => 'Perubahan foto profil ditolak.']);
+    }
+
+    public function debugPendingDump()
+    {
+        $allPending = User::whereNotNull('pending_photo')
+            ->orWhereNotNull('pending_photo_inventory')
+            ->get(['id', 'name', 'username', 'pending_photo', 'pending_photo_inventory', 'photo', 'photo_inventory']);
+
+        return response()->json([
+            'status' => 'Diagnostic Dump',
+            'count' => $allPending->count(),
+            'data' => $allPending,
+            'server_time' => now()->toDateTimeString()
+        ]);
     }
 }
