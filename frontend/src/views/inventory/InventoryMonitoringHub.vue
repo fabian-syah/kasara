@@ -253,7 +253,7 @@ onMounted(() => {
 <template>
     <div class="min-h-screen bg-surface-900 pb-20">
         <!-- Dashboard Header -->
-        <div class="bg-surface-850 border-b border-surface-700/50 sticky top-0 z-30 backdrop-blur-xl">
+        <div class="bg-surface-900 border-b border-surface-700/50 sticky top-0 z-30 backdrop-blur-xl">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex items-center gap-4">
@@ -286,7 +286,7 @@ onMounted(() => {
                         class="flex items-center gap-3 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 snap-start border shrink-0"
                         :class="activeTab === tab.id 
                             ? `${tab.bg} ${tab.color} border-${tab.color.split('-')[1]}-500/30 font-black shadow-lg shadow-${tab.color.split('-')[1]}-500/10` 
-                            : 'bg-surface-800 text-text-secondary border-surface-700 hover:bg-surface-750 font-bold'">
+                            : 'bg-surface-800 text-text-secondary border-surface-700 hover:bg-surface-700 font-bold'">
                         <component :is="tab.icon" :size="18" />
                         <span>{{ tab.name }}</span>
                     </button>
@@ -303,7 +303,7 @@ onMounted(() => {
 
             <!-- Empty State -->
             <div v-else-if="(!activeTab.includes('history') && transfers.length === 0) || (activeTab.includes('history') && historyData.data.length === 0)"
-                class="text-center py-32 bg-surface-850/50 rounded-[3rem] border border-surface-700/30 backdrop-blur-sm shadow-inner mt-4">
+                class="text-center py-32 bg-surface-800/50 rounded-[3rem] border border-surface-700/30 backdrop-blur-sm shadow-inner mt-4">
                 <div class="w-20 h-20 mx-auto bg-surface-700/50 rounded-3xl flex items-center justify-center mb-6 text-text-secondary/20">
                     <Package :size="48" />
                 </div>
@@ -314,7 +314,7 @@ onMounted(() => {
             <!-- Content Grid (OTW Tabs) -->
             <div v-else-if="!activeTab.includes('history')" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in duration-500">
                 <div v-for="transfer in transfers" :key="transfer.id" @click="openModal(transfer)"
-                    class="card group cursor-pointer hover:bg-surface-750 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl hover:-translate-y-1"
+                    class="card group cursor-pointer hover:bg-surface-700 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl hover:-translate-y-1"
                     :class="{
                         'border-l-blue-500 hover:shadow-blue-500/5': activeTab === 'incoming_otw',
                         'border-l-purple-500 hover:shadow-purple-500/5': activeTab === 'outgoing_otw',
@@ -363,7 +363,7 @@ onMounted(() => {
             <div v-else class="space-y-8 animate-in duration-500">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
-                        class="card group cursor-pointer hover:bg-surface-750 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl overflow-hidden"
+                        class="card group cursor-pointer hover:bg-surface-700 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl overflow-hidden"
                         :class="activeTab === 'history_in' ? 'border-l-green-500' : 'border-l-amber-500'">
                         <div class="p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                             <div class="flex items-center gap-5">
@@ -539,7 +539,7 @@ onMounted(() => {
                             <h4 class="text-xs font-black text-text-secondary uppercase tracking-[0.2em] mb-4">Unit HP</h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.items" :key="item.id" 
-                                    class="p-6 bg-surface-850 border border-surface-700/50 rounded-2xl flex justify-between items-center group">
+                                    class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex justify-between items-center group">
                                     <div>
                                         <p class="font-black text-white group-hover:text-primary-400 transition-colors">
                                             {{ getBrandName(item) }} {{ item.product?.name }}
@@ -564,7 +564,7 @@ onMounted(() => {
                             <h4 class="text-xs font-black text-text-secondary uppercase tracking-[0.2em] mb-4">Aksesoris</h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.non_hp_items" :key="item.id" 
-                                    class="p-6 bg-surface-850 border border-surface-700/50 rounded-2xl flex justify-between items-center">
+                                    class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex justify-between items-center">
                                     <p class="font-black text-white">{{ item.product?.name || item.product_name }}</p>
                                     <p class="text-lg font-black text-primary-500">{{ item.quantity }} <span class="text-[10px] uppercase opacity-40">Qty</span></p>
                                 </div>
@@ -615,7 +615,7 @@ onMounted(() => {
 @reference "../../style.css";
 
 .modal-backdrop { @apply fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md; animation: var(--animate-fade-in); animation-duration: 300ms; }
-.modal-content { @apply bg-surface-850 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl overflow-hidden; animation: var(--animate-fade-in); }
+.modal-content { @apply bg-surface-900 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl overflow-hidden; animation: var(--animate-fade-in); }
 .modal-header { @apply px-8 py-8 border-b border-surface-700 flex justify-between items-start; }
 .close-btn { @apply p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all active:scale-90; }
 .modal-body { @apply p-6 sm:p-12 overflow-y-auto flex-1 custom-scrollbar; }
