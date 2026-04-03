@@ -14,6 +14,7 @@ import {
 import api from '../../api/axios'
 import { useToast } from '../../composables/useToast'
 import { useAuthStore } from '../../store/auth'
+import PinModal from '../../components/modals/PinModal.vue'
 
 const authStore = useAuthStore()
 const { success, error: toastError } = useToast()
@@ -22,6 +23,9 @@ const transfers = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
 const processingId = ref(null)
+
+const showPinModal = ref(false)
+const selectedTransfer = ref(null)
 
 const fetchFailedTransfers = async () => {
     loading.value = true
@@ -36,17 +40,27 @@ const fetchFailedTransfers = async () => {
     }
 }
 
-const confirmReturn = async (transfer) => {
-    if (!confirm(`Konfirmasi terima balik barang untuk transfer ${transfer.receipt_id}?`)) return
+const confirmReturn = (transfer) => {
+    selectedTransfer.value = transfer
+    showPinModal.value = true
+}
+
+const handlePinConfirm = async (pinData) => {
+    if (!selectedTransfer.value) return
     
-    processingId.value = transfer.id
+    processingId.value = selectedTransfer.value.id
     try {
-        await api.post(`/transfers/${transfer.id}/confirm-return`)
+        await api.post(`/transfers/${selectedTransfer.value.id}/confirm-return`, {
+            transaction_pin: pinData.pin,
+            inventory_user_id: pinData.inventory_user_id
+        })
         success('Barang telah diterima kembali ke stok.')
         fetchFailedTransfers()
+        showPinModal.value = false
+        selectedTransfer.value = null
     } catch (err) {
         console.error('Failed to confirm return:', err)
-        toastError('Gagal memproses penerimaan barang.')
+        toastError(err.response?.data?.message || 'Gagal memproses penerimaan barang.')
     } finally {
         processingId.value = null
     }
@@ -259,6 +273,17 @@ onMounted(() => {
             </div>
         </div>
     </div>
+
+    <!-- PIN Modal -->
+    <PinModal
+        v-if="showPinModal"
+        :is-open="showPinModal"
+        title="Konfirmasi Terima Balik"
+        description="Masukkan PIN untuk mengonfirmasi penerimaan barang kembali ke stok."
+        :processing="processingId !== null"
+        @close="showPinModal = false"
+        @confirm="handlePinConfirm"
+    />
 </template>
 
 <style scoped>

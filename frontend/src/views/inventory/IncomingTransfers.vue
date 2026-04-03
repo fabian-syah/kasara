@@ -283,7 +283,7 @@ onMounted(() => {
                             <p class="text-sm text-text-secondary flex items-center gap-1">
                                 <User :size="12" />
                                 Dari: <span class="text-text-primary font-medium">{{ transfer.user?.name || 'Unknown'
-                                    }}</span>
+                                }}</span>
                             </p>
                         </div>
                     </div>
@@ -304,7 +304,7 @@ onMounted(() => {
                     <div class="flex gap-4">
                         <div v-if="transfer.items && transfer.items.length > 0">
                             <p class="text-xs uppercase font-bold text-text-secondary mb-1">HP ({{ transfer.items.length
-                                }})</p>
+                            }})</p>
                             <div class="flex flex-wrap gap-2">
                                 <span v-for="item in transfer.items.slice(0, 3)" :key="item.id"
                                     class="text-xs bg-surface-700 px-2 py-1 rounded text-text-secondary font-mono">
@@ -342,7 +342,8 @@ onMounted(() => {
                         <h2 class="text-xl sm:text-2xl font-bold text-text-primary">Konfirmasi Terima Barang</h2>
                         <p class="text-text-secondary text-sm font-medium">{{ selectedTransfer.receipt_id }}</p>
                     </div>
-                    <button @click="closeModal" class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-100 dark:bg-white/10 text-text-secondary hover:text-text-primary transition-all">
+                    <button @click="closeModal"
+                        class="w-10 h-10 rounded-full flex items-center justify-center bg-surface-100 dark:bg-white/10 text-text-secondary hover:text-text-primary transition-all">
                         <X :size="24" />
                     </button>
                 </div>
@@ -402,14 +403,16 @@ onMounted(() => {
                                                     </span>
                                                     <span>{{ item.product?.name }}</span>
                                                     <span v-if="item.storage || item.ram"
-                                                        class="text-blue-500 font-black ml-1">• {{ formatCapacity(item.ram,
-                                                            item.storage) }}</span>
+                                                        class="text-blue-500 font-black ml-1">• {{
+                                                            formatCapacity(item.ram,
+                                                        item.storage) }}</span>
                                                     <span v-if="item.condition"
                                                         class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">
                                                         {{ formatCondition(item.condition) }}
                                                     </span>
                                                 </p>
-                                                <p class="text-xs font-mono text-text-secondary mt-0.5 tracking-tighter">
+                                                <p
+                                                    class="text-xs font-mono text-text-secondary mt-0.5 tracking-tighter">
                                                     {{ item.imei }}</p>
                                             </div>
                                         </div>
@@ -454,7 +457,8 @@ onMounted(() => {
                                 <!-- Rejection Note for Non-HP -->
                                 <div v-if="form.non_hp_quantities[item.id] < item.quantity"
                                     class="mt-3 animate-in fade-in duration-300">
-                                    <p class="text-[10px] text-red-400 mb-1.5 flex items-center gap-1 font-bold uppercase tracking-wider">
+                                    <p
+                                        class="text-[10px] text-red-400 mb-1.5 flex items-center gap-1 font-bold uppercase tracking-wider">
                                         <AlertTriangle :size="10" />
                                         {{ item.quantity - form.non_hp_quantities[item.id] }} unit akan dikembalikan
                                     </p>
@@ -470,7 +474,8 @@ onMounted(() => {
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="p-5 sm:p-6 border-t border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 sticky bottom-0 z-20">
+                <div
+                    class="p-5 sm:p-6 border-t border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 sticky bottom-0 z-20">
                     <button @click="submitConfirmation()" :disabled="isSubmitting"
                         class="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-3">
                         <Loader2 v-if="isSubmitting" :size="20" class="animate-spin" />
