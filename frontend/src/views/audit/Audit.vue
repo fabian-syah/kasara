@@ -261,7 +261,7 @@ async function handleRejectPhoto(item) {
 </template>
 
 <style scoped>
-@reference "../../index.css";
+@reference "../../style.css";
 
 .animate-in {
   animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
