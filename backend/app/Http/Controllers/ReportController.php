@@ -217,12 +217,20 @@ class ReportController extends Controller
         }
 
         // Helper to apply strict user-based filters to any query joined with users
-        $applyIsolation = function ($query) use ($filterBranchId, $filterOnlineShopId) {
+        $applyIsolation = function ($query, $ownerJoinRequired = false) use ($filterBranchId, $filterOnlineShopId) {
+            $tableName = 'users'; // default
+
+            if ($ownerJoinRequired) {
+                // If we need to join the transaction owner to check isolation independently of the CS
+                $query->join('users as owners', 'stock_outs.user_id', '=', 'owners.id');
+                $tableName = 'owners';
+            }
+
             if ($filterBranchId) {
-                $query->where('users.branch_id', $filterBranchId);
+                $query->where("{$tableName}.branch_id", $filterBranchId);
             }
             if ($filterOnlineShopId) {
-                $query->where('users.online_shop_id', $filterOnlineShopId);
+                $query->where("{$tableName}.online_shop_id", $filterOnlineShopId);
             }
             return $query;
         };
@@ -240,7 +248,9 @@ class ReportController extends Controller
             $csQuery->where('stock_outs.reporting_date', '>=', $startDate);
         if ($endDate)
             $csQuery->where('stock_outs.reporting_date', '<=', $endDate);
-        $csQuery = $applyIsolation($csQuery);
+        
+        // Pass true to join 'owners' because 'users' here is the Petugas Stok
+        $csQuery = $applyIsolation($csQuery, true);
 
         $csBase = $csQuery->groupBy('users.id', 'users.name')->get();
 
@@ -253,7 +263,7 @@ class ReportController extends Controller
         $hpCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
     if ($endDate)
         $hpCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
-        $hpCountsQuery = $applyIsolation($hpCountsQuery);
+        $hpCountsQuery = $applyIsolation($hpCountsQuery, true);
 
         $hpCountsPerUser = $hpCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('COUNT(*) as hp_count'))
             ->groupBy("stock_outs.{$csUserIdField}")
@@ -268,7 +278,7 @@ class ReportController extends Controller
         $accCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
     if ($endDate)
         $accCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
-        $accCountsQuery = $applyIsolation($accCountsQuery);
+        $accCountsQuery = $applyIsolation($accCountsQuery, true);
 
         $accCountsPerUser = $accCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('SUM(quantity) as acc_count'))
             ->groupBy("stock_outs.{$csUserIdField}")
