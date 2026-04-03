@@ -5,11 +5,10 @@ import axios from 'axios'
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://api.stokps.com/api',
     timeout: 60000,
-    withCredentials: true, // TAMBAHKAN INI agar cookie session bisa ikut terkirim
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest' // TAMBAHKAN INI agar Laravel mengenali ini request API
+        'X-Requested-With': 'XMLHttpRequest'
     }
 })
 
@@ -114,9 +113,7 @@ export const inventory = {
     getProductsLookup: (params) => api.get('/inventory/products-lookup', { params }),
     createAccount: (data) => api.post('/inventory/account', data),
     lookupPrice: (data) => api.post('/product-prices/lookup', data),
-    updateAccount: (id, data) => api.post(`/inventory/account/${id}/update`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    updateAccount: (id, data) => api.post(`/inventory/account/${id}/update`, data),
     myAccounts: () => api.get('/inventory/my-accounts'),
     togglePin: (id, pin) => api.post(`/inventory/account/${id}/toggle-pin`, { transaction_pin: pin }),
     requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`),
@@ -137,9 +134,7 @@ export const users = {
     get: (id) => api.get(`/users/${id}`),
     create: (data) => api.post('/users', data),
     update: (id, data) => api.put(`/users/${id}`, data),
-    updateProfile: (id, data) => api.post(`/users/${id}?_method=PUT`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    }),
+    updateProfile: (id, data) => api.post(`/users/${id}`, data),
     delete: (id) => api.delete(`/users/${id}`),
     listPendingPhotos: () => api.get('/users/pending-photos'),
     approvePhoto: (id) => api.post(`/users/${id}/approve-photo`),
