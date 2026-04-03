@@ -313,15 +313,21 @@ class UserController extends Controller
             if ($user->photo || $user->photo_inventory) {
                 $photoStatus = "Direct DB Write to PENDING columns";
                 
-                // Nuclear Option: Force direct DB update to bypass any model/trait interference
-                \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update([
-                    'pending_photo' => $path,
-                    'pending_photo_inventory' => $path
-                ]);
+                // Pilih kolom berdasarkan Role agar tidak muncul dua kali di Audit
+                $updateData = [];
+                if ($user->hasRole('toko_offline')) {
+                    $updateData['pending_photo_inventory'] = $path;
+                    $updateData['pending_photo'] = null; // Hapus jika ada sisa duplikat
+                } else {
+                    $updateData['pending_photo'] = $path;
+                    $updateData['pending_photo_inventory'] = null; // Hapus jika ada sisa duplikat
+                }
+                
+                \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update($updateData);
                 
                 // Update in-memory for the response
-                $user->pending_photo = $path;
-                $user->pending_photo_inventory = $path;
+                $user->pending_photo = $updateData['pending_photo'] ?? null;
+                $user->pending_photo_inventory = $updateData['pending_photo_inventory'] ?? null;
                 
                 unset($validated['photo']);
             } else {
@@ -331,7 +337,9 @@ class UserController extends Controller
                 
                 \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update([
                     'photo' => $path,
-                    'photo_inventory' => $path
+                    'photo_inventory' => $path,
+                    'pending_photo' => null,
+                    'pending_photo_inventory' => null
                 ]);
             }
         }
