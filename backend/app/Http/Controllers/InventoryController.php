@@ -1300,12 +1300,14 @@ class InventoryController extends Controller
 
         $account->phone = $request->phone;
 
-        if ($request->hasFile('photo_inventory')) {
-            $path = $request->file('photo_inventory')->store('account-photos', 'public');
+        // Support both 'photo' and 'photo_inventory' field names
+        $photoField = $request->hasFile('photo') ? 'photo' : ($request->hasFile('photo_inventory') ? 'photo_inventory' : null);
+
+        if ($photoField) {
+            $path = $request->file($photoField)->store('account-photos', 'public');
             
             // Logic: Jika sudah ada foto, kirim ke pending dulu. 
-            // Jika belum ada foto, boleh langsung upload.
-            if ($account->photo_inventory) {
+            if ($account->photo_inventory || $account->photo) {
                 $account->pending_photo_inventory = $path;
             } else {
                 $account->photo_inventory = $path;
