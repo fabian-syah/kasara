@@ -637,8 +637,11 @@ async function handlePinSuccess(pin) {
     await submitStockIn(pin);
 }
 
-async function submitStockIn(pin = null) {
+async function submitStockIn(verifiedPin = null) {
     if (!canSubmit.value) return;
+
+    // Use either the provided verifiedPin or the local pin state
+    const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
 
     // If the targeted inventory account has PIN enabled and we don't have a verified PIN yet
     if (selectedInventoryUserPinEnabled.value && !pin) {

@@ -136,13 +136,16 @@ function closeModal() {
 }
 
 // Submit Confirmation
-async function submitConfirmation(pin = null) {
+async function submitConfirmation(verifiedPin = null) {
     if (!selectedTransfer.value) return;
+
+    // Use either the provided verifiedPin or the local pin state
+    const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
 
     // Check PIN if needed
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
     if (!pin && selectedAccount?.pin_enabled) {
-        handleVerifyPin((verifiedPin) => submitConfirmation(verifiedPin));
+        handleVerifyPin((vPin) => submitConfirmation(vPin));
         return;
     }
 
@@ -417,7 +420,7 @@ onMounted(() => {
     </div>
 
     <!-- PIN Modal -->
-    <PinModal :show="showPinModal" @close="showPinModal = false" @verified="onPinVerified" />
+    <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
 </template>
 
 <style scoped>
