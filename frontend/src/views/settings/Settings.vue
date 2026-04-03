@@ -92,7 +92,9 @@ async function handlePhotoChange(event) {
     formData.append("_method", "PUT"); 
 
     try {
-        const res = await usersApi.updateProfile(user.value.id, formData);
+        const res = await usersApi.updateProfile(user.value.id, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
         if (hasExistingPhoto) {
             toast.success("Permintaan pembaruan foto dikirim! Menunggu persetujuan Audit.");
@@ -139,7 +141,9 @@ async function saveProfile() {
         }
 
         // Use updateProfile for text data too as it handles the POST/PUT spoofing correctly
-        const res = await usersApi.updateProfile(user.value.id, formData);
+        const res = await usersApi.updateProfile(user.value.id, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
 
         toast.success("Profil berhasil diperbarui!");
 

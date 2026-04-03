@@ -134,7 +134,7 @@ export const users = {
     get: (id) => api.get(`/users/${id}`),
     create: (data) => api.post('/users', data),
     update: (id, data) => api.put(`/users/${id}`, data),
-    updateProfile: (id, data) => api.post(`/users/${id}`, data),
+    updateProfile: (id, data, config = {}) => api.post(`/users/${id}`, data, config),
     delete: (id) => api.delete(`/users/${id}`),
     listPendingPhotos: () => api.get('/users/pending-photos'),
     approvePhoto: (id) => api.post(`/users/${id}/approve-photo`),
