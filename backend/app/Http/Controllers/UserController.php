@@ -283,17 +283,20 @@ class UserController extends Controller
         $validated = $request->validate([
             'full_name' => 'sometimes|nullable|string|max:255',
             'username' => ['sometimes', 'nullable', 'string', Rule::unique('users')->ignore($user->id)],
+            'email' => ['sometimes', 'nullable', 'email', Rule::unique('users')->ignore($user->id)],
             'password' => 'sometimes|nullable|string|min:6',
             'role' => 'sometimes|nullable|string|exists:roles,name',
             'branch_id' => 'sometimes|nullable|exists:branches,id',
             'warehouse_id' => 'sometimes|nullable|exists:warehouses,id',
             'online_shop_id' => 'sometimes|nullable|exists:online_shops,id',
             'distributor_id' => 'sometimes|nullable|exists:distributors,id',
+            'address' => 'sometimes|nullable|string',
+            'phone' => 'sometimes|nullable|string|max:20',
             'birth_date' => 'sometimes|nullable|date',
             'is_active' => 'sometimes|boolean',
             'transaction_pin' => 'sometimes|nullable|string|size:4',
-            'photo' => 'sometimes|nullable|image|max:2048',
-            'photo_inventory' => 'sometimes|nullable|image|max:2048',
+            'photo' => 'sometimes|nullable|image|max:3072', // Increased to 3MB just in case
+            'photo_inventory' => 'sometimes|nullable|image|max:3072',
         ]);
 
         // Logic to clear other placements if one is selected? 
