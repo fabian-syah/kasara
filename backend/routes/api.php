@@ -49,6 +49,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // ... users, branches, etc ...
+    // User Photo Approvals
+    Route::get('/users/pending-photos', [UserController::class, 'pendingPhotos']);
+    Route::post('/users/{id}/approve-photo', [UserController::class, 'approvePhoto']);
+    Route::post('/users/{id}/reject-photo', [UserController::class, 'rejectPhoto']);
+
     Route::apiResource('users', UserController::class);
     Route::apiResource('users', UserController::class);
     Route::post('/branches/{branch}/toggle-status', [BranchController::class, 'toggleStatus']);
@@ -105,6 +110,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/my-accounts', [InventoryController::class, 'getMyInventoryUsers']);
     Route::post('/inventory/account/{id}/toggle-pin', [InventoryController::class, 'togglePin']);
     Route::post('/inventory/account/{id}/request-reset', [InventoryController::class, 'requestResetPin']);
+
+    // Inventory Account Photo Approvals
+    Route::get('/inventory/accounts/pending-photos', [InventoryController::class, 'pendingPhotos']);
+    Route::post('/inventory/account/{id}/approve-photo', [InventoryController::class, 'approvePhoto']);
+    Route::post('/inventory/account/{id}/reject-photo', [InventoryController::class, 'rejectPhoto']);
 
     // Stock Out (Pengeluaran Stok)
     Route::get('/stock-outs', [\App\Http\Controllers\StockOutController::class, 'index']);

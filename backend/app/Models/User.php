@@ -38,6 +38,8 @@ class User extends Authenticatable
         'last_seen',
         'created_by',
         'photo_inventory',
+        'pending_photo',
+        'pending_photo_inventory',
         'phone',
         'transaction_pin',
         'pin_enabled',

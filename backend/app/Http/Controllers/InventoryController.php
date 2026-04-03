@@ -1301,15 +1301,16 @@ class InventoryController extends Controller
         $account->phone = $request->phone;
 
         if ($request->hasFile('photo_inventory')) {
-            // Delete old photo if exists
-            if ($account->photo_inventory && \Illuminate\Support\Facades\Storage::exists('public/' . $account->photo_inventory)) {
-                \Illuminate\Support\Facades\Storage::delete('public/' . $account->photo_inventory);
-            }
             $path = $request->file('photo_inventory')->store('account-photos', 'public');
-            $account->photo_inventory = $path;
-
-            // Sync with photo to ensure User Management views match
-            $account->photo = $path;
+            
+            // Logic: Jika sudah ada foto, kirim ke pending dulu. 
+            // Jika belum ada foto, boleh langsung upload.
+            if ($account->photo_inventory) {
+                $account->pending_photo_inventory = $path;
+            } else {
+                $account->photo_inventory = $path;
+                $account->photo = $path; // Sync
+            }
         }
 
         if ($request->has('transaction_pin')) {
@@ -2049,5 +2050,53 @@ class InventoryController extends Controller
             ],
             'items' => $combinedValues
         ]);
+    }
+
+    public function pendingPhotos()
+    {
+        $users = User::whereNotNull('pending_photo_inventory')
+            ->select('id', 'name', 'full_name', 'username', 'photo_inventory', 'pending_photo_inventory')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $users
+        ]);
+    }
+
+    public function approvePhoto($id)
+    {
+        $user = User::findOrFail($id);
+        if (!$user->pending_photo_inventory) {
+            return response()->json(['message' => 'Tidak ada foto inventory yang menunggu persetujuan.'], 400);
+        }
+
+        // Hapus foto lama dari storage
+        if ($user->photo_inventory && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->photo_inventory)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo_inventory);
+        }
+
+        // Pindahkan pending ke asli
+        $user->photo_inventory = $user->pending_photo_inventory;
+        $user->photo = $user->pending_photo_inventory; // Sync
+        $user->pending_photo_inventory = null;
+        $user->save();
+
+        return response()->json(['success' => true, 'message' => 'Foto inventory berhasil disetujui.']);
+    }
+
+    public function rejectPhoto($id)
+    {
+        $user = User::findOrFail($id);
+        if ($user->pending_photo_inventory) {
+            // Hapus file pending dari storage
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($user->pending_photo_inventory)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->pending_photo_inventory);
+            }
+            $user->pending_photo_inventory = null;
+            $user->save();
+        }
+
+        return response()->json(['success' => true, 'message' => 'Perubahan foto inventory ditolak.']);
     }
 }
