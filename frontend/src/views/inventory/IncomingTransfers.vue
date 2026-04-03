@@ -194,6 +194,24 @@ function formatDate(dateString) {
     });
 }
 
+function formatCondition(condition) {
+    if (!condition) return '';
+    const map = {
+        'new': 'Baru',
+        'second': 'Second',
+        'ex_ibox': 'Ex iBox',
+        'refurbished': 'Refurbished'
+    };
+    return map[condition.toLowerCase()] || condition;
+}
+
+function formatStorage(storage) {
+    if (!storage) return '';
+    // Ensure GB or TB suffix if missing and it's a number-like
+    if (/^\d+$/.test(storage)) return storage + 'GB';
+    return storage;
+}
+
 onMounted(() => {
     fetchPending();
     fetchInventoryAccounts();
@@ -362,8 +380,14 @@ onMounted(() => {
                                             class="text-white" />
                                     </div>
                                     <div>
-                                        <p class="font-bold text-sm text-text-primary">{{ item.product?.name }}</p>
-                                        <p class="text-xs font-mono text-text-secondary">{{ item.imei }}</p>
+                                        <p class="font-bold text-sm text-text-primary uppercase">
+                                            {{ item.product?.name }} 
+                                            <span v-if="item.storage" class="text-blue-500">• {{ formatStorage(item.storage) }}</span>
+                                            <span v-if="item.condition" class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">
+                                                {{ formatCondition(item.condition) }}
+                                            </span>
+                                        </p>
+                                        <p class="text-xs font-mono text-text-secondary mt-0.5 tracking-tighter">{{ item.imei }}</p>
                                     </div>
                                 </div>
                                 <span class="text-xs font-bold"
