@@ -614,8 +614,8 @@ onMounted(() => {
 <style scoped>
 @reference "../../style.css";
 
-.modal-backdrop { @apply fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md animate-in duration-300; }
-.modal-content { @apply bg-surface-850 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl animate-in overflow-hidden; }
+.modal-backdrop { @apply fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md; animation: var(--animate-fade-in); animation-duration: 300ms; }
+.modal-content { @apply bg-surface-850 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl overflow-hidden; animation: var(--animate-fade-in); }
 .modal-header { @apply px-8 py-8 border-b border-surface-700 flex justify-between items-start; }
 .close-btn { @apply p-3 bg-surface-700 hover:bg-surface-600 rounded-2xl text-text-secondary hover:text-white transition-all active:scale-90; }
 .modal-body { @apply p-6 sm:p-12 overflow-y-auto flex-1 custom-scrollbar; }
