@@ -10,14 +10,11 @@ cd ~/apex-pos/apex-frontend || exit
 echo "📥 Menarik kode terbaru dari GitHub..."
 git pull origin main
 
-# 3. Backend: Jalankan migrasi database & bersihkan cache
+# 3. Backend: Jalankan migrasi database & bersihkan cache (Via Docker)
 echo "🛠️ Menjalankan migrasi database..."
-cd backend
-php artisan migrate --force
-php artisan optimize:clear
-php artisan route:clear
-php artisan cache:clear
-cd ..
+docker exec apex-api-local php artisan migrate --force
+docker exec apex-api-local php artisan optimize:clear
+docker exec apex-api-local php artisan cache:clear
 
 # 4. Frontend: Rakit (Build) project
 echo "🎨 Sedang merakit (Build) project Vue..."
