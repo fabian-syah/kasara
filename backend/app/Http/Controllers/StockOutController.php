@@ -1031,7 +1031,9 @@ class StockOutController extends Controller
     {
         $request->validate([
             'items' => 'nullable|array', // List of Accepted Item IDs (HP)
+            'items_rejection' => 'nullable|array', // { itemId: note }
             'non_hp_items' => 'nullable|array', // List of Accepted Quantities
+            'non_hp_rejection_notes' => 'nullable|array', // { nonHpItemId: note }
             'inventory_user_id' => 'sometimes|nullable|exists:users,id',
             'transaction_pin' => 'nullable|string|size:4'
         ]);
@@ -1082,10 +1084,22 @@ class StockOutController extends Controller
 
             // 1. Process HP Items
             $acceptedItemIds = $request->items ?? [];
+            $rejectionNotes = $request->items_rejection ?? [];
             foreach ($stockOut->items as $item) {
-                if (in_array($item->id, $acceptedItemIds)) {
+                $status = in_array($item->id, $acceptedItemIds) ? 'confirmed' : 'rejected';
+                $notes = $rejectionNotes[$item->id] ?? null;
+
+                // Update Pivot
+                DB::table('stock_out_items')
+                    ->where('stock_out_id', $stockOut->id)
+                    ->where('product_detail_id', $item->id)
+                    ->update([
+                        'status' => $status,
+                        'notes' => $notes
+                    ]);
+
+                if ($status === 'confirmed') {
                     // Accepted: Status Available, Placement Updated to Receiver's Location
-                    // This ensures even if 'store' logic missed placement update, 'confirm' fixes it.
                     $item->update([
                         'status' => 'available',
                         'user_id' => $confirmingUserId,
@@ -1094,36 +1108,35 @@ class StockOutController extends Controller
                     ]);
                 } else {
                     // Rejected: Set to 'returning' status (OTW back)
-                    // The original sender must confirm receiving it back in 'Gagal Kirim' menu.
                     $item->update(['status' => 'returning']);
                 }
             }
 
             // 2. Process Non-HP Items
             if ($request->non_hp_items) {
-                foreach ($request->non_hp_items as $submittedItem) {
-                    $record = StockOutNonHpItem::where('stock_out_id', $stockOut->id)
-                        ->where('product_id', $submittedItem['product_id'])
-                        ->first();
+                $nonHpRejectionNotes = $request->non_hp_rejection_notes ?? [];
+                foreach ($request->non_hp_items as $itemId => $acceptedQty) {
+                    // $itemId is the ID of stock_out_non_hp_items record
+                    $record = StockOutNonHpItem::find($itemId);
 
-                    if ($record) {
-                        $acceptedQty = $submittedItem['received_quantity'];
-                        $record->update(['received_quantity' => $acceptedQty]);
+                    if ($record && $record->stock_out_id == $stockOut->id) {
+                        $record->update([
+                            'received_quantity' => $acceptedQty,
+                            'notes' => $nonHpRejectionNotes[$itemId] ?? null
+                        ]);
 
                         // Add to Inventory at Destination
-                        // Used $destUser calculated above
-
                         $locationField = $destUser->branch_id ? 'branch_id' : ($destUser->warehouse_id ? 'warehouse_id' : 'online_shop_id');
                         $locationId = $destUser->branch_id ?? $destUser->warehouse_id ?? $destUser->online_shop_id;
-                        $placementType = $destPlacementType; // Use calculated type
+                        $placementType = $destPlacementType;
 
                         if ($acceptedQty > 0) {
                             $inventory = Inventory::firstOrCreate(
                                 [
-                                    'product_id' => $submittedItem['product_id'],
+                                    'product_id' => $record->product_id,
                                     'placement_type' => $placementType,
                                     'placement_id' => $locationId,
-                                    'user_id' => $confirmingUserId, // Separate inventory by user
+                                    'user_id' => $confirmingUserId,
                                 ],
                                 ['quantity' => 0]
                             );
@@ -1131,7 +1144,7 @@ class StockOutController extends Controller
 
                             // Log In
                             InventoryLog::create([
-                                'product_id' => $submittedItem['product_id'],
+                                'product_id' => $record->product_id,
                                 'type' => 'in',
                                 'quantity' => $acceptedQty,
                                 'balance_after' => $inventory->quantity,
@@ -1144,17 +1157,16 @@ class StockOutController extends Controller
                         // Handle Rejection (Return remainder to sender)
                         $rejectedQty = $record->quantity - $acceptedQty;
                         if ($rejectedQty > 0) {
-                            // Need to find sender's inventory and increment.
-                            $sender = $stockOut->user; // Creator
-                            // Use Sender's ID for user_id to return ownership
+                            $record->update(['returned_quantity' => $rejectedQty]);
+                            
+                            $sender = $stockOut->user;
                             $senderUserId = $sender->id;
-
                             $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id;
                             $senderType = $sender->branch_id ? 'branch' : ($sender->warehouse_id ? 'warehouse' : 'online_shop');
 
                             $senderInv = Inventory::firstOrCreate(
                                 [
-                                    'product_id' => $submittedItem['product_id'],
+                                    'product_id' => $record->product_id,
                                     'placement_type' => $senderType,
                                     'placement_id' => $senderLocationId,
                                     'user_id' => $senderUserId
@@ -1162,25 +1174,19 @@ class StockOutController extends Controller
                                 ['quantity' => 0]
                             );
                             $senderInv->increment('quantity', $rejectedQty);
-
-                            // Optional: Log Rejection/Return?
                         }
                     }
                 }
             }
 
             // Determine Final Status
-            // Check if ANY item was accepted
             $totalAccepted = count($acceptedItemIds);
-
             if ($request->non_hp_items) {
-                foreach ($request->non_hp_items as $submittedItem) {
-                    $totalAccepted += ($submittedItem['received_quantity'] ?? 0);
+                foreach ($request->non_hp_items as $qty) {
+                    $totalAccepted += $qty;
                 }
             }
 
-            // If nothing accepted -> Rejected
-            // Else -> Received (Partially or Fully)
             $finalStatus = ($totalAccepted > 0) ? 'received' : 'rejected';
 
             $stockOut->update([

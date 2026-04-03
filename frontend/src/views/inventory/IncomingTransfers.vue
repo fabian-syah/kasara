@@ -41,6 +41,8 @@ const form = ref({
 
 const showPinModal = ref(false);
 const pinCallback = ref(null);
+const rejectionNotes = ref({}); // { itemId: string }
+const nonHpRejectionNotes = ref({}); // { itemId: string }
 
 function handleVerifyPin(callback) {
     pinCallback.value = callback;
@@ -99,11 +101,7 @@ async function fetchPending() {
 function openConfirmModal(transfer) {
     selectedTransfer.value = transfer;
 
-    // Reset selection if not set (or keep previous selection for convenience, but better reset/default)
-    if (inventoryAccounts.value.length > 0 && !selectedInventoryAccount.value) {
-        selectedInventoryAccount.value = inventoryAccounts.value[0].id;
-    }
-    // Reset selection if not set (or keep previous selection for convenience, but better reset/default)
+    // Reset selection if not set
     if (inventoryAccounts.value.length > 0 && !selectedInventoryAccount.value) {
         selectedInventoryAccount.value = inventoryAccounts.value[0].id;
     }
@@ -123,7 +121,9 @@ function openConfirmModal(transfer) {
 
     form.value = {
         accepted_items: accepted,
-        non_hp_quantities: quantities
+        non_hp_quantities: quantities,
+        items_rejection: {},
+        non_hp_rejection_notes: {}
     };
 
     showModal.value = true;
@@ -153,7 +153,9 @@ async function submitConfirmation(verifiedPin = null) {
     try {
         const payload = {
             items: form.value.accepted_items,
+            items_rejection: form.value.items_rejection,
             non_hp_items: form.value.non_hp_quantities,
+            non_hp_rejection_notes: form.value.non_hp_rejection_notes,
             inventory_user_id: selectedInventoryAccount.value,
             transaction_pin: pin
         };
@@ -378,33 +380,54 @@ onMounted(() => {
                                     ? 'bg-blue-500/10 border-blue-500/50'
                                     : 'bg-surface-700/50 border-transparent opacity-60 hover:opacity-100'"
                                 @click="toggleHpItem(item.id)">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                                        :class="form.accepted_items.includes(item.id) ? 'border-blue-500 bg-blue-500' : 'border-text-secondary'">
-                                        <CheckCircle2 v-if="form.accepted_items.includes(item.id)" :size="14"
-                                            class="text-white" />
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                                                :class="form.accepted_items.includes(item.id) ? 'border-blue-500 bg-blue-500' : 'border-text-secondary'">
+                                                <CheckCircle2 v-if="form.accepted_items.includes(item.id)" :size="14"
+                                                    class="text-white" />
+                                            </div>
+                                            <div>
+                                                <p
+                                                    class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-x-1">
+                                                    <span
+                                                        v-if="item.product?.brand_relation?.name || item.product?.brandRelation?.name"
+                                                        class="text-text-primary">
+                                                        {{ item.product?.brand_relation?.name ||
+                                                            item.product?.brandRelation?.name }}
+                                                    </span>
+                                                    <span v-else-if="item.product?.brand" class="text-text-primary">
+                                                        {{ item.product.brand }}
+                                                    </span>
+                                                    <span>{{ item.product?.name }}</span>
+                                                    <span v-if="item.storage || item.ram"
+                                                        class="text-blue-500 font-black ml-1">• {{ formatCapacity(item.ram,
+                                                            item.storage) }}</span>
+                                                    <span v-if="item.condition"
+                                                        class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">
+                                                        {{ formatCondition(item.condition) }}
+                                                    </span>
+                                                </p>
+                                                <p class="text-xs font-mono text-text-secondary mt-0.5 tracking-tighter">
+                                                    {{ item.imei }}</p>
+                                            </div>
+                                        </div>
+                                        <span class="text-xs font-bold"
+                                            :class="form.accepted_items.includes(item.id) ? 'text-blue-400' : 'text-red-400'">
+                                            {{ form.accepted_items.includes(item.id) ? 'DITERIMA' : 'DITOLAK' }}
+                                        </span>
                                     </div>
-                                    <div>
-                                        <p class="font-bold text-sm text-text-primary uppercase flex items-center flex-wrap gap-x-1">
-                                            <span v-if="item.product?.brand_relation?.name || item.product?.brandRelation?.name" class="text-text-primary">
-                                                {{ item.product?.brand_relation?.name || item.product?.brandRelation?.name }}
-                                            </span>
-                                            <span v-else-if="item.product?.brand" class="text-text-primary">
-                                                {{ item.product.brand }}
-                                            </span>
-                                            <span>{{ item.product?.name }}</span>
-                                            <span v-if="item.storage || item.ram" class="text-blue-500 font-black ml-1">• {{ formatCapacity(item.ram, item.storage) }}</span>
-                                            <span v-if="item.condition" class="text-text-secondary font-medium text-[10px] ml-2 px-1.5 py-0.5 bg-surface-100 dark:bg-white/10 rounded-md uppercase tracking-wider">
-                                                {{ formatCondition(item.condition) }}
-                                            </span>
-                                        </p>
-                                        <p class="text-xs font-mono text-text-secondary mt-0.5 tracking-tighter">{{ item.imei }}</p>
+
+                                    <!-- Rejection Note for HP -->
+                                    <div v-if="!form.accepted_items.includes(item.id)"
+                                        class="mt-2 animate-in zoom-in duration-200" @click.stop>
+                                        <textarea v-model="form.items_rejection[item.id]"
+                                            placeholder="Alasan penolakan..."
+                                            class="w-full bg-surface-800/80 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 transition-all min-h-[60px]"
+                                            rows="2"></textarea>
                                     </div>
                                 </div>
-                                <span class="text-xs font-bold"
-                                    :class="form.accepted_items.includes(item.id) ? 'text-blue-400' : 'text-red-400'">
-                                    {{ form.accepted_items.includes(item.id) ? 'DITERIMA' : 'DITOLAK' }}
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -427,11 +450,19 @@ onMounted(() => {
                                         class="input w-24 text-center py-1 px-2" min="0" :max="item.quantity" />
                                     <span class="text-xs text-text-secondary">Unit</span>
                                 </div>
-                                <p v-if="form.non_hp_quantities[item.id] < item.quantity"
-                                    class="text-xs text-red-400 mt-2 flex items-center gap-1">
-                                    <AlertTriangle :size="12" />
-                                    {{ item.quantity - form.non_hp_quantities[item.id] }} unit akan dikembalikan
-                                </p>
+
+                                <!-- Rejection Note for Non-HP -->
+                                <div v-if="form.non_hp_quantities[item.id] < item.quantity"
+                                    class="mt-3 animate-in fade-in duration-300">
+                                    <p class="text-[10px] text-red-400 mb-1.5 flex items-center gap-1 font-bold uppercase tracking-wider">
+                                        <AlertTriangle :size="10" />
+                                        {{ item.quantity - form.non_hp_quantities[item.id] }} unit akan dikembalikan
+                                    </p>
+                                    <textarea v-model="form.non_hp_rejection_notes[item.id]"
+                                        placeholder="Alasan penolakan unit..."
+                                        class="w-full bg-surface-800/80 border border-red-500/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 transition-all"
+                                        rows="2"></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>

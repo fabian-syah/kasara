@@ -53,9 +53,19 @@ const confirmReturn = async (transfer) => {
 }
 
 const formatCapacity = (ram, storage) => {
-    if (!ram && !storage) return ''
-    if (ram && storage) return `${ram}/${storage}`
+    if (!ram && !storage) return 'N/A'
+    if (ram && storage) {
+        if (ram === storage) return ram
+        return `${ram}/${storage}`
+    }
     return ram || storage
+}
+
+const formatCondition = (condition) => {
+    if (!condition) return ''
+    if (condition.toLowerCase() === 'second') return 'Second'
+    if (condition.toLowerCase() === 'new') return 'New'
+    return condition
 }
 
 const getBrandName = (item) => {
@@ -153,37 +163,83 @@ onMounted(() => {
                 </div>
 
                 <!-- Item List -->
-                <div class="p-6">
-                    <h4 class="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">Daftar Barang (OTW Kembali)</h4>
-                    <div class="space-y-3">
-                        <div 
-                            v-for="item in transfer.items.filter(i => i.status === 'returning')"
-                            :key="item.id"
-                            class="flex items-center justify-between p-4 bg-surface-900/50 rounded-2xl border border-dashed border-surface-700 group-hover:border-danger/30 transition-colors"
-                        >
-                            <div class="flex items-center gap-4">
-                                <div class="p-2 bg-surface-800 rounded-xl border border-surface-700 shadow-sm">
-                                    <Smartphone class="w-5 h-5 text-primary-500" />
-                                </div>
-                                <div>
-                                    <h5 class="font-bold text-text-primary">
-                                        <span class="text-primary-500 mr-1">[{{ getBrandName(item) }}]</span>
-                                        {{ item.product?.model_name }}
-                                    </h5>
-                                    <div class="flex flex-wrap items-center gap-2 mt-1">
-                                        <span class="text-xs font-medium text-text-secondary bg-surface-700 px-2 py-0.5 rounded-md">
-                                            {{ formatCapacity(item.product?.ram, item.product?.storage) }}
-                                        </span>
-                                        <span class="text-xs font-medium text-text-secondary bg-surface-700 px-2 py-0.5 rounded-md">
-                                            {{ item.condition }}
-                                        </span>
-                                        <span class="text-xs font-bold text-text-secondary font-mono tracking-tighter opacity-70 ml-1">
-                                            {{ item.imei }}
-                                        </span>
+                <div class="p-6 space-y-6">
+                    <!-- HP Items -->
+                    <div v-if="transfer.items && transfer.items.filter(i => i.pivot?.status === 'rejected' || i.status === 'returning').length > 0">
+                        <h4 class="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Smartphone :size="14" /> Unit HP (OTW Kembali)
+                        </h4>
+                        <div class="space-y-3">
+                            <div 
+                                v-for="item in transfer.items.filter(i => i.pivot?.status === 'rejected' || i.status === 'returning')"
+                                :key="item.id"
+                                class="p-4 bg-surface-900/50 rounded-2xl border border-dashed border-surface-700 group-hover:border-danger/30 transition-colors"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-4">
+                                        <div class="p-2 bg-surface-800 rounded-xl border border-surface-700 shadow-sm">
+                                            <Smartphone class="w-5 h-5 text-primary-500" />
+                                        </div>
+                                        <div>
+                                            <h5 class="font-bold text-text-primary">
+                                                <span class="text-primary-500 mr-1">[{{ getBrandName(item) }}]</span>
+                                                {{ item.product?.name || item.product?.model_name }}
+                                            </h5>
+                                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                                <span class="text-xs font-medium text-text-secondary bg-surface-700 px-2 py-0.5 rounded-md">
+                                                    {{ formatCapacity(item.ram, item.storage) }}
+                                                </span>
+                                                <span class="text-xs font-medium text-text-secondary bg-surface-700 px-2 py-0.5 rounded-md">
+                                                    {{ formatCondition(item.condition) }}
+                                                </span>
+                                                <span class="text-xs font-bold text-text-secondary font-mono tracking-tighter opacity-70 ml-1">
+                                                    {{ item.imei }}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
+                                    <Truck class="w-5 h-5 text-danger opacity-20 hidden sm:block" />
+                                </div>
+                                <!-- Rejection Note -->
+                                <div v-if="item.pivot?.notes" class="mt-3 bg-danger/5 border border-danger/10 p-3 rounded-xl">
+                                    <p class="text-[10px] font-bold text-danger uppercase tracking-wider mb-1">Alasan Penolakan:</p>
+                                    <p class="text-xs text-text-primary italic">"{{ item.pivot.notes }}"</p>
                                 </div>
                             </div>
-                            <Truck class="w-5 h-5 text-danger opacity-20 hidden sm:block" />
+                        </div>
+                    </div>
+
+                    <!-- Non-HP Items -->
+                    <div v-if="transfer.non_hp_items && transfer.non_hp_items.filter(i => i.returned_quantity > 0).length > 0">
+                        <h4 class="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Box :size="14" /> Barang Non-HP (OTW Kembali)
+                        </h4>
+                        <div class="space-y-3">
+                            <div 
+                                v-for="item in transfer.non_hp_items.filter(i => i.returned_quantity > 0)"
+                                :key="item.id"
+                                class="p-4 bg-surface-900/50 rounded-2xl border border-dashed border-surface-700 group-hover:border-danger/30 transition-colors"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-4">
+                                        <div class="p-2 bg-surface-800 rounded-xl border border-surface-700 shadow-sm">
+                                            <Box class="w-5 h-5 text-orange-500" />
+                                        </div>
+                                        <div>
+                                            <h5 class="font-bold text-text-primary">{{ item.product?.name }}</h5>
+                                            <p class="text-xs text-text-secondary mt-1">
+                                                Ditolak: <span class="text-danger font-bold">{{ item.returned_quantity }}</span> Unit
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Truck class="w-5 h-5 text-danger opacity-20 hidden sm:block" />
+                                </div>
+                                <!-- Rejection Note -->
+                                <div v-if="item.notes" class="mt-3 bg-danger/5 border border-danger/10 p-3 rounded-xl">
+                                    <p class="text-[10px] font-bold text-danger uppercase tracking-wider mb-1">Alasan Penolakan:</p>
+                                    <p class="text-xs text-text-primary italic">"{{ item.notes }}"</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
