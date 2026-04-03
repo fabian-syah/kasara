@@ -268,6 +268,16 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $currentUser = $request->user();
 
+        // FORCED DEBUG LOG TO /tmp/
+        $debugInfo = "[" . date('Y-m-d H:i:s') . "] --- UPDATE START ID: $id ---\n";
+        $debugInfo .= "Has Photo: " . ($request->hasFile('photo') ? 'YES' : 'NO') . "\n";
+        if ($request->hasFile('photo')) {
+            $debugInfo .= "Photo Name: " . $request->file('photo')->getClientOriginalName() . "\n";
+            $debugInfo .= "Photo Size: " . $request->file('photo')->getSize() . " bytes\n";
+            $debugInfo .= "Photo Error Status: " . $request->file('photo')->getError() . "\n";
+        }
+        $debugInfo .= "Request Headers: " . json_encode($request->headers->all()) . "\n";
+
         // Audit role restriction on update
         if ($currentUser->hasRole('audit')) {
             $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
@@ -291,39 +301,46 @@ class UserController extends Controller
             }
         }
 
+        $photoStatus = "No photo detected";
+        $savedPath = null;
 
         if ($request->hasFile('photo')) {
+            $photoStatus = "Photo detected, processing...";
             $path = $request->file('photo')->store('profile-photos', 'public');
+            $savedPath = $path;
             
             // Logic: Jika sudah ada foto, kirim ke pending dulu. 
             if ($user->photo || $user->photo_inventory) {
-                $user->pending_photo = $path;
+                $photoStatus = "Direct DB Write to PENDING columns";
                 
-                // Jika ini akun inventory, masukkan juga ke pending_photo_inventory agar muncul di Audit filter inventory
-                if ($user->hasAnyRole(['toko_offline', 'toko_online', 'admin_produk'])) {
-                    $user->pending_photo_inventory = $path;
-                }
-                
-                // DEBUG LOG
-                \Illuminate\Support\Facades\Log::info("Saving pending photo for user: " . $user->id, [
-                    'path' => $path,
-                    'is_inventory' => $user->hasAnyRole(['toko_offline', 'toko_online', 'admin_produk'])
+                // Nuclear Option: Force direct DB update to bypass any model/trait interference
+                \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update([
+                    'pending_photo' => $path,
+                    'pending_photo_inventory' => $path
                 ]);
                 
-                // Jangan masukkan ke $validated agar tidak menimpa foto asli di $user->update()
+                // Update in-memory for the response
+                $user->pending_photo = $path;
+                $user->pending_photo_inventory = $path;
+                
                 unset($validated['photo']);
             } else {
-                $user->photo = $path;
-                $user->photo_inventory = $path;
+                $photoStatus = "Direct DB Write to LIVE columns";
+                $validated['photo'] = $path;
+                $validated['photo_inventory'] = $path;
                 
-                \Illuminate\Support\Facades\Log::info("Setting immediate photo for user: " . $user->id, ['path' => $path]);
-                
-                unset($validated['photo']);
+                \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update([
+                    'photo' => $path,
+                    'photo_inventory' => $path
+                ]);
             }
         }
 
+        $debugInfo .= "End Status: $photoStatus | Saved Path: $savedPath\n";
+        file_put_contents('/tmp/apex_debug.log', $debugInfo, FILE_APPEND);
+
         if ($request->filled('password')) {
-            $validated['password'] = Hash::make($request->password);
+            $validated['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
         } else {
             unset($validated['password']);
         }
@@ -333,13 +350,12 @@ class UserController extends Controller
         }
 
         if ($request->filled('transaction_pin')) {
-            $validated['transaction_pin'] = Hash::make($request->transaction_pin);
+            $validated['transaction_pin'] = \Illuminate\Support\Facades\Hash::make($request->transaction_pin);
             $validated['pin_reset_requested_at'] = null;
             $validated['pin_enabled'] = true;
         }
 
-        $user->fill($validated);
-        $user->save();
+        $user->update($validated);
 
         if (isset($validated['role'])) {
             $user->syncRoles([$validated['role']]);
@@ -355,23 +371,23 @@ class UserController extends Controller
             $user->placements()->delete();
             $placements = [];
             if ($request->selected_branches && is_array($request->selected_branches)) {
-                foreach ($request->selected_branches as $id) {
-                    $placements[] = ['model_type' => 'branch', 'model_id' => $id];
+                foreach ($request->selected_branches as $branchId) {
+                    $placements[] = ['model_type' => 'branch', 'model_id' => $branchId];
                 }
             }
             if ($request->selected_online_shops && is_array($request->selected_online_shops)) {
-                foreach ($request->selected_online_shops as $id) {
-                    $placements[] = ['model_type' => 'online_shop', 'model_id' => $id];
+                foreach ($request->selected_online_shops as $osId) {
+                    $placements[] = ['model_type' => 'online_shop', 'model_id' => $osId];
                 }
             }
             if ($request->selected_warehouses && is_array($request->selected_warehouses)) {
-                foreach ($request->selected_warehouses as $id) {
-                    $placements[] = ['model_type' => 'warehouse', 'model_id' => $id];
+                foreach ($request->selected_warehouses as $whId) {
+                    $placements[] = ['model_type' => 'warehouse', 'model_id' => $whId];
                 }
             }
             if ($request->selected_distributors && is_array($request->selected_distributors)) {
-                foreach ($request->selected_distributors as $id) {
-                    $placements[] = ['model_type' => 'distributor', 'model_id' => $id];
+                foreach ($request->selected_distributors as $distId) {
+                    $placements[] = ['model_type' => 'distributor', 'model_id' => $distId];
                 }
             }
             if (!empty($placements)) {
@@ -379,7 +395,16 @@ class UserController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements')]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui.',
+            'debug' => [
+                'has_photo_file' => $request->hasFile('photo'),
+                'photo_status' => $photoStatus,
+                'db_status' => 'Checked ID: ' . $id
+            ],
+            'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements')
+        ]);
     }
 
     public function destroy(User $user)
