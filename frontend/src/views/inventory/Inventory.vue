@@ -895,10 +895,7 @@ async function exportInventory() {
           <ArrowDownUp :size="16" />
           <span class="hidden sm:inline">Riwayat Keluar</span>
         </button>
-        <button class="btn btn-secondary" @click="router.push({ name: 'StockOpname' })" title="Stock Opname">
-          <Archive :size="16" />
-          <span class="hidden sm:inline">Stock Opname</span>
-        </button>
+
         <button class="btn btn-secondary" @click="router.push({ name: 'outgoing_transfer_history' })"
           title="Riwayat Transfer Keluar (Pindah Cabang)">
           <Truck :size="16" />

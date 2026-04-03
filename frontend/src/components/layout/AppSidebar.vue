@@ -111,6 +111,7 @@ const menuItems = [
         icon: Box,
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
+            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
         ]
     },
