@@ -652,11 +652,15 @@ router.beforeEach(async (to, from, next) => {
         // Super admin has all permissions (legacy check)
         if (!userPermissions.includes('*')) {
             const hasPermission = to.meta.permissions.some(perm =>
-                userPermissions.includes(perm)
+                userPermissions.includes(perm) || authStore.userRole === perm
             )
 
             if (!hasPermission) {
-                return next({ name: authStore.userRole === 'analist' ? 'BranchRanking' : 'Dashboard' })
+                const fallbackRoute = authStore.userRole === 'analist' ? 'BranchRanking' : 'Dashboard';
+                if (to.name === fallbackRoute) {
+                    return next(false); // Abort to prevent infinite loop
+                }
+                return next({ name: fallbackRoute })
             }
         }
     }
