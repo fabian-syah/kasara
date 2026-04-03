@@ -140,11 +140,16 @@ onMounted(async () => {
     filters.value.end_date = formatDateStr(today);
     
     // Auto-set filters for specific roles
+    const isOnlineShopRole = authStore.hasRole(['online_shop', 'toko_online']) || authStore.user?.online_shop_id;
     if (authStore.user?.online_shop_id) {
         filters.value.online_shop_id = authStore.user.online_shop_id;
     }
-    // Only auto-set branch_id if NOT an online shop (to avoid filtering out team members in other branches)
-    if (authStore.user?.branch_id && !authStore.user?.online_shop_id) {
+    
+    if (isOnlineShopRole) {
+        // Explicitly set branch_id to empty to avoid backend branch-locking for shop roles
+        filters.value.branch_id = '';
+    } else if (authStore.user?.branch_id) {
+        // Only auto-set branch_id if NOT an online shop
         filters.value.branch_id = authStore.user.branch_id;
     }
 
@@ -152,6 +157,12 @@ onMounted(async () => {
         fetchFilters(),
         fetchUsers()
     ]);
+
+    // Fallback: If online shop role but no ID set explicitly, use the first available from options
+    if (isOnlineShopRole && !filters.value.online_shop_id && filterOptions.value.online_shops?.length > 0) {
+        filters.value.online_shop_id = filterOptions.value.online_shops[0].id;
+    }
+
     fetchReport();
 });
 
