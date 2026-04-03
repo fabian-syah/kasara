@@ -282,7 +282,7 @@ onMounted(() => {
                                     class="flex items-center justify-between p-3 rounded-xl border border-surface-700 bg-surface-800/30">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded flex items-center justify-center bg-surface-700 text-text-secondary">
-                                            < Smartphone :size="14" />
+                                            <Smartphone :size="14" />
                                         </div>
                                         <div>
                                             <p class="font-bold text-xs text-text-primary uppercase">
