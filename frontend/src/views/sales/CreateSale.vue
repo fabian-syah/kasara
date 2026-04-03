@@ -84,11 +84,27 @@ const isDataLoaded = ref(false);
 
 async function refreshAccounts() {
     try {
-        const res = await api.get('/inventory/my-accounts');
-        const rawAccounts = res.data.data || res.data;
-        salesAccounts.value = rawAccounts.filter(acc =>
+        const [accRes, usersRes] = await Promise.all([
+            api.get('/inventory/my-accounts'),
+            api.get('/users', { params: { role: 'inventory' } })
+        ]);
+        
+        const rawAccounts = accRes.data.data || accRes.data;
+        const allInventoryUsers = usersRes.data.data || usersRes.data || [];
+        
+        const filtered = rawAccounts.filter(acc =>
             acc.roles && acc.roles.some(r => r.name === 'inventory')
         );
+
+        // Merge photo data from /users list
+        salesAccounts.value = filtered.map(acc => {
+            const fullUser = allInventoryUsers.find(u => u.id === acc.id || u.name === acc.name);
+            return {
+                ...acc,
+                photo: fullUser?.photo || acc.photo,
+                photo_inventory: fullUser?.photo_inventory || acc.photo_inventory
+            };
+        });
     } catch (e) {
         console.error("Gagal refresh akun", e);
     }
@@ -164,16 +180,28 @@ async function fetchHeavyData() {
 onMounted(async () => {
     try {
         // Phase 1: Essential data for Step 1
-        const [accountsRes, userRes] = await Promise.all([
+        const [accountsRes, usersRes, userRes] = await Promise.all([
             api.get('/inventory/my-accounts'),
+            api.get('/users', { params: { role: 'inventory' } }),
             api.get('/user')
         ]);
 
-        // Process accounts
+        // Process accounts with merged user data for photos
         const rawAccounts = accountsRes.data.data || accountsRes.data;
-        salesAccounts.value = rawAccounts.filter(acc =>
+        const allInventoryUsers = usersRes.data.data || usersRes.data || [];
+        
+        const filtered = rawAccounts.filter(acc =>
             acc.roles && acc.roles.some(r => r.name === 'inventory')
         );
+
+        salesAccounts.value = filtered.map(acc => {
+            const fullUser = allInventoryUsers.find(u => u.id === acc.id || u.name === acc.name);
+            return {
+                ...acc,
+                photo: fullUser?.photo || acc.photo,
+                photo_inventory: fullUser?.photo_inventory || acc.photo_inventory
+            };
+        });
 
         // Auto-select user account
         const userData = userRes.data.data || userRes.data;
