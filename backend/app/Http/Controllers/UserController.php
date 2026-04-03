@@ -263,8 +263,9 @@ class UserController extends Controller
         return response()->json(['success' => true, 'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor')]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, $id)
     {
+        $user = User::findOrFail($id);
         $currentUser = $request->user();
 
         // Audit role restriction on update
@@ -274,7 +275,6 @@ class UserController extends Controller
                 return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah role ke role ini.'], 403);
             }
 
-            // Also block editing users that have forbidden roles
             if ($user->hasAnyRole($forbiddenRoles)) {
                 return response()->json(['message' => 'Anda tidak memiliki izin untuk mengedit user ini.'], 403);
             }
@@ -293,28 +293,24 @@ class UserController extends Controller
             'address' => 'sometimes|nullable|string',
             'phone' => 'sometimes|nullable|string|max:20',
             'birth_date' => 'sometimes|nullable|date',
-            'is_active' => 'sometimes|boolean',
+            'is_active' => 'sometimes',
             'transaction_pin' => 'sometimes|nullable|string|size:4',
-            'photo' => 'sometimes|nullable|image|max:3072', // Increased to 3MB just in case
-            'photo_inventory' => 'sometimes|nullable|image|max:3072',
+            'photo' => 'sometimes|nullable|file|max:10240', // Relaxed from image to file to handle no-extension files
+            'photo_inventory' => 'sometimes|nullable|file|max:10240',
         ]);
-
-        // Logic to clear other placements if one is selected? 
-        // For now trusting frontend to send nulls for others, or we explicitly nullify others?
-        // Let's rely on payload.
 
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('profile-photos', 'public');
             
             // Logic: Jika sudah ada foto, kirim ke pending dulu. 
-            // Jika belum ada foto, boleh langsung upload (sesuai permintaan sebelumnya).
             if ($user->photo) {
-                $validated['pending_photo'] = $path;
-                // Jangan timpa foto asli sampai disetujui
-                if (isset($validated['photo'])) unset($validated['photo']);
+                $user->pending_photo = $path;
+                // Jangan masukkan ke $validated agar tidak menimpa foto asli di $user->update()
+                unset($validated['photo']);
             } else {
-                $validated['photo'] = $path;
-                $validated['photo_inventory'] = $path;
+                $user->photo = $path;
+                $user->photo_inventory = $path;
+                unset($validated['photo']);
             }
         }
 
@@ -324,7 +320,6 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
-        // Sync name with full_name
         if (isset($validated['full_name'])) {
             $validated['name'] = $validated['full_name'];
         }
@@ -332,10 +327,11 @@ class UserController extends Controller
         if ($request->filled('transaction_pin')) {
             $validated['transaction_pin'] = Hash::make($request->transaction_pin);
             $validated['pin_reset_requested_at'] = null;
-            $validated['pin_enabled'] = true; // Enable it if admin sets it
+            $validated['pin_enabled'] = true;
         }
 
-        $user->update($validated);
+        $user->fill($validated);
+        $user->save();
 
         if (isset($validated['role'])) {
             $user->syncRoles([$validated['role']]);
