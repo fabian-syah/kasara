@@ -36,7 +36,7 @@ const activeTab = ref("incoming_otw"); // incoming_otw, outgoing_otw, failed_otw
 const tabs = [
     { id: "incoming_otw", name: "Konfirmasi Masuk", icon: ArrowDownRight, color: "text-blue-500", bg: "bg-blue-500/10" },
     { id: "outgoing_otw", name: "Pantau Kiriman", icon: ArrowUpRight, color: "text-purple-500", bg: "bg-purple-500/10" },
-    { id: "failed_otw", name: "Barang Retur", icon: Truck, color: "text-red-500", bg: "bg-red-500/10" },
+    { id: "failed_otw", name: "Gagal Kirim", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
     { id: "history_in", name: "Riwayat Masuk", icon: FileText, color: "text-green-500", bg: "bg-green-500/10" },
     { id: "history_out", name: "Riwayat Keluar", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
 ];
