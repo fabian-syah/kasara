@@ -166,8 +166,8 @@ async function fetchDashboardData() {
       }));
       recentTypes.value = response.data.recent_types;
       recentPrices.value = response.data.recent_prices;
-    } else if (response.data.role === 'online_shop' || response.data.role === 'toko_offline') {
-      dashboardRole.value = response.data.role;
+    } else if (response.data.role === 'online_shop' || response.data.role === 'toko_online' || response.data.role === 'toko_offline') {
+        dashboardRole.value = response.data.role === 'toko_online' ? 'online_shop' : response.data.role;
       stats.value = response.data.stats.map(s => ({
         ...s,
         icon: resolveIcon(s.icon),
@@ -414,7 +414,7 @@ const getColorClasses = (color) => {
                   </div>
                 </td>
                 <td class="py-3 text-center">
-                  <span class="font-bold text-text-primary">{{ user.units }}</span>
+                  <span class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? 0 }}</span>
                   <span class="text-[10px] text-text-secondary ml-1">Unit</span>
                 </td>
                 <td class="py-3 text-right">
@@ -451,7 +451,7 @@ const getColorClasses = (color) => {
               </div>
             </div>
             <div class="text-right shrink-0">
-              <p class="font-bold text-text-primary">{{ user.units }}</p>
+              <p class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? 0 }}</p>
               <p class="text-[10px] text-text-secondary">Unit</p>
             </div>
           </div>
