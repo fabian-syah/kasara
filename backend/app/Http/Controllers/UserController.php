@@ -289,10 +289,11 @@ class UserController extends Controller
             'warehouse_id' => 'nullable|exists:warehouses,id',
             'online_shop_id' => 'nullable|exists:online_shops,id',
             'distributor_id' => 'nullable|exists:distributors,id',
-            'address' => 'nullable|string',
             'birth_date' => 'nullable|date',
             'is_active' => 'boolean',
             'transaction_pin' => 'nullable|string|size:4',
+            'photo' => 'nullable|image|max:2048',
+            'photo_inventory' => 'nullable|image|max:2048',
         ]);
 
         // Logic to clear other placements if one is selected? 
