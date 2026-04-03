@@ -198,19 +198,25 @@ const isPhotosLoading = ref(false);
 async function fetchPendingPhotos() {
   isPhotosLoading.value = true;
   try {
-    const [userRes, invRes] = await Promise.all([
-      usersApi.listPendingPhotos(),
-      inventoryApi.listPendingPhotos()
-    ]);
+    // Fetch User pending photos - catch error individually
+    const userPhotos = await usersApi.listPendingPhotos()
+      .then(res => (res.data.data || []).map(u => ({ ...u, type: 'user' })))
+      .catch(err => {
+        console.warn("User photo endpoint error:", err.message);
+        return [];
+      });
+
+    // Fetch Inventory pending photos - catch error individually
+    const invPhotos = await inventoryApi.listPendingPhotos()
+      .then(res => (res.data.data || []).map(i => ({ ...i, type: 'inventory' })))
+      .catch(err => {
+        console.warn("Inventory photo endpoint error:", err.message);
+        return [];
+      });
     
-    // Normalize data
-    const users = (userRes.data.data || []).map(u => ({ ...u, type: 'user' }));
-    const inventory = (invRes.data.data || []).map(i => ({ ...i, type: 'inventory' }));
-    
-    pendingPhotos.value = [...users, ...inventory];
+    pendingPhotos.value = [...userPhotos, ...invPhotos];
   } catch (error) {
-    console.error("Failed to fetch pending photos", error);
-    toast.error("Gagal memuat daftar foto.");
+    console.error("General error in fetchPendingPhotos:", error);
   } finally {
     isPhotosLoading.value = false;
   }
