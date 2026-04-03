@@ -632,7 +632,12 @@ router.beforeEach(async (to, from, next) => {
 
     // Check if route is for guests only (like login)
     if (to.meta.requiresGuest && authStore.isAuthenticated) {
-        return next({ name: 'Dashboard' })
+        return next({ name: authStore.userRole === 'analist' ? 'BranchRanking' : 'Dashboard' })
+    }
+
+    // New check: prevent analist from accessing Dashboard route directly
+    if (to.name === 'Dashboard' && authStore.userRole === 'analist') {
+        return next({ name: 'BranchRanking' })
     }
 
     // Check permissions if defined
@@ -651,7 +656,7 @@ router.beforeEach(async (to, from, next) => {
             )
 
             if (!hasPermission) {
-                return next({ name: 'Dashboard' })
+                return next({ name: authStore.userRole === 'analist' ? 'BranchRanking' : 'Dashboard' })
             }
         }
     }
