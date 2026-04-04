@@ -25,7 +25,7 @@ class StockOutController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product', 'paymentMethod']);
+        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product', 'nonHpDetails.product', 'paymentMethod']);
 
         if ($request->category) {
             $query->byCategory($request->category);
@@ -86,31 +86,36 @@ class StockOutController extends Controller
 
         // For Non-HP items, we need to load product details manually since they are in JSON
         if ($request->type === 'non-hp' || !$request->type) {
-            // Collect all product IDs from non_hp_items
-            $productIds = [];
             foreach ($results->items() as $item) {
-                if ($item->non_hp_items) {
-                    foreach ($item->non_hp_items as $nonHpItem) {
-                        $productIds[] = $nonHpItem['product_id'];
+                // We combine JSON storage (legacy) and the new StockOutNonHpItem relationship
+                $enrichedItems = $item->non_hp_items ?? [];
+
+                // If relational data exists (NEW system), use it
+                if ($item->nonHpDetails && $item->nonHpDetails->count() > 0) {
+                    $itemConverted = [];
+                    foreach ($item->nonHpDetails as $detail) {
+                        $itemConverted[] = [
+                            'product_id' => $detail->product_id,
+                            'product_name' => $detail->product->name ?? 'Unknown',
+                            'product_sku' => $detail->product->sku ?? '-',
+                            'quantity' => $detail->quantity,
+                            'selling_price' => $detail->selling_price,
+                        ];
                     }
-                }
-            }
-
-            if (!empty($productIds)) {
-                $products = Product::whereIn('id', array_unique($productIds))->get()->keyBy('id');
-
-                // Attach product data to the non_hp_items
-                foreach ($results->items() as $item) {
-                    if ($item->non_hp_items) {
-                        $enrichedItems = [];
-                        foreach ($item->non_hp_items as $nonHpItem) {
+                    $item->non_hp_items = $itemConverted;
+                } else if (!empty($enrichedItems)) {
+                    // Enrich legacy JSON data
+                    $productIds = array_unique(array_column($enrichedItems, 'product_id'));
+                    $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+                    
+                    foreach ($enrichedItems as &$nonHpItem) {
+                        if (!isset($nonHpItem['product_name'])) {
                             $prod = $products[$nonHpItem['product_id']] ?? null;
-                            $nonHpItem['product_name'] = $prod ? $prod->name : 'Unknown Product';
-                            $nonHpItem['product_sku'] = $prod ? $prod->sku : '-';
-                            $enrichedItems[] = $nonHpItem;
+                            $nonHpItem['product_name'] = $prod->name ?? 'Unknown';
+                            $nonHpItem['product_sku'] = $prod->sku ?? '-';
                         }
-                        $item->non_hp_items = $enrichedItems;
                     }
+                    $item->non_hp_items = $enrichedItems;
                 }
             }
         }
