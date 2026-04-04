@@ -458,7 +458,7 @@ onMounted(() => { fetchAllInventory(); });
                     <!-- Toggle for Type View Breakdown -->
                     <div v-else-if="currentView === 'type'" class="flex flex-wrap items-center gap-3">
                         <button v-if="isHpMode" @click="showPerGb = !showPerGb; if(showPerGb) showTypeCondition = false"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showPerGb
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
@@ -466,7 +466,7 @@ onMounted(() => { fetchAllInventory(); });
                             Tampilkan per GB
                         </button>
                         <button @click="showTypeCondition = !showTypeCondition; if(showTypeCondition) showPerGb = false"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showTypeCondition
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
@@ -475,22 +475,23 @@ onMounted(() => { fetchAllInventory(); });
                         </button>
                         
                         <!-- Sort Filter -->
-                        <div class="flex items-center bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 ml-2">
+                        <div class="flex items-center bg-surface-900/50 border border-surface-700/50 rounded-xl px-4 py-2 hover:border-primary-500/50 focus-within:border-primary-500 transition-all duration-200">
                             <ListFilter class="text-text-secondary mr-2" :size="16" />
-                            <select v-model="typeSortOrder" class="bg-transparent text-xs text-text-primary focus:outline-none cursor-pointer">
-                                <option value="available">Stok Terbanyak</option>
-                                <option value="brand">Brand (A-Z)</option>
-                                <option value="name">Tipe (A-Z)</option>
+                            <select v-model="typeSortOrder" 
+                                class="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer appearance-none min-w-[120px]">
+                                <option value="available" class="bg-[#1f2937] text-white">Stok Terbanyak</option>
+                                <option value="brand" class="bg-[#1f2937] text-white">Brand (A-Z)</option>
+                                <option value="name" class="bg-[#1f2937] text-white">Tipe (A-Z)</option>
                             </select>
                         </div>
                     </div>
                     <div v-else></div>
 
                     <!-- Search -->
-                    <div class="relative w-full sm:w-72">
-                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
+                    <div class="relative w-full sm:w-80 group">
+                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors" :size="20" />
                         <input v-model="searchQuery" type="text" placeholder="Cari..."
-                            class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2.5 pl-11 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                     </div>
                 </div>
             </div>
@@ -728,14 +729,14 @@ onMounted(() => { fetchAllInventory(); });
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Fix for select options visibility in dark mode */
+select option {
+    background-color: #111827 !important; /* darker background */
+    color: #ffffff !important;
+    padding: 10px;
 }
 </style>
