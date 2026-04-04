@@ -14,10 +14,11 @@ const toast = useToast();
 const loading = ref(false);
 const rawHpItems = ref([]);
 const rawNonHpItems = ref([]);
-const searchQuery = ref('');
-const currentView = ref('menu');
 const showPerGb = ref(false);
+const showBrandType = ref(false);
+const showBrandCondition = ref(false);
 const itemMode = ref('hp'); // 'hp' or 'non-hp'
+const searchQuery = ref('');
 
 const fetchAllInventory = async () => {
     loading.value = true;
@@ -87,19 +88,52 @@ const summaryStats = computed(() => {
 });
 
 // ===== BRAND REPORT =====
+const conditionLabels = {
+    'new': 'Baru (New)',
+    'second': 'Second',
+    'ex_ibox': 'Ex-iBox',
+    'other': 'Lainnya'
+};
+
 const brandReport = computed(() => {
     const map = new Map();
     activeItems.value.forEach(item => {
         const brand = item.product?.brand || 'Lainnya';
-        if (!map.has(brand)) map.set(brand, { brand, available: 0, sold: 0, total: 0 });
+        if (!map.has(brand)) {
+            map.set(brand, { 
+                brand, 
+                available: 0, 
+                typeBreakdown: new Map(),
+                conditionBreakdown: new Map()
+            });
+        }
         const entry = map.get(brand);
         const avail = getAvailable(item);
-        const tot = getTotal(item);
-        entry.total += tot;
         entry.available += avail;
-        entry.sold += (tot - avail);
+
+        // Type Breakdown
+        const typeName = item.product?.name || 'Unknown';
+        if (!entry.typeBreakdown.has(typeName)) {
+            entry.typeBreakdown.set(typeName, { label: typeName, available: 0 });
+        }
+        entry.typeBreakdown.get(typeName).available += avail;
+
+        // Condition Breakdown
+        const condKey = item.condition || 'other';
+        const condLabel = conditionLabels[condKey] || condKey;
+        if (!entry.conditionBreakdown.has(condLabel)) {
+            entry.conditionBreakdown.set(condLabel, { label: condLabel, available: 0, condition: condKey });
+        }
+        entry.conditionBreakdown.get(condLabel).available += avail;
     });
-    return Array.from(map.values()).sort((a, b) => b.available - a.available);
+
+    return Array.from(map.values())
+        .map(e => ({ 
+            ...e, 
+            typeBreakdown: Array.from(e.typeBreakdown.values()).sort((a, b) => b.available - a.available),
+            conditionBreakdown: Array.from(e.conditionBreakdown.values()).sort((a, b) => b.available - a.available)
+        }))
+        .sort((a, b) => b.available - a.available);
 });
 
 // ===== TYPE REPORT =====
@@ -140,7 +174,8 @@ const conditionLabels = {
     'ex_ibox': 'Ex-iBox',
     'ex_inter': 'Ex-Inter',
     'refurbished': 'Refurbished',
-    'service': 'Service/Retur'
+    'service': 'Service/Retur',
+    'other': 'Lainnya'
 };
 
 const conditionReport = computed(() => {
@@ -391,6 +426,26 @@ onMounted(() => { fetchAllInventory(); });
                             Tampilkan per GB
                         </button>
                     </div>
+
+                    <!-- Toggle Brand Breakdowns -->
+                    <div v-else-if="currentView === 'brand'" class="flex items-center gap-3">
+                        <button @click="showBrandType = !showBrandType; if(showBrandType) showBrandCondition = false"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            :class="showBrandType
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Tipe
+                        </button>
+                        <button @click="showBrandCondition = !showBrandCondition; if(showBrandCondition) showBrandType = false"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            :class="showBrandCondition
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showBrandCondition ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Kondisi
+                        </button>
+                    </div>
                     <div v-else></div>
 
                     <!-- Search -->
@@ -416,22 +471,49 @@ onMounted(() => { fetchAllInventory(); });
                             <tr>
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Brand</th>
-                                <th class="px-6 py-4 text-center">Tersedia</th>
+                                <th v-if="showBrandType" class="px-6 py-4">Tipe Produk</th>
+                                <th v-if="showBrandCondition" class="px-6 py-4">Kondisi</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
-                            <tr v-for="(row, idx) in filteredBrand" :key="row.brand" class="hover:bg-surface-700/30 transition-colors">
-                                <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
-                                <td class="px-6 py-4 font-bold text-white">{{ row.brand }}</td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
-                                </td>
-                            </tr>
+                            <template v-for="(row, idx) in filteredBrand" :key="row.brand">
+                                <!-- Main Row -->
+                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showBrandType || showBrandCondition }">
+                                    <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
+                                    <td class="px-6 py-4 font-bold text-white">{{ row.brand }}</td>
+                                    <td v-if="showBrandType || showBrandCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                    </td>
+                                </tr>
+                                <!-- Type Breakdown -->
+                                <tr v-if="showBrandType" v-for="type in row.typeBreakdown" :key="type.label"
+                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5">
+                                        <span class="text-xs font-bold text-text-primary">{{ type.label }}</span>
+                                    </td>
+                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ type.available }}</td>
+                                </tr>
+                                <!-- Condition Breakdown -->
+                                <tr v-if="showBrandCondition" v-for="cond in row.conditionBreakdown" :key="cond.label"
+                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5">
+                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(cond.condition)">
+                                            {{ cond.label }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ cond.available }}</td>
+                                </tr>
+                            </template>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" colspan="2">TOTAL</td>
+                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="showBrandType || showBrandCondition ? 3 : 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredBrand.reduce((s, r) => s + r.available, 0) }}</td>
                             </tr>
                         </tfoot>
