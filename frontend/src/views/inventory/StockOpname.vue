@@ -493,15 +493,7 @@ onMounted(() => { fetchAllInventory(); });
                 <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                     <!-- Toggle for Brand View Breakdown -->
                     <div v-if="currentView === 'brand'" class="flex items-center gap-3">
-                        <button @click="showBrandType = !showBrandType; if(showBrandType) showBrandCondition = false"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
-                            :class="showBrandType
-                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
-                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
-                            <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per Tipe
-                        </button>
-                        <button v-if="isHpMode" @click="showBrandCondition = !showBrandCondition; if(showBrandCondition) showBrandType = false"
+                        <button v-if="isHpMode" @click="showBrandCondition = !showBrandCondition"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
                             :class="showBrandCondition
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
@@ -513,7 +505,7 @@ onMounted(() => { fetchAllInventory(); });
 
                     <!-- Toggle for Type View Breakdown -->
                     <div v-else-if="currentView === 'type'" class="flex flex-wrap items-center gap-3">
-                        <button v-if="isHpMode" @click="showPerGb = !showPerGb; if(showPerGb) showTypeCondition = false"
+                        <button v-if="isHpMode" @click="showPerGb = !showPerGb"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showPerGb
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
@@ -521,7 +513,7 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showPerGb ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per GB
                         </button>
-                        <button v-if="isHpMode" @click="showTypeCondition = !showTypeCondition; if(showTypeCondition) showPerGb = false"
+                        <button v-if="isHpMode" @click="showTypeCondition = !showTypeCondition"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showTypeCondition
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
@@ -638,16 +630,6 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
                                 </tr>
-                                <!-- Type Breakdown -->
-                                <tr v-if="showBrandType" v-for="type in row.typeBreakdown" :key="type.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5">
-                                        <span class="text-xs font-bold text-text-primary">{{ type.label }}</span>
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ type.available }}</td>
-                                </tr>
                                 <!-- Condition Breakdown -->
                                 <tr v-if="showBrandCondition" v-for="cond in row.conditionBreakdown" :key="cond.label"
                                     class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -664,7 +646,7 @@ onMounted(() => { fetchAllInventory(); });
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="showBrandType || showBrandCondition ? 3 : 2">TOTAL</td>
+                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="showBrandCondition ? 3 : 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredBrand.reduce((s, r) => s + r.available, 0) }}</td>
                             </tr>
                         </tfoot>
@@ -774,18 +756,6 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
                                 </tr>
-                                <!-- GB Breakdown -->
-                                <tr v-if="showPerGb" v-for="gb in row.gbBreakdown" :key="gb.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5">
-                                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
-                                            {{ gb.label }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
-                                </tr>
                                 <!-- Brand Breakdown -->
                                 <tr v-if="showConditionBrand" v-for="b in row.brandBreakdown" :key="b.label"
                                     class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -801,6 +771,18 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-2.5"></td>
                                     <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
                                     <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                </tr>
+                                <!-- GB Breakdown -->
+                                <tr v-if="showPerGb" v-for="gb in row.gbBreakdown" :key="gb.label"
+                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5">
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                                            {{ gb.label }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
                                 </tr>
                             </template>
                         </tbody>
@@ -843,16 +825,6 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
                                 </tr>
-                                <!-- GB Breakdown -->
-                                <tr v-if="showDistributorGb" v-for="gb in row.gbBreakdown" :key="gb.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 italic text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20 rounded-lg px-2 py-1 inline-block">
-                                        {{ gb.label }}
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ gb.available }}</td>
-                                </tr>
                                 <!-- Brand Breakdown -->
                                 <tr v-if="showDistributorBrand" v-for="b in row.brandBreakdown" :key="b.label"
                                     class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -868,6 +840,16 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-2.5"></td>
                                     <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
                                     <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                </tr>
+                                <!-- GB Breakdown -->
+                                <tr v-if="showDistributorGb" v-for="gb in row.gbBreakdown" :key="gb.label"
+                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5 italic text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20 rounded-lg px-2 py-1 inline-block">
+                                        {{ gb.label }}
+                                    </td>
+                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ gb.available }}</td>
                                 </tr>
                             </template>
                         </tbody>
