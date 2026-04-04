@@ -82,7 +82,7 @@ const summaryStats = computed(() => {
         totalNonHp: nonHpAvail,
         totalBrands: new Set(activeItems.value.map(i => i.product?.brand || '-')).size,
         totalTypes: new Set(activeItems.value.map(i => i.product?.name || '-')).size,
-        totalDistributors: new Set(activeItems.value.filter(i => i.distributor?.name).map(i => i.distributor.name)).size
+        totalDistributors: new Set(activeItems.value.map(i => i.distributor?.name || i.latest_distributor || i.latest_supplier || '').filter(Boolean)).size
     };
 });
 
@@ -175,7 +175,7 @@ const conditionReport = computed(() => {
 const distributorReport = computed(() => {
     const map = new Map();
     activeItems.value.forEach(item => {
-        const distName = item.distributor?.name || item.latestLog?.distributor?.name || 'Tidak Diketahui';
+        const distName = item.distributor?.name || item.latest_distributor || item.latest_supplier || item.latestLog?.distributor?.name || 'Tidak Diketahui';
         if (!map.has(distName)) map.set(distName, { name: distName, available: 0, sold: 0, total: 0 });
         const entry = map.get(distName);
         const avail = getAvailable(item);
