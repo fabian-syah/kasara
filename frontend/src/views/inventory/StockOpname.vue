@@ -270,100 +270,109 @@ onMounted(() => { fetchAllInventory(); });
                 </div>
             </div>
 
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                    <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">{{ isHpMode ? 'HP Tersedia' : 'Non-HP Tersedia' }}</div>
-                    <div class="text-2xl font-black" :class="isHpMode ? 'text-blue-400' : 'text-purple-400'">{{ isHpMode ? summaryStats.totalHp : summaryStats.totalNonHp }}</div>
-                </div>
-                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                    <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Brand</div>
-                    <div class="text-2xl font-black text-purple-400">{{ summaryStats.totalBrands }}</div>
-                </div>
-                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                    <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Tipe</div>
-                    <div class="text-2xl font-black text-emerald-400">{{ summaryStats.totalTypes }}</div>
-                </div>
-                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                    <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Distributor</div>
-                    <div class="text-2xl font-black text-amber-400">{{ summaryStats.totalDistributors }}</div>
-                </div>
+            <!-- Loading -->
+            <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+                <RefreshCw class="animate-spin text-primary-500 mb-4" :size="40" />
+                <p class="text-text-secondary text-sm font-medium">Memuat data inventory...</p>
             </div>
 
-            <!-- Report Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Brand -->
-                <button @click="navigateTo('brand')"
-                    class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-blue-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:translate-y-[-2px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
-                            <Layers :size="24" class="text-blue-400" />
-                        </div>
-                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-blue-400 transition-colors" />
+            <!-- Quick Stats & Cards (only when not loading) -->
+            <div v-else class="space-y-6">
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">{{ isHpMode ? 'HP Tersedia' : 'Non-HP Tersedia' }}</div>
+                        <div class="text-2xl font-black" :class="isHpMode ? 'text-blue-400' : 'text-purple-400'">{{ isHpMode ? summaryStats.totalHp : summaryStats.totalNonHp }}</div>
                     </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Brand</h3>
-                    <p class="text-sm text-text-secondary">Ringkasan stok tersedia berdasarkan merek</p>
-                    <div class="mt-4 flex gap-2 flex-wrap">
-                        <span v-for="b in brandReport.slice(0, 4)" :key="b.brand"
-                            class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
-                            {{ b.brand }}: {{ b.available }}
-                        </span>
-                        <span v-if="brandReport.length > 4" class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
-                            +{{ brandReport.length - 4 }} lagi
-                        </span>
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Brand</div>
+                        <div class="text-2xl font-black text-purple-400">{{ summaryStats.totalBrands }}</div>
                     </div>
-                </button>
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Tipe</div>
+                        <div class="text-2xl font-black text-emerald-400">{{ summaryStats.totalTypes }}</div>
+                    </div>
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Distributor</div>
+                        <div class="text-2xl font-black text-amber-400">{{ summaryStats.totalDistributors }}</div>
+                    </div>
+                </div>
 
-                <!-- Type -->
-                <button @click="navigateTo('type')"
-                    class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-emerald-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:translate-y-[-2px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
-                            <Smartphone :size="24" class="text-emerald-400" />
+                <!-- Report Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Brand -->
+                    <button @click="navigateTo('brand')"
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-blue-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:translate-y-[-2px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
+                                <Layers :size="24" class="text-blue-400" />
+                            </div>
+                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-blue-400 transition-colors" />
                         </div>
-                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-emerald-400 transition-colors" />
-                    </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Tipe</h3>
-                    <p class="text-sm text-text-secondary">Ringkasan stok per model + breakdown GB</p>
-                    <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
-                        <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
-                    </div>
-                </button>
+                        <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Brand</h3>
+                        <p class="text-sm text-text-secondary">Ringkasan stok tersedia berdasarkan merek</p>
+                        <div class="mt-4 flex gap-2 flex-wrap">
+                            <span v-for="b in brandReport.slice(0, 4)" :key="b.brand"
+                                class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
+                                {{ b.brand }}: {{ b.available }}
+                            </span>
+                            <span v-if="brandReport.length > 4" class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
+                                +{{ brandReport.length - 4 }} lagi
+                            </span>
+                        </div>
+                    </button>
 
-                <!-- Condition -->
-                <button @click="navigateTo('condition')"
-                    class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-amber-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 hover:translate-y-[-2px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
-                            <Tag :size="24" class="text-amber-400" />
+                    <!-- Type -->
+                    <button @click="navigateTo('type')"
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-emerald-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:translate-y-[-2px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                                <Smartphone :size="24" class="text-emerald-400" />
+                            </div>
+                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-emerald-400 transition-colors" />
                         </div>
-                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-amber-400 transition-colors" />
-                    </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kondisi</h3>
-                    <p class="text-sm text-text-secondary">Ringkasan stok per kondisi barang + breakdown GB</p>
-                    <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-amber-400">
-                        <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
-                    </div>
-                </button>
+                        <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Tipe</h3>
+                        <p class="text-sm text-text-secondary">Ringkasan stok per model + breakdown GB</p>
+                        <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
+                            <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
+                        </div>
+                    </button>
 
-                <!-- Distributor -->
-                <button @click="navigateTo('distributor')"
-                    class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-purple-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5 hover:translate-y-[-2px]">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
-                            <Truck :size="24" class="text-purple-400" />
+                    <!-- Condition -->
+                    <button @click="navigateTo('condition')"
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-amber-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 hover:translate-y-[-2px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
+                                <Tag :size="24" class="text-amber-400" />
+                            </div>
+                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-amber-400 transition-colors" />
                         </div>
-                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-purple-400 transition-colors" />
-                    </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Distributor</h3>
-                    <p class="text-sm text-text-secondary">Ringkasan stok per supplier/distributor</p>
-                    <div class="mt-4 flex gap-2 flex-wrap">
-                        <span v-for="d in distributorReport.slice(0, 3)" :key="d.name"
-                            class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
-                            {{ d.name }}: {{ d.available }}
-                        </span>
-                    </div>
-                </button>
+                        <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kondisi</h3>
+                        <p class="text-sm text-text-secondary">Ringkasan stok per kondisi barang + breakdown GB</p>
+                        <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-amber-400">
+                            <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
+                        </div>
+                    </button>
+
+                    <!-- Distributor -->
+                    <button @click="navigateTo('distributor')"
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-purple-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5 hover:translate-y-[-2px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
+                                <Truck :size="24" class="text-purple-400" />
+                            </div>
+                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-purple-400 transition-colors" />
+                        </div>
+                        <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Distributor</h3>
+                        <p class="text-sm text-text-secondary">Ringkasan stok per supplier/distributor</p>
+                        <div class="mt-4 flex gap-2 flex-wrap">
+                            <span v-for="d in distributorReport.slice(0, 3)" :key="d.name"
+                                class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
+                                {{ d.name }}: {{ d.available }}
+                            </span>
+                        </div>
+                    </button>
+                </div>
             </div>
         </template>
 
@@ -602,11 +611,7 @@ onMounted(() => { fetchAllInventory(); });
             </div>
         </template>
 
-        <!-- Loading overlay for menu -->
-        <div v-if="loading && currentView === 'menu'" class="flex flex-col items-center justify-center py-20">
-            <RefreshCw class="animate-spin text-primary-500 mb-4" :size="40" />
-            <p class="text-text-secondary text-sm font-medium">Memuat data inventory...</p>
-        </div>
+
     </div>
 </template>
 
