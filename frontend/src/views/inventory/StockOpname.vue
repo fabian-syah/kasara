@@ -92,6 +92,9 @@ const conditionLabels = {
     'new': 'Baru (New)',
     'second': 'Second',
     'ex_ibox': 'Ex-iBox',
+    'ex_inter': 'Ex-Inter',
+    'refurbished': 'Refurbished',
+    'service': 'Service/Retur',
     'other': 'Lainnya'
 };
 
@@ -168,16 +171,6 @@ const typeReport = computed(() => {
 });
 
 // ===== CONDITION REPORT =====
-const conditionLabels = {
-    'new': 'Baru (New)',
-    'second': 'Second',
-    'ex_ibox': 'Ex-iBox',
-    'ex_inter': 'Ex-Inter',
-    'refurbished': 'Refurbished',
-    'service': 'Service/Retur',
-    'other': 'Lainnya'
-};
-
 const conditionReport = computed(() => {
     const map = new Map();
     activeItems.value.forEach(item => {
