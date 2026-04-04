@@ -257,7 +257,7 @@ class StockOut extends Model
         return $this->morphTo();
     }
 
-    public function nonHpItems()
+    public function nonHpDetails()
     {
         return $this->hasMany(StockOutNonHpItem::class);
     }
