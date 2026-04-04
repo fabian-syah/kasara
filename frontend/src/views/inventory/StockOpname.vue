@@ -17,7 +17,8 @@ const rawNonHpItems = ref([]);
 const currentView = ref('menu');
 const showPerGb = ref(false);
 const showBrandType = ref(false);
-const showBrandCondition = ref(false);
+const showTypeCondition = ref(false);
+const typeSortOrder = ref('available'); // 'available', 'name', 'brand'
 const itemMode = ref('hp'); // 'hp' or 'non-hp'
 const searchQuery = ref('');
 
@@ -147,28 +148,53 @@ const typeReport = computed(() => {
         const name = item.product?.name || 'Unknown';
         const brand = item.product?.brand || '-';
         const key = `${brand}||${name}`;
-        if (!map.has(key)) map.set(key, { name, brand, available: 0, sold: 0, total: 0, gbBreakdown: new Map() });
+        if (!map.has(key)) {
+            map.set(key, { 
+                name, 
+                brand, 
+                available: 0, 
+                gbBreakdown: new Map(),
+                conditionBreakdown: new Map()
+            });
+        }
         const entry = map.get(key);
         const avail = getAvailable(item);
-        const tot = getTotal(item);
-        entry.total += tot;
         entry.available += avail;
-        entry.sold += (tot - avail);
 
         if (isHpMode.value) {
             const ram = item.ram || '-';
             const storage = item.storage || '-';
             const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
-            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0, sold: 0, total: 0 });
+            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0 });
             const gb = entry.gbBreakdown.get(gbKey);
-            gb.total += tot;
             gb.available += avail;
-            gb.sold += (tot - avail);
         }
+
+        // Condition Breakdown
+        const condKey = item.condition || 'other';
+        const condLabel = conditionLabels[condKey] || condKey;
+        if (!entry.conditionBreakdown.has(condLabel)) {
+            entry.conditionBreakdown.set(condLabel, { label: condLabel, available: 0, condition: condKey });
+        }
+        entry.conditionBreakdown.get(condLabel).available += avail;
     });
-    return Array.from(map.values())
-        .map(e => ({ ...e, gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available) }))
-        .sort((a, b) => b.available - a.available);
+
+    const result = Array.from(map.values()).map(e => ({ 
+        ...e, 
+        gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available),
+        conditionBreakdown: Array.from(e.conditionBreakdown.values()).sort((a, b) => b.available - a.available)
+    }));
+
+    // Sorting
+    if (typeSortOrder.value === 'name') {
+        result.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (typeSortOrder.value === 'brand') {
+        result.sort((a, b) => a.brand.localeCompare(b.brand) || a.name.localeCompare(b.name));
+    } else {
+        result.sort((a, b) => b.available - a.available);
+    }
+
+    return result;
 });
 
 // ===== CONDITION REPORT =====
@@ -409,20 +435,8 @@ onMounted(() => { fetchAllInventory(); });
         <template v-if="currentView !== 'menu'">
             <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                 <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                    <!-- Toggle per GB (only for HP mode + type/condition views) -->
-                    <div v-if="isHpMode && (currentView === 'type' || currentView === 'condition')" class="flex items-center gap-3">
-                        <button @click="showPerGb = !showPerGb"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
-                            :class="showPerGb
-                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
-                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
-                            <component :is="showPerGb ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per GB
-                        </button>
-                    </div>
-
-                    <!-- Toggle Brand Breakdowns -->
-                    <div v-else-if="currentView === 'brand'" class="flex items-center gap-3">
+                    <!-- Toggle for Brand View Breakdown -->
+                    <div v-if="currentView === 'brand'" class="flex items-center gap-3">
                         <button @click="showBrandType = !showBrandType; if(showBrandType) showBrandCondition = false"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
                             :class="showBrandType
@@ -439,6 +453,36 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showBrandCondition ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per Kondisi
                         </button>
+                    </div>
+
+                    <!-- Toggle for Type View Breakdown -->
+                    <div v-else-if="currentView === 'type'" class="flex flex-wrap items-center gap-3">
+                        <button v-if="isHpMode" @click="showPerGb = !showPerGb; if(showPerGb) showTypeCondition = false"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            :class="showPerGb
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showPerGb ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per GB
+                        </button>
+                        <button @click="showTypeCondition = !showTypeCondition; if(showTypeCondition) showPerGb = false"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            :class="showTypeCondition
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showTypeCondition ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Kondisi
+                        </button>
+                        
+                        <!-- Sort Filter -->
+                        <div class="flex items-center bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 ml-2">
+                            <ListFilter class="text-text-secondary mr-2" :size="16" />
+                            <select v-model="typeSortOrder" class="bg-transparent text-xs text-text-primary focus:outline-none cursor-pointer">
+                                <option value="available">Stok Terbanyak</option>
+                                <option value="brand">Brand (A-Z)</option>
+                                <option value="name">Tipe (A-Z)</option>
+                            </select>
+                        </div>
                     </div>
                     <div v-else></div>
 
@@ -527,21 +571,21 @@ onMounted(() => { fetchAllInventory(); });
                         <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
                             <tr>
                                 <th class="px-6 py-4">#</th>
-                                <th class="px-6 py-4">Tipe</th>
                                 <th class="px-6 py-4">Brand</th>
+                                <th class="px-6 py-4">Tipe</th>
                                 <th v-if="showPerGb" class="px-6 py-4">Kapasitas</th>
-                                <th class="px-6 py-4 text-center">Tersedia</th>
+                                <th v-if="showTypeCondition" class="px-6 py-4">Kondisi</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
                             <template v-for="(row, idx) in filteredType" :key="row.name + row.brand">
                                 <!-- Main Row -->
-                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showPerGb }">
+                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showPerGb || showTypeCondition }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
-                                    <td class="px-6 py-4 font-bold text-white">{{ row.name }}</td>
                                     <td class="px-6 py-4 text-text-secondary">{{ row.brand }}</td>
-                                    <td v-if="showPerGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td class="px-6 py-4 font-bold text-white">{{ row.name }}</td>
+                                    <td v-if="showPerGb || showTypeCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
@@ -559,11 +603,24 @@ onMounted(() => { fetchAllInventory(); });
                                     </td>
                                     <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
                                 </tr>
+                                <!-- Condition Breakdown -->
+                                <tr v-if="showTypeCondition" v-for="cond in row.conditionBreakdown" :key="cond.label"
+                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5"></td>
+                                    <td class="px-6 py-2.5">
+                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(cond.condition)">
+                                            {{ cond.label }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ cond.available }}</td>
+                                </tr>
                             </template>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="showPerGb ? 4 : 3">TOTAL</td>
+                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="showPerGb || showTypeCondition ? 4 : 3">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredType.reduce((s, r) => s + r.available, 0) }}</td>
                             </tr>
                         </tfoot>
@@ -585,7 +642,6 @@ onMounted(() => { fetchAllInventory(); });
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Kondisi</th>
                                 <th v-if="showPerGb" class="px-6 py-4">Kapasitas</th>
-                                <th class="px-6 py-4 text-center">Tersedia</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
@@ -639,7 +695,6 @@ onMounted(() => { fetchAllInventory(); });
                             <tr>
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Distributor</th>
-                                <th class="px-6 py-4 text-center">Tersedia</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
