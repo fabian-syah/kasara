@@ -17,8 +17,6 @@ use App\Models\Warehouse;
 use App\Models\OnlineShop;
 use App\Models\Distributor;
 use App\Traits\VerifiesPin;
-use App\Models\AuditProfit;
-use App\Models\AuditAnswer;
 
 class StockOutController extends Controller
 {
@@ -1416,84 +1414,4 @@ class StockOutController extends Controller
         };
     }
 
-    /**
-     * Delete a stock out record and rollback inventory.
-     * Only accessible by privileged roles.
-     */
-    public function destroy($id)
-    {
-        $user = Auth::user();
-        $unrestrictedRoles = ['super_admin', 'audit', 'owner', 'toko_offline', 'leader'];
-        if (!$user->hasRole($unrestrictedRoles)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        DB::beginTransaction();
-        try {
-            $stockOut = StockOut::with(['items', 'nonHpDetails'])->findOrFail($id);
-
-            // 1. Rollback HP Items
-            foreach ($stockOut->items as $item) {
-                $item->update([
-                    'status' => 'available',
-                ]);
-            }
-
-            // 2. Rollback Non-HP Items
-            foreach ($stockOut->nonHpDetails as $detail) {
-                // Determine source location from the StockOut record's creator or logic
-                $sourceUser = $stockOut->user;
-                $placementType = $sourceUser->branch_id ? 'branch' : ($sourceUser->warehouse_id ? 'warehouse' : 'online_shop');
-                $placementId = $sourceUser->branch_id ?? $sourceUser->warehouse_id ?? $sourceUser->online_shop_id;
-
-                // Find inventory record to restore
-                // Use the first one or logic that matches how it was deducted
-                $inventory = Inventory::where('product_id', $detail->product_id)
-                    ->where('placement_type', $placementType)
-                    ->where('placement_id', $placementId)
-                    ->first();
-
-                if ($inventory) {
-                    $inventory->increment('quantity', $detail->quantity);
-                } else {
-                    // Recreate if it somehow disappeared
-                    $inventory = Inventory::create([
-                        'product_id' => $detail->product_id,
-                        'placement_type' => $placementType,
-                        'placement_id' => $placementId,
-                        'quantity' => $detail->quantity,
-                        'user_id' => $sourceUser->id,
-                    ]);
-                }
-
-                // Log the restore action
-                InventoryLog::create([
-                    'product_id' => $detail->product_id,
-                    'type' => 'in',
-                    'quantity' => $detail->quantity,
-                    'balance_after' => $inventory->quantity,
-                    'description' => "Rollback Penjualan (Ref: {$stockOut->receipt_id})",
-                    'reference_id' => 'RB-' . $stockOut->id,
-                    'user_id' => $user->id,
-                    'distributor_id' => $inventory->distributor_id ?? null,
-                    'branch_id' => $sourceUser->branch_id,
-                    'warehouse_id' => $sourceUser->warehouse_id,
-                    'online_shop_id' => $sourceUser->online_shop_id,
-                ]);
-            }
-
-            // 3. Cleanup Audit Data (Optional but recommended)
-            AuditAnswer::where('stock_out_id', $stockOut->id)->delete();
-            AuditProfit::where('stock_out_id', $stockOut->id)->delete();
-
-            // 4. Delete the StockOut record
-            $stockOut->delete();
-
-            DB::commit();
-            return response()->json(['message' => 'Transaksi berhasil dihapus dan stok telah dikembalikan ke inventory.']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Gagal menghapus transaksi: ' . $e->getMessage()], 500);
-        }
-    }
 }
