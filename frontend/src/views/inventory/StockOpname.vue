@@ -12,29 +12,45 @@ const router = useRouter();
 const toast = useToast();
 
 const loading = ref(false);
-const rawItems = ref([]);
+const rawHpItems = ref([]);
+const rawNonHpItems = ref([]);
 const searchQuery = ref('');
-const currentView = ref('menu'); // 'menu', 'brand', 'type', 'condition', 'distributor'
+const currentView = ref('menu');
 const showPerGb = ref(false);
+const itemMode = ref('hp'); // 'hp' or 'non-hp'
 
 const fetchAllInventory = async () => {
     loading.value = true;
     try {
+        // Fetch HP
         let page = 1;
-        let allItems = [];
+        let hpAll = [];
         let hasMore = true;
         while (hasMore) {
             const response = await inventoryApi.list({ page, per_page: 100 });
             const data = response.data;
             if (data.data) {
-                allItems = allItems.concat(data.data);
+                hpAll = hpAll.concat(data.data);
                 hasMore = data.current_page < data.last_page;
                 page++;
-            } else {
-                hasMore = false;
-            }
+            } else { hasMore = false; }
         }
-        rawItems.value = allItems;
+        rawHpItems.value = hpAll;
+
+        // Fetch Non-HP
+        page = 1;
+        let nonHpAll = [];
+        hasMore = true;
+        while (hasMore) {
+            const response = await inventoryApi.list({ page, per_page: 100, type: 'non-hp' });
+            const data = response.data;
+            if (data.data) {
+                nonHpAll = nonHpAll.concat(data.data);
+                hasMore = data.current_page < data.last_page;
+                page++;
+            } else { hasMore = false; }
+        }
+        rawNonHpItems.value = nonHpAll;
     } catch (error) {
         console.error(error);
         toast.error('Gagal memuat data inventory.');
@@ -43,27 +59,45 @@ const fetchAllInventory = async () => {
     }
 };
 
-// Only HP items (default)
-const hpItems = computed(() => rawItems.value.filter(i => !!i.imei));
+// Active items based on mode
+const isHpMode = computed(() => itemMode.value === 'hp');
+const activeItems = computed(() => isHpMode.value ? rawHpItems.value : rawNonHpItems.value);
+
+// Helper: get available qty for an item
+const getAvailable = (item) => {
+    if (isHpMode.value) return ['available', 'booking', 'process'].includes(item.status) ? 1 : 0;
+    return item.quantity || item.balance || 0;
+};
+const getTotal = (item) => {
+    if (isHpMode.value) return 1;
+    return item.quantity || item.balance || 0;
+};
 
 // Summary stats for landing
-const summaryStats = computed(() => ({
-    totalHp: hpItems.value.filter(i => ['available', 'booking', 'process'].includes(i.status)).length,
-    totalBrands: new Set(hpItems.value.map(i => i.product?.brand || '-')).size,
-    totalTypes: new Set(hpItems.value.map(i => i.product?.name || '-')).size,
-    totalDistributors: new Set(hpItems.value.filter(i => i.distributor?.name).map(i => i.distributor.name)).size
-}));
+const summaryStats = computed(() => {
+    const hpAvail = rawHpItems.value.filter(i => ['available', 'booking', 'process'].includes(i.status)).length;
+    const nonHpAvail = rawNonHpItems.value.reduce((s, i) => s + (i.quantity || i.balance || 0), 0);
+    return {
+        totalHp: hpAvail,
+        totalNonHp: nonHpAvail,
+        totalBrands: new Set(activeItems.value.map(i => i.product?.brand || '-')).size,
+        totalTypes: new Set(activeItems.value.map(i => i.product?.name || '-')).size,
+        totalDistributors: new Set(activeItems.value.filter(i => i.distributor?.name).map(i => i.distributor.name)).size
+    };
+});
 
 // ===== BRAND REPORT =====
 const brandReport = computed(() => {
     const map = new Map();
-    hpItems.value.forEach(item => {
+    activeItems.value.forEach(item => {
         const brand = item.product?.brand || 'Lainnya';
         if (!map.has(brand)) map.set(brand, { brand, available: 0, sold: 0, total: 0 });
         const entry = map.get(brand);
-        entry.total++;
-        if (['available', 'booking', 'process'].includes(item.status)) entry.available++;
-        else entry.sold++;
+        const avail = getAvailable(item);
+        const tot = getTotal(item);
+        entry.total += tot;
+        entry.available += avail;
+        entry.sold += (tot - avail);
     });
     return Array.from(map.values()).sort((a, b) => b.available - a.available);
 });
@@ -71,26 +105,28 @@ const brandReport = computed(() => {
 // ===== TYPE REPORT =====
 const typeReport = computed(() => {
     const map = new Map();
-    hpItems.value.forEach(item => {
+    activeItems.value.forEach(item => {
         const name = item.product?.name || 'Unknown';
         const brand = item.product?.brand || '-';
         const key = `${brand}||${name}`;
         if (!map.has(key)) map.set(key, { name, brand, available: 0, sold: 0, total: 0, gbBreakdown: new Map() });
         const entry = map.get(key);
-        entry.total++;
-        const isAvailable = ['available', 'booking', 'process'].includes(item.status);
-        if (isAvailable) entry.available++;
-        else entry.sold++;
+        const avail = getAvailable(item);
+        const tot = getTotal(item);
+        entry.total += tot;
+        entry.available += avail;
+        entry.sold += (tot - avail);
 
-        // GB breakdown
-        const ram = item.ram || '-';
-        const storage = item.storage || '-';
-        const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
-        if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0, sold: 0, total: 0 });
-        const gb = entry.gbBreakdown.get(gbKey);
-        gb.total++;
-        if (isAvailable) gb.available++;
-        else gb.sold++;
+        if (isHpMode.value) {
+            const ram = item.ram || '-';
+            const storage = item.storage || '-';
+            const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
+            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0, sold: 0, total: 0 });
+            const gb = entry.gbBreakdown.get(gbKey);
+            gb.total += tot;
+            gb.available += avail;
+            gb.sold += (tot - avail);
+        }
     });
     return Array.from(map.values())
         .map(e => ({ ...e, gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available) }))
@@ -109,23 +145,26 @@ const conditionLabels = {
 
 const conditionReport = computed(() => {
     const map = new Map();
-    hpItems.value.forEach(item => {
+    activeItems.value.forEach(item => {
         const cond = item.condition || 'unknown';
         if (!map.has(cond)) map.set(cond, { condition: cond, label: conditionLabels[cond] || cond, available: 0, sold: 0, total: 0, gbBreakdown: new Map() });
         const entry = map.get(cond);
-        entry.total++;
-        const isAvailable = ['available', 'booking', 'process'].includes(item.status);
-        if (isAvailable) entry.available++;
-        else entry.sold++;
+        const avail = getAvailable(item);
+        const tot = getTotal(item);
+        entry.total += tot;
+        entry.available += avail;
+        entry.sold += (tot - avail);
 
-        const ram = item.ram || '-';
-        const storage = item.storage || '-';
-        const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
-        if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0, sold: 0, total: 0 });
-        const gb = entry.gbBreakdown.get(gbKey);
-        gb.total++;
-        if (isAvailable) gb.available++;
-        else gb.sold++;
+        if (isHpMode.value) {
+            const ram = item.ram || '-';
+            const storage = item.storage || '-';
+            const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
+            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0, sold: 0, total: 0 });
+            const gb = entry.gbBreakdown.get(gbKey);
+            gb.total += tot;
+            gb.available += avail;
+            gb.sold += (tot - avail);
+        }
     });
     return Array.from(map.values())
         .map(e => ({ ...e, gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available) }))
@@ -135,13 +174,15 @@ const conditionReport = computed(() => {
 // ===== DISTRIBUTOR REPORT =====
 const distributorReport = computed(() => {
     const map = new Map();
-    hpItems.value.forEach(item => {
-        const distName = item.distributor?.name || 'Tidak Diketahui';
+    activeItems.value.forEach(item => {
+        const distName = item.distributor?.name || item.latestLog?.distributor?.name || 'Tidak Diketahui';
         if (!map.has(distName)) map.set(distName, { name: distName, available: 0, sold: 0, total: 0 });
         const entry = map.get(distName);
-        entry.total++;
-        if (['available', 'booking', 'process'].includes(item.status)) entry.available++;
-        else entry.sold++;
+        const avail = getAvailable(item);
+        const tot = getTotal(item);
+        entry.total += tot;
+        entry.available += avail;
+        entry.sold += (tot - avail);
     });
     return Array.from(map.values()).sort((a, b) => b.available - a.available);
 });
@@ -213,11 +254,27 @@ onMounted(() => { fetchAllInventory(); });
 
         <!-- ==================== MENU LANDING ==================== -->
         <template v-if="currentView === 'menu'">
+            <!-- HP / Non-HP Toggle -->
+            <div class="flex items-center justify-between">
+                <div class="flex space-x-1 rounded-xl bg-surface-800 border border-surface-700 p-1 w-fit">
+                    <button @click="itemMode = 'hp'"
+                        class="px-5 py-2.5 rounded-lg text-sm font-bold leading-5 transition-all duration-200 flex items-center gap-2"
+                        :class="itemMode === 'hp' ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-text-secondary hover:text-white'">
+                        <Smartphone :size="16" /> HP (IMEI)
+                    </button>
+                    <button @click="itemMode = 'non-hp'"
+                        class="px-5 py-2.5 rounded-lg text-sm font-bold leading-5 transition-all duration-200 flex items-center gap-2"
+                        :class="itemMode === 'non-hp' ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'text-text-secondary hover:text-white'">
+                        <Package :size="16" /> Non-HP
+                    </button>
+                </div>
+            </div>
+
             <!-- Quick Stats -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                    <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">HP Tersedia</div>
-                    <div class="text-2xl font-black text-blue-400">{{ summaryStats.totalHp }}</div>
+                    <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">{{ isHpMode ? 'HP Tersedia' : 'Non-HP Tersedia' }}</div>
+                    <div class="text-2xl font-black" :class="isHpMode ? 'text-blue-400' : 'text-purple-400'">{{ isHpMode ? summaryStats.totalHp : summaryStats.totalNonHp }}</div>
                 </div>
                 <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                     <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Brand</div>
@@ -268,7 +325,7 @@ onMounted(() => { fetchAllInventory(); });
                     </div>
                     <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Tipe</h3>
                     <p class="text-sm text-text-secondary">Ringkasan stok per model + breakdown GB</p>
-                    <div class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
+                    <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
                         <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
                     </div>
                 </button>
@@ -284,7 +341,7 @@ onMounted(() => { fetchAllInventory(); });
                     </div>
                     <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kondisi</h3>
                     <p class="text-sm text-text-secondary">Ringkasan stok per kondisi barang + breakdown GB</p>
-                    <div class="mt-4 flex items-center gap-2 text-[10px] text-amber-400">
+                    <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-amber-400">
                         <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
                     </div>
                 </button>
@@ -314,8 +371,8 @@ onMounted(() => { fetchAllInventory(); });
         <template v-if="currentView !== 'menu'">
             <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                 <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                    <!-- Toggle per GB (only for type & condition) -->
-                    <div v-if="currentView === 'type' || currentView === 'condition'" class="flex items-center gap-3">
+                    <!-- Toggle per GB (only for HP mode + type/condition views) -->
+                    <div v-if="isHpMode && (currentView === 'type' || currentView === 'condition')" class="flex items-center gap-3">
                         <button @click="showPerGb = !showPerGb"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
                             :class="showPerGb
