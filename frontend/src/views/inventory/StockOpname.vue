@@ -16,7 +16,7 @@ const rawHpItems = ref([]);
 const rawNonHpItems = ref([]);
 const currentView = ref('menu');
 const showPerGb = ref(false);
-const showBrandType = ref(false);
+const showBrandCondition = ref(false);
 const showTypeCondition = ref(false);
 const showConditionBrand = ref(false);
 const showConditionType = ref(false);
@@ -313,13 +313,24 @@ const filteredDistributor = computed(() => searchFilter(distributorReport.value,
 function navigateTo(view) {
     currentView.value = view;
     searchQuery.value = '';
-    showPerGb.value = false;
+    resetBreakdowns();
 }
 
 function goBack() {
     currentView.value = 'menu';
     searchQuery.value = '';
+    resetBreakdowns();
+}
+
+function resetBreakdowns() {
     showPerGb.value = false;
+    showBrandCondition.value = false;
+    showTypeCondition.value = false;
+    showConditionBrand.value = false;
+    showConditionType.value = false;
+    showDistributorBrand.value = false;
+    showDistributorType.value = false;
+    showDistributorGb.value = false;
 }
 
 const conditionColor = (cond) => {
