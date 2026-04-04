@@ -417,8 +417,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Brand</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
-                                <th class="px-6 py-4 text-center">Terjual/Keluar</th>
-                                <th class="px-6 py-4 text-center">Total Masuk</th>
+                                <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
@@ -428,16 +427,12 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-center">
                                     <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ row.sold }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ row.total }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary" colspan="2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredBrand.reduce((s, r) => s + r.available, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredBrand.reduce((s, r) => s + r.sold, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredBrand.reduce((s, r) => s + r.total, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -460,8 +455,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <th class="px-6 py-4">Brand</th>
                                 <th v-if="showPerGb" class="px-6 py-4">Kapasitas</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
-                                <th class="px-6 py-4 text-center">Terjual/Keluar</th>
-                                <th class="px-6 py-4 text-center">Total</th>
+                                <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
@@ -475,8 +469,6 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
-                                    <td class="px-6 py-4 text-center text-text-secondary">{{ row.sold }}</td>
-                                    <td class="px-6 py-4 text-center text-text-secondary">{{ row.total }}</td>
                                 </tr>
                                 <!-- GB Sub-rows -->
                                 <tr v-if="showPerGb" v-for="gb in row.gbBreakdown" :key="gb.label"
@@ -490,8 +482,6 @@ onMounted(() => { fetchAllInventory(); });
                                         </span>
                                     </td>
                                     <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
-                                    <td class="px-6 py-2.5 text-center text-text-secondary text-sm">{{ gb.sold }}</td>
-                                    <td class="px-6 py-2.5 text-center text-text-secondary text-sm">{{ gb.total }}</td>
                                 </tr>
                             </template>
                         </tbody>
@@ -499,8 +489,6 @@ onMounted(() => { fetchAllInventory(); });
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary" :colspan="showPerGb ? 4 : 3">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredType.reduce((s, r) => s + r.available, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredType.reduce((s, r) => s + r.sold, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredType.reduce((s, r) => s + r.total, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -522,8 +510,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <th class="px-6 py-4">Kondisi</th>
                                 <th v-if="showPerGb" class="px-6 py-4">Kapasitas</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
-                                <th class="px-6 py-4 text-center">Terjual/Keluar</th>
-                                <th class="px-6 py-4 text-center">Total</th>
+                                <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
@@ -539,8 +526,6 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
-                                    <td class="px-6 py-4 text-center text-text-secondary">{{ row.sold }}</td>
-                                    <td class="px-6 py-4 text-center text-text-secondary">{{ row.total }}</td>
                                 </tr>
                                 <tr v-if="showPerGb" v-for="gb in row.gbBreakdown" :key="gb.label"
                                     class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -552,8 +537,6 @@ onMounted(() => { fetchAllInventory(); });
                                         </span>
                                     </td>
                                     <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
-                                    <td class="px-6 py-2.5 text-center text-text-secondary text-sm">{{ gb.sold }}</td>
-                                    <td class="px-6 py-2.5 text-center text-text-secondary text-sm">{{ gb.total }}</td>
                                 </tr>
                             </template>
                         </tbody>
@@ -561,8 +544,6 @@ onMounted(() => { fetchAllInventory(); });
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary" :colspan="showPerGb ? 3 : 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredCondition.reduce((s, r) => s + r.available, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredCondition.reduce((s, r) => s + r.sold, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredCondition.reduce((s, r) => s + r.total, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -583,8 +564,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Distributor</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
-                                <th class="px-6 py-4 text-center">Terjual/Keluar</th>
-                                <th class="px-6 py-4 text-center">Total Masuk</th>
+                                <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
@@ -594,16 +574,12 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-center">
                                     <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                 </td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ row.sold }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ row.total }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary" colspan="2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredDistributor.reduce((s, r) => s + r.available, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredDistributor.reduce((s, r) => s + r.sold, 0) }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ filteredDistributor.reduce((s, r) => s + r.total, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
