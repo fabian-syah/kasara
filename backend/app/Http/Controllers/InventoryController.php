@@ -898,11 +898,16 @@ class InventoryController extends Controller
 
                     if (!$pId) continue;
 
+                    $distributorId = $item['distributor_id'] ?? $request->distributor_id;
+                    $costPrice = $item['cost_price'] ?? 0;
+
                     $inventory = Inventory::firstOrCreate(
                         [
                             'product_id' => $pId,
                             'placement_type' => $request->placement_type,
                             'placement_id' => $request->placement_id,
+                            'distributor_id' => $distributorId,
+                            'cost_price' => $costPrice,
                             'user_id' => $ownerUserId
                         ],
                         ['quantity' => 0]

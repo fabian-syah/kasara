@@ -195,15 +195,16 @@ class StockOutController extends Controller
                 $rules['shopee_phone'] = 'required|string|max:50';
                 $rules['shopee_address'] = 'required|string';
             } else {
+                // Untuk kategori Penjualan Offline dsb
                 $rules['customer_name'] = 'required|string|max:255';
                 $rules['customer_wa'] = 'required|string|max:50';
             }
 
             $rules['notes'] = 'nullable|string';
 
-            // proof_image is required for offline sales, but optional for online sales
-            $isOnlineSale = in_array($request->category, ['shopee', 'orderan_online']);
-            $rules['proof_image'] = ($isOnlineSale ? 'nullable' : 'required') . '|image|max:10240';
+            // proof_image optional if not offline/regular sale
+            $isOfflineSale = in_array($request->category, ['penjualan', 'penjualan_offline', 'tukar_tambah']);
+            $rules['proof_image'] = ($isOfflineSale ? 'required' : 'nullable') . '|image|max:10240';
 
             // Only require PIN if user has it enabled
             $rules['transaction_pin'] = 'nullable|string|max:10';
@@ -308,28 +309,42 @@ class StockOutController extends Controller
                         throw new \Exception("Anda tidak memiliki lokasi fisik untuk mengurangi stok.");
                     }
 
-                    $inventory = $invQuery->first();
+                    // Get all available stocks for this product at this location (FIFO)
+                    // We order by ID or created_at to ensure consistent deduction order
+                    $inventories = $invQuery->where('quantity', '>', 0)->orderBy('id', 'asc')->get();
+                    $totalAvailable = $inventories->sum('quantity');
 
-                    if (!$inventory || $inventory->quantity < $item['quantity']) {
-                        throw new \Exception("Stok tidak cukup untuk produk: {$product->name}");
+                    if ($totalAvailable < $item['quantity']) {
+                        throw new \Exception("Stok tidak cukup untuk produk: {$product->name}. Tersedia: $totalAvailable");
                     }
 
-                    // Deduct
-                    $inventory->decrement('quantity', $item['quantity']);
+                    $remainingToDeduct = $item['quantity'];
+                    foreach ($inventories as $inventory) {
+                        if ($remainingToDeduct <= 0) break;
 
-                    // Log
-                    InventoryLog::create([
-                        'product_id' => $item['product_id'],
-                        'type' => 'out',
-                        'quantity' => $item['quantity'],
-                        'balance_after' => $inventory->quantity,
-                        'description' => "Stock Out ({$request->category})",
-                        'reference_id' => 'OUT-' . time(), // Temp ref
-                        'user_id' => $user->id,
-                        'branch_id' => $user->branch_id ?? null,
-                        'warehouse_id' => $user->warehouse_id ?? null,
-                        'online_shop_id' => $user->online_shop_id ?? null,
-                    ]);
+                        $deductAmount = min($inventory->quantity, $remainingToDeduct);
+                        $inventory->decrement('quantity', $deductAmount);
+                        $remainingToDeduct -= $deductAmount;
+
+                        // Log Transaction for this specific inventory record
+                        InventoryLog::create([
+                            'product_id' => $item['product_id'],
+                            'type' => 'out',
+                            'quantity' => $deductAmount,
+                            'balance_after' => $inventory->quantity,
+                            'description' => "Stock Out ({$request->category})",
+                            'reference_id' => 'OUT-' . time() . '-' . $inventory->id,
+                            'user_id' => $user->id,
+                            'distributor_id' => $inventory->distributor_id,
+                            'branch_id' => $user->branch_id ?? null,
+                            'warehouse_id' => $user->warehouse_id ?? null,
+                            'online_shop_id' => $user->online_shop_id ?? null,
+                        ]);
+                    }
+
+                    // Log general transaction for the StockOut record will be handled by the loop above
+                    // Skip the original single-log/single-deduct logic
+                    continue; 
                 }
             }
 
