@@ -819,14 +819,23 @@ onMounted(fetchInitialData);
 
         <div class="card p-8 border-t-4 border-t-primary-500 bg-surface-800 rounded-2xl shadow-2xl">
             <div v-if="currentStep === 1" class="animate-in slide-in-from-right">
-                <div v-if="targetUsers.length === 0" class="text-center py-10">
+                <!-- Loading State -->
+                <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
+                    <div class="relative">
+                        <div class="w-16 h-16 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+                        <Loader2 class="absolute inset-0 m-auto w-6 h-6 text-primary-500 animate-pulse" />
+                    </div>
+                    <p class="mt-6 text-text-secondary font-medium animate-pulse tracking-wide uppercase text-[10px]">Sedang Menyiapkan Sesi Stok In...</p>
+                </div>
+
+                <div v-else-if="targetUsers.length === 0" class="text-center py-10">
                     <div
                         class="bg-red-500/10 border border-red-500/20 text-red-500 p-6 rounded-2xl max-w-lg mx-auto mb-6">
                         <h3 class="font-bold text-lg mb-2">Belum Ada Akun Inventory</h3>
                         <p class="text-sm opacity-80">Anda belum memiliki akun khusus inventory untuk cabang/lokasi ini.
                             Silahkan buat terlebih dahulu untuk melanjutkan stok in.</p>
                     </div>
-                    <button @click="showCreateAccountModal = true" class="btn btn-primary px-8 py-4 rounded-xl">
+                    <button @click="showCreateAccountModal = true" class="btn btn-primary px-8 py-4 rounded-xl shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
                         <Plus :size="20" class="mr-2" /> Buat Akun Inventory Baru
                     </button>
                 </div>
