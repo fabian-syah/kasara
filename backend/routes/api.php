@@ -79,47 +79,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/product-prices/lookup', [App\Http\Controllers\ProductPriceController::class, 'lookup']);
     Route::apiResource('product-prices', App\Http\Controllers\ProductPriceController::class);
 
-    // Inventory
+    // Inventory Static Routes (MUST BE ABOVE DYNAMIC ROUTES)
     Route::get('/inventory/stock-summary', [InventoryController::class, 'stockSummary']);
-    Route::get('/inventory', [InventoryController::class, 'index']);
     Route::get('/inventory/history/in', [InventoryController::class, 'stockInHistory']);
     Route::get('/inventory/history/out', [InventoryController::class, 'stockOutHistory']);
     Route::get('/inventory/history/in/export', [InventoryController::class, 'exportStockInHistory']);
     Route::get('/inventory/history/out/export', [InventoryController::class, 'exportStockOutHistory']);
     Route::get('/inventory/export', [InventoryController::class, 'export']);
     Route::get('/inventory/filter-options', [InventoryController::class, 'getFilterOptions']);
-
-    // DEBUG ROUTE
-    Route::get('/debug-stock/{receipt}', function ($receipt) {
-        $stockOut = \App\Models\StockOut::with(['destination'])->where('receipt_id', $receipt)->first();
-        if (!$stockOut)
-            return response()->json(['error' => 'Not found']);
-        return response()->json([
-            'id' => $stockOut->id,
-            'receipt_id' => $stockOut->receipt_id,
-            'category' => $stockOut->category,
-            'destination_type' => $stockOut->destination_type,
-            'destination_id' => $stockOut->destination_id,
-            'destination_relation' => $stockOut->destination,
-            'morph_map' => \Illuminate\Database\Eloquent\Relations\Relation::morphMap(),
-            'user' => auth()->user()
-        ]);
-    });
+    Route::get('/inventory/products-lookup', [InventoryController::class, 'getProducts']);
+    Route::get('/inventory/my-accounts', [InventoryController::class, 'getMyInventoryUsers']);
+    Route::get('/inventory/accounts/pending-photos', [InventoryController::class, 'pendingPhotos']);
 
     Route::post('/inventory/stock-in', [InventoryController::class, 'stockIn']);
-    Route::match(['post', 'put'], '/inventory/{id}', [InventoryController::class, 'update']);
-    Route::patch('/inventory/{id}/status', [InventoryController::class, 'updateStatus']);
-    Route::get('/inventory/products-lookup', [InventoryController::class, 'getProducts']);
     Route::post('/inventory/account', [InventoryController::class, 'createAccount']);
     Route::post('/inventory/account/{id}/update', [InventoryController::class, 'updateAccount']);
-    Route::get('/inventory/my-accounts', [InventoryController::class, 'getMyInventoryUsers']);
     Route::post('/inventory/account/{id}/toggle-pin', [InventoryController::class, 'togglePin']);
     Route::post('/inventory/account/{id}/request-reset', [InventoryController::class, 'requestResetPin']);
-
-    // Inventory Account Photo Approvals
-    Route::get('/inventory/accounts/pending-photos', [InventoryController::class, 'pendingPhotos']);
     Route::post('/inventory/account/{id}/approve-photo', [InventoryController::class, 'approvePhoto']);
     Route::post('/inventory/account/{id}/reject-photo', [InventoryController::class, 'rejectPhoto']);
+
+    // Inventory Dynamic Routes (Must be below static ones)
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::match(['post', 'put'], '/inventory/{id}', [InventoryController::class, 'update']);
+    Route::patch('/inventory/{id}/status', [InventoryController::class, 'updateStatus']);
 
     // Stock Out (Pengeluaran Stok)
     Route::get('/stock-outs', [\App\Http\Controllers\StockOutController::class, 'index']);
