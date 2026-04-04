@@ -1423,7 +1423,7 @@ class StockOutController extends Controller
     public function destroy($id)
     {
         $user = Auth::user();
-        $unrestrictedRoles = ['super_admin', 'audit', 'owner'];
+        $unrestrictedRoles = ['super_admin', 'audit', 'owner', 'toko_offline', 'leader'];
         if (!$user->hasRole($unrestrictedRoles)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }

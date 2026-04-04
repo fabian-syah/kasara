@@ -413,7 +413,7 @@ import { useAuthStore } from '../../store/auth'
 const authStore = useAuthStore()
 const canDelete = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'toko_offline', 'leader'].some(r => role.includes(r));
 })
 
 const loading = ref(false)
