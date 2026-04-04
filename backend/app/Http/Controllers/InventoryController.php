@@ -1279,7 +1279,8 @@ class InventoryController extends Controller
             'warehouse_id' => 'nullable|integer',
             'online_shop_id' => 'nullable|integer',
             'distributor_id' => 'nullable|integer',
-            'photo_inventory' => 'nullable|image|max:2048', // 2MB Max
+            'photo_inventory' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
+            'photo' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
             'transaction_pin' => 'nullable|string|size:4',
             'pin_enabled' => 'nullable|boolean'
         ]);
