@@ -1205,13 +1205,7 @@ class InventoryController extends Controller
         }
 
         // Generate Credentials
-        // Use microtime to collision avoidance
-        $timestamp = microtime(true);
-        $random = rand(100, 999);
-        // Normalize timestamp for string
-        $tsString = str_replace('.', '', (string) $timestamp);
-
-        $username = 'inv.' . substr($tsString, -8) . '.' . $random;
+        $username = 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
         $email = $username . '@apex-inventory.com';
         $password = 'inventory123'; // Default password
 
@@ -1227,7 +1221,7 @@ class InventoryController extends Controller
                 'name' => $request->name,
                 'full_name' => $request->name,
                 'username' => $username,
-                'code_id' => 'INV-' . substr($tsString, -10) . $random,
+                'code_id' => 'INV-' . strtoupper(Str::random(10)),
                 'email' => $email,
                 'password' => $password,
                 'branch_id' => $request->branch_id ?? $user->branch_id,
