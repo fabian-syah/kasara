@@ -450,7 +450,7 @@ onMounted(() => { fetchAllInventory(); });
                     </button>
 
                     <!-- Condition -->
-                    <button @click="navigateTo('condition')"
+                    <button v-if="isHpMode" @click="navigateTo('condition')"
                         class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-amber-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 hover:translate-y-[-2px]">
                         <div class="flex items-center justify-between mb-4">
                             <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
@@ -501,7 +501,7 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per Tipe
                         </button>
-                        <button @click="showBrandCondition = !showBrandCondition; if(showBrandCondition) showBrandType = false"
+                        <button v-if="isHpMode" @click="showBrandCondition = !showBrandCondition; if(showBrandCondition) showBrandType = false"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
                             :class="showBrandCondition
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
@@ -521,7 +521,7 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showPerGb ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per GB
                         </button>
-                        <button @click="showTypeCondition = !showTypeCondition; if(showTypeCondition) showPerGb = false"
+                        <button v-if="isHpMode" @click="showTypeCondition = !showTypeCondition; if(showTypeCondition) showPerGb = false"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showTypeCondition
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
