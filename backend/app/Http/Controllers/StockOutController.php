@@ -39,7 +39,10 @@ class StockOutController extends Controller
         if ($request->type === 'hp') {
             $query->whereHas('items');
         } elseif ($request->type === 'non-hp') {
-            $query->whereNotNull('non_hp_items');
+            $query->where(function($q) {
+                $q->whereHas('nonHpDetails')
+                  ->orWhereNotNull('non_hp_items');
+            });
         }
 
         // LOCATION FILTER (ISOLATION)
