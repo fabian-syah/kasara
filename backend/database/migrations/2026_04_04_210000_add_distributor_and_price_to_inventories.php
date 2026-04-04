@@ -18,8 +18,13 @@ return new class extends Migration {
         });
 
         // Hapus index unik lama menggunakan SQL mentah agar tidak error jika tidak ditemukan
-        // Kami hapus kemungkinana kunci otomatis maupun manual
-        $constraints = ['inventory_unique_location', 'inventories_product_id_placement_type_placement_id_unique'];
+        // Kami hapus kemungkinana kunci otomatis maupun manual (termasuk yang ada user_id)
+        $constraints = [
+            'inventory_unique_location', 
+            'inventory_unique_location_user',
+            'inventories_product_id_placement_type_placement_id_unique',
+            'inventories_product_id_placement_type_placement_id_user_id_unique'
+        ];
         foreach ($constraints as $con) {
             DB::statement("ALTER TABLE inventories DROP CONSTRAINT IF EXISTS \"$con\"");
         }
