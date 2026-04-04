@@ -138,7 +138,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="index"
+                            <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="item.id"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
@@ -259,6 +259,11 @@
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Cek Audit">
                                             <ClipboardCheck :size="16" />
+                                        </button>
+                                        <button v-if="canDelete" @click="confirmDelete(item)"
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Hapus Transaksi">
+                                            <Trash2 :size="16" />
                                         </button>
                                     </div>
                                 </td>
@@ -446,13 +451,17 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 
 const authStore = useAuthStore()
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')
+const canDelete = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+})
 
 // Dropped Tabs Logic - Now displaying all sections vertically
 const loading = ref(false)
@@ -581,6 +590,22 @@ const saveChecklist = async () => {
         alert('Gagal menyimpan: ' + (e.response?.data?.message || e.message))
     } finally {
         checklistSaving.value = false
+    }
+}
+
+const confirmDelete = async (item) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus transaksi ${item.order_no} (${item.customer_name})?\n\nTindakan ini akan mengembalikan stok barang ke inventory.`)) {
+        return
+    }
+
+    try {
+        await axios.delete(`/stock-outs/${item.id}`)
+        alert('Transaksi berhasil dihapus!')
+        // Refresh data
+        fetchData()
+    } catch (e) {
+        console.error('Delete failed', e)
+        alert('Gagal menghapus transaksi: ' + (e.response?.data?.message || e.message))
     }
 }
 
