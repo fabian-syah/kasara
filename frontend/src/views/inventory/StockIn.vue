@@ -489,7 +489,10 @@ const duplicateDetails = ref({ success: 0, fail: 0, items: [] });
 
 function closeDuplicateModal() {
     showDuplicateModal.value = false;
-    router.push('/inventory'); // Redirect after acknowledging
+    // Force direct navigation to ensure it happens
+    router.push('/inventory').then(() => {
+        window.scrollTo(0, 0);
+    });
 }
 
 async function fetchInitialData() {
@@ -775,7 +778,10 @@ async function submitStockIn(verifiedPin = null) {
             // DO NOT redirect yet
         } else {
             toast.success("Stok berhasil ditambahkan!");
-            router.push('/inventory');
+            // Instant redirect to inventory page
+            router.push('/inventory').catch(() => {
+                window.location.href = '/inventory';
+            });
         }
 
     } catch (error) {
