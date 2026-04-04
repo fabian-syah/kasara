@@ -68,13 +68,13 @@ class AuditController extends Controller
             });
         };
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'pindah_cabang', 'retur'];
 
         // 1. Daily Sales
         $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
 
-        // Load nonHpItems relationship for Product details, but we will use JSON column for price
-        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
+        // Load nonHpDetails relationship for Product details, but we will use JSON column for price
+        $dailySalesQuery = StockOut::with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate]);
 
@@ -85,7 +85,7 @@ class AuditController extends Controller
             $calculatedTotal = 0;
 
             $hpItems = $trx->items;
-            $nonHpItems = $trx->nonHpItems;
+            $nonHpItems = $trx->nonHpDetails;
 
             $bundleHpId = null;
             $bundleNonHpId = null;
@@ -301,12 +301,12 @@ class AuditController extends Controller
                 'customer_phone' => $trx->customer_phone ?? $trx->shopee_phone ?? $trx->giveaway_phone ?? '-',
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
-                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
-                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: ($trx->is_bundle ? $trx->bundle_description : '-'),
+                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpDetails->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
+                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpDetails->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: ($trx->is_bundle ? $trx->bundle_description : '-'),
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
                 'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
-                'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
+                'qty' => $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : ($trx->nonHpDetails ? $trx->nonHpDetails->sum('quantity') : 0)),
                 'items' => $details,
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
                 'payment_method' => $trx->paymentMethod->name ?? ($trx->category === 'penjualan_offline' ? 'Offline' : 'Online'),
@@ -343,7 +343,7 @@ class AuditController extends Controller
             ->join('products', 'product_details.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories)
-            ->whereBetween('stock_outs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
             ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 if ($requestedBranchId) {
                     $q->where('users.branch_id', $requestedBranchId);
@@ -372,7 +372,7 @@ class AuditController extends Controller
             ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories)
-            ->whereBetween('stock_outs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
             ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 if ($requestedBranchId) {
                     $q->where('users.branch_id', $requestedBranchId);
@@ -405,13 +405,13 @@ class AuditController extends Controller
             ->whereBetween('reporting_date', [$startDate, $endDate]);
         $scopeToAccess($csQuery);
 
-        $csSales = $csQuery->with('inventoryUser')
-            ->select('inventory_user_id', DB::raw('count(*) as count'), DB::raw('sum(selling_price) as total'))
-            ->groupBy('inventory_user_id')
+        $csSales = $csQuery->with(['inventoryUser', 'user'])
+            ->select('inventory_user_id', 'user_id', DB::raw('count(*) as count'), DB::raw('sum(selling_price) as total'))
+            ->groupBy('inventory_user_id', 'user_id')
             ->get()
             ->map(function ($item) {
                 return [
-                    'cs_name' => $item->inventoryUser->name ?? 'Unknown',
+                    'cs_name' => $item->inventoryUser->name ?? ($item->user->name ?? 'Unknown'),
                     'total_sales' => $item->count,
                     'total_trade_in' => 0,
                     'total_refund' => 0,

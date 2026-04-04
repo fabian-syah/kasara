@@ -447,9 +447,12 @@ const printReceipt = () => {
 
 const getTodayLocal = () => {
     const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    // Pergeseran hari untuk pelaporan: 00:00 - 05:00 dianggap hari sebelumnya
+    // Kurangi 5 jam dari waktu sekarang untuk mendapatkan 'business date'
+    const shiftDate = new Date(d.getTime() - (5 * 60 * 60 * 1000));
+    const year = shiftDate.getFullYear();
+    const month = String(shiftDate.getMonth() + 1).padStart(2, '0');
+    const day = String(shiftDate.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
 
