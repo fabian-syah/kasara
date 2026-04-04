@@ -309,9 +309,9 @@ class StockOutController extends Controller
                         throw new \Exception("Anda tidak memiliki lokasi fisik untuk mengurangi stok.");
                     }
 
-                    // Get all available stocks for this product at this location (FIFO)
-                    // We order by ID or created_at to ensure consistent deduction order
-                    $inventories = $invQuery->where('quantity', '>', 0)->orderBy('id', 'asc')->get();
+                    // Ambil semua stok barang ini di lokasi tersebut
+                    // Prioritas: Ambil yang jumlahnya paling sedikit dulu agar baris-baris stok kecil di dashboard cepat bersih
+                    $inventories = $invQuery->where('quantity', '>', 0)->orderBy('quantity', 'asc')->get();
                     $totalAvailable = $inventories->sum('quantity');
 
                     if ($totalAvailable < $item['quantity']) {
@@ -516,12 +516,12 @@ class StockOutController extends Controller
                 })->afterResponse();
             }
 
-            // Create StockOutNonHpItem records
+            // Create StockOutNonHpItem records (Riwayat Detail)
             if ($request->non_hp_items) {
                 foreach ($request->non_hp_items as $item) {
                     $prod = Product::find($item['product_id']);
-                    // Exclude HP type (handled by deletion above)
-                    if ($prod && $prod->type !== 'hp') {
+                    // Pastikan kategori non-hp tercatat
+                    if ($prod) {
                         StockOutNonHpItem::create([
                             'stock_out_id' => $stockOut->id,
                             'product_id' => $item['product_id'],
@@ -529,7 +529,7 @@ class StockOutController extends Controller
                             'selling_price' => $item['selling_price'] ?? 0,
                             'item_discount' => $item['item_discount'] ?? 0,
                             'distributed_discount' => $item['distributed_discount'] ?? 0,
-                            'received_quantity' => 0,
+                            'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $item['quantity'],
                             'returned_quantity' => 0,
                         ]);
                     }
