@@ -113,35 +113,37 @@ const brandReport = computed(() => {
             map.set(brand, { 
                 brand, 
                 available: 0, 
-                typeBreakdown: new Map(),
-                conditionBreakdown: new Map()
+                tree: new Map() // Type -> Condition
             });
         }
         const entry = map.get(brand);
         const avail = getAvailable(item);
         entry.available += avail;
 
-        // Type Breakdown
-        const typeName = item.product?.name || 'Unknown';
-        if (!entry.typeBreakdown.has(typeName)) {
-            entry.typeBreakdown.set(typeName, { label: typeName, available: 0 });
-        }
-        entry.typeBreakdown.get(typeName).available += avail;
-
-        // Condition Breakdown
+        const type = item.product?.name || 'Unknown';
         const condKey = item.condition || 'other';
-        const condLabel = conditionLabels[condKey] || condKey;
-        if (!entry.conditionBreakdown.has(condLabel)) {
-            entry.conditionBreakdown.set(condLabel, { label: condLabel, available: 0, condition: condKey });
+
+        if (!entry.tree.has(type)) entry.tree.set(type, { label: type, available: 0, conditions: new Map() });
+        const tNode = entry.tree.get(type);
+        tNode.available += avail;
+
+        if (!tNode.conditions.has(condKey)) {
+            tNode.conditions.set(condKey, { 
+                label: conditionLabels[condKey] || condKey, 
+                condition: condKey, 
+                available: 0 
+            });
         }
-        entry.conditionBreakdown.get(condLabel).available += avail;
+        tNode.conditions.get(condKey).available += avail;
     });
 
     return Array.from(map.values())
         .map(e => ({ 
             ...e, 
-            typeBreakdown: Array.from(e.typeBreakdown.values()).sort((a, b) => b.available - a.available),
-            conditionBreakdown: Array.from(e.conditionBreakdown.values()).sort((a, b) => b.available - a.available)
+            tree: Array.from(e.tree.values()).map(t => ({
+                ...t,
+                conditions: Array.from(t.conditions.values()).sort((a,b) => b.available - a.available)
+            })).sort((a,b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
 });
@@ -158,36 +160,38 @@ const typeReport = computed(() => {
                 name, 
                 brand, 
                 available: 0, 
-                gbBreakdown: new Map(),
-                conditionBreakdown: new Map()
+                tree: new Map() // GB -> Condition
             });
         }
         const entry = map.get(key);
         const avail = getAvailable(item);
         entry.available += avail;
 
-        if (isHpMode.value) {
-            const ram = item.ram || '-';
-            const storage = item.storage || '-';
-            const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
-            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0 });
-            const gb = entry.gbBreakdown.get(gbKey);
-            gb.available += avail;
-        }
-
-        // Condition Breakdown
+        const ram = item.ram || '-';
+        const storage = item.storage || '-';
+        const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
         const condKey = item.condition || 'other';
-        const condLabel = conditionLabels[condKey] || condKey;
-        if (!entry.conditionBreakdown.has(condLabel)) {
-            entry.conditionBreakdown.set(condLabel, { label: condLabel, available: 0, condition: condKey });
+
+        if (!entry.tree.has(gb)) entry.tree.set(gb, { label: gb, available: 0, conditions: new Map() });
+        const gNode = entry.tree.get(gb);
+        gNode.available += avail;
+
+        if (!gNode.conditions.has(condKey)) {
+            gNode.conditions.set(condKey, { 
+                label: conditionLabels[condKey] || condKey, 
+                condition: condKey, 
+                available: 0 
+            });
         }
-        entry.conditionBreakdown.get(condLabel).available += avail;
+        gNode.conditions.get(condKey).available += avail;
     });
 
     const result = Array.from(map.values()).map(e => ({ 
         ...e, 
-        gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available),
-        conditionBreakdown: Array.from(e.conditionBreakdown.values()).sort((a, b) => b.available - a.available)
+        tree: Array.from(e.tree.values()).map(g => ({
+            ...g,
+            conditions: Array.from(g.conditions.values()).sort((a,b) => b.available - a.available)
+        })).sort((a,b) => b.available - a.available)
     }));
 
     // Sorting
@@ -212,9 +216,7 @@ const conditionReport = computed(() => {
                 condition: cond, 
                 label: conditionLabels[cond] || cond, 
                 available: 0, 
-                gbBreakdown: new Map(),
-                brandBreakdown: new Map(),
-                typeBreakdown: new Map()
+                tree: new Map() // Brand -> Type -> GB
             });
         }
         const entry = map.get(cond);
@@ -222,30 +224,35 @@ const conditionReport = computed(() => {
         entry.available += avail;
 
         if (isHpMode.value) {
+            const brand = item.product?.brand || 'Lainnya';
+            const type = item.product?.name || 'Unknown';
             const ram = item.ram || '-';
             const storage = item.storage || '-';
-            const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
-            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0 });
-            entry.gbBreakdown.get(gbKey).available += avail;
+            const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
+
+            if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
+            const bNode = entry.tree.get(brand);
+            bNode.available += avail;
+
+            if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0, gbs: new Map() });
+            const tNode = bNode.types.get(type);
+            tNode.available += avail;
+
+            if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
+            tNode.gbs.get(gb).available += avail;
         }
-
-        // Brand Breakdown
-        const brand = item.product?.brand || 'Lainnya';
-        if (!entry.brandBreakdown.has(brand)) entry.brandBreakdown.set(brand, { label: brand, available: 0 });
-        entry.brandBreakdown.get(brand).available += avail;
-
-        // Type Breakdown
-        const type = item.product?.name || 'Unknown';
-        if (!entry.typeBreakdown.has(type)) entry.typeBreakdown.set(type, { label: type, available: 0 });
-        entry.typeBreakdown.get(type).available += avail;
     });
 
     return Array.from(map.values())
         .map(e => ({ 
             ...e, 
-            gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available),
-            brandBreakdown: Array.from(e.brandBreakdown.values()).sort((a, b) => b.available - a.available),
-            typeBreakdown: Array.from(e.typeBreakdown.values()).sort((a, b) => b.available - a.available)
+            tree: Array.from(e.tree.values()).map(b => ({
+                ...b,
+                types: Array.from(b.types.values()).map(t => ({
+                    ...t,
+                    gbs: Array.from(t.gbs.values()).sort((a,b) => b.available - a.available)
+                })).sort((a,b) => b.available - a.available)
+            })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
 });
@@ -258,42 +265,44 @@ const distributorReport = computed(() => {
         if (!map.has(distName)) {
             map.set(distName, { 
                 name: distName, 
-                available: 0,
-                brandBreakdown: new Map(),
-                typeBreakdown: new Map(),
-                gbBreakdown: new Map()
+                available: 0, 
+                tree: new Map() // Brand -> Type -> GB
             });
         }
         const entry = map.get(distName);
         const avail = getAvailable(item);
         entry.available += avail;
 
-        // Brand Breakdown
-        const brand = item.product?.brand || 'Lainnya';
-        if (!entry.brandBreakdown.has(brand)) entry.brandBreakdown.set(brand, { label: brand, available: 0 });
-        entry.brandBreakdown.get(brand).available += avail;
-
-        // Type Breakdown
-        const type = item.product?.name || 'Unknown';
-        if (!entry.typeBreakdown.has(type)) entry.typeBreakdown.set(type, { label: type, available: 0 });
-        entry.typeBreakdown.get(type).available += avail;
-
-        // GB Breakdown
         if (isHpMode.value) {
+            const brand = item.product?.brand || 'Lainnya';
+            const type = item.product?.name || 'Unknown';
             const ram = item.ram || '-';
             const storage = item.storage || '-';
-            const gbKey = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
-            if (!entry.gbBreakdown.has(gbKey)) entry.gbBreakdown.set(gbKey, { label: gbKey, available: 0 });
-            entry.gbBreakdown.get(gbKey).available += avail;
+            const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
+
+            if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
+            const bNode = entry.tree.get(brand);
+            bNode.available += avail;
+
+            if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0, gbs: new Map() });
+            const tNode = bNode.types.get(type);
+            tNode.available += avail;
+
+            if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
+            tNode.gbs.get(gb).available += avail;
         }
     });
 
     return Array.from(map.values())
-        .map(e => ({
-            ...e,
-            brandBreakdown: Array.from(e.brandBreakdown.values()).sort((a, b) => b.available - a.available),
-            typeBreakdown: Array.from(e.typeBreakdown.values()).sort((a, b) => b.available - a.available),
-            gbBreakdown: Array.from(e.gbBreakdown.values()).sort((a, b) => b.available - a.available)
+        .map(e => ({ 
+            ...e, 
+            tree: Array.from(e.tree.values()).map(b => ({
+                ...b,
+                types: Array.from(b.types.values()).map(t => ({
+                    ...t,
+                    gbs: Array.from(t.gbs.values()).sort((a,b) => b.available - a.available)
+                })).sort((a,b) => b.available - a.available)
+            })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
 });
@@ -637,27 +646,58 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4 font-bold text-white">{{ row.brand }}</td>
                                     <td v-if="showBrandType || showBrandCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showBrandType && showBrandCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
                                 </tr>
-                                <!-- Condition Breakdown -->
-                                <tr v-if="showBrandCondition" v-for="cond in row.conditionBreakdown" :key="cond.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5">
-                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(cond.condition)">
-                                            {{ cond.label }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ cond.available }}</td>
-                                </tr>
+                                
+                                <!-- Brand Sub-rows (Type Breakdown) -->
+                                <template v-if="showBrandType" v-for="t in row.tree" :key="t.label">
+                                    <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
+                                        <td v-if="showBrandCondition" class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                    </tr>
+                                    
+                                    <!-- Conditions under Type -->
+                                    <template v-if="showBrandCondition" v-for="c in t.conditions" :key="c.label">
+                                        <tr class="bg-surface-900/40 hover:bg-surface-700/40 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                    {{ c.label }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ c.available }}</td>
+                                        </tr>
+                                    </template>
+                                </template>
+
+                                <!-- Conditions if Type is OFF -->
+                                <template v-if="!showBrandType && showBrandCondition" v-for="t in row.tree">
+                                    <template v-for="c in t.conditions" :key="c.label">
+                                        <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                    {{ c.label }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ c.available }}</td>
+                                        </tr>
+                                    </template>
+                                </template>
                             </template>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="showBrandCondition ? 3 : 2">TOTAL</td>
+                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showBrandType ? 1 : 0) + (showBrandCondition ? 1 : 0) + 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredBrand.reduce((s, r) => s + r.available, 0) }}</td>
                             </tr>
                         </tfoot>
@@ -698,33 +738,54 @@ onMounted(() => { fetchAllInventory(); });
                                     </td>
                                 </tr>
                                 <!-- GB Sub-rows -->
-                                <tr v-if="showPerGb" v-for="gb in row.gbBreakdown" :key="gb.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5">
-                                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
-                                            {{ gb.label }}
-                                        </span>
-                                    </td>
-                                    <td v-if="showTypeCondition" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
-                                </tr>
-                                <!-- Condition Breakdown -->
-                                <tr v-if="showTypeCondition" v-for="cond in row.conditionBreakdown" :key="cond.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td v-if="showPerGb" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5">
-                                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(cond.condition)">
-                                            {{ cond.label }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ cond.available }}</td>
-                                </tr>
+                                <template v-if="showPerGb" v-for="g in row.tree" :key="g.label">
+                                    <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5">
+                                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                                                {{ g.label }}
+                                            </span>
+                                        </td>
+                                        <td v-if="showTypeCondition" class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ g.available }}</td>
+                                    </tr>
+
+                                    <!-- Conditions under GB -->
+                                    <template v-if="showTypeCondition" v-for="c in g.conditions" :key="c.label">
+                                        <tr class="bg-surface-900/40 hover:bg-surface-700/40 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                    {{ c.label }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ c.available }}</td>
+                                        </tr>
+                                    </template>
+                                </template>
+
+                                <!-- Conditions if GB is OFF -->
+                                <template v-if="!showPerGb && showTypeCondition" v-for="g in row.tree">
+                                    <template v-for="c in g.conditions" :key="c.label">
+                                        <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-text-secondary italic text-xs">—</td>
+                                            <td class="px-6 py-2.5">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                    {{ c.label }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ c.available }}</td>
+                                        </tr>
+                                    </template>
+                                </template>
                             </template>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
@@ -772,40 +833,92 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
                                 </tr>
+                                
                                 <!-- Brand Breakdown -->
-                                <tr v-if="showConditionBrand" v-for="b in row.brandBreakdown" :key="b.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
-                                    <td v-if="showConditionType" class="px-6 py-2.5"></td>
-                                    <td v-if="showPerGb" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
-                                </tr>
-                                <!-- Type Breakdown -->
-                                <tr v-if="showConditionType" v-for="t in row.typeBreakdown" :key="t.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td v-if="showConditionBrand" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
-                                    <td v-if="showPerGb" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
-                                </tr>
-                                <!-- GB Breakdown -->
-                                <tr v-if="showPerGb" v-for="gb in row.gbBreakdown" :key="gb.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td v-if="showConditionBrand" class="px-6 py-2.5"></td>
-                                    <td v-if="showConditionType" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5">
-                                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
-                                            {{ gb.label }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold" :class="gb.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ gb.available }}</td>
-                                </tr>
+                                <template v-if="showConditionBrand" v-for="b in row.tree" :key="b.label">
+                                    <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
+                                        <td v-if="showConditionType" class="px-6 py-2.5"></td>
+                                        <td v-if="showPerGb" class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
+                                    </tr>
+
+                                    <!-- Type Breakdown (Hierarchical under Brand) -->
+                                    <template v-if="showConditionType" v-for="t in b.types" :key="t.label">
+                                        <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">{{ t.label }}</td>
+                                            <td v-if="showPerGb" class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        </tr>
+
+                                        <!-- GB Breakdown (Hierarchical under Type) -->
+                                        <template v-if="showPerGb" v-for="gb in t.gbs" :key="gb.label">
+                                            <tr class="bg-surface-900/40 hover:bg-surface-700/40 transition-colors">
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                        {{ gb.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </template>
+
+                                <!-- Special case: if Tipe is ON but Brand is OFF, we still want hierarchical grouping but maybe flattened? 
+                                     The user said "Brand -> Tipe -> GB", so we assume they follow the hierarchy. 
+                                     If only Tipe is ON, we show nothing currenty. Let's fix that. -->
+                                <template v-if="!showConditionBrand && showConditionType" v-for="b in row.tree">
+                                    <template v-for="t in b.types">
+                                        <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
+                                            <td v-if="showPerGb" class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        </tr>
+                                        <template v-if="showPerGb" v-for="gb in t.gbs">
+                                            <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                        {{ gb.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </template>
+
+                                <!-- Special case: if ONLY GB is ON -->
+                                <template v-if="!showConditionBrand && !showConditionType && showPerGb" v-for="b in row.tree">
+                                    <template v-for="t in b.types">
+                                        <template v-for="gb in t.gbs">
+                                            <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                        {{ gb.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </template>
                             </template>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
@@ -849,38 +962,89 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
                                     </td>
                                 </tr>
+                                
                                 <!-- Brand Breakdown -->
-                                <tr v-if="showDistributorBrand" v-for="b in row.brandBreakdown" :key="b.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
-                                    <td v-if="showDistributorType" class="px-6 py-2.5"></td>
-                                    <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
-                                </tr>
-                                <!-- Type Breakdown -->
-                                <tr v-if="showDistributorType" v-for="t in row.typeBreakdown" :key="t.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td v-if="showDistributorBrand" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
-                                    <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
-                                </tr>
-                                <!-- GB Breakdown -->
-                                <tr v-if="showDistributorGb" v-for="gb in row.gbBreakdown" :key="gb.label"
-                                    class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5"></td>
-                                    <td v-if="showDistributorBrand" class="px-6 py-2.5"></td>
-                                    <td v-if="showDistributorType" class="px-6 py-2.5"></td>
-                                    <td class="px-6 py-2.5 italic text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20 rounded-lg px-2 py-1 inline-block">
-                                        {{ gb.label }}
-                                    </td>
-                                    <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ gb.available }}</td>
-                                </tr>
+                                <template v-if="showDistributorBrand" v-for="b in row.tree" :key="b.label">
+                                    <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
+                                        <td v-if="showDistributorType" class="px-6 py-2.5"></td>
+                                        <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
+                                    </tr>
+
+                                    <!-- Type Breakdown (Hierarchical under Brand) -->
+                                    <template v-if="showDistributorType" v-for="t in b.types" :key="t.label">
+                                        <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">{{ t.label }}</td>
+                                            <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        </tr>
+
+                                        <!-- GB Breakdown (Hierarchical under Type) -->
+                                        <template v-if="showDistributorGb" v-for="gb in t.gbs" :key="gb.label">
+                                            <tr class="bg-surface-900/40 hover:bg-surface-700/40 transition-colors">
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                        {{ gb.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </template>
+
+                                <!-- Special cases for partial toggles -->
+                                <template v-if="!showDistributorBrand && showDistributorType" v-for="b in row.tree">
+                                    <template v-for="t in b.types">
+                                        <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
+                                            <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        </tr>
+                                        <template v-if="showDistributorGb" v-for="gb in t.gbs">
+                                            <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                        {{ gb.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </template>
+
+                                <template v-if="!showDistributorBrand && !showDistributorType && showDistributorGb" v-for="b in row.tree">
+                                    <template v-for="t in b.types">
+                                        <template v-for="gb in t.gbs">
+                                            <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5"></td>
+                                                <td class="px-6 py-2.5">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                        {{ gb.label }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                </template>
                             </template>
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
