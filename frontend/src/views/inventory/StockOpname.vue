@@ -14,6 +14,7 @@ const toast = useToast();
 const loading = ref(false);
 const rawHpItems = ref([]);
 const rawNonHpItems = ref([]);
+const currentView = ref('menu');
 const showPerGb = ref(false);
 const showBrandType = ref(false);
 const showBrandCondition = ref(false);
