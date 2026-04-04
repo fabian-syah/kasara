@@ -193,6 +193,11 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
+                                            <button v-if="canDelete" @click="confirmDelete(item)"
+                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Hapus Transaksi">
+                                                <Trash2 :size="18" />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -246,6 +251,11 @@
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
+                                            </button>
+                                            <button v-if="canDelete" @click="confirmDelete(item)"
+                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Hapus Transaksi">
+                                                <Trash2 :size="18" />
                                             </button>
                                         </div>
                                     </td>
@@ -394,9 +404,17 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, Trash2 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
+
+import { useAuthStore } from '../../store/auth'
+
+const authStore = useAuthStore()
+const canDelete = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+})
 
 const loading = ref(false)
 const selectedPeriod = ref('daily')
@@ -537,6 +555,21 @@ const fetchData = async () => {
         console.error('Error fetching sales:', error)
     } finally {
         loading.value = false
+    }
+}
+
+const confirmDelete = async (item) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus transaksi ${item.order_no} (${item.customer_name})?\n\nTindakan ini akan mengembalikan stok barang ke inventory.`)) {
+        return
+    }
+
+    try {
+        await axios.delete(`/stock-outs/${item.id}`)
+        alert('Transaksi berhasil dihapus!')
+        fetchData()
+    } catch (e) {
+        console.error('Delete failed', e)
+        alert('Gagal menghapus transaksi: ' + (e.response?.data?.message || e.message))
     }
 }
 
