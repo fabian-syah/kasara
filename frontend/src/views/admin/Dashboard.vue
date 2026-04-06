@@ -574,10 +574,10 @@ const getColorClasses = (color) => {
             class="card bg-surface-800/30 border-surface-700/50 p-4 flex items-center gap-4 group hover:bg-surface-800/50 transition-all">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0"
               :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : 'bg-amber-700 text-white')">
-              {{ idx + 1 }}
+              {{ winner.rank }}
             </div>
             <div class="min-w-0 flex-1">
-              <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest leading-none mb-1">Yesterday's #{{ idx + 1 }}</p>
+              <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest leading-none mb-1">Yesterday's #{{ winner.rank }}</p>
               <h4 class="font-black text-text-primary truncate uppercase tracking-tight">{{ winner.name }}</h4>
             </div>
             <div class="text-right shrink-0">

@@ -310,7 +310,7 @@ class DashboardController extends Controller
             
             $excludeFilter = function($item) {
                 $name = strtolower($item->name);
-                return !str_contains($name, 'trial') && !str_contains($name, 'testing') && !str_contains($name, 'anu');
+                return !str_contains($name, 'trial') && !str_contains($name, 'testing') && !str_contains($name, 'anu') && !str_contains($name, 'huft');
             };
 
             $branches = $branchesArr->filter($excludeFilter);
@@ -376,6 +376,16 @@ class DashboardController extends Controller
                 $podium[2] = $podiumItems['next'];
             }
 
+            // Yesterday's Neighborhood Podium (Neighbors from yesterday)
+            $yesterdayPodium = collect();
+            if ($myYesterdayIndex !== false) {
+                $start = max(0, $myYesterdayIndex - 1);
+                $yesterdayPodium = $yesterdayRanking->slice($start, 3)->values();
+            } else {
+                // Fallback to Top 3 if I wasn't ranked yesterday
+                $yesterdayPodium = $yesterdayRanking->take(3)->values();
+            }
+
             return [
                 'today' => [
                     'rank' => $myTodayRank,
@@ -385,7 +395,7 @@ class DashboardController extends Controller
                 'yesterday' => [
                     'rank' => $myYesterdayRank,
                     'omset' => $yesterdayRanking[$myYesterdayIndex]['omset'] ?? 0,
-                    'podium' => $yesterdayRanking->take(3)->values()
+                    'podium' => $yesterdayPodium
                 ],
                 'total_competitors' => $todayRanking->count()
             ];
