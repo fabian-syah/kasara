@@ -23,7 +23,8 @@ return new class extends Migration {
             'inventory_unique_location', 
             'inventory_unique_location_user',
             'inventories_product_id_placement_type_placement_id_unique',
-            'inventories_product_id_placement_type_placement_id_user_id_unique'
+            'inventories_product_id_placement_type_placement_id_user_id_unique',
+            'inv_distributor_unique' // Tambahkan ini agar tidak duplikat saat dijalankan ulang
         ];
         foreach ($constraints as $con) {
             DB::statement("ALTER TABLE inventories DROP CONSTRAINT IF EXISTS \"$con\"");
