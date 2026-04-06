@@ -11,17 +11,14 @@ import {
   ShoppingCart,
   Package,
   Users,
-  AlertTriangle,
-  ArrowUpRight,
-  Activity,
-  RefreshCw,
-  Database,
-  Tags,
-  Box,
   Award,
   Trophy,
   Medal,
-  User
+  User,
+  Store,
+  Globe,
+  ChevronUp,
+  MapPin
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
@@ -34,6 +31,7 @@ const brandSales = ref([]);
 const typeSales = ref([]);
 const csPerformance = ref([]);
 const ranking = ref({ my_rank: '-', leaderboard: [] });
+const branchRanking = ref(null);
 
 const usersList = ref([]);
 const usersMap = computed(() => {
@@ -211,6 +209,7 @@ async function fetchDashboardData() {
       }));
       recentTransactions.value = response.data.recentTransactions || [];
       ranking.value = response.data.ranking || { my_rank: '-', leaderboard: [] };
+      branchRanking.value = response.data.branch_ranking;
       // Optional fields for online_shop and toko_offline might differ slightly, handle gracefully
       brandSales.value = response.data.brandSales || [];
       typeSales.value = response.data.typeSales || [];
@@ -390,8 +389,83 @@ const getColorClasses = (color) => {
     <!-- Ranking & Leaderboard (Online & Offline) -->
     <div v-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'"
       class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- User Ranking Card -->
-      <div class="card overflow-hidden group border-2 border-primary-500/20">
+      <!-- Branch Competition Podium -->
+      <div v-if="branchRanking" class="card overflow-hidden group border-2 border-primary-500/10 p-0 flex flex-col">
+        <div class="p-4 border-b border-surface-700/50 bg-surface-700/10 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <Trophy :size="16" class="text-primary-500" />
+            <h2 class="text-sm font-bold text-text-primary uppercase tracking-wider">Persaingan Global</h2>
+          </div>
+          <span class="text-[10px] font-bold text-text-secondary">HARI INI</span>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center p-4 relative min-h-[220px]">
+          <!-- PODIUM CONTAINER -->
+          <div class="flex items-end justify-center gap-2 pt-6">
+            
+            <!-- Posisi 2 (Neighbors Above) -->
+            <div class="flex flex-col items-center w-1/3">
+              <template v-if="branchRanking.podium[0]">
+                <div class="text-[10px] font-black text-slate-400 mb-1">#{{ branchRanking.podium[0].rank }}</div>
+                <div class="w-10 h-10 rounded-xl bg-surface-700 border border-slate-500/30 flex items-center justify-center mb-2 shadow-lg">
+                  <component :is="branchRanking.podium[0].type === 'branch' ? Store : Globe" class="w-5 h-5 text-slate-400" />
+                </div>
+                <div class="h-12 w-full bg-slate-500/20 rounded-t-xl flex items-center justify-center p-1">
+                   <span class="text-[9px] font-bold text-text-secondary truncate text-center">{{ branchRanking.podium[0].name }}</span>
+                </div>
+              </template>
+              <div v-else class="flex flex-col items-center opacity-20">
+                <div class="w-10 h-10 rounded-xl border border-dashed border-surface-600 mb-2"></div>
+                <div class="h-12 w-full bg-surface-700/50 rounded-t-xl"></div>
+              </div>
+            </div>
+
+            <!-- Posisi 1 (ME / TARGET CENTER) -->
+            <div class="flex flex-col items-center w-1/3 relative -top-4">
+              <div class="absolute -top-6 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                <Medal :size="20" class="text-primary-500 animate-bounce" />
+              </div>
+              <div class="text-xs font-black text-primary-500 mb-1">#{{ branchRanking.podium[1].rank }}</div>
+              <div class="w-14 h-14 rounded-2xl bg-primary-500 border-4 border-surface-900 flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                <component :is="branchRanking.podium[1].type === 'branch' ? Store : Globe" class="w-7 h-7 text-white" />
+              </div>
+              <div class="h-20 w-full bg-primary-500 rounded-t-xl flex flex-col items-center justify-center p-2 shadow-2xl relative">
+                  <span class="text-[10px] font-black text-white text-center leading-tight uppercase">{{ branchRanking.podium[1].name }}</span>
+                  <div class="mt-1 bg-white/20 px-2 py-0.5 rounded text-[8px] font-black text-white whitespace-nowrap">YOU</div>
+              </div>
+            </div>
+
+            <!-- Posisi 3 (Neighbors Below) -->
+            <div class="flex flex-col items-center w-1/3">
+              <template v-if="branchRanking.podium[2]">
+                <div class="text-[10px] font-black text-amber-700/70 mb-1">#{{ branchRanking.podium[2].rank }}</div>
+                <div class="w-10 h-10 rounded-xl bg-surface-700 border border-amber-900/30 flex items-center justify-center mb-2 shadow-lg">
+                  <component :is="branchRanking.podium[2].type === 'branch' ? Store : Globe" class="w-5 h-5 text-amber-700/70" />
+                </div>
+                <div class="h-8 w-full bg-amber-700/20 rounded-t-xl flex items-center justify-center p-1">
+                   <span class="text-[9px] font-bold text-text-secondary truncate text-center">{{ branchRanking.podium[2].name }}</span>
+                </div>
+              </template>
+               <div v-else class="flex flex-col items-center opacity-20">
+                <div class="w-10 h-10 rounded-xl border border-dashed border-surface-600 mb-2"></div>
+                <div class="h-8 w-full bg-surface-700/50 rounded-t-xl"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-surface-700/30 border-t border-surface-700/50 flex justify-center">
+           <div class="flex items-center gap-1.5">
+              <MapPin :size="10" class="text-primary-500" />
+              <span class="text-[9px] font-black text-text-secondary uppercase tracking-tighter">
+                {{ branchRanking.total_competitors }} Competitors Global
+              </span>
+           </div>
+        </div>
+      </div>
+
+      <!-- User Ranking Card (Simplified fallback if branchRanking fails) -->
+      <div v-else class="card overflow-hidden group border-2 border-primary-500/20">
         <div
           class="absolute -right-4 -top-4 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl group-hover:bg-primary-500/20 transition-all duration-500">
         </div>
@@ -410,9 +484,9 @@ const getColorClasses = (color) => {
             <div class="space-y-1">
               <p class="text-sm text-text-secondary font-medium">Berdasarkan Total Unit</p>
               <div class="flex items-baseline gap-2">
-                <span class="text-4xl font-black text-text-primary">GLOBAL</span>
+                <span class="text-4xl font-black text-text-primary">LIVE</span>
                 <span class="text-emerald-500 flex items-center text-xs font-bold">
-                  <TrendingUp :size="12" class="mr-1" /> Live Ranking
+                  <TrendingUp :size="12" class="mr-1" /> Ranking Global
                 </span>
               </div>
             </div>

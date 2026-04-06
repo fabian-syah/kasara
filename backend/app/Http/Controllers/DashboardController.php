@@ -222,7 +222,8 @@ class DashboardController extends Controller
             'typeSales' => $typeSalesData,
             'brandSales' => $brandSalesData,
             'csPerformance' => $csPerformanceData,
-            'ranking' => $this->getRankingData($user, $categories)
+            'ranking' => $this->getRankingData($user, $categories),
+            'branch_ranking' => $this->getBranchRankingData($user)
         ]);
     }
 
@@ -270,6 +271,112 @@ class DashboardController extends Controller
         return [
             'my_rank' => $globalRanking[$user->id] ?? '-',
             'leaderboard' => $leaderboard
+        ];
+    }
+
+    private function getBranchRankingData($user)
+    {
+        // Only for branch or online shop users
+        if (!$user->branch_id && !$user->online_shop_id) return null;
+
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        
+        // Use reporting date logic (Today)
+        $currentReportingDate = StockOut::calculateReportingDate('penjualan', $user->branch ?: ($user->onlineShop ?: null));
+
+        // 1. Get Offline Branch Omset
+        $branchStats = DB::table('branches')
+            ->where('is_active', true)
+            ->where('name', 'NOT ILIKE', '%TRIAL%')
+            ->where('name', 'NOT ILIKE', '%ANU%')
+            ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('stock_outs', function($join) use ($currentReportingDate, $salesCategories) {
+                $join->on('users.id', '=', 'stock_outs.user_id')
+                    ->where('reporting_date', $currentReportingDate)
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
+            })
+            ->select(
+                'branches.id',
+                'branches.name',
+                DB::raw("'branch' as type"),
+                DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
+            )
+            ->groupBy('branches.id', 'branches.name', 'type')
+            ->get();
+
+        // 2. Get Online Shop Omset
+        $onlineStats = DB::table('online_shops')
+            ->where('is_active', true)
+            ->where('name', 'NOT ILIKE', '%TRIAL%')
+            ->where('name', 'NOT ILIKE', '%ANU%')
+            ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
+            ->leftJoin('stock_outs', function($join) use ($currentReportingDate, $salesCategories) {
+                $join->on('users.id', '=', 'stock_outs.user_id')
+                    ->where('reporting_date', $currentReportingDate)
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
+            })
+            ->select(
+                'online_shops.id',
+                'online_shops.name',
+                DB::raw("'online_shop' as type"),
+                DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
+            )
+            ->groupBy('online_shops.id', 'online_shops.name', 'type')
+            ->get();
+
+        // 3. Combine and Sort
+        $allRanking = $branchStats->concat($onlineStats)
+            // Filter out zero omset if possible to make it more "active", 
+            // but user might want to see themselves even if 0.
+            // Let's keep all for now to find the rank correctly among others.
+            ->sortByDesc('omset')
+            ->values();
+
+        // 4. Find My Branch
+        $myType = $user->branch_id ? 'branch' : 'online_shop';
+        $myId = $user->branch_id ?: $user->online_shop_id;
+        
+        $myIndex = $allRanking->search(function ($item) use ($myType, $myId) {
+            return $item->type === $myType && $item->id == $myId;
+        });
+
+        if ($myIndex === false) return null;
+
+        $myRank = $myIndex + 1;
+        
+        // 5. Select Neighbors (Podium logic)
+        // Position 1: My Index - 1 (The one above me)
+        // Position 2: My Index (Me)
+        // Position 3: My Index + 1 (The one below me)
+        
+        $podium = [];
+        
+        // Rank - 1
+        if ($myIndex > 0) {
+            $prev = $allRanking[$myIndex - 1];
+            $podium[] = ['rank' => $myIndex, 'name' => $prev->name, 'omset' => $prev->omset, 'type' => $prev->type, 'position' => 1];
+        } else {
+            $podium[] = null; // Nobody above
+        }
+        
+        // Me
+        $me = $allRanking[$myIndex];
+        $podium[] = ['rank' => $myRank, 'name' => $me->name, 'omset' => $me->omset, 'type' => $me->type, 'position' => 2];
+        
+        // Rank + 1
+        if ($myIndex < $allRanking->count() - 1) {
+            $next = $allRanking[$myIndex + 1];
+            $podium[] = ['rank' => $myIndex + 2, 'name' => $next->name, 'omset' => $next->omset, 'type' => $next->type, 'position' => 3];
+        } else {
+            $podium[] = null; // Nobody below
+        }
+
+        return [
+            'my_rank' => $myRank,
+            'podium' => $podium,
+            'total_competitors' => $allRanking->count()
         ];
     }
 }
