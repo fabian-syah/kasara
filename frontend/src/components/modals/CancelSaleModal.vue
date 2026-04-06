@@ -56,7 +56,7 @@ const selectedUser = computed(() => {
 });
 
 const hasSelectedUserPin = computed(() => {
-    return !!selectedUser.value?.transaction_pin;
+    return !!selectedUser.value?.transaction_pin_exists;
 });
 
 const canSubmitInternal = computed(() => {
@@ -170,7 +170,7 @@ watch(() => props.show, (newVal) => {
                             <select v-else v-model="form.inventory_user_id" class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white">
                                 <option :value="null" class="dark:bg-surface-800">-- Pilih Akun --</option>
                                 <option v-for="user in inventoryUsers" :key="user.id" :value="user.id" class="dark:bg-surface-800">
-                                    {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{ user.transaction_pin ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
+                                    {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{ user.transaction_pin_exists ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
                                 </option>
                             </select>
                             
