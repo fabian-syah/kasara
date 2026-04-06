@@ -118,15 +118,15 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                         <tr v-if="loading">
-                            <td colspan="10" class="px-6 py-12">
+                            <td colspan="12" class="px-6 py-12">
                                 <div class="flex flex-col items-center justify-center text-text-secondary">
                                     <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                     <span class="text-sm font-medium">Memuat data penjualan...</span>
                                 </div>
                             </td>
                         </tr>
-                        <tr v-else-if="salesRecords.daily_sales.length === 0">
-                            <td colspan="10" class="px-6 py-12 text-center text-text-secondary">
+                        <tr v-else-if="(salesRecords.daily_sales?.data || salesRecords.daily_sales).length === 0">
+                            <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
                                 <div class="flex flex-col items-center justify-center">
                                     <div
                                         class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -138,7 +138,7 @@
                             </td>
                         </tr>
                         <template v-else>
-                            <template v-for="(item, index) in salesRecords.daily_sales" :key="index">
+                            <template v-for="(item, index) in (salesRecords.daily_sales?.data || salesRecords.daily_sales)" :key="index">
                                 <!-- If item has sub-items -->
                                 <tr v-if="item.items && item.items.length > 0" v-for="(detail, idx) in item.items"
                                     :key="`${index}-${idx}`"
@@ -311,7 +311,7 @@
         <ReceiptModal :is-open="showReceiptModal" :transaction="currentReceiptData" @close="showReceiptModal = false" />
 
         <!-- Cancel Sale Modal -->
-        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchSales" />
+        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchData" />
     </div>
 </template>
 
@@ -531,7 +531,7 @@ const fetchLocations = async () => {
 }
 
 const handleLocationChange = () => {
-    fetchSales()
+    fetchData()
 }
 
 // Modals State
@@ -589,7 +589,10 @@ const formattedDateDisplay = computed(() => {
 })
 
 // Summary stats
-const activeRecords = computed(() => salesRecords.value.daily_sales.filter(item => item.category !== 'cancel_penjualan'))
+const activeRecords = computed(() => {
+    const list = salesRecords.value.daily_sales?.data || salesRecords.value.daily_sales || []
+    return Array.isArray(list) ? list.filter(item => item.category !== 'cancel_penjualan') : []
+})
 const totalSales = computed(() => activeRecords.value.reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
 const totalUnits = computed(() => activeRecords.value.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
 const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
@@ -675,7 +678,11 @@ const canCancel = (date) => {
 const fetchData = async () => {
     loading.value = true
     try {
-        const params = { ...filters.value };
+        const params = { 
+            ...filters.value,
+            branch_id: selectedBranchId.value,
+            online_shop_id: selectedOnlineShopId.value
+        };
         const response = await axios.get('/audit/sales', { params })
         salesRecords.value = response.data
     } catch (error) {
@@ -694,6 +701,7 @@ onMounted(() => {
     const today = getTodayLocal();
     filters.value.start_date = today;
     filters.value.end_date = today;
+    fetchLocations()
     fetchData()
 })
 </script>
