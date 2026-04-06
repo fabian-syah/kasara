@@ -773,9 +773,9 @@ const handleMonthChange = () => {
 
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner, Leader can filter branches
+    // Only Audit, Super Admin, Owner, Analist, Leader can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'leader'].some(r => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
 })
 
 const formatCurrency = (value) => {
@@ -824,7 +824,7 @@ const fetchBranches = async () => {
 
         const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
-        const isGlobalRole = ['super_admin', 'owner'].includes(role);
+        const isGlobalRole = ['super_admin', 'owner', 'audit', 'analist'].includes(role);
 
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);

@@ -95,6 +95,10 @@ class User extends Authenticatable
     // Helper to get all accessible branch IDs (including primary and extra)
     public function getAccessibleBranchIds()
     {
+        if ($this->hasRole(['super_admin', 'owner', 'audit', 'analist'])) {
+            return \App\Models\Branch::pluck('id')->toArray();
+        }
+
         $ids = [];
         if ($this->branch_id)
             $ids[] = $this->branch_id;
@@ -106,6 +110,10 @@ class User extends Authenticatable
     // Helper to get all accessible online shop IDs
     public function getAccessibleOnlineShopIds()
     {
+        if ($this->hasRole(['super_admin', 'owner', 'audit', 'analist'])) {
+            return \App\Models\OnlineShop::pluck('id')->toArray();
+        }
+
         $ids = [];
         if ($this->online_shop_id)
             $ids[] = $this->online_shop_id;
@@ -117,6 +125,10 @@ class User extends Authenticatable
     // Helper to get all accessible warehouse IDs
     public function getAccessibleWarehouseIds()
     {
+        if ($this->hasRole(['super_admin', 'owner', 'audit', 'analist', 'admin_produk'])) {
+            return \App\Models\Warehouse::pluck('id')->toArray();
+        }
+
         $ids = [];
         if ($this->warehouse_id)
             $ids[] = $this->warehouse_id;
@@ -128,6 +140,10 @@ class User extends Authenticatable
     // Helper to get all accessible distributor IDs
     public function getAccessibleDistributorIds()
     {
+        if ($this->hasRole(['super_admin', 'owner', 'audit', 'analist', 'admin_produk'])) {
+            return \App\Models\Distributor::pluck('id')->toArray();
+        }
+
         $ids = [];
         if ($this->distributor_id)
             $ids[] = $this->distributor_id;

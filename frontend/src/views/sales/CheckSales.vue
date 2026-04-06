@@ -8,6 +8,20 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <!-- Location Filter -->
+                <div v-if="canFilterBranch" class="relative min-w-[200px]">
+                    <select v-model="selectedLocationKey" @change="handleLocationChange"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
+                        <option value="all">Semua Cabang/Toko</option>
+                        <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                            :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                            {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
+                        </option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
                 <!-- Period Filter -->
                 <div class="relative min-w-[140px]">
                     <select v-model="selectedPeriod" @change="handlePeriodChange"
@@ -446,6 +460,79 @@ const salesRecords = ref({
     brand_sales: [],
     cs_sales: []
 })
+
+const locations = ref([])
+const selectedLocationKey = ref('all')
+
+const selectedBranchId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
+
+const selectedOnlineShopId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
+
+const canFilterBranch = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
+})
+
+const fetchLocations = async () => {
+    try {
+        const [branchRes, shopRes, userRes] = await Promise.all([
+            axios.get('/branches'),
+            axios.get('/online-shops'),
+            axios.get('/user')
+        ])
+
+        const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
+        const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
+        const allLocations = [...allBranches, ...allShops];
+
+        const user = userRes.data.user || userRes.data.data || userRes.data;
+        const role = (authStore.userRole || '').toLowerCase();
+
+        const isGlobalRole = ['super_admin', 'owner', 'audit', 'analist'].includes(role);
+
+        let allowedBranchIds = [];
+        if (user?.branch_id) allowedBranchIds.push(user.branch_id);
+
+        let allowedShopIds = [];
+        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
+
+        if (user?.placements && Array.isArray(user.placements)) {
+            user.placements.forEach(p => {
+                if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
+                if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+            });
+        }
+
+        allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
+        allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
+
+        if (isGlobalRole || (['leader'].includes(role) && !hasAnyRestriction)) {
+            locations.value = allLocations;
+        } else if (hasAnyRestriction) {
+            locations.value = allLocations.filter(loc => {
+                if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+                if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                return false;
+            });
+        } else {
+            locations.value = [];
+        }
+    } catch (error) {
+        console.error('Error fetching locations:', error)
+    }
+}
+
+const handleLocationChange = () => {
+    fetchSales()
+}
 
 // Modals State
 const showProofModal = ref(false)

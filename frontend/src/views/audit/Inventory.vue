@@ -157,9 +157,9 @@ const selectedOnlineShopId = computed(() => {
 })
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner, Leader can filter branches
+    // Only Audit, Super Admin, Owner, Analist, Leader can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'leader'].some(r => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
 })
 
 const fetchBranches = async () => {
@@ -181,7 +181,7 @@ const fetchBranches = async () => {
         console.log('[DEBUG-INVENTORY] All Available Shops:', allShops);
 
         // Define unrestricted roles
-        const isGlobalRole = ['super_admin', 'owner'].includes(role);
+        const isGlobalRole = ['super_admin', 'owner', 'audit', 'analist'].includes(role);
 
         // Collect allowed IDs
         let allowedBranchIds = [];
@@ -203,8 +203,8 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
-        // LOGIC: If global role OR (Audit/Leader role AND no specific assignments) -> Show all
-        if (isGlobalRole || (['audit', 'leader'].includes(role) && !hasAnyRestriction)) {
+        // LOGIC: If global role OR (Leader role AND no specific assignments) -> Show all
+        if (isGlobalRole || (['leader'].includes(role) && !hasAnyRestriction)) {
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
             locations.value = allLocations.filter(loc => {
