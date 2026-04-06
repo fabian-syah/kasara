@@ -96,6 +96,7 @@ class StockOut extends Model
         'total_discount',
         'global_discount_value',
         'global_discount_type',
+        'notes',
     ];
 
     protected $casts = [

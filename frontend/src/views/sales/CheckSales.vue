@@ -161,17 +161,17 @@
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
-                                        <div v-if="item.transaction_pin" class="flex flex-col">
+                                        <div v-if="item.transaction_pin" class="flex flex-col gap-1">
                                             <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
                                                 item.transaction_pin }}</span>
                                             <span v-if="item.notes"
-                                                class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                                class="text-xs text-text-primary leading-tight"
                                                 :title="item.notes">{{ item.notes }}</span>
                                         </div>
                                         <span v-else-if="item.notes"
-                                            class="text-[10px] text-text-secondary truncate max-w-[150px]"
+                                            class="text-xs text-text-primary leading-tight"
                                             :title="item.notes">{{ item.notes }}</span>
-                                        <span v-else class="text-text-secondary">-</span>
+                                        <span v-else class="text-text-secondary italic text-xs">Tanpa Catatan</span>
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
@@ -222,17 +222,17 @@
                                         !== '-' ? item.imeis : '-' }}</td>
                                     <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
                                     <td class="px-6 py-4">
-                                        <div v-if="item.transaction_pin" class="flex flex-col">
+                                        <div v-if="item.transaction_pin" class="flex flex-col gap-1">
                                             <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
                                                 item.transaction_pin }}</span>
                                             <span v-if="item.notes"
-                                                class="text-[10px] text-text-primary truncate max-w-[150px]"
+                                                class="text-xs text-text-primary leading-tight"
                                                 :title="item.notes">{{ item.notes }}</span>
                                         </div>
                                         <span v-else-if="item.notes"
-                                            class="text-[10px] text-text-primary truncate max-w-[150px]"
+                                            class="text-xs text-text-primary leading-tight"
                                             :title="item.notes">{{ item.notes }}</span>
-                                        <span v-else class="text-text-primary">-</span>
+                                        <span v-else class="text-text-secondary italic text-xs">Tanpa Catatan</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
