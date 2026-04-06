@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -279,112 +280,104 @@ class DashboardController extends Controller
         // Only for branch or online shop users
         if (!$user->branch_id && !$user->online_shop_id) return null;
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
-        
-        // Use reporting date logic
-        $location = $user->branch ?: ($user->onlineShop ?: null);
-        $todayDate = StockOut::calculateReportingDate('penjualan', $location);
-        $yesterdayDate = \Carbon\Carbon::parse($todayDate)->subDay()->format('Y-m-d');
+        try {
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+            
+            // Use reporting date logic
+            $location = $user->branch ?: ($user->onlineShop ?: null);
+            $todayDate = StockOut::calculateReportingDate('penjualan', $location);
+            $yesterdayDate = Carbon::parse($todayDate)->subDay()->format('Y-m-d');
 
-        // Helper to get ranking for a specific date
-        $getRankingForDate = function($date) use ($salesCategories) {
-            $branchStats = DB::table('branches')
-                ->where('is_active', true)
-                ->where('name', 'NOT LIKE', '%TRIAL%') // Fixed: standard LIKE for compatibility if ILIKE is sensitive
-                ->where('name', 'NOT LIKE', '%ANU%')
-                ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
-                ->leftJoin('stock_outs', function($join) use ($date, $salesCategories) {
-                    $join->on('users.id', '=', 'stock_outs.user_id')
-                        ->where('reporting_date', $date)
-                        ->whereIn('stock_outs.category', $salesCategories)
-                        ->whereNull('stock_outs.deleted_at');
-                })
+            // Optimized Query: Get omset for both today and yesterday in ONE go
+            $dates = [$todayDate, $yesterdayDate];
+            $allTransactions = DB::table('stock_outs')
+                ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                ->whereIn('stock_outs.reporting_date', $dates)
+                ->whereIn('stock_outs.category', $salesCategories)
+                ->whereNull('stock_outs.deleted_at')
                 ->select(
-                    'branches.id',
-                    'branches.name',
-                    DB::raw("'branch' as type"),
-                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
+                    'stock_outs.reporting_date',
+                    'users.branch_id',
+                    'users.online_shop_id',
+                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as total_omset')
                 )
-                ->groupBy('branches.id', 'branches.name')
+                ->groupBy('stock_outs.reporting_date', 'users.branch_id', 'users.online_shop_id')
                 ->get();
 
-            $onlineStats = DB::table('online_shops')
-                ->where('is_active', true)
-                ->where('name', 'NOT LIKE', '%TRIAL%')
-                ->where('name', 'NOT LIKE', '%ANU%')
-                ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
-                ->leftJoin('stock_outs', function($join) use ($date, $salesCategories) {
-                    $join->on('users.id', '=', 'stock_outs.user_id')
-                        ->where('reporting_date', $date)
-                        ->whereIn('stock_outs.category', $salesCategories)
-                        ->whereNull('stock_outs.deleted_at');
-                })
-                ->select(
-                    'online_shops.id',
-                    'online_shops.name',
-                    DB::raw("'online_shop' as type"),
-                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
-                )
-                ->groupBy('online_shops.id', 'online_shops.name')
-                ->get();
+            // Fetch names of all active units
+            $branches = DB::table('branches')->where('is_active', true)->where('name', 'NOT LIKE', '%TRIAL%')->get(['id', 'name']);
+            $shops = DB::table('online_shops')->where('is_active', true)->where('name', 'NOT LIKE', '%TRIAL%')->get(['id', 'name']);
 
-            return $branchStats->concat($onlineStats)->sortByDesc('omset')->values();
-        };
+            $assembleRanking = function($date) use ($allTransactions, $branches, $shops) {
+                $dateStats = $allTransactions->where('reporting_date', $date);
+                
+                $ranks = collect();
+                
+                foreach ($branches as $b) {
+                    $omset = (float) ($dateStats->where('branch_id', $b->id)->first()->total_omset ?? 0);
+                    $ranks->push(['id' => $b->id, 'name' => $b->name, 'type' => 'branch', 'omset' => $omset]);
+                }
+                
+                foreach ($shops as $s) {
+                    $omset = (float) ($dateStats->where('online_shop_id', $s->id)->first()->total_omset ?? 0);
+                    $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset]);
+                }
 
-        $todayRanking = $getRankingForDate($todayDate);
-        $yesterdayRanking = $getRankingForDate($yesterdayDate);
+                return $ranks->sortByDesc('omset')->values();
+            };
 
-        // Find My Branch Info
-        $myType = $user->branch_id ? 'branch' : 'online_shop';
-        $myId = $user->branch_id ?: $user->online_shop_id;
-        
-        $findRank = function($rankingList) use ($myType, $myId) {
-            $index = $rankingList->search(function ($item) use ($myType, $myId) {
-                return $item->type === $myType && $item->id == $myId;
-            });
-            return $index === false ? null : ($index + 1);
-        };
+            $todayRanking = $assembleRanking($todayDate);
+            $yesterdayRanking = $assembleRanking($yesterdayDate);
 
-        $myTodayRank = $findRank($todayRanking);
-        if ($myTodayRank === null) return null;
+            // Find My Info
+            $myType = $user->branch_id ? 'branch' : 'online_shop';
+            $myId = $user->branch_id ?: $user->online_shop_id;
+            
+            $myTodayIndex = $todayRanking->search(fn($i) => $i['type'] === $myType && $i['id'] == $myId);
+            if ($myTodayIndex === false) return null;
 
-        $myYesterdayRank = $findRank($yesterdayRanking);
+            $myTodayRank = $myTodayIndex + 1;
+            $myYesterdayIndex = $yesterdayRanking->search(fn($i) => $i['type'] === $myType && $i['id'] == $myId);
+            $myYesterdayRank = ($myYesterdayIndex === false) ? '-' : ($myYesterdayIndex + 1);
 
-        // Select Neighbors for Today's Podium
-        $myIndex = $myTodayRank - 1;
-        $podium = [];
-        
-        // Rank - 1
-        if ($myIndex > 0) {
-            $prev = $todayRanking[$myIndex - 1];
-            $podium[] = ['rank' => $myIndex, 'name' => $prev->name, 'omset' => $prev->omset, 'type' => $prev->type];
-        } else {
-            $podium[] = null;
+            // Select Neighbors for Today's Podium
+            $podium = [];
+            
+            // Rank - 1
+            if ($myTodayIndex > 0) {
+                $prev = $todayRanking[$myTodayIndex - 1];
+                $podium[] = ['rank' => $myTodayIndex, 'name' => $prev['name'], 'omset' => $prev['omset'], 'type' => $prev['type']];
+            } else {
+                $podium[] = null;
+            }
+            
+            // Me
+            $me = $todayRanking[$myTodayIndex];
+            $podium[] = ['rank' => $myTodayRank, 'name' => $me['name'], 'omset' => $me['omset'], 'type' => $me['type']];
+            
+            // Rank + 1
+            if ($myTodayIndex < $todayRanking->count() - 1) {
+                $next = $todayRanking[$myTodayIndex + 1];
+                $podium[] = ['rank' => $myTodayRank + 1, 'name' => $next['name'], 'omset' => $next['omset'], 'type' => $next['type']];
+            } else {
+                $podium[] = null;
+            }
+
+            return [
+                'today' => [
+                    'rank' => $myTodayRank,
+                    'podium' => $podium,
+                    'omset' => $me['omset']
+                ],
+                'yesterday' => [
+                    'rank' => $myYesterdayRank,
+                    'omset' => $yesterdayRanking[$myYesterdayIndex]['omset'] ?? 0
+                ],
+                'total_competitors' => $todayRanking->count()
+            ];
+        } catch (\Exception $e) {
+            // Silently fail to avoid crashing the whole dashboard
+            return null;
         }
-        
-        // Me
-        $me = $todayRanking[$myIndex];
-        $podium[] = ['rank' => $myTodayRank, 'name' => $me->name, 'omset' => $me->omset, 'type' => $me->type];
-        
-        // Rank + 1
-        if ($myIndex < $todayRanking->count() - 1) {
-            $next = $todayRanking[$myIndex + 1];
-            $podium[] = ['rank' => $myTodayRank + 1, 'name' => $next->name, 'omset' => $next->omset, 'type' => $next->type];
-        } else {
-            $podium[] = null;
-        }
-
-        return [
-            'today' => [
-                'rank' => $myTodayRank,
-                'podium' => $podium,
-                'omset' => $me->omset
-            ],
-            'yesterday' => [
-                'rank' => $myYesterdayRank ?: '-',
-                'omset' => $yesterdayRanking->firstWhere(fn($i) => $i->type === $myType && $i->id == $myId)?->omset ?? 0
-            ],
-            'total_competitors' => $todayRanking->count()
-        ];
     }
 }
