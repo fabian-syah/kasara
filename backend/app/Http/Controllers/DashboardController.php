@@ -304,9 +304,17 @@ class DashboardController extends Controller
                 ->groupBy('stock_outs.reporting_date', 'users.branch_id', 'users.online_shop_id')
                 ->get();
 
-            // Fetch names of all active units
-            $branches = DB::table('branches')->where('is_active', true)->where('name', 'NOT LIKE', '%TRIAL%')->get(['id', 'name']);
-            $shops = DB::table('online_shops')->where('is_active', true)->where('name', 'NOT LIKE', '%TRIAL%')->get(['id', 'name']);
+            // Fetch names of all active units (Exclude Trial, Testing, Anu accounts)
+            $branchesArr = DB::table('branches')->where('is_active', true)->get(['id', 'name']);
+            $shopsArr = DB::table('online_shops')->where('is_active', true)->get(['id', 'name']);
+            
+            $excludeFilter = function($item) {
+                $name = strtolower($item->name);
+                return !str_contains($name, 'trial') && !str_contains($name, 'testing') && !str_contains($name, 'anu');
+            };
+
+            $branches = $branchesArr->filter($excludeFilter);
+            $shops = $shopsArr->filter($excludeFilter);
 
             $assembleRanking = function($date) use ($allTransactions, $branches, $shops) {
                 $dateStats = $allTransactions->where('reporting_date', $date);
@@ -323,7 +331,10 @@ class DashboardController extends Controller
                     $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset]);
                 }
 
-                return $ranks->sortByDesc('omset')->values();
+                return $ranks->sortByDesc('omset')->values()->map(function($item, $idx) {
+                    $item['rank'] = $idx + 1;
+                    return $item;
+                });
             };
 
             $todayRanking = $assembleRanking($todayDate);
@@ -339,30 +350,30 @@ class DashboardController extends Controller
             $myTodayRank = $myTodayIndex + 1;
             $myYesterdayIndex = $yesterdayRanking->search(fn($i) => $i['type'] === $myType && $i['id'] == $myId);
             $myYesterdayRank = ($myYesterdayIndex === false) ? '-' : ($myYesterdayIndex + 1);
+            $findYesterdayRank = function($item) use ($yesterdayRanking) {
+                if (!$item) return '-';
+                $yRank = $yesterdayRanking->where('type', $item['type'])->where('id', $item['id'])->first();
+                return $yRank ? $yRank['rank'] : '-';
+            };
 
-            // Select Neighbors for Today's Podium
-            $podium = [];
-            // REARRANGE PODIUM FOR MOTIVATION (As requested: Better neighbor is Center)
-            // Me (Left Slot / Index 0)
+            // Today's Podium Items with Yesterday's Rank
             $me = $todayRanking[$myTodayIndex];
-            $podium[0] = ['rank' => $myTodayRank, 'name' => $me['name'], 'omset' => $me['omset'], 'type' => $me['type']];
-            
-            // Better / Winner (Center Slot / Index 1)
+            $podiumItems = [
+                'me' => array_merge($me, ['yesterday_rank' => $findYesterdayRank($me)]),
+                'prev' => $myTodayIndex > 0 ? array_merge($todayRanking[$myTodayIndex - 1]->toArray(), ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex - 1])]) : null,
+                'next' => $myTodayIndex < $todayRanking->count() - 1 ? array_merge($todayRanking[$myTodayIndex + 1]->toArray(), ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex + 1])]) : null
+            ];
+
+            // Re-order for the slots: [Left, Center, Right]
+            $podium = [];
             if ($myTodayIndex > 0) {
-                $prev = $todayRanking[$myTodayIndex - 1];
-                $podium[1] = ['rank' => $myTodayRank - 1, 'name' => $prev['name'], 'omset' => $prev['omset'], 'type' => $prev['type']];
+                $podium[0] = $podiumItems['me'];
+                $podium[1] = $podiumItems['prev'];
+                $podium[2] = $podiumItems['next'];
             } else {
-                // If I am #1, I stay in the center
-                $podium[1] = $podium[0];
                 $podium[0] = null;
-            }
-            
-            // Worse (Right Slot / Index 2)
-            if ($myTodayIndex < $todayRanking->count() - 1) {
-                $next = $todayRanking[$myTodayIndex + 1];
-                $podium[2] = ['rank' => $myTodayRank + 1, 'name' => $next['name'], 'omset' => $next['omset'], 'type' => $next['type']];
-            } else {
-                $podium[2] = null;
+                $podium[1] = $podiumItems['me'];
+                $podium[2] = $podiumItems['next'];
             }
 
             return [
@@ -373,7 +384,8 @@ class DashboardController extends Controller
                 ],
                 'yesterday' => [
                     'rank' => $myYesterdayRank,
-                    'omset' => $yesterdayRanking[$myYesterdayIndex]['omset'] ?? 0
+                    'omset' => $yesterdayRanking[$myYesterdayIndex]['omset'] ?? 0,
+                    'podium' => $yesterdayRanking->take(3)->values()
                 ],
                 'total_competitors' => $todayRanking->count()
             ];

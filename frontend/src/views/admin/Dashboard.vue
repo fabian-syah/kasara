@@ -431,6 +431,23 @@ const getColorClasses = (color) => {
                     <p class="text-xs font-black text-white/60 uppercase truncate w-full px-2">{{ branchRanking.today.podium[0].name }}</p>
                     <p class="text-[10px] font-bold text-white/20 mt-1 uppercase tracking-widest">{{ branchRanking.today.podium[0].type === 'branch' ? 'OFFLINE UNIT' : 'ONLINE STORE' }}</p>
                     <div class="mt-3 text-xs font-mono text-white/50 bg-white/5 px-4 py-1.5 rounded-full border border-white/5">Rp {{ formatNumber(branchRanking.today.podium[0].omset) }}</div>
+                    
+                    <!-- Small Trend Badge -->
+                    <div class="mt-4 flex items-center justify-center gap-2 opacity-60 scale-75 transform origin-top">
+                      <div class="flex flex-col items-center">
+                        <span class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Kemarin</span>
+                        <span class="text-xs font-black text-white/80">#{{ branchRanking.today.podium[0].yesterday_rank }}</span>
+                      </div>
+                      <div class="w-px h-6 bg-white/10 mx-1"></div>
+                      <div class="flex items-center gap-1">
+                        <ChevronUp v-if="branchRanking.today.podium[0].yesterday_rank === '-' || branchRanking.today.podium[0].rank < branchRanking.today.podium[0].yesterday_rank" :size="12" class="text-emerald-500" />
+                        <ChevronDown v-else-if="branchRanking.today.podium[0].rank > branchRanking.today.podium[0].yesterday_rank" :size="12" class="text-red-500" />
+                        <span class="text-[9px] font-black uppercase tracking-wider" 
+                          :class="branchRanking.today.podium[0].yesterday_rank === '-' || branchRanking.today.podium[0].rank < branchRanking.today.podium[0].yesterday_rank ? 'text-emerald-500' : (branchRanking.today.podium[0].rank > branchRanking.today.podium[0].yesterday_rank ? 'text-red-500' : 'text-white/40')">
+                          {{ branchRanking.today.podium[0].yesterday_rank === '-' ? 'NEW' : (branchRanking.today.podium[0].rank < branchRanking.today.podium[0].yesterday_rank ? 'NAIK' : (branchRanking.today.podium[0].rank > branchRanking.today.podium[0].yesterday_rank ? 'TURUN' : 'STABIL')) }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </template>
                 <div v-else class="opacity-10 pointer-events-none">
@@ -480,15 +497,15 @@ const getColorClasses = (color) => {
                     <div class="flex items-center justify-center gap-6 px-8 py-4 bg-white/5 rounded-[2rem] border border-white/10 mt-2 backdrop-blur-md">
                         <div class="flex flex-col items-center">
                           <span class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Kemarin</span>
-                          <span class="text-lg font-black text-white/80">#{{ branchRanking.yesterday.rank }}</span>
+                          <span class="text-lg font-black text-white/80">#{{ branchRanking.today.podium[1].yesterday_rank }}</span>
                         </div>
                         <div class="w-px h-10 bg-white/10 mx-2"></div>
                         <div class="flex flex-col items-center">
                            <div class="flex items-center gap-2 mb-0.5">
-                              <ChevronDown v-if="branchRanking.today.rank > branchRanking.yesterday.rank && branchRanking.yesterday.rank !== '-'" :size="18" class="text-red-500" />
-                              <ChevronUp v-else-if="branchRanking.today.rank < branchRanking.yesterday.rank || branchRanking.yesterday.rank === '-'" :size="18" class="text-emerald-500" />
-                              <span class="text-sm font-black uppercase tracking-wider" :class="branchRanking.today.rank < branchRanking.yesterday.rank || branchRanking.yesterday.rank === '-' ? 'text-emerald-500' : (branchRanking.today.rank > branchRanking.yesterday.rank ? 'text-red-500' : 'text-white/40')">
-                                 {{ branchRanking.yesterday.rank === '-' ? 'NEW' : (branchRanking.today.rank < branchRanking.yesterday.rank ? 'NAIK' : (branchRanking.today.rank > branchRanking.yesterday.rank ? 'TURUN' : 'STABIL')) }}
+                              <ChevronDown v-if="branchRanking.today.podium[1].yesterday_rank !== '-' && branchRanking.today.podium[1].rank > branchRanking.today.podium[1].yesterday_rank" :size="18" class="text-red-500" />
+                              <ChevronUp v-else-if="branchRanking.today.podium[1].yesterday_rank === '-' || branchRanking.today.podium[1].rank < branchRanking.today.podium[1].yesterday_rank" :size="18" class="text-emerald-500" />
+                              <span class="text-sm font-black uppercase tracking-wider" :class="branchRanking.today.podium[1].yesterday_rank === '-' || branchRanking.today.podium[1].rank < branchRanking.today.podium[1].yesterday_rank ? 'text-emerald-500' : (branchRanking.today.podium[1].rank > branchRanking.today.podium[1].yesterday_rank ? 'text-red-500' : 'text-white/40')">
+                                 {{ branchRanking.today.podium[1].yesterday_rank === '-' ? 'NEW' : (branchRanking.today.podium[1].rank < branchRanking.today.podium[1].yesterday_rank ? 'NAIK' : (branchRanking.today.podium[1].rank > branchRanking.today.podium[1].yesterday_rank ? 'TURUN' : 'STABIL')) }}
                               </span>
                            </div>
                            <span class="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">PREVIOUS STATUS</span>
@@ -512,6 +529,23 @@ const getColorClasses = (color) => {
                     <p class="text-xs font-black text-white/60 uppercase truncate w-full px-2">{{ branchRanking.today.podium[2].name }}</p>
                     <p class="text-[10px] font-bold text-white/20 mt-1 uppercase tracking-widest">{{ branchRanking.today.podium[2].type === 'branch' ? 'OFFLINE UNIT' : 'ONLINE STORE' }}</p>
                     <div class="mt-3 text-xs font-mono text-white/40 bg-white/5 px-4 py-1.5 rounded-full border border-white/5">Rp {{ formatNumber(branchRanking.today.podium[2].omset) }}</div>
+                    
+                    <!-- Small Trend Badge -->
+                    <div class="mt-4 flex items-center justify-center gap-2 opacity-60 scale-75 transform origin-top">
+                      <div class="flex flex-col items-center">
+                        <span class="text-[8px] font-bold text-white/30 uppercase tracking-[0.2em]">Kemarin</span>
+                        <span class="text-xs font-black text-white/80">#{{ branchRanking.today.podium[2].yesterday_rank }}</span>
+                      </div>
+                      <div class="w-px h-6 bg-white/10 mx-1"></div>
+                      <div class="flex items-center gap-1">
+                        <ChevronUp v-if="branchRanking.today.podium[2].yesterday_rank === '-' || branchRanking.today.podium[2].rank < branchRanking.today.podium[2].yesterday_rank" :size="12" class="text-emerald-500" />
+                        <ChevronDown v-else-if="branchRanking.today.podium[2].rank > branchRanking.today.podium[2].yesterday_rank" :size="12" class="text-red-500" />
+                        <span class="text-[9px] font-black uppercase tracking-wider" 
+                          :class="branchRanking.today.podium[2].yesterday_rank === '-' || branchRanking.today.podium[2].rank < branchRanking.today.podium[2].yesterday_rank ? 'text-emerald-500' : (branchRanking.today.podium[2].rank > branchRanking.today.podium[2].yesterday_rank ? 'text-red-500' : 'text-white/40')">
+                          {{ branchRanking.today.podium[2].yesterday_rank === '-' ? 'NEW' : (branchRanking.today.podium[2].rank < branchRanking.today.podium[2].yesterday_rank ? 'NAIK' : (branchRanking.today.podium[2].rank > branchRanking.today.podium[2].yesterday_rank ? 'TURUN' : 'STABIL')) }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </template>
                 <div v-else class="opacity-10 pointer-events-none">
@@ -532,6 +566,25 @@ const getColorClasses = (color) => {
            </div>
            <button class="text-xs font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-400 transition-all hover:translate-x-1">See Full Global Rankings →</button>
         </div>
+      </div>
+
+      <!-- Yesterday's Mini Podium -->
+      <div v-if="branchRanking?.yesterday?.podium" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div v-for="(winner, idx) in branchRanking.yesterday.podium" :key="idx"
+            class="card bg-surface-800/30 border-surface-700/50 p-4 flex items-center gap-4 group hover:bg-surface-800/50 transition-all">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0"
+              :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : 'bg-amber-700 text-white')">
+              {{ idx + 1 }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest leading-none mb-1">Yesterday's #{{ idx + 1 }}</p>
+              <h4 class="font-black text-text-primary truncate uppercase tracking-tight">{{ winner.name }}</h4>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-[10px] font-bold text-emerald-500 leading-none">Rp {{ formatNumber(winner.omset) }}</p>
+              <p class="text-[8px] text-text-secondary mt-1">OMSET</p>
+            </div>
+          </div>
       </div>
 
       <!-- User Ranking Card (Simplified fallback if branchRanking fails) -->
