@@ -195,7 +195,7 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
-                                            <button v-if="item.category !== 'cancel_penjualan'" @click="handleCancelSale(item)"
+                                            <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)" @click="handleCancelSale(item)"
                                                 class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
@@ -256,7 +256,7 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
-                                            <button v-if="item.category !== 'cancel_penjualan'" @click="handleCancelSale(item)"
+                                            <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)" @click="handleCancelSale(item)"
                                                 class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
@@ -554,6 +554,34 @@ const formatDate = (dateString) => {
         hour: '2-digit',
         minute: '2-digit'
     })
+}
+
+const canCancel = (date) => {
+    // Roles that can always cancel regardless of date
+    const role = (authStore.userRole || '').toLowerCase();
+    if (role === 'super_admin' || role === 'owner') return true;
+    
+    if (!date) return false;
+    
+    // Normalisasi waktu ke WITA/WIB sesuai zona server (UTC+7/8) atau ke local midnight
+    // item.date formatnya adalah "YYYY-MM-DD HH:mm:ss" dari backend
+    const itemDate = new Date(date);
+    if (isNaN(itemDate.getTime())) return false;
+
+    const today = new Date();
+    
+    // Reset ke jam 00:00:00 untuk perbandingan hari yang murni
+    today.setHours(0, 0, 0, 0);
+    itemDate.setHours(0, 0, 0, 0);
+    
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
+    
+    // Jika hari ini tanggal 6, maka:
+    // 6 - 6 = 0 (OK)
+    // 6 - 1 = 5 (OK)
+    // 6 - 31 = 6 (BLOCKED)
+    return diffDays <= 5;
 }
 
 const fetchData = async () => {
