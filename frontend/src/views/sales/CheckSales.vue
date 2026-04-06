@@ -502,10 +502,11 @@ const formattedDateDisplay = computed(() => {
 })
 
 // Summary stats
-const totalSales = computed(() => salesRecords.value.daily_sales.reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
-const totalUnits = computed(() => salesRecords.value.daily_sales.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
-const totalLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status === 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
-const totalBelumLunas = computed(() => salesRecords.value.daily_sales.filter(item => item.status !== 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
+const activeRecords = computed(() => salesRecords.value.daily_sales.filter(item => item.category !== 'cancel_penjualan'))
+const totalSales = computed(() => activeRecords.value.reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
+const totalUnits = computed(() => activeRecords.value.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
+const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
+const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
 
 const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', {
