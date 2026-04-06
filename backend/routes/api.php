@@ -109,6 +109,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/stock-outs', [\App\Http\Controllers\StockOutController::class, 'store']);
     Route::get('/stock-outs/shopee-history', [\App\Http\Controllers\StockOutController::class, 'shopeeHistory']);
     Route::get('/stock-outs/{id}', [\App\Http\Controllers\StockOutController::class, 'show']);
+    Route::post('/stock-outs/{id}/cancel', [\App\Http\Controllers\StockOutController::class, 'cancel']);
     Route::get('/track', [\App\Http\Controllers\StockOutController::class, 'track']);
     Route::post('/trade-ins', [TradeInController::class, 'store']);
     Route::post('/refunds', [\App\Http\Controllers\RefundController::class, 'store']);

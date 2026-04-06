@@ -1403,6 +1403,113 @@ class StockOutController extends Controller
         return response()->json($transfers);
     }
 
+    /**
+     * Cancel a sale and restore stock.
+     * Restricted to transactions within the last 5 days as per requirements.
+     */
+    public function cancel(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+            'inventory_user_id' => 'required|exists:users,id',
+            'transaction_pin' => 'required|string|size:4'
+        ]);
+
+        // PIN Verification using Trait
+        // This trait handles checking if the user has a PIN, 
+        // and if it matches. It also handles generic permission checks.
+        $pinError = $this->verifyPin($request, $request->inventory_user_id);
+        if ($pinError) return $pinError;
+
+        DB::beginTransaction();
+        try {
+            // Load items and nonHpDetails (linked to stock_out_non_hp_items)
+            $stockOut = StockOut::with(['items', 'nonHpDetails', 'user'])->findOrFail($id);
+
+            // 1. Restriction: Only allow cancellations for the last 5 reporting days
+            $reportingDate = \Carbon\Carbon::parse($stockOut->reporting_date);
+            $fiveDaysAgo = now()->subDays(5)->startOfDay();
+
+            if ($reportingDate->lt($fiveDaysAgo) && !Auth::user()->hasRole('super_admin')) {
+                throw new \Exception('Hanya penjualan dalam 5 hari terakhir yang dapat dibatalkan.');
+            }
+
+            if ($stockOut->category === 'cancel_penjualan' || $stockOut->cancelled_at) {
+                throw new \Exception('Transaksi ini sudah dibatalkan sebelumnya.');
+            }
+
+            $user = $stockOut->user; // Source user/location record
+
+            // 2. Restore HP Items (ProductDetail)
+            foreach ($stockOut->items as $item) {
+                $item->update([
+                    'status' => 'available' 
+                ]);
+            }
+
+            // 3. Restore Non-HP Items
+            foreach ($stockOut->nonHpDetails as $detail) {
+                $invQuery = Inventory::where('product_id', $detail->product_id);
+
+                if ($user->branch_id) {
+                    $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                } elseif ($user->warehouse_id) {
+                    $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
+                } elseif ($user->online_shop_id) {
+                    $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                }
+
+                $inventory = $invQuery->first();
+                
+                if ($inventory) {
+                    $inventory->increment('quantity', $detail->quantity);
+                } else {
+                    $distributorId = Distributor::first()->id ?? null;
+                    $inventory = Inventory::create([
+                        'product_id' => $detail->product_id,
+                        'placement_type' => $user->branch_id ? 'branch' : ($user->online_shop_id ? 'online_shop' : 'warehouse'),
+                        'placement_id' => $user->branch_id ?? ($user->online_shop_id ?? $user->warehouse_id),
+                        'quantity' => $detail->quantity,
+                        'distributor_id' => $distributorId,
+                        'user_id' => $user->id
+                    ]);
+                }
+
+                InventoryLog::create([
+                    'product_id' => $detail->product_id,
+                    'type' => 'in',
+                    'quantity' => $detail->quantity,
+                    'balance_after' => $inventory->quantity,
+                    'description' => "Pembatalan Penjualan (Ref: {$stockOut->receipt_id})",
+                    'user_id' => $request->inventory_user_id, // Log who actually authorized the cancel
+                    'distributor_id' => $inventory->distributor_id,
+                    'branch_id' => $user->branch_id,
+                    'warehouse_id' => $user->warehouse_id,
+                    'online_shop_id' => $user->online_shop_id
+                ]);
+            }
+
+            // 4. Update the StockOut record
+            $stockOut->update([
+                'category' => 'cancel_penjualan',
+                'cancelled_at' => now(),
+                'cancelled_by' => $request->inventory_user_id,
+                'cancel_reason' => $request->reason ?? 'Dibatalkan oleh user',
+                'status' => 'cancelled'
+            ]);
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Penjualan berhasil dibatalkan dan stok dikembalikan.',
+                'data' => $stockOut
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     // Helper: Get status based on category
     private function getStatusByCategory(string $category): string
     {

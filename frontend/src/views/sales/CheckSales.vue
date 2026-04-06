@@ -175,10 +175,12 @@
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
-                                            :class="item.status === 'Lunas'
-                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
-                                                : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
-                                            {{ item.status }}
+                                            :class="item.category === 'cancel_penjualan'
+                                                ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20'
+                                                : item.status === 'Lunas'
+                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                                                    : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
+                                            {{ item.category === 'cancel_penjualan' ? 'Dibatalkan' : item.status }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
@@ -192,6 +194,11 @@
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
+                                            </button>
+                                            <button v-if="item.category !== 'cancel_penjualan'" @click="handleCancelSale(item)"
+                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Batalkan Penjualan">
+                                                <Trash2 :size="18" />
                                             </button>
                                         </div>
                                     </td>
@@ -229,10 +236,12 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
-                                            :class="item.status === 'Lunas'
-                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
-                                                : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
-                                            {{ item.status }}
+                                            :class="item.category === 'cancel_penjualan'
+                                                ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20'
+                                                : item.status === 'Lunas'
+                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
+                                                    : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
+                                            {{ item.category === 'cancel_penjualan' ? 'Dibatalkan' : item.status }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
@@ -246,6 +255,11 @@
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
+                                            </button>
+                                            <button v-if="item.category !== 'cancel_penjualan'" @click="handleCancelSale(item)"
+                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                title="Batalkan Penjualan">
+                                                <Trash2 :size="18" />
                                             </button>
                                         </div>
                                     </td>
@@ -281,6 +295,9 @@
 
         <!-- Unified Receipt Modal -->
         <ReceiptModal :is-open="showReceiptModal" :transaction="currentReceiptData" @close="showReceiptModal = false" />
+
+        <!-- Cancel Sale Modal -->
+        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchSales" />
     </div>
 </template>
 
@@ -394,9 +411,10 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, Trash2, AlertCircle } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
+import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
 
 import { useAuthStore } from '../../store/auth'
 
@@ -409,7 +427,8 @@ const categoryLabels = {
     'orderan_online': 'Order Online',
     'penjualan_offline': 'Penjualan Offline',
     'pindah_cabang': 'Pindah Cabang',
-    'retur': 'Retur'
+    'retur': 'Retur',
+    'cancel_penjualan': 'Dibatalkan'
 };
 
 const months = [
@@ -433,6 +452,8 @@ const showProofModal = ref(false)
 const currentProofUrl = ref('')
 const showReceiptModal = ref(false)
 const currentReceiptData = ref(null)
+const showCancelModal = ref(false)
+const selectedSaleForCancel = ref(null)
 
 const viewProof = (url) => {
     currentProofUrl.value = url
@@ -446,6 +467,11 @@ const openReceipt = (item) => {
 
 const printReceipt = () => {
     window.print()
+}
+
+const handleCancelSale = (item) => {
+    selectedSaleForCancel.value = item;
+    showCancelModal.value = true;
 }
 
 const getTodayLocal = () => {
