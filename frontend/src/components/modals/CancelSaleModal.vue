@@ -29,10 +29,11 @@ async function fetchInventoryUsers() {
     loadingUsers.value = true;
     try {
         const response = await inventoryApi.myAccounts();
-        inventoryUsers.value = response.data.data;
+        // Since getMyInventoryUsers returns raw array, use response.data
+        inventoryUsers.value = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         
         // Auto select creator if present in the list
-        if (props.sale?.inventory_user_id) {
+        if (props.sale?.inventory_user_id && inventoryUsers.value.length > 0) {
             const creator = inventoryUsers.value.find(u => u.id === props.sale.inventory_user_id);
             if (creator) {
                 form.value.inventory_user_id = creator.id;
@@ -50,6 +51,7 @@ async function fetchInventoryUsers() {
 }
 
 const selectedUser = computed(() => {
+    if (!inventoryUsers.value) return null;
     return inventoryUsers.value.find(u => u.id === form.value.inventory_user_id);
 });
 
