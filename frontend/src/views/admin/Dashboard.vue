@@ -450,7 +450,7 @@ const getColorClasses = (color) => {
                 </div>
 
                 <div class="relative group w-full">
-                   <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.3)] backdrop-blur-md z-20 uppercase tracking-widest">RANK #{{ branchRanking.today.rank }}</div>
+                   <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.3)] backdrop-blur-md z-20 uppercase tracking-widest">RANK #{{ branchRanking.today.podium[1].rank }}</div>
                    <div class="w-full aspect-square max-w-[320px] mx-auto rounded-[4rem] bg-[#1a1a1a] border-[6px] border-emerald-500/50 flex flex-col items-center justify-center mb-8 shadow-[0_40px_80px_rgba(0,0,0,0.9)] relative overflow-hidden group-hover:border-emerald-500 transition-all duration-700">
                       <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/30 via-transparent to-transparent"></div>
                       <component :is="branchRanking.today.podium[1].type === 'branch' ? Store : Globe" class="w-32 h-32 text-white relative z-10 transition-transform duration-700 group-hover:scale-110" />
@@ -473,7 +473,7 @@ const getColorClasses = (color) => {
                     <!-- MAIN OMSET -->
                     <div class="bg-emerald-500 rounded-[3rem] p-6 shadow-[0_25px_50px_rgba(16,185,129,0.5)] border-2 border-emerald-400/30 group-hover:scale-105 transition-all duration-500">
                       <p class="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">TOTAL OMSET PEROLEHAN</p>
-                      <p class="text-4xl font-black text-black leading-none tracking-tighter">Rp {{ formatNumber(branchRanking.today.omset) }}</p>
+                      <p class="text-4xl font-black text-black leading-none tracking-tighter">Rp {{ formatNumber(branchRanking.today.podium[1].omset) }}</p>
                     </div>
 
                     <!-- TREND / YESTERDAY RANK -->

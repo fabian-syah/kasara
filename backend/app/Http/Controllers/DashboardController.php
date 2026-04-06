@@ -342,25 +342,27 @@ class DashboardController extends Controller
 
             // Select Neighbors for Today's Podium
             $podium = [];
+            // REARRANGE PODIUM FOR MOTIVATION (As requested: Better neighbor is Center)
+            // Me (Left Slot / Index 0)
+            $me = $todayRanking[$myTodayIndex];
+            $podium[0] = ['rank' => $myTodayRank, 'name' => $me['name'], 'omset' => $me['omset'], 'type' => $me['type']];
             
-            // Rank - 1
+            // Better / Winner (Center Slot / Index 1)
             if ($myTodayIndex > 0) {
                 $prev = $todayRanking[$myTodayIndex - 1];
-                $podium[] = ['rank' => $myTodayIndex, 'name' => $prev['name'], 'omset' => $prev['omset'], 'type' => $prev['type']];
+                $podium[1] = ['rank' => $myTodayRank - 1, 'name' => $prev['name'], 'omset' => $prev['omset'], 'type' => $prev['type']];
             } else {
-                $podium[] = null;
+                // If I am #1, I stay in the center
+                $podium[1] = $podium[0];
+                $podium[0] = null;
             }
             
-            // Me
-            $me = $todayRanking[$myTodayIndex];
-            $podium[] = ['rank' => $myTodayRank, 'name' => $me['name'], 'omset' => $me['omset'], 'type' => $me['type']];
-            
-            // Rank + 1
+            // Worse (Right Slot / Index 2)
             if ($myTodayIndex < $todayRanking->count() - 1) {
                 $next = $todayRanking[$myTodayIndex + 1];
-                $podium[] = ['rank' => $myTodayRank + 1, 'name' => $next['name'], 'omset' => $next['omset'], 'type' => $next['type']];
+                $podium[2] = ['rank' => $myTodayRank + 1, 'name' => $next['name'], 'omset' => $next['omset'], 'type' => $next['type']];
             } else {
-                $podium[] = null;
+                $podium[2] = null;
             }
 
             return [
