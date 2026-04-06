@@ -167,9 +167,9 @@ watch(() => props.show, (newVal) => {
                             <div v-if="loadingUsers" class="flex items-center gap-2 py-3 text-text-secondary text-sm">
                                 <Loader2 :size="16" class="animate-spin" /> Memuat daftar akun...
                             </div>
-                            <select v-else v-model="form.inventory_user_id" class="w-full bg-surface-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-text-primary">
-                                <option :value="null">-- Pilih Akun --</option>
-                                <option v-for="user in inventoryUsers" :key="user.id" :value="user.id">
+                            <select v-else v-model="form.inventory_user_id" class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white">
+                                <option :value="null" class="dark:bg-surface-800">-- Pilih Akun --</option>
+                                <option v-for="user in inventoryUsers" :key="user.id" :value="user.id" class="dark:bg-surface-800">
                                     {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{ user.transaction_pin ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
                                 </option>
                             </select>
@@ -193,7 +193,7 @@ watch(() => props.show, (newVal) => {
                                     :ref="el => pinInputs[idx] = el" 
                                     v-model="pinDigits[idx]"
                                     type="password" inputmode="numeric" maxlength="1" 
-                                    class="w-full h-14 bg-surface-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl text-center text-2xl font-black text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
+                                    class="w-full h-14 bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl text-center text-2xl font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
                                     @input="handlePinInput(idx, $event)" 
                                     @keydown="handlePinKeydown(idx, $event)" />
                             </div>
@@ -202,7 +202,7 @@ watch(() => props.show, (newVal) => {
                         <!-- Reason Input -->
                         <div>
                             <label class="block text-sm font-bold text-text-secondary mb-2">Alasan Pembatalan</label>
-                            <textarea v-model="form.reason" rows="2" class="w-full bg-surface-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-text-primary placeholder:text-text-secondary/40" placeholder="Contoh: Salah input barang, customer cancel order..."></textarea>
+                            <textarea v-model="form.reason" rows="2" class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white placeholder:text-text-secondary/40" placeholder="Contoh: Salah input barang, customer cancel order..."></textarea>
                         </div>
                     </div>
 
