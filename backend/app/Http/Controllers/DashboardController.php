@@ -360,8 +360,8 @@ class DashboardController extends Controller
             $me = $todayRanking[$myTodayIndex];
             $podiumItems = [
                 'me' => array_merge($me, ['yesterday_rank' => $findYesterdayRank($me)]),
-                'prev' => $myTodayIndex > 0 ? array_merge($todayRanking[$myTodayIndex - 1]->toArray(), ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex - 1])]) : null,
-                'next' => $myTodayIndex < $todayRanking->count() - 1 ? array_merge($todayRanking[$myTodayIndex + 1]->toArray(), ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex + 1])]) : null
+                'prev' => $myTodayIndex > 0 ? array_merge($todayRanking[$myTodayIndex - 1], ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex - 1])]) : null,
+                'next' => $myTodayIndex < $todayRanking->count() - 1 ? array_merge($todayRanking[$myTodayIndex + 1], ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex + 1])]) : null
             ];
 
             // Re-order for the slots: [Left, Center, Right]
