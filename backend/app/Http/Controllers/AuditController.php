@@ -80,7 +80,9 @@ class AuditController extends Controller
 
         $scopeToAccess($dailySalesQuery);
 
-        $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) use ($paymentMethods) {
+        $paginatedSales = $dailySalesQuery->latest()->paginate(50);
+        
+        $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($paymentMethods) {
             $details = [];
             $calculatedTotal = 0;
 
@@ -420,7 +422,13 @@ class AuditController extends Controller
             });
 
         return response()->json([
-            'daily_sales' => $dailySales,
+            'daily_sales' => [
+                'data' => $dailySales,
+                'current_page' => $paginatedSales->currentPage(),
+                'last_page' => $paginatedSales->lastPage(),
+                'total' => $paginatedSales->total(),
+                'per_page' => $paginatedSales->perPage(),
+            ],
             'brand_sales' => $formattedBrandSales,
             'cs_sales' => $csSales
         ]);
@@ -1011,7 +1019,9 @@ class AuditController extends Controller
 
         $scopeToAccess($dailySalesQuery);
 
-        $dailySales = $dailySalesQuery->latest()->get()->map(function ($trx) {
+        $paginatedProfit = $dailySalesQuery->latest()->paginate(50);
+        
+        $dailySales = collect($paginatedProfit->items())->map(function ($trx) {
             $details = [];
             $calculatedTotal = 0;
 
@@ -1206,7 +1216,13 @@ class AuditController extends Controller
         });
 
         return response()->json([
-            'daily_sales' => $dailySales,
+            'daily_sales' => [
+                'data' => $dailySales,
+                'current_page' => $paginatedProfit->currentPage(),
+                'last_page' => $paginatedProfit->lastPage(),
+                'total' => $paginatedProfit->total(),
+                'per_page' => $paginatedProfit->perPage(),
+            ],
         ]);
     }
 
@@ -1579,7 +1595,9 @@ class AuditController extends Controller
             });
         });
 
-        $records = $query->latest()->get()->map(function ($trx) {
+        $paginatedIn = $query->latest()->paginate(50);
+        
+        $records = collect($paginatedIn->items())->map(function ($trx) {
             $hpItemsCount = $trx->items->count();
             // Non-HP count from audit payload or relation
             $nonHpItemsCount = 0;
@@ -1639,7 +1657,11 @@ class AuditController extends Controller
         });
 
         return response()->json([
-            'data' => $records
+            'data' => $records,
+            'current_page' => $paginatedIn->currentPage(),
+            'last_page' => $paginatedIn->lastPage(),
+            'total' => $paginatedIn->total(),
+            'per_page' => $paginatedIn->perPage(),
         ]);
     }
 
@@ -1712,7 +1734,9 @@ class AuditController extends Controller
             });
         });
 
-        $records = $query->latest()->get()->map(function ($trx) {
+        $paginatedOut = $query->latest()->paginate(50);
+        
+        $records = collect($paginatedOut->items())->map(function ($trx) {
             $hpItemsCount = $trx->items->count();
             // Non-HP count from audit payload or relation
             $nonHpItemsCount = 0;
@@ -1764,7 +1788,11 @@ class AuditController extends Controller
         });
 
         return response()->json([
-            'data' => $records
+            'data' => $records,
+            'current_page' => $paginatedOut->currentPage(),
+            'last_page' => $paginatedOut->lastPage(),
+            'total' => $paginatedOut->total(),
+            'per_page' => $paginatedOut->perPage(),
         ]);
     }
 
