@@ -415,10 +415,10 @@ const getColorClasses = (color) => {
 
           <div class="p-8 pb-16">
             <!-- PODIUM CONTAINER -->
-            <div class="flex items-end justify-center gap-8 lg:gap-24 pt-20 pb-4">
+            <div class="flex flex-col md:flex-row items-center md:items-end justify-center gap-16 md:gap-8 lg:gap-24 pt-32 md:pt-20 pb-4">
               
-              <!-- Posisi Left (Rank-1) -->
-              <div class="flex flex-col items-center w-1/4 max-w-[200px]">
+              <!-- Posisi Left (Rank-2) -->
+              <div class="flex flex-col items-center w-full md:w-1/4 max-w-[200px] order-2 md:order-1">
                 <template v-if="branchRanking.today.podium[0]">
                   <div class="relative group">
                     <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-black text-white/30 bg-white/5 px-3 py-1 rounded-full">#{{ branchRanking.today.podium[0].rank }}</div>
@@ -456,8 +456,8 @@ const getColorClasses = (color) => {
                 </div>
               </div>
 
-              <!-- Posisi Center (ME) -->
-              <div class="flex flex-col items-center w-1/3 max-w-[400px] relative -top-16">
+               <!-- Posisi Center (Rank-1 - KING) -->
+              <div class="flex flex-col items-center w-full md:w-5/12 max-w-[400px] relative md:-top-16 order-1 md:order-2 mb-8 md:mb-0">
                 <!-- Crown & Glow -->
                 <div class="absolute -top-24 left-1/2 -translate-x-1/2 scale-[1.8]">
                    <div class="relative">
@@ -468,7 +468,7 @@ const getColorClasses = (color) => {
 
                 <div class="relative group w-full">
                    <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.3)] backdrop-blur-md z-20 uppercase tracking-widest">RANK #{{ branchRanking.today.podium[1].rank }}</div>
-                   <div class="w-full aspect-square max-w-[320px] mx-auto rounded-[4rem] bg-[#1a1a1a] border-[6px] border-emerald-500/50 flex flex-col items-center justify-center mb-8 shadow-[0_40px_80px_rgba(0,0,0,0.9)] relative overflow-hidden group-hover:border-emerald-500 transition-all duration-700">
+                   <div class="w-full aspect-square max-w-[260px] md:max-w-[320px] mx-auto rounded-[4rem] bg-[#1a1a1a] border-[6px] border-emerald-500/50 flex flex-col items-center justify-center mb-8 shadow-[0_40px_80px_rgba(0,0,0,0.9)] relative overflow-hidden group-hover:border-emerald-500 transition-all duration-700">
                       <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/30 via-transparent to-transparent"></div>
                       <component :is="branchRanking.today.podium[1].type === 'branch' ? Store : Globe" class="w-32 h-32 text-white relative z-10 transition-transform duration-700 group-hover:scale-110" />
                       <div class="absolute bottom-0 inset-x-0 bg-emerald-500 py-3 flex items-center justify-center">
@@ -480,9 +480,9 @@ const getColorClasses = (color) => {
 
                 <div class="text-center w-full px-4">
                   <div class="flex items-center justify-center gap-4 mb-2">
-                    <Sparkles :size="20" class="text-emerald-500" />
-                    <h3 class="text-3xl font-black text-white uppercase tracking-tight">{{ branchRanking.today.podium[1].name }}</h3>
-                    <Sparkles :size="20" class="text-emerald-500 transform scale-x-[-1]" />
+                    <Sparkles :size="20" class="text-emerald-500 hidden md:block" />
+                    <h3 class="text-2xl md:text-3xl font-black text-white uppercase tracking-tight">{{ branchRanking.today.podium[1].name }}</h3>
+                    <Sparkles :size="20" class="text-emerald-500 transform scale-x-[-1] hidden md:block" />
                   </div>
                   <p class="text-xs font-black text-white/30 uppercase tracking-[0.5em] mb-8">WINNER OF THE PERIOD</p>
                   
@@ -515,8 +515,8 @@ const getColorClasses = (color) => {
                 </div>
               </div>
 
-              <!-- Posisi Right (Rank+1) -->
-              <div class="flex flex-col items-center w-1/4 max-w-[200px]">
+              <!-- Posisi Right (Rank-3) -->
+              <div class="flex flex-col items-center w-full md:w-1/4 max-w-[200px] order-3 md:order-3">
                 <template v-if="branchRanking.today.podium[2]">
                   <div class="relative group">
                     <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-black text-white/30 bg-white/5 px-3 py-1 rounded-full">#{{ branchRanking.today.podium[2].rank }}</div>
