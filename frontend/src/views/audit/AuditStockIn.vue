@@ -91,25 +91,25 @@
                         Total Transaksi
                     </p>
                     <p class="text-lg font-bold text-text-primary">
-                        {{ stockInRecords.length }}
+                        {{ stockInRecords.total || 0 }}
                     </p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
-                        Belum Diaudit
+                        Belum Diaudit (Hal ini)
                     </p>
                     <p class="text-lg font-bold text-amber-500">
-                        {{stockInRecords.filter((r) => r.audit_score === null).length}}
+                        {{ (stockInRecords.data || []).filter((r) => r.audit_score === null).length }}
                     </p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
-                        Sudah Diaudit
+                        Sudah Diaudit (Hal ini)
                     </p>
                     <p class="text-lg font-bold text-emerald-500">
-                        {{stockInRecords.filter((r) => r.audit_score !== null).length}}
+                        {{ (stockInRecords.data || []).filter((r) => r.audit_score !== null).length }}
                     </p>
                 </div>
             </div>
@@ -147,7 +147,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else-if="stockInRecords.length === 0">
+                             <tr v-else-if="!stockInRecords.data || stockInRecords.data.length === 0">
                                 <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
@@ -160,10 +160,10 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in stockInRecords" :key="item.id"
+                            <tr v-else v-for="(item, index) in stockInRecords.data" :key="item.id"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-4 py-4 text-text-secondary font-medium">
-                                    {{ index + 1 }}
+                                    {{ (stockInRecords.current_page - 1) * stockInRecords.per_page + index + 1 }}
                                 </td>
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}
@@ -229,6 +229,31 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="stockInRecords.total > 0"
+                class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-between items-center bg-gray-50/50 dark:bg-surface-700/30">
+                <span class="text-xs text-text-secondary font-medium">
+                    Menampilkan {{ (stockInRecords.current_page - 1) * stockInRecords.per_page + 1 }} -
+                    {{ Math.min(stockInRecords.current_page * stockInRecords.per_page, stockInRecords.total) }}
+                    dari {{ stockInRecords.total }} data
+                </span>
+                <div class="flex gap-2">
+                    <button @click="fetchData(stockInRecords.current_page - 1)"
+                        :disabled="stockInRecords.current_page === 1 || loading"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                        <ChevronLeft :size="18" />
+                    </button>
+                    <div class="flex items-center px-3 text-sm font-bold border-x dark:border-surface-600 px-4 text-text-primary">
+                        {{ stockInRecords.current_page }} / {{ stockInRecords.last_page }}
+                    </div>
+                    <button @click="fetchData(stockInRecords.current_page + 1)"
+                        :disabled="stockInRecords.current_page === stockInRecords.last_page || loading"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                        <ChevronRight :size="18" />
+                    </button>
                 </div>
             </div>
         </div>
@@ -377,6 +402,8 @@ import {
     ClipboardCheck,
     Pencil,
     PackageSearch,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
@@ -385,7 +412,13 @@ const authStore = useAuthStore();
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader');
 
 const loading = ref(false);
-const stockInRecords = ref([]);
+const stockInRecords = ref({
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+    per_page: 50
+});
 
 // Audit Checklist Modal State
 const showChecklistModal = ref(false);
@@ -455,7 +488,7 @@ const saveChecklist = async () => {
         );
 
         // Update the score in the table
-        const item = stockInRecords.value.find(
+        const item = stockInRecords.value.data.find(
             (s) => s.id === checklistStockOutId.value
         );
         if (item) {
@@ -649,10 +682,10 @@ const fetchLocations = async () => {
     }
 };
 
-const fetchData = async () => {
+const fetchData = async (page = 1) => {
     loading.value = true;
     try {
-        const params = { ...filters.value };
+        const params = { ...filters.value, page };
         if (selectedLocationKey.value !== 'all') {
             const [type, id] = selectedLocationKey.value.split(':');
             if (type === 'B') params.branch_id = id;
@@ -661,7 +694,7 @@ const fetchData = async () => {
         }
 
         const response = await axios.get('/audit/stock-in', { params });
-        stockInRecords.value = response.data.data;
+        stockInRecords.value = response.data;
     } catch (error) {
         console.error('Error fetching stock-in data:', error);
     } finally {

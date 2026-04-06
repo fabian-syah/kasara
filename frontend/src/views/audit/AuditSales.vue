@@ -125,7 +125,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else-if="salesRecords.daily_sales.length === 0">
+                            <tr v-else-if="!salesRecords.daily_sales.data || salesRecords.daily_sales.data.length === 0">
                                 <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
@@ -138,9 +138,10 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in salesRecords.daily_sales" :key="item.id"
+                            <tr v-else v-for="(item, index) in salesRecords.daily_sales.data" :key="item.id"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
-                                <td class="px-6 py-4 text-text-secondary">{{ index + 1 }}</td>
+                                <td class="px-6 py-4 text-text-secondary">{{ (salesRecords.daily_sales.current_page - 1) *
+                                    salesRecords.daily_sales.per_page + index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
                                     }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
@@ -266,21 +267,31 @@
                         </tbody>
                     </table>
                 </div>
-                <!-- Pagination Dummy for UI -->
-                <div
-                    class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-2 bg-gray-50/50 dark:bg-surface-700/30">
-                    <button
-                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
-                        <ChevronLeft :size="18" />
-                    </button>
-                    <button
-                        class="w-9 h-9 flex items-center justify-center rounded-xl bg-primary-600 text-white font-bold text-sm shadow-lg shadow-primary-500/20">
-                        1
-                    </button>
-                    <button
-                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
-                        <ChevronRight :size="18" />
-                    </button>
+                <!-- Pagination -->
+                <div v-if="salesRecords.daily_sales.total > 0"
+                    class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-between items-center bg-gray-50/50 dark:bg-surface-700/30">
+                    <span class="text-xs text-text-secondary font-medium">
+                        Menampilkan {{ (salesRecords.daily_sales.current_page - 1) * salesRecords.daily_sales.per_page +
+                            1 }} -
+                        {{ Math.min(salesRecords.daily_sales.current_page * salesRecords.daily_sales.per_page,
+                            salesRecords.daily_sales.total) }}
+                        dari {{ salesRecords.daily_sales.total }} data
+                    </span>
+                    <div class="flex gap-2">
+                        <button @click="fetchData(salesRecords.daily_sales.current_page - 1)"
+                            :disabled="salesRecords.daily_sales.current_page === 1 || loading"
+                            class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                            <ChevronLeft :size="18" />
+                        </button>
+                        <div class="flex items-center px-3 text-sm font-bold text-text-primary">
+                            {{ salesRecords.daily_sales.current_page }} / {{ salesRecords.daily_sales.last_page }}
+                        </div>
+                        <button @click="fetchData(salesRecords.daily_sales.current_page + 1)"
+                            :disabled="salesRecords.daily_sales.current_page === salesRecords.daily_sales.last_page || loading"
+                            class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                            <ChevronRight :size="18" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -596,7 +607,13 @@ const selectedMonth = ref(new Date().getMonth() + 1);
 const selectedYear = ref(currentYear);
 
 const salesRecords = ref({
-    daily_sales: [],
+    daily_sales: {
+        data: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 50
+    },
     brand_sales: [],
     cs_sales: []
 })
@@ -772,11 +789,11 @@ const fetchBranches = async () => {
     }
 }
 
-const fetchData = async () => {
+const fetchData = async (page = 1) => {
     loading.value = true
     try {
         // Map selected location key to specific filter params
-        const params = { ...filters.value };
+        const params = { ...filters.value, page };
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;

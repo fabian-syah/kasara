@@ -81,21 +81,21 @@
                 </div>
             </div>
 
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" v-if="profitRecords.daily_sales.length > 0">
+            <!-- Summary Cards (Current Page) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" v-if="profitRecords.daily_sales.data && profitRecords.daily_sales.data.length > 0">
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Harga Jual</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Harga Jual (Hal ini)</p>
                     <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaJual) }}</p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Harga Modal</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Harga Modal (Hal ini)</p>
                     <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaModal) }}</p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Profit</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Profit (Hal ini)</p>
                     <p class="text-lg font-bold"
                         :class="totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                         {{ formatCurrency(totalProfit) }}
@@ -146,7 +146,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else-if="profitRecords.daily_sales.length === 0">
+                             <tr v-else-if="!profitRecords.daily_sales.data || profitRecords.daily_sales.data.length === 0">
                                 <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
@@ -159,9 +159,10 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in profitRecords.daily_sales" :key="index"
+                            <tr v-else v-for="(item, index) in profitRecords.daily_sales.data" :key="index"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
-                                <td class="px-4 py-4 text-text-secondary font-medium">{{ index + 1 }}</td>
+                                <td class="px-4 py-4 text-text-secondary font-medium">{{ (profitRecords.daily_sales.current_page - 1) *
+                                    profitRecords.daily_sales.per_page + index + 1 }}</td>
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
@@ -304,6 +305,33 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="profitRecords.daily_sales.total > 0"
+                    class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-between items-center bg-gray-50/50 dark:bg-surface-700/30">
+                    <span class="text-xs text-text-secondary font-medium">
+                        Menampilkan {{ (profitRecords.daily_sales.current_page - 1) * profitRecords.daily_sales.per_page +
+                            1 }} -
+                        {{ Math.min(profitRecords.daily_sales.current_page * profitRecords.daily_sales.per_page,
+                            profitRecords.daily_sales.total) }}
+                        dari {{ profitRecords.daily_sales.total }} data
+                    </span>
+                    <div class="flex gap-2">
+                        <button @click="fetchData(profitRecords.daily_sales.current_page - 1)"
+                            :disabled="profitRecords.daily_sales.current_page === 1 || loading"
+                            class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                            <ChevronLeft :size="18" />
+                        </button>
+                        <div class="flex items-center px-3 text-sm font-bold text-text-primary">
+                            {{ profitRecords.daily_sales.current_page }} / {{ profitRecords.daily_sales.last_page }}
+                        </div>
+                        <button @click="fetchData(profitRecords.daily_sales.current_page + 1)"
+                            :disabled="profitRecords.daily_sales.current_page === profitRecords.daily_sales.last_page || loading"
+                            class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                            <ChevronRight :size="18" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -518,7 +546,7 @@ const saveChecklist = async () => {
         const res = await axios.post(`/audit/profit-checklist/${checklistStockOutId.value}`, payload)
 
         // Update the score in the table
-        const item = profitRecords.value.daily_sales.find(s => s.id === checklistStockOutId.value)
+        const item = profitRecords.value.daily_sales.data.find(s => s.id === checklistStockOutId.value)
         if (item) {
             item.audit_score = res.data.score
             item.audit_answered = res.data.answered
@@ -545,7 +573,8 @@ const editableModal = reactive({})
 const savingModalId = ref(null)
 
 const initEditableModal = () => {
-    profitRecords.value.daily_sales.forEach(item => {
+    if (!profitRecords.value.daily_sales?.data) return;
+    profitRecords.value.daily_sales.data.forEach(item => {
         editableModal[item.id] = {}
         if (item.items) {
             item.items.forEach(detail => {
@@ -688,7 +717,13 @@ const exportExcel = async () => {
 }
 
 const profitRecords = ref({
-    daily_sales: [],
+    daily_sales: {
+        data: [],
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 50
+    },
 })
 
 const getTodayLocal = () => {
@@ -710,10 +745,10 @@ const selectedLocationKey = ref('all')
 
 // Summary computeds
 const totalHargaJual = computed(() =>
-    profitRecords.value.daily_sales.reduce((sum, item) => sum + (Number(item.harga_jual) || 0), 0)
+    (profitRecords.value.daily_sales?.data || []).reduce((sum, item) => sum + (Number(item.harga_jual) || 0), 0)
 )
 const totalHargaModal = computed(() =>
-    profitRecords.value.daily_sales.reduce((sum, item) => {
+    (profitRecords.value.daily_sales?.data || []).reduce((sum, item) => {
         let itemModal = 0;
         if (item.items && item.items.length > 0) {
             item.items.forEach(detail => {
@@ -863,10 +898,10 @@ const fetchBranches = async () => {
     }
 }
 
-const fetchData = async () => {
+const fetchData = async (page = 1) => {
     loading.value = true
     try {
-        const params = { ...filters.value };
+        const params = { ...filters.value, page };
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;

@@ -91,25 +91,25 @@
                         Total Transaksi
                     </p>
                     <p class="text-lg font-bold text-text-primary">
-                        {{ stockOutRecords.length }}
+                        {{ stockOutRecords.total || 0 }}
                     </p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
-                        Belum Diaudit
+                        Belum Diaudit (Hal ini)
                     </p>
                     <p class="text-lg font-bold text-amber-500">
-                        {{stockOutRecords.filter((r) => r.audit_score === null).length}}
+                        {{ (stockOutRecords.data || []).filter((r) => r.audit_score === null).length }}
                     </p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
-                        Sudah Diaudit
+                        Sudah Diaudit (Hal ini)
                     </p>
                     <p class="text-lg font-bold text-emerald-500">
-                        {{stockOutRecords.filter((r) => r.audit_score !== null).length}}
+                        {{ (stockOutRecords.data || []).filter((r) => r.audit_score !== null).length }}
                     </p>
                 </div>
             </div>
@@ -147,7 +147,7 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else-if="stockOutRecords.length === 0">
+                             <tr v-else-if="!stockOutRecords.data || stockOutRecords.data.length === 0">
                                 <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
@@ -155,15 +155,15 @@
                                             <PackageSearch class="w-6 h-6 text-gray-400" />
                                         </div>
                                         <span class="font-medium text-gray-900 dark:text-white">Tidak ada data barang
-                                            masuk</span>
+                                            keluar</span>
                                         <span class="text-xs mt-1">Belum ada aktivitas pada periode ini</span>
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in stockOutRecords" :key="item.id"
+                            <tr v-else v-for="(item, index) in stockOutRecords.data" :key="item.id"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
                                 <td class="px-4 py-4 text-text-secondary font-medium">
-                                    {{ index + 1 }}
+                                    {{ (stockOutRecords.current_page - 1) * stockOutRecords.per_page + index + 1 }}
                                 </td>
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}
@@ -227,6 +227,31 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="stockOutRecords.total > 0"
+                class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-between items-center bg-gray-50/50 dark:bg-surface-700/30">
+                <span class="text-xs text-text-secondary font-medium">
+                    Menampilkan {{ (stockOutRecords.current_page - 1) * stockOutRecords.per_page + 1 }} -
+                    {{ Math.min(stockOutRecords.current_page * stockOutRecords.per_page, stockOutRecords.total) }}
+                    dari {{ stockOutRecords.total }} data
+                </span>
+                <div class="flex gap-2">
+                    <button @click="fetchData(stockOutRecords.current_page - 1)"
+                        :disabled="stockOutRecords.current_page === 1 || loading"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                        <ChevronLeft :size="18" />
+                    </button>
+                    <div class="flex items-center px-3 text-sm font-bold border-x dark:border-surface-600 px-4 text-text-primary">
+                        {{ stockOutRecords.current_page }} / {{ stockOutRecords.last_page }}
+                    </div>
+                    <button @click="fetchData(stockOutRecords.current_page + 1)"
+                        :disabled="stockOutRecords.current_page === stockOutRecords.last_page || loading"
+                        class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
+                        <ChevronRight :size="18" />
+                    </button>
                 </div>
             </div>
         </div>
@@ -375,6 +400,8 @@ import {
     ClipboardCheck,
     Pencil,
     PackageSearch,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
@@ -383,7 +410,13 @@ const authStore = useAuthStore();
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader');
 
 const loading = ref(false);
-const stockOutRecords = ref([]);
+const stockOutRecords = ref({
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    total: 0,
+    per_page: 50
+});
 
 const getCategoryLabel = (val) => {
     const categories = {
@@ -469,7 +502,7 @@ const saveChecklist = async () => {
         );
 
         // Update the score in the table
-        const item = stockOutRecords.value.find(
+        const item = stockOutRecords.value.data.find(
             (s) => s.id === checklistStockOutId.value
         );
         if (item) {
@@ -663,10 +696,10 @@ const fetchLocations = async () => {
     }
 };
 
-const fetchData = async () => {
+const fetchData = async (page = 1) => {
     loading.value = true;
     try {
-        const params = { ...filters.value };
+        const params = { ...filters.value, page };
         if (selectedLocationKey.value !== 'all') {
             const [type, id] = selectedLocationKey.value.split(':');
             if (type === 'B') params.branch_id = id;
@@ -675,9 +708,9 @@ const fetchData = async () => {
         }
 
         const response = await axios.get('/audit/stock-out', { params });
-        stockOutRecords.value = response.data.data;
+        stockOutRecords.value = response.data;
     } catch (error) {
-        console.error('Error fetching stock-in data:', error);
+        console.error('Error fetching stock-out data:', error);
     } finally {
         loading.value = false;
     }
