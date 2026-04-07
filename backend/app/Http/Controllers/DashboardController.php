@@ -233,9 +233,10 @@ class DashboardController extends Controller
         // Count units based on user_id (who made the sale) as well for sales leaderboard
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
-        $todayRanking = DB::table('stock_outs')
+        $todayRankingQuery = DB::table('stock_outs')
             ->whereIn('category', $categories)
             ->where('reporting_date', $currentReportingDate)
+            ->whereNull('deleted_at')
             ->select('user_id', DB::raw('count(*) as total_units'))
             ->groupBy('user_id')
             ->orderByDesc('total_units')
@@ -243,7 +244,7 @@ class DashboardController extends Controller
 
         $globalRanking = [];
         $rank = 1;
-        foreach ($todayRanking as $row) {
+        foreach ($todayRankingQuery as $row) {
             $globalRanking[$row->user_id] = $rank++;
         }
 
@@ -259,7 +260,7 @@ class DashboardController extends Controller
         $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
             // Count units sold by this user
             $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
-            $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->where('reporting_date', $currentReportingDate)->count();
+            $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->where('reporting_date', $currentReportingDate)->whereNull('deleted_at')->count();
             return [
                 'id' => $u->id,
                 'name' => $u->name,
@@ -467,26 +468,19 @@ class DashboardController extends Controller
 
             return [
                 'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
-                'today_top3' => [
-                    'podium' => $todayRanking->take(3)->values()
-                ],
-                'yesterday' => $getPodiumData($yesterdayRanking, null, $myType, $myId),
+                'yesterday' => $getPodiumData($yesterdayRanking, $lastMonthRanking, $myType, $myId),
                 'this_month' => $getPodiumData($thisMonthRanking, $lastMonthRanking, $myType, $myId),
-                'this_month_top3' => [
-                    'podium' => $thisMonthRanking->take(3)->values()
-                ],
                 'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
                 'summary' => [
                     'today_global' => $findMyRank($todayRanking),
-                    'yesterday_global' => $findMyRank($yesterdayRanking),
-                    'this_month_global' => $findMyRank($thisMonthRanking),
-                    'last_month_global' => $findMyRank($lastMonthRanking),
                     'today_local' => $findMyUserRankInBranch($todayUserRanking, $user->id),
+                    'yesterday_global' => $findMyRank($yesterdayRanking),
                     'yesterday_local' => $findMyUserRankInBranch($yesterdayUserRanking, $user->id),
+                    'this_month_global' => $findMyRank($thisMonthRanking),
                     'this_month_local' => $findMyUserRankInBranch($thisMonthUserRanking, $user->id),
+                    'last_month_global' => $findMyRank($lastMonthRanking),
                     'last_month_local' => $findMyUserRankInBranch($lastMonthUserRanking, $user->id),
-                ],
-                'total_competitors' => $todayRanking->count()
+                ]
             ];
 
         } catch (\Exception $e) {
