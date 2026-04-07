@@ -111,7 +111,7 @@
                             <th class="px-6 py-4">Produk</th>
                             <th class="px-6 py-4">IMEI</th>
                             <th class="px-6 py-4">Qty</th>
-                            <th class="px-6 py-4">PIN / Notes</th>
+                            <th class="px-6 py-4">Akun / Catatan</th>
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Aksi</th>
                         </tr>
@@ -175,17 +175,17 @@
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
-                                        <div v-if="item.transaction_pin" class="flex flex-col gap-1">
-                                            <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
-                                                item.transaction_pin }}</span>
+                                        <div class="flex flex-col gap-1">
+                                            <span v-if="String(item.transaction_pin) === '9090'" class="text-xs font-bold text-primary-500">
+                                                Akun Inventory
+                                            </span>
                                             <span v-if="item.notes"
                                                 class="text-xs text-text-primary leading-tight"
                                                 :title="item.notes">{{ item.notes }}</span>
+                                            <span v-else-if="String(item.transaction_pin) !== '9090'" class="text-text-secondary italic text-xs">
+                                                Tanpa Catatan
+                                            </span>
                                         </div>
-                                        <span v-else-if="item.notes"
-                                            class="text-xs text-text-primary leading-tight"
-                                            :title="item.notes">{{ item.notes }}</span>
-                                        <span v-else class="text-text-secondary italic text-xs">Tanpa Catatan</span>
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
@@ -236,17 +236,17 @@
                                         !== '-' ? item.imeis : '-' }}</td>
                                     <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
                                     <td class="px-6 py-4">
-                                        <div v-if="item.transaction_pin" class="flex flex-col gap-1">
-                                            <span class="text-xs font-mono font-bold text-primary-500">PIN: {{
-                                                item.transaction_pin }}</span>
+                                        <div class="flex flex-col gap-1">
+                                            <span v-if="String(item.transaction_pin) === '9090'" class="text-xs font-bold text-primary-500">
+                                                Akun Inventory
+                                            </span>
                                             <span v-if="item.notes"
                                                 class="text-xs text-text-primary leading-tight"
                                                 :title="item.notes">{{ item.notes }}</span>
+                                            <span v-else-if="String(item.transaction_pin) !== '9090'" class="text-text-secondary italic text-xs">
+                                                Tanpa Catatan
+                                            </span>
                                         </div>
-                                        <span v-else-if="item.notes"
-                                            class="text-xs text-text-primary leading-tight"
-                                            :title="item.notes">{{ item.notes }}</span>
-                                        <span v-else class="text-text-secondary italic text-xs">Tanpa Catatan</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-lg"
