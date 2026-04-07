@@ -224,9 +224,29 @@ const exportToPDF = async () => {
 </script>
 
 <template>
+    <!-- EXPORT LOADING OVERLAY -->
+    <div v-if="exportLoading" class="fixed inset-0 z-[9999] bg-surface-900/98 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
+        <div class="relative flex items-center justify-center mb-8">
+            <div class="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse"></div>
+            <div class="w-24 h-24 border-4 border-surface-800 border-t-primary-500 rounded-full animate-spin shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+            <Trophy class="absolute w-10 h-10 text-primary-500 animate-pulse" />
+        </div>
+        <h2 class="text-3xl font-black text-white uppercase tracking-[0.2em] mb-4 drop-shadow-lg">Menyiapkan Laporan</h2>
+        <p class="text-surface-300 font-bold mb-4 text-sm max-w-md leading-relaxed">
+            Sedang me-render dan menyusun <span class="text-primary-500">{{ rankingData.length }}</span> data cabang ke dalam konfigurasi PDF Resolusi Tinggi.
+        </p>
+        <div class="flex items-center gap-2 text-primary-500 font-black text-xs uppercase tracking-widest bg-primary-500/10 px-5 py-2.5 rounded-full border border-primary-500/20 shadow-inner">
+            <Loader2 class="w-4 h-4 animate-spin" />
+            Memproses Halaman {{ Math.max(1, exportPart) }}
+        </div>
+        <p class="fixed bottom-10 text-[10px] text-surface-500 font-bold uppercase tracking-widest">
+            Mohon jangan menutup halaman ini
+        </p>
+    </div>
+
     <div :class="[
         'transition-all duration-300',
-        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-white min-w-max z-[100] pb-20 origin-top-left'
+        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-surface-900 min-w-max z-[100] pb-20 origin-top-left'
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
