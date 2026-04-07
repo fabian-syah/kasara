@@ -486,6 +486,11 @@ const currentLocalRank = computed(() => {
                     </div>
                   </div>
                   <div class="text-center mb-4 px-2">
+                    <div class="flex items-center justify-center gap-1 mb-1">
+                      <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-400/10 text-slate-400 border border-slate-400/20 shadow-sm">
+                        #{{ leftPodiumData.podium[0].rank }}
+                      </span>
+                    </div>
                     <h4 class="font-black text-xs text-text-primary uppercase truncate w-full tracking-tight mb-1" :class="leftPodiumData.podium[0].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[0].name }}</h4>
                     <span class="text-[10px] font-bold text-slate-400/60 tabular-nums">{{ formatCurrency(leftPodiumData.podium[0].omset) }}</span>
                   </div>
@@ -508,6 +513,11 @@ const currentLocalRank = computed(() => {
                     </div>
                   </div>
                   <div class="text-center mb-6 px-2">
+                    <div class="flex items-center justify-center gap-1 mb-2">
+                      <span class="text-xs font-black px-2 py-0.5 rounded bg-primary-500/20 text-primary-500 border border-primary-500/30 shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                        LIVE GLOBAL RANK #{{ leftPodiumData.podium[1].rank }}
+                      </span>
+                    </div>
                     <h4 class="font-black text-base lg:text-lg text-text-primary uppercase tracking-tighter mb-1" :class="leftPodiumData.podium[1].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[1].name }}</h4>
                     <div class="inline-flex bg-primary-500/10 px-4 py-1 rounded-full border border-primary-500/20">
                       <span class="text-xs font-black text-primary-500 tabular-nums">{{ formatCurrency(leftPodiumData.podium[1].omset) }}</span>
@@ -531,6 +541,11 @@ const currentLocalRank = computed(() => {
                     </div>
                   </div>
                   <div class="text-center mb-4 px-2">
+                    <div class="flex items-center justify-center gap-1 mb-1">
+                      <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-700/10 text-amber-700 border border-amber-700/20 shadow-sm">
+                        #{{ leftPodiumData.podium[2].rank }}
+                      </span>
+                    </div>
                     <h4 class="font-black text-xs text-text-primary uppercase truncate w-full tracking-tight mb-1" :class="leftPodiumData.podium[2].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[2].name }}</h4>
                     <span class="text-[10px] font-bold text-amber-700/60 tabular-nums">{{ formatCurrency(leftPodiumData.podium[2].omset) }}</span>
                   </div>
