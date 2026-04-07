@@ -176,13 +176,13 @@ const exportToPDF = async () => {
                 backgroundColor: '#ffffff',
                 quality: 0.85,  // Good quality balance
                 pixelRatio: 1.5, // Crisp enough without being huge
-                width: 1300,     // Increased width to include the far-right columns
+                width: 1100,     // Optimized width for A4
                 style: { 
-                    padding: '40px 60px', // More horizontal padding
+                    padding: '60px', // Balanced padding
                     background: '#ffffff',
-                    width: '1300px',
+                    width: '1100px',
                     maxWidth: 'none',
-                    margin: '0 auto', // Center it
+                    margin: '0',
                     display: 'flex',
                     flexDirection: 'column'
                 }
@@ -221,7 +221,7 @@ const exportToPDF = async () => {
 <template>
     <div :class="[
         'p-3 md:p-6 space-y-6 md:space-y-8 transition-all duration-300',
-        exportPart === 0 ? 'max-w-7xl mx-auto' : 'w-[1500px] !max-w-none !mx-0 overflow-visible bg-white'
+        exportPart === 0 ? 'max-w-7xl mx-auto' : 'fixed inset-0 z-[100] bg-white overflow-y-auto'
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -316,7 +316,7 @@ const exportToPDF = async () => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1300px] mx-auto is-exporting-png' : ''">
+        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] mx-auto is-exporting-pdf py-12' : ''">
             <!-- HEADER KHUSUS PART 2 -->
             <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
@@ -636,24 +636,25 @@ const exportToPDF = async () => {
     display: none;
 }
 
-.is-exporting-png {
-    width: 1300px !important;
+.is-exporting-pdf {
+    width: 1100px !important;
     max-width: none !important;
     --color-text-primary: #000000 !important;
     --color-text-secondary: #333333 !important;
     color: #000000 !important;
+    background: #ffffff !important;
 }
 
-.is-exporting-png * {
+.is-exporting-pdf * {
     color: inherit !important;
-    overflow: visible !important;
+    background-color: transparent !important;
 }
 
-/* Keep accent colors but adjust for visibility on white */
-.is-exporting-png .text-primary-500,
-.is-exporting-png .text-emerald-500,
-.is-exporting-png .text-emerald-400,
-.is-exporting-png .text-amber-700 {
+/* Keep accent colors for metrics but text should be dark */
+.is-exporting-pdf .text-primary-500,
+.is-exporting-pdf .text-emerald-500,
+.is-exporting-pdf .text-emerald-400,
+.is-exporting-pdf .text-amber-700 {
     color: unset !important;
 }
 
