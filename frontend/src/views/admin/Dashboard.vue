@@ -263,6 +263,23 @@ const getColorClasses = (color) => {
     icon: "bg-primary-500 text-white",
   };
 };
+
+const rightPodiumData = computed(() => {
+  if (!branchRanking.value) return null;
+  if (podiumTab.value === 'today') return branchRanking.value.yesterday;
+  if (podiumTab.value === 'this_month') return branchRanking.value.last_month;
+  return null;
+});
+
+const rightPodiumTitle = computed(() => {
+  if (podiumTab.value === 'today') return "Yesterday's Top 3 Champions";
+  return "Last Month's Top 3 Champions";
+});
+
+const rightPodiumSubtitle = computed(() => {
+  if (podiumTab.value === 'today') return "Yesterday's Global Leaders";
+  return "Historical Global Leaders";
+});
 </script>
 
 <template>
@@ -413,7 +430,7 @@ const getColorClasses = (color) => {
               
               <!-- Tabs -->
               <div class="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl shadow-inner">
-                 <button v-for="tab in [{id: 'today', lab: 'Harian'}, {id: 'this_month', lab: 'Bulan Ini'}, {id: 'last_month', lab: 'Bulan Lalu'}]" :key="tab.id" @click="podiumTab = tab.id" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300" :class="podiumTab === tab.id ? 'bg-emerald-500 text-black shadow-lg' : 'text-text-secondary hover:text-emerald-500'">{{ tab.lab }}</button>
+                 <button v-for="tab in [{id: 'today', lab: 'Harian'}, {id: 'this_month', lab: 'Bulan Ini'}]" :key="tab.id" @click="podiumTab = tab.id" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300" :class="podiumTab === tab.id ? 'bg-emerald-500 text-black shadow-lg' : 'text-text-secondary hover:text-emerald-500'">{{ tab.lab }}</button>
               </div>
             </div>
 
@@ -476,20 +493,20 @@ const getColorClasses = (color) => {
           </div>
         </div>
 
-        <!-- RIGHT: Yesterday's TOP 3 Champions -->
-        <div v-if="branchRanking?.yesterday?.podium" class="xl:col-span-1 flex flex-col">
+        <!-- RIGHT: Historical TOP 3 Champions (Yesterday or Last Month) -->
+        <div v-if="rightPodiumData" class="xl:col-span-1 flex flex-col">
           <div class="card overflow-hidden bg-white dark:bg-[#0d0d0d] border-none p-0 flex flex-col shadow-xl relative flex-1 min-h-[400px]">
             <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl"></div>
             <div class="relative z-10 h-full flex flex-col">
               <div class="px-6 py-6 border-b border-black/5 dark:border-white/5">
-                  <div class="flex items-center gap-3 mb-1"><Trophy :size="18" class="text-amber-500" /><h2 class="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em]">Top 3 Champions</h2></div>
-                  <p class="text-[9px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Yesterday's Global Leaders</p>
+                  <div class="flex items-center gap-3 mb-1"><Trophy :size="18" class="text-amber-500" /><h2 class="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em]">{{ rightPodiumTitle }}</h2></div>
+                  <p class="text-[9px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">{{ rightPodiumSubtitle }}</p>
               </div>
               <div class="p-6 flex-1 flex flex-col justify-center">
-                <!-- Refined Stack Podium (Linear hierarchy for better readability) -->
+                <!-- Refined Stack Podium -->
                 <div class="flex flex-col items-center gap-14 py-8">
                   <!-- CHAMPION (Rank #1) -->
-                  <div v-if="branchRanking.yesterday.podium[0]" class="w-full max-w-[240px] relative group">
+                  <div v-if="rightPodiumData.podium[0]" class="w-full max-w-[240px] relative group">
                     <!-- Repositioned Trophy -->
                     <div class="absolute -top-14 left-1/2 -translate-x-1/2 z-20">
                       <div class="relative">
@@ -499,48 +516,48 @@ const getColorClasses = (color) => {
                     </div>
                     
                     <div class="relative flex flex-col items-center">
-                      <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-1 rounded-full uppercase tracking-[0.2em] z-10 whitespace-nowrap shadow-xl">YESTERDAY CHAMPION</div>
+                      <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-1 rounded-full uppercase tracking-[0.2em] z-10 whitespace-nowrap shadow-xl">CHAMPION</div>
                       
                       <div class="w-28 h-28 rounded-[2.8rem] bg-white dark:bg-[#151515] border-[4px] border-amber-500/40 flex items-center justify-center mb-5 shadow-2xl relative overflow-hidden group-hover:border-amber-500 transition-all duration-700">
                         <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent"></div>
-                        <component :is="branchRanking.yesterday.podium[0].type === 'branch' ? Store : Globe" class="w-14 h-14 text-text-primary dark:text-white relative z-10 transition-transform duration-500 group-hover:scale-110" />
+                        <component :is="rightPodiumData.podium[0].type === 'branch' ? Store : Globe" class="w-14 h-14 text-text-primary dark:text-white relative z-10 transition-transform duration-500 group-hover:scale-110" />
                         <div class="absolute bottom-0 inset-x-0 bg-amber-500 py-1.5 flex items-center justify-center shadow-[0_-2px_10px_rgba(0,0,0,0.2)]">
                           <span class="text-[8px] font-black text-black uppercase tracking-[0.3em]">RANK #1</span>
                         </div>
                       </div>
                       
                       <div class="text-center w-full px-2">
-                        <h4 class="text-sm font-black text-text-primary uppercase tracking-tight mb-2 truncate group-hover:text-amber-500 transition-colors">{{ branchRanking.yesterday.podium[0].name }}</h4>
+                        <h4 class="text-sm font-black text-text-primary uppercase tracking-tight mb-2 truncate group-hover:text-amber-500 transition-colors">{{ rightPodiumData.podium[0].name }}</h4>
                         <div class="inline-flex items-center gap-2 bg-black/5 dark:bg-white/5 border border-amber-500/20 rounded-full px-5 py-1.5 shadow-inner">
-                          <p class="text-xs font-black text-amber-500">Rp {{ formatNumber(branchRanking.yesterday.podium[0].omset) }}</p>
+                          <p class="text-xs font-black text-amber-500">Rp {{ formatNumber(rightPodiumData.podium[0].omset) }}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <!-- CONTENDERS (Rank #2 & #3) - Modern Vertical List -->
+                  <!-- CONTENDERS (Rank #2 & #3) -->
                   <div class="w-full flex flex-col gap-8 max-w-[280px]">
                     <!-- Rank #2 -->
-                    <div v-if="branchRanking.yesterday.podium[1]" class="relative group">
+                    <div v-if="rightPodiumData.podium[1]" class="relative group">
                       <div class="flex items-center gap-4 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-slate-400/30 transition-all duration-300">
                         <div class="w-12 h-12 rounded-xl bg-slate-400/10 flex items-center justify-center font-black text-slate-400 group-hover:scale-110 transition-transform">#2</div>
                         <div class="flex-1 min-w-0">
-                          <p class="text-[10px] font-black text-text-primary uppercase truncate mb-0.5">{{ branchRanking.yesterday.podium[1].name }}</p>
-                          <p class="text-[9px] font-mono text-slate-500 font-bold">Rp {{ formatNumber(branchRanking.yesterday.podium[1].omset) }}</p>
+                          <p class="text-[10px] font-black text-text-primary uppercase truncate mb-0.5">{{ rightPodiumData.podium[1].name }}</p>
+                          <p class="text-[9px] font-mono text-slate-500 font-bold">Rp {{ formatNumber(rightPodiumData.podium[1].omset) }}</p>
                         </div>
-                        <component :is="branchRanking.yesterday.podium[1].type === 'branch' ? Store : Globe" class="w-5 h-5 text-slate-400/40" />
+                        <component :is="rightPodiumData.podium[1].type === 'branch' ? Store : Globe" class="w-5 h-5 text-slate-400/40" />
                       </div>
                     </div>
 
                     <!-- Rank #3 -->
-                    <div v-if="branchRanking.yesterday.podium[2]" class="relative group">
+                    <div v-if="rightPodiumData.podium[2]" class="relative group">
                       <div class="flex items-center gap-4 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-amber-700/30 transition-all duration-300">
                         <div class="w-12 h-12 rounded-xl bg-amber-700/10 flex items-center justify-center font-black text-amber-700 group-hover:scale-110 transition-transform">#3</div>
                         <div class="flex-1 min-w-0">
-                          <p class="text-[10px] font-black text-text-primary uppercase truncate mb-0.5">{{ branchRanking.yesterday.podium[2].name }}</p>
-                          <p class="text-[9px] font-mono text-amber-700 font-bold">Rp {{ formatNumber(branchRanking.yesterday.podium[2].omset) }}</p>
+                          <p class="text-[10px] font-black text-text-primary uppercase truncate mb-0.5">{{ rightPodiumData.podium[2].name }}</p>
+                          <p class="text-[9px] font-mono text-amber-700 font-bold">Rp {{ formatNumber(rightPodiumData.podium[2].omset) }}</p>
                         </div>
-                        <component :is="branchRanking.yesterday.podium[2].type === 'branch' ? Store : Globe" class="w-5 h-5 text-amber-700/40" />
+                        <component :is="rightPodiumData.podium[2].type === 'branch' ? Store : Globe" class="w-5 h-5 text-amber-700/40" />
                       </div>
                     </div>
                   </div>
