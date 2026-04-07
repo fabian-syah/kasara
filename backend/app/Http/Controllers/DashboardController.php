@@ -411,17 +411,22 @@ class DashboardController extends Controller
                     'right' => $myIndex < $currentRanking->count() - 1 ? array_merge($currentRanking[$myIndex + 1], ['prev_rank' => $findPrevRank($currentRanking[$myIndex + 1])]) : null
                 ];
 
-                // Assemble to [Left, Center, Right] - Center is ALWAYS 'me' in this layout or Top 1 if I'm Top 1
-                $podium = [];
-                if ($myIndex > 0) {
-                    $podium[0] = $podiumWrapped['left']; // Actual Rank #X-1
-                    $podium[1] = $podiumWrapped['me'];   // My Rank #X
-                    $podium[2] = $podiumWrapped['right'];// Actual Rank #X+1
-                } else {
-                    $podium[0] = null; // No one above me
-                    $podium[1] = $podiumWrapped['me'];
-                    $podium[2] = $podiumWrapped['right'];
-                }
+                // Assemble to [Left (2nd), Center (1st), Right (3rd)]
+                // window: [myIndex-1, myIndex, myIndex+1] or [0, 1, 2]
+                $start = max(0, $myIndex - 1);
+                $slice = $currentRanking->slice($start, 3);
+                
+                $items = $slice->values()->map(function($item) use ($unitType, $unitId, $findPrevRank) {
+                    $item['is_me'] = $item['type'] === $unitType && $item['id'] == $unitId;
+                    $item['prev_rank'] = $findPrevRank($item);
+                    return $item;
+                });
+
+                $podium = [
+                    0 => $items->get(1), // 2nd of the window (Center-Left)
+                    1 => $items->get(0), // 1st of the window (Center-TOP)
+                    2 => $items->get(2), // 3rd of the window (Center-Right)
+                ];
 
                 return [
                     'rank' => $myIndex + 1,
