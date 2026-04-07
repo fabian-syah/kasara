@@ -24,7 +24,9 @@ import {
   Loader2,
   MapPin, // Icon for placement
   Building, // Icon for warehouse
-  Camera // Icon for photo upload
+  Camera, // Icon for photo upload
+  ChevronLeft,
+  ChevronRight
 } from "lucide-vue-next";
 
 // Toast
@@ -57,6 +59,9 @@ const selectedAccountType = ref("main"); // Default to main accounts
 const showModal = ref(false);
 const editingUser = ref(null);
 const showPassword = ref(false);
+
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
 const fileInput = ref(null);
 const selectedUserForPhoto = ref(null);
@@ -356,7 +361,6 @@ const placementLabel = computed(() => {
   return '';
 });
 
-// Strict Filtered Users
 const filteredUsers = computed(() => {
   if (!users.value) return [];
   let result = users.value;
@@ -390,6 +394,25 @@ const filteredUsers = computed(() => {
   }
 
   return result;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredUsers.value.length / itemsPerPage.value) || 1;
+});
+
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  return filteredUsers.value.slice(start, start + itemsPerPage.value);
+});
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages.value) return;
+  currentPage.value = page;
+}
+
+// Reset page when filters change
+watch([searchQuery, selectedRole, selectedBranch, selectedAccountType], () => {
+  currentPage.value = 1;
 });
 
 // Computed Stats
@@ -668,12 +691,12 @@ function getUserRoleName(user) {
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-700/50">
-            <tr v-if="filteredUsers.length === 0">
+            <tr v-if="paginatedUsers.length === 0">
               <td colspan="6" class="text-center py-12 text-text-secondary">
                 Tidak ada user ditemukan
               </td>
             </tr>
-            <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-surface-800/50 transition-colors">
+            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-surface-800/50 transition-colors">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-4">
                   <div class="relative group cursor-pointer h-12 w-12 shrink-0" @click="triggerFileInput(user)"
@@ -786,6 +809,32 @@ function getUserRoleName(user) {
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination Footer -->
+      <div class="px-6 py-4 flex items-center justify-between border-t border-surface-700/50 bg-surface-900/10">
+        <div class="text-xs text-text-secondary">
+          Menampilkan <span class="text-text-primary font-bold">{{ ((currentPage - 1) * itemsPerPage) + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }}</span> dari <span class="text-text-primary font-bold">{{ filteredUsers.length }}</span> {{ selectedAccountType === 'main' ? 'Akun Login' : 'Akun Inventory' }}
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
+            class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            <ChevronLeft :size="16" />
+          </button>
+          
+          <div class="flex gap-1 overflow-x-auto max-w-[200px] no-scrollbar">
+            <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
+              class="min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all"
+              :class="currentPage === page ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-text-secondary hover:bg-surface-700'">
+              {{ page }}
+            </button>
+          </div>
+
+          <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
+            class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            <ChevronRight :size="16" />
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Mobile/Tablet Card View -->
@@ -793,7 +842,7 @@ function getUserRoleName(user) {
       <div v-if="isLoading" class="p-8 flex justify-center col-span-full">
         <Loader2 class="animate-spin text-blue-500" :size="32" />
       </div>
-      <div v-for="user in filteredUsers" :key="user.id" class="card space-y-4 flex flex-col justify-between h-full">
+      <div v-for="user in paginatedUsers" :key="user.id" class="card space-y-4 flex flex-col justify-between h-full">
         <div class="flex justify-between items-start gap-3">
           <div class="flex items-center gap-3">
             <div class="relative group cursor-pointer h-12 w-12 shrink-0" @click="triggerFileInput(user)">
@@ -876,6 +925,19 @@ function getUserRoleName(user) {
             <Trash2 :size="14" class="mr-1" /> Hapus
           </button>
         </div>
+      </div>
+
+      <!-- Mobile Pagination -->
+      <div v-if="totalPages > 1" class="col-span-full pt-4 flex items-center justify-center gap-4">
+        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
+          class="btn btn-secondary px-4 h-10 rounded-xl disabled:opacity-30">
+          <ChevronLeft :size="18" />
+        </button>
+        <span class="text-xs font-black uppercase text-text-secondary tracking-widest">Halaman {{ currentPage }} dari {{ totalPages }}</span>
+        <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
+          class="btn btn-secondary px-4 h-10 rounded-xl disabled:opacity-30">
+          <ChevronRight :size="18" />
+        </button>
       </div>
     </div>
 
