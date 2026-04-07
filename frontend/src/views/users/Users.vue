@@ -53,7 +53,7 @@ const activeTab = ref("active");
 const searchQuery = ref("");
 const selectedRole = ref("");
 const selectedBranch = ref("");
-const selectedAccountType = ref(""); // New filter
+const selectedAccountType = ref("main"); // Default to main accounts
 const showModal = ref(false);
 const editingUser = ref(null);
 const showPassword = ref(false);
@@ -610,13 +610,22 @@ function getUserRoleName(user) {
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
           <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="input !pl-12 w-full" />
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-row gap-3 w-full lg:w-auto">
-          <!-- Account Type Filter -->
-          <select v-model="selectedAccountType" class="input w-full font-medium">
-            <option value="">Semua Tipe</option>
-            <option value="main">Akun Utama (Login)</option>
-            <option value="inventory">Akun Inventory</option>
-          </select>
+        <div class="flex flex-col lg:flex-row gap-3 w-full lg:w-auto">
+          <!-- Account Type Tabs -->
+          <div class="flex p-1 bg-surface-900 border border-surface-700 rounded-xl w-full lg:w-auto shrink-0 shadow-inner">
+            <button @click="selectedAccountType = 'main'" 
+                    class="flex-1 lg:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    :class="selectedAccountType === 'main' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
+              <Users :size="14" />
+              <span>Akun Login</span>
+            </button>
+            <button @click="selectedAccountType = 'inventory'" 
+                    class="flex-1 lg:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    :class="selectedAccountType === 'inventory' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
+              <Shield :size="14" />
+              <span>Akun Inventory</span>
+            </button>
+          </div>
 
           <select v-model="selectedRole" class="input w-full">
             <option value="">Semua Role</option>
