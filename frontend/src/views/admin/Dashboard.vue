@@ -611,11 +611,18 @@ const currentLocalRank = computed(() => {
 
               <div v-if="rightPodiumData && rightPodiumData.podium" class="w-full space-y-4 max-w-sm">
                 <div v-for="(item, idx) in rightPodiumData.podium" :key="idx"
-                  class="flex items-center gap-4 p-4 rounded-2xl bg-surface-800/40 border border-surface-700/50 hover:border-primary-500/30 transition-all group/item"
-                  :class="item.is_me ? 'ring-2 ring-primary-500 bg-primary-500/5' : ''">
+                  class="flex items-center gap-4 p-4 rounded-2xl bg-surface-800/40 border transition-all group/item relative overflow-hidden"
+                  :class="[
+                    item.is_me 
+                      ? 'ring-2 ring-primary-500 bg-primary-500/10 border-primary-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)] scale-[1.02] z-10' 
+                      : 'border-surface-700/50 hover:border-primary-500/30'
+                  ]">
+                  
+                  <!-- Highlight Glow for YOU -->
+                  <div v-if="item.is_me" class="absolute inset-0 bg-gradient-to-r from-primary-500/5 to-transparent pointer-none"></div>
 
                   <div
-                    class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-transform group-hover/item:scale-110 shadow-lg"
+                    class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-transform group-hover/item:scale-110 shadow-lg relative z-10"
                     :class="{
                       'bg-primary-500 text-black': item.rank === 1,
                       'bg-slate-400 text-black': item.rank === 2,
@@ -625,19 +632,20 @@ const currentLocalRank = computed(() => {
                     {{ item.rank }}
                   </div>
 
-                  <div class="flex-1 min-w-0">
+                  <div class="flex-1 min-w-0 relative z-10">
                     <div class="flex items-center gap-2">
                       <span class="font-black text-xs text-text-primary uppercase truncate"
                         :class="item.is_me ? 'text-primary-500' : ''">{{ item.name }}</span>
                       <span v-if="item.is_me"
-                        class="bg-primary-500 text-black text-[6px] font-black px-1.5 py-0.5 rounded uppercase">YOU</span>
+                        class="bg-primary-500 text-black text-[7px] font-black px-2 py-0.5 rounded-full uppercase shadow-sm">YOU</span>
                     </div>
-                    <span class="text-[10px] font-bold text-text-secondary opacity-60 tabular-nums">{{
+                    <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-400' : 'text-text-secondary opacity-60'">{{
                       formatCurrency(item.omset) }}</span>
                   </div>
 
                   <component :is="item.type === 'branch' || item.type === 'Offline' ? Store : Globe"
-                    class="w-4 h-4 opacity-20" :class="item.is_me ? 'text-primary-500 opacity-100' : ''" />
+                    class="w-5 h-5 transition-all relative z-10" 
+                    :class="item.is_me ? 'text-primary-500 scale-110 opacity-100' : 'opacity-20'" />
                 </div>
               </div>
             </div>
