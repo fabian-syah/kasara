@@ -396,256 +396,119 @@ const getColorClasses = (color) => {
     <div v-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'"
       class="space-y-6">
       
-      <!-- Branch Competition Podium (Full Width Premium) -->
-      <div v-if="branchRanking" class="card overflow-hidden bg-white dark:bg-[#0d0d0d] border-none p-0 flex flex-col shadow-2xl relative min-h-[400px]">
-        <!-- Decoration Gradients -->
-        <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[100px]"></div>
-        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/5 rounded-full blur-[100px]"></div>
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <!-- LEFT: Branch Competition Podium -->
+        <div v-if="branchRanking" class="xl:col-span-2 card overflow-hidden bg-white dark:bg-[#0d0d0d] border-none p-0 flex flex-col shadow-2xl relative min-h-[400px]">
+          <!-- Deco -->
+          <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[100px]"></div>
+          <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/5 rounded-full blur-[100px]"></div>
 
-        <div class="relative z-10">
-          <!-- Header -->
-          <div class="px-8 py-6 flex flex-col md:flex-row items-center justify-between border-b border-black/5 dark:border-white/5 gap-4">
-            <div class="flex items-center gap-3">
-              <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-              <h2 class="text-xs font-black text-emerald-500 uppercase tracking-[0.4em]">Sales Performance Podium</h2>
-            </div>
-            
-            <!-- Podium Tabs -->
-            <div class="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl shadow-inner">
-               <button 
-                v-for="tab in [{id: 'today', lab: 'Harian'}, {id: 'this_month', lab: 'Bulan Ini'}, {id: 'last_month', lab: 'Bulan Lalu'}]" 
-                :key="tab.id"
-                @click="podiumTab = tab.id"
-                class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300"
-                :class="podiumTab === tab.id ? 'bg-emerald-500 text-black shadow-lg' : 'text-text-secondary hover:text-emerald-500'"
-               >
-                 {{ tab.lab }}
-               </button>
-            </div>
-
-            <div class="hidden lg:flex flex-col items-end">
-              <span class="text-xs font-bold text-black/40 dark:text-white/40 uppercase tracking-widest">{{ new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
-            </div>
-          </div>
-
-          <div class="p-8 pb-16">
-            <!-- PODIUM CONTAINER -->
-            <div class="flex flex-col md:flex-row items-center md:items-end justify-center gap-16 md:gap-8 lg:gap-24 pt-32 md:pt-20 pb-4">
+          <div class="relative z-10 h-full flex flex-col">
+            <!-- Header -->
+            <div class="px-8 py-6 flex flex-col md:flex-row items-center justify-between border-b border-black/5 dark:border-white/5 gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                <h2 class="text-xs font-black text-emerald-500 uppercase tracking-[0.4em]">Sales Performance Podium</h2>
+              </div>
               
-              <!-- Posisi Left (Slot 2 atau 1 tergantung me) -->
-              <div class="flex flex-col items-center w-full md:w-1/4 max-w-[200px] order-2 md:order-1">
-                <template v-if="branchRanking[podiumTab]?.podium[0]">
-                  <div class="relative group">
-                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-black text-black/30 dark:text-white/30 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">#{{ branchRanking[podiumTab].podium[0].rank }}</div>
-                    <div class="w-28 h-28 rounded-[2.5rem] bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 flex items-center justify-center mb-4 shadow-[0_15px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_30px_rgba(0,0,0,0.5)] transition-all duration-500 group-hover:-translate-y-2 group-hover:border-emerald-500/50">
-                      <component :is="branchRanking[podiumTab].podium[0].type === 'branch' ? Store : Globe" class="w-14 h-14 text-black/60 dark:text-white/60" />
-                      <div class="absolute -right-3 -top-3 w-10 h-10 rounded-full bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 flex items-center justify-center text-xs font-bold text-black/40 dark:text-white/40 shadow-xl">{{ branchRanking[podiumTab].podium[0].rank }}</div>
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <p class="text-xs font-black text-black/60 dark:text-white/60 uppercase truncate w-full px-2">{{ branchRanking[podiumTab].podium[0].name }}</p>
-                    <p class="text-[10px] font-bold text-black/20 dark:text-white/20 mt-1 uppercase tracking-widest">{{ branchRanking[podiumTab].podium[0].type === 'branch' ? 'OFFLINE UNIT' : 'ONLINE STORE' }}</p>
-                    <div class="mt-3 text-xs font-mono text-black/50 dark:text-white/50 bg-black/5 dark:bg-white/5 px-4 py-1.5 rounded-full border border-black/5 dark:border-white/5">Rp {{ formatNumber(branchRanking[podiumTab].podium[0].omset) }}</div>
-                    
-                    <!-- Small Trend Badge -->
-                    <div class="mt-4 flex items-center justify-center gap-2 opacity-60 scale-75 transform origin-top">
-                      <div class="flex flex-col items-center">
-                        <span class="text-[8px] font-bold text-black/30 dark:text-white/30 uppercase tracking-[0.2em]">{{ podiumTab === 'today' ? 'Kemarin' : 'Lalu' }}</span>
-                        <span class="text-xs font-black text-black/80 dark:text-white/80">#{{ branchRanking[podiumTab].podium[0].prev_rank || '-' }}</span>
-                      </div>
-                      <div class="w-px h-6 bg-black/10 dark:bg-white/10 mx-1"></div>
-                      <div class="flex items-center gap-1">
-                        <ChevronUp v-if="branchRanking[podiumTab].podium[0].prev_rank === '-' || branchRanking[podiumTab].podium[0].rank < branchRanking[podiumTab].podium[0].prev_rank" :size="12" class="text-emerald-500" />
-                        <ChevronDown v-else-if="branchRanking[podiumTab].podium[0].rank > branchRanking[podiumTab].podium[0].prev_rank" :size="12" class="text-red-500" />
-                        <span class="text-[9px] font-black uppercase tracking-wider" 
-                          :class="branchRanking[podiumTab].podium[0].prev_rank === '-' || branchRanking[podiumTab].podium[0].rank < branchRanking[podiumTab].podium[0].prev_rank ? 'text-emerald-500' : (branchRanking[podiumTab].podium[0].rank > branchRanking[podiumTab].podium[0].prev_rank ? 'text-red-500' : 'text-black/40 dark:text-white/40')">
-                          {{ branchRanking[podiumTab].podium[0].prev_rank === '-' ? 'NEW' : (branchRanking[podiumTab].podium[0].rank < branchRanking[podiumTab].podium[0].prev_rank ? 'NAIK' : (branchRanking[podiumTab].podium[0].rank > branchRanking[podiumTab].podium[0].prev_rank ? 'TURUN' : 'STABIL')) }}
-                        </span>
+              <!-- Tabs -->
+              <div class="flex bg-black/5 dark:bg-white/5 p-1 rounded-xl shadow-inner">
+                 <button v-for="tab in [{id: 'today', lab: 'Harian'}, {id: 'this_month', lab: 'Bulan Ini'}, {id: 'last_month', lab: 'Bulan Lalu'}]" :key="tab.id" @click="podiumTab = tab.id" class="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300" :class="podiumTab === tab.id ? 'bg-emerald-500 text-black shadow-lg' : 'text-text-secondary hover:text-emerald-500'">{{ tab.lab }}</button>
+              </div>
+            </div>
+
+            <div class="p-8 pb-16 flex-1 flex flex-col justify-center">
+              <div class="flex flex-col md:flex-row items-center md:items-end justify-center gap-12 md:gap-6 lg:gap-12 pt-32 md:pt-20 pb-4">
+                <!-- Left Slot -->
+                <div class="flex flex-col items-center w-full md:w-1/3 max-w-[180px] order-2 md:order-1">
+                  <template v-if="branchRanking[podiumTab]?.podium[0]">
+                    <div class="relative group">
+                      <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-[10px] font-black text-black/30 dark:text-white/30 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">#{{ branchRanking[podiumTab].podium[0].rank }}</div>
+                      <div class="w-24 h-24 rounded-[2.2rem] bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 flex items-center justify-center mb-4 shadow-xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-emerald-500/50">
+                        <component :is="branchRanking[podiumTab].podium[0].type === 'branch' ? Store : Globe" class="w-12 h-12 text-black/60 dark:text-white/60" />
                       </div>
                     </div>
+                    <div class="text-center">
+                      <p class="text-[11px] font-black text-black/60 dark:text-white/60 uppercase truncate w-full px-2 leading-none">{{ branchRanking[podiumTab].podium[0].name }}</p>
+                      <div class="mt-3 text-[10px] font-mono text-black/50 dark:text-white/50 bg-black/5 dark:bg-white/5 px-4 py-1 rounded-full">Rp {{ formatNumber(branchRanking[podiumTab].podium[0].omset) }}</div>
+                    </div>
+                  </template>
+                </div>
+
+                <!-- Center Slot -->
+                <div class="flex flex-col items-center w-full md:w-2/5 max-w-[320px] relative md:-top-12 order-1 md:order-2 mb-8 md:mb-0">
+                  <div class="absolute -top-20 left-1/2 -translate-x-1/2 scale-[1.5]">
+                    <div class="relative"><div class="absolute inset-0 bg-emerald-500/60 blur-3xl rounded-full"></div><Trophy :size="28" class="text-emerald-500 relative z-10 animate-bounce" /></div>
                   </div>
-                </template>
-                <div v-else class="opacity-10 pointer-events-none">
-                  <div class="w-28 h-28 rounded-[2.5rem] border-2 border-dashed border-black/20 dark:border-white/20 mb-4"></div>
-                  <div class="h-4 w-16 bg-black/10 dark:bg-white/10 rounded mx-auto"></div>
+                  <div class="relative group w-full">
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-5 py-1.5 rounded-full z-20 uppercase tracking-[0.2em]">RANK #{{ branchRanking[podiumTab].podium[1].rank }}</div>
+                    <div class="w-full aspect-square max-w-[220px] md:max-w-[280px] mx-auto rounded-[3.5rem] bg-white dark:bg-[#1a1a1a] border-[5px] border-emerald-500/50 flex flex-col items-center justify-center mb-6 shadow-2xl relative overflow-hidden group-hover:border-emerald-500 transition-all duration-700">
+                      <component :is="branchRanking[podiumTab].podium[1].type === 'branch' ? Store : Globe" class="w-24 h-24 text-black dark:text-white relative z-10 transition-transform group-hover:scale-110" />
+                      <div class="absolute bottom-0 inset-x-0 bg-emerald-500 py-2.5 flex items-center justify-center"><span class="text-[9px] font-black text-black uppercase tracking-[0.4em]">RANKING UNIT</span></div>
+                    </div>
+                  </div>
+                  <div class="text-center w-full px-2">
+                    <h3 class="text-xl md:text-2xl font-black text-text-primary uppercase tracking-tight mb-4 truncate">{{ branchRanking[podiumTab].podium[1].name }}</h3>
+                    <div class="bg-emerald-500 rounded-[2.5rem] p-4 shadow-xl border border-emerald-400/30">
+                      <p class="text-[9px] font-black text-black/60 uppercase mb-1">TOTAL OMSET</p>
+                      <p class="text-2xl font-black text-black">Rp {{ formatNumber(branchRanking[podiumTab].podium[1].omset) }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Slot -->
+                <div class="flex flex-col items-center w-full md:w-1/3 max-w-[180px] order-3 md:order-3">
+                  <template v-if="branchRanking[podiumTab]?.podium[2]">
+                    <div class="relative group">
+                      <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-[10px] font-black text-black/30 dark:text-white/30 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">#{{ branchRanking[podiumTab].podium[2].rank }}</div>
+                      <div class="w-20 h-20 rounded-[2rem] bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 flex items-center justify-center mb-4 shadow-xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-emerald-500/50">
+                        <component :is="branchRanking[podiumTab].podium[2].type === 'branch' ? Store : Globe" class="w-10 h-10 text-black/60 dark:text-white/60" />
+                      </div>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-[11px] font-black text-black/60 dark:text-white/60 uppercase truncate w-full px-2 leading-none">{{ branchRanking[podiumTab].podium[2].name }}</p>
+                      <div class="mt-3 text-[10px] font-mono text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 px-4 py-1 rounded-full">Rp {{ formatNumber(branchRanking[podiumTab].podium[2].omset) }}</div>
+                    </div>
+                  </template>
                 </div>
               </div>
-
-               <!-- Posisi Center (Rank-UTAMA - KING) -->
-              <div class="flex flex-col items-center w-full md:w-5/12 max-w-[400px] relative md:-top-16 order-1 md:order-2 mb-8 md:mb-0">
-                <!-- Crown & Glow -->
-                <div class="absolute -top-24 left-1/2 -translate-x-1/2 scale-[1.8]">
-                   <div class="relative">
-                      <div class="absolute inset-0 bg-emerald-500/60 blur-3xl rounded-full"></div>
-                      <Trophy :size="32" class="text-emerald-500 relative z-10 animate-bounce" />
-                   </div>
-                </div>
-
-                <div class="relative group w-full">
-                   <div class="absolute -top-12 left-1/2 -translate-x-1/2 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-6 py-2 rounded-full shadow-[0_0_40px_rgba(16,185,129,0.3)] backdrop-blur-md z-20 uppercase tracking-widest">RANK #{{ branchRanking[podiumTab].podium[1].rank }}</div>
-                   <div class="w-full aspect-square max-w-[260px] md:max-w-[320px] mx-auto rounded-[4rem] bg-white dark:bg-[#1a1a1a] border-[6px] border-emerald-500/50 flex flex-col items-center justify-center mb-8 shadow-[0_40px_80px_rgba(0,0,0,0.1)] dark:shadow-[0_40px_80px_rgba(0,0,0,0.9)] relative overflow-hidden group-hover:border-emerald-500 transition-all duration-700">
-                      <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/30 via-transparent to-transparent"></div>
-                      <component :is="branchRanking[podiumTab].podium[1].type === 'branch' ? Store : Globe" class="w-32 h-32 text-black dark:text-white relative z-10 transition-transform duration-700 group-hover:scale-110" />
-                      <div class="absolute bottom-0 inset-x-0 bg-emerald-500 py-3 flex items-center justify-center">
-                        <span class="text-xs font-black text-black uppercase tracking-[0.4em]">CURRENT PERFORMANCE</span>
-                      </div>
-                      <div class="absolute -right-6 -top-6 w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center text-3xl font-black text-black border-[10px] border-white dark:border-[#0d0d0d] shadow-2xl">{{ branchRanking[podiumTab].podium[1].rank }}</div>
-                   </div>
-                </div>
-
-                <div class="text-center w-full px-4">
-                  <div class="flex items-center justify-center gap-4 mb-2">
-                    <Sparkles :size="20" class="text-emerald-500 hidden md:block" />
-                    <h3 class="text-2xl md:text-3xl font-black text-text-primary uppercase tracking-tight">{{ branchRanking[podiumTab].podium[1].name }}</h3>
-                    <Sparkles :size="20" class="text-emerald-500 transform scale-x-[-1] hidden md:block" />
-                  </div>
-                  <p class="text-xs font-black text-black/30 dark:text-white/30 uppercase tracking-[0.5em] mb-8">RANKING KOMPETISI UNIT</p>
-                  
-                  <div class="flex flex-col gap-4">
-                    <!-- MAIN OMSET -->
-                    <div class="bg-emerald-500 rounded-[3rem] p-6 shadow-[0_25px_50px_rgba(16,185,129,0.3)] border-2 border-emerald-400/30 group-hover:scale-105 transition-all duration-500">
-                      <p class="text-[10px] font-black text-black/60 uppercase tracking-widest mb-1">TOTAL OMSET SEKARANG</p>
-                      <p class="text-4xl font-black text-black leading-none tracking-tighter">Rp {{ formatNumber(branchRanking[podiumTab].podium[1].omset) }}</p>
-                    </div>
-
-                    <!-- TREND / PREV RANK -->
-                    <div class="flex items-center justify-center gap-6 px-8 py-4 bg-black/5 dark:bg-white/5 rounded-[2rem] border border-black/10 dark:border-white/10 mt-2 backdrop-blur-md">
-                        <div class="flex flex-col items-center">
-                          <span class="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-[0.2em]">{{ podiumTab === 'today' ? 'Kemarin' : 'Lalu' }}</span>
-                          <span class="text-lg font-black text-black/80 dark:text-white/80">#{{ branchRanking[podiumTab].podium[1].prev_rank || '-' }}</span>
-                        </div>
-                        <div class="w-px h-10 bg-black/10 dark:bg-white/10 mx-2"></div>
-                        <div class="flex flex-col items-center">
-                           <div class="flex items-center gap-2 mb-0.5">
-                              <ChevronDown v-if="branchRanking[podiumTab].podium[1].prev_rank !== '-' && branchRanking[podiumTab].podium[1].rank > branchRanking[podiumTab].podium[1].prev_rank" :size="18" class="text-red-500" />
-                              <ChevronUp v-else-if="branchRanking[podiumTab].podium[1].prev_rank === '-' || branchRanking[podiumTab].podium[1].rank < branchRanking[podiumTab].podium[1].prev_rank" :size="18" class="text-emerald-500" />
-                              <span class="text-sm font-black uppercase tracking-wider" :class="branchRanking[podiumTab].podium[1].prev_rank === '-' || branchRanking[podiumTab].podium[1].rank < branchRanking[podiumTab].podium[1].prev_rank ? 'text-emerald-500' : (branchRanking[podiumTab].podium[1].rank > branchRanking[podiumTab].podium[1].prev_rank ? 'text-red-500' : 'text-black/40 dark:text-white/40')">
-                                 {{ branchRanking[podiumTab].podium[1].prev_rank === '-' ? 'NEW' : (branchRanking[podiumTab].podium[1].rank < branchRanking[podiumTab].podium[1].prev_rank ? 'NAIK' : (branchRanking[podiumTab].podium[1].rank > branchRanking[podiumTab].podium[1].prev_rank ? 'TURUN' : 'STABIL')) }}
-                              </span>
-                           </div>
-                           <span class="text-[9px] font-bold text-black/20 dark:text-white/20 uppercase tracking-[0.2em]">PREVIOUS STATUS</span>
-                        </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Posisi Right (Slot 3 atau depannya) -->
-              <div class="flex flex-col items-center w-full md:w-1/4 max-w-[200px] order-3 md:order-3">
-                <template v-if="branchRanking[podiumTab]?.podium[2]">
-                  <div class="relative group">
-                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-black text-black/30 dark:text-white/30 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">#{{ branchRanking[podiumTab].podium[2].rank }}</div>
-                    <div class="w-24 h-24 rounded-[2.2rem] bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 flex items-center justify-center mb-4 shadow-[0_12px_25px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_25px_rgba(0,0,0,0.5)] transition-all duration-500 group-hover:-translate-y-2 group-hover:border-emerald-500/50">
-                      <component :is="branchRanking[podiumTab].podium[2].type === 'branch' ? Store : Globe" class="w-12 h-12 text-black/60 dark:text-white/60" />
-                      <div class="absolute -right-3 -top-3 w-10 h-10 rounded-full bg-white dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 flex items-center justify-center text-xs font-bold text-black/40 dark:text-white/40 shadow-xl">{{ branchRanking[podiumTab].podium[2].rank }}</div>
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <p class="text-xs font-black text-black/60 dark:text-white/60 uppercase truncate w-full px-2">{{ branchRanking[podiumTab].podium[2].name }}</p>
-                    <p class="text-[10px] font-bold text-black/20 dark:text-white/20 mt-1 uppercase tracking-widest">{{ branchRanking[podiumTab].podium[2].type === 'branch' ? 'OFFLINE UNIT' : 'ONLINE STORE' }}</p>
-                    <div class="mt-3 text-xs font-mono text-black/40 dark:text-white/40 bg-black/5 dark:bg-white/5 px-4 py-1.5 rounded-full border border-black/5 dark:border-white/5">Rp {{ formatNumber(branchRanking[podiumTab].podium[2].omset) }}</div>
-                    
-                    <!-- Small Trend Badge -->
-                    <div class="mt-4 flex items-center justify-center gap-2 opacity-60 scale-75 transform origin-top">
-                      <div class="flex flex-col items-center">
-                        <span class="text-[8px] font-bold text-black/30 dark:text-white/30 uppercase tracking-[0.2em]">{{ podiumTab === 'today' ? 'Kemarin' : 'Lalu' }}</span>
-                        <span class="text-xs font-black text-black/80 dark:text-white/80">#{{ branchRanking[podiumTab].podium[2].prev_rank || '-' }}</span>
-                      </div>
-                      <div class="w-px h-6 bg-black/10 dark:bg-white/10 mx-1"></div>
-                      <div class="flex items-center gap-1">
-                        <ChevronUp v-if="branchRanking[podiumTab].podium[2].prev_rank === '-' || branchRanking[podiumTab].podium[2].rank < branchRanking[podiumTab].podium[2].prev_rank" :size="12" class="text-emerald-500" />
-                        <ChevronDown v-else-if="branchRanking[podiumTab].podium[2].rank > branchRanking[podiumTab].podium[2].prev_rank" :size="12" class="text-red-500" />
-                        <span class="text-[9px] font-black uppercase tracking-wider" 
-                          :class="branchRanking[podiumTab].podium[2].prev_rank === '-' || branchRanking[podiumTab].podium[2].rank < branchRanking[podiumTab].podium[2].prev_rank ? 'text-emerald-500' : (branchRanking[podiumTab].podium[2].rank > branchRanking[podiumTab].podium[2].prev_rank ? 'text-red-500' : 'text-black/40 dark:text-white/40')">
-                          {{ branchRanking[podiumTab].podium[2].prev_rank === '-' ? 'NEW' : (branchRanking[podiumTab].podium[2].rank < branchRanking[podiumTab].podium[2].prev_rank ? 'NAIK' : (branchRanking[podiumTab].podium[2].rank > branchRanking[podiumTab].podium[2].prev_rank ? 'TURUN' : 'STABIL')) }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-                <div v-else class="opacity-10 pointer-events-none">
-                  <div class="w-24 h-24 rounded-[2.2rem] border-2 border-dashed border-black/20 dark:border-white/20 mb-4"></div>
-                  <div class="h-4 w-16 bg-black/10 dark:bg-white/10 rounded mx-auto"></div>
-                </div>
-              </div>
-
             </div>
           </div>
         </div>
 
-        <!-- Footer Info -->
-        <div class="px-8 py-6 bg-black/5 dark:bg-white/5 border-t border-black/10 dark:border-white/10 flex items-center justify-between mt-auto">
-           <div class="flex items-center gap-3">
-              <Globe :size="16" class="text-emerald-500" />
-              <span class="text-xs font-black text-black/30 dark:text-white/30 uppercase tracking-[0.5em]">{{ branchRanking.total_competitors }} UNITS WORLDWIDE LEADERBOARD</span>
-           </div>
-           <button class="text-xs font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-400 transition-all hover:translate-x-1">See Full Global Rankings →</button>
-        </div>
-      </div>
-
-      <!-- Yesterday's Mini Podium -->
-      <div v-if="branchRanking?.yesterday?.podium" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div v-for="(winner, idx) in branchRanking.yesterday.podium" :key="idx"
-            class="card bg-black/5 dark:bg-surface-800/30 border-black/5 dark:border-surface-700/50 p-4 flex items-center gap-4 group hover:bg-black/10 dark:hover:bg-surface-800/50 transition-all">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0"
-              :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : 'bg-amber-700 text-white')">
-              {{ winner.rank }}
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest leading-none mb-1">Yesterday's #{{ winner.rank }}</p>
-              <h4 class="font-black text-text-primary truncate uppercase tracking-tight">{{ winner.name }}</h4>
-            </div>
-            <div class="text-right shrink-0">
-              <p class="text-[10px] font-bold text-emerald-500 leading-none">Rp {{ formatNumber(winner.omset) }}</p>
-              <p class="text-[8px] text-text-secondary mt-1">OMSET</p>
-            </div>
-          </div>
-      </div>
-
-      <!-- User Ranking Card (Simplified fallback if branchRanking fails) -->
-      <div v-else class="card overflow-hidden group border-2 border-primary-500/20">
-        <div
-          class="absolute -right-4 -top-4 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl group-hover:bg-primary-500/20 transition-all duration-500">
-        </div>
-        <div class="relative z-10">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center text-primary-500">
-              <Trophy :size="20" />
-            </div>
-            <div>
-              <h2 class="text-lg font-bold text-text-primary">Peringkat Penjualan</h2>
-              <p class="text-xs text-text-secondary">Global Ranking hari ini</p>
-            </div>
-          </div>
-
-          <div class="flex items-end justify-between">
-            <div class="space-y-1">
-              <p class="text-sm text-text-secondary font-medium">Berdasarkan Total Unit</p>
-              <div class="flex items-baseline gap-2">
-                <span class="text-4xl font-black text-text-primary">LIVE</span>
-                <span class="text-emerald-500 flex items-center text-xs font-bold">
-                  <TrendingUp :size="12" class="mr-1" /> Ranking Global
-                </span>
+        <!-- RIGHT: Yesterday's TOP 3 Champions -->
+        <div v-if="branchRanking?.yesterday?.podium" class="xl:col-span-1 flex flex-col">
+          <div class="card overflow-hidden bg-white dark:bg-[#0d0d0d] border-none p-0 flex flex-col shadow-xl relative flex-1 min-h-[400px]">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl"></div>
+            <div class="relative z-10 h-full flex flex-col">
+              <div class="px-6 py-6 border-b border-black/5 dark:border-white/5">
+                  <div class="flex items-center gap-3 mb-1"><Trophy :size="18" class="text-amber-500" /><h2 class="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em]">Top 3 Champions</h2></div>
+                  <p class="text-[9px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Yesterday's Global Leaders</p>
               </div>
-            </div>
-            <div class="text-right">
-              <Award :size="48" class="text-amber-500 opacity-20" />
+              <div class="p-6 flex-1 flex flex-col justify-center items-center gap-8">
+                  <div v-for="(winner, idx) in branchRanking.yesterday.podium" :key="idx" class="w-full flex items-center gap-4 group">
+                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 shadow-lg" :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : (idx === 2 ? 'bg-amber-700 text-white' : ''))">{{ winner.rank }}</div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-black text-sm text-text-primary uppercase truncate leading-none mb-1">{{ winner.name }}</h4>
+                      <div class="text-[10px] font-mono font-bold text-black/50 dark:text-white/50">Rp {{ formatNumber(winner.omset) }}</div>
+                    </div>
+                  </div>
+              </div>
+              <div class="px-6 py-4 bg-amber-500/5 border-t border-amber-500/10 mt-auto"><span class="text-[8px] font-black text-amber-500/50 uppercase tracking-[0.3em]">Historical Data Room</span></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Leaderboard Section (Unified Full Width) -->
+      <!-- Leaderboard Table Card -->
       <div class="card overflow-hidden p-0">
         <div class="p-6 border-b border-surface-700/50 bg-surface-700/10 flex items-center justify-between">
           <div class="flex items-center gap-3">
             <Trophy :size="24" class="text-amber-500" />
-            <h2 class="text-lg font-black text-text-primary uppercase tracking-tight">Leaderboard
-              {{ dashboardRole === 'online_shop' ? 'Shop' : 'Cabang' }}</h2>
+            <h2 class="text-lg font-black text-text-primary uppercase tracking-tight">Leaderboard Unit</h2>
           </div>
           <div class="bg-surface-800 px-3 py-1 rounded-full text-[10px] font-black text-text-secondary uppercase">TODAY</div>
         </div>
-
         <div class="p-6 overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead>
@@ -656,7 +519,7 @@ const getColorClasses = (color) => {
                 <th class="pb-6 text-right">Global Rank</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-surface-700/50">
+            <tbody class="divide-y divide-surface-700">
               <tr v-for="(user, idx) in ranking.leaderboard" :key="user.id"
                 class="group hover:bg-surface-700/20 transition-all duration-300">
                 <td class="py-4">
@@ -696,37 +559,6 @@ const getColorClasses = (color) => {
             </tbody>
           </table>
         </div>
-
-        <!-- Leaderboard (Mobile Only Card View) -->
-        <div class="md:hidden space-y-3">
-          <div v-for="(user, idx) in ranking.leaderboard" :key="user.id"
-            class="p-3 rounded-xl bg-surface-700/30 border border-surface-700 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold shrink-0"
-                :class="idx === 0 ? 'bg-amber-500 text-black' : (idx === 1 ? 'bg-slate-400 text-black' : (idx === 2 ? 'bg-amber-700 text-white' : 'text-text-secondary bg-surface-700'))">
-                {{ idx + 1 }}
-              </div>
-              <div class="flex items-center gap-2 min-w-0">
-                <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden">
-                  <img :src="resolvePhoto(user.photo, user.name)"
-                    class="w-full h-full object-cover"
-                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=10b981&color=fff`" />
-                </div>
-                <div class="truncate">
-                  <p class="font-medium text-text-primary text-sm truncate">{{ user.name }}</p>
-                  <p class="text-[10px] text-text-secondary font-mono">#{{ user.rank ?? (idx + 1) }} Global</p>
-                </div>
-              </div>
-            </div>
-            <div class="text-right shrink-0">
-              <p class="font-bold text-text-primary">{{ user.units ?? user.count ?? user.sold ?? ((user.hp_count || 0) + (user.non_hp_count || 0)) ?? 0 }}</p>
-              <p class="text-[10px] text-text-secondary">Unit</p>
-            </div>
-          </div>
-          <div v-if="!ranking?.leaderboard || ranking.leaderboard.length === 0"
-            class="py-8 text-center text-text-secondary italic text-sm">
-            Belum ada data penjualan akun inventory hari ini
-          </div>
         </div>
       </div>
     </div>
@@ -1059,7 +891,6 @@ const getColorClasses = (color) => {
                 }"></div>
             </div>
           </div>
-        </div>
       </div>
     </div>
   </div>
