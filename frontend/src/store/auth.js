@@ -198,6 +198,17 @@ export const useAuthStore = defineStore('auth', () => {
         return url.replace(/\/api\/?$/, '');
     });
 
+    // Listen for storage changes from other tabs to handle multi-tab session sync
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'auth_token' || event.key === 'user') {
+                // If we're logged out or changed user in another tab, reload to resync state 
+                // and avoid displaying stale/incorrect dashboards
+                window.location.reload();
+            }
+        });
+    }
+
     // Call initialize on store creation
     initialize()
 
