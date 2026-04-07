@@ -201,12 +201,18 @@ const exportToPDF = async () => {
         }
     };
 
-    // Export Part 1
+    // Part 1: Podium + first 8 rows
     await runExport(1, true);
 
-    // Export Part 2 if there's more than 20 items
-    if (rankingData.value.length > 20) {
-        await runExport(2, false);
+    const maxPart1 = 8;
+    const maxPartN = 18;
+    let remaining = rankingData.value.length - maxPart1;
+    let currentPart = 2;
+
+    while(remaining > 0) {
+        await runExport(currentPart, false);
+        remaining -= maxPartN;
+        currentPart++;
     }
     
     pdf.save(`peringkat-omzet-${formatDateStr(new Date())}.pdf`);
@@ -316,10 +322,10 @@ const exportToPDF = async () => {
         </div>
 
         <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] mx-auto is-exporting-pdf py-20 px-12' : ''">
-            <!-- HEADER KHUSUS PART 2 -->
-            <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
+            <!-- HEADER KHUSUS PART > 1 -->
+            <div v-show="exportPart > 1" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
-                <p class="text-text-secondary text-xs font-bold mt-2 uppercase tracking-widest">Halaman 2 / Selesai</p>
+                <p class="text-text-secondary text-xs font-bold mt-2 uppercase tracking-widest">Halaman {{ exportPart }} / Lanjutan</p>
             </div>
 
             <!-- Search & Sort Row (HIDE IN EXPORT) -->
@@ -352,8 +358,8 @@ const exportToPDF = async () => {
                     </button>
                 </div>
             </div>
-            <!-- Podium Layout (HIDE IN PART 2) -->
-            <div v-if="top3.length > 0 && exportPart !== 2"
+            <!-- Podium Layout (HIDE IN PART > 1) -->
+            <div v-if="top3.length > 0 && exportPart <= 1"
                 class="flex flex-col lg:flex-row items-center lg:items-end justify-center gap-10 lg:gap-4 xl:gap-14 pt-16 pb-12 px-6 relative bg-surface-800/5 rounded-[40px] overflow-hidden border border-surface-800/50">
                 <div
                     class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-500/20 to-transparent">
@@ -527,7 +533,7 @@ const exportToPDF = async () => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
-                                    v-show="exportPart === 0 || (exportPart === 1 && index < 20) || (exportPart === 2 && index >= 20)"
+                                    v-show="exportPart === 0 || (exportPart === 1 && index < 8) || (exportPart > 1 && index >= 8 + (exportPart - 2) * 18 && index < 8 + (exportPart - 1) * 18)"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
@@ -566,7 +572,7 @@ const exportToPDF = async () => {
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && filteredRanking.length <= 8) || (exportPart > 1 && filteredRanking.length <= 8 + (exportPart - 1) * 18))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
