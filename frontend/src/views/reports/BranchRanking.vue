@@ -23,7 +23,7 @@ import {
     Eye,
     EyeOff
 } from 'lucide-vue-next';
-import html2canvas from 'html2canvas';
+import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
 const loading = ref(true);
@@ -171,25 +171,21 @@ const exportToPDF = async () => {
         
         try {
             const el = exportRef.value;
-            // Use html2canvas for far superior rendering accuracy over html-to-image
-            const canvas = await html2canvas(el, {
-                scale: 2, // High resolution
-                useCORS: true,
-                backgroundColor: '#ffffff',
+            // Set up purely for dimension anchoring (no themes/padding)
+            const dataUrl = await toJpeg(el, { 
+                quality: 0.95,
+                pixelRatio: 2,
                 width: 1100,
-                windowWidth: 1100,
-                logging: false,
-                onclone: (clonedDoc) => {
-                    // Pastikan kontainer stabil saat dicloning
-                    const clonedEl = clonedDoc.querySelector('.is-exporting-pdf');
-                    if(clonedEl) {
-                        clonedEl.style.margin = '0';
-                    }
+                includeQueryParams: true,
+                cacheBust: true,
+                style: { 
+                    width: '1100px',
+                    maxWidth: 'none',
+                    margin: '0',
+                    display: 'flex',
+                    flexDirection: 'column'
                 }
             });
-
-            // Convert canvas to jpeg with 95% quality
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
             const imgProps = pdf.getImageProperties(dataUrl);
             const pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
@@ -371,14 +367,11 @@ const exportToPDF = async () => {
                             class="absolute -inset-4 bg-slate-400/5 rounded-full blur-xl group-hover:bg-slate-400/10 transition-all">
                         </div>
                         <div
-                            class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center transition-colors"
-                            :class="exportPart > 0 ? 'bg-white border-2 border-black' : 'bg-surface-800 border-2 border-slate-400/30 shadow-xl'">
+                            class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center transition-colors bg-surface-800 border-2 border-slate-400/30 shadow-xl">
                             <component :is="top3[1].type === 'Offline' ? Store : Globe"
-                                class="w-8 h-8 lg:w-10 lg:h-10"
-                                :class="exportPart > 0 ? 'text-black' : 'text-slate-400'" />
+                                class="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
                             <div
-                                class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg"
-                                :class="exportPart > 0 ? 'border border-slate-300' : 'border-4 border-surface-900'">
+                                class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg border-4 border-surface-900">
                                 2</div>
                         </div>
                     </div>
@@ -387,10 +380,8 @@ const exportToPDF = async () => {
                             {{ top3[1].name }}</h3>
                         <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{{ top3[1].type
                             }} UNIT</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
-                            :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
-                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums"
-                                :class="{ 'export-override-slate': exportPart > 0 }">{{
+                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums">{{
                                 formatCurrency(top3[1].omset) }}</span>
                         </div>
                     </div>
@@ -409,16 +400,13 @@ const exportToPDF = async () => {
                         </div>
 
                         <div
-                            class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] flex items-center justify-center transition-all overflow-visible"
-                            :class="exportPart > 0 ? 'bg-white border-4 border-black' : 'bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-8 ring-primary-500/5'">
+                            class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] flex items-center justify-center transition-all overflow-visible bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-8 ring-primary-500/5">
                             <component :is="top3[0].type === 'Offline' ? Store : Globe"
-                                class="w-16 h-16 lg:w-20 lg:h-20"
-                                :class="exportPart > 0 ? '!text-black' : 'text-primary-500'" />
+                                class="w-16 h-16 lg:w-20 lg:h-20 text-primary-500" />
 
                             <!-- Floater Badge 1 -->
                             <div
-                                class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl shadow-2xl animate-bounce-slow"
-                                :class="exportPart > 0 ? 'border-2 border-white' : 'border-8 border-surface-900'">
+                                class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl shadow-2xl animate-bounce-slow border-8 border-surface-900">
                                 1</div>
 
                             <!-- TOP BADGE -->
@@ -459,8 +447,7 @@ const exportToPDF = async () => {
                                     class="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1.5 leading-none">
                                     Total Omset Perolehan</p>
                                 <span
-                                    class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none"
-                                    :class="{ 'export-override-white': exportPart > 0 }">{{
+                                    class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none">{{
                                     formatCurrency(top3[0].omset) }}</span>
                             </div>
                         </div>
@@ -475,14 +462,11 @@ const exportToPDF = async () => {
                             class="absolute -inset-4 bg-amber-700/5 rounded-full blur-xl group-hover:bg-amber-700/10 transition-all">
                         </div>
                         <div
-                            class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center transition-colors"
-                            :class="exportPart > 0 ? 'bg-white border-2 border-black' : 'bg-surface-800 border-2 border-amber-700/30 shadow-xl'">
+                            class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center transition-colors bg-surface-800 border-2 border-amber-700/30 shadow-xl">
                             <component :is="top3[2].type === 'Offline' ? Store : Globe"
-                                class="w-6 h-6 lg:w-8 lg:h-8"
-                                :class="exportPart > 0 ? 'text-black' : 'text-amber-700'" />
+                                class="w-6 h-6 lg:w-8 lg:h-8 text-amber-700" />
                             <div
-                                class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base"
-                                :class="exportPart > 0 ? 'border border-amber-200' : 'border-4 border-surface-900'">
+                                class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base border-4 border-surface-900">
                                 3</div>
                         </div>
                     </div>
@@ -491,10 +475,8 @@ const exportToPDF = async () => {
                             top3[2].name }}</h3>
                         <p class="text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-1.5">{{ top3[2].type
                             }} UNIT</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
-                            :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
-                            <span class="text-lg font-black text-amber-700 tabular-nums"
-                                :class="{ 'export-override-slate': exportPart > 0 }">{{
+                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                            <span class="text-lg font-black text-amber-700 tabular-nums">{{
                                 formatCurrency(top3[2].omset) }}</span>
                         </div>
                     </div>
@@ -519,11 +501,11 @@ const exportToPDF = async () => {
 
                 <div
                     class="bg-surface-800/10 rounded-3xl border border-surface-800 shadow-2xl relative transition-colors"
-                    :class="exportPart > 0 ? '!overflow-visible !bg-slate-50 !border-slate-200' : 'overflow-hidden'">
+                    :class="exportPart > 0 ? '!overflow-visible' : 'overflow-hidden'">
                     <div :class="exportPart > 0 ? '!overflow-visible' : 'overflow-x-auto no-scrollbar'">
                         <table class="w-full text-left border-collapse min-w-[700px] md:min-w-[900px]">
                             <thead>
-                                <tr class="bg-surface-800/50" :class="{ '!bg-slate-100': exportPart > 0 }">
+                                <tr class="bg-surface-800/50">
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800">
                                         No</th>
@@ -559,10 +541,9 @@ const exportToPDF = async () => {
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center gap-3 md:gap-4">
                                             <div
-                                                class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform"
-                                                :class="exportPart > 0 ? 'bg-white border border-black' : 'bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110'">
+                                                class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110">
                                                 <component :is="item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
-                                                    :class="exportPart > 0 ? '!text-black' : (item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400')" />
+                                                    :class="item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
                                             </div>
                                             <div class="flex flex-col min-w-0">
                                                 <span
@@ -576,8 +557,7 @@ const exportToPDF = async () => {
                                     </td>
                                     <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                         <span v-if="item.omset > 0"
-                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors"
-                                            :class="{ 'export-override-green': exportPart > 0 }">
+                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
                                             {{ formatCurrency(item.omset) }}
                                         </span>
                                         <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
@@ -587,8 +567,7 @@ const exportToPDF = async () => {
                                 </tr>
                             </tbody>
                             <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === 2 || (exportPart === 1 && filteredRanking.length <= 20))">
-                                <tr class="bg-surface-800/50 border-t border-surface-700"
-                                    :class="{ '!bg-slate-100 !border-slate-200': exportPart > 0 }">
+                                <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
                                     </td>
@@ -654,34 +633,11 @@ const exportToPDF = async () => {
     display: none;
 }
 
+
 .is-exporting-pdf {
     width: 1100px !important;
     max-width: 1100px !important;
-    background: #ffffff !important;
 }
-
-/* Sesuai saran user: ganti inherit dengan pendekatan spesifik */
-.is-exporting-pdf .text-text-primary {
-    color: #333333 !important; /* Jangan #000 pekat banget, abu tua gelap lebih natural */
-}
-
-.is-exporting-pdf .text-text-secondary {
-    color: #4b5563 !important; /* warna abu tua biar kebaca */
-}
-
-/* Specific overrides for omzet values during export */
-.export-override-white {
-    color: #ffffff !important;
-}
-
-.export-override-slate {
-    color: #64748b !important;
-}
-
-.export-override-green {
-    color: #10b981 !important;
-}
-
 
 .no-scrollbar {
     -ms-overflow-style: none;
