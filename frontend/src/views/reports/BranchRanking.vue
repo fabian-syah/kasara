@@ -23,7 +23,7 @@ import {
     Eye,
     EyeOff
 } from 'lucide-vue-next';
-import { toJpeg } from 'html-to-image';
+import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
 const loading = ref(true);
@@ -171,23 +171,25 @@ const exportToPDF = async () => {
         
         try {
             const el = exportRef.value;
-            // Use JPEG for MUCH smaller file size (100MB -> few MB)
-            const dataUrl = await toJpeg(el, { 
+            // Use html2canvas for far superior rendering accuracy over html-to-image
+            const canvas = await html2canvas(el, {
+                scale: 2, // High resolution
+                useCORS: true,
                 backgroundColor: '#ffffff',
-                quality: 0.95, // Higher quality
-                pixelRatio: 2, // Crisper rendering
                 width: 1100,
-                includeQueryParams: true,
-                cacheBust: true,
-                style: { 
-                    background: '#ffffff',
-                    width: '1100px',
-                    maxWidth: 'none',
-                    margin: '0',
-                    display: 'flex',
-                    flexDirection: 'column'
+                windowWidth: 1100,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // Pastikan kontainer stabil saat dicloning
+                    const clonedEl = clonedDoc.querySelector('.is-exporting-pdf');
+                    if(clonedEl) {
+                        clonedEl.style.margin = '0';
+                    }
                 }
             });
+
+            // Convert canvas to jpeg with 95% quality
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
             const imgProps = pdf.getImageProperties(dataUrl);
             const pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
@@ -370,7 +372,7 @@ const exportToPDF = async () => {
                         </div>
                         <div
                             class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center transition-colors"
-                            :class="exportPart > 0 ? '' : 'bg-surface-800 border-2 border-slate-400/30 shadow-xl'">
+                            :class="exportPart > 0 ? 'bg-white border-2 border-black' : 'bg-surface-800 border-2 border-slate-400/30 shadow-xl'">
                             <component :is="top3[1].type === 'Offline' ? Store : Globe"
                                 class="w-8 h-8 lg:w-10 lg:h-10"
                                 :class="exportPart > 0 ? 'text-black' : 'text-slate-400'" />
@@ -408,7 +410,7 @@ const exportToPDF = async () => {
 
                         <div
                             class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] flex items-center justify-center transition-all overflow-visible"
-                            :class="exportPart > 0 ? '' : 'bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-8 ring-primary-500/5'">
+                            :class="exportPart > 0 ? 'bg-white border-4 border-black' : 'bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-8 ring-primary-500/5'">
                             <component :is="top3[0].type === 'Offline' ? Store : Globe"
                                 class="w-16 h-16 lg:w-20 lg:h-20"
                                 :class="exportPart > 0 ? '!text-black' : 'text-primary-500'" />
@@ -474,7 +476,7 @@ const exportToPDF = async () => {
                         </div>
                         <div
                             class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center transition-colors"
-                            :class="exportPart > 0 ? '' : 'bg-surface-800 border-2 border-amber-700/30 shadow-xl'">
+                            :class="exportPart > 0 ? 'bg-white border-2 border-black' : 'bg-surface-800 border-2 border-amber-700/30 shadow-xl'">
                             <component :is="top3[2].type === 'Offline' ? Store : Globe"
                                 class="w-6 h-6 lg:w-8 lg:h-8"
                                 :class="exportPart > 0 ? 'text-black' : 'text-amber-700'" />
@@ -558,7 +560,7 @@ const exportToPDF = async () => {
                                         <div class="flex items-center gap-3 md:gap-4">
                                             <div
                                                 class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform"
-                                                :class="exportPart > 0 ? '' : 'bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110'">
+                                                :class="exportPart > 0 ? 'bg-white border border-black' : 'bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110'">
                                                 <component :is="item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
                                                     :class="exportPart > 0 ? '!text-black' : (item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400')" />
                                             </div>
@@ -654,7 +656,7 @@ const exportToPDF = async () => {
 
 .is-exporting-pdf {
     width: 1100px !important;
-    max-width: none !important;
+    max-width: 1100px !important;
     background: #ffffff !important;
 }
 
