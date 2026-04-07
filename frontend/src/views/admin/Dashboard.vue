@@ -556,7 +556,7 @@ const currentLocalRank = computed(() => {
                </div>
 
                <div v-if="rightPodiumData && rightPodiumData.podium" class="w-full space-y-4 max-w-sm">
-                 <div v-for="(item, idx) in rightPodiumData.podium" :key="idx" 
+                 <div v-for="(item, idx) in [...Object.values(rightPodiumData.podium)].sort((a,b) => (b.is_me ? 1 : 0) - (a.is_me ? 1 : 0))" :key="idx" 
                    class="flex items-center gap-4 p-4 rounded-2xl bg-surface-800/40 border border-surface-700/50 hover:border-primary-500/30 transition-all group/item"
                    :class="item.is_me ? 'ring-2 ring-primary-500 bg-primary-500/5' : ''">
                    
