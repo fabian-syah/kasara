@@ -399,13 +399,15 @@ class DashboardController extends Controller
 
             return [
                 'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
-                'yesterday' => [
-                   'podium' => $yesterdayRanking->take(3)->values() 
+                'today_top3' => [
+                   'podium' => $todayRanking->take(3)->values()
                 ],
+                'yesterday' => $getPodiumData($yesterdayRanking, null, $myType, $myId),
                 'this_month' => $getPodiumData($thisMonthRanking, $lastMonthRanking, $myType, $myId),
-                'last_month' => [
-                   'podium' => $lastMonthRanking->take(3)->values()
+                'this_month_top3' => [
+                   'podium' => $thisMonthRanking->take(3)->values()
                 ],
+                'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
                 'total_competitors' => $todayRanking->count()
             ];
 
