@@ -174,13 +174,13 @@ const exportToPDF = async () => {
             // Use JPEG for MUCH smaller file size (100MB -> few MB)
             const dataUrl = await toJpeg(el, { 
                 backgroundColor: '#ffffff',
-                quality: 0.85,  // Good quality balance
-                pixelRatio: 1.5, // Crisp enough without being huge
-                width: 1400,     // Much wider for safety
+                quality: 0.85, 
+                pixelRatio: 1.5,
+                width: 1100,     // Kembali ke 1100px sesuai saran user
                 style: { 
-                    padding: '80px 100px', // Large horizontal padding
+                    padding: '80px 60px', 
                     background: '#ffffff',
-                    width: '1400px',
+                    width: '1100px',
                     maxWidth: 'none',
                     margin: '0',
                     display: 'flex',
@@ -316,7 +316,7 @@ const exportToPDF = async () => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1400px] mx-auto is-exporting-pdf py-20' : ''">
+        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] mx-auto is-exporting-pdf py-20' : ''">
             <!-- HEADER KHUSUS PART 2 -->
             <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
@@ -637,25 +637,31 @@ const exportToPDF = async () => {
 }
 
 .is-exporting-pdf {
-    width: 1400px !important;
+    width: 1100px !important;
     max-width: none !important;
-    --color-text-primary: #000000 !important;
-    --color-text-secondary: #333333 !important;
-    color: #000000 !important;
     background: #ffffff !important;
+    color: #000000 !important;
 }
 
-.is-exporting-pdf * {
-    color: inherit !important;
-    background-color: transparent !important;
+/* Sesuai saran user: ganti inherit dengan pendekatan spesifik */
+.is-exporting-pdf .text-text-primary {
+    color: #000000 !important;
 }
 
-/* Keep accent colors for metrics but text should be dark */
+.is-exporting-pdf .text-text-secondary {
+    color: #4b5563 !important; /* warna abu tua biar kebaca */
+}
+
+/* Pastikan warna aksen tetap terjaga (Orange PStore & Emerald Omzet) */
 .is-exporting-pdf .text-primary-500,
+.is-exporting-pdf .bg-primary-500 {
+    color: #f59e0b !important; 
+    background-color: #f59e0b !important;
+}
+
 .is-exporting-pdf .text-emerald-500,
-.is-exporting-pdf .text-emerald-400,
-.is-exporting-pdf .text-amber-700 {
-    color: unset !important;
+.is-exporting-pdf .text-emerald-400 {
+    color: #10b981 !important; 
 }
 
 .no-scrollbar {
