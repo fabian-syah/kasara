@@ -269,46 +269,46 @@ const getColorClasses = (color) => {
 
 const leftPodiumData = computed(() => {
   if (!branchRanking.value) return null;
-  if (podiumTab.value === 'today') return branchRanking.value.yesterday;
-  if (podiumTab.value === 'this_month') return branchRanking.value.last_month;
+  if (podiumTab.value === 'today') return branchRanking.value.today;
+  if (podiumTab.value === 'this_month') return branchRanking.value.this_month;
   return null;
 });
 
 const rightPodiumData = computed(() => {
   if (!branchRanking.value) return null;
-  if (podiumTab.value === 'today') return branchRanking.value.today_top3;
-  if (podiumTab.value === 'this_month') return branchRanking.value.this_month_top3;
+  if (podiumTab.value === 'today') return branchRanking.value.yesterday;
+  if (podiumTab.value === 'this_month') return branchRanking.value.last_month;
   return null;
 });
 
 const leftPodiumTitle = computed(() => {
-  if (podiumTab.value === 'today') return "Yesterday's Performance";
-  if (podiumTab.value === 'this_month') return "Last Month's Performance";
+  if (podiumTab.value === 'today') return "Live Today's Performance";
+  if (podiumTab.value === 'this_month') return "This Month's Progress";
   return "Sales Performance Podium";
 });
 
 const rightPodiumTitle = computed(() => {
-  if (podiumTab.value === 'today') return "Today's Live Top 3";
-  if (podiumTab.value === 'this_month') return "This Month's Top 3";
+  if (podiumTab.value === 'today') return "Yesterday's Champions";
+  if (podiumTab.value === 'this_month') return "Last Month's Champions";
   return "Top 3 Champions";
 });
 
 const rightPodiumSubtitle = computed(() => {
-  if (podiumTab.value === 'today') return "Current Daily Champions";
-  if (podiumTab.value === 'this_month') return "Global Monthly Leaders";
+  if (podiumTab.value === 'today') return "Final Rankings Yesterday";
+  if (podiumTab.value === 'this_month') return "Final Rankings Last Month";
   return "Champions";
 });
 
 const currentGlobalRank = computed(() => {
   if (!branchRanking.value?.summary) return '-';
-  if (podiumTab.value === 'today') return branchRanking.value.summary.yesterday_global;
-  return branchRanking.value.summary.last_month_global;
+  if (podiumTab.value === 'today') return branchRanking.value.summary.today_global;
+  return branchRanking.value.summary.this_month_global;
 });
 
 const currentLocalRank = computed(() => {
   if (!branchRanking.value?.summary) return '-';
-  if (podiumTab.value === 'today') return branchRanking.value.summary.yesterday_local;
-  return branchRanking.value.summary.last_month_local;
+  if (podiumTab.value === 'today') return branchRanking.value.summary.today_local;
+  return branchRanking.value.summary.this_month_local;
 });
 </script>
 
