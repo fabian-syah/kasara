@@ -593,20 +593,23 @@ function getUserRoleName(user) {
     <input type="file" accept="image/*" ref="fileInput" class="hidden" @change="handlePhotoUpload" />
 
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <div>
+    <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+      <div class="w-full md:flex-1">
         <h1 class="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
           <Users :size="28" class="text-blue-500" /> Staff & Role
         </h1>
         <p class="text-text-secondary mt-1">Kelola pengguna dan hak akses</p>
         <div
-          class="mt-2 text-xs bg-blue-500/10 text-blue-400 p-2.5 rounded-lg inline-flex items-center border border-blue-500/20 shadow-sm leading-relaxed max-w-2xl">
-          💡 <strong>Tip:</strong> Klik pada foto profil di tabel untuk mengubah atau menambahkan foto pengguna. Hal ini
-          berlaku untuk akun login maupun akun inventory.
+          class="mt-3 text-[11px] bg-blue-600/10 text-blue-400 p-3 rounded-xl flex items-start gap-3 border border-blue-500/20 shadow-sm leading-relaxed max-w-xl">
+          <span class="shrink-0 mt-0.5">💡</span>
+          <p>
+            <strong>Tip:</strong> Klik pada foto profil di tabel untuk mengubah atau menambahkan foto pengguna. Hal ini
+            berlaku untuk akun login maupun akun inventory.
+          </p>
         </div>
       </div>
       <button v-if="!isReadOnlyAccess" @click="openAddModal"
-        class="btn btn-primary w-full md:w-auto flex justify-center">
+        class="btn btn-primary w-full md:w-auto flex justify-center py-3 md:py-2.5">
         <UserPlus :size="18" />
         <span>Tambah User</span>
       </button>
@@ -628,16 +631,16 @@ function getUserRoleName(user) {
 
     <!-- Filters -->
     <div class="card space-y-4">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="relative w-full lg:flex-1">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="relative w-full md:flex-1">
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary font-bold" :size="20" />
           <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="input !pl-12 w-full" />
         </div>
-        <div class="flex flex-col lg:flex-row gap-3 w-full lg:w-auto">
+        <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
           <!-- Account Type Tabs -->
-          <div class="flex p-1 bg-surface-900 border border-surface-700 rounded-xl w-full lg:w-auto shrink-0 shadow-inner">
+          <div class="flex p-1 bg-surface-900 border border-surface-700 rounded-xl w-full md:w-auto shrink-0 shadow-inner">
             <button @click="selectedAccountType = 'main'" 
-                    class="flex-1 lg:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    class="flex-1 md:px-6 py-2.5 md:py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     :class="selectedAccountType === 'main' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
               <Users :size="14" />
               <span>Akun Login</span>
@@ -692,11 +695,14 @@ function getUserRoleName(user) {
           </thead>
           <tbody class="divide-y divide-surface-700/50">
             <tr v-if="paginatedUsers.length === 0">
-              <td colspan="6" class="text-center py-12 text-text-secondary">
-                Tidak ada user ditemukan
+              <td colspan="6" class="text-center py-20 text-text-secondary">
+                <div class="flex flex-col items-center gap-4">
+                    <Users class="opacity-20" :size="48" />
+                    <p class="font-medium tracking-wide">Tidak ada user ditemukan</p>
+                </div>
               </td>
             </tr>
-            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-surface-800/50 transition-colors">
+            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-surface-800/50 transition-all duration-200">
               <td class="px-6 py-4">
                 <div class="flex items-center gap-4">
                   <div class="relative group cursor-pointer h-12 w-12 shrink-0" @click="triggerFileInput(user)"
@@ -838,12 +844,21 @@ function getUserRoleName(user) {
     </div>
 
     <!-- Mobile/Tablet Card View -->
-    <div class="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-4 pb-20">
-      <div v-if="isLoading" class="p-8 flex justify-center col-span-full">
+    <div class="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pb-20">
+      <div v-if="isLoading" class="p-12 flex justify-center col-span-full">
         <Loader2 class="animate-spin text-blue-500" :size="32" />
       </div>
-      <div v-for="user in paginatedUsers" :key="user.id" class="card space-y-4 flex flex-col justify-between h-full">
-        <div class="flex justify-between items-start gap-3">
+      <div v-if="paginatedUsers.length === 0 && !isLoading" class="col-span-full py-20 card flex flex-col items-center gap-4 text-center">
+          <Users class="opacity-20 text-text-secondary" :size="64" />
+          <p class="text-text-secondary font-medium uppercase tracking-widest text-xs">Akun tidak ditemukan</p>
+      </div>
+      <div v-for="user in paginatedUsers" :key="user.id" class="card relative flex flex-col justify-between h-full group hover:border-blue-500/30 transition-all duration-300">
+        <!-- Background Decor -->
+        <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
+            <component :is="user.roles?.some(r => r.name === 'inventory') ? Shield : Users" :size="80" />
+        </div>
+
+        <div class="flex justify-between items-start gap-3 relative z-10">
           <div class="flex items-center gap-3">
             <div class="relative group cursor-pointer h-12 w-12 shrink-0" @click="triggerFileInput(user)">
               <img :src="getAvatarUrl(user)"
