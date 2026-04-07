@@ -386,7 +386,7 @@ const exportToPDF = async () => {
                         <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
                             :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
                             <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums"
-                                :style="exportPart > 0 ? 'color: #64748b !important;' : ''">{{
+                                :class="{ 'export-override-slate': exportPart > 0 }">{{
                                 formatCurrency(top3[1].omset) }}</span>
                         </div>
                     </div>
@@ -453,7 +453,7 @@ const exportToPDF = async () => {
                                     Total Omset Perolehan</p>
                                 <span
                                     class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none"
-                                    :style="exportPart > 0 ? 'color: #ffffff !important;' : ''">{{
+                                    :class="{ 'export-override-white': exportPart > 0 }">{{
                                     formatCurrency(top3[0].omset) }}</span>
                             </div>
                         </div>
@@ -484,7 +484,7 @@ const exportToPDF = async () => {
                         <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
                             :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
                             <span class="text-lg font-black text-amber-700 tabular-nums"
-                                :style="exportPart > 0 ? 'color: #64748b !important;' : ''">{{
+                                :class="{ 'export-override-slate': exportPart > 0 }">{{
                                 formatCurrency(top3[2].omset) }}</span>
                         </div>
                     </div>
@@ -508,8 +508,9 @@ const exportToPDF = async () => {
                 </div>
 
                 <div
-                    class="bg-surface-800/10 rounded-3xl border border-surface-800 overflow-hidden shadow-2xl relative">
-                    <div class="overflow-x-auto no-scrollbar">
+                    class="bg-surface-800/10 rounded-3xl border border-surface-800 shadow-2xl relative"
+                    :class="exportPart > 0 ? '!overflow-visible' : 'overflow-hidden'">
+                    <div :class="exportPart > 0 ? '!overflow-visible' : 'overflow-x-auto no-scrollbar'">
                         <table class="w-full text-left border-collapse min-w-[700px] md:min-w-[900px]">
                             <thead>
                                 <tr class="bg-surface-800/50">
@@ -565,7 +566,7 @@ const exportToPDF = async () => {
                                     <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                         <span v-if="item.omset > 0"
                                             class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors"
-                                            :style="exportPart > 0 ? 'color: #10b981 !important;' : ''">
+                                            :class="{ 'export-override-green': exportPart > 0 }">
                                             {{ formatCurrency(item.omset) }}
                                         </span>
                                         <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
@@ -645,16 +646,28 @@ const exportToPDF = async () => {
     width: 1100px !important;
     max-width: none !important;
     background: #ffffff !important;
-    color: #000000 !important;
 }
 
 /* Sesuai saran user: ganti inherit dengan pendekatan spesifik */
 .is-exporting-pdf .text-text-primary {
-    color: #000000 !important;
+    color: #333333 !important; /* Jangan #000 pekat banget, abu tua gelap lebih natural */
 }
 
 .is-exporting-pdf .text-text-secondary {
     color: #4b5563 !important; /* warna abu tua biar kebaca */
+}
+
+/* Specific overrides for omzet values during export */
+.export-override-white {
+    color: #ffffff !important;
+}
+
+.export-override-slate {
+    color: #64748b !important;
+}
+
+.export-override-green {
+    color: #10b981 !important;
 }
 
 /* Pastikan warna aksen tetap terjaga (Orange PStore & Emerald Omzet) */
