@@ -403,47 +403,64 @@ class DashboardController extends Controller
                 // If user not in ranking, just show top 3
                 if ($myIndex === false) {
                     $slice = $currentRanking->take(3);
-                    $centerIdx = 0; // Default to top 1 if not found
                 } else {
                     // Center the user: [myIndex-1, myIndex, myIndex+1]
-                    $start = max(0, $myIndex - 1);
-                    // Adjust if at the end of the list
-                    if ($myIndex === $currentRanking->count() - 1 && $currentRanking->count() > 2) {
-                        $start = $myIndex - 2;
-                    }
+                    $start = $myIndex - 1;
+                    
+                    // Adjust start if at rank 1 (myIndex 0)
+                    if ($start < 0) $start = 0;
+                    
+                    // Take up to 3 items
                     $slice = $currentRanking->slice($start, 3);
+                    
+                    // If we only have 2 items (user at rank 1), we need to handle positioning
+                    // items will have [Rank 1, Rank 2]
                 }
+
+                $items = $slice->values()->map(function ($item) use ($unitType, $unitId, $previousRanking) {
+                    $item['is_me'] = $item['type'] === $unitType && $item['id'] == $unitId;
+                    
+                    $prevItem = $previousRanking ? $previousRanking->where('type', $item['type'])->where('id', $item['id'])->first() : null;
+                    $item['prev_rank'] = $prevItem ? $prevItem['rank'] : '-';
+                    
+                    return $item;
+                });
+
+                // Arrange to [Left (Idx 0), Center (Idx 1), Right (Idx 2)]
+                $meIdx = $items->search(fn($it) => $it['is_me']);
+                
+                $podium = [null, null, null];
+                
+                if ($meIdx === false) {
+                    // Fallback to absolute Top 3
+                    $podium[1] = $items->get(0); // 1st is center
+                    $podium[0] = $items->get(1); // 2nd is left
+                    $podium[2] = $items->get(2); // 3rd is right
+                } else {
+                    // Place 'me' in the middle if possible
+                    if ($items->get($meIdx)->rank == 1) {
+                        // User is Rank 1: [null, Rank 1, Rank 2]
+                        $podium[1] = $items->get(0);
+                        $podium[2] = $items->get(1);
+                        $podium[0] = $items->get(2); // Try to put Rank 3 on the left if it exists
+                    } else {
+                        // User >= Rank 2: [Rank-1, Me, Rank+1]
+                        $podium[1] = $items->get($meIdx);
+                        $podium[0] = $items->get($meIdx - 1);
+                        $podium[2] = $items->get($meIdx + 1);
+                    }
+                }
+
+                // Final cleanup: ensure no nulls break frontend
+                $podium[0] = $podium[0] ?? ['name' => '-', 'omset' => 0, 'rank' => '-', 'is_me' => false];
+                $podium[1] = $podium[1] ?? ['name' => '-', 'omset' => 0, 'rank' => '-', 'is_me' => false];
+                $podium[2] = $podium[2] ?? ['name' => '-', 'omset' => 0, 'rank' => '-', 'is_me' => false];
 
                 $findPrevRank = function ($item) use ($previousRanking) {
                     if (!$item || !$previousRanking) return '-';
                     $prevItem = $previousRanking->where('type', $item['type'])->where('id', $item['id'])->first();
                     return $prevItem ? $prevItem['rank'] : '-';
                 };
-
-                $items = $slice->values()->map(function ($item) use ($unitType, $unitId, $findPrevRank) {
-                    $item['is_me'] = $item['type'] === $unitType && $item['id'] == $unitId;
-                    $item['prev_rank'] = $findPrevRank($item);
-                    return $item;
-                });
-
-                // Arrange to [Left (2nd), Center (Me/1st), Right (3rd)]
-                // We want 'is_me' to be at index 1 (Center) if possible
-                $meIdx = $items->search(fn($it) => $it['is_me']);
-                
-                if ($meIdx === false) {
-                    // Fallback to absolute Top 3 if I'm not here
-                    $podium = [
-                        0 => $items->get(1), // 2nd
-                        1 => $items->get(0), // 1st
-                        2 => $items->get(2), // 3rd
-                    ];
-                } else {
-                    // We found 'me', let's place neighbors
-                    $podium = [];
-                    $podium[1] = $items->get($meIdx); // Me is Center
-                    $podium[0] = $items->get($meIdx - 1); // Left Neighbor
-                    $podium[2] = $items->get($meIdx + 1); // Right Neighbor
-                }
 
                 return [
                     'rank' => $myIndex !== false ? $myIndex + 1 : '-',
