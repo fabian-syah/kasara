@@ -1024,7 +1024,7 @@ function getUserRoleName(user) {
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <div v-if="!(editingUser && form.role === 'inventory')" class="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label class="label">Role</label>
                 <select v-model="form.role" class="input" required>
@@ -1036,7 +1036,7 @@ function getUserRoleName(user) {
             </div>
 
             <!-- Dynamic Placement Selection -->
-            <div v-if="form.role && placementType !== 'none'" class="animate-in fade-in slide-in-from-top-2">
+            <div v-if="form.role && placementType !== 'none' && !(editingUser && form.role === 'inventory')" class="animate-in fade-in slide-in-from-top-2">
               <label class="label">{{ placementLabel }}</label>
 
               <!-- Audit/Leader Multi-Selection with Cleaner UI -->
