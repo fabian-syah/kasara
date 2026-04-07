@@ -92,19 +92,11 @@ async function refreshAccounts() {
         const rawAccounts = accRes.data.data || accRes.data;
         const allInventoryUsers = usersRes.data.data || usersRes.data || [];
         
-        const filtered = rawAccounts.filter(acc =>
-            acc.roles && acc.roles.some(r => r.name === 'inventory')
-        );
-
-        // Merge photo data from /users list
-        salesAccounts.value = filtered.map(acc => {
-            const fullUser = allInventoryUsers.find(u => u.id === acc.id || u.name === acc.name);
-            return {
-                ...acc,
-                photo: fullUser?.photo || acc.photo,
-                photo_inventory: fullUser?.photo_inventory || acc.photo_inventory
-            };
-        });
+        // Trust backend for data and photos
+        salesAccounts.value = rawAccounts.map(acc => ({
+            ...acc,
+            photo: acc.photo || acc.photo_inventory || null
+        }));
     } catch (e) {
         console.error("Gagal refresh akun", e);
     }
@@ -190,18 +182,11 @@ onMounted(async () => {
         const rawAccounts = accountsRes.data.data || accountsRes.data;
         const allInventoryUsers = usersRes.data.data || usersRes.data || [];
         
-        const filtered = rawAccounts.filter(acc =>
-            acc.roles && acc.roles.some(r => r.name === 'inventory')
-        );
-
-        salesAccounts.value = filtered.map(acc => {
-            const fullUser = allInventoryUsers.find(u => u.id === acc.id || u.name === acc.name);
-            return {
-                ...acc,
-                photo: fullUser?.photo || acc.photo,
-                photo_inventory: fullUser?.photo_inventory || acc.photo_inventory
-            };
-        });
+        // Trust backend for data and photos
+        salesAccounts.value = rawAccounts.map(acc => ({
+            ...acc,
+            photo: acc.photo || acc.photo_inventory || null
+        }));
 
         // Auto-select user account
         const userData = userRes.data.data || userRes.data;

@@ -326,6 +326,8 @@ class AuditController extends Controller
                 'outlet_address' => $outletAddress,
                 'customer_wa' => $trx->customer_wa,
                 'notes' => $trx->notes,
+                'sales_account' => $trx->sales_account,
+                'inventory_user_name' => $trx->inventoryUser->name ?? null,
                 'transaction_pin' => (string)$trx->transaction_pin === '9090' ? '9090' : null,
                 'audit_score' => $auditScore,
                 'audit_answered' => $trx->auditAnswers->count(),

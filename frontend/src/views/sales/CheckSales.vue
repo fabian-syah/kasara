@@ -175,16 +175,30 @@
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
-                                        <div class="flex flex-col gap-1">
-                                            <span v-if="String(item.transaction_pin) === '9090'" class="text-xs font-bold text-primary-500">
-                                                Akun Inventory
-                                            </span>
-                                            <span v-if="item.notes"
-                                                class="text-xs text-text-primary leading-tight"
-                                                :title="item.notes">{{ item.notes }}</span>
-                                            <span v-else-if="String(item.transaction_pin) !== '9090'" class="text-text-secondary italic text-xs">
+                                        <div class="flex flex-col gap-1.5 items-start">
+                                            <!-- Account Priority: inventory_user_name -> sales_account -> 9090 Mask -> PIN Mask -->
+                                            <div v-if="item.inventory_user_name || item.sales_account"
+                                                class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
+                                                <User :size="12" stroke-width="2.5" /> 
+                                                {{ item.inventory_user_name || item.sales_account }}
+                                            </div>
+                                            <div v-else-if="String(item.transaction_pin) === '9090'"
+                                                class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
+                                                <User :size="12" stroke-width="2.5" /> Akun Inventory
+                                            </div>
+                                            <div v-else-if="item.transaction_pin"
+                                                class="px-2.5 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg text-[10px] font-bold italic uppercase tracking-wider border border-surface-200 dark:border-surface-700">
+                                                PIN disembunyikan
+                                            </div>
+
+                                            <div v-if="item.notes" class="text-xs text-text-primary leading-tight px-0.5"
+                                                :title="item.notes">
+                                                {{ item.notes }}
+                                            </div>
+                                            <div v-else-if="!item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'" 
+                                                class="text-text-secondary italic text-xs px-0.5">
                                                 Tanpa Catatan
-                                            </span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
