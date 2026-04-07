@@ -286,23 +286,16 @@ class DashboardController extends Controller
             // Use reporting date logic
             $location = $user->branch ?: ($user->onlineShop ?: null);
             $todayDate = StockOut::calculateReportingDate('penjualan', $location);
-            $yesterdayDate = Carbon::parse($todayDate)->subDay()->format('Y-m-d');
-
-            // Optimized Query: Get omset for both today and yesterday in ONE go
-            $dates = [$todayDate, $yesterdayDate];
-            $allTransactions = DB::table('stock_outs')
-                ->join('users', 'stock_outs.user_id', '=', 'users.id')
-                ->whereIn('stock_outs.reporting_date', $dates)
-                ->whereIn('stock_outs.category', $salesCategories)
-                ->whereNull('stock_outs.deleted_at')
-                ->select(
-                    'stock_outs.reporting_date',
-                    'users.branch_id',
-                    'users.online_shop_id',
-                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as total_omset')
-                )
-                ->groupBy('stock_outs.reporting_date', 'users.branch_id', 'users.online_shop_id')
-                ->get();
+            $today = Carbon::parse($todayDate);
+            
+            $yesterdayDate = $today->copy()->subDay()->format('Y-m-d');
+            
+            // Monthly Ranges
+            $thisMonthStart = $today->copy()->startOfMonth()->format('Y-m-d');
+            $thisMonthEnd = $today->format('Y-m-d'); // Until today
+            
+            $lastMonthStart = $today->copy()->subMonth()->startOfMonth()->format('Y-m-d');
+            $lastMonthEnd = $today->copy()->subMonth()->endOfMonth()->format('Y-m-d');
 
             // Fetch names of all active units (Exclude Trial, Testing, Anu accounts)
             $branchesArr = DB::table('branches')->where('is_active', true)->get(['id', 'name']);
@@ -316,18 +309,36 @@ class DashboardController extends Controller
             $branches = $branchesArr->filter($excludeFilter);
             $shops = $shopsArr->filter($excludeFilter);
 
-            $assembleRanking = function($date) use ($allTransactions, $branches, $shops) {
-                $dateStats = $allTransactions->where('reporting_date', $date);
+            // Reusable ranking function
+            $getRankingForRange = function($startDate, $endDate = null) use ($branches, $shops, $salesCategories) {
+                $query = DB::table('stock_outs')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
                 
+                if ($endDate) {
+                    $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                } else {
+                    $query->where('stock_outs.reporting_date', $startDate);
+                }
+
+                $stats = $query->select(
+                        'users.branch_id',
+                        'users.online_shop_id',
+                        DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as total_omset')
+                    )
+                    ->groupBy('users.branch_id', 'users.online_shop_id')
+                    ->get();
+
                 $ranks = collect();
                 
                 foreach ($branches as $b) {
-                    $omset = (float) ($dateStats->where('branch_id', $b->id)->first()->total_omset ?? 0);
+                    $omset = (float) ($stats->where('branch_id', $b->id)->first()->total_omset ?? 0);
                     $ranks->push(['id' => $b->id, 'name' => $b->name, 'type' => 'branch', 'omset' => $omset]);
                 }
                 
                 foreach ($shops as $s) {
-                    $omset = (float) ($dateStats->where('online_shop_id', $s->id)->first()->total_omset ?? 0);
+                    $omset = (float) ($stats->where('online_shop_id', $s->id)->first()->total_omset ?? 0);
                     $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset]);
                 }
 
@@ -337,70 +348,67 @@ class DashboardController extends Controller
                 });
             };
 
-            $todayRanking = $assembleRanking($todayDate);
-            $yesterdayRanking = $assembleRanking($yesterdayDate);
+            // Calculate All Rankings
+            $todayRanking = $getRankingForRange($todayDate);
+            $yesterdayRanking = $getRankingForRange($yesterdayDate);
+            $thisMonthRanking = $getRankingForRange($thisMonthStart, $thisMonthEnd);
+            $lastMonthRanking = $getRankingForRange($lastMonthStart, $lastMonthEnd);
 
-            // Find My Info
-            $myType = $user->branch_id ? 'branch' : 'online_shop';
-            $myId = $user->branch_id ?: $user->online_shop_id;
-            
-            $myTodayIndex = $todayRanking->search(fn($i) => $i['type'] === $myType && $i['id'] == $myId);
-            if ($myTodayIndex === false) return null;
+            // Helper to build podium data relative to current user
+            $getPodiumData = function($currentRanking, $previousRanking, $unitType, $unitId) {
+                $myIndex = $currentRanking->search(fn($i) => $i['type'] === $unitType && $i['id'] == $unitId);
+                if ($myIndex === false) return null;
 
-            $myTodayRank = $myTodayIndex + 1;
-            $myYesterdayIndex = $yesterdayRanking->search(fn($i) => $i['type'] === $myType && $i['id'] == $myId);
-            $myYesterdayRank = ($myYesterdayIndex === false) ? '-' : ($myYesterdayIndex + 1);
-            $findYesterdayRank = function($item) use ($yesterdayRanking) {
-                if (!$item) return '-';
-                $yRank = $yesterdayRanking->where('type', $item['type'])->where('id', $item['id'])->first();
-                return $yRank ? $yRank['rank'] : '-';
+                $me = $currentRanking[$myIndex];
+                
+                $findPrevRank = function($item) use ($previousRanking) {
+                    if (!$item || !$previousRanking) return '-';
+                    $prevItem = $previousRanking->where('type', $item['type'])->where('id', $item['id'])->first();
+                    return $prevItem ? $prevItem['rank'] : '-';
+                };
+
+                // Elements for podium: Prev, Me, Next
+                $podiumWrapped = [
+                    'me' => array_merge($me, ['prev_rank' => $findPrevRank($me)]),
+                    'left' => $myIndex > 0 ? array_merge($currentRanking[$myIndex - 1], ['prev_rank' => $findPrevRank($currentRanking[$myIndex - 1])]) : null,
+                    'right' => $myIndex < $currentRanking->count() - 1 ? array_merge($currentRanking[$myIndex + 1], ['prev_rank' => $findPrevRank($currentRanking[$myIndex + 1])]) : null
+                ];
+
+                // Assemble to [Left, Center, Right] - Center is ALWAYS 'me' in this layout or Top 1 if I'm Top 1
+                $podium = [];
+                if ($myIndex > 0) {
+                    $podium[0] = $podiumWrapped['left']; // Actual Rank #X-1
+                    $podium[1] = $podiumWrapped['me'];   // My Rank #X
+                    $podium[2] = $podiumWrapped['right'];// Actual Rank #X+1
+                } else {
+                    $podium[0] = null; // No one above me
+                    $podium[1] = $podiumWrapped['me'];
+                    $podium[2] = $podiumWrapped['right'];
+                }
+
+                return [
+                    'rank' => $myIndex + 1,
+                    'omset' => $me['omset'],
+                    'podium' => $podium,
+                    'prev_rank' => $findPrevRank($me)
+                ];
             };
 
-            // Today's Podium Items with Yesterday's Rank
-            $me = $todayRanking[$myTodayIndex];
-            $podiumItems = [
-                'me' => array_merge($me, ['yesterday_rank' => $findYesterdayRank($me)]),
-                'prev' => $myTodayIndex > 0 ? array_merge($todayRanking[$myTodayIndex - 1], ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex - 1])]) : null,
-                'next' => $myTodayIndex < $todayRanking->count() - 1 ? array_merge($todayRanking[$myTodayIndex + 1], ['yesterday_rank' => $findYesterdayRank($todayRanking[$myTodayIndex + 1])]) : null
-            ];
-
-            // Re-order for the slots: [Left, Center, Right]
-            $podium = [];
-            if ($myTodayIndex > 0) {
-                $podium[0] = $podiumItems['me'];
-                $podium[1] = $podiumItems['prev'];
-                $podium[2] = $podiumItems['next'];
-            } else {
-                $podium[0] = null;
-                $podium[1] = $podiumItems['me'];
-                $podium[2] = $podiumItems['next'];
-            }
-
-            // Yesterday's Neighborhood Podium (Neighbors from yesterday)
-            $yesterdayPodium = collect();
-            if ($myYesterdayIndex !== false) {
-                $start = max(0, $myYesterdayIndex - 1);
-                $yesterdayPodium = $yesterdayRanking->slice($start, 3)->values();
-            } else {
-                // Fallback to Top 3 if I wasn't ranked yesterday
-                $yesterdayPodium = $yesterdayRanking->take(3)->values();
-            }
+            $myType = $user->branch_id ? 'branch' : 'online_shop';
+            $myId = $user->branch_id ?: $user->online_shop_id;
 
             return [
-                'today' => [
-                    'rank' => $myTodayRank,
-                    'podium' => $podium,
-                    'omset' => $me['omset']
-                ],
+                'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
                 'yesterday' => [
-                    'rank' => $myYesterdayRank,
-                    'omset' => $yesterdayRanking[$myYesterdayIndex]['omset'] ?? 0,
-                    'podium' => $yesterdayPodium
+                   'podium' => $yesterdayRanking->take(3)->values() // Show TOP 3 for context
                 ],
+                'this_month' => $getPodiumData($thisMonthRanking, $lastMonthRanking, $myType, $myId),
+                'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId), // No prev month for last month currently
                 'total_competitors' => $todayRanking->count()
             ];
+
         } catch (\Exception $e) {
-            // Silently fail to avoid crashing the whole dashboard
+            \Illuminate\Support\Facades\Log::error("Dashboard Ranking Error: " . $e->getMessage());
             return null;
         }
     }
