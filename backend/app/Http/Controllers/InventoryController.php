@@ -1266,9 +1266,12 @@ class InventoryController extends Controller
         $user = Auth::user();
         $account = \App\Models\User::findOrFail($id);
 
-        // Security Check: Only the creator can edit
-        if ($account->created_by !== $user->id) {
-            return response()->json(['message' => 'Unauthorized action.'], 403);
+        // Security Check: Only the creator can edit (unless they have high roles)
+        $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+        $userRole = strtolower($user->roles->first()->name ?? '');
+        
+        if ($account->created_by !== $user->id && !in_array($userRole, $unrestrictedRoles)) {
+            return response()->json(['message' => 'Unauthorized action. Hanya pembuat akun yang bisa mengedit.'], 403);
         }
 
         $request->validate([

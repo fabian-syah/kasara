@@ -848,11 +848,13 @@ onMounted(fetchInitialData);
                             <CheckCircle2 :size="24" />
                         </div>
 
-                        <!-- EDIT BUTTON -->
-                        <div v-if="authStore.user?.id === user.created_by?.id || authStore.user?.id === user.created_by"
+                        <!-- EDIT BUTTON: Visible to creator OR high roles (super_admin, owner, audit, admin_produk) -->
+                        <div v-if="authStore.user?.id === user.created_by?.id || 
+                                  authStore.user?.id === user.created_by || 
+                                  ['super_admin', 'owner', 'audit', 'admin_produk'].includes((authStore.userRole || '').toLowerCase())"
                             @click="openEditModal(user, $event)"
-                            class="absolute top-3 right-10 p-1 hover:bg-surface-800 rounded-full text-text-secondary hover:text-primary-500 transition-colors z-10">
-                            <Edit2 :size="16" />
+                            class="absolute top-3 right-10 p-1.5 hover:bg-surface-800 rounded-lg text-text-secondary hover:text-primary-500 transition-all z-10 group/edit">
+                            <Edit2 :size="16" class="group-hover/edit:scale-110 transition-transform" />
                         </div>
                         <div class="flex items-center gap-4">
                             <div
@@ -972,9 +974,9 @@ onMounted(fetchInitialData);
 
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun</label>
-                                <input v-model="editForm.name" type="text" class="input w-full"
-                                    placeholder="Masukkan nama akun..." />
+                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun / Bagian</label>
+                                <input v-model="editForm.name" type="text" class="input w-full bg-surface-800 focus:bg-surface-700"
+                                    placeholder="Contoh: Gudang Lantai 2" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-text-secondary mb-2">No.
