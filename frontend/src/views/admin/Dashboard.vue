@@ -219,6 +219,18 @@ async function fetchDashboardData() {
       recentTransactions.value = response.data.recentTransactions || [];
       ranking.value = response.data.ranking || { my_rank: '-', leaderboard: [] };
       branchRanking.value = response.data.branch_ranking;
+
+      // DEBUG LOGS FOR PODIUM
+      console.log('--- DASHBOARD DEBUG ---');
+      console.log('Role:', dashboardRole.value);
+      console.log('Branch Ranking Full Data:', branchRanking.value);
+      if (branchRanking.value) {
+        console.log('Today Podium:', branchRanking.value.today?.podium);
+        console.log('Yesterday Podium:', branchRanking.value.yesterday?.podium);
+        console.log('This Month Podium:', branchRanking.value.this_month?.podium);
+      }
+      console.log('-----------------------');
+
       // Optional fields for online_shop and toko_offline might differ slightly, handle gracefully
       brandSales.value = response.data.brandSales || [];
       typeSales.value = response.data.typeSales || [];
