@@ -176,11 +176,11 @@ const exportToPDF = async () => {
                 backgroundColor: '#ffffff',
                 quality: 0.85,  // Good quality balance
                 pixelRatio: 1.5, // Crisp enough without being huge
-                width: 1100,     // Targeted width at 1100px for A4 scaling 
+                width: 1300,     // Increased width to include the far-right columns
                 style: { 
-                    padding: '40px', // Reduced padding to avoid cutoffs
+                    padding: '40px 60px', // More horizontal padding
                     background: '#ffffff',
-                    width: '1100px',
+                    width: '1300px',
                     maxWidth: 'none',
                     margin: '0 auto', // Center it
                     display: 'flex',
@@ -316,7 +316,7 @@ const exportToPDF = async () => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1240px] mx-auto is-exporting-png' : ''">
+        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1300px] mx-auto is-exporting-png' : ''">
             <!-- HEADER KHUSUS PART 2 -->
             <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
@@ -637,7 +637,7 @@ const exportToPDF = async () => {
 }
 
 .is-exporting-png {
-    width: 1240px !important;
+    width: 1300px !important;
     max-width: none !important;
     --color-text-primary: #000000 !important;
     --color-text-secondary: #333333 !important;
