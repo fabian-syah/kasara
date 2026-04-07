@@ -425,30 +425,27 @@ class DashboardController extends Controller
                 });
 
                 // Arrange to [Left (Idx 0), Center (Idx 1), Right (Idx 2)]
-                $meIdx = $items->search(fn($it) => $it['is_me']);
                 $podium = [null, null, null];
                 
-                if ($meIdx === false) {
+                // Find 'me' object in the slice
+                $meObjInSlice = $items->first(fn($it) => $it['is_me']);
+                $meRank = $meObjInSlice ? $meObjInSlice['rank'] : null;
+
+                if ($meRank === 1) {
+                    // Winner: [Rank 2, Rank 1, Rank 3]
+                    $podium[1] = $items->first(fn($it) => $it['rank'] == 1);
+                    $podium[0] = $items->first(fn($it) => $it['rank'] == 2);
+                    $podium[2] = $items->first(fn($it) => $it['rank'] == 3);
+                } else if ($meRank !== null && $meRank !== '-') {
+                    // Normal or Bottom: [Rank-1, Rank, Rank+1]
+                    $podium[1] = $items->first(fn($it) => $it['rank'] == $meRank);
+                    $podium[0] = $items->first(fn($it) => $it['rank'] == $meRank - 1);
+                    $podium[2] = $items->first(fn($it) => $it['rank'] == $meRank + 1);
+                } else {
+                    // Fallback to absolute Top 3
                     $podium[1] = $items->get(0);
                     $podium[0] = $items->get(1);
                     $podium[2] = $items->get(2);
-                } else {
-                    $meObj = $items->get($meIdx);
-                    $meRank = is_array($meObj) ? ($meObj['rank'] ?? null) : ($meObj->rank ?? null);
-
-                    if ($meRank == 1) {
-                        // Rank 1: [Rank 2, Rank 1, Rank 3]
-                        $podium[1] = $items->get(0); // Center is Rank 1
-                        $podium[0] = $items->get(1); // Left is Rank 2
-                        $podium[2] = $items->get(2); // Right is Rank 3
-                    } else {
-                        // User >= Rank 2: [Rank-1, Me, Rank+1]
-                        // Items slice is [Rank-1, Me, Rank+1]
-                        // $items[0] = Rank-1, $items[1] = Me, $items[2] = Rank+1
-                        $podium[1] = $items->get($meIdx);     // Me is Center
-                        $podium[0] = $items->get($meIdx - 1); // Rank-1 is Left
-                        $podium[2] = $items->get($meIdx + 1); // Rank+1 is Right
-                    }
                 }
 
                 // Final cleanup: ensure no nulls break frontend
