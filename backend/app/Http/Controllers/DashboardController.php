@@ -397,6 +397,11 @@ class DashboardController extends Controller
             $myType = $user->branch_id ? 'branch' : 'online_shop';
             $myId = $user->branch_id ?: $user->online_shop_id;
 
+            $findMyRank = function($ranking) use ($myType, $myId) {
+                $idx = $ranking->search(fn($r) => $r['type'] === $myType && $r['id'] == $myId);
+                return $idx !== false ? $idx + 1 : '-';
+            };
+
             return [
                 'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
                 'today_top3' => [
@@ -408,6 +413,12 @@ class DashboardController extends Controller
                    'podium' => $thisMonthRanking->take(3)->values()
                 ],
                 'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
+                'summary' => [
+                    'today_rank' => $findMyRank($todayRanking),
+                    'yesterday_rank' => $findMyRank($yesterdayRanking),
+                    'this_month_rank' => $findMyRank($thisMonthRanking),
+                    'last_month_rank' => $findMyRank($lastMonthRanking),
+                ],
                 'total_competitors' => $todayRanking->count()
             ];
 
