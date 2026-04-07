@@ -395,30 +395,29 @@ class DashboardController extends Controller
 
             // Helper to build podium data relative to current user
             $getPodiumData = function ($currentRanking, $previousRanking, $unitType, $unitId) {
-                $myIndex = $currentRanking->search(fn($i) => $i['type'] === $unitType && $i['id'] == $unitId);
-                if ($myIndex === false)
-                    return null;
+                if (!$currentRanking || $currentRanking->isEmpty()) return null;
 
-                $me = $currentRanking[$myIndex];
+                $myIndex = $currentRanking->search(fn($i) => $i['type'] === $unitType && $i['id'] == $unitId);
+                
+                // If user not in ranking, just show top 3
+                if ($myIndex === false) {
+                    $slice = $currentRanking->take(3);
+                    $centerIdx = 0; // Default to top 1 if not found
+                } else {
+                    // Center the user: [myIndex-1, myIndex, myIndex+1]
+                    $start = max(0, $myIndex - 1);
+                    // Adjust if at the end of the list
+                    if ($myIndex === $currentRanking->count() - 1 && $currentRanking->count() > 2) {
+                        $start = $myIndex - 2;
+                    }
+                    $slice = $currentRanking->slice($start, 3);
+                }
 
                 $findPrevRank = function ($item) use ($previousRanking) {
-                    if (!$item || !$previousRanking)
-                        return '-';
+                    if (!$item || !$previousRanking) return '-';
                     $prevItem = $previousRanking->where('type', $item['type'])->where('id', $item['id'])->first();
                     return $prevItem ? $prevItem['rank'] : '-';
                 };
-
-                // Elements for podium: Prev, Me, Next
-                $podiumWrapped = [
-                    'me' => array_merge($me, ['prev_rank' => $findPrevRank($me)]),
-                    'left' => $myIndex > 0 ? array_merge($currentRanking[$myIndex - 1], ['prev_rank' => $findPrevRank($currentRanking[$myIndex - 1])]) : null,
-                    'right' => $myIndex < $currentRanking->count() - 1 ? array_merge($currentRanking[$myIndex + 1], ['prev_rank' => $findPrevRank($currentRanking[$myIndex + 1])]) : null
-                ];
-
-                // Assemble to [Left (2nd), Center (1st), Right (3rd)]
-                // window: [myIndex-1, myIndex, myIndex+1] or [0, 1, 2]
-                $start = max(0, $myIndex - 1);
-                $slice = $currentRanking->slice($start, 3);
 
                 $items = $slice->values()->map(function ($item) use ($unitType, $unitId, $findPrevRank) {
                     $item['is_me'] = $item['type'] === $unitType && $item['id'] == $unitId;
@@ -426,17 +425,30 @@ class DashboardController extends Controller
                     return $item;
                 });
 
-                $podium = [
-                    0 => $items->get(1), // 2nd of the window (Center-Left)
-                    1 => $items->get(0), // 1st of the window (Center-TOP)
-                    2 => $items->get(2), // 3rd of the window (Center-Right)
-                ];
+                // Arrange to [Left (2nd), Center (Me/1st), Right (3rd)]
+                // We want 'is_me' to be at index 1 (Center) if possible
+                $meIdx = $items->search(fn($it) => $it['is_me']);
+                
+                if ($meIdx === false) {
+                    // Fallback to absolute Top 3 if I'm not here
+                    $podium = [
+                        0 => $items->get(1), // 2nd
+                        1 => $items->get(0), // 1st
+                        2 => $items->get(2), // 3rd
+                    ];
+                } else {
+                    // We found 'me', let's place neighbors
+                    $podium = [];
+                    $podium[1] = $items->get($meIdx); // Me is Center
+                    $podium[0] = $items->get($meIdx - 1); // Left Neighbor
+                    $podium[2] = $items->get($meIdx + 1); // Right Neighbor
+                }
 
                 return [
-                    'rank' => $myIndex + 1,
-                    'omset' => $me['omset'],
+                    'rank' => $myIndex !== false ? $myIndex + 1 : '-',
+                    'omset' => $myIndex !== false ? $currentRanking[$myIndex]['omset'] : 0,
                     'podium' => $podium,
-                    'prev_rank' => $findPrevRank($me)
+                    'prev_rank' => $myIndex !== false ? $findPrevRank($currentRanking[$myIndex]) : '-'
                 ];
             };
 
