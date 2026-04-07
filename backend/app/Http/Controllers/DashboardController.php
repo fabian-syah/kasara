@@ -428,16 +428,20 @@ class DashboardController extends Controller
                     $podium[2] = $items->get(2);
                 } else {
                     $meObj = $items->get($meIdx);
-                    if ($meObj && isset($meObj['rank']) && $meObj['rank'] == 1) {
+                    $meRank = is_array($meObj) ? ($meObj['rank'] ?? null) : ($meObj->rank ?? null);
+
+                    if ($meRank == 1) {
                         // Rank 1: [Rank 2, Rank 1, Rank 3]
                         $podium[1] = $items->get(0); // Center is Rank 1
                         $podium[0] = $items->get(1); // Left is Rank 2
                         $podium[2] = $items->get(2); // Right is Rank 3
                     } else {
                         // User >= Rank 2: [Rank-1, Me, Rank+1]
-                        $podium[1] = $items->get($meIdx);
-                        $podium[0] = $items->get($meIdx - 1);
-                        $podium[2] = $items->get($meIdx + 1);
+                        // Items slice is [Rank-1, Me, Rank+1]
+                        // $items[0] = Rank-1, $items[1] = Me, $items[2] = Rank+1
+                        $podium[1] = $items->get($meIdx);     // Me is Center
+                        $podium[0] = $items->get($meIdx - 1); // Rank-1 is Left
+                        $podium[2] = $items->get($meIdx + 1); // Rank+1 is Right
                     }
                 }
 
