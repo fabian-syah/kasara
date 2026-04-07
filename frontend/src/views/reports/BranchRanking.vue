@@ -238,10 +238,10 @@ const exportToPDF = async () => {
         }
     };
 
-    // Part 1: Podium + first 10 rows
+    // Part 1: Podium + first 8 rows
     await runExport(1, true);
 
-    const maxPart1 = 10;
+    const maxPart1 = 8;
     const maxPartN = 10;
     let remaining = displayRanking.value.length - maxPart1;
     let currentPart = 2;
@@ -591,7 +591,7 @@ const exportToPDF = async () => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <template v-for="(item, index) in displayRanking" :key="item.type + '-' + item.id">
-                                    <tr v-show="exportPart === 0 || (exportPart === 1 && index < 10) || (exportPart > 1 && index >= 10 + (exportPart - 2) * 10 && index < 10 + (exportPart - 1) * 10)"
+                                    <tr v-show="exportPart === 0 || (exportPart === 1 && index < 8) || (exportPart > 1 && index >= 8 + (exportPart - 2) * 10 && index < 8 + (exportPart - 1) * 10)"
                                         class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
@@ -647,7 +647,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && displayRanking.length <= 10) || (exportPart > 1 && displayRanking.length <= 10 + (exportPart - 1) * 10))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && displayRanking.length <= 8) || (exportPart > 1 && displayRanking.length <= 8 + (exportPart - 1) * 10))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
