@@ -973,10 +973,14 @@ onMounted(fetchInitialData);
                         </div>
 
                         <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun / Bagian</label>
-                                <input v-model="editForm.name" type="text" class="input w-full bg-surface-800 focus:bg-surface-700"
-                                    placeholder="Contoh: Gudang Lantai 2" />
+                             <div>
+                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun / Bagian (Terkunci)</label>
+                                <input v-model="editForm.name" type="text" class="input w-full bg-surface-800/50 text-text-secondary cursor-not-allowed border-surface-800"
+                                    readonly />
+                                <div class="flex items-center gap-1.5 mt-2 px-1 text-text-secondary/40">
+                                    <Shield :size="10" />
+                                    <span class="text-[9px] uppercase font-black tracking-tighter">Identitas Permanen</span>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-text-secondary mb-2">No.

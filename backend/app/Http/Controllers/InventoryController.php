@@ -1287,10 +1287,7 @@ class InventoryController extends Controller
             'pin_enabled' => 'nullable|boolean'
         ]);
 
-        if ($request->has('name')) {
-            $account->name = $request->name;
-            $account->full_name = $request->name;
-        }
+        // Name is locked after creation - do not update name/full_name here
 
         if ($request->has('branch_id'))
             $account->branch_id = $request->branch_id;
