@@ -205,7 +205,7 @@ const exportToPDF = async () => {
     await runExport(1, true);
 
     const maxPart1 = 8;
-    const maxPartN = 18;
+    const maxPartN = 14;
     let remaining = rankingData.value.length - maxPart1;
     let currentPart = 2;
 
@@ -553,7 +553,7 @@ const exportToPDF = async () => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
-                                    v-show="exportPart === 0 || (exportPart === 1 && index < 8) || (exportPart > 1 && index >= 8 + (exportPart - 2) * 18 && index < 8 + (exportPart - 1) * 18)"
+                                    v-show="exportPart === 0 || (exportPart === 1 && index < 8) || (exportPart > 1 && index >= 8 + (exportPart - 2) * 14 && index < 8 + (exportPart - 1) * 14)"
                                     class="group hover:bg-surface-800/30 transition-all duration-300">
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
@@ -592,7 +592,7 @@ const exportToPDF = async () => {
                                     </td>
                                 </tr>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && filteredRanking.length <= 8) || (exportPart > 1 && filteredRanking.length <= 8 + (exportPart - 1) * 18))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && filteredRanking.length <= 8) || (exportPart > 1 && filteredRanking.length <= 8 + (exportPart - 1) * 14))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
