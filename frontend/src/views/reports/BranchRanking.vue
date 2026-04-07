@@ -24,6 +24,7 @@ import {
     EyeOff
 } from 'lucide-vue-next';
 import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 const loading = ref(true);
 const rankingData = ref([]);
@@ -153,47 +154,60 @@ const exportLoading = ref(false);
 const exportPart = ref(0); // 0: none, 1: part 1 (Podium + 1-20), 2: part 2 (21-end)
 const exportRef = ref(null);
 
-const exportToPNG = async () => {
+const exportToPDF = async () => {
     if (!exportRef.value) return;
     exportLoading.value = true;
     
     // Ensure we are scrolled to top for correct capture
     window.scrollTo(0, 0);
 
-    const runExport = async (part, suffix) => {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    const runExport = async (part, isFirst = false) => {
         exportPart.value = part;
-        await new Promise(r => setTimeout(r, 600)); // More time for HD layout
+        // Give time for layout to adapt
+        await new Promise(r => setTimeout(r, 800));
+        
         try {
             const el = exportRef.value;
             const dataUrl = await toPng(el, { 
                 backgroundColor: '#ffffff',
-                pixelRatio: 4, // 4K Quality
-                width: 1500,
+                pixelRatio: 2, // Standard HD
+                width: 1200,   // Fixed width for export
                 style: { 
                     padding: '80px',
                     background: '#ffffff',
-                    width: '1500px',
+                    width: '1200px',
                     maxWidth: 'none',
                     margin: '0',
                     display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    flexDirection: 'column'
                 }
             });
-            const link = document.createElement('a');
-            link.download = `ranking-${suffix}-${formatDateStr(new Date())}.png`;
-            link.href = dataUrl;
-            link.click();
-        } catch (e) { console.error(e); }
+
+            const imgProps = pdf.getImageProperties(dataUrl);
+            const pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
+
+            if (!isFirst) {
+                pdf.addPage();
+            }
+
+            pdf.addImage(dataUrl, 'PNG', 0, 0, pageWidth, pdfPageHeight);
+        } catch (e) { 
+            console.error('PDF Export part error:', e); 
+        }
     };
 
     // Export Part 1
-    await runExport(1, 'part-1');
+    await runExport(1, true);
+
     // Export Part 2 if there's more than 20 items
     if (rankingData.value.length > 20) {
-        await runExport(2, 'part-2');
+        await runExport(2, false);
     }
+    
+    pdf.save(`peringkat-omzet-${formatDateStr(new Date())}.pdf`);
     
     exportPart.value = 0;
     exportLoading.value = false;
@@ -284,11 +298,11 @@ const exportToPNG = async () => {
                         <span>{{ showZero ? 'Sembunyikan Kosong' : 'Tampilkan Belum Ada Penjualan' }}</span>
                     </button>
 
-                    <button @click="exportToPNG" :disabled="loading || exportLoading || rankingData.length === 0"
-                        class="flex-1 lg:flex-none px-4 py-2.5 bg-surface-700 hover:bg-surface-600 text-white rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50 whitespace-nowrap">
+                    <button @click="exportToPDF" :disabled="loading || exportLoading || rankingData.length === 0"
+                        class="flex-1 lg:flex-none px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-500/10 rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50 whitespace-nowrap">
                         <Download v-if="!exportLoading" class="w-3.5 h-3.5" />
                         <Loader2 v-else class="w-3.5 h-3.5 animate-spin" />
-                        <span>Export Full (PNG)</span>
+                        <span>Export PDF Report</span>
                     </button>
                 </div>
             </div>
