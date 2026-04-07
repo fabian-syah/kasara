@@ -222,8 +222,8 @@ const exportToPDF = async () => {
 
 <template>
     <div :class="[
-        'p-3 md:p-6 space-y-6 md:space-y-8 transition-all duration-300',
-        exportPart === 0 ? 'max-w-7xl mx-auto' : 'fixed inset-0 z-[100] bg-white overflow-y-auto'
+        'transition-all duration-300',
+        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-white min-w-max z-[100] pb-20 origin-top-left'
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -318,7 +318,7 @@ const exportToPDF = async () => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] mx-auto is-exporting-pdf py-20' : ''">
+        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] is-exporting-pdf py-20 px-8' : ''">
             <!-- HEADER KHUSUS PART 2 -->
             <div v-show="exportPart === 2" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
@@ -670,17 +670,6 @@ const exportToPDF = async () => {
     color: #10b981 !important;
 }
 
-/* Pastikan warna aksen tetap terjaga (Orange PStore & Emerald Omzet) */
-.is-exporting-pdf .text-primary-500,
-.is-exporting-pdf .bg-primary-500 {
-    color: #f59e0b !important; 
-    background-color: #f59e0b !important;
-}
-
-.is-exporting-pdf .text-emerald-500,
-.is-exporting-pdf .text-emerald-400 {
-    color: #10b981 !important; 
-}
 
 .no-scrollbar {
     -ms-overflow-style: none;
