@@ -246,7 +246,7 @@ const exportToPDF = async () => {
 
     <div :class="[
         'transition-all duration-300',
-        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-surface-900 min-w-max z-[100] pb-20 origin-top-left'
+        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-surface-900 min-w-max z-[100] pt-8 pb-20 origin-top-left'
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -341,7 +341,7 @@ const exportToPDF = async () => {
             <div class="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] mx-auto is-exporting-pdf py-20 px-12' : ''">
+        <div ref="exportRef" class="space-y-12" :class="exportPart > 0 ? 'w-[1100px] mx-auto is-exporting-pdf pt-8 pb-20 px-12' : ''">
             <!-- HEADER KHUSUS PART > 1 -->
             <div v-show="exportPart > 1" class="text-center py-6 border-b border-surface-800 mb-8">
                 <h2 class="text-3xl font-black text-primary-500 uppercase tracking-[0.2em]">Lanjutan Ranking</h2>
@@ -512,7 +512,7 @@ const exportToPDF = async () => {
             <!-- List Table -->
             <div class="space-y-6">
                 <!-- Similar styling for table... -->
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
+                <div v-show="exportPart <= 1" class="flex flex-col sm:flex-row items-center justify-between gap-4 px-1">
                     <h2
                         class="text-lg md:text-xl font-black text-text-primary tracking-tight flex items-center gap-2 uppercase">
                         <TrendingUp class="w-5 h-5 text-emerald-500" />
