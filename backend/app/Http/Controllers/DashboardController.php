@@ -405,9 +405,15 @@ class DashboardController extends Controller
                     $slice = $currentRanking->take(3);
                 } else {
                     $start = $myIndex - 1;
+                    
+                    // Adjust if at the beginning
                     if ($start < 0) $start = 0;
                     
-                    // If we are at index 0 (Rank 1), we should try to take 3 items from start 0
+                    // NEW: Adjust if at the end to always capture 3 items
+                    if ($myIndex == $currentRanking->count() - 1 && $currentRanking->count() >= 3) {
+                        $start = $myIndex - 2;
+                    }
+                    
                     $slice = $currentRanking->slice($start, 3);
                 }
 
