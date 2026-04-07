@@ -560,13 +560,15 @@ const currentLocalRank = computed(() => {
                     </div>
                     
                     <div class="relative flex flex-col items-center">
-                      <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-1 rounded-full uppercase tracking-[0.2em] z-10 whitespace-nowrap shadow-xl">CHAMPION</div>
+                      <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-1 rounded-full uppercase tracking-[0.2em] z-10 whitespace-nowrap shadow-xl">
+                        {{ rightPodiumData.podium[0].is_me ? 'YOUR POSITION' : 'CHAMPION' }}
+                      </div>
                       
                       <div class="w-28 h-28 rounded-[2.8rem] bg-white dark:bg-[#151515] border-[4px] border-amber-500/40 flex items-center justify-center mb-5 shadow-2xl relative overflow-hidden group-hover:border-amber-500 transition-all duration-700">
                         <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent"></div>
                         <component :is="rightPodiumData.podium[0].type === 'branch' ? Store : Globe" class="w-14 h-14 text-text-primary dark:text-white relative z-10 transition-transform duration-500 group-hover:scale-110" />
                         <div class="absolute bottom-0 inset-x-0 bg-amber-500 py-1.5 flex items-center justify-center shadow-[0_-2px_10px_rgba(0,0,0,0.2)]">
-                          <span class="text-[8px] font-black text-black uppercase tracking-[0.3em]">RANK #1</span>
+                          <span class="text-[8px] font-black text-black uppercase tracking-[0.3em]">RANK #{{ rightPodiumData.podium[0].rank }}</span>
                         </div>
                       </div>
                       
@@ -584,7 +586,7 @@ const currentLocalRank = computed(() => {
                     <!-- Rank #2 -->
                     <div v-if="rightPodiumData.podium[1]" class="relative group">
                       <div class="flex items-center gap-4 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-slate-400/30 transition-all duration-300">
-                        <div class="w-12 h-12 rounded-xl bg-slate-400/10 flex items-center justify-center font-black text-slate-400 group-hover:scale-110 transition-transform">#2</div>
+                        <div class="w-12 h-12 rounded-xl bg-slate-400/10 flex items-center justify-center font-black text-slate-400 group-hover:scale-110 transition-transform">#{{ rightPodiumData.podium[1].rank }}</div>
                         <div class="flex-1 min-w-0">
                           <p class="text-[10px] font-black text-text-primary uppercase truncate mb-0.5">{{ rightPodiumData.podium[1].name }}</p>
                           <p class="text-[9px] font-mono text-slate-500 font-bold">Rp {{ formatNumber(rightPodiumData.podium[1].omset) }}</p>
@@ -596,7 +598,7 @@ const currentLocalRank = computed(() => {
                     <!-- Rank #3 -->
                     <div v-if="rightPodiumData.podium[2]" class="relative group">
                       <div class="flex items-center gap-4 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-amber-700/30 transition-all duration-300">
-                        <div class="w-12 h-12 rounded-xl bg-amber-700/10 flex items-center justify-center font-black text-amber-700 group-hover:scale-110 transition-transform">#3</div>
+                        <div class="w-12 h-12 rounded-xl bg-amber-700/10 flex items-center justify-center font-black text-amber-700 group-hover:scale-110 transition-transform">#{{ rightPodiumData.podium[2].rank }}</div>
                         <div class="flex-1 min-w-0">
                           <p class="text-[10px] font-black text-text-primary uppercase truncate mb-0.5">{{ rightPodiumData.podium[2].name }}</p>
                           <p class="text-[9px] font-mono text-amber-700 font-bold">Rp {{ formatNumber(rightPodiumData.podium[2].omset) }}</p>
