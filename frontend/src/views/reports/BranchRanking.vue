@@ -59,9 +59,26 @@ const setRange = (type) => {
     } else if (type === 'all') {
         filters.value.start_date = '';
         filters.value.end_date = '';
+    if (type === 'all') {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
     }
     fetchRanking();
 };
+
+const rangeLabels = {
+    'today': 'Hari Ini',
+    'yesterday': 'Kemarin',
+    'month': 'Bulan Ini',
+    'all': 'Semua Waktu'
+};
+
+const activeRangeLabel = computed(() => {
+    const range = activeRange.value;
+    if (rangeLabels[range]) return rangeLabels[range];
+    if (filters.value.start_date && filters.value.start_date === filters.value.end_date) return filters.value.start_date;
+    return `${filters.value.start_date || 'Awal'} - ${filters.value.end_date || 'Akhir'}`;
+});
 
 const activeRange = computed(() => {
     const today = new Date();
@@ -150,6 +167,26 @@ const filteredRanking = computed(() => {
     return result;
 });
 
+const displayRanking = computed(() => {
+    const branches = [];
+    const shops = [];
+
+    filteredRanking.value.forEach(item => {
+        // Dashboard controller returns type as 'branch' or 'online_shop'
+        if (item.type === 'branch' || item.type === 'Offline') branches.push({ ...item });
+        else shops.push({ ...item });
+    });
+    
+    branches.forEach((b, idx) => b.localRank = idx + 1);
+    shops.forEach((s, idx) => s.localRank = idx + 1);
+
+    if (shops.length > 0) {
+        return [...branches, { isSeparator: true, name: 'Kategori Toko Online', id: 'sep-1', type: 'separator' }, ...shops];
+    }
+    
+    return branches;
+});
+
 const exportLoading = ref(false);
 const exportPart = ref(0); // 0: none, 1: part 1 (Podium + 1-20), 2: part 2 (21-end)
 const exportRef = ref(null);
@@ -160,6 +197,7 @@ const exportToPDF = async () => {
     
     // Ensure we are scrolled to top for correct capture
     window.scrollTo(0, 0);
+    const isDark = document.documentElement.classList.contains('dark');
 
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -181,7 +219,7 @@ const exportToPDF = async () => {
                 style: { 
                     width: '1100px',
                     minHeight: '1556px', // Strict A4 proportion minimum height
-                    backgroundColor: '#0f172a', // Enforce dark slate on absolute negative space
+                    backgroundColor: isDark ? '#0f172a' : '#f8fafc', // Adapt to light/dark system
                     maxWidth: 'none',
                     margin: '0',
                     display: 'flex',
@@ -203,12 +241,12 @@ const exportToPDF = async () => {
         }
     };
 
-    // Part 1: Podium + first 8 rows
+    // Part 1: Podium + first 10 rows
     await runExport(1, true);
 
-    const maxPart1 = 8;
-    const maxPartN = 13;
-    let remaining = rankingData.value.length - maxPart1;
+    const maxPart1 = 10;
+    const maxPartN = 10;
+    let remaining = displayRanking.value.length - maxPart1;
     let currentPart = 2;
 
     while(remaining > 0) {
@@ -217,7 +255,7 @@ const exportToPDF = async () => {
         currentPart++;
     }
     
-    pdf.save(`peringkat-omzet-${formatDateStr(new Date())}.pdf`);
+    pdf.save(`Laporan-Omzet-${activeRangeLabel.value.replace(/ /g, '-')}.pdf`);
     
     exportPart.value = 0;
     exportLoading.value = false;
@@ -247,8 +285,9 @@ const exportToPDF = async () => {
     </div>
 
     <div :class="[
-        'transition-all duration-300',
-        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-surface-900 min-w-max z-[100] pt-8 pb-20 origin-top-left'
+        'transition-all duration-300 relative',
+        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-surface-50 dark:bg-surface-900 min-w-max z-[100] pt-8 pb-20 origin-top-left',
+        document?.documentElement?.classList?.contains('dark') ? 'dark' : ''
     ]">
         <!-- Compact Header & Filters -->
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
@@ -554,47 +593,64 @@ const exportToPDF = async () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
-                                <tr v-for="(item, index) in filteredRanking" :key="item.type + '-' + item.id"
-                                    v-show="exportPart === 0 || (exportPart === 1 && index < 8) || (exportPart > 1 && index >= 8 + (exportPart - 2) * 13 && index < 8 + (exportPart - 1) * 13)"
-                                    class="group hover:bg-surface-800/30 transition-all duration-300">
-                                    <td class="px-4 md:px-8 py-5 md:py-7">
-                                        <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
-                                            :class="{
-                                                'bg-primary-500 text-white shadow-xl shadow-primary-500/20': index === 0,
-                                                'bg-slate-400 text-surface-900': index === 1,
-                                                'bg-amber-700 text-white': index === 2,
-                                                'bg-surface-800 text-text-secondary border border-surface-700': index > 2
-                                            }">{{ index + 1 }}</div>
-                                    </td>
-                                    <td class="px-4 md:px-8 py-5 md:py-7">
-                                        <div class="flex items-center gap-3 md:gap-4">
-                                            <div
-                                                class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110">
-                                                <component :is="item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
-                                                    :class="item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
-                                            </div>
-                                            <div class="flex flex-col min-w-0">
-                                                <span
-                                                    class="font-black text-text-primary text-xs md:text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight truncate">{{
-                                                    item.name }}</span>
-                                                <span
-                                                    class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{
-                                                    item.type }} UNIT</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 md:px-8 py-5 md:py-7 text-right">
-                                        <span v-if="item.omset > 0"
-                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
-                                            {{ formatCurrency(item.omset) }}
-                                        </span>
-                                        <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
-                                            Belum ada penjualan
-                                        </span>
-                                    </td>
-                                </tr>
+                                <template v-for="(item, index) in displayRanking" :key="item.type + '-' + item.id">
+                                    <tr v-show="exportPart === 0 || (exportPart === 1 && index < 10) || (exportPart > 1 && index >= 10 + (exportPart - 2) * 10 && index < 10 + (exportPart - 1) * 10)"
+                                        class="group hover:bg-surface-800/30 transition-all duration-300"
+                                        :class="{'bg-surface-800/80' : item.isSeparator}">
+                                        
+                                        <!-- SEPARATOR TABLE ROW -->
+                                        <template v-if="item.isSeparator">
+                                            <td colspan="3" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
+                                                <div class="flex items-center gap-3 justify-center">
+                                                    <Store class="w-5 h-5 text-primary-500" />
+                                                    <span class="text-sm md:text-base font-black text-text-primary uppercase tracking-[0.2em]">{{ item.name }}</span>
+                                                    <Store class="w-5 h-5 text-primary-500" />
+                                                </div>
+                                            </td>
+                                        </template>
+
+                                        <!-- STANDARD DATA ROW -->
+                                        <template v-else>
+                                            <td class="px-4 md:px-8 py-5 md:py-7">
+                                                <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
+                                                    :class="{
+                                                        'bg-primary-500 text-white shadow-xl shadow-primary-500/20': item.localRank === 1,
+                                                        'bg-slate-400 text-surface-900': item.localRank === 2,
+                                                        'bg-amber-700 text-white': item.localRank === 3,
+                                                        'bg-surface-800 text-text-secondary border border-surface-700': item.localRank > 3
+                                                    }">{{ item.localRank }}</div>
+                                            </td>
+                                            <td class="px-4 md:px-8 py-5 md:py-7">
+                                                <div class="flex items-center gap-3 md:gap-4">
+                                                    <div
+                                                        class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110">
+                                                        <component :is="item.type === 'branch' || item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
+                                                            :class="item.type === 'branch' || item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
+                                                    </div>
+                                                    <div class="flex flex-col min-w-0">
+                                                        <span
+                                                            class="font-black text-text-primary text-xs md:text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight truncate">{{
+                                                            item.name }}</span>
+                                                        <span
+                                                            class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{
+                                                            item.type === 'branch' ? 'CABANG' : item.type }} UNIT</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                <span v-if="item.omset > 0"
+                                                    class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
+                                                    {{ formatCurrency(item.omset) }}
+                                                </span>
+                                                <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
+                                                    Belum ada penjualan
+                                                </span>
+                                            </td>
+                                        </template>
+                                    </tr>
+                                </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && filteredRanking.length <= 8) || (exportPart > 1 && filteredRanking.length <= 8 + (exportPart - 1) * 13))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && displayRanking.length <= 10) || (exportPart > 1 && displayRanking.length <= 10 + (exportPart - 1) * 10))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
