@@ -90,7 +90,7 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $categories = ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        $categories = ['penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
         return $this->getAggregatedStats($user, $categories, 'toko_offline');
     }
 
@@ -102,7 +102,7 @@ class DashboardController extends Controller
 
     private function getAggregatedStats($user, $categories, $role)
     {
-        $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan', $user->branch ?: ($user->onlineShop ?: null));
+        $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
         $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn('category', $categories)
@@ -231,7 +231,7 @@ class DashboardController extends Controller
     private function getRankingData($user, $categories)
     {
         // Count units based on user_id (who made the sale) as well for sales leaderboard
-        $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan', $user->branch ?: ($user->onlineShop ?: null));
+        $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
         $todayRanking = DB::table('stock_outs')
             ->whereIn('category', $categories)
@@ -258,7 +258,7 @@ class DashboardController extends Controller
 
         $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
             // Count units sold by this user
-            $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan', $user->branch ?: ($user->onlineShop ?: null));
+            $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
             $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->where('reporting_date', $currentReportingDate)->count();
             return [
                 'id' => $u->id,
@@ -278,30 +278,31 @@ class DashboardController extends Controller
     private function getBranchRankingData($user)
     {
         // Only for branch or online shop users
-        if (!$user->branch_id && !$user->online_shop_id) return null;
+        if (!$user->branch_id && !$user->online_shop_id)
+            return null;
 
         try {
-            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
-            
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+
             // Use reporting date logic
             $location = $user->branch ?: ($user->onlineShop ?: null);
-            $todayDate = StockOut::calculateReportingDate('penjualan', $location);
+            $todayDate = StockOut::calculateReportingDate('penjualan_store', $location);
             $today = Carbon::parse($todayDate);
-            
+
             $yesterdayDate = $today->copy()->subDay()->format('Y-m-d');
-            
+
             // Monthly Ranges
             $thisMonthStart = $today->copy()->startOfMonth()->format('Y-m-d');
             $thisMonthEnd = $today->format('Y-m-d'); // Until today
-            
+
             $lastMonthStart = $today->copy()->subMonth()->startOfMonth()->format('Y-m-d');
             $lastMonthEnd = $today->copy()->subMonth()->endOfMonth()->format('Y-m-d');
 
             // Fetch names of all active units (Exclude Trial, Testing, Anu accounts)
             $branchesArr = DB::table('branches')->where('is_active', true)->get(['id', 'name']);
             $shopsArr = DB::table('online_shops')->where('is_active', true)->get(['id', 'name']);
-            
-            $excludeFilter = function($item) {
+
+            $excludeFilter = function ($item) {
                 $name = strtolower($item->name);
                 return !str_contains($name, 'trial') && !str_contains($name, 'testing') && !str_contains($name, 'anu') && !str_contains($name, 'huft');
             };
@@ -310,12 +311,12 @@ class DashboardController extends Controller
             $shops = $shopsArr->filter($excludeFilter);
 
             // Reusable ranking function
-            $getRankingForRange = function($startDate, $endDate = null) use ($branches, $shops, $salesCategories) {
+            $getRankingForRange = function ($startDate, $endDate = null) use ($branches, $shops, $salesCategories) {
                 $query = DB::table('stock_outs')
                     ->join('users', 'stock_outs.user_id', '=', 'users.id')
                     ->whereIn('stock_outs.category', $salesCategories)
                     ->whereNull('stock_outs.deleted_at');
-                
+
                 if ($endDate) {
                     $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
                 } else {
@@ -323,26 +324,26 @@ class DashboardController extends Controller
                 }
 
                 $stats = $query->select(
-                        'users.branch_id',
-                        'users.online_shop_id',
-                        DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as total_omset')
-                    )
+                    'users.branch_id',
+                    'users.online_shop_id',
+                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as total_omset')
+                )
                     ->groupBy('users.branch_id', 'users.online_shop_id')
                     ->get();
 
                 $ranks = collect();
-                
+
                 foreach ($branches as $b) {
                     $omset = (float) ($stats->where('branch_id', $b->id)->first()->total_omset ?? 0);
                     $ranks->push(['id' => $b->id, 'name' => $b->name, 'type' => 'branch', 'omset' => $omset]);
                 }
-                
+
                 foreach ($shops as $s) {
                     $omset = (float) ($stats->where('online_shop_id', $s->id)->first()->total_omset ?? 0);
                     $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset]);
                 }
 
-                return $ranks->sortByDesc('omset')->values()->map(function($item, $idx) {
+                return $ranks->sortByDesc('omset')->values()->map(function ($item, $idx) {
                     $item['rank'] = $idx + 1;
                     return $item;
                 });
@@ -354,8 +355,9 @@ class DashboardController extends Controller
             $thisMonthRanking = $getRankingForRange($thisMonthStart, $thisMonthEnd);
             $lastMonthRanking = $getRankingForRange($lastMonthStart, $lastMonthEnd);
 
-            $getUserRanking = function($start, $end = null) use ($user, $salesCategories) {
-                if (!$user->branch_id && !$user->online_shop_id) return collect();
+            $getUserRanking = function ($start, $end = null) use ($user, $salesCategories) {
+                if (!$user->branch_id && !$user->online_shop_id)
+                    return collect();
 
                 $query = DB::table('stock_outs')
                     ->join('users', 'stock_outs.user_id', '=', 'users.id')
@@ -375,11 +377,11 @@ class DashboardController extends Controller
                 }
 
                 return $query->select(
-                        'users.id',
-                        'users.name',
-                        DB::raw('COUNT(stock_outs.id) as units'),
-                        DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
-                    )
+                    'users.id',
+                    'users.name',
+                    DB::raw('COUNT(stock_outs.id) as units'),
+                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
+                )
                     ->groupBy('users.id', 'users.name')
                     ->orderByDesc('units')
                     ->orderByDesc('omset')
@@ -392,14 +394,16 @@ class DashboardController extends Controller
             $lastMonthUserRanking = $getUserRanking($lastMonthStart, $lastMonthEnd);
 
             // Helper to build podium data relative to current user
-            $getPodiumData = function($currentRanking, $previousRanking, $unitType, $unitId) {
+            $getPodiumData = function ($currentRanking, $previousRanking, $unitType, $unitId) {
                 $myIndex = $currentRanking->search(fn($i) => $i['type'] === $unitType && $i['id'] == $unitId);
-                if ($myIndex === false) return null;
+                if ($myIndex === false)
+                    return null;
 
                 $me = $currentRanking[$myIndex];
-                
-                $findPrevRank = function($item) use ($previousRanking) {
-                    if (!$item || !$previousRanking) return '-';
+
+                $findPrevRank = function ($item) use ($previousRanking) {
+                    if (!$item || !$previousRanking)
+                        return '-';
                     $prevItem = $previousRanking->where('type', $item['type'])->where('id', $item['id'])->first();
                     return $prevItem ? $prevItem['rank'] : '-';
                 };
@@ -415,8 +419,8 @@ class DashboardController extends Controller
                 // window: [myIndex-1, myIndex, myIndex+1] or [0, 1, 2]
                 $start = max(0, $myIndex - 1);
                 $slice = $currentRanking->slice($start, 3);
-                
-                $items = $slice->values()->map(function($item) use ($unitType, $unitId, $findPrevRank) {
+
+                $items = $slice->values()->map(function ($item) use ($unitType, $unitId, $findPrevRank) {
                     $item['is_me'] = $item['type'] === $unitType && $item['id'] == $unitId;
                     $item['prev_rank'] = $findPrevRank($item);
                     return $item;
@@ -439,12 +443,12 @@ class DashboardController extends Controller
             $myType = $user->branch_id ? 'branch' : 'online_shop';
             $myId = $user->branch_id ?: $user->online_shop_id;
 
-            $findMyRank = function($ranking) use ($myType, $myId) {
+            $findMyRank = function ($ranking) use ($myType, $myId) {
                 $idx = $ranking->search(fn($r) => $r['type'] === $myType && $r['id'] == $myId);
                 return $idx !== false ? $idx + 1 : '-';
             };
 
-            $findMyUserRankInBranch = function($userRanking, $userId) {
+            $findMyUserRankInBranch = function ($userRanking, $userId) {
                 $idx = $userRanking->search(fn($u) => $u->id == $userId);
                 return $idx !== false ? $idx + 1 : '-';
             };
@@ -452,12 +456,12 @@ class DashboardController extends Controller
             return [
                 'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
                 'today_top3' => [
-                   'podium' => $todayRanking->take(3)->values()
+                    'podium' => $todayRanking->take(3)->values()
                 ],
                 'yesterday' => $getPodiumData($yesterdayRanking, null, $myType, $myId),
                 'this_month' => $getPodiumData($thisMonthRanking, $lastMonthRanking, $myType, $myId),
                 'this_month_top3' => [
-                   'podium' => $thisMonthRanking->take(3)->values()
+                    'podium' => $thisMonthRanking->take(3)->values()
                 ],
                 'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
                 'summary' => [

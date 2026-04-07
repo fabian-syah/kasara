@@ -148,7 +148,7 @@ class StockOutController extends Controller
                     'event_sponsorship',
                     'promo',
                     'inventaris',
-                    'penjualan',
+                    'penjualan_store',
                     'shopee',
                     'bundling',
                     'tukar_unit',
@@ -195,7 +195,7 @@ class StockOutController extends Controller
         ];
 
         // Mandatory fields for Sales
-        $salesCategories = ['penjualan', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online'];
+        $salesCategories = ['penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online'];
         if (in_array($request->category, $salesCategories)) {
             // Shopee/Online uses shopee_receiver as customer name
             if ($request->category === 'shopee' || $request->category === 'orderan_online') {
@@ -211,7 +211,7 @@ class StockOutController extends Controller
             $rules['notes'] = 'nullable|string';
 
             // proof_image optional if not offline/regular sale
-            $isOfflineSale = in_array($request->category, ['penjualan', 'penjualan_offline', 'tukar_tambah']);
+            $isOfflineSale = in_array($request->category, ['penjualan_store', 'penjualan_offline', 'tukar_tambah']);
             $rules['proof_image'] = ($isOfflineSale ? 'required' : 'nullable') . '|image|max:10240';
 
             // Only require PIN if user has it enabled
@@ -514,7 +514,7 @@ class StockOutController extends Controller
             ]);
 
             // Pre-generate PDF in the background to speed up WhatsApp sharing later
-            if ($stockOut->category === 'penjualan') {
+            if ($stockOut->category === 'penjualan_store') {
                 dispatch(function () use ($stockOut) {
                     try {
                         \App\Http\Controllers\WhatsAppShareController::getDriveLink($stockOut->id);

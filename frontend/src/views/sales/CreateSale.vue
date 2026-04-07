@@ -46,10 +46,10 @@ const toast = useToast();
 const currentStep = ref(1); // 1: Account, 2: Category, 3: Items/Form, 4: Payment
 const salesAccount = ref("");
 const salesAccounts = ref([]);
-const transactionCategory = ref("penjualan");
+const transactionCategory = ref("penjualan_store");
 
 const categoriesPenjualan = [
-    { id: "penjualan", label: "Penjualan", icon: 'ShoppingCart' },
+    { id: "penjualan_store", label: "Penjualan Store", icon: 'ShoppingCart' },
     { id: "angkat_barang", label: "Angkat Barang", icon: 'PackageOpen' },
     { id: "refund", label: "Refund", icon: 'RotateCcw' },
     { id: "tukar_unit", label: "Tukar Unit", icon: 'RefreshCw' },
@@ -224,7 +224,8 @@ function prevStep() {
 }
 
 const categoryLabels = {
-    penjualan: 'Transaksi Penjualan berhasil! 🎉',
+    penjualan_store: 'Transaksi Penjualan Store berhasil! 🎉',
+    cancel_penjualan: 'Cancel Penjualan berhasil diproses! 🚫',
     angkat_barang: 'Angkat Barang berhasil diproses! 📦',
     refund: 'Refund berhasil diproses! 🔄',
     tukar_unit: 'Tukar Unit berhasil! 🔁',
@@ -431,7 +432,7 @@ watch(transactionCategory, () => {
                         class="p-6 sm:p-8 bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border-2 border-surface-100 dark:border-surface-700 hover:border-primary-500 hover:shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden text-left flex flex-col gap-3 sm:gap-4 active:scale-95">
                         <div
                             class="w-10 h-10 sm:w-14 sm:h-14 bg-surface-50 dark:bg-surface-900 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
-                            <ShoppingCart v-if="cat.id === 'penjualan'" :size="20" class="sm:w-8 sm:h-8" />
+                            <ShoppingCart v-if="cat.id === 'penjualan_store'" :size="20" class="sm:w-8 sm:h-8" />
                             <PackageOpen v-else-if="cat.id === 'angkat_barang'" :size="20" class="sm:w-8 sm:h-8" />
                             <RotateCcw v-else-if="cat.id === 'refund'" :size="20" class="sm:w-8 sm:h-8" />
                             <RefreshCw v-else-if="cat.id === 'tukar_unit'" :size="20" class="sm:w-8 sm:h-8" />
@@ -461,7 +462,7 @@ watch(transactionCategory, () => {
 
             <!-- STEP 3: TRANSACTION COMPONENTS -->
             <div v-if="currentStep === 3 && !loadingStep3Data" class="flex-1 flex flex-col min-h-0">
-                <PenjualanStep3 v-if="transactionCategory === 'penjualan'" :transactionCategory="transactionCategory"
+                <PenjualanStep3 v-if="transactionCategory === 'penjualan_store'" :transactionCategory="transactionCategory"
                     :availablePaymentMethods="availablePaymentMethods" @prev="prevStep" @next="currentStep = 4" />
 
                 <AngkatBarangForm v-else-if="transactionCategory === 'angkat_barang'"

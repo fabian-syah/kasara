@@ -27,7 +27,9 @@ const form = ref({
 });
 
 const categories = [
-    { value: 'penjualan_offline', label: 'Penjualan Store' },
+    { value: 'penjualan_store', label: 'Penjualan Store' },
+    { value: 'cancel_penjualan', label: 'Cancel Penjualan' },
+    { value: 'penjualan_offline', label: 'Penjualan Offline (Legacy)' },
     { value: 'orderan_online', label: 'Penjualan Online' },
     // { value: 'shopee', label: 'Shopee' },
     { value: 'profit', label: 'Profit' },
