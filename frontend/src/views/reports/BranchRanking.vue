@@ -174,9 +174,11 @@ const exportToPDF = async () => {
             // Use JPEG for MUCH smaller file size (100MB -> few MB)
             const dataUrl = await toJpeg(el, { 
                 backgroundColor: '#ffffff',
-                quality: 0.85, 
-                pixelRatio: 1.5,
-                width: 1100,     // Kembali ke 1100px sesuai saran user
+                quality: 0.95, // Higher quality
+                pixelRatio: 2, // Crisper rendering
+                width: 1100,
+                includeQueryParams: true,
+                cacheBust: true,
                 style: { 
                     padding: '80px 60px', 
                     background: '#ffffff',
@@ -384,7 +386,7 @@ const exportToPDF = async () => {
                         <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
                             :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
                             <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums"
-                                :class="{ '!text-slate-600': exportPart > 0 }">{{
+                                :style="exportPart > 0 ? 'color: #64748b !important;' : ''">{{
                                 formatCurrency(top3[1].omset) }}</span>
                         </div>
                     </div>
@@ -450,7 +452,8 @@ const exportToPDF = async () => {
                                     class="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1.5 leading-none">
                                     Total Omset Perolehan</p>
                                 <span
-                                    class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none">{{
+                                    class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none"
+                                    :style="exportPart > 0 ? 'color: #ffffff !important;' : ''">{{
                                     formatCurrency(top3[0].omset) }}</span>
                             </div>
                         </div>
@@ -480,7 +483,8 @@ const exportToPDF = async () => {
                             }} UNIT</p>
                         <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg"
                             :class="{ '!bg-white !border-gray-200': exportPart > 0 }">
-                            <span class="text-lg font-black text-amber-700 tabular-nums">{{
+                            <span class="text-lg font-black text-amber-700 tabular-nums"
+                                :style="exportPart > 0 ? 'color: #64748b !important;' : ''">{{
                                 formatCurrency(top3[2].omset) }}</span>
                         </div>
                     </div>
@@ -560,7 +564,8 @@ const exportToPDF = async () => {
                                     </td>
                                     <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                         <span v-if="item.omset > 0"
-                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
+                                            class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors"
+                                            :style="exportPart > 0 ? 'color: #10b981 !important;' : ''">
                                             {{ formatCurrency(item.omset) }}
                                         </span>
                                         <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
