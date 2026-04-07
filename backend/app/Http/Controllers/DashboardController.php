@@ -354,6 +354,43 @@ class DashboardController extends Controller
             $thisMonthRanking = $getRankingForRange($thisMonthStart, $thisMonthEnd);
             $lastMonthRanking = $getRankingForRange($lastMonthStart, $lastMonthEnd);
 
+            $getUserRanking = function($start, $end = null) use ($user, $salesCategories) {
+                if (!$user->branch_id && !$user->online_shop_id) return collect();
+
+                $query = DB::table('stock_outs')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
+
+                if ($user->branch_id) {
+                    $query->where('users.branch_id', $user->branch_id);
+                } else {
+                    $query->where('users.online_shop_id', $user->online_shop_id);
+                }
+
+                if ($end) {
+                    $query->whereBetween('stock_outs.reporting_date', [$start, $end]);
+                } else {
+                    $query->where('stock_outs.reporting_date', $start);
+                }
+
+                return $query->select(
+                        'users.id',
+                        'users.name',
+                        DB::raw('COUNT(stock_outs.id) as units'),
+                        DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
+                    )
+                    ->groupBy('users.id', 'users.name')
+                    ->orderByDesc('units')
+                    ->orderByDesc('omset')
+                    ->get();
+            };
+
+            $todayUserRanking = $getUserRanking($todayDate);
+            $yesterdayUserRanking = $getUserRanking($yesterdayDate);
+            $thisMonthUserRanking = $getUserRanking($thisMonthStart, $thisMonthEnd);
+            $lastMonthUserRanking = $getUserRanking($lastMonthStart, $lastMonthEnd);
+
             // Helper to build podium data relative to current user
             $getPodiumData = function($currentRanking, $previousRanking, $unitType, $unitId) {
                 $myIndex = $currentRanking->search(fn($i) => $i['type'] === $unitType && $i['id'] == $unitId);
@@ -402,6 +439,11 @@ class DashboardController extends Controller
                 return $idx !== false ? $idx + 1 : '-';
             };
 
+            $findMyUserRankInBranch = function($userRanking, $userId) {
+                $idx = $userRanking->search(fn($u) => $u->id == $userId);
+                return $idx !== false ? $idx + 1 : '-';
+            };
+
             return [
                 'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
                 'today_top3' => [
@@ -414,10 +456,14 @@ class DashboardController extends Controller
                 ],
                 'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
                 'summary' => [
-                    'today_rank' => $findMyRank($todayRanking),
-                    'yesterday_rank' => $findMyRank($yesterdayRanking),
-                    'this_month_rank' => $findMyRank($thisMonthRanking),
-                    'last_month_rank' => $findMyRank($lastMonthRanking),
+                    'today_global' => $findMyRank($todayRanking),
+                    'yesterday_global' => $findMyRank($yesterdayRanking),
+                    'this_month_global' => $findMyRank($thisMonthRanking),
+                    'last_month_global' => $findMyRank($lastMonthRanking),
+                    'today_local' => $findMyUserRankInBranch($todayUserRanking, $user->id),
+                    'yesterday_local' => $findMyUserRankInBranch($yesterdayUserRanking, $user->id),
+                    'this_month_local' => $findMyUserRankInBranch($thisMonthUserRanking, $user->id),
+                    'last_month_local' => $findMyUserRankInBranch($lastMonthUserRanking, $user->id),
                 ],
                 'total_competitors' => $todayRanking->count()
             ];

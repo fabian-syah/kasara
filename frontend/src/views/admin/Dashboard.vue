@@ -298,6 +298,18 @@ const rightPodiumSubtitle = computed(() => {
   if (podiumTab.value === 'this_month') return "Global Monthly Leaders";
   return "Champions";
 });
+
+const currentGlobalRank = computed(() => {
+  if (!branchRanking.value?.summary) return '-';
+  if (podiumTab.value === 'today') return branchRanking.value.summary.yesterday_global;
+  return branchRanking.value.summary.last_month_global;
+});
+
+const currentLocalRank = computed(() => {
+  if (!branchRanking.value?.summary) return '-';
+  if (podiumTab.value === 'today') return branchRanking.value.summary.yesterday_local;
+  return branchRanking.value.summary.last_month_local;
+});
 </script>
 
 <template>
@@ -486,7 +498,20 @@ const rightPodiumSubtitle = computed(() => {
                     </div>
                   </div>
                   <div class="text-center">
-                    <h3 class="text-lg lg:text-3xl font-black text-text-primary uppercase tracking-tighter leading-none mb-6 group-hover:text-emerald-500 transition-colors">{{ leftPodiumData.podium[1].name }}</h3>
+                    <h3 class="text-lg lg:text-3xl font-black text-text-primary uppercase tracking-tighter leading-none mb-4 group-hover:text-emerald-500 transition-colors">{{ leftPodiumData.podium[1].name }}</h3>
+                    
+                    <!-- Ranking Labels -->
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6">
+                      <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
+                        <Globe :size="10" class="text-emerald-500" />
+                        <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Global #{{ currentGlobalRank }}</span>
+                      </div>
+                      <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
+                        <User :size="10" class="text-emerald-500" />
+                        <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Local #{{ currentLocalRank }}</span>
+                      </div>
+                    </div>
+
                     <div class="bg-emerald-500 shadow-xl shadow-emerald-500/20 px-8 py-4 rounded-[2rem] border-2 border-emerald-400/30">
                       <p class="text-[8px] font-black text-black/50 uppercase tracking-widest mb-1">Total Omset</p>
                       <p class="text-xl lg:text-3xl font-black text-black tracking-tight">Rp {{ formatNumber(leftPodiumData.podium[1].omset) }}</p>
@@ -588,24 +613,32 @@ const rightPodiumSubtitle = computed(() => {
         </div>
       </div>
 
-      <!-- Global Ranking Summary Bar -->
+      <!-- Global & Branch Ranking Summary Bar -->
       <div v-if="branchRanking?.summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
         <div v-for="item in [
-          { label: 'Today Global', value: branchRanking.summary.today_rank, sub: 'Live Standings', icon: Target, color: 'emerald' },
-          { label: 'Yesterday Global', value: branchRanking.summary.yesterday_rank, sub: 'Final Rank', icon: History, color: 'blue' },
-          { label: 'This Month Global', value: branchRanking.summary.this_month_rank, sub: 'Monthly Race', icon: Calendar, color: 'purple' },
-          { label: 'Last Month Global', value: branchRanking.summary.last_month_rank, sub: 'Prev Month', icon: Award, color: 'amber' }
+          { label: 'Today Summary', global: branchRanking.summary.today_global, local: branchRanking.summary.today_local, sub: 'Live Standings', icon: Target, color: 'emerald' },
+          { label: 'Yesterday Summary', global: branchRanking.summary.yesterday_global, local: branchRanking.summary.yesterday_local, sub: 'Final Rank', icon: History, color: 'blue' },
+          { label: 'This Month Summary', global: branchRanking.summary.this_month_global, local: branchRanking.summary.this_month_local, sub: 'Monthly Race', icon: Calendar, color: 'purple' },
+          { label: 'Last Month Summary', global: branchRanking.summary.last_month_global, local: branchRanking.summary.last_month_local, sub: 'Prev Month', icon: Award, color: 'amber' }
         ]" :key="item.label" class="card group p-5 bg-white dark:bg-[#0d0d0d] border-none shadow-xl overflow-hidden relative">
           <div class="absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-[0.03] transition-transform duration-500 group-hover:scale-150" :class="`bg-${item.color}-500`"></div>
           <div class="relative z-10 flex items-center justify-between">
-            <div class="flex flex-col">
-              <span class="text-[9px] font-black uppercase tracking-widest mb-1 opacity-40">{{ item.label }}</span>
-              <div class="flex items-baseline gap-2">
-                <span class="text-3xl font-black tracking-tighter" :class="`text-${item.color}-500`"><span class="text-sm opacity-50">#</span>{{ item.value }}</span>
-                <span class="text-[8px] font-bold opacity-30 uppercase">{{ item.sub }}</span>
+            <div class="flex-1">
+              <span class="text-[9px] font-black uppercase tracking-widest mb-3 block opacity-40">{{ item.label }}</span>
+              <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-[9px] font-bold opacity-30 uppercase mr-1">Global</span>
+                    <span class="text-2xl font-black tracking-tighter" :class="`text-${item.color}-500`"><span class="text-sm opacity-50">#</span>{{ item.global }}</span>
+                  </div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-[9px] font-bold opacity-30 uppercase mr-1">Local</span>
+                    <span class="text-xl font-black tracking-tighter" :class="`text-${item.color}-500 opacity-60`"><span class="text-xs">#</span>{{ item.local }}</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:rotate-12" :class="`bg-${item.color}-500/10 text-${item.color}-500`">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:rotate-12 shrink-0 ml-4" :class="`bg-${item.color}-500/10 text-${item.color}-500`">
               <component :is="item.icon" :size="20" />
             </div>
           </div>
