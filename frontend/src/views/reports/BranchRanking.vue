@@ -59,9 +59,6 @@ const setRange = (type) => {
     } else if (type === 'all') {
         filters.value.start_date = '';
         filters.value.end_date = '';
-    if (type === 'all') {
-        filters.value.start_date = '';
-        filters.value.end_date = '';
     }
     fetchRanking();
 };
