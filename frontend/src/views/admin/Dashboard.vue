@@ -465,15 +465,15 @@ const currentLocalRank = computed(() => {
             </div>
 
             <!-- Main Podium Wrapper -->
-            <div v-if="leftPodiumData && leftPodiumData.podium" class="px-8 flex-1 flex flex-col">
-              <div class="relative flex-1 flex flex-col justify-center items-center">
+            <div v-if="leftPodiumData && leftPodiumData.podium" class="px-4 lg:px-8 flex-1 flex flex-col min-h-[600px] lg:min-h-0">
+              <div class="flex-1 flex flex-col lg:flex-row justify-between lg:justify-center items-center gap-12 lg:gap-0 relative py-12 lg:py-0">
                 <!-- Rank 2 (Second of Window) -->
-                <div v-if="leftPodiumData.podium[0]" class="absolute left-0 bottom-4 lg:bottom-12 flex flex-col items-center group">
+                <div v-if="leftPodiumData.podium[0]" class="relative lg:absolute lg:left-0 lg:bottom-12 flex flex-col items-center group scale-90 lg:scale-100 min-w-[120px]">
                   <div class="relative mb-6">
-                    <div class="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-black text-emerald-500/40 uppercase tracking-widest">Rank #{{ leftPodiumData.podium[0].rank }}</div>
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-[10px] font-black text-emerald-500/40 uppercase tracking-widest whitespace-nowrap">Rank #{{ leftPodiumData.podium[0].rank }}</div>
                     
                     <!-- YOU Badge -->
-                    <div v-if="leftPodiumData.podium[0].is_me" class="absolute -top-12 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[8px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse z-20">YOU</div>
+                    <div v-if="leftPodiumData.podium[0].is_me" class="absolute -top-14 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[8px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse z-20">YOU</div>
 
                     <div class="w-24 h-24 lg:w-32 lg:h-32 rounded-[2.5rem] bg-white dark:bg-[#1a1a1a] border border-black/5 dark:border-white/5 flex items-center justify-center shadow-xl group-hover:scale-105 transition-all duration-500" :class="leftPodiumData.podium[0].is_me ? 'border-emerald-500/50 ring-2 ring-emerald-500/20' : ''">
                       <component :is="leftPodiumData.podium[0].type === 'branch' ? Store : Globe" class="w-12 h-12 lg:w-16 lg:h-16 text-text-primary" :class="leftPodiumData.podium[0].is_me ? 'opacity-100' : 'opacity-20'" />
@@ -491,30 +491,38 @@ const currentLocalRank = computed(() => {
                 </div>
 
                 <!-- Rank 1 (Top of Window) -->
-                <div v-if="leftPodiumData.podium[1]" class="relative z-10 flex flex-col items-center group -top-4">
-                  <Trophy :size="48" class="text-text-primary mb-4" :class="leftPodiumData.podium[1].is_me ? 'text-emerald-500' : ''" />
-                  <div class="relative mb-8">
-                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-emerald-500/10 border border-emerald-500/20 px-6 py-1.5 rounded-full whitespace-nowrap shadow-sm">
-                      <span class="text-[10px] lg:text-xs font-black text-emerald-500 uppercase tracking-[0.3em]">RANK #{{ leftPodiumData.podium[1].rank }}</span>
+                <div v-if="leftPodiumData.podium[1]" class="relative z-10 flex flex-col items-center group order-first lg:order-none mb-12 lg:mb-0">
+                  <!-- TROPHY AND RANK BADGE SPACE -->
+                  <div class="flex flex-col items-center gap-12 mb-8">
+                    <div class="relative">
+                      <div class="absolute inset-0 bg-emerald-500/10 blur-2xl rounded-full scale-150"></div>
+                      <Trophy :size="56" class="text-text-primary relative z-10" :class="leftPodiumData.podium[1].is_me ? 'text-emerald-500' : ''" />
                     </div>
                     
-                    <!-- YOU Badge -->
-                    <div v-if="leftPodiumData.podium[1].is_me" class="absolute -top-14 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] font-black px-4 py-1 rounded-full shadow-lg animate-bounce z-20">YOU</div>
+                    <div class="relative">
+                      <div class="absolute -top-1 bg-emerald-500/10 border border-emerald-500/20 px-8 py-2 rounded-full whitespace-nowrap shadow-lg flex flex-col items-center gap-1 -translate-y-full left-1/2 -translate-x-1/2">
+                        <span class="text-[10px] lg:text-xs font-black text-emerald-500 uppercase tracking-[0.4em]">RANK #{{ leftPodiumData.podium[1].rank }}</span>
+                      </div>
+                      
+                      <!-- YOU Badge -->
+                      <div v-if="leftPodiumData.podium[1].is_me" class="absolute -top-24 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[10px] font-black px-4 py-1 rounded-full shadow-lg animate-bounce z-20">YOU</div>
 
-                    <div class="w-48 h-48 lg:w-56 lg:h-56 rounded-[4.5rem] p-1.5 bg-emerald-500 shadow-[0_35px_60px_-15px_rgba(16,185,129,0.3)] group-hover:scale-105 transition-all duration-700">
-                      <div class="w-full h-full rounded-[4rem] bg-white dark:bg-[#0d0d0d] flex items-center justify-center relative overflow-hidden">
-                        <div class="absolute inset-x-0 bottom-0 bg-emerald-500 py-3 flex items-center justify-center">
-                          <span class="text-[8px] lg:text-[10px] font-black text-black uppercase tracking-[0.5em]">TOP CONTENDER</span>
+                      <div class="w-48 h-48 lg:w-64 lg:h-64 rounded-[4.5rem] p-1.5 bg-emerald-500 shadow-[0_45px_100px_-20px_rgba(16,185,129,0.4)] group-hover:scale-105 transition-all duration-700">
+                        <div class="w-full h-full rounded-[4rem] bg-white dark:bg-[#0d0d0d] flex items-center justify-center relative overflow-hidden">
+                          <div class="absolute inset-x-0 bottom-0 bg-emerald-500 py-3 flex items-center justify-center">
+                            <span class="text-[8px] lg:text-[10px] font-black text-black uppercase tracking-[0.5em]">TOP CONTENDER</span>
+                          </div>
+                          <component :is="leftPodiumData.podium[1].type === 'branch' ? Store : Globe" class="w-24 h-24 lg:w-32 lg:h-32 text-text-primary" />
                         </div>
-                        <component :is="leftPodiumData.podium[1].type === 'branch' ? Store : Globe" class="w-24 h-24 lg:w-32 lg:h-32 text-text-primary" />
                       </div>
                     </div>
                   </div>
+                  
                   <div class="text-center">
-                    <h3 class="text-lg lg:text-3xl font-black text-text-primary uppercase tracking-tighter leading-none mb-4 group-hover:text-emerald-500 transition-colors">{{ leftPodiumData.podium[1].name }}</h3>
+                    <h3 class="text-lg lg:text-4xl font-black text-text-primary uppercase tracking-tighter leading-none mb-4 group-hover:text-emerald-500 transition-colors">{{ leftPodiumData.podium[1].name }}</h3>
                     
                     <!-- Ranking Labels (If Me) -->
-                    <div v-if="leftPodiumData.podium[1].is_me" class="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6">
+                    <div v-if="leftPodiumData.podium[1].is_me" class="flex items-center justify-center gap-2 mb-6">
                       <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full whitespace-nowrap">
                         <Globe :size="10" class="text-emerald-500" />
                         <span class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Global #{{ currentGlobalRank }}</span>
@@ -525,17 +533,17 @@ const currentLocalRank = computed(() => {
                       </div>
                     </div>
 
-                    <div class="bg-emerald-500 shadow-xl shadow-emerald-500/20 px-8 py-4 rounded-[2rem] border-2 border-emerald-400/30">
+                    <div class="bg-emerald-500 shadow-2xl shadow-emerald-500/30 px-10 py-5 rounded-[2.5rem] border-2 border-emerald-400/30">
                       <p class="text-[8px] font-black text-black/50 uppercase tracking-widest mb-1">Total Omset</p>
-                      <p class="text-xl lg:text-3xl font-black text-black tracking-tight">Rp {{ formatNumber(leftPodiumData.podium[1].omset) }}</p>
+                      <p class="text-2xl lg:text-4xl font-black text-black tracking-tight">Rp {{ formatNumber(leftPodiumData.podium[1].omset) }}</p>
                     </div>
                   </div>
                 </div>
 
                 <!-- Rank 3 (Third of Window) -->
-                <div v-if="leftPodiumData.podium[2]" class="absolute right-0 bottom-4 lg:bottom-12 flex flex-col items-center group">
+                <div v-if="leftPodiumData.podium[2]" class="relative lg:absolute lg:right-0 lg:bottom-12 flex flex-col items-center group scale-90 lg:scale-100 min-w-[120px]">
                   <div class="relative mb-6">
-                    <div class="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-black text-emerald-500/40 uppercase tracking-widest">Rank #{{ leftPodiumData.podium[2].rank }}</div>
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 text-[10px] font-black text-emerald-500/40 uppercase tracking-widest whitespace-nowrap">Rank #{{ leftPodiumData.podium[2].rank }}</div>
                     
                     <!-- YOU Badge -->
                     <div v-if="leftPodiumData.podium[2].is_me" class="absolute -top-12 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-[8px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse z-20">YOU</div>
