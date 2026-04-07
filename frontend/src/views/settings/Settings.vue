@@ -34,11 +34,10 @@ const form = ref({
 
 // Multi-Account PIN State
 const inventoryAccounts = ref([]);
-const selectedAccountId = ref('main'); // 'main' or ID
+const selectedAccountId = ref(null); // ID of the selected sub-account
 
 const selectedAccount = computed(() => {
-    if (selectedAccountId.value === 'main') return user.value;
-    return inventoryAccounts.value.find(acc => acc.id === selectedAccountId.value) || user.value;
+    return inventoryAccounts.value.find(acc => acc.id === selectedAccountId.value) || {};
 });
 
 onMounted(async () => {
@@ -57,6 +56,11 @@ onMounted(async () => {
             // Fetch my inventory accounts
             const invRes = await inventoryApi.myAccounts();
             inventoryAccounts.value = invRes.data.data || invRes.data;
+            
+            // Default to the first inventory account if exists
+            if (inventoryAccounts.value.length > 0) {
+                selectedAccountId.value = inventoryAccounts.value[0].id;
+            }
         }
     } catch (error) {
         console.error("Failed to fetch profile", error);
@@ -396,19 +400,13 @@ async function handlePinSuccess(pin) {
                             <Shield :size="20" class="text-primary-500" /> Pengaturan Keamanan (PIN)
                         </h3>
                         
-                        <div class="mb-4">
-                           <label class="label text-[10px] uppercase font-black tracking-widest text-primary-500">Pilih Akun Untuk Dikelola</label>
+                        <div class="mb-4" v-if="inventoryAccounts.length > 0">
+                           <label class="label text-[10px] uppercase font-black tracking-widest text-primary-500">Pilih Akun Staff Untuk Dikelola</label>
                            <select v-model="selectedAccountId" class="input font-bold">
-                               <option value="main">Akun Utama ({{ user.name || user.username }})</option>
-                               <optgroup label="Akun Inventory Anda" v-if="inventoryAccounts.length > 0">
-                                   <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                               </optgroup>
+                               <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
                            </select>
                         </div>
 
-                        <p class="text-sm text-text-secondary mb-6">
-                            Gunakan PIN 4-angka untuk mengamankan transaksi sensitif pada akun <span class="text-text-primary font-bold">{{ selectedAccountId === 'main' ? 'Utama' : selectedAccount.name }}</span>.
-                        </p>
 
                         <div class="bg-surface-900 border border-surface-700 rounded-2xl p-6">
                             <div class="flex items-center justify-between mb-6">
