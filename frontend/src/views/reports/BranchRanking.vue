@@ -369,12 +369,14 @@ const exportToPDF = async () => {
                             class="absolute -inset-4 bg-slate-400/5 rounded-full blur-xl group-hover:bg-slate-400/10 transition-all">
                         </div>
                         <div
-                            class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl bg-surface-800 border-2 border-slate-400/30 flex items-center justify-center shadow-xl transition-colors"
-                            :class="{ '!bg-white !border-slate-300': exportPart > 0 }">
+                            class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center transition-colors"
+                            :class="exportPart > 0 ? '' : 'bg-surface-800 border-2 border-slate-400/30 shadow-xl'">
                             <component :is="top3[1].type === 'Offline' ? Store : Globe"
-                                class="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
+                                class="w-8 h-8 lg:w-10 lg:h-10"
+                                :class="exportPart > 0 ? 'text-black' : 'text-slate-400'" />
                             <div
-                                class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg border-4 border-surface-900">
+                                class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg"
+                                :class="exportPart > 0 ? 'border border-slate-300' : 'border-4 border-surface-900'">
                                 2</div>
                         </div>
                     </div>
@@ -405,14 +407,16 @@ const exportToPDF = async () => {
                         </div>
 
                         <div
-                            class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] bg-surface-800 border-4 border-primary-500 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.25)] transition-all hover:scale-105 duration-500 ring-8 ring-primary-500/5 overflow-visible"
-                            :class="{ '!bg-white': exportPart > 0 }">
+                            class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] flex items-center justify-center transition-all overflow-visible"
+                            :class="exportPart > 0 ? '' : 'bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-8 ring-primary-500/5'">
                             <component :is="top3[0].type === 'Offline' ? Store : Globe"
-                                class="w-16 h-16 lg:w-20 lg:h-20 text-primary-500" />
+                                class="w-16 h-16 lg:w-20 lg:h-20"
+                                :class="exportPart > 0 ? '!text-black' : 'text-primary-500'" />
 
                             <!-- Floater Badge 1 -->
                             <div
-                                class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl border-8 border-surface-900 shadow-2xl animate-bounce-slow">
+                                class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl shadow-2xl animate-bounce-slow"
+                                :class="exportPart > 0 ? 'border-2 border-white' : 'border-8 border-surface-900'">
                                 1</div>
 
                             <!-- TOP BADGE -->
@@ -469,12 +473,14 @@ const exportToPDF = async () => {
                             class="absolute -inset-4 bg-amber-700/5 rounded-full blur-xl group-hover:bg-amber-700/10 transition-all">
                         </div>
                         <div
-                            class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-surface-800 border-2 border-amber-700/30 flex items-center justify-center shadow-xl transition-colors"
-                            :class="{ '!bg-white !border-slate-300': exportPart > 0 }">
+                            class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center transition-colors"
+                            :class="exportPart > 0 ? '' : 'bg-surface-800 border-2 border-amber-700/30 shadow-xl'">
                             <component :is="top3[2].type === 'Offline' ? Store : Globe"
-                                class="w-6 h-6 lg:w-8 lg:h-8 text-amber-700" />
+                                class="w-6 h-6 lg:w-8 lg:h-8"
+                                :class="exportPart > 0 ? 'text-black' : 'text-amber-700'" />
                             <div
-                                class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base border-4 border-surface-900">
+                                class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base"
+                                :class="exportPart > 0 ? 'border border-amber-200' : 'border-4 border-surface-900'">
                                 3</div>
                         </div>
                     </div>
@@ -551,10 +557,10 @@ const exportToPDF = async () => {
                                     <td class="px-4 md:px-8 py-5 md:py-7">
                                         <div class="flex items-center gap-3 md:gap-4">
                                             <div
-                                                class="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-surface-800 flex items-center justify-center border border-surface-700 shadow-inner group-hover:scale-110 transition-transform shrink-0"
-                                                :class="{ '!bg-white !border-slate-200': exportPart > 0 }">
+                                                class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform"
+                                                :class="exportPart > 0 ? '' : 'bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110'">
                                                 <component :is="item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
-                                                    :class="item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
+                                                    :class="exportPart > 0 ? '!text-black' : (item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400')" />
                                             </div>
                                             <div class="flex flex-col min-w-0">
                                                 <span
