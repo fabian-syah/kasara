@@ -451,7 +451,7 @@ const currentLocalRank = computed(() => {
             <div class="text-center md:text-left">
               <p class="text-[10px] font-bold text-surface-500 uppercase tracking-[0.3em] mb-1">{{ leftPodiumTitle }}</p>
               <h2 class="font-black text-4xl lg:text-5xl text-text-primary tracking-tighter uppercase leading-none">
-                Hall of <span class="text-primary-500">Champions</span>
+                Live Global <span class="text-primary-500">Rankings</span>
               </h2>
             </div>
             
@@ -496,8 +496,8 @@ const currentLocalRank = computed(() => {
                   </div>
                   <div class="w-full h-32 lg:h-40 bg-gradient-to-b from-slate-800/80 to-slate-900/50 rounded-t-2xl border-t-2 border-slate-400 border-x border-slate-400/20 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden group-hover:brightness-110 transition-all">
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.1),transparent)]"></div>
-                    <span class="text-5xl font-black text-slate-400 leading-none">2</span>
-                    <span class="text-[9px] font-black text-slate-400/50 uppercase tracking-[0.3em] mt-1">SILVER</span>
+                    <span class="text-5xl font-black text-slate-400 leading-none">{{ leftPodiumData.podium[0].rank }}</span>
+                    <span class="text-[9px] font-black text-slate-400/50 uppercase tracking-[0.3em] mt-1">GLOBAL RANK</span>
                   </div>
                 </div>
 
@@ -525,8 +525,8 @@ const currentLocalRank = computed(() => {
                   </div>
                   <div class="w-full h-48 lg:h-64 bg-gradient-to-b from-primary-900/40 to-primary-950/20 rounded-t-3xl border-t-4 border-primary-500 border-x border-primary-500/20 flex flex-col items-center justify-center shadow-[0_-20px_50px_rgba(245,158,11,0.1)] relative overflow-hidden group-hover:brightness-125 transition-all">
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.15),transparent)]"></div>
-                    <span class="text-7xl font-black text-primary-500 leading-none">1</span>
-                    <span class="text-[10px] font-black text-primary-500/50 uppercase tracking-[0.4em] mt-2">GOLD MEDAL</span>
+                    <span class="text-7xl font-black text-primary-500 leading-none">{{ leftPodiumData.podium[1].rank }}</span>
+                    <span class="text-[10px] font-black text-primary-500/50 uppercase tracking-[0.4em] mt-2">GLOBAL RANK</span>
                   </div>
                 </div>
 
@@ -551,8 +551,8 @@ const currentLocalRank = computed(() => {
                   </div>
                   <div class="w-full h-24 lg:h-32 bg-gradient-to-b from-amber-900/30 to-amber-950/20 rounded-t-2xl border-t-2 border-amber-700 border-x border-amber-700/20 flex flex-col items-center justify-center shadow-xl relative overflow-hidden group-hover:brightness-110 transition-all">
                     <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(184,115,51,0.1),transparent)]"></div>
-                    <span class="text-4xl font-black text-amber-700 leading-none">3</span>
-                    <span class="text-[9px] font-black text-amber-700/50 uppercase tracking-[0.3em] mt-1">BRONZE</span>
+                    <span class="text-4xl font-black text-amber-700 leading-none">{{ leftPodiumData.podium[2].rank }}</span>
+                    <span class="text-[9px] font-black text-amber-700/50 uppercase tracking-[0.3em] mt-1">GLOBAL RANK</span>
                   </div>
                 </div>
 
@@ -571,7 +571,7 @@ const currentLocalRank = computed(() => {
                </div>
 
                <div v-if="rightPodiumData && rightPodiumData.podium" class="w-full space-y-4 max-w-sm">
-                 <div v-for="(item, idx) in [...Object.values(rightPodiumData.podium)].sort((a,b) => (b.is_me ? 1 : 0) - (a.is_me ? 1 : 0))" :key="idx" 
+                 <div v-for="(item, idx) in rightPodiumData.podium" :key="idx" 
                    class="flex items-center gap-4 p-4 rounded-2xl bg-surface-800/40 border border-surface-700/50 hover:border-primary-500/30 transition-all group/item"
                    :class="item.is_me ? 'ring-2 ring-primary-500 bg-primary-500/5' : ''">
                    
