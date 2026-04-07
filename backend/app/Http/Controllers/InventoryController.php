@@ -1482,10 +1482,8 @@ class InventoryController extends Controller
             ->with(['roles', 'createdBy' => function($q) {
                 $q->select('id', 'name', 'full_name');
             }])
-            ->where(function ($q) use ($user) {
-                $q->where('created_by', $user->id)
-                    ->orWhere('id', $user->id);
-            })
+            ->where('created_by', $user->id) // Only show accounts created by this user (staff)
+            ->where('id', '!=', $user->id)   // Double check to exclude self
             ->where('is_active', true)
             ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory')
             ->get();
