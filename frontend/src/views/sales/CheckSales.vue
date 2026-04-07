@@ -111,6 +111,8 @@
                             <th class="px-6 py-4">Produk</th>
                             <th class="px-6 py-4">IMEI</th>
                             <th class="px-6 py-4">Qty</th>
+                            <th class="px-6 py-4">Harga</th>
+                            <th class="px-6 py-4">Total</th>
                             <th class="px-6 py-4">Akun / Catatan</th>
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Aksi</th>
@@ -118,7 +120,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                         <tr v-if="loading">
-                            <td colspan="12" class="px-6 py-12">
+                            <td colspan="14" class="px-6 py-12">
                                 <div class="flex flex-col items-center justify-center text-text-secondary">
                                     <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                     <span class="text-sm font-medium">Memuat data penjualan...</span>
@@ -126,7 +128,7 @@
                             </td>
                         </tr>
                         <tr v-else-if="(salesRecords.daily_sales?.data || salesRecords.daily_sales).length === 0">
-                            <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
+                            <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                 <div class="flex flex-col items-center justify-center">
                                     <div
                                         class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -174,6 +176,8 @@
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ detail.imei && detail.imei
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
+                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{ formatCurrency(detail.price) }}</td>
+                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{ formatCurrency(detail.price * detail.qty) }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1.5 items-start">
                                             <!-- Account Priority: inventory_user_name -> sales_account -> 9090 Mask -> PIN Mask -->
@@ -249,6 +253,8 @@
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ item.imeis && item.imeis
                                         !== '-' ? item.imeis : '-' }}</td>
                                     <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
+                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{ formatCurrency(item.grand_total / (item.qty || 1)) }}</td>
+                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{ formatCurrency(item.grand_total) }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1">
                                             <span v-if="String(item.transaction_pin) === '9090'" class="text-xs font-bold text-primary-500">
