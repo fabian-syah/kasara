@@ -23,7 +23,7 @@ import {
     Eye,
     EyeOff
 } from 'lucide-vue-next';
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
 const loading = ref(true);
@@ -171,16 +171,18 @@ const exportToPDF = async () => {
         
         try {
             const el = exportRef.value;
-            const dataUrl = await toPng(el, { 
+            // Use JPEG for MUCH smaller file size (100MB -> few MB)
+            const dataUrl = await toJpeg(el, { 
                 backgroundColor: '#ffffff',
-                pixelRatio: 2, // Standard HD
-                width: 1200,   // Fixed width for export
+                quality: 0.85,  // Good quality balance
+                pixelRatio: 1.5, // Crisp enough without being huge
+                width: 1100,     // Targeted width at 1100px for A4 scaling 
                 style: { 
-                    padding: '80px',
+                    padding: '40px', // Reduced padding to avoid cutoffs
                     background: '#ffffff',
-                    width: '1200px',
+                    width: '1100px',
                     maxWidth: 'none',
-                    margin: '0',
+                    margin: '0 auto', // Center it
                     display: 'flex',
                     flexDirection: 'column'
                 }
@@ -193,7 +195,8 @@ const exportToPDF = async () => {
                 pdf.addPage();
             }
 
-            pdf.addImage(dataUrl, 'PNG', 0, 0, pageWidth, pdfPageHeight);
+            // Using FAST compression
+            pdf.addImage(dataUrl, 'JPEG', 0, 0, pageWidth, pdfPageHeight, undefined, 'FAST');
         } catch (e) { 
             console.error('PDF Export part error:', e); 
         }
