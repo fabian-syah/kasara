@@ -206,15 +206,14 @@ class StockOutController extends Controller
                 $rules['shopee_address'] = 'required|string';
             } else {
                 // Untuk kategori Penjualan Offline dsb
-                $rules['customer_name'] = 'required|string|max:255';
-                $rules['customer_wa'] = 'required|string|max:50';
+                $rules['customer_name'] = 'nullable|string|max:255';
+                $rules['customer_wa'] = 'nullable|string|max:50';
             }
 
             $rules['notes'] = 'nullable|string';
 
-            // proof_image optional if not offline/regular sale
-            $isOfflineSale = in_array($request->category, ['penjualan_store', 'penjualan_offline', 'tukar_tambah']);
-            $rules['proof_image'] = ($isOfflineSale ? 'required' : 'nullable') . '|image|max:10240';
+            // proof_image always optional
+            $rules['proof_image'] = 'nullable|image|max:10240';
 
             // Only require PIN if user has it enabled
             $rules['transaction_pin'] = 'nullable|string|max:10';
