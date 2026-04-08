@@ -31,7 +31,6 @@ import {
     Warehouse,
     XCircle
 } from "lucide-vue-next";
-import { useAuthStore } from "../../store/auth";
 
 const toast = useToast();
 const router = useRouter();
