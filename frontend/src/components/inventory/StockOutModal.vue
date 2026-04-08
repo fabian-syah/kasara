@@ -413,24 +413,17 @@ async function handlePinSuccess(pin) {
 
 async function submitStockOut(pin = null) {
     console.log("[DEBUG MODAL] submitStockOut called");
-    window.alert("DEBUG: Tombol Konfirmasi Ditekan!");
     
     if (!canSubmitStockOut.value) {
         console.warn("[DEBUG MODAL] canSubmitStockOut is false, aborting");
-        window.alert("DEBUG: canSubmit is false (Mungkin form belum lengkap)");
         return;
     }
 
-    // NEW PIN LOGIC
     // Check if the selected inventory user requires a PIN
     const target = selectedInventoryUser.value;
-    if (target) {
-        console.log("[DEBUG MODAL] Target User:", target.name, "PIN Status:", target.has_pin, target.pin_enabled);
-    }
-
+    
     if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists) && !pin) {
-        console.info("[DEBUG MODAL] UI: Showing PinModal for", target.name);
-        window.alert("DEBUG: Akun " + target.name + " butuh PIN. Membuka modal...");
+        console.info("[DEBUG MODAL] PIN Required for", target.name);
         showPinModal.value = true;
         return;
     }
@@ -525,7 +518,6 @@ async function submitStockOut(pin = null) {
         // WATCHDOG FOR 422 PIN ERROR
         if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
             console.warn("[DEBUG MODAL] WATCHDOG triggered for error:", errorMsg);
-            window.alert("DEBUG WATCHDOG: Server minta PIN. Membuka modal...");
             showPinModal.value = true;
             toast.error(errorMsg);
         } else {
