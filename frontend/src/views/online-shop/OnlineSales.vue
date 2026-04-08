@@ -218,6 +218,20 @@ onMounted(() => {
                     </button>
                 </div>
 
+                <!-- Category Filters -->
+                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
+                    <button v-for="btn in [
+                        { id: 'all', label: 'Semua' },
+                        { id: 'shopee', label: 'Shopee' },
+                        { id: 'orderan_online', label: 'Online' },
+                        { id: 'cancel_penjualan', label: 'Dibatalkan' }
+                    ]" :key="btn.id" @click="historyFilter = btn.id"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                        :class="historyFilter === btn.id ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        {{ btn.label }}
+                    </button>
+                </div>
+
                 <!-- Search -->
                 <div class="relative w-full md:w-64">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
@@ -249,18 +263,16 @@ onMounted(() => {
                     <tbody class="divide-y divide-surface-700">
                         <tr v-if="isLoading">
                             <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
-                                <Loader2 :size="32" class="animate-spin mx-auto mb-2 opacity-50" />
-                                <span class="animate-pulse">Memuat data...</span>
+                                <Loader2 class="animate-spin mx-auto mb-2" :size="32" />
+                                Memuat data...
                             </td>
                         </tr>
-                        <tr v-else-if="groupedSales.length === 0">
-                            <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
-                                <ClipboardList :size="48" class="mx-auto mb-2 opacity-20" />
-                                <p>Tidak ada data penjualan ditemukan</p>
+                        <tr v-else-if="filteredHistory.length === 0" class="hover:bg-surface-700/30 transition-colors">
+                            <td colspan="11" class="px-6 py-12 text-center text-text-secondary italic">
+                                Tidak ada data penjualan online ditemukan.
                             </td>
                         </tr>
-                        <tr v-for="order in groupedSales" :key="order.id"
-                            class="hover:bg-surface-700/30 transition-colors group border-b border-surface-700">
+                        <tr v-for="order in filteredHistory" :key="order.id" class="hover:bg-surface-700/30 transition-colors group border-b border-surface-700">
                             <td class="px-6 py-4 whitespace-nowrap align-top">
                                 <span
                                     class="font-mono font-bold text-primary-400 bg-primary-500/10 px-2 py-1 rounded text-xs border border-primary-500/20">

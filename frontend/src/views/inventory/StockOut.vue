@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "../../composables/useToast";
 import api, { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
 import { formatCurrency, parseCurrency } from "../../utils/formatters";
 import { Html5Qrcode } from "html5-qrcode";
+import PinModal from "../../components/modals/PinModal.vue";
+import { useAuthStore } from "../../store/auth";
 import {
     Package,
     ArrowRightFromLine,
@@ -62,10 +64,10 @@ const allCategories = [
     { id: 'shopee', name: 'Shopee', icon: ShoppingBag, color: 'orange' },
     { id: 'orderan_online', name: 'Order Online', icon: ShoppingBag, color: 'orange' },
     { id: 'cancel_penjualan', name: 'Cancel Penjualan', icon: XCircle, color: 'red' },
-    { id: 'giveaway', name: 'Giveaway Customer', icon: Gift, color: 'pink' },
+    { id: 'giveaway_customer', name: 'Giveaway Customer', icon: Gift, color: 'pink' },
     { id: 'hadiah', name: 'Hadiah', icon: Trophy, color: 'yellow' },
     { id: 'brand_ambassador', name: 'Brand Ambassador', icon: UserCheck, color: 'indigo' },
-    { id: 'event', name: 'Event / Sponsorship', icon: Calendar, color: 'cyan' },
+    { id: 'event_sponsorship', name: 'Event / Sponsorship', icon: Calendar, color: 'cyan' },
     { id: 'promo', name: 'Promo', icon: Percent, color: 'red' },
     { id: 'inventaris', name: 'Inventaris', icon: Archive, color: 'slate' },
 ];
@@ -116,6 +118,8 @@ const form = ref({
     shopee_tracking_no: '',
     selling_price: null,
     notes: '',
+    inventory_user_id: null,
+    transaction_pin: '',
 });
 
 // sellingPriceDisplay and newNonHpItemSellingPriceDisplay computed properties removed in favor of v-money sync syntax
@@ -137,6 +141,11 @@ const selectedRegionIds = ref({
 const isScanning = ref(false);
 const scannerContainerId = 'barcode-scanner-container';
 let html5QrCode = null;
+
+const showPinModal = ref(false);
+const accountNeedingPin = ref(null);
+const inventoryUsers = ref([]);
+const loadingUsers = ref(false);
 
 async function fetchInventory() {
     isLoading.value = true;
@@ -346,7 +355,9 @@ async function openStockOutForm() {
 
 function resetForm() {
     form.value = {
+        destination_type: 'branch',
         destination_branch_id: null,
+        destination_id: null,
         receiver_name: '',
         transfer_notes: '',
         deletion_reason: '',
@@ -355,13 +366,24 @@ function resetForm() {
         retur_issue: '',
         customer_name: '',
         customer_phone: '',
+        return_destination_id: null,
+        proof_image: null,
         shopee_receiver: '',
         shopee_phone: '',
+        shopee_province: '',
+        shopee_city: '',
+        shopee_district: '',
+        shopee_village: '',
+        shopee_postal_code: '',
         shopee_address: '',
         shopee_notes: '',
         shopee_tracking_no: '',
         selling_price: null,
+        notes: '',
+        inventory_user_id: authStore.user?.id || null,
+        transaction_pin: '',
     };
+    selectedRegionIds.value = { province: "", city: "", district: "", village: "" };
     selectedCategory.value = null;
     selectedNonHpItems.value = [];
 }
@@ -514,21 +536,64 @@ async function fetchCurrentBranch() {
 }
 
 const canSubmit = computed(() => {
-    if (!selectedCategory.value || selectedItems.value.length === 0) return false;
+    if (selectedItems.value.length === 0 && selectedNonHpItems.value.length === 0) return false;
+    if (!selectedCategory.value) return false;
+
+    // Check inventory user
+    if (!form.value.inventory_user_id) return false;
 
     switch (selectedCategory.value) {
         case 'pindah_cabang':
-            return form.value.destination_id && form.value.receiver_name;
+            return form.value.destination_type && form.value.destination_id && form.value.receiver_name;
         case 'kesalahan_input':
-            return form.value.deletion_reason.length >= 5;
+            return form.value.deletion_reason;
         case 'retur':
-            return form.value.retur_officer && form.value.retur_issue && form.value.customer_name && form.value.customer_phone;
+            return form.value.retur_officer && form.value.customer_name && form.value.retur_issue && form.value.customer_phone && form.value.return_destination_id;
         case 'shopee':
+        case 'orderan_online':
             return form.value.shopee_receiver && form.value.shopee_phone && form.value.shopee_address && form.value.shopee_tracking_no && form.value.selling_price;
+        case 'cancel_penjualan':
+            return form.value.notes && form.value.notes.length >= 5;
         default:
             return true;
     }
 });
+
+async function fetchInventoryUsers() {
+    loadingUsers.value = true;
+    try {
+        const response = await inventoryApi.myAccounts();
+        inventoryUsers.value = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        
+        // Auto select if currently null
+        if (!form.value.inventory_user_id && inventoryUsers.value.length > 0) {
+            form.value.inventory_user_id = inventoryUsers.value[0].id;
+        }
+    } catch (e) {
+        toast.error("Gagal memuat daftar akun inventory");
+    } finally {
+        loadingUsers.value = false;
+    }
+}
+
+function handleStartSubmit() {
+    if (!canSubmit.value) return;
+
+    // Check if the selected user has a PIN
+    const target = inventoryUsers.value.find(u => u.id === form.value.inventory_user_id);
+    if (target && target.pin_enabled) {
+        accountNeedingPin.value = target;
+        showPinModal.value = true;
+    } else {
+        submitStockOut();
+    }
+}
+
+function onPinVerified(pin) {
+    form.value.transaction_pin = pin;
+    showPinModal.value = false;
+    submitStockOut();
+}
 
 async function submitStockOut() {
     if (!canSubmit.value) return;
@@ -586,6 +651,7 @@ onMounted(() => {
     fetchBranches();
     fetchCurrentBranch();
     fetchProvinces();
+    fetchInventoryUsers();
 
     if (window.Echo) {
         // Listen for new stock coming in
@@ -782,6 +848,21 @@ onMounted(() => {
                     </button>
                 </div>
 
+                <!-- Akun Inventory Selection -->
+                <div class="space-y-4">
+                    <label class="label mb-0 flex items-center gap-2">
+                        <User :size="16" class="text-primary-500" /> Akun Penanggung Jawab *
+                    </label>
+                    <div v-if="loadingUsers" class="flex items-center gap-2 py-2 text-text-secondary text-sm">
+                        <Loader2 :size="14" class="animate-spin" /> Memuat akun...
+                    </div>
+                    <select v-else v-model="form.inventory_user_id" class="input bg-surface-800">
+                        <option v-for="user in inventoryUsers" :key="user.id" :value="user.id">
+                            {{ user.name }} {{ user.pin_enabled ? '(Wajib PIN)' : '' }}
+                        </option>
+                    </select>
+                </div>
+
                 <div v-if="selectedCategory === 'pindah_cabang'" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -880,7 +961,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div v-if="selectedCategory === 'shopee'" class="space-y-4">
+                <div v-if="selectedCategory === 'shopee' || selectedCategory === 'orderan_online'" class="space-y-4">
                     <div>
                         <label class="label text-emerald-500">SRP (Rp) *</label>
                         <div class="relative">
@@ -1047,7 +1128,7 @@ onMounted(() => {
                 </div>
 
                 <div class="mt-8 flex justify-end">
-                    <button @click="submitStockOut()" :disabled="!canSubmit || isSubmitting"
+                    <button @click="handleStartSubmit()" :disabled="!canSubmit || isSubmitting"
                         class="btn btn-primary px-10 h-14 rounded-2xl font-bold text-sm disabled:opacity-30">
                         <Loader2 v-if="isSubmitting" :size="20" class="animate-spin mr-2" />
                         {{ isSubmitting ? 'Memproses...' : 'Konfirmasi Keluar Stok' }}
@@ -1055,6 +1136,8 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @verified="onPinVerified" />
 
         <div v-if="showReturnBlockedAlert"
             class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">

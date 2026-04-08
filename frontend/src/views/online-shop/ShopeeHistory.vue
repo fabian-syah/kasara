@@ -142,11 +142,26 @@ onMounted(() => {
                 <p class="text-text-secondary mt-1">Riwayat pengeluaran stok untuk pesanan Online</p>
             </div>
 
-            <!-- Search -->
-            <div class="relative w-full md:w-64">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
-                <input v-model="search" type="text" placeholder="Cari Resi / Nama..."
-                    class="pl-10 w-full bg-surface-800 border-surface-700 rounded-xl focus:ring-primary-500 focus:border-primary-500 transition-all text-text-primary h-10" />
+            <!-- Filters -->
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
+                    <button v-for="btn in [
+                        { id: 'all', label: 'Semua' },
+                        { id: 'shopee', label: 'Shopee' },
+                        { id: 'orderan_online', label: 'Online' },
+                        { id: 'cancel_penjualan', label: 'Dibatalkan' }
+                    ]" :key="btn.id" @click="historyFilter = btn.id"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                        :class="historyFilter === btn.id ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
+                        {{ btn.label }}
+                    </button>
+                </div>
+
+                <div class="relative w-full md:w-64">
+                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
+                    <input v-model="search" type="text" placeholder="Cari Resi / Nama..."
+                        class="pl-10 w-full bg-surface-800 border-surface-700 rounded-xl focus:ring-primary-500 focus:border-primary-500 transition-all text-text-primary h-10" />
+                </div>
             </div>
         </div>
 
@@ -163,7 +178,7 @@ onMounted(() => {
             </div>
 
             <div v-else class="divide-y divide-surface-700">
-                <div v-for="item in history" :key="item.id" class="p-4 hover:bg-surface-700/30 transition-colors">
+                <div v-for="item in filteredHistory" :key="item.id" class="p-4 hover:bg-surface-700/30 transition-colors">
                     <div class="flex flex-col gap-4">
                         <!-- Header Row -->
                         <div class="flex items-start justify-between">

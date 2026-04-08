@@ -384,6 +384,11 @@ class StockOutController extends Controller
                         $totalSellingPrice += ($unitPrice * $item['quantity']);
                     }
                 }
+
+                // Fallback to top-level selling_price if no per-item or non-hp prices were calculated
+                if ($totalSellingPrice == 0 && $request->has('selling_price')) {
+                    $totalSellingPrice = floatval($request->selling_price);
+                }
             } else {
                 $totalSellingPrice = floatval($request->selling_price ?? 0);
 
