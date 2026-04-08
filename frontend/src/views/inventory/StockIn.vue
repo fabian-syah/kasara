@@ -28,7 +28,7 @@ import {
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import { debounce } from "../../utils/debounce";
-import { parseCurrency, formatNumber as format } from "../../utils/formatters";
+import { parseCurrency } from "../../utils/formatters";
 
 const toast = useToast();
 const router = useRouter();
