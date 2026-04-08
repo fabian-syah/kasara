@@ -178,24 +178,24 @@
                                 </template>
 
                                 <!-- Final Total Header -->
-                                <div class="flex justify-between border-t-2 border-black pt-2 pb-1 relative">
+                                <div class="flex justify-between border-t-2 border-black pt-2 pb-1 relative transition-all">
                                     <div class="absolute -top-1 left-0 right-0 h-0.5 bg-black/10 print:hidden"></div>
                                     <span class="font-black text-black text-xs uppercase tracking-tight">HARGA TOTAL</span>
                                     <span class="font-black text-black text-xs">
-                                        {{ formatCurrency(transaction.total || transaction.grand_total || 0) }}
+                                        {{ formatCurrency(calculatedGrandTotal) }}
                                     </span>
                                 </div>
 
                                 <!-- Total Paid / Dibayar -->
                                 <div class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
-                                    <span>{{ formatCurrency(transaction.paid || (transaction.paid_amount ?? 0)) }}</span>
+                                    <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
                                     <span class="text-[10px] uppercase">DIBAYAR :</span>
                                 </div>
 
                                 <!-- Change / Kembalian -->
-                                <div v-if="(transaction.paid || transaction.paid_amount) > (transaction.total || transaction.grand_total)"
-                                    class="flex justify-between border-t border-gray-400 pt-1.5 mt-1 text-primary-600 font-black flex-row-reverse bg-primary-50 px-1 rounded print:bg-white print:border-black print:text-black">
-                                    <span class="text-sm">{{ formatCurrency((transaction.paid || transaction.paid_amount) - (transaction.total || transaction.grand_total)) }}</span>
+                                <div v-if="calculatedChange > 0"
+                                    class="flex justify-between border-t border-gray-400 pt-1.5 mt-1 text-primary-600 font-black flex-row-reverse bg-primary-50 px-1 rounded animate-pulse-once print:bg-white print:border-black print:text-black">
+                                    <span class="text-sm">{{ formatCurrency(calculatedChange) }}</span>
                                     <span class="text-[11px] uppercase self-center">KEMBALIAN :</span>
                                 </div>
 
@@ -371,6 +371,31 @@ const formatNumber = (value) => {
     if (value === null || value === undefined || isNaN(value)) return '0';
     return new Intl.NumberFormat('id-ID').format(value);
 };
+
+// Robust calculations for totals and change
+import { computed } from 'vue';
+
+const calculatedTotalPaid = computed(() => {
+    // 1. Try direct fields
+    const directPaid = Number(props.transaction.paid || props.transaction.paid_amount || 0);
+    if (directPaid > 0) return directPaid;
+
+    // 2. Sum from split_payments_data if direct is 0
+    if (props.transaction.split_payments_data?.length > 0) {
+        return props.transaction.split_payments_data.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    }
+    
+    // 3. Fallback to cash/transfer sum
+    return Number(props.transaction.cash || 0) + Number(props.transaction.transfer || 0);
+});
+
+const calculatedGrandTotal = computed(() => {
+    return Number(props.transaction.total || props.transaction.grand_total || props.transaction.selling_price || 0);
+});
+
+const calculatedChange = computed(() => {
+    return Math.max(0, calculatedTotalPaid.value - calculatedGrandTotal.value);
+});
 </script>
 
 <style scoped>
