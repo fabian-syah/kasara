@@ -24,7 +24,11 @@ trait VerifiesPin
         $targetUserId = $inventoryUserId ?: $request->inventory_user_id ?: $user->id;
         $targetUser = User::find($targetUserId);
 
-        if ($targetUser && $targetUser->pin_enabled) {
+        // Require PIN if either pin_enabled is true OR a PIN actually exists (not empty)
+        // Unless they specifically want it disabled, but usually setting a PIN means using it.
+        $hasPin = $targetUser && !empty($targetUser->transaction_pin);
+
+        if ($targetUser && ($targetUser->pin_enabled || $hasPin)) {
             $pin = $request->transaction_pin;
 
             if (!$pin || !Hash::check($pin, $targetUser->transaction_pin)) {

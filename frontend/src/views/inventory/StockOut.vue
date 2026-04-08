@@ -609,7 +609,8 @@ async function fetchInventoryUsers() {
         const normalizedAccounts = accounts.map(u => ({
             ...u,
             id: Number(u.id),
-            pin_enabled: Boolean(u.pin_enabled || u.transaction_pin_exists)
+            // Explicitly mandatory if the account HAS a PIN set up
+            pin_enabled: Boolean(u.pin_enabled || u.has_pin || u.transaction_pin_exists)
         }));
         
         inventoryUsers.value = normalizedAccounts;

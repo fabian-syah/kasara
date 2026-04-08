@@ -1487,9 +1487,14 @@ class InventoryController extends Controller
             ->where('id', '!=', $user->id)   // Double check to exclude self
             ->where('is_active', true)
             ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory')
-            ->get();
+            ->get()
+            ->map(function($u) {
+                $u->has_pin = !empty($u->transaction_pin);
+                return $u;
+            });
 
         return response()->json($inventoryUsers);
+
     }
     // Get Filter Options for Faceted Search
     public function getFilterOptions(Request $request)
