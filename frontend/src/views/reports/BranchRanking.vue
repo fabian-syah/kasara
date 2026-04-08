@@ -201,8 +201,8 @@ const exportToPDF = async () => {
 
     const runExport = async (part, isFirst = false) => {
         exportPart.value = part;
-        // Give time for layout to adapt - slightly longer for safety
-        await new Promise(r => setTimeout(r, 1000));
+        // Wait for rendering
+        await new Promise(r => setTimeout(r, 1200));
         
         try {
             const el = exportRef.value;
@@ -233,18 +233,17 @@ const exportToPDF = async () => {
         }
     };
 
-    const maxPart1 = 10;
-    const maxPartN = 12;
+    const rowsPerPage = 12;
 
-    // Page 1: Podium + Rank 1-10
+    // Page 1
     await runExport(1, true);
 
-    let remaining = displayRanking.value.length - maxPart1;
+    let remaining = displayRanking.value.length - rowsPerPage;
     let currentPart = 2;
 
     while(remaining > 0) {
         await runExport(currentPart, false);
-        remaining -= maxPartN;
+        remaining -= rowsPerPage;
         currentPart++;
     }
     
@@ -253,18 +252,6 @@ const exportToPDF = async () => {
     exportPart.value = 0;
     exportLoading.value = false;
 };
-
-const isRowVisible = (index) => {
-    if (exportPart.value === 0) return true;
-    const maxPart1 = 10;
-    const maxPartN = 12;
-    
-    if (exportPart.value === 1) return index < maxPart1;
-    
-    const start = maxPart1 + (exportPart.value - 2) * maxPartN;
-    const end = start + maxPartN;
-    return index >= start && index < end;
-}
 
 </script>
 
@@ -599,7 +586,7 @@ const isRowVisible = (index) => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <template v-for="(item, index) in displayRanking" :key="item.type + '-' + item.id">
-                                    <tr v-show="isRowVisible(index)"
+                                    <tr v-show="exportPart === 0 || (index >= (exportPart - 1) * 12 && index < exportPart * 12)"
                                         class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
@@ -655,7 +642,7 @@ const isRowVisible = (index) => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && displayRanking.length <= 10) || (exportPart > 1 && displayRanking.length <= 10 + (exportPart - 1) * 12))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (displayRanking.length <= exportPart * 12))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
