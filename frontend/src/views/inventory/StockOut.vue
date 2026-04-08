@@ -605,7 +605,14 @@ async function fetchInventoryUsers() {
             });
         }
         
-        inventoryUsers.value = accounts;
+        // Normalize all accounts to have boolean pin_enabled and ensured types
+        const normalizedAccounts = accounts.map(u => ({
+            ...u,
+            id: Number(u.id),
+            pin_enabled: Boolean(u.pin_enabled || u.transaction_pin_exists)
+        }));
+        
+        inventoryUsers.value = normalizedAccounts;
         
         // Auto select if currently null OR invalid
         if ((!form.value.inventory_user_id || !inventoryUsers.value.some(u => u.id === form.value.inventory_user_id)) && inventoryUsers.value.length > 0) {
@@ -625,9 +632,9 @@ function handleStartSubmit() {
     if (!canSubmit.value) return;
 
     // Check if the selected user has a PIN
-    const target = inventoryUsers.value.find(u => u.id === form.value.inventory_user_id);
-    // Robust check for PIN enabled OR simply having a PIN in the system
-    if (target && (target.pin_enabled || target.transaction_pin_exists)) {
+    const target = inventoryUsers.value.find(u => Number(u.id) === Number(form.value.inventory_user_id));
+    // Robust check for PIN enabled
+    if (target && target.pin_enabled) {
         accountNeedingPin.value = target;
         showPinModal.value = true;
     } else {
@@ -685,11 +692,22 @@ async function submitStockOut() {
         router.push('/inventory');
 
     } catch (e) {
-        if (e.response && e.response.status === 422) {
+        console.error("Stock Out Error:", e);
+        const errorMsg = e.response?.data?.message || "";
+        
+        if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
+            // PIN required or invalid - show PIN modal
+            const targetId = form.value.inventory_user_id;
+            const target = inventoryUsers.value.find(u => Number(u.id) === Number(targetId)) || authStore.user;
+            accountNeedingPin.value = target;
+            showPinModal.value = true;
+            toast.error(errorMsg);
+            
+            // Clear wrong PIN
+            form.value.transaction_pin = '';
+        } else if (e.response && e.response.status === 422) {
             const msg = e.response.data.message || "Validasi gagal. Mohon periksa kembali data Anda.";
             toast.error(msg);
-            // Clear PIN so user can re-verify if needed
-            form.value.transaction_pin = '';
         } else {
             toast.error("Gagal melakukan pengeluaran stok");
         }
@@ -1253,6 +1271,10 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+        
+        <!-- PIN Verification modal -->
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false"
+            @success="onPinVerified" @verified="onPinVerified" />
     </div>
 </template>
 
