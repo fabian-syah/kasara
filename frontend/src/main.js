@@ -32,6 +32,9 @@ app.directive('money', {
             return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         };
 
+        // Store format on the element so updated hook can access it
+        el.__moneyFormat = format;
+
         const sync = (numeric) => {
             if (typeof binding.value === 'function') {
                 binding.value(numeric);
@@ -104,6 +107,14 @@ app.directive('money', {
         }
 
         if (newVal === undefined) return;
+
+        // Use the format function stored on the element
+        const format = el.__moneyFormat || ((val) => {
+            if (val === null || val === undefined || val === '') return '';
+            const numericValue = typeof val === 'number' ? val : parseFloat(val.toString().replace(/[^0-9.-]/g, ''));
+            if (isNaN(numericValue)) return '';
+            return Math.round(numericValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        });
 
         // Only update if the numeric value has actually changed to avoid cursor jitter
         const currentNumeric = parseInt(input.value.replace(/\D/g, ''), 10) || 0;
