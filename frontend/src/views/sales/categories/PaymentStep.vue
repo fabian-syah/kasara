@@ -322,6 +322,7 @@ async function processPayment(pin = null) {
             };
         });
 
+        // Di dalam PaymentStep.vue -> processPayment function
         const lastTransaction = {
             id: response.data?.data?.id,
             order_no: response.data?.data?.receipt_id || response.data?.receipt_id || "TRX-" + Date.now(),
@@ -347,13 +348,18 @@ async function processPayment(pin = null) {
             sales_name: props.salesAccount,
             inventory_account_name: props.salesAccount,
             branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
+
+            // --- PERBAIKAN DI SINI ---
             customer_name: customerForm.value.customer_name,
-            customer_phone: customerForm.value.customer_phone,
+            customer_phone: customerForm.value.customer_phone, // Pastikan ini customer_phone agar sesuai modal
             notes: customerForm.value.notes,
-            paid: totalPaid,
-            total: Number(cartStore.total || 0),
-            date: new Date().toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }),
+            date: new Date().toLocaleDateString("id-ID", {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }), // Mengisi property date agar tidak null
             time: new Date().toLocaleTimeString("id-ID"),
+            // -------------------------
         };
 
         emit('transaction-complete', lastTransaction);
@@ -513,7 +519,7 @@ async function processPayment(pin = null) {
                         TOTAL TAGIHAN</p>
                     <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
                         formatCurrency(cartTotal)
-                    }}</p>
+                        }}</p>
                 </div>
 
                 <div class="space-y-8">
@@ -590,7 +596,8 @@ async function processPayment(pin = null) {
                         <div class="relative">
                             <span v-if="cartStore.discountType === 'fixed'"
                                 class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">Rp</span>
-                            <input v-if="cartStore.discountType === 'fixed'" v-money="val => discountValue = val" type="text"
+                            <input v-if="cartStore.discountType === 'fixed'" v-money="val => discountValue = val"
+                                type="text"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all pl-14"
                                 placeholder="0" />
                             <input v-else v-model.number="cartStore.discount" type="number"
@@ -605,7 +612,7 @@ async function processPayment(pin = null) {
                         class="p-5 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex justify-between items-center">
                         <span class="text-sm font-black text-primary-700">Potongan Diskon</span>
                         <span class="text-xl font-black text-primary-600">- {{ formatCurrency(cartStore.discountAmount)
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- Change/Balance Status -->
@@ -616,7 +623,7 @@ async function processPayment(pin = null) {
                             Kurang</span>
                         <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
                             formatCurrency(Math.abs(changeAmount))
-                        }}</span>
+                            }}</span>
                     </div>
                     <div v-else-if="changeAmount >= 0 && isCashPayment"
                         class="p-4 sm:p-6 bg-emerald-500/10 border-2 border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0">
@@ -624,7 +631,7 @@ async function processPayment(pin = null) {
                             class="text-[10px] sm:text-sm font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Kembalian</span>
                         <span class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-500">{{
                             formatCurrency(changeAmount)
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <div class="flex gap-4 pt-8 border-t border-surface-100 dark:border-surface-700">

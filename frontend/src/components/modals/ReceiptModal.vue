@@ -6,7 +6,6 @@
             <div
                 class="bg-white dark:bg-surface-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full flex flex-col max-h-[90vh] sm:max-h-[85vh]">
 
-                <!-- Modal Header (hide on print) -->
                 <div
                     class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-surface-700 print:hidden shrink-0">
                     <h3 class="text-lg font-bold text-text-primary">
@@ -15,8 +14,7 @@
                     </h3>
                     <div class="flex items-center gap-2">
                         <button v-if="showEditIcon" @click="$emit('open-checklist')"
-                            class="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all"
-                            title="Cek Audit">
+                            class="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all">
                             <Pencil :size="18" />
                         </button>
                         <button @click="close"
@@ -26,255 +24,131 @@
                     </div>
                 </div>
 
-                <!-- Nota Content -->
                 <div id="receipt-content"
                     class="flex-1 overflow-y-auto p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
                     <div v-if="transaction"
                         class="nota-paper max-w-[480px] mx-auto bg-white p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
 
-                        <!-- ===== NOTA HEADER ===== -->
                         <div class="grid grid-cols-[80px_1fr_60px] gap-2 mb-4 pb-4 border-b border-black">
-                            <!-- Logo -->
                             <div class="w-16 h-16 bg-white overflow-hidden self-center">
                                 <img src="/images/logo-pstore.png" alt="PSTORE" class="w-full h-full object-contain" />
                             </div>
-
-                            <!-- Header Info (Center) -->
                             <div class="text-center self-center px-2">
                                 <h1 class="text-lg font-black text-black uppercase leading-tight">
-                                    {{ (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name || '').toUpperCase().includes('PSTORE') 
-                                        ? (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name) 
-                                        : 'PSTORE ' + (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name || '') }}
+                                    {{ (transaction.branch_name || transaction.branch?.name ||
+                                        authStore.userBranch?.name || '').toUpperCase().includes('PSTORE') ?
+                                        (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name)
+                                    : 'PSTORE ' + (transaction.branch_name || transaction.branch?.name ||
+                                    authStore.userBranch?.name || '') }}
                                 </h1>
-                                <p class="text-[8px] font-bold leading-tight text-black mt-1">
-                                    {{ transaction.branch?.address || authStore.userBranch?.address || 'Pusat Perbelanjaan Online' }}
-                                </p>
-                                <p class="text-[8px] font-bold text-black">
-                                    {{ transaction.branch?.phone || authStore.userBranch?.phone ? 'WhatsApp: ' + (transaction.branch?.phone || authStore.userBranch?.phone) : 'HP, Laptop, Barang Elektronik Bergaransi' }}
-                                </p>
+                                <p class="text-[8px] font-bold text-black">{{ transaction.branch?.address ||
+                                    authStore.userBranch?.address }}</p>
                             </div>
-
-                            <!-- Social Placeholder -->
-                            <div class="flex flex-col justify-center items-end opacity-0">
-                            </div>
+                            <div class="opacity-0"></div>
                         </div>
 
-                        <!-- ===== INFO NOTA ===== -->
                         <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs mb-4">
                             <span class="font-semibold text-black">No. Nota</span>
                             <span class="text-black">: {{ transaction.order_no || '-' }}</span>
                             <span class="font-semibold text-black">Atas Nama</span>
                             <span class="text-black font-bold">: {{ transaction.customer_name || 'Umum' }}</span>
-                            <span class="font-semibold text-black">Sales</span>
-                            <span class="text-black">: {{ transaction.inventory_user_name || transaction.inventory_account_name ||
-                                transaction.sales_account || transaction.sales_name || '-' }}</span>
                             <span class="font-semibold text-black">Tanggal</span>
                             <span class="text-black">: {{ transaction.date || '-' }}</span>
                             <span class="font-semibold text-black">No. HP</span>
-                            <span class="text-black">: {{ transaction.customer_phone || '-' }}</span>
+                            <span class="text-black">: {{ transaction.customer_phone || transaction.customer_wa || '-'
+                                }}</span>
                         </div>
 
-                        <!-- ===== TABEL ITEMS ===== -->
                         <table class="w-full text-xs border-collapse mb-4">
                             <thead>
                                 <tr class="border-t-2 border-b-2 border-black">
-                                    <th class="py-2 px-1 text-left font-bold text-black w-[50px]">Banyak</th>
-                                    <th class="py-2 px-1 text-left font-bold text-black">IMEI</th>
-                                    <th class="py-2 px-1 text-left font-bold text-black">Keterangan</th>
-                                    <th class="py-2 px-1 text-right font-bold text-black w-[100px]">Jumlah</th>
+                                    <th class="py-2 text-left font-bold w-[50px]">Qty</th>
+                                    <th class="py-2 text-left font-bold">Keterangan</th>
+                                    <th class="py-2 text-right font-bold w-[100px]">Jumlah</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <template v-if="transaction.items && transaction.items.length > 0">
-                                    <tr v-for="(item, index) in transaction.items" :key="index"
-                                        class="border-b border-gray-300">
-                                        <td class="py-2 px-1 text-black align-top text-center font-bold">{{ item.qty }}
-                                        </td>
-                                        <td class="py-2 px-1 text-black align-top font-mono text-[9px] break-all">
-                                            {{ item.imei && item.imei !== '-' ? item.imei : '-' }}
-                                        </td>
-                                        <td class="py-2 px-1 text-black align-top">
-                                            <div class="font-black uppercase text-black">{{ item.name }}</div>
-                                            <div v-if="item.ram || item.storage" class="text-[10px] text-black font-medium">
-                                                {{ [item.ram, item.storage].filter(Boolean).join('/') }}
-                                            </div>
-                                            <div v-if="item.condition" class="text-[9px] text-black font-bold italic">
-                                                Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition ===
-                                                    'ex_ibox' ? 'Ex iBox' : 'Second') }}
-                                            </div>
-                                        </td>
-                                        <td class="py-2 px-1 text-black align-top text-right font-bold w-[120px]">
-                                            <div v-if="(item.discount || item.item_discount) > 0" class="text-[8px] text-gray-500 line-through opacity-70">
-                                                {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <span>{{ formatNumber(item.qty * ((item.price || item.selling_price) - (item.discount || item.item_discount || 0))) }}</span>
-                                                <span v-if="(item.discount || item.item_discount) > 0" class="text-[7px] text-primary-600 bg-primary-50 px-1 rounded inline-block self-end mt-0.5">
-                                                    Disc: -{{ formatNumber(item.qty * (item.discount || item.item_discount)) }}
-                                                </span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </template>
-                                <!-- Empty rows for physical nota feel -->
-                                <tr v-for="n in Math.max(0, 3 - (transaction.items?.length || 0))" :key="'empty-' + n"
+                                <tr v-for="(item, index) in transaction.items" :key="index"
                                     class="border-b border-gray-300">
-                                    <td class="py-3 px-1">&nbsp;</td>
-                                    <td class="py-3 px-1"></td>
-                                    <td class="py-3 px-1"></td>
-                                    <td class="py-3 px-1"></td>
+                                    <td class="py-2 font-bold">{{ item.qty }}</td>
+                                    <td class="py-2">
+                                        <div class="font-black uppercase">{{ item.name }}</div>
+                                        <div class="text-[9px] font-mono">{{ item.imei || '-' }}</div>
+                                    </td>
+                                    <td class="py-2 text-right font-bold">{{ formatNumber(item.qty * (item.price ||
+                                        item.selling_price)) }}</td>
                                 </tr>
-                                <!-- No summary rows inside table to keep it clean -->
                             </tbody>
                         </table>
 
-                        <!-- ===== PAYMENT SECTION ===== -->
-                        <div class="flex justify-end mb-4 payment-section">
-                            <div class="w-[240px] text-xs space-y-1">
-                                <!-- Subtotal before all discounts -->
-                                <!-- Summary Section -->
-                                <div class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black text-[10px]">SUB TOTAL :</span>
-                                    <span class="text-black">
-                                        {{ formatCurrency(transaction.original_price || (Number(transaction.selling_price || 0) + Number(transaction.total_discount || 0))) }}
-                                    </span>
+                        <div class="flex justify-end space-y-1">
+                            <div class="w-[200px] text-xs">
+                                <div class="flex justify-between font-bold">
+                                    <span>TOTAL:</span>
+                                    <span>{{ formatCurrency(calculatedGrandTotal) }}</span>
                                 </div>
-
-                                <!-- Total Diskon (Gabungan) if any -->
-                                <div v-if="transaction.total_discount > 0" class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black text-[10px]">TOTAL DISKON :</span>
-                                    <span class="text-primary-700 font-bold">
-                                        -{{ formatCurrency(transaction.total_discount) }}
-                                    </span>
-                                </div>
-
-                                <!-- Payment Breakdown -->
-                                <template
-                                    v-if="transaction.split_payments_data && transaction.split_payments_data.length > 0">
-                                    <div v-for="(payment, idx) in transaction.split_payments_data" :key="idx"
-                                        class="flex justify-between border-b border-gray-300 pb-1">
-                                        <span class="font-bold text-black text-[10px] uppercase">{{ payment.method_name
-                                            }} :</span>
-                                        <span class="text-black">
-                                            {{ formatCurrency(payment.amount) }}
-                                        </span>
-                                    </div>
-                                </template>
-                                <template v-else>
-                                    <div v-if="transaction.cash > 0"
-                                        class="flex justify-between border-b border-gray-300 pb-1">
-                                        <span class="font-bold text-black text-[10px]">CASH :</span>
-                                        <span class="text-black">
-                                            {{ formatCurrency(transaction.cash) }}
-                                        </span>
-                                    </div>
-                                    <div v-if="transaction.transfer > 0"
-                                        class="flex justify-between border-b border-gray-300 pb-1">
-                                        <span class="font-bold text-black text-[10px]">TF :</span>
-                                        <span class="text-black">
-                                            {{ formatCurrency(transaction.transfer) }}
-                                        </span>
-                                    </div>
-                                </template>
-
-                                <!-- Final Total Header -->
-                                <div class="flex justify-between border-t-2 border-black pt-2 pb-1 relative transition-all">
-                                    <div class="absolute -top-1 left-0 right-0 h-0.5 bg-black/10 print:hidden"></div>
-                                    <span class="font-black text-black text-xs uppercase tracking-tight">HARGA TOTAL</span>
-                                    <span class="font-black text-black text-xs">
-                                        {{ formatCurrency(calculatedGrandTotal) }}
-                                    </span>
-                                </div>
-
-                                <!-- Total Paid / Dibayar -->
-                                <div class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
+                                <div class="flex justify-between border-t border-black mt-1">
+                                    <span>DIBAYAR:</span>
                                     <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
-                                    <span class="text-[10px] uppercase">DIBAYAR :</span>
-                                </div>
-
-                                <!-- Change / Kembalian -->
-                                <div v-if="calculatedChange > 0"
-                                    class="flex justify-between border-t border-gray-400 pt-1.5 mt-1 text-primary-600 font-black flex-row-reverse bg-primary-50 px-1 rounded animate-pulse-once print:bg-white print:border-black print:text-black">
-                                    <span class="text-sm">{{ formatCurrency(calculatedChange) }}</span>
-                                    <span class="text-[11px] uppercase self-center">KEMBALIAN :</span>
-                                </div>
-
-                                <div class="text-[9px] text-right text-gray-500 italic mt-1">
-                                    Metode: {{ transaction.payment_method_name || transaction.payment_method || '-' }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ===== TRANSACTION NOTES ===== -->
-                        <div v-if="transaction.notes" class="mb-4 text-[10px] text-black italic">
-                            <span class="font-bold">Catatan:</span> {{ transaction.notes }}
-                        </div>
-
-                        <!-- ===== GARANSI NOTES ===== -->
-                        <div class="bg-gray-100/80 border border-black/20 rounded p-2.5 mb-5 print:bg-white print:border-black">
-                            <div v-if="transaction.branch?.warranty_terms || authStore.userBranch?.warranty_terms" 
-                                 class="text-[9px] text-black font-bold whitespace-pre-line leading-relaxed">
-                                {{ transaction.branch?.warranty_terms || authStore.userBranch?.warranty_terms }}
-                            </div>
-                            <ul v-else class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
-                                <li class="font-black underline italic">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
-                                <li class="font-black underline italic">Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
-                                <li class="font-black underline italic">Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
-                            </ul>
-                        </div>
-
-                        <!-- ===== SIGNATURE AREA ===== -->
-                        <div class="flex justify-between text-xs mt-6 mb-2 signature-area">
-                            <div class="text-center">
-                                <p class="font-semibold text-black mb-12">Pembeli,</p>
-                                <div class="border-b border-gray-400 w-32 text-center text-[10px] font-bold">
-                                    {{ transaction.customer_name || 'Umum' }}
-                                </div>
-                            </div>
-                            <div class="text-center">
-                                <p class="font-semibold text-black mb-12">Hormat Kami,</p>
-                                <div class="border-b border-gray-400 w-32 text-center text-[10px] font-bold">
-                                    {{ transaction.inventory_user_name || transaction.inventory_account_name ||
-                                        transaction.sales_account || transaction.sales_name || 'PSTORE' }}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- LOADING OVERLAY -->
-                <div v-if="isGeneratingPDF"
-                    class="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 dark:bg-surface-800/90 backdrop-blur-sm transition-all duration-300">
-                    <div class="relative">
-                        <Loader2 class="w-12 h-12 text-primary-500 animate-spin" />
-                        <div class="absolute inset-0 animate-ping bg-primary-500/20 rounded-full"></div>
-                    </div>
-                    <h4 class="mt-4 text-lg font-bold text-text-primary">Menyiapkan Nota PDF</h4>
-                    <p class="mt-1 text-sm text-text-secondary">Mohon tunggu sebentar, sedang mengupload ke Google
-                        Drive...</p>
-                </div>
-
-                <!-- Footer / Actions (hide on print) -->
-                <div class="p-4 bg-white border-t border-gray-100 flex gap-3 print:hidden shrink-0">
+                <div class="p-4 bg-white border-t flex gap-3 print:hidden shrink-0">
                     <button @click="close"
-                        class="flex-1 px-4 py-4 text-base font-black text-white bg-primary-600 rounded-[1.5rem] hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary-500/30 active:scale-95 uppercase tracking-widest">
-                        Selesai & Keluar
+                        class="flex-1 py-4 bg-primary-600 text-white font-black rounded-2xl uppercase">Selesai</button>
+                    <button @click="printReceipt" class="px-6 py-4 bg-gray-900 text-white rounded-2xl">
+                        <Printer />
                     </button>
-                    <button @click="printReceipt"
-                        class="px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
-                        <Printer :size="18" />
-                        Cetak
-                    </button>
-                    <!-- <button @click="shareToWhatsApp"
-                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
-                        <MessageSquare :size="18" />
-                        Kirim WA
-                    </button> -->
                 </div>
             </div>
         </div>
     </transition>
 </template>
+
+<script setup>
+import { defineProps, defineEmits, ref, computed, watch } from 'vue';
+import { Printer, Pencil, X, Loader2 } from 'lucide-vue-next';
+import { useAuthStore } from '../../store/auth';
+
+const authStore = useAuthStore();
+const props = defineProps({
+    isOpen: Boolean,
+    transaction: Object,
+    showEditIcon: Boolean
+});
+
+const emit = defineEmits(['close', 'open-checklist']);
+const close = () => emit('close');
+const printReceipt = () => window.print();
+
+const formatCurrency = (val) => {
+    if (!val) return 'Rp 0';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+};
+
+const formatNumber = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
+
+const calculatedTotalPaid = computed(() => {
+    return Number(props.transaction?.paid || props.transaction?.paid_amount || 0);
+});
+
+const calculatedGrandTotal = computed(() => {
+    return Number(props.transaction?.total || props.transaction?.grand_total || 0);
+});
+
+const calculatedChange = computed(() => Math.max(0, calculatedTotalPaid.value - calculatedGrandTotal.value));
+</script>
+
+<style scoped>
+/* CSS Kamu di sini */
+.nota-paper {
+    background: white;
+    color: black;
+}
+</style>
 
 <script setup>
 import { defineProps, defineEmits, ref } from 'vue';
@@ -330,7 +204,7 @@ const shareToWhatsApp = async (isAuto = false) => {
         // Call backend to handle EVERYTHING (PDF -> GDrive -> WA Link)
         // Increased timeout to 90 seconds since GDrive PDF generation is heavy
         const response = await api.get(`/receipts/${props.transaction.id}/share-wa`, {
-            timeout: 90000 
+            timeout: 90000
         });
         const result = response.data;
 
@@ -384,7 +258,7 @@ const calculatedTotalPaid = computed(() => {
     if (props.transaction.split_payments_data?.length > 0) {
         return props.transaction.split_payments_data.reduce((sum, p) => sum + Number(p.amount || 0), 0);
     }
-    
+
     // 3. Fallback to cash/transfer sum
     return Number(props.transaction.cash || 0) + Number(props.transaction.transfer || 0);
 });
