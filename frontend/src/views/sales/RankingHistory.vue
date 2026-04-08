@@ -1,179 +1,289 @@
 <template>
-    <div class="space-y-6 max-w-4xl mx-auto">
+    <div class="space-y-6 animate-in">
         <!-- Header -->
-        <div class="text-center py-8">
-            <div class="w-20 h-20 mx-auto bg-amber-500/20 rounded-3xl flex items-center justify-center mb-4">
-                <Trophy :size="36" class="text-amber-500" />
-            </div>
-            <h1 class="text-3xl font-bold text-text-primary">Peringkat & Foto</h1>
-            <p class="text-text-secondary mt-2">Lihat peringkat penjualan dan foto sales</p>
-        </div>
-
-        <!-- Period Filter -->
-        <div class="flex items-center justify-center gap-3">
-            <div class="relative min-w-[140px]">
-                <select v-model="selectedPeriod" @change="handlePeriodChange"
-                    class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                    <option value="daily">Harian</option>
-                    <option value="monthly">Bulanan</option>
-                </select>
-                <ChevronDown :size="16"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-            </div>
-
-            <div v-if="selectedPeriod === 'daily'" class="relative group">
-                <div
-                    class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 transition-all cursor-pointer">
-                    <Calendar :size="18" class="text-gray-500 group-hover:text-primary-500" />
-                    <span class="text-sm font-medium text-text-primary min-w-[100px]">
-                        {{ formattedDateDisplay }}
-                    </span>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-3">
+                <button v-if="currentView !== 'menu'" @click="goBack"
+                    class="p-2 hover:bg-surface-800 rounded-xl transition-colors">
+                    <ArrowLeft :size="20" class="text-text-secondary" />
+                </button>
+                <div v-else class="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center">
+                    <Trophy :size="24" class="text-amber-500" />
                 </div>
-                <input type="date" v-model="filters.start_date" @change="handleDateChange"
-                    @click="$event.target.showPicker()"
-                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                <div>
+                    <h1 class="text-2xl font-bold text-text-primary tracking-tight">Peringkat Penjualan</h1>
+                    <p class="text-text-secondary mt-0.5 text-sm">
+                        {{ viewLabels[currentView] || 'Lihat peringkat penjualan dan performa sales' }}
+                    </p>
+                </div>
             </div>
+            
+            <!-- Filters (Period & Date) -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Refresh Button -->
+                <button @click="fetchData"
+                    class="p-2.5 text-text-secondary hover:text-primary-500 hover:bg-primary-500/10 rounded-xl transition-all mr-2">
+                    <RefreshCw :size="20" :class="{ 'animate-spin': loading }" />
+                </button>
 
-            <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2">
-                <div class="relative min-w-[140px]">
+                <div class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1">
+                    <button v-for="p in ['daily', 'monthly']" :key="p"
+                        @click="selectedPeriod = p; handlePeriodChange()"
+                        class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                        :class="selectedPeriod === p ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                        {{ p === 'daily' ? 'Harian' : 'Bulanan' }}
+                    </button>
+                </div>
+
+                <div v-if="selectedPeriod === 'daily'" class="relative group">
+                    <div class="flex items-center gap-2 px-4 py-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl hover:border-primary-500 transition-all cursor-pointer">
+                        <Calendar :size="16" class="text-gray-500 group-hover:text-primary-500" />
+                        <span class="text-xs font-bold text-text-primary">{{ formattedDateDisplay }}</span>
+                    </div>
+                    <input type="date" v-model="filters.start_date" @change="handleDateChange"
+                        @click="$event.target.showPicker()"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                </div>
+
+                <div v-else class="flex items-center gap-2">
                     <select v-model="selectedMonth" @change="handleMonthChange"
-                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
+                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0">
                         <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
                     </select>
-                    <ChevronDown :size="16"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                </div>
-                <div class="relative min-w-[100px]">
                     <select v-model="selectedYear" @change="handleMonthChange"
-                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
+                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0">
                         <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
                     </select>
-                    <ChevronDown :size="16"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
             </div>
         </div>
 
-        <!-- Loading -->
-        <div v-if="loading" class="flex justify-center py-12">
-            <Loader2 class="w-8 h-8 text-primary-500 animate-spin" />
-        </div>
+        <!-- ==================== MENU LANDING ==================== -->
+        <template v-if="currentView === 'menu'">
+            <div v-if="loading" class="flex flex-col items-center justify-center py-20">
+                <Loader2 class="animate-spin text-primary-500 mb-4" :size="40" />
+                <p class="text-text-secondary text-sm font-medium">Memuat data peringkat...</p>
+            </div>
 
-        <!-- Ranking Cards -->
-        <div v-else-if="rankings.length === 0" class="text-center py-12 text-text-secondary">
-            <Trophy :size="48" class="mx-auto mb-4 opacity-30" />
-            <p class="font-medium text-text-primary">Belum ada data peringkat</p>
-            <p class="text-sm mt-1">Data penjualan belum tersedia pada periode ini</p>
-        </div>
-
-        <div v-else class="space-y-4">
-            <!-- Top 3 Podium -->
-            <div v-if="rankings.length >= 1" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <template v-for="(cs, idx) in rankings.slice(0, 3)" :key="cs.cs_name">
-                    <div class="relative bg-white dark:!bg-surface-800 rounded-2xl p-6 border shadow-sm text-center transition-all hover:shadow-lg"
-                        :class="{
-                            'border-amber-300 dark:border-amber-500/30 md:order-2 md:-mt-4': idx === 0,
-                            'border-gray-300 dark:border-surface-600 md:order-1': idx === 1,
-                            'border-amber-700 dark:border-amber-800/30 md:order-3': idx === 2,
-                        }">
-                        <!-- Rank Badge -->
-                        <div class="absolute -top-3 left-1/2 -translate-x-1/2">
-                            <span class="px-3 py-1 rounded-full text-xs font-black shadow-lg" :class="{
-                                'bg-amber-400 text-amber-900': idx === 0,
-                                'bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-200': idx === 1,
-                                'bg-amber-700 text-amber-100': idx === 2,
-                            }">
-                                #{{ idx + 1 }}
-                            </span>
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card: Per Omset -->
+                <button @click="navigateTo('revenue')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-amber-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
+                            <TrendingUp :size="24" class="text-amber-500" />
                         </div>
-
-                        <!-- Avatar -->
-                        <div class="mt-4 mb-3">
-                            <img :src="cs.photo
-                                ? (cs.photo.startsWith('http') ? cs.photo : `${storageBaseUrl}/storage/${cs.photo}`)
-                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.cs_name)}&background=10b981&color=fff&size=128`"
-                                class="w-20 h-20 rounded-full mx-auto border-4 object-cover shadow-md" :class="{
-                                    'border-amber-400': idx === 0,
-                                    'border-gray-300 dark:border-gray-500': idx === 1,
-                                    'border-amber-700': idx === 2,
-                                }" :alt="cs.cs_name"
-                                @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.cs_name)}&background=10b981&color=fff&size=128`" />
-                        </div>
-
-                        <h3 class="text-lg font-bold text-text-primary truncate">{{ cs.cs_name }}</h3>
-                        <p class="text-3xl font-black mt-2" :class="{
-                            'text-amber-500': idx === 0,
-                            'text-gray-500 dark:text-gray-400': idx === 1,
-                            'text-amber-700 dark:text-amber-400': idx === 2,
-                        }">{{ cs.total_sales }}</p>
-                        <p class="text-text-secondary text-xs uppercase tracking-wider font-semibold mt-1">Unit Terjual
-                        </p>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-amber-500 transition-colors" />
                     </div>
-                </template>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Omset</h3>
+                    <p class="text-sm text-text-secondary">Ranking sales berdasarkan total nilai penjualan bruto</p>
+                </button>
+
+                <!-- Card: Per Sales -->
+                <button @click="navigateTo('sales')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-blue-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
+                            <Users :size="24" class="text-blue-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-blue-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Sales</h3>
+                    <p class="text-sm text-text-secondary">Ranking sales berdasarkan jumlah unit terjual</p>
+                </button>
+
+                <!-- Card: Per Brand -->
+                <button @click="navigateTo('brand')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-purple-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
+                            <Layers :size="24" class="text-purple-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-purple-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Penjualan per Brand</h3>
+                    <p class="text-sm text-text-secondary">Ringkasan penjualan berdasarkan merek produk</p>
+                </button>
+
+                <!-- Card: Per Tipe -->
+                <button @click="navigateTo('type')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-emerald-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                            <Smartphone :size="24" class="text-emerald-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-emerald-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Penjualan per Tipe</h3>
+                    <p class="text-sm text-text-secondary">Ringkasan penjualan berdasarkan tipe/model produk</p>
+                </button>
+
+                <!-- Card: Per Kondisi -->
+                <button @click="navigateTo('condition')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-orange-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-orange-500/10 rounded-xl group-hover:bg-orange-500/20 transition-colors">
+                            <Tag :size="24" class="text-orange-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-orange-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Penjualan per Kondisi</h3>
+                    <p class="text-sm text-text-secondary">Ringkasan penjualan berdasarkan kondisi (New/Second)</p>
+                </button>
+
+                <!-- Card: Activity Ranking -->
+                <button @click="navigateTo('activity')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-red-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-red-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-red-500/10 rounded-xl group-hover:bg-red-500/20 transition-colors">
+                            <RotateCcw :size="24" class="text-red-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-red-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Angkat Barang & Refund</h3>
+                    <p class="text-sm text-text-secondary">Ranking sales berdasarkan jumlah refund & angkat barang</p>
+                </button>
+            </div>
+        </template>
+
+        <!-- ==================== SUB-VIEWS ==================== -->
+        <template v-else>
+            <!-- Sub-view Header (Search & Sort) -->
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4">
+                <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2">
+                            <ListFilter class="text-text-secondary mr-2" :size="16" />
+                            <select v-model="sortConfig.order" 
+                                class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[120px]">
+                                <option value="num-desc" class="dark:bg-surface-800">Angka Terbanyak</option>
+                                <option value="num-asc" class="dark:bg-surface-800">Angka Terendah</option>
+                                <option value="alpha-asc" class="dark:bg-surface-800">Abjad (A-Z)</option>
+                                <option value="alpha-desc" class="dark:bg-surface-800">Abjad (Z-A)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="relative w-full sm:w-80 group">
+                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors" :size="18" />
+                        <input v-model="searchQuery" type="text" placeholder="Cari..."
+                            class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
+                    </div>
+                </div>
             </div>
 
-            <!-- Full Ranking Table -->
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 dark:border-surface-700">
-                    <h2 class="text-lg font-bold text-text-primary">Peringkat Lengkap</h2>
+            <!-- Content Area -->
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 overflow-hidden shadow-sm">
+                <div v-if="loading" class="p-12 flex justify-center items-center">
+                    <Loader2 class="animate-spin text-primary-500" :size="32" />
                 </div>
-                <div class="overflow-x-auto">
+                
+                <div v-else-if="sortedData.length === 0" class="p-12 text-center text-text-secondary">
+                    <Search :size="48" class="mx-auto mb-4 opacity-20" />
+                    <p class="font-medium">Tidak ada data ditemukan</p>
+                </div>
+
+                <div v-else class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
-                        <thead
-                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
+                        <thead class="text-xs font-bold text-text-secondary uppercase bg-gray-50/50 dark:bg-surface-900/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
                                 <th class="px-6 py-4 w-16">Rank</th>
-                                <th class="px-6 py-4">Sales</th>
-                                <th class="px-6 py-4 text-center">Total Penjualan</th>
-                                <th class="px-6 py-4 text-center">Tukar Tambah</th>
-                                <th class="px-6 py-4 text-center">Refund</th>
-                                <th class="px-6 py-4 text-right">Grand Total</th>
+                                
+                                <!-- Dynamic Columns -->
+                                <template v-if="['revenue', 'sales', 'activity'].includes(currentView)">
+                                    <th class="px-6 py-4">Sales</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Angkat Barang</th>
+                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
+                                    <th class="px-6 py-4 text-right">Grand Total</th>
+                                </template>
+
+                                <template v-else-if="currentView === 'brand'">
+                                    <th class="px-6 py-4">Brand</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                </template>
+
+                                <template v-else-if="currentView === 'type'">
+                                    <th class="px-6 py-4">Brand</th>
+                                    <th class="px-6 py-4">Tipe Produk</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                </template>
+
+                                <template v-else-if="currentView === 'condition'">
+                                    <th class="px-6 py-4">Kondisi</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                </template>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                            <tr v-for="(cs, index) in rankings" :key="cs.cs_name"
+                        <tbody class="divide-y divide-gray-50 dark:divide-surface-700/50">
+                            <tr v-for="(item, idx) in sortedData" :key="idx" 
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                                 <td class="px-6 py-4">
-                                    <span
-                                        class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
-                                        :class="{
-                                            'bg-amber-400 text-amber-900': index === 0,
-                                            'bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-200': index === 1,
-                                            'bg-amber-700 text-amber-100': index === 2,
-                                            'bg-surface-100 dark:bg-surface-700 text-text-secondary': index > 2,
-                                        }">
-                                        {{ index + 1 }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <img :src="cs.photo
-                                            ? (cs.photo.startsWith('http') ? cs.photo : `${storageBaseUrl}/storage/${cs.photo}`)
-                                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.cs_name)}&background=10b981&color=fff&size=48`"
-                                            class="w-9 h-9 rounded-full object-cover border-2 border-surface-200 dark:border-surface-600"
-                                            :alt="cs.cs_name"
-                                            @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.cs_name)}&background=10b981&color=fff&size=48`" />
-                                        <span class="font-semibold text-text-primary">{{ cs.cs_name }}</span>
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
+                                        :class="getRankBadgeClass(idx)">
+                                        {{ idx + 1 }}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-center font-bold text-primary-500">{{ cs.total_sales }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ cs.total_trade_in || 0 }}</td>
-                                <td class="px-6 py-4 text-center text-text-secondary">{{ cs.total_refund || 0 }}</td>
-                                <td class="px-6 py-4 text-right font-bold text-text-primary font-mono">{{
-                                    formatCurrency(cs.grand_total) }}</td>
+
+                                <!-- CS Related Data -->
+                                <template v-if="['revenue', 'sales', 'activity'].includes(currentView)">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <img :src="item.photo
+                                                ? (item.photo.startsWith('http') ? item.photo : `${storageBaseUrl}/storage/${item.photo}`)
+                                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.cs_name)}&background=10b981&color=fff&size=48`"
+                                                class="w-10 h-10 rounded-xl object-cover border-2 border-surface-200 dark:border-surface-600 shadow-sm"
+                                                @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.cs_name)}&background=10b981&color=fff&size=48`" />
+                                            <span class="font-bold text-text-primary">{{ item.cs_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center font-black text-primary-500">{{ item.total_sales }}</td>
+                                    <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-amber-500">{{ item.total_angkat_barang || 0 }}</td>
+                                    <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-red-500">{{ item.total_refund || 0 }}</td>
+                                    <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
+                                        {{ formatCurrency(item.grand_total) }}
+                                    </td>
+                                </template>
+
+                                <!-- Brand Data -->
+                                <template v-else-if="currentView === 'brand'">
+                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.brand }}</td>
+                                    <td class="px-6 py-4 text-center font-black text-purple-500">{{ item.qty }}</td>
+                                </template>
+
+                                <!-- Type Data -->
+                                <template v-else-if="currentView === 'type'">
+                                    <td class="px-6 py-4 text-text-secondary">{{ item.brand }}</td>
+                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.name }}</td>
+                                    <td class="px-6 py-4 text-center font-black text-emerald-500">{{ item.qty }}</td>
+                                </template>
+
+                                <!-- Condition Data -->
+                                <template v-else-if="currentView === 'condition'">
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-lg text-xs font-bold border" :class="getConditionClass(item.condition)">
+                                            {{ formatCondition(item.condition) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-center font-black text-orange-500">{{ item.qty }}</td>
+                                </template>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </template>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { Loader2, ChevronDown, Calendar, Trophy } from 'lucide-vue-next'
+import { ref, onMounted, computed, watch } from 'vue'
+import { 
+    Loader2, ChevronDown, Calendar, Trophy, ArrowLeft, RefreshCw, 
+    TrendingUp, Users, Layers, Smartphone, Tag, RotateCcw,
+    Search, ListFilter, ChevronRight 
+} from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 
@@ -181,7 +291,21 @@ const authStore = useAuthStore()
 const storageBaseUrl = computed(() => authStore.storageBaseUrl)
 
 const loading = ref(false)
+const currentView = ref('menu')
+const searchQuery = ref('')
 const selectedPeriod = ref('daily')
+const sortConfig = ref({
+    order: 'num-desc' // 'num-desc', 'num-asc', 'alpha-asc', 'alpha-desc'
+})
+
+const viewLabels = {
+    'revenue': 'Peringkat Berdasarkan Omset',
+    'sales': 'Peringkat Berdasarkan Unit Terjual',
+    'brand': 'Penjualan Berdasarkan Brand',
+    'type': 'Penjualan Berdasarkan Tipe Produk',
+    'condition': 'Penjualan Berdasarkan Kondisi',
+    'activity': 'Peringkat Angkat Barang & Refund'
+}
 
 const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -194,8 +318,10 @@ const selectedMonth = ref(new Date().getMonth() + 1);
 const selectedYear = ref(currentYear);
 
 const salesData = ref({
-    daily_sales: [],
+    daily_sales: { data: [] },
     brand_sales: [],
+    type_sales: [],
+    condition_sales: [],
     cs_sales: []
 })
 
@@ -214,17 +340,56 @@ const filters = ref({
 
 const formattedDateDisplay = computed(() => {
     if (!filters.value.start_date) return 'Pilih Tanggal';
-    if (selectedPeriod.value === 'daily') {
-        const date = new Date(filters.value.start_date);
-        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    } else {
-        return `${months[selectedMonth.value - 1]} ${selectedYear.value}`;
-    }
+    const date = new Date(filters.value.start_date);
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 })
 
-// Rankings sorted by total_sales descending
-const rankings = computed(() => {
-    return [...(salesData.value.cs_sales || [])].sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0))
+// Main Data Processor
+const sortedData = computed(() => {
+    let base = []
+    let numKey = ''
+    let alphaKey = ''
+
+    if (currentView.value === 'revenue' || currentView.value === 'sales' || currentView.value === 'activity') {
+        base = [...salesData.value.cs_sales]
+        numKey = currentView.value === 'revenue' ? 'grand_total' : currentView.value === 'sales' ? 'total_sales' : 'total_refund';
+        alphaKey = 'cs_name'
+    } else if (currentView.value === 'brand') {
+        base = [...salesData.value.brand_sales]
+        numKey = 'qty'
+        alphaKey = 'brand'
+    } else if (currentView.value === 'type') {
+        base = [...salesData.value.type_sales]
+        numKey = 'qty'
+        alphaKey = 'name'
+    } else if (currentView.value === 'condition') {
+        base = [...salesData.value.condition_sales]
+        numKey = 'qty'
+        alphaKey = 'condition'
+    }
+
+    // Filter by Query
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase()
+        base = base.filter(item => {
+            if (alphaKey && item[alphaKey]) return item[alphaKey].toLowerCase().includes(q)
+            if (item.name) return item.name.toLowerCase().includes(q)
+            if (item.cs_name) return item.cs_name.toLowerCase().includes(q)
+            return false
+        })
+    }
+
+    // Sort
+    const { order } = sortConfig.value
+    base.sort((a, b) => {
+        if (order === 'num-desc') return (b[numKey] || 0) - (a[numKey] || 0)
+        if (order === 'num-asc') return (a[numKey] || 0) - (b[numKey] || 0)
+        if (order === 'alpha-asc') return (a[alphaKey] || '').localeCompare(b[alphaKey] || '')
+        if (order === 'alpha-desc') return (b[alphaKey] || '').localeCompare(a[alphaKey] || '')
+        return 0
+    })
+
+    return base
 })
 
 const formatCurrency = (value) => {
@@ -235,6 +400,40 @@ const formatCurrency = (value) => {
     }).format(value || 0)
 }
 
+const getRankBadgeClass = (idx) => {
+    if (idx === 0) return 'bg-amber-400 text-amber-950 border-2 border-amber-300'
+    if (idx === 1) return 'bg-slate-300 text-slate-800 border-2 border-slate-200 shadow-inner'
+    if (idx === 2) return 'bg-orange-800 text-orange-50 dark:bg-orange-700 border-2 border-orange-600'
+    return 'bg-gray-100 dark:bg-surface-700 text-text-secondary border border-gray-200 dark:border-surface-600'
+}
+
+const getConditionClass = (cond) => {
+    const maps = {
+        'new': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+        'ex_ibox': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+        'second': 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+    }
+    return maps[cond] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+}
+
+const formatCondition = (cond) => {
+    const maps = { 'new': 'Baru', 'ex_ibox': 'Ex iBox', 'second': 'Second' }
+    return maps[cond] || cond
+}
+
+const navigateTo = (view) => {
+    currentView.value = view
+    searchQuery.value = ''
+    // Set default sort based on view
+    if (view === 'revenue' || view === 'sales') sortConfig.value.order = 'num-desc'
+    else sortConfig.value.order = 'num-desc'
+}
+
+const goBack = () => {
+    currentView.value = 'menu'
+    searchQuery.value = ''
+}
+
 const handlePeriodChange = () => {
     if (selectedPeriod.value === 'daily') {
         const today = getTodayLocal();
@@ -243,13 +442,11 @@ const handlePeriodChange = () => {
     } else {
         handleMonthChange();
     }
-    fetchData();
+    // No need to call fetchData here as watchers will handle it
 }
 
 const handleDateChange = () => {
-    if (selectedPeriod.value === 'daily') {
-        filters.value.end_date = filters.value.start_date;
-    }
+    filters.value.end_date = filters.value.start_date;
     fetchData();
 }
 
@@ -260,15 +457,16 @@ const handleMonthChange = () => {
     const pad = (n) => n < 10 ? '0' + n : n;
     filters.value.start_date = `${year}-${pad(month)}-01`;
     filters.value.end_date = `${year}-${pad(month)}-${pad(endDate.getDate())}`;
-    if (selectedPeriod.value === 'monthly') {
-        fetchData();
-    }
+    fetchData();
 }
 
 const fetchData = async () => {
     loading.value = true
     try {
-        const params = { ...filters.value };
+        const params = { 
+            start_date: filters.value.start_date,
+            end_date: filters.value.end_date
+        };
         const response = await axios.get('/audit/sales', { params })
         salesData.value = response.data
     } catch (error) {
@@ -279,9 +477,17 @@ const fetchData = async () => {
 }
 
 onMounted(() => {
-    const today = getTodayLocal();
-    filters.value.start_date = today;
-    filters.value.end_date = today;
     fetchData()
 })
 </script>
+
+<style scoped>
+.animate-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
