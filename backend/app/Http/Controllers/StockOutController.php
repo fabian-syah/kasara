@@ -733,13 +733,13 @@ class StockOutController extends Controller
 
         // DATE FILTERS
         if ($request->date) {
-            $query->where('reporting_date', $request->date);
+            $query->whereDate('created_at', $request->date);
         }
         if ($request->has('month') && !empty($request->month)) {
-            $query->whereMonth('reporting_date', $request->month);
+            $query->whereMonth('created_at', $request->month);
         }
         if ($request->has('year') && !empty($request->year)) {
-            $query->whereYear('reporting_date', $request->year);
+            $query->whereYear('created_at', $request->year);
         }
 
         $history = $query->latest()->paginate(20);

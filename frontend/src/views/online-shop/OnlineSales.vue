@@ -123,8 +123,8 @@ const fetchData = async (page = 1) => {
                 q: search.value,
                 per_page: 20,
                 // Add filter params
-                date: filterType.value === 'today' ? new Date().toISOString().split('T')[0]
-                    : (filterType.value === 'yesterday' ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : null),
+                date: filterType.value === 'today' ? new Date().toLocaleDateString('en-CA')
+                    : (filterType.value === 'yesterday' ? new Date(Date.now() - 86400000).toLocaleDateString('en-CA') : null),
                 month: filterType.value === 'this_month' ? new Date().getMonth() + 1 : null,
                 year: filterType.value === 'this_month' ? new Date().getFullYear() : null
             }
