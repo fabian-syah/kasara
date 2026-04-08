@@ -724,7 +724,7 @@ const selectOutgoingUnit = (item) => {
                                 <div class="relative mb-4 sm:mb-6">
                                     <span
                                         class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm sm:text-base">Rp</span>
-                                    <input v-money="val => $emit('update:bundleTotalPrice', val)" type="text"
+                                    <input v-money="val => bundleTotalPrice = val" type="text"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-surface-800 text-text-primary text-lg sm:text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-11 sm:pl-12"
                                         placeholder="0" />
                                 </div>

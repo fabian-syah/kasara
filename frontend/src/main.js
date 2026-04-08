@@ -24,9 +24,12 @@ app.directive('money', {
 
         const format = (val) => {
             if (val === null || val === undefined || val === '') return '';
-            const clean = val.toString().replace(/\D/g, '');
-            if (!clean) return '';
-            return parseInt(clean, 10).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            // Safely handle values that might have decimals (like 1000.00)
+            const numericValue = typeof val === 'number' ? val : parseFloat(val.toString().replace(/[^0-9.-]/g, ''));
+            if (isNaN(numericValue)) return '';
+            
+            const clean = Math.round(numericValue).toString();
+            return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         };
 
         const sync = (numeric) => {
@@ -105,12 +108,7 @@ app.directive('money', {
         // Only update if the numeric value has actually changed to avoid cursor jitter
         const currentNumeric = parseInt(input.value.replace(/\D/g, ''), 10) || 0;
         if (currentNumeric !== newVal) {
-            const clean = newVal.toString().replace(/\D/g, '');
-            if (!clean) {
-                input.value = '';
-            } else {
-                input.value = parseInt(clean, 10).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            }
+            input.value = format(newVal);
         }
     }
 });
