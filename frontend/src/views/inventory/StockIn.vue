@@ -28,7 +28,7 @@ import {
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import { debounce } from "../../utils/debounce";
-import { parseCurrency, formatNumber } from "../../utils/formatters";
+import { parseCurrency, formatNumber as format } from "../../utils/formatters";
 
 const toast = useToast();
 const router = useRouter();
@@ -215,12 +215,12 @@ const handleBrandChangeHp = (index) => {
     item.ram = "";
     item.storage = "";
     item.product_id = null;
-    
+
     if (!item.brand_id) {
         item.uniqueTypeNames = [];
         return;
     }
-    
+
     const types = allowedTypes.value.filter(t => t.brand_id === item.brand_id && isImeiCategory(t.category));
     item.uniqueTypeNames = Array.from(new Set(types.map(t => t.name)));
 };
@@ -231,12 +231,12 @@ const handleTypeChangeHp = (index) => {
     item.ram = "";
     item.storage = "";
     item.product_id = null;
-    
+
     if (!item.type_name) {
         item.combinations = [];
         return;
     }
-    
+
     // Resolve combinations for this specific item
     const specs = resolveSpecsForType(item.brand_id, item.type_name);
     item.combinations = specs.combinations;
@@ -252,7 +252,7 @@ const handleCapacityChangeHp = (index) => {
         item.ram = "";
         item.storage = item.capacity ? item.capacity.trim() : "";
     }
-    
+
     // Look up product ID and price
     lookupProductIdHp(index);
     lookupPriceHp(index);
@@ -261,16 +261,16 @@ const handleCapacityChangeHp = (index) => {
 const lookupProductIdHp = async (index) => {
     const item = hpItems.value[index];
     if (!item.brand_id || !item.type_name) return;
-    
+
     try {
         const brandObj = brands.value.find(b => b.id === item.brand_id);
         const brandName = brandObj ? brandObj.name : "";
-        
+
         const response = await inventoryApi.getProductsLookup({
             type: 'hp',
             name: item.type_name
         });
-        
+
         const found = response.data.find(p => {
             const dbBrand = (p.brand || "").toLowerCase().trim();
             const selBrand = brandName.toLowerCase().trim();
@@ -278,7 +278,7 @@ const lookupProductIdHp = async (index) => {
             const selName = item.type_name.toLowerCase().trim();
             return dbBrand === selBrand && dbName === selName;
         });
-        
+
         if (found) {
             item.product_id = found.id;
         } else {
@@ -292,11 +292,11 @@ const lookupProductIdHp = async (index) => {
 const lookupPriceHp = debounce(async (index) => {
     const item = hpItems.value[index];
     if (!item.type_name || !item.brand_id) return;
-    
+
     // Find the product type ID from allowedTypes
-    const typeObj = allowedTypes.value.find(t => 
-        t.name === item.type_name && 
-        t.brand_id === item.brand_id && 
+    const typeObj = allowedTypes.value.find(t =>
+        t.name === item.type_name &&
+        t.brand_id === item.brand_id &&
         isImeiCategory(t.category)
     );
 
@@ -309,11 +309,11 @@ const lookupPriceHp = debounce(async (index) => {
             ram: item.ram || null,
             storage: item.storage || null
         });
-        
+
         if (res.data && res.data.found) {
             const rawPrice = Number(res.data.price || 0);
             const rawCost = Number(res.data.cost_price || 0);
-            
+
             item.suggestedSellingPrice = Math.round(rawPrice);
             // Only auto-fill if currently 0 or null
             if (!item.selling_price) item.selling_price = Math.round(rawPrice);
@@ -769,7 +769,7 @@ async function submitStockIn(verifiedPin = null) {
                 toast.success(`Berhasil input ${totalInserted} stok HP!`);
                 router.push('/inventory').catch(() => { window.location.href = '/inventory'; });
             }
-            
+
             isSubmitting.value = false;
             return;
         } else {
@@ -909,7 +909,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
+                                        }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -1061,7 +1061,8 @@ onMounted(fetchInitialData);
                     </select>
                     <input v-else v-model="newDistributorName" placeholder="Nama baru..."
                         class="input flex-1 bg-surface-800 h-14" />
-                    <button @click="isManualDistributor = !isManualDistributor" class="btn btn-outline w-14 h-14 rounded-2xl"
+                    <button @click="isManualDistributor = !isManualDistributor"
+                        class="btn btn-outline w-14 h-14 rounded-2xl"
                         :class="isManualDistributor ? 'text-primary-500 border-primary-500' : ''">
                         <component :is="isManualDistributor ? List : Plus" />
                     </button>
@@ -1073,7 +1074,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                            }}</span></div>
+                    }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -1082,72 +1083,102 @@ onMounted(fetchInitialData);
                     <!-- HP MODE: Multiple Items Selection -->
                     <div v-if="itemType === 'hp'" class="space-y-6">
                         <div class="flex items-center justify-between px-2">
-                            <label class="text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Daftar Stok HP / Gadget</label>
-                            <button @click="addHpItem" class="text-[10px] font-black text-primary-500 hover:text-primary-400 flex items-center gap-1 uppercase transition-all">
+                            <label
+                                class="text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Daftar
+                                Stok HP / Gadget</label>
+                            <button @click="addHpItem"
+                                class="text-[10px] font-black text-primary-500 hover:text-primary-400 flex items-center gap-1 uppercase transition-all">
                                 <Plus :size="14" /> Tambah Batch
                             </button>
                         </div>
 
-                        <div v-for="(item, idx) in hpItems" :key="idx" class="bg-surface-800/30 p-5 rounded-3xl border border-surface-700 relative group animate-in slide-in-from-right duration-300 shadow-lg space-y-6">
-                             <button v-if="hpItems.length > 1" @click="removeHpItem(idx)" class="absolute -top-3 -right-3 w-8 h-8 bg-surface-900 border border-surface-700 hover:border-red-500 hover:text-red-500 text-text-secondary rounded-xl flex items-center justify-center transition-all shadow-xl z-10"><Trash2 :size="14" /></button>
-                             
-                             <div class="grid grid-cols-2 gap-4">
-                                 <div><label class="label text-[10px] uppercase">Merk <span class="text-red-500">*</span></label>
-                                    <select v-model="item.brand_id" @change="handleBrandChangeHp(idx)" class="input bg-surface-900">
+                        <div v-for="(item, idx) in hpItems" :key="idx"
+                            class="bg-surface-800/30 p-5 rounded-3xl border border-surface-700 relative group animate-in slide-in-from-right duration-300 shadow-lg space-y-6">
+                            <button v-if="hpItems.length > 1" @click="removeHpItem(idx)"
+                                class="absolute -top-3 -right-3 w-8 h-8 bg-surface-900 border border-surface-700 hover:border-red-500 hover:text-red-500 text-text-secondary rounded-xl flex items-center justify-center transition-all shadow-xl z-10">
+                                <Trash2 :size="14" />
+                            </button>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="label text-[10px] uppercase">Merk <span
+                                            class="text-red-500">*</span></label>
+                                    <select v-model="item.brand_id" @change="handleBrandChangeHp(idx)"
+                                        class="input bg-surface-900">
                                         <option :value="null">-- Pilih Merk --</option>
-                                        <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                        <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}
+                                        </option>
                                     </select>
                                 </div>
-                                 
-                                 <div><label class="label text-[10px] uppercase">Tipe <span class="text-red-500">*</span></label>
-                                    <select v-model="item.type_name" @change="handleTypeChangeHp(idx)" :disabled="!item.brand_id" class="input bg-surface-900 disabled:opacity-30">
+
+                                <div><label class="label text-[10px] uppercase">Tipe <span
+                                            class="text-red-500">*</span></label>
+                                    <select v-model="item.type_name" @change="handleTypeChangeHp(idx)"
+                                        :disabled="!item.brand_id" class="input bg-surface-900 disabled:opacity-30">
                                         <option value="">-- Pilih Tipe --</option>
                                         <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
                                     </select>
                                 </div>
-                                 
-                                 <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas <span class="text-red-500">*</span></label>
-                                    <select v-model="item.capacity" @change="handleCapacityChangeHp(idx)" :disabled="!item.type_name" class="input bg-surface-900 disabled:opacity-30">
+
+                                <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas <span
+                                            class="text-red-500">*</span></label>
+                                    <select v-model="item.capacity" @change="handleCapacityChangeHp(idx)"
+                                        :disabled="!item.type_name" class="input bg-surface-900 disabled:opacity-30">
                                         <option value="">-- Semua --</option>
                                         <option v-for="c in item.combinations" :key="c" :value="c">{{ c }}</option>
                                     </select>
                                 </div>
-                             </div>
+                            </div>
 
-                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <div><label class="label text-[10px] uppercase">Kondisi <span class="text-red-500">*</span></label>
-                                    <select v-model="item.condition" @change="lookupPriceHp(idx)" class="input bg-surface-900 h-10 text-sm">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div><label class="label text-[10px] uppercase">Kondisi <span
+                                            class="text-red-500">*</span></label>
+                                    <select v-model="item.condition" @change="lookupPriceHp(idx)"
+                                        class="input bg-surface-900 h-10 text-sm">
                                         <option value="new">Baru</option>
                                         <option value="second">Bekas</option>
                                         <option v-if="item.brand_id === 1" value="ex_ibox">Ex iBox</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
-                                    <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
+                                    <label class="label text-[10px] uppercase text-emerald-500">Harga Modal
+                                        (Satuan)</label>
+                                    <div
+                                        class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
                                         <span class="text-text-secondary text-xs mr-2 font-black">Rp</span>
-                                        <input v-money:cost_price="item" type="text" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" placeholder="0" />
+                                        <input v-money:cost_price="item" type="text"
+                                            class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary"
+                                            placeholder="0" />
                                     </div>
                                 </div>
                                 <div class="col-span-full md:col-span-1">
-                                    <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span class="text-red-500">*</span></label>
-                                    <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
+                                    <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span
+                                            class="text-red-500">*</span></label>
+                                    <div
+                                        class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
                                         <span class="text-text-secondary text-xs mr-2 font-black">Rp</span>
-                                        <input v-money:selling_price="item" type="text" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" :placeholder="item.suggestedSellingPrice ? formatRupiah(item.suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
+                                        <input v-money:selling_price="item" type="text"
+                                            class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary"
+                                            :placeholder="item.suggestedSellingPrice ? formatRupiah(item.suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
                                     </div>
                                 </div>
-                             </div>
+                            </div>
 
-                             <div class="space-y-2 mt-4">
-                                 <label class="label text-sm uppercase font-bold flex justify-between">
-                                      <div class="flex items-center gap-2"><span>Input IMEI</span><span class="text-red-500">*</span></div>
-                                      <span class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total: {{ item.parsedImeis.length }} items</span>
-                                 </label>
-                                 <textarea v-model="item.bulkImeiText" @input="handleImeiInput(idx)" rows="4" class="input bg-surface-900 font-mono text-xs leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500" placeholder="Paste banyak IMEI disini..."></textarea>
-                             </div>
+                            <div class="space-y-2 mt-4">
+                                <label class="label text-sm uppercase font-bold flex justify-between">
+                                    <div class="flex items-center gap-2"><span>Input IMEI</span><span
+                                            class="text-red-500">*</span></div>
+                                    <span
+                                        class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
+                                        {{ item.parsedImeis.length }} items</span>
+                                </label>
+                                <textarea v-model="item.bulkImeiText" @input="handleImeiInput(idx)" rows="4"
+                                    class="input bg-surface-900 font-mono text-xs leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500"
+                                    placeholder="Paste banyak IMEI disini..."></textarea>
+                            </div>
                         </div>
 
-                        <button @click="addHpItem" class="w-full py-4 border-2 border-dashed border-surface-700/50 rounded-2xl text-text-secondary hover:text-primary-500 hover:border-primary-500 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest bg-surface-900/10 active:scale-95">
+                        <button @click="addHpItem"
+                            class="w-full py-4 border-2 border-dashed border-surface-700/50 rounded-2xl text-text-secondary hover:text-primary-500 hover:border-primary-500 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest bg-surface-900/10 active:scale-95">
                             <Plus :size="18" /> Klik Disini Untuk Tambah Batch Lainnya
                         </button>
                     </div>
