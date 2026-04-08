@@ -312,10 +312,13 @@ const lookupPriceHp = debounce(async (index) => {
         });
         
         if (res.data && res.data.found) {
-            item.suggestedSellingPrice = res.data.price;
-            // Only auto-fill if currently 0
-            if (!item.selling_price) item.selling_price = res.data.price;
-            if (!item.cost_price) item.cost_price = res.data.cost_price || 0;
+            const rawPrice = Number(res.data.price || 0);
+            const rawCost = Number(res.data.cost_price || 0);
+            
+            item.suggestedSellingPrice = Math.round(rawPrice);
+            // Only auto-fill if currently 0 or null
+            if (!item.selling_price) item.selling_price = Math.round(rawPrice);
+            if (!item.cost_price) item.cost_price = Math.round(rawCost);
         } else {
             item.suggestedSellingPrice = 0;
         }
