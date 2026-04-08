@@ -244,12 +244,7 @@ async function processPayment(pin = null) {
             formData.append('transaction_pin', pin);
         }
 
-        let finalNotes = customerForm.value.notes;
-        if (cartStore.discount > 0) {
-            const discText = cartStore.discountType === 'percentage' ? `${cartStore.discount}%` : formatCurrency(cartStore.discount);
-            finalNotes = (finalNotes ? finalNotes + "\n" : "") + `[Diskon ${discText}: -${formatCurrency(cartStore.discountAmount)}]`;
-        }
-        formData.append('notes', finalNotes);
+        formData.append('notes', customerForm.value.notes);
 
         let nonHpIndex = 0;
         cartItems.value.forEach(item => {
@@ -355,7 +350,10 @@ async function processPayment(pin = null) {
             customer_name: customerForm.value.customer_name,
             customer_phone: customerForm.value.customer_phone,
             notes: customerForm.value.notes,
-            time: new Date().toLocaleString("id-ID"),
+            paid: totalPaid,
+            total: Number(cartStore.total || 0),
+            date: new Date().toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }),
+            time: new Date().toLocaleTimeString("id-ID"),
         };
 
         emit('transaction-complete', lastTransaction);

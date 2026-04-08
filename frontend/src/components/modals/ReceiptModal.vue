@@ -103,8 +103,16 @@
                                                     'ex_ibox' ? 'Ex iBox' : 'Second') }}
                                             </div>
                                         </td>
-                                        <td class="py-2 px-1 text-black align-top text-right font-bold">
-                                            {{ formatNumber(item.qty * item.price) }}
+                                        <td class="py-2 px-1 text-black align-top text-right font-bold w-[120px]">
+                                            <div v-if="(item.discount || item.item_discount) > 0" class="text-[8px] text-gray-500 line-through opacity-70">
+                                                {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span>{{ formatNumber(item.qty * ((item.price || item.selling_price) - (item.discount || item.item_discount || 0))) }}</span>
+                                                <span v-if="(item.discount || item.item_discount) > 0" class="text-[7px] text-primary-600 bg-primary-50 px-1 rounded inline-block self-end mt-0.5">
+                                                    Disc: -{{ formatNumber(item.qty * (item.discount || item.item_discount)) }}
+                                                </span>
+                                            </div>
                                         </td>
                                     </tr>
                                 </template>
@@ -124,21 +132,19 @@
                         <div class="flex justify-end mb-4 payment-section">
                             <div class="w-[240px] text-xs space-y-1">
                                 <!-- Subtotal before all discounts -->
+                                <!-- Summary Section -->
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black">SUB TOTAL :</span>
+                                    <span class="font-bold text-black text-[10px]">SUB TOTAL :</span>
                                     <span class="text-black">
-                                        {{ formatCurrency(transaction.original_price || 0) }}
+                                        {{ formatCurrency(transaction.original_price || (Number(transaction.selling_price || 0) + Number(transaction.total_discount || 0))) }}
                                     </span>
                                 </div>
 
-                                <!-- Dynamic Discount Row (ONLY Global Discount) -->
-                                <div v-if="transaction.global_discount_value > 0"
-                                    class="flex justify-between border-b border-gray-300 pb-1 text-black font-bold italic">
-                                    <span>DISKON :</span>
-                                    <span>
-                                        -{{ formatCurrency(transaction.global_discount_type === 'percentage'
-                                            ? (transaction.original_price * transaction.global_discount_value / 100)
-                                            : transaction.global_discount_value) }}
+                                <!-- Total Diskon (Gabungan) if any -->
+                                <div v-if="transaction.total_discount > 0" class="flex justify-between border-b border-gray-300 pb-1">
+                                    <span class="font-bold text-black text-[10px]">TOTAL DISKON :</span>
+                                    <span class="text-primary-700 font-bold">
+                                        -{{ formatCurrency(transaction.total_discount) }}
                                     </span>
                                 </div>
 
@@ -171,19 +177,26 @@
                                     </div>
                                 </template>
 
-                                <!-- Final Total -->
-                                <div class="flex justify-between border-t-2 border-black pt-1">
-                                    <span class="font-extrabold text-black text-sm">TOTAL :</span>
-                                    <span class="font-extrabold text-black text-sm">
-                                        {{ formatCurrency(transaction.grand_total || 0) }}
+                                <!-- Final Total Header -->
+                                <div class="flex justify-between border-t-2 border-black pt-2 pb-1 relative">
+                                    <div class="absolute -top-1 left-0 right-0 h-0.5 bg-black/10 print:hidden"></div>
+                                    <span class="font-black text-black text-xs uppercase tracking-tight">HARGA TOTAL</span>
+                                    <span class="font-black text-black text-xs">
+                                        {{ formatCurrency(transaction.total || transaction.grand_total || 0) }}
                                     </span>
                                 </div>
 
+                                <!-- Total Paid / Dibayar -->
+                                <div class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
+                                    <span>{{ formatCurrency(transaction.paid || (transaction.paid_amount ?? 0)) }}</span>
+                                    <span class="text-[10px] uppercase">DIBAYAR :</span>
+                                </div>
+
                                 <!-- Change / Kembalian -->
-                                <div v-if="transaction.change_amount > 0 || transaction.change > 0"
-                                    class="flex justify-between border-t border-gray-300 pt-1 text-black font-bold">
-                                    <span>KEMBALIAN :</span>
-                                    <span>{{ formatCurrency(transaction.change_amount || transaction.change) }}</span>
+                                <div v-if="(transaction.paid || transaction.paid_amount) > (transaction.total || transaction.grand_total)"
+                                    class="flex justify-between border-t border-gray-400 pt-1.5 mt-1 text-primary-600 font-black flex-row-reverse bg-primary-50 px-1 rounded print:bg-white print:border-black print:text-black">
+                                    <span class="text-sm">{{ formatCurrency((transaction.paid || transaction.paid_amount) - (transaction.total || transaction.grand_total)) }}</span>
+                                    <span class="text-[11px] uppercase self-center">KEMBALIAN :</span>
                                 </div>
 
                                 <div class="text-[9px] text-right text-gray-500 italic mt-1">
