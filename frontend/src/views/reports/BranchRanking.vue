@@ -201,22 +201,18 @@ const exportToPDF = async () => {
 
     const runExport = async (part, isFirst = false) => {
         exportPart.value = part;
-        // Give time for layout to adapt
-        await new Promise(r => setTimeout(r, 800));
+        // Give time for layout to adapt - slightly longer for safety
+        await new Promise(r => setTimeout(r, 1000));
         
         try {
             const el = exportRef.value;
-            // Set up purely for dimension anchoring (no themes/padding)
             const dataUrl = await toJpeg(el, { 
                 quality: 0.95,
                 pixelRatio: 2,
                 width: 1100,
-                includeQueryParams: true,
-                cacheBust: true,
+                backgroundColor: isDark ? '#0f172a' : '#f8fafc',
                 style: { 
                     width: '1100px',
-                    minHeight: '1556px', // Strict A4 proportion minimum height
-                    backgroundColor: isDark ? '#0f172a' : '#f8fafc', // Adapt to light/dark system
                     maxWidth: 'none',
                     margin: '0',
                     display: 'flex',
@@ -231,18 +227,18 @@ const exportToPDF = async () => {
                 pdf.addPage();
             }
 
-            // Using FAST compression
             pdf.addImage(dataUrl, 'JPEG', 0, 0, pageWidth, pdfPageHeight, undefined, 'FAST');
         } catch (e) { 
             console.error('PDF Export part error:', e); 
         }
     };
 
-    // Part 1: Podium + first 15 rows (Rank 1-15)
+    const maxPart1 = 10;
+    const maxPartN = 12;
+
+    // Page 1: Podium + Rank 1-10
     await runExport(1, true);
 
-    const maxPart1 = 15;
-    const maxPartN = 15;
     let remaining = displayRanking.value.length - maxPart1;
     let currentPart = 2;
 
@@ -257,6 +253,18 @@ const exportToPDF = async () => {
     exportPart.value = 0;
     exportLoading.value = false;
 };
+
+const isRowVisible = (index) => {
+    if (exportPart.value === 0) return true;
+    const maxPart1 = 10;
+    const maxPartN = 12;
+    
+    if (exportPart.value === 1) return index < maxPart1;
+    
+    const start = maxPart1 + (exportPart.value - 2) * maxPartN;
+    const end = start + maxPartN;
+    return index >= start && index < end;
+}
 
 </script>
 
@@ -591,7 +599,7 @@ const exportToPDF = async () => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <template v-for="(item, index) in displayRanking" :key="item.type + '-' + item.id">
-                                    <tr v-show="exportPart === 0 || (exportPart === 1 && index < 15) || (exportPart > 1 && index >= 15 + (exportPart - 2) * 15 && index < 15 + (exportPart - 1) * 15)"
+                                    <tr v-show="isRowVisible(index)"
                                         class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
@@ -647,7 +655,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && displayRanking.length <= 15) || (exportPart > 1 && displayRanking.length <= 15 + (exportPart - 1) * 15))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (exportPart === 1 && displayRanking.length <= 10) || (exportPart > 1 && displayRanking.length <= 10 + (exportPart - 1) * 12))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
