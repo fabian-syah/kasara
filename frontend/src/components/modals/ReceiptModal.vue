@@ -33,35 +33,27 @@
                         class="nota-paper max-w-[480px] mx-auto bg-white p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
 
                         <!-- ===== NOTA HEADER ===== -->
-                        <div class="flex items-start gap-4 mb-4 pb-4">
-                            <div
-                                class="w-20 h-20 flex items-center justify-center bg-white rounded-xl shrink-0 overflow-hidden">
+                        <div class="grid grid-cols-[80px_1fr_60px] gap-2 mb-4 pb-4 border-b border-black">
+                            <!-- Logo -->
+                            <div class="w-16 h-16 bg-white overflow-hidden self-center">
                                 <img src="/images/logo-pstore.png" alt="PSTORE" class="w-full h-full object-contain" />
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <h2 class="text-2xl font-black tracking-wider text-black leading-none">PSTORE</h2>
-                                <p class="text-[9px] font-bold leading-tight text-black mt-1">
-                                    Pusat Perbelanjaan Online<br />
-                                    HP, Laptop, Barang Elektronik Bergaransi Terjamin Dan Terpercaya
+
+                            <!-- Header Info (Center) -->
+                            <div class="text-center self-center px-2">
+                                <h1 class="text-lg font-black text-black uppercase leading-tight">
+                                    PSTORE {{ transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name || '' }}
+                                </h1>
+                                <p class="text-[8px] font-bold leading-tight text-black mt-1">
+                                    {{ transaction.branch?.address || authStore.userBranch?.address || 'Pusat Perbelanjaan Online' }}
                                 </p>
-                                <p class="text-[9px] font-bold text-black mt-0.5">
-                                    No Customer Service 0851 - 3300 - 5600
+                                <p class="text-[8px] font-bold text-black">
+                                    {{ transaction.branch?.phone || authStore.userBranch?.phone ? 'WhatsApp: ' + (transaction.branch?.phone || authStore.userBranch?.phone) : 'HP, Laptop, Barang Elektronik Bergaransi' }}
                                 </p>
-                                <div class="mt-2 text-[9px] text-black">
-                                    <span class="font-black">Kami ada juga di :</span>
-                                    <div class="flex items-center gap-4 mt-0.5">
-                                        <span class="flex items-center gap-1">
-                                            <img src="/images/shopee-icon-small.png" class="w-2.5 h-2.5 object-contain"
-                                                alt="" />
-                                            pstore_
-                                        </span>
-                                        <span class="flex items-center gap-1">
-                                            <img src="/images/tokopedia-icon-small.png"
-                                                class="w-2.5 h-2.5 object-contain" alt="" />
-                                            pstore_
-                                        </span>
-                                    </div>
-                                </div>
+                            </div>
+
+                            <!-- Social Placeholder -->
+                            <div class="flex flex-col justify-center items-end opacity-0">
                             </div>
                         </div>
 
@@ -71,12 +63,13 @@
                             <span class="text-black">: {{ transaction.order_no || '-' }}</span>
                             <span class="font-semibold text-black">Atas Nama</span>
                             <span class="text-black font-bold">: {{ transaction.customer_name || 'Umum' }}</span>
+                            <span class="font-semibold text-black">Sales</span>
+                            <span class="text-black">: {{ transaction.inventory_user_name || transaction.inventory_account_name ||
+                                transaction.sales_account || transaction.sales_name || '-' }}</span>
                             <span class="font-semibold text-black">Tanggal</span>
                             <span class="text-black">: {{ transaction.date || '-' }}</span>
-                            <span v-if="transaction.customer_phone && transaction.customer_phone !== '-'"
-                                class="font-semibold text-black">No. HP</span>
-                            <span v-if="transaction.customer_phone && transaction.customer_phone !== '-'"
-                                class="text-black">: {{ transaction.customer_phone }}</span>
+                            <span class="font-semibold text-black">No. HP</span>
+                            <span class="text-black">: {{ transaction.customer_phone || '-' }}</span>
                         </div>
 
                         <!-- ===== TABEL ITEMS ===== -->
@@ -183,15 +176,32 @@
                                         {{ formatCurrency(transaction.grand_total || 0) }}
                                     </span>
                                 </div>
+
+                                <!-- Change / Kembalian -->
+                                <div v-if="transaction.change_amount > 0 || transaction.change > 0"
+                                    class="flex justify-between border-t border-gray-300 pt-1 text-black font-bold">
+                                    <span>KEMBALIAN :</span>
+                                    <span>{{ formatCurrency(transaction.change_amount || transaction.change) }}</span>
+                                </div>
+
                                 <div class="text-[9px] text-right text-gray-500 italic mt-1">
                                     Metode: {{ transaction.payment_method_name || transaction.payment_method || '-' }}
                                 </div>
                             </div>
                         </div>
 
+                        <!-- ===== TRANSACTION NOTES ===== -->
+                        <div v-if="transaction.notes" class="mb-4 text-[10px] text-black italic">
+                            <span class="font-bold">Catatan:</span> {{ transaction.notes }}
+                        </div>
+
                         <!-- ===== GARANSI NOTES ===== -->
                         <div class="bg-gray-100/80 border border-black/20 rounded p-2.5 mb-5 print:bg-white print:border-black">
-                            <ul class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
+                            <div v-if="transaction.branch?.warranty_terms || authStore.userBranch?.warranty_terms" 
+                                 class="text-[9px] text-black font-bold whitespace-pre-line leading-relaxed">
+                                {{ transaction.branch?.warranty_terms || authStore.userBranch?.warranty_terms }}
+                            </div>
+                            <ul v-else class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
                                 <li class="font-black underline italic">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
                                 <li class="font-black underline italic">Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
                                 <li class="font-black underline italic">Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
@@ -201,12 +211,16 @@
                         <!-- ===== SIGNATURE AREA ===== -->
                         <div class="flex justify-between text-xs mt-6 mb-2 signature-area">
                             <div class="text-center">
-                                <p class="font-semibold text-black mb-12">Penerima,</p>
-                                <div class="border-b border-gray-400 w-28"></div>
+                                <p class="font-semibold text-black mb-12">Pembeli,</p>
+                                <div class="border-b border-gray-400 w-32 text-center text-[10px] font-bold">
+                                    {{ transaction.customer_name || 'Umum' }}
+                                </div>
                             </div>
                             <div class="text-center">
                                 <p class="font-semibold text-black mb-12">Hormat Kami,</p>
-                                <div class="border-b border-gray-400 w-28 text-center text-[10px] font-bold">PSTORE
+                                <div class="border-b border-gray-400 w-32 text-center text-[10px] font-bold">
+                                    {{ transaction.inventory_user_name || transaction.inventory_account_name ||
+                                        transaction.sales_account || transaction.sales_name || 'PSTORE' }}
                                 </div>
                             </div>
                         </div>
@@ -252,6 +266,9 @@ import { defineProps, defineEmits, ref } from 'vue';
 import { Printer, Pencil, X, MessageSquare, Loader2 } from 'lucide-vue-next';
 import { useEscapeKey } from '../../composables/useEscapeKey';
 import api from '../../api/axios';
+
+import { useAuthStore } from '../../store/auth';
+const authStore = useAuthStore();
 
 const props = defineProps({
     isOpen: Boolean,

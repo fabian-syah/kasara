@@ -333,136 +333,175 @@ async function handlePinSuccess(pin) {
 
             <!-- Right Column: Edit Form -->
             <div class="lg:col-span-2">
-                <form @submit.prevent="saveProfile" class="card space-y-6">
-
-                    <!-- Personal Info -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                            <User :size="20" class="text-primary-500" /> Informasi Pribadi
+                <form @submit.prevent="saveProfile" class="card overflow-hidden">
+                    <div class="px-6 py-4 bg-surface-900/50 border-b border-surface-700">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <User :size="20" class="text-primary-500" /> Pengaturan Akun
                         </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="label">Nama Lengkap</label>
-                                <input v-model="form.full_name" type="text" class="input" disabled />
-                            </div>
-                            <div>
-                                <label class="label">Username</label>
-                                <input v-model="form.username" type="text" class="input" disabled />
-                            </div>
-                            <div>
-                                <label class="label">Email</label>
-                                <input v-model="form.email" type="email" class="input" />
-                            </div>
-                            <div>
-                                <label class="label">No. Telepon</label>
-                                <input v-model="form.phone" type="tel" class="input" />
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="label">Alamat</label>
-                                <textarea v-model="form.address" class="input min-h-[80px]"></textarea>
-                            </div>
-                        </div>
                     </div>
 
-                    <div class="h-px bg-surface-700/50"></div>
-
-                    <!-- Security -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                            <Lock :size="20" class="text-primary-500" /> Keamanan (Ganti Password)
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="label">Password Baru</label>
-                                <input v-model="form.new_password" type="password" class="input"
-                                    placeholder="Biarkan kosong jika tidak diganti" />
-                            </div>
-                            <div>
-                                <label class="label">Konfirmasi Password</label>
-                                <input v-model="form.confirm_password" type="password" class="input"
-                                    placeholder="Ulangi password baru" />
+                    <div class="p-6 space-y-8">
+                        <!-- Personal Info -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-black uppercase tracking-widest text-primary-500/80 mb-4 border-l-2 border-primary-500 pl-3">
+                                Informasi Pribadi
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div class="space-y-1.5">
+                                    <label class="label">Nama Lengkap</label>
+                                    <div class="relative group">
+                                        <User class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <input v-model="form.full_name" type="text" class="input pl-10 opacity-70" disabled />
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="label">Username</label>
+                                    <div class="relative group">
+                                        <Shield class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <input v-model="form.username" type="text" class="input pl-10 opacity-70" disabled />
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="label">Email</label>
+                                    <div class="relative group">
+                                        <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <input v-model="form.email" type="email" class="input pl-10" placeholder="your@email.com" />
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="label">No. Telepon</label>
+                                    <div class="relative group">
+                                        <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <input v-model="form.phone" type="tel" class="input pl-10" placeholder="08xx-xxxx-xxxx" />
+                                    </div>
+                                </div>
+                                <div class="md:col-span-2 space-y-1.5">
+                                    <label class="label">Alamat</label>
+                                    <div class="relative group">
+                                        <MapPin class="absolute left-3 top-3 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <textarea v-model="form.address" class="input pl-10 min-h-[100px] resize-none" placeholder="Alamat lengkap Anda..."></textarea>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="pt-4 flex justify-end">
-                        <button type="submit" class="btn btn-primary min-w-[120px]" :disabled="isSaving">
-                            <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="18" />
-                            {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
-                        </button>
-                    </div>
+                        <div class="h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent"></div>
 
-                    <div class="h-px bg-surface-700/50"></div>
-
-                    <!-- PIN Management - ONLY FOR SALES -->
-                    <div>
-                        <h3 class="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                            <Shield :size="20" class="text-primary-500" /> Pengaturan Keamanan (PIN)
-                        </h3>
-                        
-                        <div class="mb-4" v-if="inventoryAccounts.length > 0">
-                           <label class="label text-[10px] uppercase font-black tracking-widest text-primary-500">Pilih Akun Staff Untuk Dikelola</label>
-                           <select v-model="selectedAccountId" class="input font-bold">
-                               <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                           </select>
+                        <!-- Security -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-black uppercase tracking-widest text-primary-500/80 mb-4 border-l-2 border-primary-500 pl-3">
+                                Keamanan Akun
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div class="space-y-1.5">
+                                    <label class="label">Password Baru</label>
+                                    <div class="relative group">
+                                        <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <input v-model="form.new_password" type="password" class="input pl-10"
+                                            placeholder="••••••••" />
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="label">Konfirmasi Password</label>
+                                    <div class="relative group">
+                                        <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
+                                        <input v-model="form.confirm_password" type="password" class="input pl-10"
+                                            placeholder="••••••••" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit" class="btn btn-primary min-w-[160px] shadow-lg shadow-primary-500/20" :disabled="isSaving">
+                                <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="18" />
+                                <Save v-else class="mr-2" :size="18" />
+                                {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                            </button>
+                        </div>
 
-                        <div class="bg-surface-900 border border-surface-700 rounded-2xl p-6">
-                            <div class="flex items-center justify-between mb-6">
-                                <div class="flex items-center gap-4">
-                                    <div
-                                        class="w-12 h-12 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
-                                        <Key :size="24" />
+                        <div class="h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent"></div>
+
+                        <!-- PIN Management - ONLY FOR SALES -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-black uppercase tracking-widest text-primary-500/80 mb-4 border-l-2 border-primary-500 pl-3">
+                                Keamanan Transaksi (PIN)
+                            </h4>
+                            
+                            <div class="mb-6 p-4 bg-surface-900 border border-surface-700 rounded-2xl" v-if="inventoryAccounts.length > 0">
+                               <label class="text-[10px] uppercase font-black tracking-widest text-primary-500 block mb-2">Pilih Akun Staff Untuk Dikelola</label>
+                               <div class="relative">
+                                   <User class="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500" :size="18" />
+                                   <select v-model="selectedAccountId" class="input pl-10 font-bold border-primary-500/30 focus:border-primary-500">
+                                       <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
+                                   </select>
+                               </div>
+                            </div>
+
+                            <div class="bg-gradient-to-br from-surface-900 to-surface-800 border border-surface-700 rounded-3xl p-6 shadow-xl relative overflow-hidden group">
+                                <div class="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+                                    <Shield :size="120" />
+                                </div>
+
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-500 shadow-inner">
+                                            <Key :size="28" />
+                                        </div>
+                                        <div>
+                                            <p class="font-black text-white text-lg tracking-tight">Status PIN: {{ selectedAccountId === 'main' ? 'Akun Utama' : selectedAccount.name }}</p>
+                                            <div class="flex items-center gap-2 mt-1">
+                                                <div class="w-2 h-2 rounded-full" :class="selectedAccount.pin_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-surface-600'"></div>
+                                                <p class="text-xs font-medium text-text-secondary uppercase tracking-wider">
+                                                    {{ selectedAccount.pin_enabled ? 'Aktif - Keamanan Terjamin' : 'Nonaktif - Tidak Disarankan' }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button @click="handlePinToggle" type="button"
+                                        class="relative inline-flex h-8 w-14 items-center rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/50 bg-surface-700 shadow-inner group/toggle"
+                                        :class="{ 'bg-emerald-500/20 ring-1 ring-emerald-500/30': selectedAccount.pin_enabled }">
+                                        <span
+                                            class="inline-block h-6 w-6 transform rounded-full bg-white transition-all shadow-xl"
+                                            :class="{ 'translate-x-7 bg-emerald-500': selectedAccount.pin_enabled, 'translate-x-1': !selectedAccount.pin_enabled }" />
+                                    </button>
+                                </div>
+
+                                <!-- PIN Information -->
+                                <div v-if="!selectedAccount.transaction_pin_exists && !selectedAccount.pin_enabled" class="mt-8 p-4 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-300">
+                                    <AlertCircle class="text-primary-500 shrink-0" :size="20" />
+                                    <p class="text-xs font-bold text-text-secondary leading-relaxed">
+                                        Akun ini <span class="text-primary-500">belum memiliki PIN</span>. Klik toggle di atas untuk memasang PIN baru demi keamanan transaksi.
+                                    </p>
+                                </div>
+
+                                <!-- Pending Reset Info -->
+                                <div v-if="selectedAccount.pin_reset_requested_at"
+                                    class="mt-8 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-4 animate-pulse">
+                                    <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                        <Clock class="text-amber-500" :size="20" />
                                     </div>
                                     <div>
-                                        <p class="font-bold text-text-primary">Status PIN: {{ selectedAccountId === 'main' ? 'Utama' : selectedAccount.name }}</p>
-                                        <p class="text-xs text-text-secondary">
-                                            {{ selectedAccount.pin_enabled ? 'Aktif - Transaksi memerlukan verifikasi PIN' :
-                                                'Nonaktif - Transaksi tidak memerlukan PIN' }}
+                                        <p class="text-sm font-black text-amber-500 uppercase tracking-widest mb-1">Permintaan Reset Pending</p>
+                                        <p class="text-xs text-text-secondary leading-relaxed font-bold">
+                                            Diajukan pada <span class="text-white">{{ formatDate(selectedAccount.pin_reset_requested_at, 'datetime') }}</span>. 
+                                            Silakan hubungi Audit/Super Admin untuk persetujuan.
                                         </p>
                                     </div>
                                 </div>
-                                <button @click="handlePinToggle" type="button"
-                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 bg-surface-700 shadow-inner"
-                                    :class="{ 'bg-primary-500 shadow-primary-500/20': selectedAccount.pin_enabled }">
-                                    <span
-                                        class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-md"
-                                        :class="{ 'translate-x-6': selectedAccount.pin_enabled, 'translate-x-1': !selectedAccount.pin_enabled }" />
-                                </button>
-                            </div>
 
-                            <!-- PIN Information -->
-                            <div v-if="!selectedAccount.transaction_pin_exists && !selectedAccount.pin_enabled" class="mb-6 p-4 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex items-center gap-3">
-                                <AlertCircle class="text-primary-500" :size="20" />
-                                <p class="text-xs text-text-secondary">Akun ini belum memiliki PIN. Silahkan aktifkan Toggle di atas untuk memasang PIN baru.</p>
-                            </div>
-
-                            <!-- Pending Reset Info -->
-                            <div v-if="selectedAccount.pin_reset_requested_at"
-                                class="mb-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 animate-pulse">
-                                <AlertCircle class="text-amber-500 shrink-0" :size="20" />
-                                <div>
-                                    <p class="text-sm font-bold text-amber-500 uppercase tracking-wider mb-1">Permintaan Reset Pending</p>
-                                    <p class="text-xs text-text-secondary leading-relaxed font-medium">
-                                        Anda telah meminta reset PIN pada <strong class="text-text-primary">{{
-                                            formatDate(selectedAccount.pin_reset_requested_at, 'datetime') }}</strong>. Silakan
-                                        hubungi departemen Audit Hub atau Super Admin untuk mendapatkan PIN baru.
-                                    </p>
+                                <div class="mt-8 flex flex-wrap gap-4 pt-4 border-t border-surface-700/50">
+                                    <button @click="requestPinReset" :disabled="isRequestingReset"
+                                        type="button" class="btn bg-surface-800 hover:bg-surface-700 text-white px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-2 border-surface-700 shadow-lg transition-all active:scale-95 group/reset">
+                                        <RefreshCw v-if="isRequestingReset" :size="14" class="animate-spin" />
+                                        <AlertCircle v-else :size="14" class="group-hover/reset:rotate-12 transition-transform" />
+                                        {{ selectedAccount.pin_reset_requested_at ? 'Kirim Ulang Permintaan' : 'Ajukan Reset PIN' }}
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div class="flex flex-wrap gap-4">
-                                <button @click="requestPinReset" :disabled="isRequestingReset"
-                                    type="button" class="btn btn-secondary px-6 rounded-xl text-xs gap-2 border-surface-700 shadow-lg">
-                                    <RefreshCw v-if="isRequestingReset" :size="16" class="animate-spin" />
-                                    <AlertCircle v-else :size="16" />
-                                    {{ selectedAccount.pin_reset_requested_at ? 'Ajukan Reset Lagi' : 'Ajukan Reset PIN ke Audit' }}
-                                </button>
                             </div>
                         </div>
                     </div>
-
                 </form>
             </div>
         </div>

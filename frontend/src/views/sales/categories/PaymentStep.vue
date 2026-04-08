@@ -329,7 +329,7 @@ async function processPayment(pin = null) {
 
         const lastTransaction = {
             id: response.data?.data?.id,
-            order_no: response.data?.data?.receipt_id || "TRX-" + Date.now(),
+            order_no: response.data?.data?.receipt_id || response.data?.receipt_id || "TRX-" + Date.now(),
             items: cartItems.value.map(item => ({
                 ...item,
                 price: item.price,
@@ -345,11 +345,16 @@ async function processPayment(pin = null) {
             total: cartTotal.value,
             paid: totalPaid,
             change: totalPaid - cartTotal.value,
+            change_amount: totalPaid - cartTotal.value,
             split_payments_data: detailedSplitPayments,
             category: props.transactionCategory,
             sales_account: props.salesAccount,
+            sales_name: props.salesAccount,
+            inventory_account_name: props.salesAccount,
+            branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
             customer_name: customerForm.value.customer_name,
             customer_phone: customerForm.value.customer_phone,
+            notes: customerForm.value.notes,
             time: new Date().toLocaleString("id-ID"),
         };
 

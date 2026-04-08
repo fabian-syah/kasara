@@ -22,6 +22,8 @@ const form = ref({
     address: '',
     timezone: 'WIB',
     is_active: true,
+    phone: '',
+    warranty_terms: '',
     type: props.type || 'physical',
     payment_method_ids: []
 });
@@ -45,6 +47,8 @@ watch(() => props.branch, (newVal) => {
             address: newVal.address,
             timezone: newVal.timezone || 'WIB',
             is_active: !!newVal.is_active, // Pastikan boolean
+            phone: newVal.phone || '',
+            warranty_terms: newVal.warranty_terms || '',
             type: newVal.type || props.type || 'physical',
             // Default to all selected IF it's a new config (empty list) AND we have the methods loaded
             payment_method_ids: (newVal.payment_methods && newVal.payment_methods.length > 0) 
@@ -81,6 +85,8 @@ function resetForm() {
         address: '',
         timezone: 'WIB',
         is_active: true,
+        phone: '',
+        warranty_terms: '',
         type: props.type || 'physical',
         payment_method_ids: allPaymentMethods.value.map(p => p.id)
     };
@@ -166,6 +172,13 @@ useEscapeKey(() => {
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-text-secondary mb-1.5">No. Telepon Toko/Cabang</label>
+                    <input v-model="form.phone" type="text"
+                        class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all"
+                        placeholder="Contoh: 0812-3456-7890" />
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-text-secondary mb-1.5">Alamat Lengkap</label>
                     <div class="relative">
                         <MapPin class="absolute left-3 top-3 text-text-secondary" :size="16" />
@@ -173,6 +186,16 @@ useEscapeKey(() => {
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all resize-none"
                             placeholder="Alamat lengkap cabang..."></textarea>
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-text-secondary mb-1.5">Ketentuan Garansi</label>
+                    <textarea v-model="form.warranty_terms" rows="4"
+                        class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all resize-none text-xs leading-relaxed"
+                        placeholder="Contoh:
+1. Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)
+2. Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan
+3. Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD"></textarea>
                 </div>
 
                 <div class="flex items-center gap-3 p-4 bg-surface-900/50 rounded-xl border border-surface-700">

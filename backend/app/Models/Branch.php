@@ -14,6 +14,8 @@ class Branch extends Model
         'is_active',
         'type', // physical, online
         'platform',
+        'phone',
+        'warranty_terms',
         'url',
         'api_key',
         'api_secret',
