@@ -201,8 +201,8 @@ const exportToPDF = async () => {
 
     const runExport = async (part, isFirst = false) => {
         exportPart.value = part;
-        // Wait for rendering
-        await new Promise(r => setTimeout(r, 1200));
+        // Wait for DOM to update and images to load
+        await new Promise(r => setTimeout(r, 1500));
         
         try {
             const el = exportRef.value;
@@ -233,9 +233,9 @@ const exportToPDF = async () => {
         }
     };
 
-    const rowsPerPage = 12;
+    const rowsPerPage = 10;
 
-    // Page 1
+    // Start with Page 1
     await runExport(1, true);
 
     let remaining = displayRanking.value.length - rowsPerPage;
@@ -586,7 +586,7 @@ const exportToPDF = async () => {
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
                                 <template v-for="(item, index) in displayRanking" :key="item.type + '-' + item.id">
-                                    <tr v-show="exportPart === 0 || (index >= (exportPart - 1) * 12 && index < exportPart * 12)"
+                                    <tr v-if="exportPart === 0 || (index >= (exportPart - 1) * 10 && index < exportPart * 10)"
                                         class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
@@ -642,7 +642,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (displayRanking.length <= exportPart * 12))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (displayRanking.length <= exportPart * 10))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
