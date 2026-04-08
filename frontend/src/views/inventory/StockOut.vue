@@ -630,26 +630,42 @@ async function fetchInventoryUsers() {
 }
 
 function handleStartSubmit() {
-    if (!canSubmit.value) return;
+    console.log("[DEBUG PIN] handleStartSubmit called");
+    if (!canSubmit.value) {
+        console.warn("[DEBUG PIN] canSubmit is false, aborting");
+        return;
+    }
 
-    // Check if the selected user has a PIN
-    const target = inventoryUsers.value.find(u => Number(u.id) === Number(form.value.inventory_user_id));
+    const selectedId = form.value.inventory_user_id;
+    const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
+    
+    console.log("[DEBUG PIN] Selected User ID:", selectedId);
+    console.log("[DEBUG PIN] Found Target Account:", target);
+    
+    if (target) {
+        console.log("[DEBUG PIN] Target PIN Status - pin_enabled:", target.pin_enabled, "transaction_pin_exists:", target.transaction_pin_exists, "has_pin:", target.has_pin);
+    }
+
     // Robust check for PIN enabled
-    if (target && target.pin_enabled) {
+    if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists)) {
+        console.info("[DEBUG PIN] UI: Showing PinModal for", target.name);
         accountNeedingPin.value = target;
         showPinModal.value = true;
     } else {
+        console.info("[DEBUG PIN] UI: No PIN required, proceeding to direct submit");
         submitStockOut();
     }
 }
 
 function onPinVerified(pin) {
+    console.log("[DEBUG PIN] PIN verified event received");
     form.value.transaction_pin = pin;
     showPinModal.value = false;
     submitStockOut();
 }
 
 async function submitStockOut() {
+    console.log("[DEBUG PIN] submitStockOut execution started");
     if (!canSubmit.value) return;
 
     isSubmitting.value = true;
@@ -668,6 +684,13 @@ async function submitStockOut() {
                 formData.append(key, form.value[key]);
             }
         });
+        
+        console.log("[DEBUG PIN] Sending POST to /stock-outs with Category:", selectedCategory.value);
+        if (form.value.transaction_pin) {
+            console.log("[DEBUG PIN] Transaction PIN is present in payload (hidden for security)");
+        } else {
+            console.warn("[DEBUG PIN] Transaction PIN is MISSING from payload");
+        }
 
         // Non-HP Items
         selectedNonHpItems.value.forEach((item, index) => {
@@ -686,6 +709,8 @@ async function submitStockOut() {
         const response = await api.post('/stock-outs', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+        
+        console.log("[DEBUG PIN] Submit SUCCESS:", response.data);
         toast.success(`Stok berhasil dikeluarkan! ID: ${response.data.data.receipt_id}`);
 
         selectedItems.value = [];
@@ -693,11 +718,12 @@ async function submitStockOut() {
         router.push('/inventory');
 
     } catch (e) {
-        console.error("Stock Out Error:", e);
+        console.error("[DEBUG PIN] Caught Exception in submitStockOut:", e);
         const errorMsg = e.response?.data?.message || "";
+        console.error("[DEBUG PIN] Backend Error Message:", errorMsg);
         
         if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
-            // PIN required or invalid - show PIN modal
+            console.warn("[DEBUG PIN] WATCHDOG: Backend rejected due to PIN. Forcing PIN Modal.");
             const targetId = form.value.inventory_user_id;
             const target = inventoryUsers.value.find(u => Number(u.id) === Number(targetId)) || authStore.user;
             accountNeedingPin.value = target;
@@ -714,6 +740,7 @@ async function submitStockOut() {
         }
     } finally {
         isSubmitting.value = false;
+        console.log("[DEBUG PIN] submitStockOut finished");
     }
 }
 
