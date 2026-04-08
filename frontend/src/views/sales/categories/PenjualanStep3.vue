@@ -279,7 +279,7 @@ const selectOutgoingUnit = (item) => {
                 </div>
 
                 <!-- Bundling Button (Only for Penjualan flow) -->
-                <div v-if="transactionCategory === 'penjualan' || transactionCategory === 'bundling'"
+                <div v-if="['penjualan', 'bundling', 'penjualan_store'].includes(transactionCategory)"
                     class="flex items-center gap-4">
                     <button @click="openBundlingModal"
                         class="px-6 py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/20 transition-all active:scale-95">
