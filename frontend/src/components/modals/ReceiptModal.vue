@@ -42,7 +42,9 @@
                             <!-- Header Info (Center) -->
                             <div class="text-center self-center px-2">
                                 <h1 class="text-lg font-black text-black uppercase leading-tight">
-                                    PSTORE {{ transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name || '' }}
+                                    {{ (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name || '').toUpperCase().includes('PSTORE') 
+                                        ? (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name) 
+                                        : 'PSTORE ' + (transaction.branch_name || transaction.branch?.name || authStore.userBranch?.name || '') }}
                                 </h1>
                                 <p class="text-[8px] font-bold leading-tight text-black mt-1">
                                     {{ transaction.branch?.address || authStore.userBranch?.address || 'Pusat Perbelanjaan Online' }}
