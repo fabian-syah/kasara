@@ -53,6 +53,14 @@ const targetUsers = ref([]);
 const selectedInventoryUserPinEnabled = ref(false);
 const placementLabel = ref("");
 const notes = ref("");
+const categories = [
+  { id: 'pembelian', name: 'Pembelian' },
+  { id: 'retur_customer', name: 'Retur Customer' },
+  { id: 'pindah_cabang', name: 'Pindah Cabang' },
+  { id: 'salah_input', name: 'Salah Input (Batal Keluar)' },
+  { id: 'cancel_penjualan', name: 'Cancel Penjualan (RTS)' }
+];
+const selectedCategory = ref('pembelian');
 
 // Step 1: Placement
 const placementType = ref("branch");
@@ -649,6 +657,7 @@ async function submitStockIn(verifiedPin = null) {
             inventory_user_id: selectedInventoryUserId.value,
             notes: notes.value,
             transaction_pin: pin,
+            category: selectedCategory.value,
         };
 
         if (itemType.value === 'hp') {
@@ -1034,21 +1043,36 @@ onMounted(fetchInitialData);
             </div>
 
             <div v-if="currentStep === 3"
-                class="bg-surface-900 p-8 rounded-3xl border border-surface-700 animate-in slide-in-from-right">
-                <label class="label text-xs uppercase font-black text-text-secondary mb-4">Pemasok <span
-                        class="text-red-500">*</span></label>
-                <div class="flex gap-3">
-                    <select v-if="!isManualDistributor" v-model="selectedDistributor"
-                        class="input flex-1 bg-surface-800">
-                        <option value="" disabled>-- Pilih Daftar --</option>
-                        <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
-                    </select>
-                    <input v-else v-model="newDistributorName" placeholder="Nama baru..."
-                        class="input flex-1 bg-surface-800" />
-                    <button @click="isManualDistributor = !isManualDistributor" class="btn btn-outline w-14 h-14"
-                        :class="isManualDistributor ? 'text-primary-500 border-primary-500' : ''">
-                        <component :is="isManualDistributor ? List : Plus" />
-                    </button>
+                class="bg-surface-900 p-8 rounded-3xl border border-surface-700 animate-in slide-in-from-right space-y-8">
+                
+                <div class="space-y-4">
+                    <label class="label text-xs uppercase font-black text-text-secondary">Kategori Stok Masuk <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <button v-for="cat in categories" :key="cat.id" @click="selectedCategory = cat.id"
+                            class="p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between"
+                            :class="selectedCategory === cat.id ? 'border-primary-500 bg-primary-500/10 text-white' : 'border-surface-700 bg-surface-800 text-text-secondary hover:border-surface-600'">
+                            <span class="text-xs font-bold">{{ cat.name }}</span>
+                            <CheckCircle2 v-if="selectedCategory === cat.id" :size="16" class="text-primary-500" />
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-surface-700">
+                    <label class="label text-xs uppercase font-black text-text-secondary">Pemasok / Distributor <span
+                            class="text-red-500">*</span></label>
+                    <div class="flex gap-3">
+                        <select v-if="!isManualDistributor" v-model="selectedDistributor"
+                            class="input flex-1 bg-surface-800 h-14">
+                            <option value="" disabled>-- Pilih Daftar --</option>
+                            <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                        <input v-else v-model="newDistributorName" placeholder="Nama baru..."
+                            class="input flex-1 bg-surface-800 h-14" />
+                        <button @click="isManualDistributor = !isManualDistributor" class="btn btn-outline w-14 h-14 rounded-2xl"
+                            :class="isManualDistributor ? 'text-primary-500 border-primary-500' : ''">
+                            <component :is="isManualDistributor ? List : Plus" />
+                        </button>
+                    </div>
                 </div>
             </div>
 

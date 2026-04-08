@@ -26,7 +26,8 @@ import {
     Percent,
     Archive,
     Upload,
-    Warehouse
+    Warehouse,
+    XCircle
 } from "lucide-vue-next";
 import { useAuthStore } from "../../store/auth";
 
@@ -59,6 +60,8 @@ const allCategories = [
     { id: 'kesalahan_input', name: 'Kesalahan Input', icon: AlertTriangle, color: 'amber' },
     { id: 'retur', name: 'Retur', icon: RotateCcw, color: 'purple' },
     { id: 'shopee', name: 'Shopee', icon: ShoppingBag, color: 'orange' },
+    { id: 'orderan_online', name: 'Order Online', icon: ShoppingBag, color: 'orange' },
+    { id: 'cancel_penjualan', name: 'Cancel Penjualan', icon: XCircle, color: 'red' },
     { id: 'giveaway', name: 'Giveaway Customer', icon: Gift, color: 'pink' },
     { id: 'hadiah', name: 'Hadiah', icon: Trophy, color: 'yellow' },
     { id: 'brand_ambassador', name: 'Brand Ambassador', icon: UserCheck, color: 'indigo' },

@@ -814,6 +814,7 @@ class InventoryController extends Controller
             'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
+            'category' => 'nullable|string|in:pembelian,retur_customer,pindah_cabang,salah_input,cancel_penjualan',
         ]);
 
         $request->merge(['type' => strtolower($request->type)]);
@@ -936,7 +937,7 @@ class InventoryController extends Controller
                     // Audit StockOut Record
                     $stockOutAudit = StockOut::create([
                         'receipt_id' => 'IN-NHP-' . strtoupper(\Illuminate\Support\Str::random(6)),
-                        'category' => 'barang_masuk',
+                        'category' => $request->category ?? 'barang_masuk',
                         'user_id' => Auth::id(),
                         'inventory_user_id' => $ownerUserId,
                         'status' => 'received',
@@ -1063,7 +1064,7 @@ class InventoryController extends Controller
                     // Create StockOut Record for Audit Purposes (Manual Stock In)
                     $stockOutAudit = StockOut::create([
                         'receipt_id' => 'IN-HP-' . strtoupper(\Illuminate\Support\Str::random(6)),
-                        'category' => 'barang_masuk',
+                        'category' => $request->category ?? 'barang_masuk',
                         'user_id' => Auth::id(),
                         'inventory_user_id' => $ownerUserId,
                         'status' => 'received',

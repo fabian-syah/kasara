@@ -150,9 +150,11 @@ class StockOutController extends Controller
                     'inventaris',
                     'penjualan_store',
                     'shopee',
+                    'orderan_online',
                     'bundling',
                     'tukar_unit',
                     'downgrade',
+                    'cancel_penjualan',
                 ])
             ],
             'sub_category' => 'required_if:category,keluar|nullable|string',

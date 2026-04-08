@@ -50,6 +50,8 @@ const transactionCategory = ref("penjualan_store");
 
 const categoriesPenjualan = [
     { id: "penjualan_store", label: "Penjualan Store", icon: 'ShoppingCart' },
+    { id: "shopee", label: "Shopee", icon: 'ShoppingBag' },
+    { id: "orderan_online", label: "Order Online", icon: 'ShoppingBag' },
     { id: "angkat_barang", label: "Angkat Barang", icon: 'PackageOpen' },
     { id: "refund", label: "Refund", icon: 'RotateCcw' },
     { id: "tukar_unit", label: "Tukar Unit", icon: 'RefreshCw' },
