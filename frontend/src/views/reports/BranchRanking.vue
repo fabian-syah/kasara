@@ -228,20 +228,36 @@ const exportToPDF = async () => {
             });
 
             const imgProps = pdf.getImageProperties(dataUrl);
-            const pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
+            let pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
 
             if (!isFirst) {
                 pdf.addPage();
             }
 
-            pdf.addImage(dataUrl, 'JPEG', 0, 0, pageWidth, pdfPageHeight, undefined, 'FAST');
+            const a4Height = pdf.internal.pageSize.getHeight();
+            let finalWidth = pageWidth;
+            let finalHeight = pdfPageHeight;
+            let xOffset = 0;
+
+            // Auto-scale down to fit A4 height if the content is too tall
+            if (pdfPageHeight > a4Height) {
+                const ratio = a4Height / pdfPageHeight;
+                finalHeight = a4Height;
+                finalWidth = pageWidth * ratio;
+                xOffset = (pageWidth - finalWidth) / 2; // Center horizontally
+            }
+
+            pdf.addImage(dataUrl, 'JPEG', xOffset, 0, finalWidth, finalHeight, undefined, 'FAST');
         } catch (e) { 
             console.error('PDF Export part error:', e); 
         }
     };
 
-    const rowsPerPage = 13;
-    const totalPages = Math.ceil(displayRanking.value.length / rowsPerPage);
+    const totalItems = displayRanking.value.length;
+    let totalPages = 1;
+    if (totalItems > 10) {
+        totalPages = 1 + Math.ceil((totalItems - 10) / 12);
+    }
 
     for (let p = 1; p <= totalPages; p++) {
         await runExport(p, p === 1);
@@ -585,7 +601,7 @@ const exportToPDF = async () => {
                                 </tr>
                             </thead>
                             <tbody :key="exportPart" class="divide-y divide-surface-800/50">
-                                <template v-for="(item, index) in (exportPart === 0 ? displayRanking : displayRanking.slice((exportPart - 1) * 13, exportPart * 13))" :key="item.type + '-' + (item.id || index)">
+                                <template v-for="(item, index) in (exportPart === 0 ? displayRanking : (exportPart === 1 ? displayRanking.slice(0, 10) : displayRanking.slice(10 + (exportPart - 2) * 12, 10 + (exportPart - 1) * 12)))" :key="item.type + '-' + (item.id || index)">
                                     <tr class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
@@ -641,7 +657,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === Math.ceil(displayRanking.length / 13))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
