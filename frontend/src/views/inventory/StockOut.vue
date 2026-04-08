@@ -626,7 +626,8 @@ function handleStartSubmit() {
 
     // Check if the selected user has a PIN
     const target = inventoryUsers.value.find(u => u.id === form.value.inventory_user_id);
-    if (target && target.pin_enabled) {
+    // Robust check for PIN enabled OR simply having a PIN in the system
+    if (target && (target.pin_enabled || target.transaction_pin_exists)) {
         accountNeedingPin.value = target;
         showPinModal.value = true;
     } else {
@@ -684,8 +685,14 @@ async function submitStockOut() {
         router.push('/inventory');
 
     } catch (e) {
-        toast.error(e.response?.data?.message || "Gagal keluar stok");
-        console.error(e);
+        if (e.response && e.response.status === 422) {
+            const msg = e.response.data.message || "Validasi gagal. Mohon periksa kembali data Anda.";
+            toast.error(msg);
+            // Clear PIN so user can re-verify if needed
+            form.value.transaction_pin = '';
+        } else {
+            toast.error("Gagal melakukan pengeluaran stok");
+        }
     } finally {
         isSubmitting.value = false;
     }
@@ -745,7 +752,7 @@ onMounted(() => {
             </button>
         </div>
 
-        <div v-if="!showForm">
+        <div v-if="!showForm" class="space-y-6">
             <!-- Header Bar -->
             <div class="card mb-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -894,7 +901,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Akun Inventory Selection -->
-                <div class="space-y-4">
+                <div class="space-y-4 mb-6">
                     <label class="label mb-0 flex items-center gap-2">
                         <User :size="16" class="text-primary-500" /> Akun Penanggung Jawab *
                     </label>
@@ -903,7 +910,7 @@ onMounted(() => {
                     </div>
                     <select v-else v-model="form.inventory_user_id" class="input bg-surface-800">
                         <option v-for="user in inventoryUsers" :key="user.id" :value="user.id">
-                            {{ user.name }} {{ user.pin_enabled ? '(Wajib PIN)' : '' }}
+                            {{ user.name }} {{ (user.pin_enabled || user.transaction_pin_exists) ? '(Wajib PIN)' : '' }}
                         </option>
                     </select>
                 </div>
@@ -1117,36 +1124,6 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Scanner Modal -->
-                <div v-if="isScanning"
-                    class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4">
-                    <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
-                        <!-- Scanner Header -->
-                        <div class="flex items-center justify-between p-4 border-b border-surface-700">
-                            <h3 class="text-white font-bold flex items-center gap-2">
-                                <ScanBarcode :size="20" class="text-orange-500" />
-                                Scan Barcode Resi
-                            </h3>
-                            <button @click="stopScanner" class="text-text-secondary hover:text-white transition-colors">
-                                <X :size="24" />
-                            </button>
-                        </div>
-
-                        <!-- Scanner Container -->
-                        <div :id="scannerContainerId" class="w-full aspect-video bg-black"></div>
-
-                        <!-- Instructions -->
-                        <div class="p-4 text-center space-y-3">
-                            <p class="text-text-secondary text-sm animate-pulse">
-                                Arahkan kamera ke barcode resi...
-                            </p>
-                            <div class="text-xs text-text-secondary">
-                                <p>Atau ketik manual nomor resi di form lalu tutup scanner</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="mt-6 pt-6 border-t border-surface-700">
                     <p class="text-xs uppercase font-bold text-text-secondary mb-3">Barang HP ({{
                         selectedItems.length }})</p>
@@ -1187,38 +1164,6 @@ onMounted(() => {
                         class="text-center py-4 bg-surface-700/30 rounded-xl text-text-secondary text-xs italic">
                         Belum ada barang non-HP dipilih
                     </div>
-
-                    <!-- Non HP Modal -->
-                    <div v-if="showNonHpModal"
-                        class="fixed inset-0 bg-black/80 z-[70] flex items-center justify-center p-4">
-                        <div class="bg-surface-800 rounded-2xl w-full max-w-md p-6 border border-surface-700">
-                            <h3 class="font-bold text-lg text-white mb-4">Tambah Barang Non-HP</h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="label">Pilih Produk</label>
-                                    <select v-model="newNonHpItem.product_id" class="input">
-                                        <option :value="null">-- Pilih Produk --</option>
-                                        <option v-for="inv in nonHpInventory" :key="inv.id" :value="inv.product_id">
-                                            {{ inv.product?.name }} (Sisa: {{ inv.quantity }})
-                                        </option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="label">Jumlah</label>
-                                    <input v-model="newNonHpItem.quantity" type="number" min="1" class="input" />
-                                </div>
-                                <div v-if="selectedCategory === 'shopee'">
-                                    <label class="label">Harga Jual (per unit)</label>
-                                    <input v-money:selling_price="newNonHpItem" type="text" class="input font-bold" placeholder="0" />
-                                </div>
-                                <div class="flex justify-end gap-2 mt-6">
-                                    <button @click="showNonHpModal = false"
-                                        class="btn btn-secondary px-4">Batal</button>
-                                    <button @click="addNonHpItem" class="btn btn-primary px-4">Tambah</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="mt-8 flex justify-end">
@@ -1231,10 +1176,65 @@ onMounted(() => {
             </div>
         </div>
 
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @verified="onPinVerified" />
+        <!-- Modals and Alerts -->
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified" @verified="onPinVerified" />
+
+        <!-- Non HP Modal -->
+        <div v-if="showNonHpModal"
+            class="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4">
+            <div class="bg-surface-800 rounded-2xl w-full max-w-md p-6 border border-surface-700">
+                <h3 class="font-bold text-lg text-white mb-4">Tambah Barang Non-HP</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="label">Pilih Produk</label>
+                        <select v-model="newNonHpItem.product_id" class="input">
+                            <option :value="null">-- Pilih Produk --</option>
+                            <option v-for="inv in nonHpInventory" :key="inv.id" :value="inv.product_id">
+                                {{ inv.product?.name }} (Sisa: {{ inv.quantity }})
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Jumlah</label>
+                        <input v-model="newNonHpItem.quantity" type="number" min="1" class="input" />
+                    </div>
+                    <div v-if="selectedCategory === 'shopee'">
+                        <label class="label">Harga Jual (per unit)</label>
+                        <input v-money:selling_price="newNonHpItem" type="text" class="input font-bold" placeholder="0" />
+                    </div>
+                    <div class="flex justify-end gap-2 mt-6">
+                        <button @click="showNonHpModal = false"
+                            class="btn btn-secondary px-4">Batal</button>
+                        <button @click="addNonHpItem" class="btn btn-primary px-4">Tambah</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanner Modal -->
+        <div v-if="isScanning"
+            class="fixed inset-0 bg-black/95 z-[150] flex flex-col items-center justify-center p-4">
+            <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
+                <div class="flex items-center justify-between p-4 border-b border-surface-700">
+                    <h3 class="text-white font-bold flex items-center gap-2">
+                        <ScanBarcode :size="20" class="text-orange-500" />
+                        Scan Barcode Resi
+                    </h3>
+                    <button @click="stopScanner" class="text-text-secondary hover:text-white transition-colors">
+                        <X :size="24" />
+                    </button>
+                </div>
+                <div :id="scannerContainerId" class="w-full aspect-video bg-black"></div>
+                <div class="p-4 text-center space-y-3">
+                    <p class="text-text-secondary text-sm animate-pulse">
+                        Arahkan kamera ke barcode resi...
+                    </p>
+                </div>
+            </div>
+        </div>
 
         <div v-if="showReturnBlockedAlert"
-            class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+            class="fixed inset-0 bg-black/80 z-[160] flex items-center justify-center p-4">
             <div
                 class="bg-surface-800 rounded-2xl max-w-md w-full p-6 border border-red-500/30 shadow-2xl animate-in zoom-in duration-200">
                 <div class="flex flex-col items-center text-center">
@@ -1312,4 +1312,4 @@ onMounted(() => {
     height: 2px;
     background: white;
 }
-</style>
+</style>

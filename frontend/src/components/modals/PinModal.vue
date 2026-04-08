@@ -12,9 +12,10 @@ const props = defineProps({
     title: { type: String, default: "Verifikasi PIN Transaksi" },
     description: { type: String, default: "Masukkan 4 digit PIN transaksi Anda untuk melanjutkan." },
     mode: { type: String, default: "verify" }, // 'verify', 'set', 'setup_initial'
+    user: { type: Object, default: null }
 });
 
-const emit = defineEmits(["close", "success", "error"]);
+const emit = defineEmits(["close", "success", "verified", "error"]);
 
 const pin = ref(["", "", "", ""]);
 const inputs = ref([]);
@@ -52,6 +53,7 @@ async function handleSubmit() {
     if (pinStr.length < 4) return;
 
     emit("success", pinStr);
+    emit("verified", pinStr);
     resetPin();
 }
 
@@ -104,7 +106,7 @@ onMounted(() => {
 
 <template>
     <Teleport to="body">
-        <div v-if="show" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        <div v-if="show" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" v-bind="$attrs">
             <!-- Backdrop -->
             <div class="absolute inset-0 bg-black/80 backdrop-blur-md" @click="close"></div>
 
@@ -120,6 +122,9 @@ onMounted(() => {
                     </div>
 
                     <h3 class="text-2xl font-black text-text-primary mb-2">{{ title }}</h3>
+                    <p v-if="user" class="text-sm font-bold text-emerald-500 mb-2">
+                        Akun: {{ user.name || user.full_name }}
+                    </p>
                     <p class="text-text-secondary text-sm mb-8 leading-relaxed px-4">
                         {{ description }}
                     </p>
@@ -132,7 +137,7 @@ onMounted(() => {
                     </div>
 
                     <div v-if="mode === 'verify'" class="mb-6">
-                        <button v-if="!authStore.user?.pin_reset_requested_at" @click="handleRequestReset"
+                        <button v-if="!user?.pin_reset_requested_at && !authStore.user?.pin_reset_requested_at" @click="handleRequestReset"
                             class="text-xs text-primary-400 hover:text-primary-300 font-medium transition-colors underline underline-offset-4">
                             Lupa PIN? Hubungi Audit Cabang
                         </button>
@@ -163,6 +168,7 @@ onMounted(() => {
         </div>
     </Teleport>
 </template>
+
 
 <style scoped>
 /* Chrome, Safari, Edge, Opera */
