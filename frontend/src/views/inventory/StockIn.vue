@@ -83,26 +83,26 @@ const nonHpForm = ref({ quantity: 1 });
 
 // NEW: Sub-form for Multiple Non-HP Items
 const nonHpItems = ref([
-    { 
-        brand_id: null, 
-        type_name: "", 
-        quantity: 1, 
-        selling_price: 0, 
+    {
+        brand_id: null,
+        type_name: "",
+        quantity: 1,
+        selling_price: 0,
         selling_price_display: "",
-        filteredTypes: [], 
+        filteredTypes: [],
         uniqueTypeNames: [],
         isLoadingTypes: false
     }
 ]);
 
 const addNonHpItem = () => {
-    nonHpItems.value.push({ 
-        brand_id: null, 
-        type_name: "", 
-        quantity: 1, 
-        selling_price: 0, 
+    nonHpItems.value.push({
+        brand_id: null,
+        type_name: "",
+        quantity: 1,
+        selling_price: 0,
         selling_price_display: "",
-        filteredTypes: [], 
+        filteredTypes: [],
         uniqueTypeNames: [],
         isLoadingTypes: false
     });
@@ -124,9 +124,9 @@ const handleBrandChangeNonHp = (index) => {
         item.uniqueTypeNames = [];
         return;
     }
-    
+
     // Filter types locally based on brand_id
-    item.filteredTypes = allowedTypes.value.filter(t => 
+    item.filteredTypes = allowedTypes.value.filter(t =>
         t.brand_id === item.brand_id && !isImeiCategory(t.category)
     );
     item.uniqueTypeNames = Array.from(new Set(item.filteredTypes.map(t => t.name)));
@@ -442,11 +442,8 @@ const canNext = computed(() => {
 
 const canSubmit = computed(() => {
     if (itemType.value === 'hp') {
-        if (!selectedTypeName.value) return false;
-        if (!selectedCapacity.value) return false;
-        if (parsedImeis.value.length === 0) return false;
-        if (batchDetails.value.selling_price <= 0) return false;
-        return true;
+        if (hpItems.value.length === 0) return false;
+        return hpItems.value.every(item => item.type_name && item.capacity && item.parsedImeis.length > 0 && item.selling_price > 0);
     }
 
     // For Non-HP multiple items
@@ -518,7 +515,7 @@ async function createInventoryAccount() {
     if (!newAccountName.value) return;
     isCreatingAccount.value = true;
     try {
-        await inventoryApi.createAccount({ 
+        await inventoryApi.createAccount({
             name: newAccountName.value,
             transaction_pin: newAccountPin.value
         });
@@ -597,7 +594,7 @@ async function updateInventoryAccount() {
         // Refresh specifically this user to get pending status
         const usersRes = await usersApi.list({ role: 'inventory' });
         targetUsers.value = (usersRes.data.data || usersRes.data);
-        
+
         showEditAccountModal.value = false;
     } catch (e) {
         console.error("Update error:", e);
@@ -675,81 +672,111 @@ async function submitStockIn(verifiedPin = null) {
         };
 
         if (itemType.value === 'hp') {
-            productId = selectedProduct.value;
-            if (!productId && selectedTypeName.value) {
-                const brandObj = brands.value.find(b => b.id === selectedBrand.value);
-                const brandName = brandObj ? brandObj.name.toLowerCase().trim() : "";
-                const targetName = selectedTypeName.value.toLowerCase().trim();
+            let totalInserted = 0;
+            let totalDuplicates = [];
 
-                let fallback = products.value.find(p => {
-                    const pBrand = (p.brand || "").toLowerCase().trim();
-                    const pName = p.name.toLowerCase().trim();
-                    return pBrand === brandName && pName === targetName;
-                });
+            for (const item of hpItems.value) {
+                let productId = item.product_id;
+                if (!productId && item.type_name) {
+                    const brandObj = brands.value.find(b => b.id === item.brand_id);
+                    const brandName = brandObj ? brandObj.name.toLowerCase().trim() : "";
+                    const targetName = item.type_name.toLowerCase().trim();
 
-                if (!fallback) {
-                    try {
-                        const resp = await inventoryApi.getProductsLookup({
-                            type: 'hp',
-                            name: selectedTypeName.value
-                        });
+                    let fallback = products.value.find(p => {
+                        const pBrand = (p.brand || "").toLowerCase().trim();
+                        const pName = p.name.toLowerCase().trim();
+                        return pBrand === brandName && pName === targetName;
+                    });
 
-                        if (resp.data.length > 0) {
-                            fallback = resp.data.find(p => {
-                                const pBrand = (p.brand || "").toLowerCase().trim();
-                                const pName = p.name.toLowerCase().trim();
-                                return pBrand === brandName && pName === targetName;
-                            });
-                        }
-
-                        if (!fallback) {
-                            const brandObjRaw = brands.value.find(b => b.id === selectedBrand.value);
-                            const brandNameRaw = brandObjRaw ? brandObjRaw.name : "Unknown";
-
-                            const createResp = await productsApi.create({
-                                name: selectedTypeName.value,
-                                brand: brandNameRaw,
+                    if (!fallback) {
+                        try {
+                            const resp = await inventoryApi.getProductsLookup({
                                 type: 'hp',
-                                brand_id: selectedBrand.value,
-                                ram: selectedRam.value || null,
-                                storage: selectedStorage.value || null,
-                                category: 'HP / Gadget',
-                                has_imei: true,
-                                sku: null
+                                name: item.type_name
                             });
-                            fallback = createResp.data;
-                            toast.success(`Produk "${selectedTypeName.value}" otomatis dibuat.`);
+
+                            if (resp.data.length > 0) {
+                                fallback = resp.data.find(p => {
+                                    const pBrand = (p.brand || "").toLowerCase().trim();
+                                    const pName = p.name.toLowerCase().trim();
+                                    return pBrand === brandName && pName === targetName;
+                                });
+                            }
+
+                            if (!fallback) {
+                                const brandObjRaw = brands.value.find(b => b.id === item.brand_id);
+                                const brandNameRaw = brandObjRaw ? brandObjRaw.name : "Unknown";
+
+                                const createResp = await productsApi.create({
+                                    name: item.type_name,
+                                    brand: brandNameRaw,
+                                    type: 'hp',
+                                    brand_id: item.brand_id,
+                                    ram: item.ram || null,
+                                    storage: item.storage || null,
+                                    category: 'HP / Gadget',
+                                    has_imei: true,
+                                    sku: null
+                                });
+                                fallback = createResp.data;
+                                toast.success(`Produk "${item.type_name}" otomatis dibuat.`);
+                            }
+                        } catch (err) {
+                            console.error("API Lookup/Create failed", err);
+                            toast.error("Gagal membuat produk otomatis: " + (err.response?.data?.message || err.message));
+                            isSubmitting.value = false;
+                            return;
                         }
-                    } catch (err) {
-                        console.error("API Lookup/Create failed", err);
-                        toast.error("Gagal membuat produk otomatis: " + (err.response?.data?.message || err.message));
-                        isSubmitting.value = false;
-                        return;
                     }
+                    productId = fallback ? fallback.id : null;
+                    item.product_id = productId;
                 }
-                productId = fallback ? fallback.id : null;
+
+                if (!productId) {
+                    toast.error(`Produk tidak ditemukan untuk tipe: ${item.type_name}`);
+                    isSubmitting.value = false;
+                    return;
+                }
+
+                const payloadItem = {
+                    ...payload,
+                    product_id: productId,
+                    brand_id: item.brand_id,
+                    ram: item.ram,
+                    storage: item.storage,
+                    quantity: item.parsedImeis.length,
+                    imeis: item.parsedImeis.map(imei => ({
+                        imei: imei,
+                        condition: item.condition,
+                        cost_price: item.cost_price,
+                        selling_price: item.selling_price,
+                        color: "",
+                        ram: item.ram,
+                        storage: item.storage
+                    }))
+                };
+
+                const response = await inventoryApi.stockIn(payloadItem);
+                if (response.data.duplicates && response.data.duplicates.length > 0) {
+                    totalDuplicates.push(...response.data.duplicates);
+                }
+                totalInserted += response.data.inserted_count || 0;
             }
 
-            if (!productId) {
-                toast.error("Produk tidak ditemukan. Pastikan nama Tipe sesuai.");
-                isSubmitting.value = false;
-                return;
+            if (totalDuplicates.length > 0) {
+                duplicateDetails.value = {
+                    success: totalInserted,
+                    fail: totalDuplicates.length,
+                    items: totalDuplicates
+                };
+                showDuplicateModal.value = true;
+            } else if (totalInserted > 0) {
+                toast.success(`Berhasil input ${totalInserted} stok HP!`);
+                router.push('/inventory').catch(() => { window.location.href = '/inventory'; });
             }
-
-            payload.product_id = productId;
-            payload.brand_id = selectedBrand.value; // Send brand_id
-            payload.ram = selectedRam.value;
-            payload.storage = selectedStorage.value;
-            payload.imeis = parsedImeis.value.map(imei => ({
-                imei: imei,
-                condition: batchDetails.value.condition,
-                cost_price: batchDetails.value.cost_price,
-                selling_price: batchDetails.value.selling_price,
-                color: "",
-                ram: selectedRam.value, // Fix: pass actual ram
-                storage: selectedStorage.value // Fix: pass actual storage
-            }));
-            payload.quantity = parsedImeis.value.length;
+            
+            isSubmitting.value = false;
+            return;
         } else {
             // NEW: Multi-item Non-HP
             payload.items = nonHpItems.value.map(item => {
@@ -822,10 +849,13 @@ onMounted(fetchInitialData);
                 <!-- Loading State -->
                 <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
                     <div class="relative">
-                        <div class="w-16 h-16 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+                        <div
+                            class="w-16 h-16 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin">
+                        </div>
                         <Loader2 class="absolute inset-0 m-auto w-6 h-6 text-primary-500 animate-pulse" />
                     </div>
-                    <p class="mt-6 text-text-secondary font-medium animate-pulse tracking-wide uppercase text-[10px]">Sedang Menyiapkan Sesi Stok In...</p>
+                    <p class="mt-6 text-text-secondary font-medium animate-pulse tracking-wide uppercase text-[10px]">
+                        Sedang Menyiapkan Sesi Stok In...</p>
                 </div>
 
                 <div v-else-if="targetUsers.length === 0" class="text-center py-10">
@@ -835,7 +865,8 @@ onMounted(fetchInitialData);
                         <p class="text-sm opacity-80">Anda belum memiliki akun khusus inventory untuk cabang/lokasi ini.
                             Silahkan buat terlebih dahulu untuk melanjutkan stok in.</p>
                     </div>
-                    <button @click="showCreateAccountModal = true" class="btn btn-primary px-8 py-4 rounded-xl shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
+                    <button @click="showCreateAccountModal = true"
+                        class="btn btn-primary px-8 py-4 rounded-xl shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
                         <Plus :size="20" class="mr-2" /> Buat Akun Inventory Baru
                     </button>
                 </div>
@@ -849,9 +880,9 @@ onMounted(fetchInitialData);
                         </div>
 
                         <!-- EDIT BUTTON: Visible to creator OR high roles (super_admin, owner, audit, admin_produk) -->
-                        <div v-if="authStore.user?.id === user.created_by?.id || 
-                                  authStore.user?.id === user.created_by || 
-                                  ['super_admin', 'owner', 'audit', 'admin_produk'].includes((authStore.userRole || '').toLowerCase())"
+                        <div v-if="authStore.user?.id === user.created_by?.id ||
+                            authStore.user?.id === user.created_by ||
+                            ['super_admin', 'owner', 'audit', 'admin_produk'].includes((authStore.userRole || '').toLowerCase())"
                             @click="openEditModal(user, $event)"
                             class="absolute top-3 right-10 p-1.5 hover:bg-surface-800 rounded-lg text-text-secondary hover:text-primary-500 transition-all z-10 group/edit">
                             <Edit2 :size="16" class="group-hover/edit:scale-110 transition-transform" />
@@ -859,20 +890,22 @@ onMounted(fetchInitialData);
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative group/pic">
-                                
+
                                 <!-- Pending Approval Badge -->
-                                <div v-if="user.pending_photo_inventory" class="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex items-center justify-center z-[5]">
+                                <div v-if="user.pending_photo_inventory"
+                                    class="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex items-center justify-center z-[5]">
                                     <Clock class="text-amber-500" :size="16" />
                                 </div>
 
-                                <img v-if="user.pending_photo_inventory || user.photo_inventory" 
+                                <img v-if="user.pending_photo_inventory || user.photo_inventory"
                                     :src="`${storageUrl}/storage/${user.pending_photo_inventory || user.photo_inventory}`"
-                                    class="w-full h-full object-cover" 
+                                    class="w-full h-full object-cover"
                                     :class="{ 'opacity-50 grayscale-[0.5]': user.pending_photo_inventory }" />
                                 <span v-else class="text-primary-500">{{ user.name[0] }}</span>
 
                                 <!-- Corner Icon for Pending -->
-                                <div v-if="user.pending_photo_inventory" class="absolute top-0 right-0 p-0.5 bg-amber-500 rounded-bl-lg z-10">
+                                <div v-if="user.pending_photo_inventory"
+                                    class="absolute top-0 right-0 p-0.5 bg-amber-500 rounded-bl-lg z-10">
                                     <Clock class="text-white" :size="8" />
                                 </div>
                             </div>
@@ -880,7 +913,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -921,8 +954,8 @@ onMounted(fetchInitialData);
                             </div>
                             <div>
                                 <label class="label text-[10px] uppercase">PIN Transaksi (Opsional)</label>
-                                <input v-model="newAccountPin" type="password" maxlength="4" class="input bg-surface-800"
-                                    placeholder="4 angka (Default: 0000)" />
+                                <input v-model="newAccountPin" type="password" maxlength="4"
+                                    class="input bg-surface-800" placeholder="4 angka (Default: 0000)" />
                             </div>
                             <div class="flex justify-end gap-3 mt-6">
                                 <button @click="showCreateAccountModal = false"
@@ -958,9 +991,10 @@ onMounted(fetchInitialData);
                                     </div>
 
                                     <!-- Pending Approval Ribbon for Edit Modal -->
-                                    <div v-if="targetUsers.find(u => u.id === editForm.id)?.pending_photo_inventory && !editForm.photo_inventory" 
+                                    <div v-if="targetUsers.find(u => u.id === editForm.id)?.pending_photo_inventory && !editForm.photo_inventory"
                                         class="absolute bottom-0 inset-x-0 bg-amber-500 py-0.5 text-center z-10">
-                                        <p class="text-[8px] font-black text-white uppercase tracking-tighter">Pending Audit</p>
+                                        <p class="text-[8px] font-black text-white uppercase tracking-tighter">Pending
+                                            Audit</p>
                                     </div>
                                 </div>
                                 <div
@@ -973,13 +1007,16 @@ onMounted(fetchInitialData);
                         </div>
 
                         <div class="space-y-4">
-                             <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun / Bagian (Terkunci)</label>
-                                <input v-model="editForm.name" type="text" class="input w-full bg-surface-800/50 text-text-secondary cursor-not-allowed border-surface-800"
+                            <div>
+                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun / Bagian
+                                    (Terkunci)</label>
+                                <input v-model="editForm.name" type="text"
+                                    class="input w-full bg-surface-800/50 text-text-secondary cursor-not-allowed border-surface-800"
                                     readonly />
                                 <div class="flex items-center gap-1.5 mt-2 px-1 text-text-secondary/40">
                                     <Shield :size="10" />
-                                    <span class="text-[9px] uppercase font-black tracking-tighter">Identitas Permanen</span>
+                                    <span class="text-[9px] uppercase font-black tracking-tighter">Identitas
+                                        Permanen</span>
                                 </div>
                             </div>
                             <div>
@@ -1040,122 +1077,155 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
 
                 <div class="space-y-6">
-                    <!-- HP MODE: Single Product Selection + Batch Details + Multiple IMEIs -->
+                    <!-- HP MODE: Multiple Items Selection -->
                     <div v-if="itemType === 'hp'" class="space-y-6">
-                        <div class="grid grid-cols-2 gap-5 bg-surface-900/50 p-8 rounded-3xl border border-surface-700">
-                             <div><label class="label text-[10px] uppercase">Merk <span
-                                         class="text-red-500">*</span></label><select v-model="selectedBrand"
-                                     class="input bg-surface-900">
-                                     <option :value="null">-- Pilih Merk --</option>
-                                     <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
-                                 </select></div>
-                             <div><label class="label text-[10px] uppercase">Tipe <span
-                                         class="text-red-500">*</span></label><select v-model="selectedTypeName"
-                                     :disabled="!selectedBrand" class="input bg-surface-900 disabled:opacity-30">
-                                     <option value="">-- Pilih Tipe --</option>
-                                     <option v-for="n in uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
-                                 </select></div>
+                        <div class="flex items-center justify-between px-2">
+                            <label class="text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Daftar Stok HP / Gadget</label>
+                            <button @click="addHpItem" class="text-[10px] font-black text-primary-500 hover:text-primary-400 flex items-center gap-1 uppercase transition-all">
+                                <Plus :size="14" /> Tambah Batch
+                            </button>
+                        </div>
 
-                             <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas</label><select
-                                     v-model="selectedCapacity" :disabled="!selectedTypeName"
-                                     class="input bg-surface-900 disabled:opacity-30">
-                                     <option value="">-- Semua --</option>
-                                     <option v-for="c in availableSpecs.combinations" :key="c" :value="c">{{ c }}</option>
-                                 </select>
+                        <div v-for="(item, idx) in hpItems" :key="idx" class="bg-surface-800/30 p-5 rounded-3xl border border-surface-700 relative group animate-in slide-in-from-right duration-300 shadow-lg space-y-6">
+                             <button v-if="hpItems.length > 1" @click="removeHpItem(idx)" class="absolute -top-3 -right-3 w-8 h-8 bg-surface-900 border border-surface-700 hover:border-red-500 hover:text-red-500 text-text-secondary rounded-xl flex items-center justify-center transition-all shadow-xl z-10"><Trash2 :size="14" /></button>
+                             
+                             <div class="grid grid-cols-2 gap-4">
+                                 <div><label class="label text-[10px] uppercase">Merk <span class="text-red-500">*</span></label>
+                                    <select v-model="item.brand_id" @change="handleBrandChangeHp(idx)" class="input bg-surface-900">
+                                        <option :value="null">-- Pilih Merk --</option>
+                                        <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                    </select>
+                                </div>
+                                 
+                                 <div><label class="label text-[10px] uppercase">Tipe <span class="text-red-500">*</span></label>
+                                    <select v-model="item.type_name" @change="handleTypeChangeHp(idx)" :disabled="!item.brand_id" class="input bg-surface-900 disabled:opacity-30">
+                                        <option value="">-- Pilih Tipe --</option>
+                                        <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
+                                    </select>
+                                </div>
+                                 
+                                 <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas <span class="text-red-500">*</span></label>
+                                    <select v-model="item.capacity" @change="handleCapacityChangeHp(idx)" :disabled="!item.type_name" class="input bg-surface-900 disabled:opacity-30">
+                                        <option value="">-- Semua --</option>
+                                        <option v-for="c in item.combinations" :key="c" :value="c">{{ c }}</option>
+                                    </select>
+                                </div>
+                             </div>
+
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div><label class="label text-[10px] uppercase">Kondisi <span class="text-red-500">*</span></label>
+                                    <select v-model="item.condition" @change="lookupPriceHp(idx)" class="input bg-surface-900 h-10 text-sm">
+                                        <option value="new">Baru</option>
+                                        <option value="second">Bekas</option>
+                                        <option v-if="item.brand_id === 1" value="ex_ibox">Ex iBox</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
+                                    <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
+                                        <span class="text-text-secondary text-xs mr-2 font-black">Rp</span>
+                                        <input v-money:cost_price="item" type="text" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" placeholder="0" />
+                                    </div>
+                                </div>
+                                <div class="col-span-full md:col-span-1">
+                                    <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span class="text-red-500">*</span></label>
+                                    <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
+                                        <span class="text-text-secondary text-xs mr-2 font-black">Rp</span>
+                                        <input v-money:selling_price="item" type="text" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" :placeholder="item.suggestedSellingPrice ? formatRupiah(item.suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
+                                    </div>
+                                </div>
+                             </div>
+
+                             <div class="space-y-2 mt-4">
+                                 <label class="label text-sm uppercase font-bold flex justify-between">
+                                      <div class="flex items-center gap-2"><span>Input IMEI</span><span class="text-red-500">*</span></div>
+                                      <span class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total: {{ item.parsedImeis.length }} items</span>
+                                 </label>
+                                 <textarea v-model="item.bulkImeiText" @input="handleImeiInput(idx)" rows="4" class="input bg-surface-900 font-mono text-xs leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500" placeholder="Paste banyak IMEI disini..."></textarea>
                              </div>
                         </div>
 
-                        <!-- Global Settings for Batch HP -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-surface-900/50 p-6 rounded-3xl border border-surface-700">
-                            <div>
-                                <label class="label text-[10px] uppercase">Kondisi (Batch) <span
-                                        class="text-red-500">*</span></label>
-                                <select v-model="batchDetails.condition" class="input bg-surface-900 h-12 text-sm">
-                                    <option value="new">Baru</option>
-                                    <option value="second">Bekas</option>
-                                    <option v-if="selectedBrand === 1" value="ex_ibox">Ex iBox (Khusus iPhone)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="label text-[10px] uppercase text-emerald-500">Harga Modal (Satuan)</label>
-                                <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
-                                    <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                    <input v-money:cost_price="batchDetails" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" placeholder="0" />
-                                </div>
-                            </div>
-                            <div class="col-span-full md:col-span-1">
-                                <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span class="text-red-500">*</span></label>
-                                <div class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 transition-all h-12">
-                                    <span class="text-text-secondary text-sm font-bold mr-2 select-none">Rp</span>
-                                    <input v-money:selling_price="batchDetails" type="text" class="bg-transparent border-none focus:outline-none w-full text-sm font-bold tracking-wide h-full placeholder:text-surface-500 text-text-primary" :placeholder="suggestedSellingPrice ? formatRupiah(suggestedSellingPrice).replace('Rp', '').trim() : '0'" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Multi IMEI Field -->
-                        <div class="space-y-2">
-                            <label class="label text-sm uppercase font-bold flex justify-between">
-                                <div class="flex items-center gap-2">
-                                    <span>Input IMEI (Scan / Copy-Paste)</span>
-                                    <span class="text-red-500">*</span>
-                                </div>
-                                <span class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total: {{ parsedImeis.length }} items</span>
-                            </label>
-                            <textarea v-model="bulkImeiText" rows="8" class="input bg-surface-900 font-mono text-sm leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500 transition-all placeholder:text-text-secondary/30" placeholder="Contoh: &#10;123456789012345&#10;987654321098765&#10;Paste banyak IMEI sekaligus disini..."></textarea>
-                            <p class="text-[10px] text-text-secondary flex items-center gap-1">
-                                <CheckCircle2 :size="12" class="text-emerald-500" /> Otomatis memisahkan spasi, koma, enter, atau strip.
-                            </p>
-                        </div>
+                        <button @click="addHpItem" class="w-full py-4 border-2 border-dashed border-surface-700/50 rounded-2xl text-text-secondary hover:text-primary-500 hover:border-primary-500 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest bg-surface-900/10 active:scale-95">
+                            <Plus :size="18" /> Klik Disini Untuk Tambah Batch Lainnya
+                        </button>
                     </div>
 
                     <!-- NON-HP MODE: Multiple Product Table Selection -->
                     <div v-if="itemType === 'non-hp'" class="space-y-4">
                         <div class="flex items-center justify-between px-2">
-                            <label class="text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Daftar Barang Non-HP / Aksesoris</label>
-                            <button @click="addNonHpItem" class="text-[10px] font-black text-primary-500 hover:text-primary-400 flex items-center gap-1 uppercase transition-all">
+                            <label
+                                class="text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Daftar
+                                Barang Non-HP / Aksesoris</label>
+                            <button @click="addNonHpItem"
+                                class="text-[10px] font-black text-primary-500 hover:text-primary-400 flex items-center gap-1 uppercase transition-all">
                                 <Plus :size="14" /> Tambah Baris
                             </button>
                         </div>
 
-                        <div v-for="(item, idx) in nonHpItems" :key="idx" class="bg-surface-800/30 p-5 rounded-2xl border border-surface-700 relative group animate-in slide-in-from-right duration-300">
-                             <button v-if="nonHpItems.length > 1" @click="removeNonHpItem(idx)" class="absolute -top-2 -right-2 w-7 h-7 bg-red-500/80 hover:bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"><Trash2 :size="14" /></button>
-                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        <div v-for="(item, idx) in nonHpItems" :key="idx"
+                            class="bg-surface-800/30 p-5 rounded-2xl border border-surface-700 relative group animate-in slide-in-from-right duration-300">
+                            <button v-if="nonHpItems.length > 1" @click="removeNonHpItem(idx)"
+                                class="absolute -top-2 -right-2 w-7 h-7 bg-red-500/80 hover:bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
+                                <Trash2 :size="14" />
+                            </button>
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                                 <div class="md:col-span-3">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk</label>
-                                    <select v-model="item.brand_id" @change="handleBrandChangeNonHp(idx)" class="input bg-surface-900 text-xs h-10 px-3"><option :value="null">-- Merk --</option><option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option></select>
+                                    <select v-model="item.brand_id" @change="handleBrandChangeNonHp(idx)"
+                                        class="input bg-surface-900 text-xs h-10 px-3">
+                                        <option :value="null">-- Merk --</option>
+                                        <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}
+                                        </option>
+                                    </select>
                                 </div>
                                 <div class="md:col-span-4">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama Barang</label>
-                                    <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..." class="input bg-surface-900 text-xs h-10 px-3 disabled:opacity-30 font-bold" :list="'type-options-' + idx" />
-                                    <datalist :id="'type-options-' + idx"><option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option></datalist>
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama
+                                        Barang</label>
+                                    <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..."
+                                        class="input bg-surface-900 text-xs h-10 px-3 disabled:opacity-30 font-bold"
+                                        :list="'type-options-' + idx" />
+                                    <datalist :id="'type-options-' + idx">
+                                        <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
+                                    </datalist>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">QTY</label>
-                                    <input v-model.number="item.quantity" type="number" min="1" class="input bg-surface-900 text-xs h-10 text-center px-2 font-bold" />
+                                    <input v-model.number="item.quantity" type="number" min="1"
+                                        class="input bg-surface-900 text-xs h-10 text-center px-2 font-bold" />
                                 </div>
                                 <div class="md:col-span-3">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga Jual</label>
-                                    <div class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
+                                    <label
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga
+                                        Jual</label>
+                                    <div
+                                        class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">IDR</span>
-                                        <input v-money:selling_price="item" type="text" placeholder="0" class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
+                                        <input v-money:selling_price="item" type="text" placeholder="0"
+                                            class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
                                     </div>
                                 </div>
-                             </div>
+                            </div>
                         </div>
 
-                        <button @click="addNonHpItem" class="w-full py-4 border-2 border-dashed border-surface-700/50 rounded-2xl text-text-secondary hover:text-primary-500 hover:border-primary-500 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest bg-surface-900/10 active:scale-95"><Plus :size="18" /> Klik Disini Untuk Tambah Item Lain</button>
+                        <button @click="addNonHpItem"
+                            class="w-full py-4 border-2 border-dashed border-surface-700/50 rounded-2xl text-text-secondary hover:text-primary-500 hover:border-primary-500 transition-all flex items-center justify-center gap-2 font-black uppercase text-[10px] tracking-widest bg-surface-900/10 active:scale-95">
+                            <Plus :size="18" /> Klik Disini Untuk Tambah Item Lain
+                        </button>
                     </div>
 
                     <!-- Shared Notes Field -->
                     <div class="space-y-2 pt-4 border-t border-surface-700/50">
-                        <label class="label text-[10px] uppercase font-black opacity-60">Catatan Transaksi (Opsional)</label>
-                        <textarea v-model="notes" rows="2" class="input bg-surface-900 h-16 text-sm p-3 resize-none border-surface-700" placeholder="Keterangan tambahan untuk batch ini..."></textarea>
+                        <label class="label text-[10px] uppercase font-black opacity-60">Catatan Transaksi
+                            (Opsional)</label>
+                        <textarea v-model="notes" rows="2"
+                            class="input bg-surface-900 h-16 text-sm p-3 resize-none border-surface-700"
+                            placeholder="Keterangan tambahan untuk batch ini..."></textarea>
                     </div>
                 </div>
             </div>
