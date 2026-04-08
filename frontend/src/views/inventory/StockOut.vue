@@ -119,6 +119,20 @@ const form = ref({
     notes: '',
     inventory_user_id: null,
     transaction_pin: '',
+    // Giveaway fields
+    giveaway_receiver: '',
+    giveaway_phone: '',
+    giveaway_address: '',
+    giveaway_province: '',
+    giveaway_city: '',
+    giveaway_district: '',
+    giveaway_village: '',
+    giveaway_postal_code: '',
+    giveaway_notes: '',
+    // Event fields
+    event_receiver: '',
+    event_phone: '',
+    event_notes: '',
 });
 
 // sellingPriceDisplay and newNonHpItemSellingPriceDisplay computed properties removed in favor of v-money sync syntax
@@ -381,6 +395,18 @@ function resetForm() {
         notes: '',
         inventory_user_id: authStore.user?.id || null,
         transaction_pin: '',
+        giveaway_receiver: '',
+        giveaway_phone: '',
+        giveaway_address: '',
+        giveaway_province: '',
+        giveaway_city: '',
+        giveaway_district: '',
+        giveaway_village: '',
+        giveaway_postal_code: '',
+        giveaway_notes: '',
+        event_receiver: '',
+        event_phone: '',
+        event_notes: '',
     };
     selectedRegionIds.value = { province: "", city: "", district: "", village: "" };
     selectedCategory.value = null;
@@ -553,6 +579,10 @@ const canSubmit = computed(() => {
             return form.value.shopee_receiver && form.value.shopee_phone && form.value.shopee_address && form.value.shopee_tracking_no && form.value.selling_price;
         case 'cancel_penjualan':
             return form.value.notes && form.value.notes.length >= 5;
+        case 'giveaway_customer':
+            return form.value.giveaway_receiver && form.value.giveaway_phone && form.value.giveaway_address;
+        case 'event_sponsorship':
+            return form.value.event_receiver && form.value.event_phone;
         default:
             return true;
     }
@@ -562,11 +592,27 @@ async function fetchInventoryUsers() {
     loadingUsers.value = true;
     try {
         const response = await inventoryApi.myAccounts();
-        inventoryUsers.value = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        const accounts = Array.isArray(response.data) ? response.data : (response.data?.data || []);
         
-        // Auto select if currently null
-        if (!form.value.inventory_user_id && inventoryUsers.value.length > 0) {
-            form.value.inventory_user_id = inventoryUsers.value[0].id;
+        // Include current user in the list if they're not there (backend excludes self)
+        const currentUser = authStore.user;
+        if (currentUser && !accounts.some(u => u.id === currentUser.id)) {
+            accounts.unshift({
+                id: currentUser.id,
+                name: currentUser.name,
+                full_name: currentUser.full_name,
+                pin_enabled: currentUser.pin_enabled || !!currentUser.transaction_pin_exists
+            });
+        }
+        
+        inventoryUsers.value = accounts;
+        
+        // Auto select if currently null OR invalid
+        if ((!form.value.inventory_user_id || !inventoryUsers.value.some(u => u.id === form.value.inventory_user_id)) && inventoryUsers.value.length > 0) {
+            // Priority: existing form.inventory_user_id if valid, otherwise first in list
+            if (!inventoryUsers.value.some(u => u.id === form.value.inventory_user_id)) {
+                form.value.inventory_user_id = inventoryUsers.value[0].id;
+            }
         }
     } catch (e) {
         toast.error("Gagal memuat daftar akun inventory");
@@ -831,10 +877,10 @@ onMounted(() => {
                 'border-t-amber-500': selectedCategory === 'kesalahan_input',
                 'border-t-purple-500': selectedCategory === 'retur',
                 'border-t-orange-500': selectedCategory === 'shopee',
-                'border-t-pink-500': selectedCategory === 'giveaway',
+                'border-t-pink-500': selectedCategory === 'giveaway_customer',
                 'border-t-yellow-500': selectedCategory === 'hadiah',
                 'border-t-indigo-500': selectedCategory === 'brand_ambassador',
-                'border-t-cyan-500': selectedCategory === 'event',
+                'border-t-cyan-500': selectedCategory === 'event_sponsorship',
                 'border-t-red-500': selectedCategory === 'promo',
                 'border-t-slate-500': selectedCategory === 'inventaris',
             }">
@@ -1019,34 +1065,83 @@ onMounted(() => {
                             </button>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Scanner Modal -->
-                    <div v-if="isScanning"
-                        class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4">
-                        <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
-                            <!-- Scanner Header -->
-                            <div class="flex items-center justify-between p-4 border-b border-surface-700">
-                                <h3 class="text-white font-bold flex items-center gap-2">
-                                    <ScanBarcode :size="20" class="text-orange-500" />
-                                    Scan Barcode Resi
-                                </h3>
-                                <button @click="stopScanner"
-                                    class="text-text-secondary hover:text-white transition-colors">
-                                    <X :size="24" />
-                                </button>
-                            </div>
+                <!-- Giveaway Details -->
+                <div v-if="selectedCategory === 'giveaway_customer'" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Nama Penerima Giveaway *</label>
+                            <input v-model="form.giveaway_receiver" class="input" placeholder="Nama lengkap penerima" />
+                        </div>
+                        <div>
+                            <label class="label">No. WA Penerima *</label>
+                            <input v-model="form.giveaway_phone" class="input" placeholder="08xxxxxxxxxx" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label">Alamat Pengiriman *</label>
+                        <textarea v-model="form.giveaway_address" class="input" rows="2" placeholder="Alamat lengkap tujuan giveaway..."></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <label class="label">Provinsi</label>
+                            <input v-model="form.giveaway_province" class="input" placeholder="Provinsi" />
+                        </div>
+                        <div>
+                            <label class="label">Kota</label>
+                            <input v-model="form.giveaway_city" class="input" placeholder="Kota/Kabupaten" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label">Catatan Giveaway</label>
+                        <textarea v-model="form.giveaway_notes" class="input" rows="2" placeholder="Catatan tambahan (opsional)..."></textarea>
+                    </div>
+                </div>
 
-                            <!-- Scanner Container -->
-                            <div :id="scannerContainerId" class="w-full aspect-video bg-black"></div>
+                <!-- Event Details -->
+                <div v-if="selectedCategory === 'event_sponsorship'" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Nama Penerima / Event *</label>
+                            <input v-model="form.event_receiver" class="input" placeholder="Nama event atau penanggung jawab" />
+                        </div>
+                        <div>
+                            <label class="label">No. WA *</label>
+                            <input v-model="form.event_phone" class="input" placeholder="08xxxxxxxxxx" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label">Catatan Event</label>
+                        <textarea v-model="form.event_notes" class="input" rows="2" placeholder="Keterangan event (opsional)..."></textarea>
+                    </div>
+                </div>
 
-                            <!-- Instructions -->
-                            <div class="p-4 text-center space-y-3">
-                                <p class="text-text-secondary text-sm animate-pulse">
-                                    Arahkan kamera ke barcode resi...
-                                </p>
-                                <div class="text-xs text-text-secondary">
-                                    <p>Atau ketik manual nomor resi di form lalu tutup scanner</p>
-                                </div>
+                <!-- Scanner Modal -->
+                <div v-if="isScanning"
+                    class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4">
+                    <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
+                        <!-- Scanner Header -->
+                        <div class="flex items-center justify-between p-4 border-b border-surface-700">
+                            <h3 class="text-white font-bold flex items-center gap-2">
+                                <ScanBarcode :size="20" class="text-orange-500" />
+                                Scan Barcode Resi
+                            </h3>
+                            <button @click="stopScanner" class="text-text-secondary hover:text-white transition-colors">
+                                <X :size="24" />
+                            </button>
+                        </div>
+
+                        <!-- Scanner Container -->
+                        <div :id="scannerContainerId" class="w-full aspect-video bg-black"></div>
+
+                        <!-- Instructions -->
+                        <div class="p-4 text-center space-y-3">
+                            <p class="text-text-secondary text-sm animate-pulse">
+                                Arahkan kamera ke barcode resi...
+                            </p>
+                            <div class="text-xs text-text-secondary">
+                                <p>Atau ketik manual nomor resi di form lalu tutup scanner</p>
                             </div>
                         </div>
                     </div>

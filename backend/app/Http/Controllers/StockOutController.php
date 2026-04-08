@@ -237,7 +237,7 @@ class StockOutController extends Controller
         }
 
         // Giveaway Validation
-        if ($request->category === 'giveaway') {
+        if ($request->category === 'giveaway_customer') {
             $rules['giveaway_receiver'] = 'required|string|max:255';
             $rules['giveaway_phone'] = 'required|string|max:50';
             $rules['giveaway_address'] = 'required|string';
@@ -247,6 +247,13 @@ class StockOutController extends Controller
             $rules['giveaway_village'] = 'nullable|string';
             $rules['giveaway_postal_code'] = 'nullable|string|max:10';
             $rules['giveaway_notes'] = 'nullable|string';
+        }
+
+        // Event / Sponsorship Validation
+        if ($request->category === 'event_sponsorship') {
+            $rules['event_receiver'] = 'required|string|max:255';
+            $rules['event_phone'] = 'required|string|max:50';
+            $rules['event_notes'] = 'nullable|string';
         }
 
         $request->validate($rules);
@@ -329,6 +336,7 @@ class StockOutController extends Controller
                     }
 
                     $remainingToDeduct = $item['quantity'];
+
                     foreach ($inventories as $inventory) {
                         if ($remainingToDeduct <= 0) break;
 

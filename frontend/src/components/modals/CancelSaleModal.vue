@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { X, Trash2, User, Lock, AlertCircle, Loader2 } from 'lucide-vue-next';
 import api, { inventory as inventoryApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useAuthStore } from "../../store/auth";
 
 const props = defineProps({
     show: Boolean,
@@ -11,6 +12,7 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "success"]);
 
+const authStore = useAuthStore();
 const toast = useToast();
 const loadingUsers = ref(false);
 const submitting = ref(false);
@@ -29,8 +31,20 @@ async function fetchInventoryUsers() {
     loadingUsers.value = true;
     try {
         const response = await inventoryApi.myAccounts();
-        // Since getMyInventoryUsers returns raw array, use response.data
-        inventoryUsers.value = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        const accounts = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        
+        // Include current user in the list if they're not there (backend excludes self)
+        const currentUser = authStore.user;
+        if (currentUser && !accounts.some(u => u.id === currentUser.id)) {
+            accounts.unshift({
+                id: currentUser.id,
+                name: currentUser.name,
+                full_name: currentUser.full_name,
+                pin_enabled: currentUser.pin_enabled || !!currentUser.transaction_pin_exists
+            });
+        }
+        
+        inventoryUsers.value = accounts;
         
         // Auto select creator if present in the list
         if (props.sale?.inventory_user_id && inventoryUsers.value.length > 0) {
@@ -56,7 +70,7 @@ const selectedUser = computed(() => {
 });
 
 const hasSelectedUserPin = computed(() => {
-    return !!selectedUser.value?.transaction_pin_exists;
+    return !!selectedUser.value?.pin_enabled || !!selectedUser.value?.transaction_pin_exists;
 });
 
 const canSubmitInternal = computed(() => {
@@ -138,14 +152,16 @@ watch(() => props.show, (newVal) => {
     <Teleport to="body">
         <div v-if="show" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="close"></div>
-            
-            <div class="relative w-full max-w-md bg-white dark:bg-surface-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-gray-200 dark:border-white/10">
+
+            <div
+                class="relative w-full max-w-md bg-white dark:bg-surface-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-gray-200 dark:border-white/10">
                 <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-500 to-rose-700"></div>
-                
+
                 <div class="p-8">
                     <div class="flex items-center justify-between mb-6">
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
+                            <div
+                                class="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
                                 <Trash2 :size="24" />
                             </div>
                             <div>
@@ -153,7 +169,8 @@ watch(() => props.show, (newVal) => {
                                 <p class="text-xs text-text-secondary">Ref: {{ sale?.receipt_id || sale?.order_no }}</p>
                             </div>
                         </div>
-                        <button @click="close" class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors text-text-secondary">
+                        <button @click="close"
+                            class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors text-text-secondary">
                             <X :size="20" />
                         </button>
                     </div>
@@ -167,14 +184,18 @@ watch(() => props.show, (newVal) => {
                             <div v-if="loadingUsers" class="flex items-center gap-2 py-3 text-text-secondary text-sm">
                                 <Loader2 :size="16" class="animate-spin" /> Memuat daftar akun...
                             </div>
-                            <select v-else v-model="form.inventory_user_id" class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white">
+                            <select v-else v-model="form.inventory_user_id"
+                                class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white">
                                 <option :value="null" class="dark:bg-surface-800">-- Pilih Akun --</option>
-                                <option v-for="user in inventoryUsers" :key="user.id" :value="user.id" class="dark:bg-surface-800">
-                                    {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{ user.transaction_pin_exists ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
+                                <option v-for="user in inventoryUsers" :key="user.id" :value="user.id"
+                                    class="dark:bg-surface-800">
+                                    {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{
+                                        user.transaction_pin_exists || user.pin_enabled ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
                                 </option>
                             </select>
-                            
-                            <div v-if="selectedUser && !hasSelectedUserPin" class="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2">
+
+                            <div v-if="selectedUser && !hasSelectedUserPin"
+                                class="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2">
                                 <AlertCircle :size="16" class="text-amber-500 shrink-0 mt-0.5" />
                                 <p class="text-[10px] text-amber-500 leading-tight">
                                     Akun <strong>{{ selectedUser.name }}</strong> belum memiliki PIN. <br>
@@ -185,29 +206,30 @@ watch(() => props.show, (newVal) => {
 
                         <!-- PIN Input -->
                         <div v-if="hasSelectedUserPin">
-                            <label class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2">
+                            <label
+                                class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
                                 <Lock :size="16" /> PIN Transaksi (4 Digit)
                             </label>
                             <div class="flex justify-between gap-3 px-4">
-                                <input v-for="(digit, idx) in 4" :key="idx" 
-                                    :ref="el => pinInputs[idx] = el" 
-                                    v-model="pinDigits[idx]"
-                                    type="password" inputmode="numeric" maxlength="1" 
-                                    class="w-full h-14 bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl text-center text-2xl font-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
-                                    @input="handlePinInput(idx, $event)" 
-                                    @keydown="handlePinKeydown(idx, $event)" />
+                                <input v-for="(digit, idx) in 4" :key="idx" :ref="el => pinInputs[idx] = el"
+                                    v-model="pinDigits[idx]" type="password" inputmode="numeric" maxlength="1"
+                                    class="w-full h-14 bg-surface-50 dark:bg-surface-800 border-2 border-surface-100 dark:border-white/5 rounded-2xl text-center text-3xl font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-red-500/20 focus:border-red-500 transition-all placeholder:text-text-secondary/20"
+                                    @input="handlePinInput(idx, $event)" @keydown="handlePinKeydown(idx, $event)" />
                             </div>
                         </div>
 
                         <!-- Reason Input -->
                         <div>
                             <label class="block text-sm font-bold text-text-secondary mb-2">Alasan Pembatalan</label>
-                            <textarea v-model="form.reason" rows="2" class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white placeholder:text-text-secondary/40" placeholder="Contoh: Salah input barang, customer cancel order..."></textarea>
+                            <textarea v-model="form.reason" rows="2"
+                                class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white placeholder:text-text-secondary/40"
+                                placeholder="Contoh: Salah input barang, customer cancel order..."></textarea>
                         </div>
                     </div>
 
                     <div class="mt-8">
-                        <button @click="handleSubmit" :disabled="submitting || !canSubmitInternal" class="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-2">
+                        <button @click="handleSubmit" :disabled="submitting || !canSubmitInternal"
+                            class="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-2">
                             <Loader2 v-if="submitting" :size="20" class="animate-spin" />
                             <Trash2 v-else :size="20" />
                             Konfirmasi Pembatalan
