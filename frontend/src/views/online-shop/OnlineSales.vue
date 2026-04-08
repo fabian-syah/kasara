@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useAuthStore } from "../../store/auth";
 import {
     Search,
     Loader2,
@@ -13,8 +14,10 @@ import {
     ChevronLeft,
     ChevronRight,
     ClipboardList,
-    Download
+    Download,
+    Trash2
 } from "lucide-vue-next";
+import CancelSaleModal from "../../components/modals/CancelSaleModal.vue";
 import { formatNumber, parseCurrency } from "../../utils/formatters";
 
 const toast = useToast();
@@ -32,6 +35,29 @@ const pagination = ref({
 const search = ref("");
 const filterType = ref("this_month"); // yesterday, today, this_month, all
 let searchTimeout = null;
+
+// Cancellation logic
+const showCancelModal = ref(false);
+const selectedSaleForCancel = ref(null);
+
+const canCancel = (date) => {
+    const role = (useAuthStore().userRole || '').toLowerCase();
+    if (role === 'super_admin' || role === 'owner') return true;
+    if (!date) return false;
+    const itemDate = new Date(date);
+    if (isNaN(itemDate.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    itemDate.setHours(0, 0, 0, 0);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
+    return diffDays <= 5;
+};
+
+const handleCancelSale = (order) => {
+    selectedSaleForCancel.value = order;
+    showCancelModal.value = true;
+};
 
 // Flattened data for table
 const groupedSales = computed(() => {
@@ -80,7 +106,9 @@ const groupedSales = computed(() => {
             petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
             notes: order.notes || order.shopee_notes || '-',
             created_at: order.created_at,
-            total_price: items.reduce((sum, i) => sum + i.price, 0) || order.selling_price || 0
+            total_price: items.reduce((sum, i) => sum + i.price, 0) || order.selling_price || 0,
+            category: order.category,
+            status: order.category === 'cancel_penjualan' ? 'cancelled' : order.status
         };
     });
 });
@@ -212,20 +240,21 @@ onMounted(() => {
                             <th class="px-6 py-4 font-bold">Tipe</th>
                             <th class="px-6 py-4 font-bold text-center">Kapasitas</th>
                             <th class="px-6 py-4 font-bold">IMEI / Qty</th>
-                            <th class="px-6 py-4 font-bold text-right">Harga</th>
+                            <th class="px-6 py-4 font-bold">Harga</th>
                             <th class="px-6 py-4 font-bold">Petugas</th>
                             <th class="px-6 py-4 font-bold">Catatan</th>
+                            <th class="px-6 py-4 font-bold text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700">
                         <tr v-if="isLoading">
-                            <td colspan="10" class="px-6 py-12 text-center text-text-secondary">
+                            <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
                                 <Loader2 :size="32" class="animate-spin mx-auto mb-2 opacity-50" />
                                 <span class="animate-pulse">Memuat data...</span>
                             </td>
                         </tr>
                         <tr v-else-if="groupedSales.length === 0">
-                            <td colspan="10" class="px-6 py-12 text-center text-text-secondary">
+                            <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
                                 <ClipboardList :size="48" class="mx-auto mb-2 opacity-20" />
                                 <p>Tidak ada data penjualan ditemukan</p>
                             </td>
@@ -308,6 +337,18 @@ onMounted(() => {
                                     {{ order.notes }}
                                 </p>
                             </td>
+                            <td class="px-6 py-4 align-top text-center">
+                                <button v-if="order.category !== 'cancel_penjualan' && canCancel(order.created_at)" 
+                                    @click="handleCancelSale(order)"
+                                    class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Batalkan Penjualan">
+                                    <Trash2 :size="18" />
+                                </button>
+                                <span v-else-if="order.category === 'cancel_penjualan'" class="text-[10px] font-bold text-red-400 uppercase">
+                                    Dibatalkan
+                                </span>
+                                <span v-else class="text-text-secondary opacity-30 italic text-[10px]">Locked</span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -339,6 +380,9 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+        
+        <!-- Cancel Sale Modal -->
+        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchData" />
     </div>
 </template>
 

@@ -12,8 +12,11 @@ import {
     Package,
     ChevronLeft,
     ChevronRight,
-    ShoppingBag
+    ShoppingBag,
+    Trash2
 } from "lucide-vue-next";
+import { useAuthStore } from "../../store/auth";
+import CancelSaleModal from "../../components/modals/CancelSaleModal.vue";
 
 const toast = useToast();
 
@@ -29,6 +32,29 @@ const pagination = ref({
 
 const search = ref("");
 let searchTimeout = null;
+
+// Cancellation logic
+const showCancelModal = ref(false);
+const selectedSaleForCancel = ref(null);
+
+const canCancel = (date) => {
+    const role = (useAuthStore().userRole || '').toLowerCase();
+    if (role === 'super_admin' || role === 'owner') return true;
+    if (!date) return false;
+    const itemDate = new Date(date);
+    if (isNaN(itemDate.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    itemDate.setHours(0, 0, 0, 0);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
+    return diffDays <= 5;
+};
+
+const handleCancelSale = (item) => {
+    selectedSaleForCancel.value = item;
+    showCancelModal.value = true;
+};
 
 // Fetch history
 const fetchHistory = async (page = 1) => {
@@ -158,6 +184,15 @@ onMounted(() => {
                                 <span class="text-xs bg-surface-700 px-2 py-0.5 rounded text-text-secondary">
                                     {{ item.user?.name || 'Unknown' }}
                                 </span>
+                                <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at)" 
+                                    @click="handleCancelSale(item)"
+                                    class="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors ml-2"
+                                    title="Batalkan Penjualan">
+                                    <Trash2 :size="16" />
+                                </button>
+                                <span v-else-if="item.category === 'cancel_penjualan'" class="text-[10px] font-bold text-red-400 uppercase ml-2">
+                                    Dibatalkan
+                                </span>
                             </div>
                         </div>
 
@@ -246,6 +281,9 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+        
+        <!-- Cancel Sale Modal -->
+        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchHistory" />
     </div>
 </template>
 

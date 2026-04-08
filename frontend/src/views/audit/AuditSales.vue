@@ -149,7 +149,11 @@
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
                                     item.customer_phone }}</td>
                                 <td class="px-6 py-4">
-                                    <span
+                                    <span v-if="item.category === 'cancel_penjualan'"
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20">
+                                        Dibatalkan
+                                    </span>
+                                    <span v-else
                                         class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
                                         {{ item.category }}
                                     </span>
@@ -260,6 +264,11 @@
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Cek Audit">
                                             <ClipboardCheck :size="16" />
+                                        </button>
+                                        <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)" @click="handleCancelSale(item)"
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-red-500 hover:text-red-600 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Batalkan Penjualan">
+                                            <Trash2 :size="16" />
                                         </button>
                                     </div>
                                 </td>
@@ -452,15 +461,19 @@
             </div>
         </div>
     </Teleport>
+
+    <!-- Cancel Sale Modal -->
+    <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchData" />
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
+import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
 
 const authStore = useAuthStore()
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')
@@ -526,6 +539,29 @@ const checklistLoading = ref(false)
 const checklistSaving = ref(false)
 const checklistData = ref(null)
 const checklistStockOutId = ref(null)
+
+// Cancellation logic
+const showCancelModal = ref(false)
+const selectedSaleForCancel = ref(null)
+
+const canCancel = (date) => {
+    const role = (authStore.userRole || '').toLowerCase();
+    if (role === 'super_admin' || role === 'owner') return true;
+    if (!date) return false;
+    const itemDate = new Date(date);
+    if (isNaN(itemDate.getTime())) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    itemDate.setHours(0, 0, 0, 0);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
+    return diffDays <= 5;
+};
+
+const handleCancelSale = (item) => {
+    selectedSaleForCancel.value = item;
+    showCancelModal.value = true;
+};
 
 const openChecklist = async (item) => {
     checklistStockOutId.value = item.id
