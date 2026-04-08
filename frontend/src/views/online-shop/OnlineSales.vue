@@ -33,7 +33,7 @@ const pagination = ref({
 });
 
 const search = ref("");
-const filterType = ref("this_month"); // yesterday, today, this_month, all
+const filterType = ref("all"); // yesterday, today, this_month, all
 let searchTimeout = null;
 
 // Cancellation logic

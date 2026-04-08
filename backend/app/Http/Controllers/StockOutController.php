@@ -705,7 +705,7 @@ class StockOutController extends Controller
     {
         $user = Auth::user();
         $query = StockOut::with(['items.product', 'user', 'inventoryUser'])
-            ->whereIn('category', ['shopee', 'orderan_online']);
+            ->whereIn('category', ['shopee', 'orderan_online', 'cancel_penjualan']);
 
         // LOCATION FILTER (ISOLATION)
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
