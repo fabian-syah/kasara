@@ -516,6 +516,11 @@ class StockOutController extends Controller
                 'giveaway_village' => $request->giveaway_village,
                 'giveaway_postal_code' => $request->giveaway_postal_code,
                 'giveaway_notes' => $request->giveaway_notes,
+                
+                // Event
+                'event_receiver' => $request->event_receiver,
+                'event_phone' => $request->event_phone,
+                'event_notes' => $request->event_notes,
 
                 'notes' => $request->notes,
                 'non_hp_items' => $request->non_hp_items,

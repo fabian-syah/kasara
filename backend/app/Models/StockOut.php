@@ -75,6 +75,10 @@ class StockOut extends Model
         'giveaway_village',
         'giveaway_postal_code',
         'giveaway_notes',
+        // Event
+        'event_receiver',
+        'event_phone',
+        'event_notes',
         // Shopee per-item data
         'shopee_items_data',
         // Meta
