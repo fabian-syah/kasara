@@ -406,15 +406,31 @@ const canSubmitStockOut = computed(() => {
 });
 
 async function handlePinSuccess(pin) {
+    console.log("[DEBUG MODAL] PIN success event received");
     showPinModal.value = false;
     await submitStockOut(pin);
 }
 
 async function submitStockOut(pin = null) {
-    if (!canSubmitStockOut.value) return;
+    console.log("[DEBUG MODAL] submitStockOut called");
+    window.alert("DEBUG: Tombol Konfirmasi Ditekan!");
+    
+    if (!canSubmitStockOut.value) {
+        console.warn("[DEBUG MODAL] canSubmitStockOut is false, aborting");
+        window.alert("DEBUG: canSubmit is false (Mungkin form belum lengkap)");
+        return;
+    }
 
-    // If user has PIN enabled and we don't have a verified PIN yet
-    if (authStore.user?.pin_enabled && !pin) {
+    // NEW PIN LOGIC
+    // Check if the selected inventory user requires a PIN
+    const target = selectedInventoryUser.value;
+    if (target) {
+        console.log("[DEBUG MODAL] Target User:", target.name, "PIN Status:", target.has_pin, target.pin_enabled);
+    }
+
+    if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists) && !pin) {
+        console.info("[DEBUG MODAL] UI: Showing PinModal for", target.name);
+        window.alert("DEBUG: Akun " + target.name + " butuh PIN. Membuka modal...");
         showPinModal.value = true;
         return;
     }
@@ -424,6 +440,7 @@ async function submitStockOut(pin = null) {
         const formData = new FormData();
         formData.append('category', selectedStockOutCategory.value);
         if (pin) {
+            console.log("[DEBUG MODAL] Transaction PIN added to formData");
             formData.append('transaction_pin', pin);
         }
 
@@ -455,7 +472,9 @@ async function submitStockOut(pin = null) {
             formData.append('sub_category', stockOutForm.value.sub_category);
         }
 
+        // Handle specific categories
         if (['shopee', 'orderan_online'].includes(selectedStockOutCategory.value)) {
+            // ... (shopee logic)
             hpItems.forEach((item, index) => {
                 formData.append(`shopee_items[${index}][product_detail_id]`, item.id);
                 formData.append(`shopee_items[${index}][receiver]`, stockOutForm.value.shopee_receiver);
@@ -490,17 +509,31 @@ async function submitStockOut(pin = null) {
             formData.append('proof_image', proofImageFile.value);
         }
 
+        console.log("[DEBUG MODAL] Sending POST to /stock-outs");
         const response = await api.post('/stock-outs', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
+        console.log("[DEBUG MODAL] SUCCESS:", response.data);
         toast.success(`Stok berhasil dikeluarkan! ID: ${response.data.data.receipt_id}`);
         emit('success');
     } catch (e) {
-        toast.error(e.response?.data?.message || "Gagal keluar stok");
-        console.error(e);
+        console.error("[DEBUG MODAL] Error:", e);
+        const errorMsg = e.response?.data?.message || "";
+        console.error("[DEBUG MODAL] Error message from server:", errorMsg);
+
+        // WATCHDOG FOR 422 PIN ERROR
+        if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
+            console.warn("[DEBUG MODAL] WATCHDOG triggered for error:", errorMsg);
+            window.alert("DEBUG WATCHDOG: Server minta PIN. Membuka modal...");
+            showPinModal.value = true;
+            toast.error(errorMsg);
+        } else {
+            toast.error(errorMsg || "Gagal keluar stok");
+        }
     } finally {
         isSubmitting.value = false;
+        console.log("[DEBUG MODAL] submitFinished");
     }
 }
 </script>
