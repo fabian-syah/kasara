@@ -411,25 +411,22 @@ class AuditController extends Controller
 
         $csSales = $csQuery->with(['inventoryUser', 'user'])
             ->select(
-                'inventory_user_id',
                 'user_id',
-                DB::raw('count(*) as count'),
-                DB::raw('sum(selling_price) as total'),
-                DB::raw("sum(case when category = 'tukar_tambah' or category = 'tukar_unit' then 1 else 0 end) as trade_in_count"),
-                DB::raw("sum(case when category = 'refund' then 1 else 0 end) as refund_count"),
-                DB::raw("sum(case when category = 'angkat_barang' then 1 else 0 end) as angkat_barang_count")
+                DB::raw('count(case when category in ("shopee", "orderan_online", "penjualan_offline", "penjualan_store", "bundling", "tukar_unit", "tukar_tambah", "downgrade") then 1 end) as total_units_sold'),
+                DB::raw('sum(case when category in ("shopee", "orderan_online", "penjualan_offline", "penjualan_store", "bundling", "tukar_unit", "tukar_tambah", "downgrade") then selling_price else 0 end) as total_revenue'),
+                DB::raw("sum(case when category = 'tukar_tambah' or category = 'tukar_unit' or category = 'angkat_barang' or category = 'downgrade' then 1 else 0 end) as angkat_barang_count"),
+                DB::raw("sum(case when category = 'refund' then 1 else 0 end) as refund_count")
             )
-            ->groupBy('inventory_user_id', 'user_id')
+            ->groupBy('user_id')
             ->get()
             ->map(function ($item) {
                 return [
-                    'cs_name' => $item->inventoryUser->name ?? ($item->user->name ?? 'Unknown'),
-                    'photo' => $item->inventoryUser->photo ?? ($item->user->photo ?? null),
-                    'total_sales' => $item->count,
-                    'total_trade_in' => (int) $item->trade_in_count,
+                    'cs_name' => $item->user->name ?? 'Unknown',
+                    'photo' => $item->user->photo_inventory ?? $item->user->photo ?? null,
+                    'total_sales' => (int) $item->total_units_sold,
                     'total_refund' => (int) $item->refund_count,
                     'total_angkat_barang' => (int) $item->angkat_barang_count,
-                    'grand_total' => $item->total
+                    'grand_total' => (float) $item->total_revenue
                 ];
             });
 
