@@ -292,22 +292,32 @@ const lookupProductIdHp = async (index) => {
 
 const lookupPriceHp = debounce(async (index) => {
     const item = hpItems.value[index];
-    if (!item.type_name) return;
+    if (!item.type_name || !item.brand_id) return;
     
+    // Find the product type ID from allowedTypes
+    const typeObj = allowedTypes.value.find(t => 
+        t.name === item.type_name && 
+        t.brand_id === item.brand_id && 
+        isImeiCategory(t.category)
+    );
+
+    if (!typeObj) return;
+
     try {
         const res = await inventoryApi.lookupPrice({
-            type: 'hp',
-            product_name: item.type_name,
+            product_type_id: typeObj.id,
             condition: item.condition,
-            ram: item.ram,
-            storage: item.storage
+            ram: item.ram || null,
+            storage: item.storage || null
         });
         
-        if (res.data) {
-            item.suggestedSellingPrice = res.data.selling_price;
+        if (res.data && res.data.found) {
+            item.suggestedSellingPrice = res.data.price;
             // Only auto-fill if currently 0
-            if (!item.selling_price) item.selling_price = res.data.selling_price;
+            if (!item.selling_price) item.selling_price = res.data.price;
             if (!item.cost_price) item.cost_price = res.data.cost_price || 0;
+        } else {
+            item.suggestedSellingPrice = 0;
         }
     } catch (e) {
         console.error("Price lookup failed", e);
