@@ -883,14 +883,6 @@ onMounted(fetchInitialData);
                             <Edit2 :size="16" class="group-hover/edit:scale-110 transition-transform" />
                         </div>
 
-                        <!-- DELETE BUTTON -->
-                        <div v-if="authStore.user?.id === user.created_by?.id ||
-                            authStore.user?.id === user.created_by ||
-                            ['super_admin', 'owner', 'audit', 'admin_produk'].includes((authStore.userRole || '').toLowerCase())"
-                            @click="deleteInventoryAccount(user, $event)"
-                            class="absolute top-3 right-3 p-1.5 hover:bg-red-500/10 rounded-lg text-text-secondary hover:text-red-500 transition-all z-10 group/delete">
-                            <Trash2 :size="16" class="group-hover/delete:scale-110 transition-transform" />
-                        </div>
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative group/pic">
