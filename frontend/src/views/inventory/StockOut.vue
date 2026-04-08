@@ -631,8 +631,11 @@ async function fetchInventoryUsers() {
 
 function handleStartSubmit() {
     console.log("[DEBUG PIN] handleStartSubmit called");
+    window.alert("DEBUG: Tombol Konfirmasi Ditekan!");
+    
     if (!canSubmit.value) {
         console.warn("[DEBUG PIN] canSubmit is false, aborting");
+        window.alert("DEBUG: canSubmit is false");
         return;
     }
 
@@ -649,10 +652,12 @@ function handleStartSubmit() {
     // Robust check for PIN enabled
     if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists)) {
         console.info("[DEBUG PIN] UI: Showing PinModal for", target.name);
+        window.alert("DEBUG: Membuka modal PIN untuk " + target.name);
         accountNeedingPin.value = target;
         showPinModal.value = true;
     } else {
         console.info("[DEBUG PIN] UI: No PIN required, proceeding to direct submit");
+        window.alert("DEBUG: Tidak butuh PIN, langsung submit");
         submitStockOut();
     }
 }
