@@ -188,6 +188,13 @@ const exportLoading = ref(false);
 const exportPart = ref(0); // 0: none, 1: part 1 (Podium + 1-20), 2: part 2 (21-end)
 const exportRef = ref(null);
 
+const currentExportData = computed(() => {
+    if (exportPart.value === 0) return displayRanking.value;
+    const rowsPerPage = 10;
+    const start = (exportPart.value - 1) * rowsPerPage;
+    return displayRanking.value.slice(start, start + rowsPerPage);
+});
+
 const exportToPDF = async () => {
     if (!exportRef.value) return;
     exportLoading.value = true;
@@ -201,8 +208,8 @@ const exportToPDF = async () => {
 
     const runExport = async (part, isFirst = false) => {
         exportPart.value = part;
-        // Wait for DOM to update and images to load
-        await new Promise(r => setTimeout(r, 1500));
+        // Wait for DOM to update
+        await new Promise(r => setTimeout(r, 1200));
         
         try {
             const el = exportRef.value;
@@ -234,17 +241,10 @@ const exportToPDF = async () => {
     };
 
     const rowsPerPage = 10;
+    const totalPages = Math.ceil(displayRanking.value.length / rowsPerPage);
 
-    // Start with Page 1
-    await runExport(1, true);
-
-    let remaining = displayRanking.value.length - rowsPerPage;
-    let currentPart = 2;
-
-    while(remaining > 0) {
-        await runExport(currentPart, false);
-        remaining -= rowsPerPage;
-        currentPart++;
+    for (let p = 1; p <= totalPages; p++) {
+        await runExport(p, p === 1);
     }
     
     pdf.save(`Laporan-Omzet-${activeRangeLabel.value.replace(/ /g, '-')}.pdf`);
@@ -585,9 +585,8 @@ const exportToPDF = async () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-800/50">
-                                <template v-for="(item, index) in displayRanking" :key="item.type + '-' + item.id">
-                                    <tr v-if="exportPart === 0 || (index >= (exportPart - 1) * 10 && index < exportPart * 10)"
-                                        class="group hover:bg-surface-800/30 transition-all duration-300"
+                                <template v-for="(item, index) in currentExportData" :key="item.type + '-' + item.id">
+                                    <tr class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
                                         <!-- SEPARATOR TABLE ROW -->
@@ -642,7 +641,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || (displayRanking.length <= exportPart * 10))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === Math.ceil(displayRanking.length / 10))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
