@@ -487,6 +487,19 @@ class AuditController extends Controller
             $conditionStats[] = ['condition' => $item->condition, 'qty' => $item->count];
         }
 
+        // 6. Daily History (Total Omset per Day)
+        $historyQuery = StockOut::whereIn('category', $salesCategories)
+            ->whereBetween('reporting_date', [$startDate, $endDate]);
+        $scopeToAccess($historyQuery);
+        $dailyHistory = $historyQuery->select(
+                'reporting_date',
+                DB::raw('sum(selling_price) as total_omset'),
+                DB::raw('count(*) as total_units')
+            )
+            ->groupBy('reporting_date')
+            ->orderByDesc('reporting_date')
+            ->get();
+
         return response()->json([
             'daily_sales' => [
                 'data' => $dailySales,
@@ -498,7 +511,8 @@ class AuditController extends Controller
             'brand_sales' => $formattedBrandSales,
             'type_sales' => $typeStats,
             'condition_sales' => $conditionStats,
-            'cs_sales' => $csSales
+            'cs_sales' => $csSales,
+            'daily_history' => $dailyHistory
         ]);
     }
 

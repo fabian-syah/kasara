@@ -66,17 +66,17 @@
             </div>
 
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Card: Per Omset -->
+                <!-- Card: Per Hari (Replacing Per Omset) -->
                 <button @click="navigateTo('revenue')"
                     class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-amber-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-1">
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
-                            <TrendingUp :size="24" class="text-amber-500" />
+                            <Calendar :size="24" class="text-amber-500" />
                         </div>
                         <ChevronRight :size="20" class="text-text-secondary group-hover:text-amber-500 transition-colors" />
                     </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Omset</h3>
-                    <p class="text-sm text-text-secondary">Ranking sales berdasarkan total nilai penjualan bruto</p>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Hari</h3>
+                    <p class="text-sm text-text-secondary">Ringkasan total nilai penjualan per tanggal</p>
                 </button>
 
                 <!-- Card: Per Sales -->
@@ -191,7 +191,13 @@
                                 <th class="px-6 py-4 w-16">Rank</th>
                                 
                                 <!-- Dynamic Columns -->
-                                <template v-if="['revenue', 'sales', 'activity'].includes(currentView)">
+                                <template v-if="currentView === 'revenue'">
+                                    <th class="px-6 py-4">Tanggal</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                    <th class="px-6 py-4 text-right">Total Omset</th>
+                                </template>
+
+                                <template v-else-if="['sales', 'activity'].includes(currentView)">
                                     <th class="px-6 py-4">Sales</th>
                                     <th class="px-6 py-4 text-center">Unit Terjual</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Angkat Barang</th>
@@ -226,8 +232,19 @@
                                     </div>
                                 </td>
 
+                                <!-- Daily History Data -->
+                                <template v-if="currentView === 'revenue'">
+                                    <td class="px-6 py-4">
+                                        <span class="font-bold text-text-primary">{{ formatDateString(item.reporting_date) }}</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units }}</td>
+                                    <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
+                                        {{ formatCurrency(item.total_omset) }}
+                                    </td>
+                                </template>
+
                                 <!-- CS Related Data -->
-                                <template v-if="['revenue', 'sales', 'activity'].includes(currentView)">
+                                <template v-else-if="['sales', 'activity'].includes(currentView)">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <img :src="item.photo
@@ -299,7 +316,7 @@ const sortConfig = ref({
 })
 
 const viewLabels = {
-    'revenue': 'Peringkat Berdasarkan Omset',
+    'revenue': 'Ringkasan Penjualan Harian',
     'sales': 'Peringkat Berdasarkan Unit Terjual',
     'brand': 'Penjualan Berdasarkan Brand',
     'type': 'Penjualan Berdasarkan Tipe Produk',
@@ -322,7 +339,8 @@ const salesData = ref({
     brand_sales: [],
     type_sales: [],
     condition_sales: [],
-    cs_sales: []
+    cs_sales: [],
+    daily_history: []
 })
 
 const getTodayLocal = () => {
@@ -350,9 +368,13 @@ const sortedData = computed(() => {
     let numKey = ''
     let alphaKey = ''
 
-    if (currentView.value === 'revenue' || currentView.value === 'sales' || currentView.value === 'activity') {
+    if (currentView.value === 'revenue') {
+        base = [...salesData.value.daily_history]
+        numKey = 'total_omset'
+        alphaKey = 'reporting_date'
+    } else if (currentView.value === 'sales' || currentView.value === 'activity') {
         base = [...salesData.value.cs_sales]
-        numKey = currentView.value === 'revenue' ? 'grand_total' : currentView.value === 'sales' ? 'total_sales' : 'total_refund';
+        numKey = currentView.value === 'sales' ? 'total_sales' : 'total_refund';
         alphaKey = 'cs_name'
     } else if (currentView.value === 'brand') {
         base = [...salesData.value.brand_sales]
@@ -398,6 +420,12 @@ const formatCurrency = (value) => {
         currency: 'IDR',
         minimumFractionDigits: 0
     }).format(value || 0)
+}
+
+const formatDateString = (dateStr) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 const getRankBadgeClass = (idx) => {
