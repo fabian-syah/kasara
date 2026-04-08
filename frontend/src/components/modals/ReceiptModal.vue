@@ -74,9 +74,9 @@
                                 transaction.inventory_account_name ||
                                 transaction.sales_account || transaction.sales_name || '-' }}</span>
                             <span class="font-semibold text-black">Tanggal</span>
-                            <span class="text-black">: {{ transaction.date || '-' }}</span>
+                            <span class="text-black">: {{ displayDate }}</span>
                             <span class="font-semibold text-black">No. HP</span>
-                            <span class="text-black">: {{ transaction.customer_phone || '-' }}</span>
+                            <span class="text-black">: {{ displayCustomerPhone }}</span>
                         </div>
 
                         <!-- ===== TABEL ITEMS ===== -->
@@ -422,6 +422,37 @@ const displayPhone = computed(() => {
         return `WhatsApp: ${phone}`;
     }
     return 'HP, Laptop, Barang Elektronik Bergaransi';
+});
+
+// Perbaikan untuk Customer Phone
+const displayCustomerPhone = computed(() => {
+    const p = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone || props.transaction.event_phone;
+    if (p && p.trim() !== '') {
+        return p;
+    }
+    return '-';
+});
+
+// Perbaikan untuk Tanggal
+const displayDate = computed(() => {
+    let rawDate = props.transaction.date || props.transaction.created_at;
+    if (!rawDate) return '-';
+    
+    // Check if it's already a formatted frontend date like "08 Apr 2026"
+    if (typeof rawDate === 'string' && /^[0-9]{2} [A-Za-z]{3,4} [0-9]{4}$/.test(rawDate)) {
+        return rawDate;
+    }
+    
+    // Parse backend timestamps / date strings
+    const dateObj = new Date(rawDate);
+    if (!isNaN(dateObj.getTime())) {
+        return dateObj.toLocaleDateString("id-ID", {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    }
+    return rawDate;
 });
 </script>
 
