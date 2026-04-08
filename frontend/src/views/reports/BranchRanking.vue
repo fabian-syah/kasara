@@ -240,7 +240,7 @@ const exportToPDF = async () => {
         }
     };
 
-    const rowsPerPage = 10;
+    const rowsPerPage = 13;
     const totalPages = Math.ceil(displayRanking.value.length / rowsPerPage);
 
     for (let p = 1; p <= totalPages; p++) {
@@ -584,8 +584,8 @@ const exportToPDF = async () => {
                                         Hasil Omset</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-surface-800/50">
-                                <template v-for="(item, index) in currentExportData" :key="item.type + '-' + item.id">
+                            <tbody :key="exportPart" class="divide-y divide-surface-800/50">
+                                <template v-for="(item, index) in (exportPart === 0 ? displayRanking : displayRanking.slice((exportPart - 1) * 13, exportPart * 13))" :key="item.type + '-' + (item.id || index)">
                                     <tr class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
@@ -641,7 +641,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === Math.ceil(displayRanking.length / 10))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === Math.ceil(displayRanking.length / 13))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
                                         TOTAL KESELURUHAN OMSET
