@@ -59,6 +59,21 @@ const placementType = ref("branch");
 const placementId = ref(null);
 const placementName = computed(() => placementLabel.value || "Lokasi Belum Terpilih");
 
+// Hierarchical Selection State
+const brands = ref([]);
+const allowedTypes = ref([]);
+const isImeiCategory = (cat) => ['imei', 'HP / Gadget'].includes(cat);
+
+// Format Rupiah Helper
+function formatRupiah(value) {
+    if (!value) return "Rp 0";
+    return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0
+    }).format(value);
+}
+
 // Step 2: Item Type
 const itemType = ref("hp");
 
@@ -110,6 +125,16 @@ const addNonHpItem = () => {
 
 // updateNonHpItemPrice removed in favor of v-money sync syntax
 
+// Only show brands that have matching types for the selected itemType
+const filteredBrands = computed(() => {
+    const brandIds = new Set(
+        allowedTypes.value
+            .filter(t => itemType.value === 'hp' ? isImeiCategory(t.category) : !isImeiCategory(t.category))
+            .map(t => t.brand_id)
+    );
+    return brands.value.filter(b => brandIds.has(b.id));
+});
+
 const removeNonHpItem = (index) => {
     if (nonHpItems.value.length > 1) {
         nonHpItems.value.splice(index, 1);
@@ -132,116 +157,193 @@ const handleBrandChangeNonHp = (index) => {
     item.uniqueTypeNames = Array.from(new Set(item.filteredTypes.map(t => t.name)));
 };
 
-// --- REFACTORED: Single Bulk Input Logic ---
-const bulkImeiText = ref("");
-const batchDetails = ref({
-    condition: "new",
-    cost_price: 0,
-    selling_price: 0
-});
+// NEW: Sub-form for Multiple HP Items
+const hpItems = ref([
+    {
+        brand_id: null,
+        type_name: "",
+        capacity: "",
+        ram: "",
+        storage: "",
+        condition: "new",
+        cost_price: 0,
+        selling_price: 0,
+        bulkImeiText: "",
+        parsedImeis: [],
+        uniqueTypeNames: [],
+        combinations: [],
+        suggestedSellingPrice: 0,
+        product_id: null
+    }
+]);
 
-// Parsed IMEIs for count/validation
-const parsedImeis = computed(() => {
-    return bulkImeiText.value.split(/[^a-zA-Z0-9]+/).filter(s => s.length >= 5);
-});
-
-// Hierarchical Selection State
-const brands = ref([]);
-const allowedTypes = ref([]);
-const selectedBrand = ref(null);
-const selectedTypeName = ref("");
-const selectedRam = ref("");
-const selectedStorage = ref("");
-
-// Format Rupiah Helper
-function formatRupiah(value) {
-    if (!value) return "Rp 0";
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0
-    }).format(value);
-}
-
-// Selection Logic
-const isImeiCategory = (cat) => ['imei', 'HP / Gadget'].includes(cat);
-
-const filteredTypes = computed(() => {
-    if (!selectedBrand.value) return [];
-    return allowedTypes.value.filter(t => {
-        if (t.brand_id !== selectedBrand.value) return false;
-        // Filter by category based on itemType
-        if (itemType.value === 'hp') return isImeiCategory(t.category);
-        return !isImeiCategory(t.category);
+const addHpItem = () => {
+    hpItems.value.push({
+        brand_id: null,
+        type_name: "",
+        capacity: "",
+        ram: "",
+        storage: "",
+        condition: "new",
+        cost_price: 0,
+        selling_price: 0,
+        bulkImeiText: "",
+        parsedImeis: [],
+        uniqueTypeNames: [],
+        combinations: [],
+        suggestedSellingPrice: 0,
+        product_id: null
     });
-});
+};
 
-// Only show brands that have matching types for the selected itemType
-const filteredBrands = computed(() => {
-    const brandIds = new Set(
-        allowedTypes.value
-            .filter(t => itemType.value === 'hp' ? isImeiCategory(t.category) : !isImeiCategory(t.category))
-            .map(t => t.brand_id)
-    );
-    return brands.value.filter(b => brandIds.has(b.id));
-});
+const removeHpItem = (index) => {
+    if (hpItems.value.length > 1) {
+        hpItems.value.splice(index, 1);
+    }
+};
 
-const uniqueTypeNames = computed(() => Array.from(new Set(filteredTypes.value.map(t => t.name))));
+const handleImeiInput = (index) => {
+    const item = hpItems.value[index];
+    // Sanitize: allow alphanumeric and whitespace
+    item.bulkImeiText = item.bulkImeiText.replace(/[^a-zA-Z0-9\s,;-]/g, '');
+    item.parsedImeis = item.bulkImeiText.split(/[^a-zA-Z0-9]+/).filter(s => s.length >= 5);
+};
 
-const availableSpecs = computed(() => {
-    if (!selectedTypeName.value) return { rams: [], storages: [], combinations: [] };
-    const matching = allowedTypes.value.filter(t => t.name === selectedTypeName.value);
+const handleBrandChangeHp = (index) => {
+    const item = hpItems.value[index];
+    item.type_name = "";
+    item.capacity = "";
+    item.ram = "";
+    item.storage = "";
+    item.product_id = null;
+    
+    if (!item.brand_id) {
+        item.uniqueTypeNames = [];
+        return;
+    }
+    
+    const types = allowedTypes.value.filter(t => t.brand_id === item.brand_id && isImeiCategory(t.category));
+    item.uniqueTypeNames = Array.from(new Set(types.map(t => t.name)));
+};
 
-    // LOGIC:
-    // 1. Iterate each matching ProductType row.
-    // 2. Check each row for EXPLICIT pairs (e.g. "4/64", "4 / 128").
-    // 3. If explicit pairs found, use ONLY those for that row.
-    // 4. If NO explicit pairs, fall back to Heuristic Combinatorial (collect nums, classify <=32 vs >32).
+const handleTypeChangeHp = (index) => {
+    const item = hpItems.value[index];
+    item.capacity = "";
+    item.ram = "";
+    item.storage = "";
+    item.product_id = null;
+    
+    if (!item.type_name) {
+        item.combinations = [];
+        return;
+    }
+    
+    // Resolve combinations for this specific item
+    const specs = resolveSpecsForType(item.brand_id, item.type_name);
+    item.combinations = specs.combinations;
+};
 
+const handleCapacityChangeHp = (index) => {
+    const item = hpItems.value[index];
+    if (item.capacity && item.capacity.includes('/')) {
+        const parts = item.capacity.split('/');
+        item.ram = parts[0].trim();
+        item.storage = parts[1].trim();
+    } else {
+        item.ram = "";
+        item.storage = item.capacity ? item.capacity.trim() : "";
+    }
+    
+    // Look up product ID and price
+    lookupProductIdHp(index);
+    lookupPriceHp(index);
+};
+
+const lookupProductIdHp = async (index) => {
+    const item = hpItems.value[index];
+    if (!item.brand_id || !item.type_name) return;
+    
+    try {
+        const brandObj = brands.value.find(b => b.id === item.brand_id);
+        const brandName = brandObj ? brandObj.name : "";
+        
+        const response = await inventoryApi.getProductsLookup({
+            type: 'hp',
+            name: item.type_name
+        });
+        
+        const found = response.data.find(p => {
+            const dbBrand = (p.brand || "").toLowerCase().trim();
+            const selBrand = brandName.toLowerCase().trim();
+            const dbName = p.name.toLowerCase().trim();
+            const selName = item.type_name.toLowerCase().trim();
+            return dbBrand === selBrand && dbName === selName;
+        });
+        
+        if (found) {
+            item.product_id = found.id;
+        } else {
+            item.product_id = null;
+        }
+    } catch (e) {
+        console.error("Lookup product failed", e);
+    }
+};
+
+const lookupPriceHp = debounce(async (index) => {
+    const item = hpItems.value[index];
+    if (!item.type_name) return;
+    
+    try {
+        const res = await inventoryApi.lookupPrice({
+            type: 'hp',
+            product_name: item.type_name,
+            condition: item.condition,
+            ram: item.ram,
+            storage: item.storage
+        });
+        
+        if (res.data) {
+            item.suggestedSellingPrice = res.data.selling_price;
+            // Only auto-fill if currently 0
+            if (!item.selling_price) item.selling_price = res.data.selling_price;
+            if (!item.cost_price) item.cost_price = res.data.cost_price || 0;
+        }
+    } catch (e) {
+        console.error("Price lookup failed", e);
+    }
+}, 300);
+
+// Helper for specs (extracted from original computed logic)
+function resolveSpecsForType(brandId, typeName) {
+    const matching = allowedTypes.value.filter(t => t.name === typeName && t.brand_id === brandId);
     const validCombinations = new Set();
 
     matching.forEach(t => {
         const rawRam = t.ram || "";
         const rawStorage = t.storage || "";
         const combinedRaw = rawRam + " " + rawStorage;
-
-        // 1. Explicit Pair Regex (looks for "digit / digit")
         const pairRegex = /(\d+)\s*[\/-]\s*(\d+)/g;
         const matches = combinedRaw.match(pairRegex);
 
         if (matches && matches.length > 0) {
-            // Found explicit pairs! Trust specific definitions.
             matches.forEach(m => {
-                // Normalize "4 / 64" or "4-64" to "4/64"
                 const parts = m.split(/[\/-]/);
                 const r = parseInt(parts[0]);
                 const s = parseInt(parts[1]);
-                if (selectedBrand.value === 1) {
-                    validCombinations.add(String(s));
-                } else {
-                    validCombinations.add(`${r}/${s}`);
-                }
+                if (brandId === 1) validCombinations.add(String(s));
+                else validCombinations.add(`${r}/${s}`);
             });
         } else {
-            // 2. Fallback: Heuristic Parsing (Preserve TB/GB units if possible)
-            // Improved strategy: 
-            // - Split raw values by comma first, as users often input "64, 128, 256, 1 TB"
             const parseToSet = (str) => {
                 const s = new Set();
                 if (!str) return s;
-                // Try splitting by comma first
                 const parts = str.split(',');
-                parts.forEach(p => {
-                    const clean = p.trim().toUpperCase();
-                    if (clean) s.add(clean);
-                });
+                parts.forEach(p => { const clean = p.trim().toUpperCase(); if (clean) s.add(clean); });
                 return s;
             };
-
             const rams = parseToSet(rawRam);
             const storages = parseToSet(rawStorage);
-
-            // If completely empty due to weird formatting, fallback to digits+optional letters
             if (rams.size === 0 && storages.size === 0) {
                 const fallbackMatch = combinedRaw.match(/\d+\s*(?:TB|GB|MB)?/gi);
                 if (fallbackMatch) {
@@ -253,17 +355,11 @@ const availableSpecs = computed(() => {
                     });
                 }
             }
-
             if (rams.size > 0 && storages.size > 0) {
                 rams.forEach(r => storages.forEach(s => {
-                    // Logic: Omit "1/" if RAM is 1. Omit RAM entirely if iPhone (Brand 1)
-                    if (selectedBrand.value === 1) {
-                        validCombinations.add(String(s));
-                    } else if (r === 1) {
-                        validCombinations.add(String(s));
-                    } else {
-                        validCombinations.add(`${r}/${s}`);
-                    }
+                    if (brandId === 1) validCombinations.add(String(s));
+                    else if (parseInt(r) === 1) validCombinations.add(String(s));
+                    else validCombinations.add(`${r}/${s}`);
                 }));
             } else if (storages.size > 0) {
                 storages.forEach(s => validCombinations.add(String(s)));
@@ -273,160 +369,31 @@ const availableSpecs = computed(() => {
         }
     });
 
-    const sortedCombinations = Array.from(validCombinations).sort((a, b) => {
+    const combinations = Array.from(validCombinations).sort((a, b) => {
         const parse = (str) => {
             const parts = String(str).split('/');
-
-            // Helper to extract true byte equivalent for sorting
             const getBytes = (val) => {
                 if (!val) return 0;
                 let num = parseInt(val) || 0;
                 let upper = String(val).toUpperCase();
                 if (upper.includes('TB')) return num * 1024;
-                return num; // assume GB by default
+                return num;
             };
-
-            return {
-                ram: getBytes(parts[0]),
-                storage: parts[1] ? getBytes(parts[1]) : getBytes(parts[0]) // single storage fallback handling 
-            };
+            return { ram: getBytes(parts[0]), storage: parts[1] ? getBytes(parts[1]) : getBytes(parts[0]) };
         };
-        const pa = parse(a);
-        const pb = parse(b);
+        const pa = parse(a); const pb = parse(b);
         if (pa.ram !== pb.ram) return pa.ram - pb.ram;
         return pa.storage - pb.storage;
     });
 
-    return {
-        combinations: sortedCombinations
-    };
-});
+    return { combinations };
+}
 
+// --- END REFACTORED Logic ---
 
-const suggestedSellingPrice = ref(0);
+// Redundant single-item state and watchers removed. 
+// Row-specific logic is now handled in hpItems array and its associated handlers (handleBrandChangeHp, handleTypeChangeHp, etc.)
 
-// --- PERBAIKAN: Gunakan Debounce pada API Lookup agar tidak lag saat ganti merk/tipe ---
-// --- REFACTORED: Price Lookup based on Type + Condition ---
-const fetchPriceLookup = async () => {
-    // Trigger if type is selected. 
-    // We don't strictly need selectedProduct.value if we know the type and specs.
-    if (!selectedTypeName.value || !batchDetails.value.condition) return;
-
-    const typeObj = allowedTypes.value.find(t => t.name === selectedTypeName.value && t.brand_id === selectedBrand.value);
-
-    if (typeObj) {
-        try {
-            const res = await inventoryApi.lookupPrice({
-                product_type_id: typeObj.id,
-                condition: batchDetails.value.condition,
-                ram: selectedRam.value || null,
-                storage: selectedStorage.value || null
-            });
-
-            if (res.data.found) {
-                batchDetails.value.cost_price = Number(res.data.cost_price);
-                // Populate suggested selling price for placeholder
-                suggestedSellingPrice.value = Number(res.data.price || 0); // Backend returns 'price'
-            } else {
-                batchDetails.value.cost_price = 0;
-                suggestedSellingPrice.value = 0;
-            }
-        } catch (e) {
-            console.error("Price lookup failed", e);
-        }
-    }
-};
-
-const fetchProductMatch = debounce(async (brandId, typeName) => {
-    if (!brandId || !typeName) {
-        selectedProduct.value = null;
-        return;
-    }
-
-    try {
-        const brandObj = brands.value.find(b => b.id === brandId);
-        const brandName = brandObj ? brandObj.name : "";
-
-        // Panggil API hanya setelah user berhenti memilih/mengetik selama 300ms
-        const response = await inventoryApi.getProductsLookup({
-            type: 'hp',
-            name: typeName
-        });
-
-        const matches = response.data;
-        let found = matches.find(p => {
-            const dbBrand = (p.brand || "").toLowerCase().trim();
-            const selBrand = brandName.toLowerCase().trim();
-            const dbName = p.name.toLowerCase().trim();
-            const selName = typeName.toLowerCase().trim();
-            return dbBrand === selBrand && dbName === selName;
-        });
-
-        // REMOVED: if (!found && matches.length > 0) found = matches[0];
-        // Strict match is better. If not found, selectedProduct remains null, 
-        // which triggers "create new product" logic in submitStockIn or allows user to verify.
-
-        if (found) {
-            selectedProduct.value = found.id;
-            // TRIGGER PRICE LOOKUP
-            fetchPriceLookup();
-        } else {
-            selectedProduct.value = null;
-            // Also trigger lookup because price depends on Type, not specific Product ID
-            fetchPriceLookup();
-        }
-
-    } catch (e) {
-        console.error("Gagal lookup product", e);
-        selectedProduct.value = null;
-    }
-}, 300);
-
-// Watch condition to update price
-// Watch specific fields to trigger price lookup
-watch([() => batchDetails.value.condition, selectedRam, selectedStorage], () => {
-    fetchPriceLookup();
-});
-
-// --- REFACTORED: Single Bulk Input Logic ---
-// Moved to top state to prevent ReferenceError
-
-// NEW: Optimized Watcher
-watch([selectedBrand, selectedTypeName], ([newBrand, newType]) => {
-    fetchProductMatch(newBrand, newType);
-});
-
-watch(selectedBrand, (newVal) => {
-    selectedTypeName.value = "";
-    selectedRam.value = "";
-    selectedStorage.value = "";
-    selectedCapacity.value = "";
-    if (newVal !== 1 && batchDetails.value.condition === 'ex_ibox') {
-        batchDetails.value.condition = 'new';
-    }
-});
-watch(selectedTypeName, () => { selectedRam.value = ""; selectedStorage.value = ""; selectedCapacity.value = ""; });
-
-// Capacity handling: Use selectedCapacity for UI, and internal refs for logic
-const selectedCapacity = ref("");
-watch(selectedCapacity, (val) => {
-    if (val && val.includes('/')) {
-        const parts = val.split('/');
-        selectedRam.value = parts[0].trim();
-        selectedStorage.value = parts[1].trim();
-    } else {
-        selectedRam.value = "";
-        selectedStorage.value = val ? val.trim() : "";
-    }
-});
-
-// Sanitize IMEI Input (Numeric Only + Whitespace)
-watch(bulkImeiText, (val) => {
-    const sanitized = val.replace(/[^0-9\s]/g, ''); // Allow numbers and whitespace (newlines)
-    if (val !== sanitized) {
-        bulkImeiText.value = sanitized;
-    }
-});
 
 const canNext = computed(() => {
     if (currentStep.value === 1) return !!placementId.value;
