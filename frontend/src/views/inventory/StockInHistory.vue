@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-    Search, ArrowLeft, RefreshCw, Smartphone, Box, Calendar, User, FileText, Database, Download
+    Search, ArrowLeft, RefreshCw, Smartphone, Box, Calendar, User, FileText, Database, Download, Trash2
 } from 'lucide-vue-next';
 import { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -180,6 +180,24 @@ onMounted(() => {
             });
     }
 });
+
+const handleVoid = async (item) => {
+    const itemName = item.product ? item.product.name : 'Unknown Item';
+    const detail = activeTab.value === 'hp' ? `IMEI: ${item.imei}` : `Qty: ${item.quantity} unit`;
+    
+    if (!confirm(`Hapus/Void data stok masuk ini?\n${itemName}\n${detail}\n\nTindakan ini akan menghapus barang dari inventory.`)) {
+        return;
+    }
+
+    try {
+        await inventory.voidStockIn(item.id, activeTab.value);
+        toast.success('Berhasil membatalkan stok masuk.');
+        fetchData(pagination.value.current_page);
+    } catch (error) {
+        console.error(error);
+        toast.error(error.response?.data?.message || 'Gagal membatalkan stok masuk.');
+    }
+};
 </script>
 
 <template>
@@ -281,6 +299,7 @@ onMounted(() => {
                             <th class="px-6 py-4 hidden md:table-cell">Sumber / Distributor</th>
                             <th class="px-6 py-4 hidden lg:table-cell">Catatan</th>
                             <th class="px-6 py-4 hidden lg:table-cell">Diinput Oleh</th>
+                            <th class="px-6 py-4 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700/50">
@@ -353,6 +372,13 @@ onMounted(() => {
                                     <User :size="14" class="text-text-secondary" />
                                     <span>{{ item.user ? item.user.name : '-' }}</span>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button @click="handleVoid(item)"
+                                    class="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                    title="Hapus / Void">
+                                    <Trash2 :size="16" />
+                                </button>
                             </td>
                         </tr>
                     </tbody>

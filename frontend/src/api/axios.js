@@ -119,7 +119,9 @@ export const inventory = {
     requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`),
     listPendingPhotos: () => api.get('/inventory/accounts/pending-photos'),
     approvePhoto: (id) => api.post(`/inventory/account/${id}/approve-photo`),
-    rejectPhoto: (id, reason) => api.post(`/inventory/account/${id}/reject-photo`, { reason })
+    rejectPhoto: (id, reason) => api.post(`/inventory/account/${id}/reject-photo`, { reason }),
+    deleteAccount: (id) => api.delete(`/inventory/account/${id}`),
+    voidStockIn: (id, type) => api.delete(`/inventory/history/in/${id}/void`, { params: { type } })
 }
 
 export const stockOut = {

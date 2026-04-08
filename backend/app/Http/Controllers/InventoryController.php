@@ -2113,4 +2113,128 @@ class InventoryController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Perubahan foto inventory ditolak.']);
     }
+
+    public function destroyAccount($id)
+    {
+        $user = Auth::user();
+        $account = \App\Models\User::findOrFail($id);
+
+        // Security Check: Only creator or high roles
+        $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+        if ($account->created_by !== $user->id && !$user->hasRole($unrestrictedRoles)) {
+            return response()->json(['message' => 'Unauthorized action.'], 403);
+        }
+
+        // Check for history
+        $hasHistory = \App\Models\InventoryLog::where('user_id', $account->id)->exists() ||
+            \App\Models\ProductDetail::where('user_id', $account->id)->exists() ||
+            \App\Models\StockOut::where('inventory_user_id', $account->id)->exists() ||
+            \App\Models\StockOut::where('confirmed_by', $account->id)->exists();
+
+        if ($hasHistory) {
+            // Soft delete/Archive by deactivating
+            $account->update(['is_active' => false]);
+            return response()->json(['message' => 'Akun dinonaktifkan karena memiliki riwayat transaksi.', 'status' => 'archived']);
+        }
+
+        // Hard delete if clean
+        $account->delete();
+        return response()->json(['message' => 'Akun berhasil dihapus permanen.', 'status' => 'deleted']);
+    }
+
+    /**
+     * Void a Stock In transaction.
+     * For HP: Deletes the ProductDetail (soft delete).
+     * For Non-HP: Decrements Inventory quantity and removes the Log.
+     */
+    public function voidStockIn(Request $request, $id)
+    {
+        $user = Auth::user();
+        $type = $request->input('type', 'hp');
+
+        DB::beginTransaction();
+        try {
+            if ($type === 'hp') {
+                $item = ProductDetail::findOrFail($id);
+
+                // Check authorization
+                $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+                if ($item->user_id !== $user->id && !$user->hasRole($unrestrictedRoles)) {
+                    throw new \Exception('Anda tidak memiliki izin untuk menghapus item ini.');
+                }
+
+                if ($item->status !== 'available') {
+                    throw new \Exception('Hanya barang dengan status "Available" yang dapat dihapus.');
+                }
+
+                // Check if it has been used in ANY stock out that isn't the audit one
+                $usageCount = $item->stockOuts()->where('category', '!=', 'barang_masuk')->count();
+                if ($usageCount > 0) {
+                    throw new \Exception('Barang ini sudah memiliki riwayat transaksi lain dan tidak dapat dihapus.');
+                }
+
+                // Find audit stock out and mark as cancelled
+                $auditStockOut = $item->stockOuts()->where('category', 'barang_masuk')->first();
+                if ($auditStockOut) {
+                    $auditStockOut->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancelled_by' => $user->id]);
+                }
+
+                $item->delete(); // Soft delete
+            } else {
+                $log = InventoryLog::findOrFail($id);
+
+                if ($log->type !== 'in') {
+                    throw new \Exception('Hanya log "Stock In" yang dapat dihapus melalui menu ini.');
+                }
+
+                // Check authorization
+                $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+                if ($log->user_id !== $user->id && !$user->hasRole($unrestrictedRoles)) {
+                    throw new \Exception('Anda tidak memiliki izin untuk menghapus log ini.');
+                }
+
+                // Identify Inventory Source to decrement
+                $invQuery = Inventory::where('product_id', $log->product_id)
+                    ->where('user_id', $log->user_id);
+
+                if ($log->branch_id) $invQuery->where('placement_type', 'branch')->where('placement_id', $log->branch_id);
+                elseif ($log->warehouse_id) $invQuery->where('placement_type', 'warehouse')->where('placement_id', $log->warehouse_id);
+                elseif ($log->online_shop_id) $invQuery->where('placement_type', 'online_shop')->where('placement_id', $log->online_shop_id);
+
+                $inventory = $invQuery->first();
+
+                if (!$inventory || $inventory->quantity < $log->quantity) {
+                    throw new \Exception('Stok saat ini tidak mencukupi untuk melakukan pembatalan (barang mungkin sudah terjual/keluar).');
+                }
+
+                // Revert quantity
+                $inventory->decrement('quantity', $log->quantity);
+
+                // Create a reverse log for audit trail (instead of just deleting)
+                InventoryLog::create([
+                    'product_id' => $log->product_id,
+                    'type' => 'out',
+                    'quantity' => $log->quantity,
+                    'balance_after' => $inventory->quantity,
+                    'description' => "Void Stock In (Ref Log ID: {$log->id})",
+                    'reference_id' => 'VOID-IN-' . time(),
+                    'user_id' => $user->id,
+                    'branch_id' => $log->branch_id,
+                    'warehouse_id' => $log->warehouse_id,
+                    'online_shop_id' => $log->online_shop_id,
+                    'notes' => 'Pembatalan stok masuk'
+                ]);
+
+                // We can also mark the original log as voided if we had a column, 
+                // but setting description or deleting is common. Let's soft-delete it.
+                $log->delete(); 
+            }
+
+            DB::commit();
+            return response()->json(['message' => 'Stok masuk berhasil dibatalkan.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
 }

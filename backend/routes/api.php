@@ -98,6 +98,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory/account/{id}/request-reset', [InventoryController::class, 'requestResetPin']);
     Route::post('/inventory/account/{id}/approve-photo', [InventoryController::class, 'approvePhoto']);
     Route::post('/inventory/account/{id}/reject-photo', [InventoryController::class, 'rejectPhoto']);
+    Route::delete('/inventory/account/{id}', [InventoryController::class, 'destroyAccount']);
+    Route::delete('/inventory/history/in/{id}/void', [InventoryController::class, 'voidStockIn']);
 
     // Inventory Dynamic Routes (Must be below static ones)
     Route::get('/inventory', [InventoryController::class, 'index']);
