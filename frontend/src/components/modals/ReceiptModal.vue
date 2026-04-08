@@ -81,32 +81,130 @@
                             </tbody>
                         </table>
 
-                        <div class="flex justify-end space-y-1">
-                            <div class="w-[200px] text-xs">
-                                <div class="flex justify-between font-bold">
-                                    <span>TOTAL:</span>
+                        <div class="flex justify-end mb-4 payment-section">
+                            <div class="w-[240px] text-xs space-y-1">
+                                <div class="flex justify-between border-b border-gray-300 pb-1 font-bold">
+                                    <span>SUB TOTAL :</span>
                                     <span>{{ formatCurrency(calculatedGrandTotal) }}</span>
                                 </div>
-                                <div class="flex justify-between border-t border-black mt-1">
-                                    <span>DIBAYAR:</span>
+                                <div
+                                    class="flex justify-between border-t-2 border-black pt-2 text-black font-extrabold flex-row-reverse">
                                     <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
+                                    <span class="text-[10px]">DIBAYAR :</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div v-if="transaction.notes" class="mb-4 text-[10px] text-black italic">
+                            <span class="font-bold">Catatan:</span> {{ transaction.notes }}
+                        </div>
+
+                        <div
+                            class="bg-gray-100/80 border border-black/20 rounded p-2.5 mb-5 print:bg-white print:border-black">
+                            <ul class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
+                                <li class="font-black underline italic">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
 
                 <div class="p-4 bg-white border-t flex gap-3 print:hidden shrink-0">
                     <button @click="close"
-                        class="flex-1 py-4 bg-primary-600 text-white font-black rounded-2xl uppercase">Selesai</button>
-                    <button @click="printReceipt" class="px-6 py-4 bg-gray-900 text-white rounded-2xl">
-                        <Printer />
+                        class="flex-1 px-4 py-4 text-base font-black text-white bg-primary-600 rounded-[1.5rem] uppercase tracking-widest">
+                        Selesai
+                    </button>
+                    <button @click="printReceipt" class="px-4 py-3 bg-gray-900 text-white rounded-2xl">
+                        <Printer :size="18" />
+                    </button>
+                    <button @click="shareToWhatsApp" :disabled="isGeneratingPDF"
+                        class="px-4 py-3 bg-emerald-600 text-white rounded-2xl flex items-center gap-2">
+                        <Loader2 v-if="isGeneratingPDF" class="animate-spin" :size="18" />
+                        <MessageSquare v-else :size="18" />
+                        WA
                     </button>
                 </div>
             </div>
         </div>
     </transition>
 </template>
+
+<script setup>
+import { defineProps, defineEmits, ref, computed } from 'vue';
+import { Printer, Pencil, X, MessageSquare, Loader2 } from 'lucide-vue-next';
+import { useEscapeKey } from '../../composables/useEscapeKey';
+import { useAuthStore } from '../../store/auth';
+import api from '../../api/axios';
+
+const authStore = useAuthStore();
+const props = defineProps({
+    isOpen: Boolean,
+    transaction: Object,
+    showEditIcon: { type: Boolean, default: false },
+    autoSend: { type: Boolean, default: false }
+});
+
+const emit = defineEmits(['close', 'open-checklist', 'sent']);
+
+const isGeneratingPDF = ref(false);
+
+const close = () => emit('close');
+const printReceipt = () => window.print();
+
+const formatCurrency = (val) => {
+    if (val === null || val === undefined) return 'Rp 0';
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
+};
+
+const formatNumber = (val) => new Intl.NumberFormat('id-ID').format(val || 0);
+
+const calculatedTotalPaid = computed(() => {
+    const directPaid = Number(props.transaction?.paid || props.transaction?.paid_amount || 0);
+    if (directPaid > 0) return directPaid;
+    return Number(props.transaction?.cash || 0) + Number(props.transaction?.transfer || 0);
+});
+
+const calculatedGrandTotal = computed(() => {
+    return Number(props.transaction?.total || props.transaction?.grand_total || props.transaction?.selling_price || 0);
+});
+
+const calculatedChange = computed(() => Math.max(0, calculatedTotalPaid.value - calculatedGrandTotal.value));
+
+const shareToWhatsApp = async () => {
+    if (isGeneratingPDF.value) return;
+    try {
+        isGeneratingPDF.value = true;
+        const response = await api.get(`/receipts/${props.transaction.id}/share-wa`, { timeout: 90000 });
+        if (response.data.success && response.data.wa_url) {
+            window.open(response.data.wa_url, '_blank');
+            emit('sent');
+        }
+    } catch (error) {
+        alert('Gagal mengirim WA: ' + error.message);
+    } finally {
+        isGeneratingPDF.value = false;
+    }
+};
+
+useEscapeKey(() => { if (props.isOpen) close(); });
+</script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+.nota-paper {
+    background-color: #ffffff !important;
+    color: #000 !important;
+}
+</style>
 
 <script setup>
 import { defineProps, defineEmits, ref, computed, watch } from 'vue';
