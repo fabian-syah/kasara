@@ -155,11 +155,11 @@ class DashboardController extends Controller
                 $csPerformance[$csName]['total_sales'] += $price;
 
                 // Type Stats
-                $typeName = $item->product->name ?? 'Unknown';
+                $typeName = $item->product?->name ?? 'Unknown';
                 $typeSales[$typeName] = ($typeSales[$typeName] ?? 0) + 1;
 
                 // Brand Condition Stats
-                $brand = $item->product->brand ?? 'Unknown';
+                $brand = $item->product?->brand ?? 'Unknown';
                 $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
                 $key = "$brand $cond";
                 $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + 1;

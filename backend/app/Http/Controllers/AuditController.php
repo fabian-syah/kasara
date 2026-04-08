@@ -303,8 +303,8 @@ class AuditController extends Controller
                 'customer_phone' => $trx->customer_phone ?? $trx->shopee_phone ?? $trx->giveaway_phone ?? '-',
                 'category' => $trx->category,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
-                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpDetails->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
-                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpDetails->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: ($trx->is_bundle ? $trx->bundle_description : '-'),
+                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product?->brand ?? '-'))->concat($trx->nonHpDetails->map(fn($i) => $i->product?->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
+                'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product?->name ?? '-'))->concat($trx->nonHpDetails->map(fn($i) => $i->product?->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: ($trx->is_bundle ? $trx->bundle_description : '-'),
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
                 'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
@@ -412,8 +412,8 @@ class AuditController extends Controller
         $csSales = $csQuery->with(['inventoryUser', 'user'])
             ->select(
                 'user_id',
-                DB::raw('count(case when category in ("shopee", "orderan_online", "penjualan_offline", "penjualan_store", "bundling", "tukar_unit", "tukar_tambah", "downgrade") then 1 end) as total_units_sold'),
-                DB::raw('sum(case when category in ("shopee", "orderan_online", "penjualan_offline", "penjualan_store", "bundling", "tukar_unit", "tukar_tambah", "downgrade") then selling_price else 0 end) as total_revenue'),
+                DB::raw("count(case when category in ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade') then 1 end) as total_units_sold"),
+                DB::raw("sum(case when category in ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade') then selling_price else 0 end) as total_revenue"),
                 DB::raw("sum(case when category = 'tukar_tambah' or category = 'tukar_unit' or category = 'angkat_barang' or category = 'downgrade' then 1 else 0 end) as angkat_barang_count"),
                 DB::raw("sum(case when category = 'refund' then 1 else 0 end) as refund_count")
             )
@@ -421,8 +421,8 @@ class AuditController extends Controller
             ->get()
             ->map(function ($item) {
                 return [
-                    'cs_name' => $item->user->name ?? 'Unknown',
-                    'photo' => $item->user->photo_inventory ?? $item->user->photo ?? null,
+                    'cs_name' => $item->user?->name ?? 'Unknown',
+                    'photo' => $item->user?->photo_inventory ?? $item->user?->photo ?? null,
                     'total_sales' => (int) $item->total_units_sold,
                     'total_refund' => (int) $item->refund_count,
                     'total_angkat_barang' => (int) $item->angkat_barang_count,
