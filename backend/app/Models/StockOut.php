@@ -165,8 +165,7 @@ class StockOut extends Model
 
     /**
      * Logic for custom reporting/business date reset.
-     * All sales: 17:00 (5 PM) reset.
-     * Everything else: 05:00 (5 AM) reset.
+     * All categories reset at 05:00 (5 AM).
      */
     public static function calculateReportingDate($category, $branchOrTimezone, $timestamp = null)
     {

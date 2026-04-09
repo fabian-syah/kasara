@@ -334,7 +334,8 @@ const currentLocalRank = computed(() => {
         </h1>
         <p class="text-text-secondary mt-1">
           Real-time data dari 60+ cabang •
-          <span class="text-emerald-500 dark:text-emerald-400">● Online</span>
+          <span class="text-emerald-500 dark:text-emerald-400">● Online</span> •
+          <span>Reset 05:00</span>
         </p>
       </div>
       <button @click="refreshData" class="btn btn-secondary w-full md:w-auto" :disabled="isLoading">
