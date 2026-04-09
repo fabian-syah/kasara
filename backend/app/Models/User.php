@@ -44,6 +44,7 @@ class User extends Authenticatable
         'transaction_pin',
         'pin_enabled',
         'pin_reset_requested_at',
+        'font_size',
     ];
 
     protected $appends = [

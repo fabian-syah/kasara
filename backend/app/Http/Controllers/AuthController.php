@@ -164,4 +164,20 @@ class AuthController extends Controller
             'message' => 'Permintaan reset PIN telah dicatat.'
         ]);
     }
+
+    public function updateFontSize(Request $request)
+    {
+        $request->validate([
+            'font_size' => 'required|string|in:small,standard,big'
+        ]);
+
+        $user = $request->user();
+        $user->font_size = $request->font_size;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')
+        ]);
+    }
 }
