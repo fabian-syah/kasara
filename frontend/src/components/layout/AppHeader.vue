@@ -14,7 +14,8 @@ import {
     Settings,
     ChevronDown,
     LogOut,
-    User
+    User,
+    Type
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 
@@ -141,10 +142,30 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                                 <span>Pengaturan Profil</span>
                             </router-link>
                             <button @click="themeStore.toggleDarkMode"
-                                class="w-full flex md:hidden items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
+                                class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
                                 <component :is="themeStore.isDark ? Sun : Moon" :size="16" />
                                 <span>{{ themeStore.isDark ? 'Mode Terang' : 'Mode Gelap' }}</span>
                             </button>
+                        </div>
+
+                        <div class="h-px bg-surface-200 dark:bg-surface-700 my-1"></div>
+
+                        <!-- Font Size Selector -->
+                        <div class="px-4 py-2">
+                            <div class="flex items-center gap-2 mb-2">
+                                <Type :size="14" class="text-text-secondary" />
+                                <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Ukuran Font</p>
+                            </div>
+                            <div class="flex bg-surface-100 dark:bg-surface-800 p-1 rounded-lg gap-1">
+                                <button v-for="size in ['small', 'standard', 'big']" :key="size" 
+                                    @click="themeStore.setFontSize(size)"
+                                    class="flex-1 py-1 rounded-md text-[10px] font-bold uppercase transition-all duration-200"
+                                    :class="themeStore.fontSize === size 
+                                        ? 'bg-primary-500 text-white shadow-sm' 
+                                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700'">
+                                    {{ size }}
+                                </button>
+                            </div>
                         </div>
 
                         <div class="h-px bg-surface-200 dark:bg-surface-700 my-1"></div>

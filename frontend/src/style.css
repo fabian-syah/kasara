@@ -179,6 +179,17 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Font Size Modes */
+html.font-small {
+  font-size: 14px;
+}
+html.font-standard {
+  font-size: 16px;
+}
+html.font-big {
+  font-size: 18px;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -186,6 +197,7 @@ body {
   background-color: var(--color-surface-900);
   color: var(--color-text-primary);
   line-height: 1.6;
+  font-size: 1rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
