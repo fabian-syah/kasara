@@ -59,6 +59,12 @@ const filterOptions = ref({
     online_shops: []
 });
 
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
 const formatDateStr = (date) => {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -67,7 +73,7 @@ const formatDateStr = (date) => {
 };
 
 const setRange = (type) => {
-    const today = new Date();
+    const today = getLogicalDate();
 
     if (type === 'today') {
         filters.value.start_date = formatDateStr(today);
@@ -88,8 +94,24 @@ const setRange = (type) => {
     fetchReport();
 };
 
+const isRestricted = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return !['super_admin', 'audit', 'owner', 'analist', 'leader', 'admin_produk'].some(r => role.includes(r));
+});
+
+const getTodayLocal = () => {
+    return formatDateStr(getLogicalDate());
+}
+
+const getMinDate = computed(() => {
+    if (!isRestricted.value) return null;
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    return formatDateStr(d);
+});
+
 const activeRange = computed(() => {
-    const today = new Date();
+    const today = getLogicalDate();
     const todayStr = formatDateStr(today);
     
     const yesterday = new Date(today);
@@ -106,10 +128,11 @@ const activeRange = computed(() => {
         if (filters.value.start_date === yesterdayStr) return 'yesterday';
     }
     
-    if (filters.value.start_date === startOfMonthStr && filters.value.end_date === todayStr) return 'month';
+    if (filters.value.start_date === startOfMonthStr && (filters.value.end_date === todayStr || filters.value.end_date === formatDateStr(today))) return 'month';
     
     return 'custom';
 });
+
 
 const fetchFilters = async () => {
     try {
@@ -156,7 +179,7 @@ const fetchReport = async () => {
 };
 
 onMounted(async () => {
-    const today = new Date();
+    const today = getLogicalDate();
     filters.value.start_date = formatDateStr(today);
     filters.value.end_date = formatDateStr(today);
     
@@ -273,7 +296,7 @@ const filteredProducts = computed(() => {
                         :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         BULAN INI
                     </button>
-                    <button @click="setRange('all')" :disabled="loading"
+                    <button v-if="!isRestricted" @click="setRange('all')" :disabled="loading"
                         class="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                         :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                         SEMUA
@@ -284,12 +307,13 @@ const filteredProducts = computed(() => {
                 <div class="flex flex-wrap lg:flex-nowrap items-center gap-2 bg-transparent w-full lg:w-auto">
                     <!-- Date Inputs -->
                     <div class="flex items-center gap-1 bg-surface-800 p-1 rounded-xl border border-surface-700 w-full sm:w-auto">
-                        <input type="date" v-model="filters.start_date"
+                        <input type="date" v-model="filters.start_date" :min="getMinDate" :max="getTodayLocal()"
                             class="bg-transparent text-[11px] text-text-primary outline-none px-2 w-full sm:w-28" />
                         <span class="text-surface-600 font-bold">-</span>
-                        <input type="date" v-model="filters.end_date"
+                        <input type="date" v-model="filters.end_date" :min="getMinDate" :max="getTodayLocal()"
                             class="bg-transparent text-[11px] text-text-primary outline-none px-2 w-full sm:w-28" />
                     </div>
+
 
                     <!-- Selectors Group -->
                     <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">

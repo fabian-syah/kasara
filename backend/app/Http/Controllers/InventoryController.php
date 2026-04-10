@@ -556,11 +556,32 @@ class InventoryController extends Controller
         }
 
         // DATE FILTER
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $d = $request->date;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $today = $logicalNow->toDateString();
+                $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                if ($d < $yesterday) $d = $today;
+            }
+            $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('created_at', $request->month)
-                ->whereYear('created_at', $request->year);
+            $m = (int) $request->month;
+            $y = (int) $request->year;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $currentMonth = (int) $logicalNow->format('m');
+                $currentYear = (int) $logicalNow->format('Y');
+                $lastMonthTemp = $logicalNow->copy()->subMonth();
+                $lastMonth = (int) $lastMonthTemp->format('m');
+                if ($y < $currentYear) {
+                    $m = $currentMonth;
+                    $y = $currentYear;
+                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
+                    $m = $currentMonth;
+                }
+            }
+            $query->whereMonth('created_at', $m)
+                ->whereYear('created_at', $y);
         }
 
         // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
@@ -635,11 +656,32 @@ class InventoryController extends Controller
         }
 
         // DATE FILTER
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $d = $request->date;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $today = $logicalNow->toDateString();
+                $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                if ($d < $yesterday) $d = $today;
+            }
+            $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('created_at', $request->month)
-                ->whereYear('created_at', $request->year);
+            $m = (int) $request->month;
+            $y = (int) $request->year;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $currentMonth = (int) $logicalNow->format('m');
+                $currentYear = (int) $logicalNow->format('Y');
+                $lastMonthTemp = $logicalNow->copy()->subMonth();
+                $lastMonth = (int) $lastMonthTemp->format('m');
+                if ($y < $currentYear) {
+                    $m = $currentMonth;
+                    $y = $currentYear;
+                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
+                    $m = $currentMonth;
+                }
+            }
+            $query->whereMonth('created_at', $m)
+                ->whereYear('created_at', $y);
         }
 
         // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
@@ -683,10 +725,31 @@ class InventoryController extends Controller
             }
         }
 
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $d = $request->date;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $today = $logicalNow->toDateString();
+                $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                if ($d < $yesterday) $d = $today;
+            }
+            $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+            $m = (int) $request->month;
+            $y = (int) $request->year;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $currentMonth = (int) $logicalNow->format('m');
+                $currentYear = (int) $logicalNow->format('Y');
+                $lastMonthTemp = $logicalNow->copy()->subMonth();
+                $lastMonth = (int) $lastMonthTemp->format('m');
+                if ($y < $currentYear) {
+                    $m = $currentMonth;
+                    $y = $currentYear;
+                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
+                    $m = $currentMonth;
+                }
+            }
+            $query->whereMonth('created_at', $m)->whereYear('created_at', $y);
         }
 
         $items = $query->latest()->get();
@@ -753,10 +816,31 @@ class InventoryController extends Controller
             });
         }
 
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $d = $request->date;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $today = $logicalNow->toDateString();
+                $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                if ($d < $yesterday) $d = $today;
+            }
+            $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+            $m = (int) $request->month;
+            $y = (int) $request->year;
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $currentMonth = (int) $logicalNow->format('m');
+                $currentYear = (int) $logicalNow->format('Y');
+                $lastMonthTemp = $logicalNow->copy()->subMonth();
+                $lastMonth = (int) $lastMonthTemp->format('m');
+                if ($y < $currentYear) {
+                    $m = $currentMonth;
+                    $y = $currentYear;
+                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
+                    $m = $currentMonth;
+                }
+            }
+            $query->whereMonth('created_at', $m)->whereYear('created_at', $y);
         }
 
         $items = $query->latest()->get();

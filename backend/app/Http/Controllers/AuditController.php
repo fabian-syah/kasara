@@ -33,16 +33,16 @@ class AuditController extends Controller
             ]);
         }
 
-        // Date Filter
-        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
                 // Daily view: only today and yesterday
@@ -56,12 +56,12 @@ class AuditController extends Controller
                     $startDate = $startOfThisMonth;
                     // Ensure end date also doesn't go too far back if they try to trick it
                     if ($endDate < $startOfThisMonth) {
-                        $endDate = now()->endOfMonth()->toDateString();
+                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
                     }
                 }
                 
                 // Extra safety: ensure they can't see previous years
-                $currentYear = date('Y');
+                $currentYear = $logicalNow->format('Y');
                 if (date('Y', strtotime($startDate)) < $currentYear) {
                     $startDate = $startOfThisMonth;
                 }
@@ -805,15 +805,19 @@ class AuditController extends Controller
             ]);
         }
 
-        $year = $request->year ?? date('Y');
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $year = $request->year ?? $logicalNow->format('Y');
         $month = $request->month; // Optional
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $currentYear = date('Y');
-            $currentMonth = (int)date('n');
+            $currentYear = $logicalNow->format('Y');
+            $currentMonth = (int)$logicalNow->format('n');
             $prevMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
-            $prevMonthYear = $currentMonth === 1 ? $currentYear - 1 : $currentYear;
+            // If restricted and restricted to current year, prevMonthYear must also be restricted to current year
+            // But if it's January, then last month was last year.
+            // Following 'only current year' literally:
+            $prevMonthYear = $currentMonth === 1 ? $currentYear : $currentYear; 
 
             // Enforce current year
             $year = $currentYear;
@@ -1135,15 +1139,16 @@ class AuditController extends Controller
             ]);
         }
 
-        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
                 if ($startDate < $yesterday) {
@@ -1154,10 +1159,10 @@ class AuditController extends Controller
                 if ($startDate < $startOfLastMonth) {
                     $startDate = $startOfThisMonth;
                     if ($endDate < $startOfThisMonth) {
-                        $endDate = now()->endOfMonth()->toDateString();
+                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
                     }
                 }
-                if (date('Y', strtotime($startDate)) < date('Y')) {
+                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
                     $startDate = $startOfThisMonth;
                 }
             }
@@ -1583,16 +1588,16 @@ class AuditController extends Controller
             return response()->json(['error' => 'No access'], 403);
         }
 
-        // Date Filter
-        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
                 if ($startDate < $yesterday) {
@@ -1603,10 +1608,10 @@ class AuditController extends Controller
                 if ($startDate < $startOfLastMonth) {
                     $startDate = $startOfThisMonth;
                     if ($endDate < $startOfThisMonth) {
-                        $endDate = now()->endOfMonth()->toDateString();
+                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
                     }
                 }
-                if (date('Y', strtotime($startDate)) < date('Y')) {
+                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
                     $startDate = $startOfThisMonth;
                 }
             }
@@ -1729,15 +1734,16 @@ class AuditController extends Controller
         $onlineShopIds = $user->getAccessibleOnlineShopIds();
         $warehouseIds = $user->getAccessibleWarehouseIds();
 
-        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
                 if ($startDate < $yesterday) {
@@ -1748,10 +1754,10 @@ class AuditController extends Controller
                 if ($startDate < $startOfLastMonth) {
                     $startDate = $startOfThisMonth;
                     if ($endDate < $startOfThisMonth) {
-                        $endDate = now()->endOfMonth()->toDateString();
+                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
                     }
                 }
-                if (date('Y', strtotime($startDate)) < date('Y')) {
+                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
                     $startDate = $startOfThisMonth;
                 }
             }
@@ -1907,15 +1913,16 @@ class AuditController extends Controller
         $onlineShopIds = $user->getAccessibleOnlineShopIds();
         $warehouseIds = $user->getAccessibleWarehouseIds();
 
-        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
                 if ($startDate < $yesterday) {
@@ -1926,10 +1933,10 @@ class AuditController extends Controller
                 if ($startDate < $startOfLastMonth) {
                     $startDate = $startOfThisMonth;
                     if ($endDate < $startOfThisMonth) {
-                        $endDate = now()->endOfMonth()->toDateString();
+                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
                     }
                 }
-                if (date('Y', strtotime($startDate)) < date('Y')) {
+                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
                     $startDate = $startOfThisMonth;
                 }
             }

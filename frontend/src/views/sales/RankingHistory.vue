@@ -353,16 +353,25 @@ const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
-const currentYear = new Date().getFullYear();
+
+const getLogicalDate = () => {
+    const d = new Date();
+    if (d.getHours() < 5) {
+        d.setDate(d.getDate() - 1);
+    }
+    return d;
+};
+
+const logicalToday = getLogicalDate();
+const currentYear = logicalToday.getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
-const selectedMonth = ref(new Date().getMonth() + 1);
+const selectedMonth = ref(logicalToday.getMonth() + 1);
 const selectedYear = ref(currentYear);
 
 const isRestricted = computed(() => {
-    const roles = authStore.user?.roles || [];
-    const roleNames = roles.map(r => typeof r === 'string' ? r : r.name);
-    return !roleNames.some(r => ['audit', 'super_admin', 'admin_produk', 'leader', 'owner'].includes(r));
+    const role = (authStore.userRole || '').toLowerCase();
+    return !['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'].some(r => role.includes(r));
 });
 
 const availableMonths = computed(() => {
@@ -370,15 +379,18 @@ const availableMonths = computed(() => {
         return months.map((m, i) => ({ name: m, value: i + 1 }));
     }
     
-    const curr = new Date().getMonth(); // 0-indexed
-    const currVal = curr + 1;
-    const prevVal = curr === 0 ? null : curr; // No last month if January and restricted to current year
+    const d = getLogicalDate();
+    const currentMonth = d.getMonth() + 1; // 1-indexed
     
-    const results = [];
-    if (prevVal) results.push({ name: months[prevVal - 1], value: prevVal });
-    results.push({ name: months[currVal - 1], value: currVal });
+    // For restricted, show current month and last month
+    // Handle the case where last month was in the previous year
+    // Since year is locked to currentYear, showing last month's name but the same year might show future data if it's Dec in Jan.
+    // However, the requirement is "this month and last month".
+    const lastDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    const lastMonth = lastDate.getMonth() + 1;
     
-    return results;
+    return months.map((m, i) => ({ name: m, value: i + 1 }))
+        .filter(m => m.value === currentMonth || m.value === lastMonth);
 });
 
 const availableYears = computed(() => {
@@ -389,13 +401,14 @@ const availableYears = computed(() => {
 const todayDate = computed(() => getTodayLocal());
 const minDate = computed(() => {
     if (!isRestricted.value) return null;
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 });
+
 
 const salesData = ref({
     daily_sales: { data: [] },
@@ -408,7 +421,7 @@ const salesData = ref({
 })
 
 const getTodayLocal = () => {
-    const d = new Date();
+    const d = getLogicalDate();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

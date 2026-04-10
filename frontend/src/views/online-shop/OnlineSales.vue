@@ -40,17 +40,32 @@ let searchTimeout = null;
 const showCancelModal = ref(false);
 const selectedSaleForCancel = ref(null);
 
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
+const isRestricted = computed(() => {
+    const role = (useAuthStore().userRole || '').toLowerCase();
+    return !['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
+});
+
 const canCancel = (date) => {
     const role = (useAuthStore().userRole || '').toLowerCase();
     if (role === 'super_admin' || role === 'owner') return true;
     if (!date) return false;
     const itemDate = new Date(date);
     if (isNaN(itemDate.getTime())) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    itemDate.setHours(0, 0, 0, 0);
+    
+    const logicalNow = getLogicalDate();
+    logicalNow.setHours(0, 0, 0, 0);
+    
+    const compareDate = new Date(itemDate);
+    compareDate.setHours(0, 0, 0, 0);
+    
     const msPerDay = 24 * 60 * 60 * 1000;
-    const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
+    const diffDays = Math.round((logicalNow.getTime() - compareDate.getTime()) / msPerDay);
     return diffDays <= 5;
 };
 
@@ -117,18 +132,25 @@ const groupedSales = computed(() => {
 const fetchData = async (page = 1) => {
     isLoading.value = true;
     try {
-        const response = await api.get("/stock-outs/shopee-history", {
-            params: {
-                page,
-                q: search.value,
-                per_page: 20,
-                // Add filter params
-                date: filterType.value === 'today' ? new Date().toLocaleDateString('en-CA')
-                    : (filterType.value === 'yesterday' ? new Date(Date.now() - 86400000).toLocaleDateString('en-CA') : null),
-                month: filterType.value === 'this_month' ? new Date().getMonth() + 1 : null,
-                year: filterType.value === 'this_month' ? new Date().getFullYear() : null
-            }
-        });
+        const logicalNow = getLogicalDate();
+        const params = {
+            page,
+            q: search.value,
+            per_page: 20,
+        };
+
+        if (filterType.value === 'today') {
+            params.date = logicalNow.toISOString().slice(0, 10);
+        } else if (filterType.value === 'yesterday') {
+            const yesterday = new Date(logicalNow);
+            yesterday.setDate(logicalNow.getDate() - 1);
+            params.date = yesterday.toISOString().slice(0, 10);
+        } else if (filterType.value === 'this_month') {
+            params.month = logicalNow.getMonth() + 1;
+            params.year = logicalNow.getFullYear();
+        }
+
+        const response = await api.get("/stock-outs/shopee-history", { params });
 
         const data = response.data;
         rawHistory.value = data.data;
@@ -145,6 +167,7 @@ const fetchData = async (page = 1) => {
         isLoading.value = false;
     }
 };
+
 
 // Search handling
 const handleSearch = () => {
@@ -210,7 +233,7 @@ onMounted(() => {
                         { id: 'today', label: 'Hari Ini' },
                         { id: 'yesterday', label: 'Kemarin' },
                         { id: 'this_month', label: 'Bulan Ini' },
-                        { id: 'all', label: 'Semua' }
+                        ...(!isRestricted ? [{ id: 'all', label: 'Semua' }] : [])
                     ]" :key="btn.id" @click="filterType = btn.id; fetchData(1)"
                         class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
                         :class="filterType === btn.id ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">

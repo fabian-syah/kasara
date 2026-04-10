@@ -8,6 +8,9 @@ import { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { formatDate } from '../../utils/formatters';
 
+import { useAuthStore } from '../../store/auth';
+
+const authStore = useAuthStore();
 const router = useRouter();
 const toast = useToast();
 
@@ -39,12 +42,40 @@ const pagination = ref({
 
 // Date Filter
 const filterMode = ref('month'); // 'today', 'yesterday', 'date', 'month'
-const selectedDate = ref(new Date().toISOString().slice(0, 10)); // YYYY-MM-DD
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
 
-const currentDate = new Date();
+const isRestricted = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+});
+
+
+const getTodayLocal = () => {
+    const d = getLogicalDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+const getMinDate = computed(() => {
+    if (!isRestricted.value) return null;
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+});
+
+const currentDate = getLogicalDate();
 const currentMonth = currentDate.getMonth() + 1;
 const currentYear = currentDate.getFullYear();
-const prevDate = new Date();
+const prevDate = new Date(currentDate);
 prevDate.setMonth(prevDate.getMonth() - 1);
 const prevMonth = prevDate.getMonth() + 1;
 const prevYear = prevDate.getFullYear();
@@ -59,7 +90,10 @@ const monthOptions = [
         value: { month: prevMonth, year: prevYear }
     }
 ];
+
 const selectedMonth = ref(monthOptions[0].value);
+const selectedDate = ref(getTodayLocal()); // YYYY-MM-DD
+
 
 const filterPresets = [
     { label: 'Hari Ini', value: 'today' },
@@ -69,10 +103,11 @@ const filterPresets = [
 ];
 
 const getDateParam = () => {
+    const logicalNow = getLogicalDate();
     if (filterMode.value === 'today') {
-        return new Date().toISOString().slice(0, 10);
+        return logicalNow.toISOString().slice(0, 10);
     } else if (filterMode.value === 'yesterday') {
-        const d = new Date();
+        const d = new Date(logicalNow);
         d.setDate(d.getDate() - 1);
         return d.toISOString().slice(0, 10);
     } else if (filterMode.value === 'date') {
@@ -261,7 +296,9 @@ const handleVoid = async (item) => {
                 </div>
 
                 <input v-if="filterMode === 'date'" v-model="selectedDate" type="date"
+                    :min="getMinDate" :max="getTodayLocal()"
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50" />
+
 
                 <select v-if="filterMode === 'month'" v-model="selectedMonth"
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">

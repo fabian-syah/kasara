@@ -29,7 +29,7 @@
                             :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             BULAN INI
                         </button>
-                        <button @click="setRange('all')" :disabled="loading"
+                        <button v-if="!isRestricted" @click="setRange('all')" :disabled="loading"
                             class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 whitespace-nowrap flex-grow"
                             :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             SEMUA
@@ -42,9 +42,11 @@
                         <div class="flex items-center gap-2 bg-white dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700 flex-1 sm:flex-none">
                             <Calendar class="w-4 h-4 text-primary-500 ml-2" />
                             <input type="date" v-model="filters.start_date"
+                                :min="getMinDate" :max="getTodayLocal()"
                                 class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full sm:w-28" />
                             <span class="text-surface-400 font-bold">-</span>
                             <input type="date" v-model="filters.end_date"
+                                :min="getMinDate" :max="getTodayLocal()"
                                 class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full sm:w-28" />
                             <button @click="fetchData" :disabled="loading"
                                 class="px-3 py-1.5 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase ml-1">
@@ -275,6 +277,11 @@ const loading = ref(false)
 const exporting = ref(false)
 const selectedPeriod = ref('daily')
 
+const isRestricted = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+});
+
 // Receipt Modal State
 const showReceiptModal = ref(false)
 const selectedTransaction = ref(null)
@@ -367,63 +374,58 @@ const saveChecklist = async () => {
 }
 
 
-
 // Monthly Logic
-const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-];
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
 
-const selectedMonth = ref(new Date().getMonth() + 1);
-const selectedYear = ref(currentYear);
-
-const exportExcel = async () => {
-    if (exporting.value) return;
-    exporting.value = true;
-    try {
-        const params = { ...filters.value };
-        if (selectedLocationKey.value === 'all') {
-            params.branch_id = undefined;
-            params.online_shop_id = undefined;
-        } else {
-            const [type, id] = selectedLocationKey.value.split(':');
-            params.branch_id = type === 'B' ? id : undefined;
-            params.online_shop_id = type === 'S' ? id : undefined;
-        }
-
-        const response = await axios.get('/audit/sales/export', {
-            params,
-            responseType: 'blob'
-        });
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `audit-profit-export-${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } catch (e) {
-        console.error('Export failed', e);
-        alert('Gagal export data: ' + (e.response?.data?.message || e.message));
-    } finally {
-        exporting.value = false;
+const years = computed(() => {
+    const d = getLogicalDate();
+    const currentYear = d.getFullYear();
+    if (isRestricted.value) {
+        return [currentYear];
     }
-}
+    return Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+});
 
-const profitRecords = ref({
-    daily_sales: [],
-})
+const restrictedMonths = computed(() => {
+    const d = getLogicalDate();
+    const currentMonth = d.getMonth() + 1; // 1-indexed
+    const currentYear = d.getFullYear();
+
+    if (isRestricted.value) {
+        // Find selecting year - if it exists, otherwise default to current year
+        const selYear = filters.value.start_date ? new Date(filters.value.start_date).getFullYear() : currentYear;
+        if (selYear === currentYear) {
+            const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1).getMonth() + 1;
+            return months.map((m, i) => ({ name: m, value: i + 1 }))
+                .filter(m => m.value === currentMonth || m.value === lastMonth);
+        }
+    }
+    return months.map((m, i) => ({ name: m, value: i + 1 }));
+});
 
 const getTodayLocal = () => {
-    const d = new Date();
+    const d = getLogicalDate();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
+const getMinDate = computed(() => {
+    if (!isRestricted.value) return null;
+
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+});
+
 
 const filters = ref({
     start_date: getTodayLocal(),
@@ -460,19 +462,19 @@ const formattedDateDisplay = computed(() => {
 })
 
 const setRange = (type) => {
-    const today = new Date();
+    const logicalToday = getLogicalDate();
 
     if (type === 'today') {
         filters.value.start_date = getTodayLocal();
         filters.value.end_date = getTodayLocal();
     } else if (type === 'yesterday') {
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
+        const yesterday = new Date(logicalToday);
+        yesterday.setDate(logicalToday.getDate() - 1);
         const yStr = formatDateStr(yesterday);
         filters.value.start_date = yStr;
         filters.value.end_date = yStr;
     } else if (type === 'month') {
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const startOfMonth = new Date(logicalToday.getFullYear(), logicalToday.getMonth(), 1);
         filters.value.start_date = formatDateStr(startOfMonth);
         filters.value.end_date = getTodayLocal();
     } else if (type === 'all') {
@@ -490,14 +492,14 @@ const formatDateStr = (date) => {
 };
 
 const activeRange = computed(() => {
-    const today = new Date();
     const todayStr = getTodayLocal();
     
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
+    const logicalToday = getLogicalDate();
+    const yesterday = new Date(logicalToday);
+    yesterday.setDate(logicalToday.getDate() - 1);
     const yesterdayStr = formatDateStr(yesterday);
 
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfMonth = new Date(logicalToday.getFullYear(), logicalToday.getMonth(), 1);
     const startOfMonthStr = formatDateStr(startOfMonth);
 
     if (!filters.value.start_date && !filters.value.end_date) return 'all';
@@ -638,7 +640,6 @@ const fetchData = async () => {
 
         const response = await axios.get('/audit/profit', { params })
         profitRecords.value = response.data
-        initEditableModal()
     } catch (error) {
         console.error('Error fetching profit data:', error)
     } finally {
@@ -663,4 +664,5 @@ watch(() => authStore.user, async (newUser) => {
         await fetchBranches();
     }
 });
+
 </script>

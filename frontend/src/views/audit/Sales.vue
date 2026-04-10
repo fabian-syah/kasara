@@ -18,10 +18,10 @@
             <!-- Date Filter -->
             <div
                 class="flex items-center gap-2 bg-white dark:!bg-surface-800 p-2 rounded-lg border border-gray-200 dark:border-surface-700 shadow-sm">
-                <input type="date" v-model="filters.start_date"
+                <input type="date" v-model="filters.start_date" :min="getMinDate" :max="getTodayLocal()"
                     class="border-gray-300 dark:border-surface-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent dark:bg-surface-700 text-gray-900 dark:text-white" />
                 <span class="text-gray-500 dark:text-gray-400">-</span>
-                <input type="date" v-model="filters.end_date"
+                <input type="date" v-model="filters.end_date" :min="getMinDate" :max="getTodayLocal()"
                     class="border-gray-300 dark:border-surface-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent dark:bg-surface-700 text-gray-900 dark:text-white" />
                 <button @click="fetchData"
                     class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
@@ -281,9 +281,26 @@ const salesRecords = ref({
     cs_sales: []
 })
 
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
+const formatDateStr = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const getTodayLocal = () => {
+    return formatDateStr(getLogicalDate());
+}
+
 const filters = ref({
-    start_date: new Date().toISOString().slice(0, 10), // Today
-    end_date: new Date().toISOString().slice(0, 10),
+    start_date: getTodayLocal(), // Use standardized helper
+    end_date: getTodayLocal(),   // Use standardized helper
     branch_id: null
 })
 
@@ -291,9 +308,9 @@ const locations = ref([])
 const selectedLocationKey = ref('all')
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return privilegedRoles.some(r => role.includes(r));
 })
 
 const formatCurrency = (value) => {
@@ -303,6 +320,19 @@ const formatCurrency = (value) => {
         minimumFractionDigits: 0
     }).format(value)
 }
+
+const isRestricted = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return !privilegedRoles.some(r => role.includes(r));
+});
+
+const getMinDate = computed(() => {
+    if (!isRestricted.value) return null;
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    return formatDateStr(d);
+});
 
 const formatDate = (dateString) => {
     if (!dateString) return '-'
@@ -314,6 +344,7 @@ const formatDate = (dateString) => {
         minute: '2-digit'
     })
 }
+
 
 
 const fetchBranches = async () => {
@@ -334,8 +365,8 @@ const fetchBranches = async () => {
         console.log('[DEBUG] Fresh User Data:', user);
         console.log('[DEBUG] All Available Shops:', allShops);
 
-        // Define unrestricted roles
-        const isGlobalRole = ['super_admin', 'owner'].includes(role);
+        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+        const isGlobalRole = privilegedRoles.some(r => role.includes(r));
 
         // Collect allowed IDs
         let allowedBranchIds = [];
@@ -409,12 +440,9 @@ const fetchData = async () => {
 }
 
 onMounted(async () => {
-    // Set start date to first day of month by default for better view? 
-    // User usually wants to see daily sales for current day or month. 
-    // Let's set start date to first day of current month.
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    filters.value.start_date = firstDay.toISOString().slice(0, 10);
+    const today = getTodayLocal();
+    filters.value.start_date = today;
+    filters.value.end_date = today;
 
     if (canFilterBranch.value) {
         await fetchBranches()

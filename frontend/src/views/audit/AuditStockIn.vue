@@ -38,6 +38,8 @@
                         </div>
                         <input type="date" v-model="filters.start_date" @change="handleDateChange"
                             @click="$event.target.showPicker()"
+                            :min="isPrivileged ? undefined : getMinDate()"
+                            :max="isPrivileged ? undefined : getMaxDate()"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                     </div>
 
@@ -47,7 +49,7 @@
                         <div class="relative min-w-[140px]">
                             <select v-model="selectedMonth" @change="handleMonthChange"
                                 class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
+                                <option v-for="(m, i) in restrictedMonths" :key="i" :value="i + 1" :disabled="!isPrivileged && m.disabled">{{ m.name || m }}</option>
                             </select>
                             <ChevronDown :size="16"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -57,7 +59,7 @@
                         <div class="relative min-w-[100px]">
                             <select v-model="selectedYear" @change="handleMonthChange"
                                 class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                                <option v-for="y in restrictedYears" :key="y" :value="y">{{ y }}</option>
                             </select>
                             <ChevronDown :size="16"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -511,13 +513,56 @@ const saveChecklist = async () => {
     }
 };
 
-const getTodayLocal = () => {
+const getLogicalDate = () => {
     const d = new Date();
+    if (d.getHours() < 5) d.setDate(d.getDate() - 1);
+    return d;
+};
+
+const getTodayLocal = () => {
+    const d = getLogicalDate();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
+
+const isPrivileged = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return privilegedRoles.some(r => role.includes(r));
+});
+
+const restrictedMonths = computed(() => {
+    if (isPrivileged.value) return months.map(m => ({ name: m, disabled: false }));
+    
+    const d = getLogicalDate();
+    const currentM = d.getMonth(); // 0-indexed
+    const prevM = (currentM === 0) ? 11 : currentM - 1;
+    
+    return months.map((m, i) => ({
+        name: m,
+        disabled: i !== currentM && i !== prevM
+    }));
+});
+
+const restrictedYears = computed(() => {
+    if (isPrivileged.value) return years;
+    const d = getLogicalDate();
+    return [d.getFullYear()];
+});
+
+const getMinDate = () => {
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Yesterday
+    return d.toISOString().split('T')[0];
+};
+
+const getMaxDate = () => {
+    const d = getLogicalDate();
+    return d.toISOString().split('T')[0];
+};
+
 
 const filters = ref({
     start_date: getTodayLocal(),
@@ -584,7 +629,8 @@ const handlePeriodChange = () => {
 
 const canFilterBranch = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some((r) => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return privilegedRoles.some(r => role.includes(r));
 });
 
 const formatDate = (dateString) => {
@@ -623,8 +669,8 @@ const fetchLocations = async () => {
         const allLocations = [...allBranches, ...allShops, ...allWarehouses];
 
         const user = authStore.user;
-        const role = (authStore.userRole || '').toLowerCase();
-        const isGlobalRole = ['super_admin', 'owner', 'audit', 'analist'].includes(role);
+        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+        const isGlobalRole = privilegedRoles.includes(role);
 
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);

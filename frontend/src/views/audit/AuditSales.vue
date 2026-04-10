@@ -32,7 +32,9 @@
                         <!-- Use showPicker() explicitly on click to ensure calendar opens consistently -->
                         <input type="date" v-model="filters.start_date" @change="handleDateChange"
                             @click="$event.target.showPicker()"
+                            :min="getMinDate" :max="getTodayLocal()"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+
                     </div>
 
                     <!-- Monthly: Month & Year Selectors (Modern UI) -->
@@ -41,7 +43,7 @@
                         <div class="relative min-w-[140px]">
                             <select v-model="selectedMonth" @change="handleMonthChange"
                                 class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
+                                <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
                             </select>
                             <ChevronDown :size="16"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -636,11 +638,60 @@ const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i); // e.g. 2024 to 2028
+
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
+const years = computed(() => {
+    const d = getLogicalDate();
+    const currentYear = d.getFullYear();
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    const isRestricted = !privilegedRoles.some(r => role.includes(r));
+
+    if (isRestricted) {
+        return [currentYear];
+    }
+    return Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+});
+
+const restrictedMonths = computed(() => {
+    const d = getLogicalDate();
+    const currentMonth = d.getMonth() + 1; // 1-indexed
+    const currentYear = d.getFullYear();
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    const isRestricted = !privilegedRoles.some(r => role.includes(r));
+
+    if (isRestricted && selectedYear.value === currentYear) {
+        const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1).getMonth() + 1;
+        return months.map((m, i) => ({ name: m, value: i + 1 }))
+            .filter(m => m.value === currentMonth || m.value === lastMonth);
+    }
+    return months.map((m, i) => ({ name: m, value: i + 1 }));
+});
+
+const getMinDate = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    const isRestricted = !privilegedRoles.some(r => role.includes(r));
+    if (!isRestricted) return null;
+
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+});
 
 const selectedMonth = ref(new Date().getMonth() + 1);
-const selectedYear = ref(currentYear);
+const d_now = getLogicalDate();
+const selectedYear = ref(d_now.getFullYear());
+
 
 const salesRecords = ref({
     daily_sales: {
@@ -654,9 +705,9 @@ const salesRecords = ref({
     cs_sales: []
 })
 
-// Helper to get local YYYY-MM-DD
+// Helper to get logical today (resets at 5 AM) already defined above
 const getTodayLocal = () => {
-    const d = new Date();
+    const d = getLogicalDate();
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -727,9 +778,9 @@ const handleMonthChange = () => {
 }
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner, Analist, Leader can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return privilegedRoles.some(r => role.includes(r));
 })
 
 const formatCurrency = (value) => {
@@ -779,8 +830,8 @@ const fetchBranches = async () => {
         const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
 
-        // Define unrestricted roles
-        const isGlobalRole = ['super_admin', 'owner', 'audit', 'analist'].includes(role);
+        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+        const isGlobalRole = privilegedRoles.some(r => role.includes(r));
 
         // Collect allowed IDs
         let allowedBranchIds = [];

@@ -44,6 +44,7 @@
                     </div>
                     <input type="date" v-model="filters.start_date" @change="handleDateChange"
                         @click="$event.target.showPicker()"
+                        :min="getMinDate" :max="getTodayLocal()"
                         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 </div>
 
@@ -52,7 +53,7 @@
                     <div class="relative min-w-[140px]">
                         <select v-model="selectedMonth" @change="handleMonthChange"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                            <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
+                            <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -581,16 +582,59 @@ const handleCancelSale = (item) => {
     showCancelModal.value = true;
 }
 
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
+const years = computed(() => {
+    const d = getLogicalDate();
+    const currentYear = d.getFullYear();
+    const role = (authStore.userRole || '').toLowerCase();
+    const isRestricted = !['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+
+    if (isRestricted) {
+        return [currentYear];
+    }
+    return Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+});
+
+const restrictedMonths = computed(() => {
+    const d = getLogicalDate();
+    const currentMonth = d.getMonth() + 1; // 1-indexed
+    const currentYear = d.getFullYear();
+    const role = (authStore.userRole || '').toLowerCase();
+    const isRestricted = !['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+
+    if (isRestricted && selectedYear.value === currentYear) {
+        const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1).getMonth() + 1;
+        return months.map((m, i) => ({ name: m, value: i + 1 }))
+            .filter(m => m.value === currentMonth || m.value === lastMonth);
+    }
+    return months.map((m, i) => ({ name: m, value: i + 1 }));
+});
+
 const getTodayLocal = () => {
-    const d = new Date();
-    // Pergeseran hari untuk pelaporan: 00:00 - 05:00 dianggap hari sebelumnya
-    // Kurangi 5 jam dari waktu sekarang untuk mendapatkan 'business date'
-    const shiftDate = new Date(d.getTime() - (5 * 60 * 60 * 1000));
-    const year = shiftDate.getFullYear();
-    const month = String(shiftDate.getMonth() + 1).padStart(2, '0');
-    const day = String(shiftDate.getDate()).padStart(2, '0');
+    const d = getLogicalDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
+
+const getMinDate = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const isRestricted = !['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+    if (!isRestricted) return null;
+
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+});
 
 const filters = ref({
     start_date: getTodayLocal(),
@@ -679,7 +723,7 @@ const canCancel = (date) => {
     const itemDate = new Date(date);
     if (isNaN(itemDate.getTime())) return false;
 
-    const today = new Date();
+    const today = getLogicalDate();
     
     // Reset ke jam 00:00:00 untuk perbandingan hari yang murni
     today.setHours(0, 0, 0, 0);

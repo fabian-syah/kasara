@@ -191,16 +191,17 @@ class ReportController extends Controller
     }
     public function getSalesReport(Request $request)
     {
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
         // Role-based Date Restriction
         $user = $request->user();
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate && $endDate && $startDate === $endDate) {
                 if ($startDate < $yesterday) {
@@ -211,7 +212,7 @@ class ReportController extends Controller
                 if ($startDate < $startOfLastMonth) {
                     $startDate = $startOfThisMonth;
                 }
-                if (date('Y', strtotime($startDate)) < date('Y')) {
+                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
                     $startDate = $startOfThisMonth;
                 }
             }
@@ -433,16 +434,17 @@ class ReportController extends Controller
 
     public function getRankingReport(Request $request)
     {
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
 
         // Role-based Date Restriction
         $user = $request->user();
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-            $today = now()->toDateString();
-            $yesterday = now()->subDay()->toDateString();
-            $startOfThisMonth = now()->startOfMonth()->toDateString();
-            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+            $today = $logicalNow->toDateString();
+            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate && $endDate && $startDate === $endDate) {
                 if ($startDate < $yesterday) {
@@ -453,7 +455,7 @@ class ReportController extends Controller
                 if ($startDate < $startOfLastMonth) {
                     $startDate = $startOfThisMonth;
                 }
-                if (date('Y', strtotime($startDate)) < date('Y')) {
+                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
                     $startDate = $startOfThisMonth;
                 }
             }

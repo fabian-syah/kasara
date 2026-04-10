@@ -68,18 +68,45 @@ class StockOutController extends Controller
         }
 
         // DATE FILTER
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->category !== 'recap_harian') {
             if ($request->month && $request->year) {
-                $query->whereMonth('reporting_date', $request->month)
-                    ->whereYear('reporting_date', $request->year);
+                $m = (int) $request->month;
+                $y = (int) $request->year;
+
+                // Role-based Month/Year Restriction
+                if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                    $currentMonth = (int) $logicalNow->format('m');
+                    $currentYear = (int) $logicalNow->format('Y');
+                    
+                    $lastMonthTemp = $logicalNow->copy()->subMonth();
+                    $lastMonth = (int) $lastMonthTemp->format('m');
+                    $lastMonthYear = (int) $lastMonthTemp->format('Y');
+
+                    // Year must be current year
+                    if ($y < $currentYear) {
+                        $m = $currentMonth;
+                        $y = $currentYear;
+                    } elseif ($y == $currentYear) {
+                        // Month must be current or previous
+                        if ($m < $lastMonth && !($currentMonth == 1 && $m == 12 && $y == $currentYear)) {
+                             $m = $currentMonth;
+                        }
+                    }
+                }
+                $query->whereMonth('reporting_date', $m)
+                    ->whereYear('reporting_date', $y);
+            } elseif ($request->start_date && $request->end_date) {
+                // Logic already handles date range clamping if we use the same pattern as AuditController
+                // But index() currently doesn't have explicit start_date/end_date filter here
+                // Let's add it if needed, or stick to month/year for now
             }
         }
 
         // DATE FILTER FOR INVENTORY ROLE
-        $user = Auth::user();
         if ($user && $user->hasRole('inventory')) {
-            $startDate = \Carbon\Carbon::now()->subMonth()->startOfMonth()->toDateString();
-            $query->where('reporting_date', '>=', $startDate);
+            $limitDate = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
+            $query->where('reporting_date', '>=', $limitDate);
         }
 
         $results = $query->latest()->paginate($request->per_page ?? 20);
@@ -770,14 +797,46 @@ class StockOutController extends Controller
         }
 
         // DATE FILTERS
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $d = $request->date;
+            if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $today = $logicalNow->toDateString();
+                $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                if ($d < $yesterday) {
+                    $d = $today;
+                }
+            }
+            $query->whereDate('reporting_date', $d);
         }
-        if ($request->has('month') && !empty($request->month)) {
-            $query->whereMonth('created_at', $request->month);
-        }
-        if ($request->has('year') && !empty($request->year)) {
-            $query->whereYear('created_at', $request->year);
+        if ($request->has('month') && !empty($request->month) && $request->has('year') && !empty($request->year)) {
+            $m = (int) $request->month;
+            $y = (int) $request->year;
+
+            if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                $currentMonth = (int) $logicalNow->format('m');
+                $currentYear = (int) $logicalNow->format('Y');
+                
+                $lastMonthTemp = $logicalNow->copy()->subMonth();
+                $lastMonth = (int) $lastMonthTemp->format('m');
+                $lastMonthYear = (int) $lastMonthTemp->format('Y');
+
+                if ($y < $currentYear) {
+                    $m = $currentMonth;
+                    $y = $currentYear;
+                } elseif ($y == $currentYear) {
+                    if ($m < $lastMonth) {
+                         $m = $currentMonth;
+                    }
+                }
+            }
+            $query->whereMonth('reporting_date', $m);
+            $query->whereYear('reporting_date', $y);
+        } elseif ($request->has('month') && !empty($request->month)) {
+             // Fallback if only month is provided
+             $m = (int) $request->month;
+             $y = (int) $logicalNow->format('Y');
+             $query->whereMonth('reporting_date', $m)->whereYear('reporting_date', $y);
         }
 
         $history = $query->latest()->paginate(20);

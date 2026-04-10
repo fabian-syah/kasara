@@ -37,19 +37,30 @@ let searchTimeout = null;
 const showCancelModal = ref(false);
 const selectedSaleForCancel = ref(null);
 
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
 const canCancel = (date) => {
     const role = (useAuthStore().userRole || '').toLowerCase();
     if (role === 'super_admin' || role === 'owner') return true;
     if (!date) return false;
     const itemDate = new Date(date);
     if (isNaN(itemDate.getTime())) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    itemDate.setHours(0, 0, 0, 0);
+    
+    const logicalNow = getLogicalDate();
+    logicalNow.setHours(0, 0, 0, 0);
+    
+    const compareDate = new Date(itemDate);
+    compareDate.setHours(0, 0, 0, 0);
+    
     const msPerDay = 24 * 60 * 60 * 1000;
-    const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
+    const diffDays = Math.round((logicalNow.getTime() - compareDate.getTime()) / msPerDay);
     return diffDays <= 5;
 };
+
 
 const handleCancelSale = (item) => {
     selectedSaleForCancel.value = item;

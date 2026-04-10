@@ -26,12 +26,45 @@ import {
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 
+import { useAuthStore } from '../../store/auth';
+
+const authStore = useAuthStore();
 const loading = ref(true);
 const rankingData = ref([]);
 const showZero = ref(false);
 const filters = ref({
     start_date: '',
     end_date: ''
+});
+
+const getLogicalDate = () => {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+};
+
+const isRestricted = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+});
+
+
+const getTodayLocal = () => {
+    const d = getLogicalDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+const getMinDate = computed(() => {
+    if (!isRestricted.value) return null;
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 });
 
 const formatDateStr = (date) => {
@@ -42,20 +75,20 @@ const formatDateStr = (date) => {
 };
 
 const setRange = (type) => {
-    const today = new Date();
+    const logicalToday = getLogicalDate();
 
     if (type === 'today') {
-        filters.value.start_date = formatDateStr(today);
-        filters.value.end_date = formatDateStr(today);
+        filters.value.start_date = getTodayLocal();
+        filters.value.end_date = getTodayLocal();
     } else if (type === 'yesterday') {
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
+        const yesterday = new Date(logicalToday);
+        yesterday.setDate(logicalToday.getDate() - 1);
         filters.value.start_date = formatDateStr(yesterday);
         filters.value.end_date = formatDateStr(yesterday);
     } else if (type === 'month') {
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const startOfMonth = new Date(logicalToday.getFullYear(), logicalToday.getMonth(), 1);
         filters.value.start_date = formatDateStr(startOfMonth);
-        filters.value.end_date = formatDateStr(today);
+        filters.value.end_date = getTodayLocal();
     } else if (type === 'all') {
         filters.value.start_date = '';
         filters.value.end_date = '';
@@ -78,14 +111,14 @@ const activeRangeLabel = computed(() => {
 });
 
 const activeRange = computed(() => {
-    const today = new Date();
-    const todayStr = formatDateStr(today);
+    const todayStr = getTodayLocal();
     
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
+    const logicalToday = getLogicalDate();
+    const yesterday = new Date(logicalToday);
+    yesterday.setDate(logicalToday.getDate() - 1);
     const yesterdayStr = formatDateStr(yesterday);
 
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const startOfMonth = new Date(logicalToday.getFullYear(), logicalToday.getMonth(), 1);
     const startOfMonthStr = formatDateStr(startOfMonth);
 
     if (!filters.value.start_date && !filters.value.end_date) return 'all';
@@ -124,9 +157,9 @@ const toggleShowZero = () => {
 };
 
 onMounted(() => {
-    const today = new Date();
-    filters.value.start_date = formatDateStr(today);
-    filters.value.end_date = formatDateStr(today);
+    const today = getTodayLocal();
+    filters.value.start_date = today;
+    filters.value.end_date = today;
     fetchRanking();
 });
 
@@ -334,7 +367,7 @@ const exportToPDF = async () => {
                             <Loader2 v-if="loading && activeRange === 'month'" class="w-2.5 h-2.5 animate-spin" />
                             BULAN INI
                         </button>
-                        <button @click="setRange('all')" :disabled="loading"
+                        <button v-if="!isRestricted" @click="setRange('all')" :disabled="loading"
                             class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
                             :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
                             <Loader2 v-if="loading && activeRange === 'all'" class="w-2.5 h-2.5 animate-spin" />
@@ -347,9 +380,11 @@ const exportToPDF = async () => {
                         <div class="flex items-center flex-1 px-2 gap-2 min-w-[240px]">
                             <Calendar class="w-4 h-4 text-primary-500 shrink-0" />
                             <input type="date" v-model="filters.start_date"
+                                :min="getMinDate" :max="getTodayLocal()"
                                 class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full" />
                             <span class="text-surface-600 font-bold">-</span>
                             <input type="date" v-model="filters.end_date"
+                                :min="getMinDate" :max="getTodayLocal()"
                                 class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full" />
                         </div>
                         <button @click="fetchRanking" :disabled="loading"

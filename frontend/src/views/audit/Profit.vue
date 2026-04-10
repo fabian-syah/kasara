@@ -28,6 +28,8 @@
                 </select>
                 <!-- Date Filter -->
                 <input type="date" v-model="selectedDate" @change="fetchData"
+                    :min="isRestricted ? getMinDate() : undefined"
+                    :max="isRestricted ? getMaxDate() : undefined"
                     class="block rounded-md border-0 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700" />
 
                 <button @click="fetchData" :disabled="loading"
@@ -175,7 +177,30 @@ const toast = useToast();
 const authStore = useAuthStore();
 const loading = ref(false);
 
-const selectedYear = ref(new Date().getFullYear());
+const getLogicalDate = () => {
+    const d = new Date();
+    if (d.getHours() < 5) d.setDate(d.getDate() - 1);
+    return d;
+};
+
+const isRestricted = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return !privilegedRoles.some(r => role.includes(r));
+});
+
+const getMinDate = () => {
+    const d = getLogicalDate();
+    d.setDate(d.getDate() - 1); // Yesterday
+    return d.toISOString().split('T')[0];
+};
+
+const getMaxDate = () => {
+    const d = getLogicalDate();
+    return d.toISOString().split('T')[0];
+};
+
+const selectedYear = ref(getLogicalDate().getFullYear());
 const selectedMonth = ref(null); // All months by default
 const selectedDate = ref(null);
 
@@ -212,9 +237,9 @@ const chartData = ref({
 });
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner can filter branches
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return privilegedRoles.some(r => role.includes(r));
 })
 
 const lineChartOptions = {
@@ -268,8 +293,8 @@ const fetchBranches = async () => {
         console.log('[DEBUG-PROFIT] Fresh User Data:', user);
         console.log('[DEBUG-PROFIT] All Available Shops:', allShops);
 
-        // Define unrestricted roles
-        const isGlobalRole = ['super_admin', 'owner'].includes(role);
+        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+        const isGlobalRole = privilegedRoles.some(r => role.includes(r));
 
         // Collect allowed IDs
         let allowedBranchIds = [];
