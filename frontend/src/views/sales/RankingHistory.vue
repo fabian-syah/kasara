@@ -394,27 +394,27 @@ const sortedData = computed(() => {
     let alphaKey = ''
 
     if (currentView.value === 'revenue') {
-        base = [...salesData.value.daily_history]
+        base = [...(salesData.value.daily_history || [])]
         numKey = 'total_omset'
         alphaKey = 'reporting_date'
     } else if (currentView.value === 'sales' || currentView.value === 'activity') {
-        base = [...salesData.value.cs_sales]
+        base = [...(salesData.value.cs_sales || [])]
         numKey = currentView.value === 'sales' ? 'total_sales' : 'total_refund';
         alphaKey = 'cs_name'
     } else if (currentView.value === 'brand') {
-        base = [...salesData.value.brand_sales]
+        base = [...(salesData.value.brand_sales || [])]
         numKey = 'qty'
         alphaKey = 'brand'
     } else if (currentView.value === 'type') {
-        base = [...salesData.value.type_sales]
+        base = [...(salesData.value.type_sales || [])]
         numKey = 'qty'
         alphaKey = 'name'
     } else if (currentView.value === 'condition') {
-        base = [...salesData.value.condition_sales]
+        base = [...(salesData.value.condition_sales || [])]
         numKey = 'qty'
         alphaKey = 'condition'
     } else if (currentView.value === 'distributor') {
-        base = [...salesData.value.distributor_sales]
+        base = [...(salesData.value.distributor_sales || [])]
         numKey = 'qty'
         alphaKey = 'distributor'
     }
