@@ -500,6 +500,30 @@ class AuditController extends Controller
             ->orderByDesc('reporting_date')
             ->get();
 
+        // 7. Report per Distributor
+        $distributorStats = DB::table('stock_out_items')
+            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+            ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->whereIn('stock_outs.category', $salesCategories)
+            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+            ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                if ($requestedBranchId) {
+                    $q->where('users.branch_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $q->where('users.online_shop_id', $requestedOnlineShopId);
+                } else {
+                    if (!empty($branchIds))
+                        $q->orWhereIn('users.branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                }
+            })
+            ->select(DB::raw('COALESCE(distributors.name, "Tanpa Distributor") as distributor'), DB::raw('count(*) as qty'))
+            ->groupBy(DB::raw('COALESCE(distributors.name, "Tanpa Distributor")'))
+            ->get();
+
         return response()->json([
             'daily_sales' => [
                 'data' => $dailySales,
@@ -511,6 +535,7 @@ class AuditController extends Controller
             'brand_sales' => $formattedBrandSales,
             'type_sales' => $typeStats,
             'condition_sales' => $conditionStats,
+            'distributor_sales' => $distributorStats,
             'cs_sales' => $csSales,
             'daily_history' => $dailyHistory
         ]);
