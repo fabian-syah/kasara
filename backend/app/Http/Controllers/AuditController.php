@@ -520,8 +520,8 @@ class AuditController extends Controller
                         $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                 }
             })
-            ->select(DB::raw('COALESCE(distributors.name, "Tanpa Distributor") as distributor'), DB::raw('count(*) as qty'))
-            ->groupBy(DB::raw('COALESCE(distributors.name, "Tanpa Distributor")'))
+            ->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), DB::raw('count(*) as qty'))
+            ->groupBy('distributor') // Using alias is usually supported in MySQL/Postgres for Laravel DB::table
             ->get();
 
         return response()->json([
