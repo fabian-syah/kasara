@@ -143,6 +143,19 @@
                     <h3 class="text-lg font-bold text-text-primary mb-1">Angkat Barang & Refund</h3>
                     <p class="text-sm text-text-secondary">Ranking sales berdasarkan jumlah refund & angkat barang</p>
                 </button>
+
+                <!-- Card: Per Distributor -->
+                <button @click="navigateTo('distributor')"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-indigo-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500/20 transition-colors">
+                            <Truck :size="24" class="text-indigo-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-indigo-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Distributor</h3>
+                    <p class="text-sm text-text-secondary">Ranking penjualan berdasarkan asal distributor</p>
+                </button>
             </div>
         </template>
 
@@ -220,6 +233,11 @@
                                     <th class="px-6 py-4">Kondisi</th>
                                     <th class="px-6 py-4 text-center">Unit Terjual</th>
                                 </template>
+
+                                <template v-else-if="currentView === 'distributor'">
+                                    <th class="px-6 py-4">Distributor</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                </template>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-50 dark:divide-surface-700/50">
@@ -285,6 +303,11 @@
                                     </td>
                                     <td class="px-6 py-4 text-center font-black text-orange-500">{{ item.qty }}</td>
                                 </template>
+
+                                <template v-else-if="currentView === 'distributor'">
+                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.distributor || 'Tanpa Distributor' }}</td>
+                                    <td class="px-6 py-4 text-center font-black text-indigo-500">{{ item.qty }}</td>
+                                </template>
                             </tr>
                         </tbody>
                     </table>
@@ -299,7 +322,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { 
     Loader2, ChevronDown, Calendar, Trophy, ArrowLeft, RefreshCw, 
     TrendingUp, Users, Layers, Smartphone, Tag, RotateCcw,
-    Search, ListFilter, ChevronRight 
+    Search, ListFilter, ChevronRight, Truck
 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
@@ -321,7 +344,8 @@ const viewLabels = {
     'brand': 'Penjualan Berdasarkan Brand',
     'type': 'Penjualan Berdasarkan Tipe Produk',
     'condition': 'Penjualan Berdasarkan Kondisi',
-    'activity': 'Peringkat Angkat Barang & Refund'
+    'activity': 'Peringkat Angkat Barang & Refund',
+    'distributor': 'Penjualan Berdasarkan Distributor'
 }
 
 const months = [
@@ -339,6 +363,7 @@ const salesData = ref({
     brand_sales: [],
     type_sales: [],
     condition_sales: [],
+    distributor_sales: [],
     cs_sales: [],
     daily_history: []
 })
@@ -388,6 +413,10 @@ const sortedData = computed(() => {
         base = [...salesData.value.condition_sales]
         numKey = 'qty'
         alphaKey = 'condition'
+    } else if (currentView.value === 'distributor') {
+        base = [...salesData.value.distributor_sales]
+        numKey = 'qty'
+        alphaKey = 'distributor'
     }
 
     // Filter by Query
