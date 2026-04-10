@@ -328,28 +328,28 @@ const selectOutgoingUnit = (item) => {
                     <thead class="sticky top-0 bg-surface-50 dark:bg-surface-900 z-10">
                         <tr>
                             <th
-                                class="px-6 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
+                                class="px-6 py-3 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
                                 Produk & Brand</th>
                             <th
-                                class="px-6 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
+                                class="px-6 py-3 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
                                 Spek & Kondisi</th>
                             <th
-                                class="px-6 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
+                                class="px-6 py-3 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
                                 IMEI / Stok</th>
                             <th
-                                class="hidden xl:table-cell px-6 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
+                                class="hidden xl:table-cell px-6 py-3 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700">
                                 Distributor</th>
                             <th
-                                class="px-6 py-5 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700 text-right">
+                                class="px-6 py-3 text-xs font-black text-text-secondary uppercase tracking-widest border-b border-surface-200 dark:border-surface-700 text-right">
                                 Harga</th>
-                            <th class="px-6 py-5 border-b border-surface-200 dark:border-surface-700 w-24">
+                            <th class="px-6 py-3 border-b border-surface-200 dark:border-surface-700 w-24">
                             </th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100 dark:divide-surface-700">
                         <tr v-for="item in filteredProducts" :key="item.id"
                             class="hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-colors group">
-                            <td class="px-6 py-5">
+                            <td class="px-6 py-2">
                                 <div class="flex flex-col gap-1">
                                     <span class="font-black text-text-primary text-base">{{ item.product?.name
                                         ||
@@ -358,7 +358,7 @@ const selectOutgoingUnit = (item) => {
                                         item.product?.brand || '-' }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-5">
+                            <td class="px-6 py-2">
                                 <div class="flex flex-col items-start gap-2">
                                     <span
                                         class="text-sm font-bold text-text-primary bg-surface-100 dark:bg-surface-800 px-3 py-1 rounded-lg">{{
@@ -371,7 +371,7 @@ const selectOutgoingUnit = (item) => {
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-6 py-5">
+                            <td class="px-6 py-2">
                                 <code v-if="item.imei"
                                     class="text-sm font-mono font-bold text-text-primary bg-surface-50 dark:bg-surface-900 px-3 py-1.5 rounded-lg border border-surface-200 dark:border-surface-700">
                                     {{ item.imei }}
@@ -498,9 +498,8 @@ const selectOutgoingUnit = (item) => {
             </div>
         </div>
 
-        <!-- Right: Cart Sidebar (Fixed in step 3) -->
         <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0"
+            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-[100px] lg:max-h-[calc(100vh-120px)]"
             :class="{'fixed inset-0 z-[110] rounded-none': showMobileCart, 'hidden lg:flex': !showMobileCart}">
             
             <div
