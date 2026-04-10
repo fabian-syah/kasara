@@ -174,7 +174,8 @@ const exportToExcel = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `Data_Harga_${categoryLabel}_${new Date().toISOString().slice(0, 10)}.xls`;
+        const { getTodayLocal } = await import('../../../utils/formatters');
+        link.download = `Data_Harga_${categoryLabel}_${getTodayLocal()}.xls`;
         link.click();
         URL.revokeObjectURL(url);
         toast.success('Data berhasil diexport!');

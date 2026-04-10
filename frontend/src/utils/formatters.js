@@ -1,6 +1,28 @@
 // Currency and number formatting utilities
 
 /**
+ * Get current date adjusted for 5 AM reset logic
+ * @returns {Date}
+ */
+export function getLogicalDate() {
+    const now = new Date();
+    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+    return now;
+}
+
+/**
+ * Get logical today in YYYY-MM-DD format
+ * @returns {string}
+ */
+export function getTodayLocal() {
+    const d = getLogicalDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+/**
  * Format number as Indonesian Rupiah
  * @param {number} amount - The amount to format
  * @param {object} options - Formatting options

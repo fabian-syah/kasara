@@ -450,6 +450,7 @@ import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, 
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
+import { getLogicalDate, getTodayLocal } from '../../utils/formatters'
 
 import { useAuthStore } from '../../store/auth'
 
@@ -469,12 +470,10 @@ const categoryLabels = {
 const months = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-];
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+];// helpers getLogicalDate and getTodayLocal are now imported
 
-const selectedMonth = ref(new Date().getMonth() + 1);
-const selectedYear = ref(currentYear);
+const selectedMonth = ref(getLogicalDate().getMonth() + 1);
+const selectedYear = ref(getLogicalDate().getFullYear());
 
 const salesRecords = ref({
     daily_sales: [],
@@ -495,9 +494,11 @@ const selectedOnlineShopId = computed(() => {
     return selectedLocationKey.value.split(':')[1];
 })
 
+const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+
 const canFilterBranch = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
+    return privilegedRoles.some(r => role.includes(r));
 })
 
 const fetchLocations = async () => {
@@ -515,7 +516,7 @@ const fetchLocations = async () => {
         const user = userRes.data.user || userRes.data.data || userRes.data;
         const role = (authStore.userRole || '').toLowerCase();
 
-        const isGlobalRole = ['super_admin', 'owner', 'audit', 'analist'].includes(role);
+        const isGlobalRole = privilegedRoles.some(r => role.includes(r));
 
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
@@ -582,17 +583,11 @@ const handleCancelSale = (item) => {
     showCancelModal.value = true;
 }
 
-const getLogicalDate = () => {
-    const now = new Date();
-    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
-    return now;
-};
-
 const years = computed(() => {
     const d = getLogicalDate();
     const currentYear = d.getFullYear();
     const role = (authStore.userRole || '').toLowerCase();
-    const isRestricted = !['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+    const isRestricted = !privilegedRoles.some(r => role.includes(r));
 
     if (isRestricted) {
         return [currentYear];
@@ -605,7 +600,7 @@ const restrictedMonths = computed(() => {
     const currentMonth = d.getMonth() + 1; // 1-indexed
     const currentYear = d.getFullYear();
     const role = (authStore.userRole || '').toLowerCase();
-    const isRestricted = !['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+    const isRestricted = !privilegedRoles.some(r => role.includes(r));
 
     if (isRestricted && selectedYear.value === currentYear) {
         const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1).getMonth() + 1;
@@ -615,17 +610,9 @@ const restrictedMonths = computed(() => {
     return months.map((m, i) => ({ name: m, value: i + 1 }));
 });
 
-const getTodayLocal = () => {
-    const d = getLogicalDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
 const getMinDate = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const isRestricted = !['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+    const isRestricted = !privilegedRoles.some(r => role.includes(r));
     if (!isRestricted) return null;
 
     const d = getLogicalDate();

@@ -6,7 +6,7 @@ import {
 } from 'lucide-vue-next';
 import { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
-import { formatDate } from '../../utils/formatters';
+import { formatDate, getLogicalDate, getTodayLocal } from '../../utils/formatters';
 
 import { useAuthStore } from '../../store/auth';
 
@@ -42,25 +42,11 @@ const pagination = ref({
 
 // Date Filter
 const filterMode = ref('month'); // 'today', 'yesterday', 'date', 'month'
-const getLogicalDate = () => {
-    const now = new Date();
-    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
-    return now;
-};
-
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    return !privilegedRoles.some(r => role.includes(r));
 });
-
-
-const getTodayLocal = () => {
-    const d = getLogicalDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
 
 const getMinDate = computed(() => {
     if (!isRestricted.value) return null;
@@ -105,11 +91,18 @@ const filterPresets = [
 const getDateParam = () => {
     const logicalNow = getLogicalDate();
     if (filterMode.value === 'today') {
-        return logicalNow.toISOString().slice(0, 10);
+        const d = getLogicalDate();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     } else if (filterMode.value === 'yesterday') {
-        const d = new Date(logicalNow);
+        const d = getLogicalDate();
         d.setDate(d.getDate() - 1);
-        return d.toISOString().slice(0, 10);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     } else if (filterMode.value === 'date') {
         return selectedDate.value;
     }
@@ -166,7 +159,7 @@ const exportExcel = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `stok-masuk-${activeTab.value}-${new Date().toISOString().slice(0, 10)}.csv`);
+        link.setAttribute('download', `stok-masuk-${activeTab.value}-${getTodayLocal()}.csv`);
         document.body.appendChild(link);
         link.click();
         link.remove();
