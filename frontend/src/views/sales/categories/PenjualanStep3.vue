@@ -269,11 +269,15 @@ function handleBundlePriceInput() {
     displayBundleTotalPrice.value = formatNumber(bundleTotalPrice.value);
 }
 
+let bundleCalcTimeout = null;
 function calculateBundleTotal() {
-    const total = bundleItems.value.reduce((sum, item) => sum + (Number(item.bundle_price || 0) * Number(item.quantity || 1)), 0);
-    bundleTotalPrice.value = total;
-    bundlingHelper.value.totalPrice = total;
-    displayBundleTotalPrice.value = formatNumber(total);
+    if (bundleCalcTimeout) clearTimeout(bundleCalcTimeout);
+    bundleCalcTimeout = setTimeout(() => {
+        const total = bundleItems.value.reduce((sum, item) => sum + (Number(item.bundle_price || 0) * Number(item.quantity || 1)), 0);
+        bundleTotalPrice.value = total;
+        bundlingHelper.value.totalPrice = total;
+        displayBundleTotalPrice.value = formatNumber(total);
+    }, 150);
 }
 
 function finishBundling() {
