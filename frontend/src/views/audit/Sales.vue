@@ -264,7 +264,7 @@ import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ProfitReport from '../reports/ProfitReport.vue'
 
-import { getLogicalDate, getTodayLocal } from '../../utils/formatters'
+import { formatCurrency, formatNumber, getLogicalDate, getTodayLocal } from '../../utils/formatters'
 const authStore = useAuthStore()
 
 const tabs = [
@@ -299,13 +299,7 @@ const canFilterBranch = computed(() => {
     return privilegedRoles.some(r => role.includes(r));
 })
 
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(value)
-}
+// formatCurrency and formatNumber are now imported
 
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();

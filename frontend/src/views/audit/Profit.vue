@@ -145,7 +145,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { Loader2, DollarSign, TrendingUp, ShoppingBag } from 'lucide-vue-next';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
-import { formatCurrency, getLogicalDate } from '../../utils/formatters';
+import { formatCurrency, formatNumber, getLogicalDate } from '../../utils/formatters';
 import axios from '../../api/axios'; // Ensure we have axios for branch fetch if api helper doesn't support generic
 import { useToast } from '../../composables/useToast';
 import {
@@ -438,18 +438,7 @@ const fetchData = () => {
     fetchAnalysis();
 };
 
-const formatCurrency = (val) => {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-    }).format(val);
-};
-
-const formatNumber = (val) => {
-    return new Intl.NumberFormat('id-ID').format(val);
-};
+// formatCurrency and formatNumber are now imported or replaced by centralized formatters
 
 onMounted(async () => {
     if (canFilterBranch.value) {

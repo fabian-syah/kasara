@@ -6,7 +6,7 @@ import {
 } from 'lucide-vue-next';
 import { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
-import { formatDate, getLogicalDate, getTodayLocal } from '../../utils/formatters';
+import { formatDate, formatCurrency, getLogicalDate, getTodayLocal } from '../../utils/formatters';
 
 import { useAuthStore } from '../../store/auth';
 

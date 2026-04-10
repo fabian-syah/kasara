@@ -6,7 +6,7 @@ import {
 } from 'lucide-vue-next';
 import { stockOut, inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
-import { formatDate, getLogicalDate, getTodayLocal } from '../../utils/formatters';
+import { formatDate, formatCurrency, getLogicalDate, getTodayLocal } from '../../utils/formatters';
 
 import { useAuthStore } from '../../store/auth';
 
@@ -259,10 +259,7 @@ const getCategoryColor = (cat) => {
     return colors[cat] || 'text-surface-400 bg-surface-400/10 border-surface-400/20';
 };
 
-const formatCurrency = (value) => {
-    if (!value && value !== 0) return '-';
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
-};
+// formatCurrency is now imported
 </script>
 
 <template>
