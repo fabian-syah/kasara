@@ -145,6 +145,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { Loader2, DollarSign, TrendingUp, ShoppingBag } from 'lucide-vue-next';
 import api from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
+import { formatCurrency, getLogicalDate } from '../../utils/formatters';
 import axios from '../../api/axios'; // Ensure we have axios for branch fetch if api helper doesn't support generic
 import { useToast } from '../../composables/useToast';
 import {
@@ -177,11 +178,7 @@ const toast = useToast();
 const authStore = useAuthStore();
 const loading = ref(false);
 
-const getLogicalDate = () => {
-    const d = new Date();
-    if (d.getHours() < 5) d.setDate(d.getDate() - 1);
-    return d;
-};
+// getLogicalDate is now imported
 
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();

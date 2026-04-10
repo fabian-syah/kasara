@@ -264,6 +264,7 @@ import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ProfitReport from '../reports/ProfitReport.vue'
 
+import { getLogicalDate, getTodayLocal } from '../../utils/formatters'
 const authStore = useAuthStore()
 
 const tabs = [
@@ -281,22 +282,7 @@ const salesRecords = ref({
     cs_sales: []
 })
 
-const getLogicalDate = () => {
-    const now = new Date();
-    if (now.getHours() < 5) now.setDate(now.getDate() - 1);
-    return now;
-};
-
-const formatDateStr = (date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-};
-
-const getTodayLocal = () => {
-    return formatDateStr(getLogicalDate());
-}
+// getLogicalDate and getTodayLocal are now imported
 
 const filters = ref({
     start_date: getTodayLocal(), // Use standardized helper

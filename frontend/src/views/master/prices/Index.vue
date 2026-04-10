@@ -4,6 +4,7 @@ import { Plus, Search, Edit2, Trash2, RefreshCw, Box, Download } from 'lucide-vu
 import { productPrices as api, brands as brandsApi, productTypes as typesApi, auth as apiAuth } from '../../../api/axios';
 import { useToast } from '../../../composables/useToast';
 import PriceModal from './PriceModal.vue';
+import { getTodayLocal } from '../../../utils/formatters';
 
 const toast = useToast();
 const loading = ref(false);
@@ -174,7 +175,6 @@ const exportToExcel = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        const { getTodayLocal } = await import('../../../utils/formatters');
         link.download = `Data_Harga_${categoryLabel}_${getTodayLocal()}.xls`;
         link.click();
         URL.revokeObjectURL(url);
