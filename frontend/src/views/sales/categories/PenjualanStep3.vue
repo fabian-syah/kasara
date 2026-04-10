@@ -520,7 +520,7 @@ const selectOutgoingUnit = (item) => {
         </div>
 
         <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="w-full lg:w-[420px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-[20px] lg:h-[calc(100vh-150px)]"
+            class="w-full lg:w-[420px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-4 lg:max-h-[calc(100vh-40px)]"
             :class="{'fixed inset-0 z-[110] rounded-none': showMobileCart, 'hidden lg:flex': !showMobileCart}">
             
             <div
@@ -539,7 +539,7 @@ const selectOutgoingUnit = (item) => {
                 </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-6 custom-scrollbar min-h-[300px]">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar min-h-0">
                 <div v-if="cartItems.length === 0"
                     class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-10">
                     <ShoppingCart :size="64" class="mb-6" stroke-width="1.5" />
@@ -630,16 +630,16 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
             <div
-                class="p-4 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-3">
+                class="p-3 sm:p-4 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-2 sm:space-y-3">
 
                 <!-- Mini Summary -->
-                <div class="space-y-2 border-b border-surface-200 dark:border-surface-700 pb-4">
-                    <div class="flex justify-between text-sm font-bold text-text-secondary uppercase tracking-widest">
+                <div class="space-y-1 sm:space-y-2 border-b border-surface-200 dark:border-surface-700 pb-2 sm:pb-4">
+                    <div class="flex justify-between text-xs sm:text-sm font-bold text-text-secondary uppercase tracking-widest">
                         <span>Subtotal</span>
                         <span>{{ formatCurrency(cartStore.subtotal) }}</span>
                     </div>
                     <div v-if="cartStore.itemDiscountTotal > 0"
-                        class="flex justify-between text-xs font-bold text-amber-600 uppercase tracking-widest">
+                        class="flex justify-between text-[10px] sm:text-xs font-bold text-amber-600 uppercase tracking-widest">
                         <span>Diskon Item</span>
                         <span>-{{ formatCurrency(cartStore.itemDiscountTotal) }}</span>
                     </div>
@@ -668,20 +668,20 @@ const selectOutgoingUnit = (item) => {
                     </div>
                 </div>
 
-                <div class="flex justify-between items-center text-2xl font-black pt-2">
-                    <span class="text-text-primary text-sm sm:text-lg uppercase tracking-widest">Total
+                <div class="flex justify-between items-center text-xl sm:text-2xl font-black pt-1 sm:pt-2">
+                    <span class="text-text-primary text-xs sm:text-lg uppercase tracking-widest">Total
                         Bayar</span>
                     <span class="text-primary-600">{{ formatCurrency(cartTotal) }}</span>
                 </div>
-                <div class="flex gap-3 pt-1">
+                <div class="flex gap-2 sm:gap-3 pt-1">
                     <button @click="emit('prev')"
-                        class="w-14 h-14 flex-none bg-white dark:bg-surface-800 text-text-primary border-2 border-surface-200 dark:border-surface-700 rounded-xl font-bold transition-all flex items-center justify-center hover:bg-surface-50 hover:border-surface-300">
-                        <ArrowLeft :size="20" />
+                        class="w-10 h-10 sm:w-14 sm:h-14 flex-none bg-white dark:bg-surface-800 text-text-primary border-2 border-surface-200 dark:border-surface-700 rounded-xl font-bold transition-all flex items-center justify-center hover:bg-surface-50 hover:border-surface-300">
+                        <ArrowLeft :size="18" class="sm:w-5 sm:h-5" />
                     </button>
                     <button @click="emit('next')" :disabled="cartItems.length === 0"
-                        class="flex-1 h-14 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-xl font-bold text-base shadow-lg shadow-primary-500/20 transition-all flex items-center justify-center gap-2">
+                        class="flex-1 h-10 sm:h-14 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-xl font-bold text-sm sm:text-base shadow-lg shadow-primary-500/20 transition-all flex items-center justify-center gap-2">
                         Pembayaran
-                        <ArrowRight :size="20" />
+                        <ArrowRight :size="18" class="sm:w-5 sm:h-5" />
                     </button>
                 </div>
             </div>

@@ -295,8 +295,8 @@ watch(transactionCategory, () => {
         <div class="w-full flex flex-col">
 
             <!-- HEADER & LOGO -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shrink-0">
-                <div class="flex items-center gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-8 shrink-0">
+                <div class="flex items-center gap-3 sm:gap-4">
                     <div
                         class="w-10 h-10 sm:w-16 sm:h-16 bg-primary-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20">
                         <ShoppingBag class="text-white w-6 h-6 sm:w-8 sm:h-8" :size="24" stroke-width="3" />
@@ -311,7 +311,7 @@ watch(transactionCategory, () => {
 
             <!-- STEP WIZARD NAV -->
             <div
-                class="bg-white dark:bg-surface-800 rounded-2xl p-2 mb-8 border border-surface-200 dark:border-surface-700 shadow-sm shrink-0 overflow-x-auto custom-scrollbar">
+                class="bg-white dark:bg-surface-800 rounded-2xl p-2 mb-4 sm:mb-8 border border-surface-200 dark:border-surface-700 shadow-sm shrink-0 overflow-x-auto custom-scrollbar">
                 <div class="flex items-center justify-between relative px-4 min-w-[300px]">
                     <div v-for="step in 4" :key="step" class="z-10 flex flex-col items-center gap-2 py-2">
                         <div @click="step < currentStep ? currentStep = step : null"
