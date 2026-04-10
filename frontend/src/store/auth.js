@@ -206,10 +206,30 @@ export const useAuthStore = defineStore('auth', () => {
     // Listen for storage changes from other tabs to handle multi-tab session sync
     if (typeof window !== 'undefined') {
         window.addEventListener('storage', (event) => {
-            if (event.key === 'auth_token' || event.key === 'user') {
-                // If we're logged out or changed user in another tab, reload to resync state 
-                // and avoid displaying stale/incorrect dashboards
+            if (event.key === 'auth_token') {
+                // Token changed or removed - must reload to sync session state
                 window.location.reload();
+            } else if (event.key === 'user' && event.newValue) {
+                try {
+                    const newUser = JSON.parse(event.newValue);
+                    const oldUser = event.oldValue ? JSON.parse(event.oldValue) : null;
+                    
+                    // If no old user or if roles/permissions changed, we must reload for safety
+                    if (!oldUser || 
+                        JSON.stringify(newUser.roles) !== JSON.stringify(oldUser.roles) || 
+                        JSON.stringify(newUser.permissions) !== JSON.stringify(oldUser.permissions)) {
+                        window.location.reload();
+                        return;
+                    }
+                    
+                    // If only UI preferences like font_size changed, just update the state 
+                    // without reloading. This avoids interrupting the user's flow.
+                    const enriched = enrichUserPermissions(newUser);
+                    user.value = enriched;
+                } catch (e) {
+                    console.error('Failed to parse user from storage event', e);
+                    window.location.reload();
+                }
             }
         });
     }

@@ -31,8 +31,10 @@ export const useThemeStore = defineStore('theme', () => {
         if (authStore.isAuthenticated) {
             try {
                 const response = await authStore.updateFontSize(size)
-                if (response.success) {
-                    authStore.updateUserData(response.user)
+                // Handle both wrapped and unwrapped response formats
+                const updatedUser = response.user || response.data || response;
+                if (updatedUser && typeof updatedUser === 'object') {
+                    authStore.updateUserData(updatedUser)
                 }
             } catch (err) {
                 console.error('Failed to sync font size to DB:', err)

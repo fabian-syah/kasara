@@ -158,7 +158,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                             </div>
                             <div class="flex bg-surface-100 dark:bg-surface-800 p-1 rounded-lg gap-1">
                                 <button v-for="size in ['small', 'standard', 'big']" :key="size" 
-                                    @click="themeStore.setFontSize(size)"
+                                    @click.stop.prevent="themeStore.setFontSize(size)"
                                     class="flex-1 py-1 rounded-md text-[10px] font-bold uppercase transition-all duration-200"
                                     :class="themeStore.fontSize === size 
                                         ? 'bg-primary-500 text-white shadow-sm' 
