@@ -179,15 +179,43 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Font Size Modes */
+/* Font Size Modes - Responsive Scaling System */
+:root {
+  --base-font-size: 16px;
+}
+
+html {
+  font-size: var(--base-font-size);
+  transition: font-size 0.2s ease-in-out;
+}
+
+/* Small Mode: Compact UI for data-heavy views */
 html.font-small {
-  font-size: 14px;
+  --base-font-size: 13px;
 }
+@media (min-width: 1024px) {
+  html.font-small { --base-font-size: 14px; }
+}
+
+/* Standard Mode: Balanced readability */
 html.font-standard {
-  font-size: 16px;
+  --base-font-size: 15px;
 }
+@media (min-width: 1024px) {
+  html.font-standard { --base-font-size: 16px; }
+}
+
+/* Big Mode: Enhanced accessibility and touch-friendliness */
 html.font-big {
-  font-size: 18px;
+  --base-font-size: 17px;
+}
+@media (min-width: 1024px) {
+  html.font-big { --base-font-size: 19px; }
+}
+
+/* Adjust global line height and spacing consistency */
+* {
+  line-height: 1.5;
 }
 
 body {
