@@ -171,6 +171,9 @@ class InventoryController extends Controller
         }
 
         // 6. Pagination & Response
+        $perPage = $request->per_page ?? 20;
+        if ($perPage == -1) $perPage = 999999;
+
         if ($type === 'non-hp') {
             $query->orderBy('id', 'desc');
             $rawItems = $query->get();
@@ -191,7 +194,6 @@ class InventoryController extends Controller
 
             // Manual pagination
             $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
-            $perPage = 20;
             $items = new \Illuminate\Pagination\LengthAwarePaginator(
                 $grouped->forPage($page, $perPage)->values(),
                 $grouped->count(),
@@ -200,7 +202,7 @@ class InventoryController extends Controller
                 ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
             );
         } else {
-            $items = $query->latest()->paginate(20);
+            $items = $query->latest()->paginate($perPage);
         }
 
         $items->getCollection()->transform(function ($item) use ($type, $request) {

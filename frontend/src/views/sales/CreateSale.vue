@@ -134,8 +134,8 @@ async function fetchHeavyData() {
     loadingStep3Data.value = true;
     try {
         const [hpRes, nonHpRes, paymentsRes, brandsRes, typesRes, pricesRes] = await Promise.all([
-            api.get('/inventory', { params: { type: 'hp', status: 'available', per_page: 1000 } }),
-            api.get('/inventory', { params: { type: 'non-hp', per_page: 1000 } }),
+            api.get('/inventory', { params: { type: 'hp', status: 'available', per_page: -1 } }),
+            api.get('/inventory', { params: { type: 'non-hp', per_page: -1 } }),
             api.get('/payment-methods'),
             api.get('/brands'),
             api.get('/product-types', { params: { per_page: 1000 } }),

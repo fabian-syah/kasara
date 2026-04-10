@@ -34,18 +34,43 @@ const bundleTotalPrice = ref(0);
 const displayBundleTotalPrice = ref("0");
 
 // Computeds
+const displayLimit = ref(50);
+
 const filteredProducts = computed(() => {
     let prods = inventoryStore.products || [];
-    if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase();
+    const q = searchQuery.value?.toLowerCase();
+    
+    if (q) {
         prods = prods.filter(p =>
             (p.product?.name || p.name || "").toLowerCase().includes(q) ||
             (p.imei || "").toLowerCase().includes(q) ||
             (p.product?.brand || "").toLowerCase().includes(q)
         );
     }
-    return prods;
+    return prods.slice(0, displayLimit.value);
 });
+
+const totalFilteredCount = computed(() => {
+    let prods = inventoryStore.products || [];
+    const q = searchQuery.value?.toLowerCase();
+    
+    if (q) {
+        return prods.filter(p =>
+            (p.product?.name || p.name || "").toLowerCase().includes(q) ||
+            (p.imei || "").toLowerCase().includes(q) ||
+            (p.product?.brand || "").toLowerCase().includes(q)
+        ).length;
+    }
+    return prods.length;
+});
+
+watch(searchQuery, () => {
+    displayLimit.value = 50;
+});
+
+const loadMore = () => {
+    displayLimit.value += 50;
+};
 
 const cartItems = computed(() => cartStore.items);
 const cartItemCount = computed(() => cartStore.itemCount);
@@ -382,6 +407,13 @@ const selectOutgoingUnit = (item) => {
                     </tbody>
                 </table>
 
+                <div v-if="totalFilteredCount > displayLimit" class="p-6 flex justify-center border-t border-surface-100 dark:border-surface-700 hidden md:flex">
+                    <button @click="loadMore" class="px-8 py-3 bg-white dark:bg-surface-900 border-2 border-primary-600 text-primary-600 rounded-2xl font-black hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all flex items-center gap-2">
+                        <Plus :size="18" stroke-width="3" />
+                        Tampilkan Lebih Banyak ({{ totalFilteredCount - displayLimit }} Sisa)
+                    </button>
+                </div>
+
                 <!-- Card list for Mobile -->
                 <div class="md:hidden divide-y divide-surface-100 dark:divide-surface-700">
                     <div v-for="item in filteredProducts" :key="item.id" class="p-4 flex flex-col gap-3">
@@ -431,6 +463,13 @@ const selectOutgoingUnit = (item) => {
                                 formatCurrency(item.selling_price || item.price) }}</span>
                         </div>
                     </div>
+                </div>
+
+                <div v-if="totalFilteredCount > displayLimit" class="p-4 flex justify-center border-t border-surface-100 dark:border-surface-700 md:hidden">
+                    <button @click="loadMore" class="w-full py-3 bg-white dark:bg-surface-900 border-2 border-primary-600 text-primary-600 rounded-xl font-black transition-all flex items-center justify-center gap-2 text-sm">
+                        <Plus :size="16" stroke-width="3" />
+                        Lainnya ({{ totalFilteredCount - displayLimit }})
+                    </button>
                 </div>
 
                 <div v-if="filteredProducts.length === 0" class="px-6 py-20 text-center">
