@@ -170,7 +170,7 @@ export const useCartStore = defineStore('cart', () => {
             is_bundle: true,
             bundle_items: bundleItems.map(item => ({
                 id: item.id,
-                product_id: item.product_id || item.id, // Fallback to id if product_id is not set
+                product_id: item.product_id || item.id,
                 name: item.product?.name || item.name,
                 imei: item.imei || null,
                 price: item.bundle_price || item.selling_price || item.price,
@@ -179,6 +179,27 @@ export const useCartStore = defineStore('cart', () => {
                 is_non_hp: !item.imei
             }))
         });
+    }
+
+    function updateBundle(bundleId, bundleItems, totalPrice, description) {
+        const index = items.value.findIndex(item => item.id === bundleId);
+        if (index > -1) {
+            items.value[index] = {
+                ...items.value[index],
+                name: description,
+                price: totalPrice,
+                bundle_items: bundleItems.map(item => ({
+                    id: item.id,
+                    product_id: item.product_id || item.id,
+                    name: item.product?.name || item.name,
+                    imei: item.imei || null,
+                    price: item.bundle_price || item.selling_price || item.price,
+                    cost_price: item.cost_price || 0,
+                    quantity: item.quantity || 1,
+                    is_non_hp: !item.imei
+                }))
+            };
+        }
     }
 
     return {
@@ -198,6 +219,7 @@ export const useCartStore = defineStore('cart', () => {
         isEmpty,
         addItem,
         addBundle,
+        updateBundle,
         updateItemDiscount,
         removeItem,
         updateQuantity,

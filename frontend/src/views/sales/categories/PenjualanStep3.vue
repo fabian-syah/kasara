@@ -12,7 +12,8 @@ import {
     ArrowRight,
     ShoppingBag,
     CheckCircle,
-    X
+    X,
+    Edit2
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -34,6 +35,7 @@ const bundleTotalPrice = ref(0);
 const bundlingHelper = ref({ totalPrice: 0 }); // Helper for v-money compatibility
 const displayBundleTotalPrice = ref("0");
 const showMobileCart = ref(false);
+const editingBundleId = ref(null);
 
 // Computeds
 const displayLimit = ref(50);
@@ -105,10 +107,11 @@ function parseNumber(s) {
 
 function getRemainingStock(product) {
     if (product.imei) {
-        // Check if this specific IMEI is in cart or in any bundle in cart
         const inCart = cartStore.items.some(i => i.imei === product.imei);
         const inBundles = cartStore.items.some(i =>
-            i.is_bundle && i.bundle_items?.some(bi => bi.imei === product.imei)
+            i.is_bundle && 
+            i.id !== editingBundleId.value && 
+            i.bundle_items?.some(bi => bi.imei === product.imei)
         );
         return (inCart || inBundles) ? 0 : 1;
     }
@@ -117,9 +120,8 @@ function getRemainingStock(product) {
         .filter(i => i.id === product.id && !i.is_bundle)
         .reduce((sum, i) => sum + i.quantity, 0);
 
-    // Also consider items within bundles in cart
     const inBundles = cartStore.items
-        .filter(i => i.is_bundle && i.bundle_items)
+        .filter(i => i.is_bundle && i.id !== editingBundleId.value && i.bundle_items)
         .reduce((sum, bundle) => {
             const count = bundle.bundle_items
                 .filter(bi => bi.id === product.id)
@@ -202,6 +204,7 @@ function handleDiscountInput(e) {
 
 // Bundling Logic
 function openBundlingModal() {
+    editingBundleId.value = null;
     bundleItems.value = [];
     bundleTotalPrice.value = 0;
     bundlingHelper.value.totalPrice = 0;
@@ -211,6 +214,18 @@ function openBundlingModal() {
 
 function closeBundlingModal() {
     showBundlingModal.value = false;
+    editingBundleId.value = null;
+}
+
+function editBundle(bundle) {
+    editingBundleId.value = bundle.id;
+    bundleItems.value = bundle.bundle_items.map(item => ({
+        ...item,
+        bundle_price: item.price,
+        display_bundle_price: formatNumber(item.price)
+    }));
+    calculateBundleTotal();
+    showBundlingModal.value = true;
 }
 
 function addToBundle(product) {
@@ -287,7 +302,13 @@ function finishBundling() {
     }
 
     const bundleName = "Paket Bundling: " + bundleItems.value.map(i => i.product?.name || i.name).join(", ");
-    cartStore.addBundle(bundleItems.value, bundleTotalPrice.value, bundleName);
+    
+    if (editingBundleId.value) {
+        cartStore.updateBundle(editingBundleId.value, bundleItems.value, bundleTotalPrice.value, bundleName);
+    } else {
+        cartStore.addBundle(bundleItems.value, bundleTotalPrice.value, bundleName);
+    }
+    
     closeBundlingModal();
 }
 
@@ -538,10 +559,16 @@ const selectOutgoingUnit = (item) => {
                                     class="text-xs font-mono font-bold text-text-secondary bg-surface-50 dark:bg-surface-900 px-2 py-1 rounded w-fit">{{
                                         item.imei }}</span>
                             </div>
-                            <button @click="removeFromCart(item.id)"
-                                class="text-surface-400 hover:text-red-500 absolute top-4 right-4 bg-surface-50 dark:bg-surface-900 p-2 rounded-full transition-colors">
-                                <Trash2 :size="18" />
-                            </button>
+                            <div class="flex items-center gap-1 absolute top-4 right-4">
+                                <button v-if="item.is_bundle" @click="editBundle(item)"
+                                    class="text-primary-500 hover:text-primary-600 bg-primary-50 dark:bg-primary-900/30 p-2 rounded-full transition-colors">
+                                    <Edit2 :size="18" />
+                                </button>
+                                <button @click="removeFromCart(item.id)"
+                                    class="text-surface-400 hover:text-red-500 bg-surface-50 dark:bg-surface-900 p-2 rounded-full transition-colors">
+                                    <Trash2 :size="18" />
+                                </button>
+                            </div>
                         </div>
                         <div
                             class="flex flex-col sm:flex-row justify-between items-start sm:items-end border-t border-surface-100 dark:border-surface-700 pt-4 gap-4 sm:gap-0">
@@ -668,7 +695,9 @@ const selectOutgoingUnit = (item) => {
                     class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                     <div
                         class="p-4 sm:p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
-                        <h3 class="text-lg sm:text-2xl font-black text-text-primary">Buat Sistem Bundling</h3>
+                        <h3 class="text-lg sm:text-2xl font-black text-text-primary">
+                            {{ editingBundleId ? 'Edit Sistem Bundling' : 'Buat Sistem Bundling' }}
+                        </h3>
                         <button @click="closeBundlingModal"
                             class="p-1.5 sm:p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
                             <X :size="20" class="sm:w-6 sm:h-6" />
