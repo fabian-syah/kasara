@@ -32,6 +32,7 @@ const showBundlingModal = ref(false);
 const bundleItems = ref([]);
 const bundleTotalPrice = ref(0);
 const displayBundleTotalPrice = ref("0");
+const showMobileCart = ref(false);
 
 // Computeds
 const displayLimit = ref(50);
@@ -415,52 +416,59 @@ const selectOutgoingUnit = (item) => {
                 </div>
 
                 <!-- Card list for Mobile -->
-                <div class="md:hidden divide-y divide-surface-100 dark:divide-surface-700">
-                    <div v-for="item in filteredProducts" :key="item.id" class="p-4 flex flex-col gap-3">
-                        <div class="flex justify-between items-start">
-                            <div class="flex flex-col gap-1">
-                                <span class="font-black text-text-primary text-base leading-tight">{{
-                                    item.product?.name || item.name }}</span>
-                                <span class="text-[10px] text-primary-600 font-bold uppercase tracking-wider">{{
-                                    item.product?.brand || '-' }}</span>
+                <div class="md:hidden divide-y divide-surface-100 dark:divide-surface-700 pb-32">
+                    <div v-for="item in filteredProducts" :key="item.id" 
+                        class="p-4 flex items-center justify-between gap-4 active:bg-surface-50 dark:active:bg-surface-900 transition-colors"
+                        :class="{'opacity-50': isItemFullyOccupied(item)}">
+                        
+                        <div class="flex-1 min-w-0" @click="!isItemFullyOccupied(item) ? addToCart(item) : null">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="font-black text-text-primary text-sm leading-tight truncate">
+                                    {{ item.product?.name || item.name }}
+                                </span>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="text-[9px] text-primary-600 font-black uppercase tracking-wider">
+                                        {{ item.product?.brand || '-' }}
+                                    </span>
+                                    <span v-if="item.ram || item.storage" class="text-[9px] font-bold text-text-secondary bg-surface-100 dark:bg-surface-800 px-1.5 py-0.5 rounded">
+                                        {{ item.ram ? item.ram + '/' : '' }}{{ item.storage || '-' }}
+                                    </span>
+                                    <span class="text-[9px] uppercase px-1.5 py-0.5 rounded font-black"
+                                        :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                                        {{ item.condition || 'Second' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <code v-if="item.imei" class="text-[9px] font-mono font-bold text-text-secondary tracking-tighter truncate max-w-[120px]">
+                                        {{ item.imei }}
+                                    </code>
+                                    <span v-else class="text-[9px] font-black text-primary-600">
+                                        Stok: {{ getRemainingStock(item) }}
+                                    </span>
+                                    <span class="text-xs font-black text-primary-600">
+                                        {{ formatCurrency(item.selling_price || item.price) }}
+                                    </span>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="shrink-0 flex items-center gap-2">
                             <template v-if="transactionCategory === 'tukar_unit'">
                                 <button @click="selectOutgoingUnit(item)"
-                                    class="px-4 py-2 bg-primary-600 text-white rounded-lg shadow-lg active:scale-95 text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                                    <ArrowRight :size="14" /> Pilih
+                                    class="w-8 h-8 flex items-center justify-center bg-primary-600 text-white rounded-lg shadow-lg active:scale-95">
+                                    <ArrowRight :size="16" />
                                 </button>
                             </template>
                             <template v-else>
                                 <button v-if="!isItemFullyOccupied(item)" @click="addToCart(item)"
-                                    class="w-10 h-10 flex items-center justify-center bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
+                                    class="w-10 h-10 flex items-center justify-center bg-primary-100 text-primary-600 dark:bg-primary-900/40 rounded-xl active:scale-90 transition-transform">
                                     <Plus :size="20" stroke-width="3" />
                                 </button>
                                 <div v-else
-                                    class="flex items-center gap-1 text-emerald-600 font-black text-[10px] uppercase tracking-widest bg-emerald-500/10 px-3 py-1.5 rounded-lg">
-                                    <CheckCircle :size="12" />
-                                    {{ getCartStatus(item.id) }}
+                                    class="flex items-center justify-center w-8 h-8 text-emerald-600 bg-emerald-500/10 rounded-lg">
+                                    <CheckCircle :size="16" />
                                 </div>
                             </template>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <span
-                                class="text-[10px] font-bold text-text-primary bg-surface-100 dark:bg-surface-800 px-2 py-0.5 rounded-md">{{
-                                    item.ram ? item.ram + ' / ' : '' }}{{ item.storage || '-' }}</span>
-                            <span class="text-[10px] uppercase px-2 py-0.5 rounded-md font-bold"
-                                :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'">
-                                {{ item.condition || 'Second' }}
-                            </span>
-                            <code v-if="item.imei"
-                                class="text-[10px] font-mono font-bold text-text-secondary truncate max-w-[120px]">{{
-                                    item.imei }}</code>
-                            <span v-else class="text-[10px] font-black text-primary-600">Sisa: {{
-                                getRemainingStock(item) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center mt-1">
-                            <span class="text-xs text-text-secondary">{{ item.distributor?.name ||
-                                item.supplier_name || '-' }}</span>
-                            <span class="text-base font-black text-primary-600">{{
-                                formatCurrency(item.selling_price || item.price) }}</span>
                         </div>
                     </div>
                 </div>
@@ -483,15 +491,23 @@ const selectOutgoingUnit = (item) => {
 
         <!-- Right: Cart Sidebar (Fixed in step 3) -->
         <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0">
+            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0"
+            :class="{'fixed inset-0 z-[110] rounded-none': showMobileCart, 'hidden lg:flex': !showMobileCart}">
+            
             <div
-                class="p-6 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center justify-between font-bold">
+                class="p-4 sm:p-6 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex items-center justify-between font-bold">
                 <div class="flex items-center gap-3">
+                    <button v-if="showMobileCart" @click="showMobileCart = false" class="lg:hidden p-2 -ml-2 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-full">
+                        <ArrowLeft :size="20" />
+                    </button>
                     <ShoppingCart :size="24" class="text-primary-500" stroke-width="2.5" />
-                    <span class="text-xl">Keranjang <span
+                    <span class="text-lg sm:text-xl">Keranjang <span
                             class="text-primary-500 font-black px-2 py-0.5 bg-primary-500/10 rounded-lg ml-1">{{
                                 cartItemCount }}</span></span>
                 </div>
+                <button v-if="showMobileCart" @click="showMobileCart = false" class="lg:hidden text-xs font-black uppercase tracking-widest text-primary-600 bg-primary-500/10 px-3 py-1.5 rounded-lg active:scale-95">
+                    Tambah Lagi
+                </button>
             </div>
 
             <div class="flex-1 overflow-y-auto p-6 custom-scrollbar min-h-[300px]">
@@ -780,5 +796,29 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
         </Teleport>
+
+        <!-- Mobile Sticky Bottom Summary -->
+        <div v-if="cartStore.items.length > 0 && !showMobileCart && transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
+            class="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-fade-in">
+            <div @click="showMobileCart = true" 
+                class="bg-primary-600 text-white rounded-2xl p-4 shadow-2xl shadow-primary-500/40 flex items-center justify-between group active:scale-95 transition-all">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center relative">
+                        <ShoppingCart :size="24" stroke-width="2.5" />
+                        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-primary-600">
+                            {{ cartItemCount }}
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-primary-100 leading-none mb-1">Total Sementara</span>
+                        <span class="text-lg font-black tracking-tight">{{ formatCurrency(cartTotal) }}</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-white/20 px-4 py-3 rounded-xl font-black text-sm uppercase tracking-widest">
+                    {{ transactionCategory === 'tukar_unit' ? 'Lanjut' : 'Checkout' }}
+                    <ArrowRight :size="18" stroke-width="3" />
+                </div>
+            </div>
+        </div>
     </div>
 </template>
