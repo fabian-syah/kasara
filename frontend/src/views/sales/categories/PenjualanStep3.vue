@@ -499,7 +499,7 @@ const selectOutgoingUnit = (item) => {
         </div>
 
         <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-[100px] lg:max-h-[calc(100vh-120px)]"
+            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-[85px] lg:h-[calc(100vh-115px)]"
             :class="{'fixed inset-0 z-[110] rounded-none': showMobileCart, 'hidden lg:flex': !showMobileCart}">
             
             <div
@@ -603,7 +603,7 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
             <div
-                class="p-6 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-4">
+                class="p-4 sm:p-6 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-3 sm:space-y-4">
 
                 <!-- Mini Summary -->
                 <div class="space-y-2 border-b border-surface-200 dark:border-surface-700 pb-4">
