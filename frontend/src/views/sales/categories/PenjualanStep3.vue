@@ -689,7 +689,7 @@ const selectOutgoingUnit = (item) => {
 
         <!-- Bundling Modal Teleport -->
         <Teleport to="body">
-            <div v-if="showBundlingModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div v-if="showBundlingModal" class="fixed inset-0 z-[150] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="closeBundlingModal"></div>
                 <div
                     class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
