@@ -37,6 +37,37 @@ class AuditController extends Controller
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
 
+        // Role-based Date Restriction
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate === $endDate) {
+                // Daily view: only today and yesterday
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } else {
+                // Range/Monthly view: only current and previous month
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                    // Ensure end date also doesn't go too far back if they try to trick it
+                    if ($endDate < $startOfThisMonth) {
+                        $endDate = now()->endOfMonth()->toDateString();
+                    }
+                }
+                
+                // Extra safety: ensure they can't see previous years
+                $currentYear = date('Y');
+                if (date('Y', strtotime($startDate)) < $currentYear) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
+
         // Filter by specific location
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
@@ -777,6 +808,25 @@ class AuditController extends Controller
         $year = $request->year ?? date('Y');
         $month = $request->month; // Optional
 
+        // Role-based Date Restriction
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $currentYear = date('Y');
+            $currentMonth = (int)date('n');
+            $prevMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
+            $prevMonthYear = $currentMonth === 1 ? $currentYear - 1 : $currentYear;
+
+            // Enforce current year
+            $year = $currentYear;
+
+            // Enforce this month or last month
+            if ($month) {
+                $month = (int)$month;
+                if ($month !== $currentMonth && ($month !== $prevMonth || $year !== $prevMonthYear)) {
+                    $month = $currentMonth;
+                }
+            }
+        }
+
         // Base Query Categories
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
 
@@ -1087,6 +1137,31 @@ class AuditController extends Controller
 
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        // Role-based Date Restriction
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate === $endDate) {
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } else {
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                    if ($endDate < $startOfThisMonth) {
+                        $endDate = now()->endOfMonth()->toDateString();
+                    }
+                }
+                if (date('Y', strtotime($startDate)) < date('Y')) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
 
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
@@ -1512,6 +1587,31 @@ class AuditController extends Controller
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
 
+        // Role-based Date Restriction
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate === $endDate) {
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } else {
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                    if ($endDate < $startOfThisMonth) {
+                        $endDate = now()->endOfMonth()->toDateString();
+                    }
+                }
+                if (date('Y', strtotime($startDate)) < date('Y')) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
+
         // Filter by specific location
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
@@ -1631,6 +1731,31 @@ class AuditController extends Controller
 
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        // Role-based Date Restriction
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate === $endDate) {
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } else {
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                    if ($endDate < $startOfThisMonth) {
+                        $endDate = now()->endOfMonth()->toDateString();
+                    }
+                }
+                if (date('Y', strtotime($startDate)) < date('Y')) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
 
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
@@ -1784,6 +1909,31 @@ class AuditController extends Controller
 
         $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+
+        // Role-based Date Restriction
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate === $endDate) {
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } else {
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                    if ($endDate < $startOfThisMonth) {
+                        $endDate = now()->endOfMonth()->toDateString();
+                    }
+                }
+                if (date('Y', strtotime($startDate)) < date('Y')) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
 
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;

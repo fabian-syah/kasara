@@ -193,6 +193,30 @@ class ReportController extends Controller
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+
+        // Role-based Date Restriction
+        $user = $request->user();
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate && $endDate && $startDate === $endDate) {
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } elseif ($startDate) {
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                }
+                if (date('Y', strtotime($startDate)) < date('Y')) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
+
         $branchId = $request->query('branch_id');
         $onlineShopId = $request->query('online_shop_id');
 
@@ -411,6 +435,29 @@ class ReportController extends Controller
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+
+        // Role-based Date Restriction
+        $user = $request->user();
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            $today = now()->toDateString();
+            $yesterday = now()->subDay()->toDateString();
+            $startOfThisMonth = now()->startOfMonth()->toDateString();
+            $startOfLastMonth = now()->subMonth()->startOfMonth()->toDateString();
+
+            if ($startDate && $endDate && $startDate === $endDate) {
+                if ($startDate < $yesterday) {
+                    $startDate = $today;
+                    $endDate = $today;
+                }
+            } elseif ($startDate) {
+                if ($startDate < $startOfLastMonth) {
+                    $startDate = $startOfThisMonth;
+                }
+                if (date('Y', strtotime($startDate)) < date('Y')) {
+                    $startDate = $startOfThisMonth;
+                }
+            }
+        }
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 

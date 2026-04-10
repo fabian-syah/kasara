@@ -42,17 +42,18 @@
                     </div>
                     <input type="date" v-model="filters.start_date" @change="handleDateChange"
                         @click="$event.target.showPicker()"
+                        :min="minDate" :max="todayDate"
                         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 </div>
 
                 <div v-else class="flex items-center gap-2">
                     <select v-model="selectedMonth" @change="handleMonthChange"
                         class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0">
-                        <option v-for="(m, i) in months" :key="i" :value="i + 1">{{ m }}</option>
+                        <option v-for="m in availableMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
                     </select>
                     <select v-model="selectedYear" @change="handleMonthChange"
                         class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0">
-                        <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                        <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
                     </select>
                 </div>
             </div>
@@ -357,6 +358,44 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
 const selectedMonth = ref(new Date().getMonth() + 1);
 const selectedYear = ref(currentYear);
+
+const isRestricted = computed(() => {
+    const roles = authStore.user?.roles || [];
+    const roleNames = roles.map(r => typeof r === 'string' ? r : r.name);
+    return !roleNames.some(r => ['audit', 'super_admin', 'admin_produk', 'leader', 'owner'].includes(r));
+});
+
+const availableMonths = computed(() => {
+    if (!isRestricted.value) {
+        return months.map((m, i) => ({ name: m, value: i + 1 }));
+    }
+    
+    const curr = new Date().getMonth(); // 0-indexed
+    const currVal = curr + 1;
+    const prevVal = curr === 0 ? null : curr; // No last month if January and restricted to current year
+    
+    const results = [];
+    if (prevVal) results.push({ name: months[prevVal - 1], value: prevVal });
+    results.push({ name: months[currVal - 1], value: currVal });
+    
+    return results;
+});
+
+const availableYears = computed(() => {
+    if (!isRestricted.value) return years;
+    return [currentYear];
+});
+
+const todayDate = computed(() => getTodayLocal());
+const minDate = computed(() => {
+    if (!isRestricted.value) return null;
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+});
 
 const salesData = ref({
     daily_sales: { data: [] },
