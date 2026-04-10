@@ -358,8 +358,10 @@ const selectOutgoingUnit = (item) => {
                                     <span
                                         class="text-sm font-bold text-text-primary bg-surface-100 dark:bg-surface-800 px-3 py-1 rounded-lg">{{
                                             item.ram ? item.ram + ' / ' : '' }}{{ item.storage || '-' }}</span>
-                                    <span class="text-xs uppercase px-3 py-1 rounded-lg font-bold"
-                                        :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'">
+                                    <span class="text-xs uppercase px-3 py-1 rounded-lg font-bold border"
+                                        :class="item.condition === 'new' 
+                                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' 
+                                            : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'">
                                         {{ item.condition || 'Second' }}
                                     </span>
                                 </div>
@@ -433,8 +435,10 @@ const selectOutgoingUnit = (item) => {
                                     <span v-if="item.ram || item.storage" class="text-[9px] font-bold text-text-secondary bg-surface-100 dark:bg-surface-800 px-1.5 py-0.5 rounded">
                                         {{ item.ram ? item.ram + '/' : '' }}{{ item.storage || '-' }}
                                     </span>
-                                    <span class="text-[9px] uppercase px-1.5 py-0.5 rounded font-black"
-                                        :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                                    <span class="text-[9px] uppercase px-1.5 py-0.5 rounded font-black border"
+                                        :class="item.condition === 'new' 
+                                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' 
+                                            : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'">
                                         {{ item.condition || 'Second' }}
                                     </span>
                                 </div>
