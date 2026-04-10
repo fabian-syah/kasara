@@ -131,7 +131,6 @@ class StockOut extends Model
 
         if (!is_array($splits))
             return [];
-        return [];
 
         // Check if names are already there
         if (count($splits) > 0 && isset($splits[0]['method_name']))

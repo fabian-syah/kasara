@@ -90,13 +90,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <template v-if="transaction.items && transaction.items.length > 0">
-                                    <tr v-for="(item, index) in transaction.items" :key="index"
+                                <template v-if="allReceiptItems.length > 0">
+                                    <tr v-for="(item, index) in allReceiptItems" :key="index"
                                         class="border-b border-gray-300">
                                         <td class="py-2 px-1 text-black align-top text-center font-bold">{{ item.qty }}
                                         </td>
                                         <td class="py-2 px-1 text-black align-top font-mono text-[9px] break-all">
-                                            {{ item.imei && item.imei !== '-' ? item.imei : '-' }}
+                                            {{ item.imei && item.imei !== '-' ? item.imei : (item.is_hp ? '-' : 'ACCESSORY') }}
                                         </td>
                                         <td class="py-2 px-1 text-black align-top">
                                             <div class="font-black uppercase text-black">{{ item.name }}</div>
@@ -115,7 +115,7 @@
                                                 {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
                                             </div>
                                             <div class="flex flex-col">
-                                                <span>{{ formatNumber(item.qty * ((item.price || item.selling_price) -
+                                                <span>{{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
                                                     (item.discount || item.item_discount || 0))) }}</span>
                                                 <span v-if="(item.discount || item.item_discount) > 0"
                                                     class="text-[7px] text-primary-600 bg-primary-50 px-1 rounded inline-block self-end mt-0.5">
@@ -127,7 +127,7 @@
                                     </tr>
                                 </template>
                                 <!-- Empty rows for physical nota feel -->
-                                <tr v-for="n in Math.max(0, 3 - (transaction.items?.length || 0))" :key="'empty-' + n"
+                                <tr v-for="n in Math.max(0, 3 - (allReceiptItems.length || 0))" :key="'empty-' + n"
                                     class="border-b border-gray-300">
                                     <td class="py-3 px-1">&nbsp;</td>
                                     <td class="py-3 px-1"></td>
@@ -216,7 +216,7 @@
                                 </div>
 
                                 <div class="text-[9px] text-right text-gray-500 italic mt-1">
-                                    Metode: {{ transaction.payment_method_name || transaction.payment_method || '-' }}
+                                    Metode: {{ transaction.split_payments_data?.length > 1 ? 'SPLIT (CAMPURAN)' : (transaction.payment_method_name || transaction.payment_method || '-') }}
                                 </div>
                             </div>
                         </div>
@@ -453,6 +453,46 @@ const displayDate = computed(() => {
         });
     }
     return rawDate;
+});
+
+// Consolidate all items for display
+const allReceiptItems = computed(() => {
+    const list = [];
+    
+    // 1. Add HP Items
+    if (props.transaction.items?.length > 0) {
+        props.transaction.items.forEach(it => {
+            list.push({
+                ...it,
+                qty: it.qty || it.quantity || 1,
+                is_hp: true
+            });
+        });
+    }
+    
+    // 2. Add Non-HP Items if they're not already in the main items list
+    // (Non-HP items are often stored in non_hp_items or nonHpItems from backend)
+    const nonHpSource = props.transaction.non_hp_items || props.transaction.non_hp_details || props.transaction.nonHpItems;
+    
+    if (nonHpSource?.length > 0) {
+        // If it's a bundle, the first item in 'items' might already represent the bundle
+        // so we check to avoid double-listing for those specific cases
+        const hasBundleRepresented = list.some(it => it.is_bundle);
+        
+        if (!hasBundleRepresented) {
+            nonHpSource.forEach(it => {
+                list.push({
+                    ...it,
+                    qty: it.quantity || it.qty || 1,
+                    name: it.product_name || it.product?.name || it.name,
+                    price: it.selling_price || it.price,
+                    is_hp: false
+                });
+            });
+        }
+    }
+    
+    return list;
 });
 </script>
 

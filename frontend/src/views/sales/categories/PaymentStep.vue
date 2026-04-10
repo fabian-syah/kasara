@@ -322,12 +322,14 @@ async function processPayment(pin = null) {
             };
         });
 
-        // Di dalam PaymentStep.vue -> processPayment function
+        const firstMethod = props.availablePaymentMethods.find(m => m.id === splitPayments.value[0]?.method_id);
+
         const lastTransaction = {
             id: response.data?.data?.id,
             order_no: response.data?.data?.receipt_id || response.data?.receipt_id || "TRX-" + Date.now(),
             items: cartItems.value.map(item => ({
                 ...item,
+                qty: item.quantity || 1,
                 price: item.price,
                 item_discount: item.discount || 0,
                 distributed_discount: cartStore.getDistributedGlobalDiscount(item)
@@ -343,23 +345,21 @@ async function processPayment(pin = null) {
             change: totalPaid - cartTotal.value,
             change_amount: totalPaid - cartTotal.value,
             split_payments_data: detailedSplitPayments,
+            payment_method_name: firstMethod ? firstMethod.name : '-',
             category: props.transactionCategory,
             sales_account: props.salesAccount,
             sales_name: props.salesAccount,
             inventory_account_name: props.salesAccount,
             branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
-
-            // --- PERBAIKAN DI SINI ---
             customer_name: customerForm.value.customer_name,
-            customer_phone: customerForm.value.customer_phone, // Pastikan ini customer_phone agar sesuai modal
+            customer_phone: customerForm.value.customer_phone,
             notes: customerForm.value.notes,
             date: new Date().toLocaleDateString("id-ID", {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric'
-            }), // Mengisi property date agar tidak null
+            }),
             time: new Date().toLocaleTimeString("id-ID"),
-            // -------------------------
         };
 
         emit('transaction-complete', lastTransaction);
