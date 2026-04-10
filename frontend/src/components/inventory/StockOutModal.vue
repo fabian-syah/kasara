@@ -274,6 +274,35 @@ const availableStockOutCategories = computed(() => {
 const inventoryUsers = ref([]);
 const selectedInventoryUser = ref(null);
 const isLoadingUsers = ref(false);
+const isResiDuplicate = ref(false);
+const isCheckingResi = ref(false);
+
+async function checkResiDuplicate(val) {
+    if (!val || val.length < 5) {
+        isResiDuplicate.value = false;
+        return;
+    }
+
+    isCheckingResi.value = true;
+    try {
+        const response = await api.get(`/stock-outs/check-resi?resi=${val}`);
+        isResiDuplicate.value = response.data.exists;
+    } catch (e) {
+        console.error("Gagal cek resi", e);
+    } finally {
+        isCheckingResi.value = false;
+    }
+}
+
+let resiTimeout = null;
+watch(() => stockOutForm.value.shopee_tracking_no, (newVal) => {
+    if (['orderan_online', 'shopee'].includes(selectedStockOutCategory.value)) {
+        if (resiTimeout) clearTimeout(resiTimeout);
+        resiTimeout = setTimeout(() => {
+            checkResiDuplicate(newVal);
+        }, 500);
+    }
+});
 
 async function fetchInventoryUsers() {
     isLoadingUsers.value = true;
@@ -393,7 +422,7 @@ const canSubmitStockOut = computed(() => {
             return stockOutForm.value.shopee_receiver &&
                 stockOutForm.value.shopee_address &&
                 stockOutForm.value.shopee_tracking_no &&
-                allItemsHavePrice;
+                allItemsHavePrice && !isResiDuplicate.value && !isCheckingResi.value;
         case 'keluar':
             return stockOutForm.value.sub_category && stockOutForm.value.receiver_name;
         case 'giveaway':
@@ -907,11 +936,20 @@ async function submitStockOut(pin = null) {
                                     class="input" rows="2"></textarea></div>
                             <div><label class="label">No. Resi *</label>
                                 <div class="flex gap-2">
-                                    <input v-model="stockOutForm.shopee_tracking_no" class="input font-mono" />
+                                    <div class="relative flex-1">
+                                        <input v-model="stockOutForm.shopee_tracking_no" 
+                                            :class="['input font-mono w-full', isResiDuplicate ? 'border-red-500 bg-red-500/10' : '']" />
+                                        <div v-if="isCheckingResi" class="absolute right-3 top-3">
+                                            <Loader2 :size="14" class="animate-spin text-primary-500" />
+                                        </div>
+                                    </div>
                                     <button @click="startScanner()" type="button" class="btn btn-secondary px-4">
                                         <ScanBarcode :size="18" />
                                     </button>
                                 </div>
+                                <p v-if="isResiDuplicate" class="text-xs text-red-500 mt-1 font-medium flex items-center gap-1">
+                                    <AlertTriangle :size="12" /> No. Resi ini sudah pernah digunakan.
+                                </p>
                             </div>
                             <div>
                                 <label class="label">Catatan</label>

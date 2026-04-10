@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Stock Out (Pengeluaran Stok)
     Route::get('/stock-outs', [\App\Http\Controllers\StockOutController::class, 'index']);
     Route::post('/stock-outs', [\App\Http\Controllers\StockOutController::class, 'store']);
+    Route::get('/stock-outs/check-resi', [\App\Http\Controllers\StockOutController::class, 'checkResi']);
     Route::get('/stock-outs/shopee-history', [\App\Http\Controllers\StockOutController::class, 'shopeeHistory']);
     Route::get('/stock-outs/{id}', [\App\Http\Controllers\StockOutController::class, 'show']);
     Route::post('/stock-outs/{id}/cancel', [\App\Http\Controllers\StockOutController::class, 'cancel']);

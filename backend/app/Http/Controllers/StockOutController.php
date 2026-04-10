@@ -232,7 +232,13 @@ class StockOutController extends Controller
                 $rules['non_hp_items.*.selling_price'] = 'required|numeric|min:0';
             }
 
-            $rules['shopee_tracking_no'] = 'required_if:category,shopee,orderan_online|nullable|string|max:100';
+            $rules['shopee_tracking_no'] = [
+                'required_if:category,shopee,orderan_online',
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('stock_outs', 'shopee_tracking_no')->whereNull('deleted_at')
+            ];
         }
 
         // Giveaway Validation
@@ -255,7 +261,11 @@ class StockOutController extends Controller
             $rules['event_notes'] = 'nullable|string';
         }
 
-        $request->validate($rules);
+        $messages = [
+            'shopee_tracking_no.unique' => 'No. Resi ini sudah pernah digunakan. Mohon cek kembali data Anda.',
+        ];
+
+        $request->validate($rules, $messages);
 
         // PIN Verification using Trait
         $pinError = $this->verifyPin($request);
@@ -1539,5 +1549,16 @@ class StockOutController extends Controller
             default => 'sold'               // 'orderan_online', 'shopee', 'giveaway', 'keluar', etc. -> 'sold'
         };
     }
-
+    // Check for duplicate tracking number
+    public function checkResi(Request $request)
+    {
+        $resi = $request->resi;
+        if (!$resi) return response()->json(['exists' => false]);
+        
+        $exists = StockOut::where('shopee_tracking_no', $resi)
+            ->whereNull('deleted_at')
+            ->exists();
+            
+        return response()->json(['exists' => $exists]);
+    }
 }
