@@ -549,8 +549,8 @@ const selectOutgoingUnit = (item) => {
                 <div v-else class="space-y-4">
                     <div v-for="item in cartItems" :key="item.id"
                         class="p-5 bg-white dark:bg-surface-800 border-2 border-surface-100 dark:border-surface-700 rounded-2xl relative shadow-sm group hover:border-surface-300 dark:hover:border-surface-600 transition-colors">
-                        <div class="flex justify-between items-start mb-4 pr-8">
-                            <div class="min-w-0 flex flex-col gap-1">
+                        <div class="flex justify-between items-start mb-4 gap-4">
+                            <div class="min-w-0 flex-1 flex flex-col gap-1">
                                 <p class="text-sm font-black text-text-primary line-clamp-2 leading-tight">
                                     {{
                                         item.product?.name ||
@@ -559,7 +559,7 @@ const selectOutgoingUnit = (item) => {
                                     class="text-xs font-mono font-bold text-text-secondary bg-surface-50 dark:bg-surface-900 px-2 py-1 rounded w-fit">{{
                                         item.imei }}</span>
                             </div>
-                            <div class="flex items-center gap-1 absolute top-4 right-4">
+                            <div class="flex items-center gap-1 shrink-0">
                                 <button v-if="item.is_bundle" @click="editBundle(item)"
                                     class="text-primary-500 hover:text-primary-600 bg-primary-50 dark:bg-primary-900/30 p-2 rounded-full transition-colors">
                                     <Edit2 :size="18" />
