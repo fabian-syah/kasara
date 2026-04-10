@@ -34,6 +34,7 @@ const pagination = ref({
 
 const search = ref("");
 const filterType = ref("all"); // yesterday, today, this_month, all
+const historyFilter = ref("all"); // shopee, orderan_online, cancel_penjualan, all
 let searchTimeout = null;
 
 // Cancellation logic
@@ -126,6 +127,11 @@ const groupedSales = computed(() => {
             status: order.category === 'cancel_penjualan' ? 'cancelled' : order.status
         };
     });
+});
+
+const filteredHistory = computed(() => {
+    if (historyFilter.value === 'all') return groupedSales.value;
+    return groupedSales.value.filter(order => order.category === historyFilter.value);
 });
 
 // Fetch data
