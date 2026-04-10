@@ -31,6 +31,7 @@ const showBundlingModal = ref(false);
 // Bundling State
 const bundleItems = ref([]);
 const bundleTotalPrice = ref(0);
+const bundlingHelper = ref({ totalPrice: 0 }); // Helper for v-money compatibility
 const displayBundleTotalPrice = ref("0");
 const showMobileCart = ref(false);
 
@@ -203,6 +204,7 @@ function handleDiscountInput(e) {
 function openBundlingModal() {
     bundleItems.value = [];
     bundleTotalPrice.value = 0;
+    bundlingHelper.value.totalPrice = 0;
     displayBundleTotalPrice.value = "0";
     showBundlingModal.value = true;
 }
@@ -262,16 +264,15 @@ function handleBundleItemPriceInput(idx, e) {
     calculateBundleTotal();
 }
 
-function handleBundlePriceInput(e) {
-    const val = e.target.value;
-    const num = parseNumber(val);
-    bundleTotalPrice.value = num;
-    displayBundleTotalPrice.value = formatNumber(num);
+function handleBundlePriceInput() {
+    bundleTotalPrice.value = bundlingHelper.value.totalPrice;
+    displayBundleTotalPrice.value = formatNumber(bundleTotalPrice.value);
 }
 
 function calculateBundleTotal() {
-    const total = bundleItems.value.reduce((sum, item) => sum + (item.bundle_price * item.quantity), 0);
+    const total = bundleItems.value.reduce((sum, item) => sum + (Number(item.bundle_price || 0) * Number(item.quantity || 1)), 0);
     bundleTotalPrice.value = total;
+    bundlingHelper.value.totalPrice = total;
     displayBundleTotalPrice.value = formatNumber(total);
 }
 
@@ -769,6 +770,7 @@ const selectOutgoingUnit = (item) => {
                                             <span
                                                 class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
                                             <input v-money:bundle_price="item" type="text"
+                                                @input="calculateBundleTotal"
                                                 class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all h-9"
                                                 :placeholder="formatNumber(item.selling_price || item.price || 0)" />
                                         </div>
@@ -783,7 +785,8 @@ const selectOutgoingUnit = (item) => {
                                 <div class="relative mb-4 sm:mb-6">
                                     <span
                                         class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm sm:text-base">Rp</span>
-                                    <input v-money="val => bundleTotalPrice = val" type="text"
+                                    <input v-money:totalPrice="bundlingHelper" type="text"
+                                        @input="handleBundlePriceInput"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-surface-800 text-text-primary text-lg sm:text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-11 sm:pl-12"
                                         placeholder="0" />
                                 </div>

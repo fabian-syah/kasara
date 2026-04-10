@@ -607,7 +607,7 @@ class StockOutController extends Controller
                     $productDetails = $productDetails->merge($bundleDetails);
                 }
 
-                // Process Non-HP bundle items
+                // Process Non-HP bundle items with multi-inventory support
                 foreach ($allBundleNonHp as $bNonHp) {
                     $product = Product::findOrFail($bNonHp['product_id']);
                     $invQuery = Inventory::where('product_id', $bNonHp['product_id']);
@@ -620,32 +620,43 @@ class StockOutController extends Controller
                         $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
                     }
 
-                    $inventory = $invQuery->first();
-                    if (!$inventory || $inventory->quantity < $bNonHp['quantity']) {
-                        throw new \Exception("Stok bundling tidak cukup untuk produk: {$product->name}");
+                    $inventories = $invQuery->where('quantity', '>', 0)->orderBy('quantity', 'asc')->get();
+                    $totalAvailable = $inventories->sum('quantity');
+
+                    if ($totalAvailable < $bNonHp['quantity']) {
+                        throw new \Exception("Stok bundling tidak cukup untuk produk: {$product->name}. Tersedia: $totalAvailable");
                     }
-                    $inventory->decrement('quantity', $bNonHp['quantity']);
 
-                    InventoryLog::create([
-                        'product_id' => $bNonHp['product_id'],
-                        'type' => 'out',
-                        'quantity' => $bNonHp['quantity'],
-                        'balance_after' => $inventory->quantity,
-                        'description' => "Stock Out Bundling ({$request->category})",
-                        'reference_id' => 'OUT-BUN-' . time(),
-                        'user_id' => $user->id,
-                        'branch_id' => $user->branch_id ?? null,
-                        'warehouse_id' => $user->warehouse_id ?? null,
-                        'online_shop_id' => $user->online_shop_id ?? null,
-                    ]);
+                    $remainingToDeduct = $bNonHp['quantity'];
+                    foreach ($inventories as $inventory) {
+                        if ($remainingToDeduct <= 0) break;
 
-                    StockOutNonHpItem::create([
-                        'stock_out_id' => $stockOut->id,
-                        'product_id' => $bNonHp['product_id'],
-                        'quantity' => $bNonHp['quantity'],
-                        'received_quantity' => 0,
-                        'returned_quantity' => 0,
-                    ]);
+                        $deductAmount = min($inventory->quantity, $remainingToDeduct);
+                        $inventory->decrement('quantity', $deductAmount);
+                        $remainingToDeduct -= $deductAmount;
+
+                        InventoryLog::create([
+                            'product_id' => $bNonHp['product_id'],
+                            'type' => 'out',
+                            'quantity' => $deductAmount,
+                            'balance_after' => $inventory->quantity,
+                            'description' => "Stock Out Bundling ({$request->category})",
+                            'reference_id' => 'OUT-BUN-' . time() . '-' . $inventory->id,
+                            'user_id' => $user->id,
+                            'branch_id' => $user->branch_id ?? null,
+                            'warehouse_id' => $user->warehouse_id ?? null,
+                            'online_shop_id' => $user->online_shop_id ?? null,
+                        ]);
+
+                        StockOutNonHpItem::create([
+                            'stock_out_id' => $stockOut->id,
+                            'product_id' => $bNonHp['product_id'],
+                            'quantity' => $deductAmount,
+                            'selling_price' => $bNonHp['selling_price'] ?? 0,
+                            'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $deductAmount,
+                            'returned_quantity' => 0,
+                        ]);
+                    }
                 }
             }
 

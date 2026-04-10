@@ -170,13 +170,13 @@ export const useCartStore = defineStore('cart', () => {
             is_bundle: true,
             bundle_items: bundleItems.map(item => ({
                 id: item.id,
-                product_id: item.product_id || item.product?.id,
+                product_id: item.product_id || item.id, // Fallback to id if product_id is not set
                 name: item.product?.name || item.name,
                 imei: item.imei || null,
-                price: item.selling_price || item.price,
+                price: item.bundle_price || item.selling_price || item.price,
                 cost_price: item.cost_price || 0,
                 quantity: item.quantity || 1,
-                is_non_hp: !!item.is_non_hp
+                is_non_hp: !item.imei
             }))
         });
     }
