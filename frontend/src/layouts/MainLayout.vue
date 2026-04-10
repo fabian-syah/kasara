@@ -32,7 +32,7 @@ onErrorCaptured((err, instance, info) => {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-neutral-50 dark:bg-[#050505] font-sans antialiased transition-colors duration-500">
+  <div class="flex min-h-screen bg-neutral-50 dark:bg-[#050505] font-sans antialiased transition-colors duration-500">
     <!-- Mobile Backdrop -->
     <div v-if="isMobileMenuOpen" class="fixed inset-0 bg-black/50 z-[99998] lg:hidden backdrop-blur-sm"
       @click="isMobileMenuOpen = false">
@@ -40,20 +40,20 @@ onErrorCaptured((err, instance, info) => {
 
     <ToastContainer />
 
-    <!-- Sidebar & Main Content Wrapper for floating effect -->
-    <div class="flex flex-1 w-full h-full relative p-2 md:p-4 gap-2 md:gap-4 overflow-hidden">
+    <!-- Sidebar & Main Content Wrapper: Padding and Fixed height only for desktop -->
+    <div class="flex flex-1 w-full relative p-0 gap-0 lg:gap-4 lg:h-screen lg:overflow-hidden min-h-screen lg:min-h-0">
       <!-- Sidebar -->
       <AppSidebar :is-mobile-menu-open="isMobileMenuOpen" :is-expanded="isSidebarExpanded"
         @close-mobile-menu="isMobileMenuOpen = false" @expand-sidebar="isSidebarExpanded = true" />
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-surface-900 rounded-2xl md:rounded-3xl shadow-sm border border-neutral-200/50 dark:border-neutral-800/60 relative overflow-hidden transition-colors duration-500">
+      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-surface-900 lg:rounded-3xl shadow-sm border-x border-b lg:border border-neutral-200/50 dark:border-neutral-800/60 relative transition-colors duration-500 overflow-visible lg:overflow-hidden">
         <!-- Header -->
         <AppHeader @toggle-mobile-menu="isMobileMenuOpen = !isMobileMenuOpen" @toggle-sidebar="toggleSidebar" />
 
         <!-- Page Content Wrapper -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar">
-          <div class="p-4 md:p-6 lg:p-8 max-w-[1920px] mx-auto">
+        <div class="flex-1 lg:overflow-y-auto custom-scrollbar">
+          <div class="p-4 md:p-6 lg:p-8 max-w-[1920px] mx-auto min-h-full">
             <router-view />
           </div>
         </div>

@@ -290,10 +290,9 @@ watch(transactionCategory, () => {
     cartStore.clearCart();
 });
 </script>
-
 <template>
-    <div class="h-full font-jakarta bg-transparent">
-        <div class="w-full h-full flex flex-col">
+    <div class="font-jakarta bg-transparent">
+        <div class="w-full flex flex-col">
 
             <!-- HEADER & LOGO -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shrink-0">
@@ -329,7 +328,7 @@ watch(transactionCategory, () => {
                 </div>
             </div>
 
-            <div v-if="currentStep === 1" class="flex-1 flex items-center justify-center animate-fade-in p-2 sm:p-0">
+            <div v-if="currentStep === 1" class="flex items-center justify-center animate-fade-in p-2 sm:p-0">
                 <div
                     class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-12 shadow-2xl relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl">
