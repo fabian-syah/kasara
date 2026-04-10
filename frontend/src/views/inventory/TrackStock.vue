@@ -114,8 +114,8 @@ function formatCurrency(value) {
             <div class="w-20 h-20 mx-auto bg-primary-500/20 rounded-3xl flex items-center justify-center mb-4">
                 <Search :size="36" class="text-primary-500" />
             </div>
-            <h1 class="text-3xl font-bold text-text-primary">Lacak Barang</h1>
-            <p class="text-text-secondary mt-2">Cari berdasarkan IMEI, ID Resi, atau No. Resi Shopee</p>
+            <h1 class="text-3xl font-bold text-text-primary">Lacak & History IMEI</h1>
+            <p class="text-text-secondary mt-2">Cek riwayat perpindahan, login, dan status barang berdasarkan IMEI/Resi</p>
         </div>
 
         <!-- Search Box -->

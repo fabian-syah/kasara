@@ -177,15 +177,7 @@ const menuItems = [
 
     // Lacak Barang
     { id: "questions", path: "/questions", label: "Pertanyaan", icon: HelpCircle },
-    {
-        id: "track", 
-        label: "Lacak Barang / IMEI", 
-        icon: Search,
-        items: [
-            { id: "track_main", path: "/track", label: "Cari Status Barang" },
-            { id: "sales_imei_history", path: "/sales/imei-history", label: "History IMEI" },
-        ]
-    },
+    { id: "track", path: "/track", label: "Lacak & History IMEI", icon: Search },
 
     // Retur Masuk (Gudang)
     { id: "retur_items", path: "/retur-items", label: "Retur Masuk", icon: ArrowDownRight },

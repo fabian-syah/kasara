@@ -572,16 +572,6 @@ const routes = [
                 }
             },
             {
-                path: 'sales/imei-history',
-                name: 'SalesImeiHistory',
-                component: () => import('../views/sales/ImeiHistory.vue'),
-                meta: {
-                    title: 'History IMEI',
-                    menu: 'sales_imei_history',
-                    permissions: ['transactions.view', 'inventory.view']
-                }
-            },
-            {
                 path: 'sales/ranking',
                 name: 'SalesRankingHistory',
                 component: () => import('../views/sales/RankingHistory.vue'),
