@@ -499,7 +499,7 @@ const selectOutgoingUnit = (item) => {
         </div>
 
         <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="w-full lg:w-[450px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-[85px] lg:h-[calc(100vh-115px)]"
+            class="w-full lg:w-[420px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-[20px] lg:h-[calc(100vh-150px)]"
             :class="{'fixed inset-0 z-[110] rounded-none': showMobileCart, 'hidden lg:flex': !showMobileCart}">
             
             <div
@@ -603,7 +603,7 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
             <div
-                class="p-4 sm:p-6 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-3 sm:space-y-4">
+                class="p-4 bg-surface-50 dark:bg-surface-900 mt-auto border-t border-surface-200 dark:border-surface-700 shrink-0 space-y-3">
 
                 <!-- Mini Summary -->
                 <div class="space-y-2 border-b border-surface-200 dark:border-surface-700 pb-4">
@@ -646,15 +646,15 @@ const selectOutgoingUnit = (item) => {
                         Bayar</span>
                     <span class="text-primary-600">{{ formatCurrency(cartTotal) }}</span>
                 </div>
-                <div class="flex gap-3 pt-2">
+                <div class="flex gap-3 pt-1">
                     <button @click="emit('prev')"
-                        class="w-16 h-16 flex-none bg-white dark:bg-surface-800 text-text-primary border-2 border-surface-200 dark:border-surface-700 rounded-[1.25rem] font-bold transition-all flex items-center justify-center hover:bg-surface-50 hover:border-surface-300">
-                        <ArrowLeft :size="24" />
+                        class="w-14 h-14 flex-none bg-white dark:bg-surface-800 text-text-primary border-2 border-surface-200 dark:border-surface-700 rounded-xl font-bold transition-all flex items-center justify-center hover:bg-surface-50 hover:border-surface-300">
+                        <ArrowLeft :size="20" />
                     </button>
                     <button @click="emit('next')" :disabled="cartItems.length === 0"
-                        class="flex-1 h-16 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-[1.25rem] font-bold text-lg shadow-xl shadow-primary-500/30 transition-all flex items-center justify-center gap-3">
+                        class="flex-1 h-14 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-xl font-bold text-base shadow-lg shadow-primary-500/20 transition-all flex items-center justify-center gap-2">
                         Pembayaran
-                        <ArrowRight :size="24" />
+                        <ArrowRight :size="20" />
                     </button>
                 </div>
             </div>
