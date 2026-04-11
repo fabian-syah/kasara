@@ -28,7 +28,7 @@ class ProductController extends Controller
             $query->where('brand', $request->brand);
         }
 
-        return $query->latest()->paginate(20);
+        return $query->latest()->paginate($request->per_page ?? 20);
     }
 
     /**
