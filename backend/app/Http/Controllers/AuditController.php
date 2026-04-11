@@ -450,7 +450,7 @@ class AuditController extends Controller
             ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         if ($requestedDistributorId || $requestedCondition || $requestedCapacity || $request->product_type_id) {
-            $csQuery->whereHas('items.productDetail', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+            $csQuery->whereHas('items', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
                 if ($requestedDistributorId) $q->where('distributor_id', $requestedDistributorId);
                 if ($requestedCondition) $q->where('condition', $requestedCondition);
                 if ($requestedCapacity) $q->where('storage', $requestedCapacity);
@@ -611,7 +611,7 @@ class AuditController extends Controller
             ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         if ($requestedDistributorId || $requestedCondition || $requestedCapacity || $request->product_type_id) {
-            $historyQuery->whereHas('items.productDetail', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+            $historyQuery->whereHas('items', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
                 if ($requestedDistributorId) $q->where('distributor_id', $requestedDistributorId);
                 if ($requestedCondition) $q->where('condition', $requestedCondition);
                 if ($requestedCapacity) $q->where('storage', $requestedCapacity);
