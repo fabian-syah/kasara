@@ -656,10 +656,7 @@ const handleMonthChange = () => {
     fetchData();
 }
 
-watch(() => filters.value.product_type_id, () => fetchData())
-watch(() => filters.value.condition, () => fetchData())
-watch(() => filters.value.capacity, () => fetchData())
-watch(() => filters.value.distributor_id, () => fetchData())
+// Filters are triggered via @change on each select, no watchers needed
 
 const fetchData = async () => {
     loading.value = true

@@ -450,11 +450,15 @@ class AuditController extends Controller
             ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         if ($requestedDistributorId || $requestedCondition || $requestedCapacity || $request->product_type_id) {
-            $csQuery->whereHas('items', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
-                if ($requestedDistributorId) $q->where('distributor_id', $requestedDistributorId);
-                if ($requestedCondition) $q->where('condition', $requestedCondition);
-                if ($requestedCapacity) $q->where('storage', $requestedCapacity);
-                if ($request->product_type_id) $q->where('product_id', $request->product_type_id);
+            $csQuery->whereExists(function ($sub) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+                $sub->select(DB::raw(1))
+                    ->from('stock_out_items')
+                    ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                    ->whereColumn('stock_out_items.stock_out_id', 'stock_outs.id');
+                if ($requestedDistributorId) $sub->where('product_details.distributor_id', $requestedDistributorId);
+                if ($requestedCondition) $sub->where('product_details.condition', $requestedCondition);
+                if ($requestedCapacity) $sub->where('product_details.storage', $requestedCapacity);
+                if ($request->product_type_id) $sub->where('product_details.product_id', $request->product_type_id);
             });
         }
         
@@ -611,11 +615,15 @@ class AuditController extends Controller
             ->whereBetween('reporting_date', [$startDate, $endDate]);
 
         if ($requestedDistributorId || $requestedCondition || $requestedCapacity || $request->product_type_id) {
-            $historyQuery->whereHas('items', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
-                if ($requestedDistributorId) $q->where('distributor_id', $requestedDistributorId);
-                if ($requestedCondition) $q->where('condition', $requestedCondition);
-                if ($requestedCapacity) $q->where('storage', $requestedCapacity);
-                if ($request->product_type_id) $q->where('product_id', $request->product_type_id);
+            $historyQuery->whereExists(function ($sub) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+                $sub->select(DB::raw(1))
+                    ->from('stock_out_items')
+                    ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                    ->whereColumn('stock_out_items.stock_out_id', 'stock_outs.id');
+                if ($requestedDistributorId) $sub->where('product_details.distributor_id', $requestedDistributorId);
+                if ($requestedCondition) $sub->where('product_details.condition', $requestedCondition);
+                if ($requestedCapacity) $sub->where('product_details.storage', $requestedCapacity);
+                if ($request->product_type_id) $sub->where('product_details.product_id', $request->product_type_id);
             });
         }
 
