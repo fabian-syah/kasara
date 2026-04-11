@@ -769,7 +769,7 @@ class StockOutController extends Controller
     public function shopeeHistory(Request $request)
     {
         $user = Auth::user();
-        $query = StockOut::with(['items.product', 'user', 'inventoryUser'])
+        $query = StockOut::with(['items.product', 'user', 'inventoryUser', 'nonHpDetails.product'])
             ->whereIn('category', ['shopee', 'orderan_online', 'cancel_penjualan']);
 
         // LOCATION FILTER (ISOLATION)
@@ -844,9 +844,25 @@ class StockOutController extends Controller
         // Enrich non_hp_items with product names
         $productIds = [];
         foreach ($history->items() as $item) {
-            if ($item->non_hp_items) {
+            // Priority 1: Use relational data (NEW system)
+            if ($item->nonHpDetails && $item->nonHpDetails->count() > 0) {
+                $itemConverted = [];
+                foreach ($item->nonHpDetails as $detail) {
+                    $itemConverted[] = [
+                        'product_id' => $detail->product_id,
+                        'product_name' => $detail->product->name ?? 'Unknown',
+                        'product_sku' => $detail->product->sku ?? '-',
+                        'quantity' => $detail->quantity,
+                        'selling_price' => $detail->selling_price,
+                    ];
+                }
+                $item->non_hp_items = $itemConverted;
+            } else if ($item->non_hp_items) {
+                // Priority 2: Collect IDs for legacy JSON data enrichment
                 foreach ($item->non_hp_items as $nonHpItem) {
-                    $productIds[] = $nonHpItem['product_id'];
+                    if (isset($nonHpItem['product_id'])) {
+                        $productIds[] = $nonHpItem['product_id'];
+                    }
                 }
             }
         }
@@ -855,7 +871,8 @@ class StockOutController extends Controller
             $products = Product::whereIn('id', array_unique($productIds))->get()->keyBy('id');
 
             foreach ($history->items() as $item) {
-                if ($item->non_hp_items) {
+                // Only enrich if it's legacy JSON data and wasn't already enriched by relational logic
+                if ($item->non_hp_items && (!$item->nonHpDetails || $item->nonHpDetails->count() === 0)) {
                     $enrichedItems = [];
                     foreach ($item->non_hp_items as $nonHpItem) {
                         $prod = $products[$nonHpItem['product_id']] ?? null;

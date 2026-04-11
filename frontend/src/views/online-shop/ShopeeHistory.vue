@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import {
@@ -31,7 +31,16 @@ const pagination = ref({
 });
 
 const search = ref("");
+const historyFilter = ref("all"); // orderan_online, cancel_penjualan, all
 let searchTimeout = null;
+
+const filteredHistory = computed(() => {
+    if (historyFilter.value === 'all') return history.value;
+    if (historyFilter.value === 'orderan_online') {
+        return history.value.filter(item => item.category === 'orderan_online' || item.category === 'shopee');
+    }
+    return history.value.filter(item => item.category === historyFilter.value);
+});
 
 // Cancellation logic
 const showCancelModal = ref(false);
@@ -87,7 +96,7 @@ const fetchHistory = async (page = 1) => {
             perPage: data.per_page
         };
     } catch (e) {
-        toast.error("Gagal memuat history Shopee");
+        toast.error("Gagal memuat history Online");
         console.error(e);
     } finally {
         isLoading.value = false;
@@ -158,7 +167,6 @@ onMounted(() => {
                 <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
                     <button v-for="btn in [
                         { id: 'all', label: 'Semua' },
-                        { id: 'shopee', label: 'Shopee' },
                         { id: 'orderan_online', label: 'Online' },
                         { id: 'cancel_penjualan', label: 'Dibatalkan' }
                     ]" :key="btn.id" @click="historyFilter = btn.id"
@@ -281,6 +289,13 @@ onMounted(() => {
                             <User :size="12" class="text-primary-400" />
                             <span>Akun Inventory: <strong class="text-white">{{ item.inventory_user.full_name ||
                                 item.inventory_user.name }}</strong></span>
+                        </div>
+
+                        <!-- Cancel Reason -->
+                        <div v-if="item.category === 'cancel_penjualan' && item.cancel_reason"
+                            class="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs mt-1">
+                            <p class="text-red-400 font-bold mb-0.5">Alasan Pembatalan:</p>
+                            <p class="text-text-primary">{{ item.cancel_reason }}</p>
                         </div>
                     </div>
                 </div>

@@ -121,6 +121,7 @@ const groupedSales = computed(() => {
             items: items,
             petugas: order.inventory_user?.name || order.inventory_user?.full_name || '-',
             notes: order.notes || order.shopee_notes || '-',
+            cancel_reason: order.cancel_reason || '-',
             created_at: order.created_at,
             total_price: items.reduce((sum, i) => sum + i.price, 0) || order.selling_price || 0,
             category: order.category,
@@ -131,6 +132,9 @@ const groupedSales = computed(() => {
 
 const filteredHistory = computed(() => {
     if (historyFilter.value === 'all') return groupedSales.value;
+    if (historyFilter.value === 'orderan_online') {
+        return groupedSales.value.filter(order => order.category === 'orderan_online' || order.category === 'shopee');
+    }
     return groupedSales.value.filter(order => order.category === historyFilter.value);
 });
 
@@ -251,7 +255,6 @@ onMounted(() => {
                 <div class="flex bg-surface-800 p-1 rounded-xl border border-surface-700">
                     <button v-for="btn in [
                         { id: 'all', label: 'Semua' },
-                        { id: 'shopee', label: 'Shopee' },
                         { id: 'orderan_online', label: 'Online' },
                         { id: 'cancel_penjualan', label: 'Dibatalkan' }
                     ]" :key="btn.id" @click="historyFilter = btn.id"
@@ -373,7 +376,10 @@ onMounted(() => {
                                 </div>
                             </td>
                             <td class="px-6 py-4 align-top">
-                                <p class="text-[11px] text-text-secondary leading-relaxed max-w-[150px]"
+                                <p v-if="order.category === 'cancel_penjualan' && order.cancel_reason !== '-'" class="text-[11px] text-red-400 leading-relaxed font-bold">
+                                    {{ order.cancel_reason }}
+                                </p>
+                                <p v-else class="text-[11px] text-text-secondary leading-relaxed max-w-[150px] truncate"
                                     :title="order.notes">
                                     {{ order.notes }}
                                 </p>
