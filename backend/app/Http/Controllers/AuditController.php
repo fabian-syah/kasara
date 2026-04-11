@@ -370,9 +370,6 @@ class AuditController extends Controller
             ];
         });
 
-        // 2. Report per Brand (with scope)
-        $brandStats = [];
-
         // HP
         $hpQuery = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
@@ -380,8 +377,13 @@ class AuditController extends Controller
             ->join('products', 'product_details.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategories)
-            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-            ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+
+        if ($request->condition) $hpQuery->where('product_details.condition', $request->condition);
+        if ($request->product_type_id) $hpQuery->where('products.id', $request->product_type_id);
+        if ($request->capacity) $hpQuery->where('product_details.storage', $request->capacity); // storage is often used for GB
+
+        $hpQuery->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 if ($requestedBranchId) {
                     $q->where('users.branch_id', $requestedBranchId);
                 } elseif ($requestedOnlineShopId) {
@@ -392,12 +394,13 @@ class AuditController extends Controller
                     if (!empty($onlineShopIds))
                         $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                 }
-            })
-            ->select('products.brand', DB::raw('count(*) as count'))
+            });
+            
+        $hpResults = $hpQuery->select('products.brand', DB::raw('count(*) as count'))
             ->groupBy('products.brand')
             ->get();
 
-        foreach ($hpQuery as $item) {
+        foreach ($hpResults as $item) {
             if (!isset($brandStats[$item->brand]))
                 $brandStats[$item->brand] = 0;
             $brandStats[$item->brand] += $item->count;
@@ -437,18 +440,44 @@ class AuditController extends Controller
             $formattedBrandSales[] = ['brand' => $brand, 'qty' => $qty];
         }
 
-        // 3. Report per CS
+        // 3. Report per CS (Inventory Account)
         $csQuery = StockOut::whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate]);
+
+        if ($request->distributor_id) {
+            $csQuery->whereHas('items.productDetail', function($q) use ($request) {
+                $q->where('distributor_id', $request->distributor_id);
+            });
+        }
+        
         $scopeToAccess($csQuery);
 
-        $csSales = $csQuery->with(['user'])
+        $csSales = $csQuery
+            ->leftJoin('users as owners', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'), '=', 'owners.id')
             ->select(
-                'user_id',
+                'owners.id as owner_id',
+                'owners.name as owner_name',
+                'owners.photo as owner_photo',
+                'owners.photo_inventory as owner_photo_inv',
                 DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
                     (SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + 
                     COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)
                 ) ELSE 0 END) as total_units_sold"),
+                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
+                    SELECT count(*) FROM stock_out_items 
+                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
+                    JOIN products ON product_details.product_id = products.id 
+                    WHERE stock_out_id = stock_outs.id AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
+                ) ELSE 0 END) as iphone_units"),
+                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
+                    SELECT count(*) FROM stock_out_items 
+                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
+                    JOIN products ON product_details.product_id = products.id 
+                    WHERE stock_out_id = stock_outs.id AND NOT (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
+                ) ELSE 0 END) as android_units"),
+                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
+                    SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id
+                ) ELSE 0 END) as non_hp_units"),
                 DB::raw("sum(case 
                     when category in ('" . implode("','", $successCategories) . "') then selling_price 
                     when category = 'refund' then -selling_price
@@ -457,13 +486,16 @@ class AuditController extends Controller
                 DB::raw("sum(case when category = 'tukar_tambah' or category = 'tukar_unit' or category = 'angkat_barang' or category = 'downgrade' then 1 else 0 end) as angkat_barang_count"),
                 DB::raw("sum(case when category = 'refund' then 1 else 0 end) as refund_count")
             )
-            ->groupBy('user_id')
+            ->groupBy('owners.id', 'owners.name', 'owners.photo', 'owners.photo_inventory')
             ->get()
             ->map(function ($item) {
                 return [
-                    'cs_name' => $item->user?->name ?? 'Unknown',
-                    'photo' => $item->user?->photo_inventory ?? $item->user?->photo ?? null,
+                    'cs_name' => $item->owner_name ?? 'Unknown',
+                    'photo' => $item->owner_photo_inv ?? $item->owner_photo ?? null,
                     'total_sales' => (int) $item->total_units_sold,
+                    'iphone_units' => (int) $item->iphone_units,
+                    'android_units' => (int) $item->android_units,
+                    'non_hp_units' => (int) $item->non_hp_units,
                     'total_refund' => (int) $item->refund_count,
                     'total_angkat_barang' => (int) $item->angkat_barang_count,
                     'grand_total' => (float) $item->total_revenue
@@ -534,7 +566,16 @@ class AuditController extends Controller
         $dailyHistory = $historyQuery->select(
                 'reporting_date',
                 DB::raw('sum(selling_price) as total_omset'),
-                DB::raw('sum((SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)) as total_units')
+                DB::raw('sum((SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)) as total_units'),
+                DB::raw("SUM((SELECT count(*) FROM stock_out_items 
+                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
+                    JOIN products ON product_details.product_id = products.id 
+                    WHERE stock_out_id = stock_outs.id AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%'))) as iphone_units"),
+                DB::raw("SUM((SELECT count(*) FROM stock_out_items 
+                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
+                    JOIN products ON product_details.product_id = products.id 
+                    WHERE stock_out_id = stock_outs.id AND NOT (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%'))) as android_units"),
+                DB::raw("SUM(COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)) as non_hp_units")
             )
             ->groupBy('reporting_date')
             ->orderByDesc('reporting_date')

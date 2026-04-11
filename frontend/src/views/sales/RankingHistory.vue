@@ -197,9 +197,9 @@
         <!-- ==================== SUB-VIEWS ==================== -->
         <template v-else>
             <!-- Sub-view Header (Search & Sort) -->
-            <div class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4">
-                <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                    <div class="flex items-center gap-3">
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4 space-y-4">
+                <div class="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+                    <div class="flex flex-wrap items-center gap-3">
                         <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2">
                             <ListFilter class="text-text-secondary mr-2" :size="16" />
                             <select v-model="sortConfig.order" 
@@ -210,6 +210,30 @@
                                 <option value="alpha-desc" class="dark:bg-surface-800">Abjad (Z-A)</option>
                             </select>
                         </div>
+
+                        <!-- Dynamic Filters based on View -->
+                        <template v-if="['sales', 'activity'].includes(currentView)">
+                            <select v-model="filters.distributor_id" @change="fetchData"
+                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px]">
+                                <option :value="null">Semua Distributor</option>
+                                <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                            </select>
+                        </template>
+
+                        <template v-if="['brand', 'type', 'condition'].includes(currentView)">
+                            <select v-model="filters.condition" @change="fetchData"
+                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                                <option :value="null">Semua Kondisi</option>
+                                <option value="new">Baru</option>
+                                <option value="ex_ibox">Ex iBox</option>
+                                <option value="second">Second</option>
+                            </select>
+                            <select v-model="filters.capacity" @change="fetchData"
+                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px]">
+                                <option :value="null">Semua GB</option>
+                                <option v-for="gb in capacities" :key="gb" :value="gb">{{ gb }}GB</option>
+                            </select>
+                        </template>
                     </div>
 
                     <!-- Search -->
@@ -241,14 +265,22 @@
                                 <!-- Dynamic Columns -->
                                 <template v-if="currentView === 'revenue'">
                                     <th class="px-6 py-4">Tanggal</th>
-                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                    <th class="px-6 py-4 text-center">IPhone</th>
+                                    <th class="px-6 py-4 text-center">Android</th>
+                                    <th class="px-6 py-4 text-center">Non-HP</th>
+                                    <th class="px-6 py-4 text-center">Total Unit</th>
                                     <th class="px-6 py-4 text-right">Total Omset</th>
                                 </template>
 
                                 <template v-else-if="['sales', 'activity'].includes(currentView)">
-                                    <th class="px-6 py-4">Sales</th>
-                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
-                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Angkat Barang</th>
+                                    <th class="px-6 py-4">Sales (Inventory)</th>
+                                    <template v-if="currentView === 'sales'">
+                                        <th class="px-6 py-4 text-center">IPhone</th>
+                                        <th class="px-6 py-4 text-center">Android</th>
+                                        <th class="px-6 py-4 text-center">Non-HP</th>
+                                    </template>
+                                    <th class="px-6 py-4 text-center">Total Penjualan</th>
+                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Tukar/Angkat/Downgrade</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
                                     <th class="px-6 py-4 text-right">Grand Total</th>
                                 </template>
@@ -290,6 +322,9 @@
                                     <td class="px-6 py-4">
                                         <span class="font-bold text-text-primary">{{ formatDateString(item.reporting_date) }}</span>
                                     </td>
+                                    <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0 }}</td>
+                                    <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units || 0 }}</td>
+                                    <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0 }}</td>
                                     <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units }}</td>
                                     <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                         {{ formatCurrency(item.total_omset) }}
@@ -308,6 +343,11 @@
                                             <span class="font-bold text-text-primary">{{ item.cs_name }}</span>
                                         </div>
                                     </td>
+                                    <template v-if="currentView === 'sales'">
+                                        <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0 }}</td>
+                                        <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units || 0 }}</td>
+                                        <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0 }}</td>
+                                    </template>
                                     <td class="px-6 py-4 text-center font-black text-primary-500">{{ item.total_sales }}</td>
                                     <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-amber-500">{{ item.total_angkat_barang || 0 }}</td>
                                     <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-red-500">{{ item.total_refund || 0 }}</td>
@@ -368,6 +408,8 @@ const storageBaseUrl = computed(() => authStore.storageBaseUrl)
 const branches = ref([])
 const onlineShops = ref([])
 const locationType = ref('branch')
+const distributors = ref([])
+const capacities = [16, 32, 64, 128, 256, 512, 1024]
 
 const loading = ref(false)
 const currentView = ref('menu')
@@ -470,7 +512,11 @@ const filters = ref({
     start_date: getTodayLocal(),
     end_date: getTodayLocal(),
     branch_id: null,
-    online_shop_id: null
+    online_shop_id: null,
+    distributor_id: null,
+    condition: null,
+    capacity: null,
+    product_type_id: null
 })
 
 const formattedDateDisplay = computed(() => {
@@ -609,6 +655,11 @@ const handleMonthChange = () => {
     fetchData();
 }
 
+watch(() => filters.value.product_type_id, () => fetchData())
+watch(() => filters.value.condition, () => fetchData())
+watch(() => filters.value.capacity, () => fetchData())
+watch(() => filters.value.distributor_id, () => fetchData())
+
 const fetchData = async () => {
     loading.value = true
     try {
@@ -616,7 +667,11 @@ const fetchData = async () => {
             start_date: filters.value.start_date,
             end_date: filters.value.end_date,
             branch_id: filters.value.branch_id,
-            online_shop_id: filters.value.online_shop_id
+            online_shop_id: filters.value.online_shop_id,
+            distributor_id: filters.value.distributor_id,
+            condition: filters.value.condition,
+            capacity: filters.value.capacity,
+            product_type_id: filters.value.product_type_id
         };
         const response = await axios.get('/audit/sales', { params })
         salesData.value = response.data
@@ -635,12 +690,14 @@ const handleLocationTypeChange = () => {
 
 const fetchLocations = async () => {
     try {
-        const [bRes, oRes] = await Promise.all([
+        const [bRes, oRes, dRes] = await Promise.all([
             axios.get('/branches'),
-            axios.get('/online-shops')
+            axios.get('/online-shops'),
+            axios.get('/distributors')
         ]);
         branches.value = bRes.data;
         onlineShops.value = oRes.data;
+        distributors.value = dRes.data;
     } catch (error) {
         console.error('Error fetching locations:', error);
     }
