@@ -676,6 +676,11 @@ const fetchData = async () => {
         };
         const response = await axios.get('/audit/sales', { params })
         salesData.value = response.data
+        // Populate filter dropdowns from actual sales data
+        if (response.data.filter_options) {
+            productTypes.value = response.data.filter_options.products || [];
+            distributors.value = response.data.filter_options.distributors || [];
+        }
     } catch (error) {
         console.error('Error fetching ranking data:', error)
     } finally {
