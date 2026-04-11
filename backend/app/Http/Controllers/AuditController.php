@@ -104,7 +104,8 @@ class AuditController extends Controller
 
         $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
         $activityCategories = ['refund', 'angkat_barang'];
-        $salesCategories = array_merge($successCategories, $activityCategories, ['pindah_cabang', 'retur', 'cancel_penjualan']);
+        $salesCategories = array_merge($successCategories, $activityCategories);
+        // Excluded: 'pindah_cabang', 'retur', 'cancel_penjualan' per user request to clean up Sales Ranking
 
         // 1. Daily Sales
         $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
