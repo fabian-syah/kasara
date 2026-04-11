@@ -480,53 +480,46 @@ class AuditController extends Controller
             )
             ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')
             ->get()
-            ->map(function ($item) use ($startDate, $endDate, $successCategories, $requestedDistributorId, $requestedCondition, $requestedCapacity) {
-                // Fetch units separately to avoid complex aggregate issues
-                // We MUST re-apply the filters (distributor, condition, capacity) to these unit counts
-                $filterClause = " s2.reporting_date BETWEEN '$startDate' AND '$endDate' AND COALESCE(s2.inventory_user_id, s2.user_id) = $item->owner_id AND s2.category IN ('" . implode("','", $successCategories) . "')";
-                $itemFilterJoin = "";
-                $itemFilterWhere = "";
+            ->map(function ($item) use ($startDate, $endDate, $successCategories, $requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+                $ownerId = $item->owner_id;
+                $catList = "'" . implode("','", $successCategories) . "'";
+                
+                // Build a single consistent filter for product_details
+                $pdJoin = " JOIN product_details pd ON stock_out_items.product_detail_id = pd.id ";
+                $pdWhere = "";
+                $needsPdJoin = false;
                 
                 if ($requestedDistributorId) {
-                    $itemFilterJoin .= " JOIN product_details pd_dist ON stock_out_items.product_detail_id = pd_dist.id ";
-                    $itemFilterWhere .= " AND pd_dist.distributor_id = $requestedDistributorId ";
+                    $pdWhere .= " AND pd.distributor_id = $requestedDistributorId ";
+                    $needsPdJoin = true;
                 }
                 if ($requestedCondition) {
-                    if (!str_contains($itemFilterJoin, 'product_details pd_dist')) {
-                        $itemFilterJoin .= " JOIN product_details pd_cond ON stock_out_items.product_detail_id = pd_cond.id ";
-                        $itemFilterWhere .= " AND pd_cond.condition = '$requestedCondition' ";
-                    } else {
-                        $itemFilterWhere .= " AND pd_dist.condition = '$requestedCondition' ";
-                    }
+                    $pdWhere .= " AND pd.condition = '$requestedCondition' ";
+                    $needsPdJoin = true;
                 }
                 if ($requestedCapacity) {
-                    if (!str_contains($itemFilterJoin, 'product_details')) {
-                        $itemFilterJoin .= " JOIN product_details pd_cap ON stock_out_items.product_detail_id = pd_cap.id ";
-                        $itemFilterWhere .= " AND pd_cap.storage = '$requestedCapacity' ";
-                    } else {
-                        // Use existing alias from previous if
-                        $alias = str_contains($itemFilterJoin, 'pd_dist') ? 'pd_dist' : 'pd_cond';
-                        $itemFilterWhere .= " AND $alias.storage = '$requestedCapacity' ";
-                    }
+                    $pdWhere .= " AND pd.storage = '$requestedCapacity' ";
+                    $needsPdJoin = true;
                 }
-
-                $units = DB::table('stock_outs')
-                    ->whereIn('category', $successCategories)
-                    ->whereBetween('reporting_date', [$startDate, $endDate])
-                    ->whereNull('deleted_at')
-                    ->where(DB::raw('COALESCE(inventory_user_id, user_id)'), $item->owner_id)
-                    ->select(
-                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
-                        DB::raw("(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)) as nhp_units"),
-                        DB::raw("(SELECT count(*) FROM stock_out_items 
-                            $itemFilterJoin JOIN product_details pd_iphone ON stock_out_items.product_detail_id = pd_iphone.id
-                            JOIN products on pd_iphone.product_id = products.id
-                            WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
-                            $itemFilterWhere
-                            AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
-                        ) as iphone_units")
-                    )
-                    ->first();
+                if ($request->product_type_id) {
+                    $pdWhere .= " AND pd.product_id = " . intval($request->product_type_id) . " ";
+                    $needsPdJoin = true;
+                }
+                
+                $joinStr = $needsPdJoin ? $pdJoin : "";
+                $stockSubquery = "SELECT id FROM stock_outs as s2 WHERE s2.reporting_date BETWEEN '$startDate' AND '$endDate' AND COALESCE(s2.inventory_user_id, s2.user_id) = $ownerId AND s2.category IN ($catList) AND s2.deleted_at IS NULL";
+                
+                $hpSql = "(SELECT count(*) FROM stock_out_items $joinStr WHERE stock_out_items.stock_out_id IN ($stockSubquery) $pdWhere) as hp_units";
+                $nhpSql = "(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN ($stockSubquery)) as nhp_units";
+                $iphoneSql = "(SELECT count(*) FROM stock_out_items 
+                    JOIN product_details pd2 ON stock_out_items.product_detail_id = pd2.id
+                    JOIN products ON pd2.product_id = products.id
+                    WHERE stock_out_items.stock_out_id IN ($stockSubquery)
+                    " . str_replace('pd.', 'pd2.', $pdWhere) . "
+                    AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
+                ) as iphone_units";
+                
+                $units = DB::select("SELECT $hpSql, $nhpSql, $iphoneSql")[0] ?? null;
 
                 $totalHp = (int) ($units->hp_units ?? 0);
                 $totalNonHp = (int) ($units->nhp_units ?? 0);
@@ -634,51 +627,45 @@ class AuditController extends Controller
             ->groupBy('reporting_date')
             ->orderByDesc('reporting_date')
             ->get()
-            ->map(function ($item) use ($successCategories, $requestedDistributorId, $requestedCondition, $requestedCapacity) {
-                // Fetch units separately
-                // We MUST re-apply the filters (distributor, condition, capacity) to these unit counts
-                $filterClause = " s2.reporting_date = '$item->reporting_date' AND s2.category IN ('" . implode("','", $successCategories) . "')";
-                $itemFilterJoin = "";
-                $itemFilterWhere = "";
-
+            ->map(function ($item) use ($successCategories, $requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+                $catList = "'" . implode("','", $successCategories) . "'";
+                $reportDate = $item->reporting_date;
+                
+                $pdJoin = " JOIN product_details pd ON stock_out_items.product_detail_id = pd.id ";
+                $pdWhere = "";
+                $needsPdJoin = false;
+                
                 if ($requestedDistributorId) {
-                    $itemFilterJoin .= " JOIN product_details pd_dist ON stock_out_items.product_detail_id = pd_dist.id ";
-                    $itemFilterWhere .= " AND pd_dist.distributor_id = $requestedDistributorId ";
+                    $pdWhere .= " AND pd.distributor_id = $requestedDistributorId ";
+                    $needsPdJoin = true;
                 }
                 if ($requestedCondition) {
-                    if (!str_contains($itemFilterJoin, 'product_details pd_dist')) {
-                        $itemFilterJoin .= " JOIN product_details pd_cond ON stock_out_items.product_detail_id = pd_cond.id ";
-                        $itemFilterWhere .= " AND pd_cond.condition = '$requestedCondition' ";
-                    } else {
-                        $itemFilterWhere .= " AND pd_dist.condition = '$requestedCondition' ";
-                    }
+                    $pdWhere .= " AND pd.condition = '$requestedCondition' ";
+                    $needsPdJoin = true;
                 }
                 if ($requestedCapacity) {
-                    if (!str_contains($itemFilterJoin, 'product_details')) {
-                        $itemFilterJoin .= " JOIN product_details pd_cap ON stock_out_items.product_detail_id = pd_cap.id ";
-                        $itemFilterWhere .= " AND pd_cap.storage = '$requestedCapacity' ";
-                    } else {
-                        $alias = str_contains($itemFilterJoin, 'pd_dist') ? 'pd_dist' : 'pd_cond';
-                        $itemFilterWhere .= " AND $alias.storage = '$requestedCapacity' ";
-                    }
+                    $pdWhere .= " AND pd.storage = '$requestedCapacity' ";
+                    $needsPdJoin = true;
                 }
-
-                $units = DB::table('stock_outs')
-                    ->whereIn('category', $successCategories)
-                    ->where('reporting_date', $item->reporting_date)
-                    ->whereNull('deleted_at')
-                    ->select(
-                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
-                        DB::raw("(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)) as nhp_units"),
-                        DB::raw("(SELECT count(*) FROM stock_out_items 
-                            $itemFilterJoin JOIN product_details pd_iphone ON stock_out_items.product_detail_id = pd_iphone.id
-                            JOIN products on pd_iphone.product_id = products.id
-                            WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
-                            $itemFilterWhere
-                            AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
-                        ) as iphone_units")
-                    )
-                    ->first();
+                if ($request->product_type_id) {
+                    $pdWhere .= " AND pd.product_id = " . intval($request->product_type_id) . " ";
+                    $needsPdJoin = true;
+                }
+                
+                $joinStr = $needsPdJoin ? $pdJoin : "";
+                $stockSubquery = "SELECT id FROM stock_outs as s2 WHERE s2.reporting_date = '$reportDate' AND s2.category IN ($catList) AND s2.deleted_at IS NULL";
+                
+                $hpSql = "(SELECT count(*) FROM stock_out_items $joinStr WHERE stock_out_items.stock_out_id IN ($stockSubquery) $pdWhere) as hp_units";
+                $nhpSql = "(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN ($stockSubquery)) as nhp_units";
+                $iphoneSql = "(SELECT count(*) FROM stock_out_items 
+                    JOIN product_details pd2 ON stock_out_items.product_detail_id = pd2.id
+                    JOIN products ON pd2.product_id = products.id
+                    WHERE stock_out_items.stock_out_id IN ($stockSubquery)
+                    " . str_replace('pd.', 'pd2.', $pdWhere) . "
+                    AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
+                ) as iphone_units";
+                
+                $units = DB::select("SELECT $hpSql, $nhpSql, $iphoneSql")[0] ?? null;
 
                 $totalHp = (int) ($units->hp_units ?? 0);
                 $totalNonHp = (int) ($units->nhp_units ?? 0);
