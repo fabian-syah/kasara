@@ -373,9 +373,11 @@ class AuditController extends Controller
             ];
         });
 
-        // 2. Report per Brand
-        $brandStats = [];
-        $hpQuery = DB::table('stock_out_items')
+        // 2. Report per Brand (Detailed for Hierarchy)
+        $brandDetailedStats = [];
+        
+        // HP Items Detailed
+        $hpQueryDetailed = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -383,12 +385,12 @@ class AuditController extends Controller
             ->whereIn('stock_outs.category', $salesCategories)
             ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
 
-        if ($request->condition) $hpQuery->where('product_details.condition', $request->condition);
-        if ($request->product_type_id) $hpQuery->where('products.id', $request->product_type_id);
-        if ($request->capacity) $hpQuery->where('product_details.storage', $request->capacity);
-        if ($request->distributor_id) $hpQuery->where('product_details.distributor_id', $request->distributor_id);
+        if ($request->condition) $hpQueryDetailed->where('product_details.condition', $request->condition);
+        if ($request->product_type_id) $hpQueryDetailed->where('products.id', $request->product_type_id);
+        if ($request->capacity) $hpQueryDetailed->where('product_details.storage', $request->capacity);
+        if ($request->distributor_id) $hpQueryDetailed->where('product_details.distributor_id', $request->distributor_id);
 
-        $hpQuery->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+        $hpQueryDetailed->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 if ($requestedBranchId) {
                     $q->where('users.branch_id', $requestedBranchId);
                 } elseif ($requestedOnlineShopId) {
@@ -401,18 +403,29 @@ class AuditController extends Controller
                 }
             });
             
-        $hpResults = $hpQuery->select('products.brand', DB::raw('count(*) as count'))
-            ->groupBy('products.brand')
+        $hpDetailedResults = $hpQueryDetailed->select(
+                'products.brand', 
+                'products.name', 
+                'product_details.condition', 
+                'product_details.storage',
+                DB::raw('count(*) as count')
+            )
+            ->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage')
             ->get();
 
-        foreach ($hpResults as $item) {
-            if (!isset($brandStats[$item->brand]))
-                $brandStats[$item->brand] = 0;
-            $brandStats[$item->brand] += $item->count;
+        foreach ($hpDetailedResults as $item) {
+            $brandDetailedStats[] = [
+                'brand' => $item->brand ?? 'Lainnya',
+                'name' => $item->name ?? 'Unknown',
+                'condition' => $item->condition ?? 'unknown',
+                'storage' => $item->storage ?? '-',
+                'qty' => $item->count,
+                'is_hp' => true
+            ];
         }
 
-        // Non-HP
-        $nhpQuery = DB::table('stock_out_non_hp_items')
+        // Non-HP Detailed
+        $nhpQueryDetailed = DB::table('stock_out_non_hp_items')
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
@@ -430,20 +443,22 @@ class AuditController extends Controller
                         $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                 }
             })
-            ->select('products.brand', DB::raw('sum(quantity) as count'))
-            ->groupBy('products.brand')
+            ->select('products.brand', 'products.name', DB::raw('sum(quantity) as count'))
+            ->groupBy('products.brand', 'products.name')
             ->get();
 
-        foreach ($nhpQuery as $item) {
-            if (!isset($brandStats[$item->brand]))
-                $brandStats[$item->brand] = 0;
-            $brandStats[$item->brand] += $item->count;
+        foreach ($nhpQueryDetailed as $item) {
+            $brandDetailedStats[] = [
+                'brand' => $item->brand ?? 'Lainnya',
+                'name' => $item->name ?? 'Unknown',
+                'condition' => '-',
+                'storage' => '-',
+                'qty' => (int) $item->count,
+                'is_hp' => false
+            ];
         }
 
-        $formattedBrandSales = [];
-        foreach ($brandStats as $brand => $qty) {
-            $formattedBrandSales[] = ['brand' => $brand, 'qty' => $qty];
-        }
+        $formattedBrandSales = $brandDetailedStats;
 
         // 3. Report per CS (Inventory Account)
         $csQuery = StockOut::whereIn('category', $salesCategories)

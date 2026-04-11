@@ -245,6 +245,28 @@
                             class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
                     </div>
                 </div>
+
+                <!-- Breakdown Toggles (Brand View Only) -->
+                <div v-if="currentView === 'brand'" class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 dark:border-surface-700">
+                    <button @click="showBrandType = !showBrandType"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan Tipe
+                    </button>
+                    <button @click="showBrandCondition = !showBrandCondition"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandCondition ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan Kondisi
+                    </button>
+                    <button @click="showBrandGb = !showBrandGb"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandGb ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan GB
+                    </button>
+                </div>
             </div>
 
             <!-- Content Area -->
@@ -263,8 +285,6 @@
                         <thead class="text-xs font-bold text-text-secondary uppercase bg-gray-50/50 dark:bg-surface-900/50 border-b border-gray-100 dark:border-surface-700">
                             <tr>
                                 <th class="px-6 py-4 w-16">Rank</th>
-                                
-                                <!-- Dynamic Columns -->
                                 <template v-if="currentView === 'revenue'">
                                     <th class="px-6 py-4">Tanggal</th>
                                     <th class="px-6 py-4 text-center">IPhone</th>
@@ -273,7 +293,11 @@
                                     <th class="px-6 py-4 text-center">Total Unit</th>
                                     <th class="px-6 py-4 text-right">Total Omset</th>
                                 </template>
-
+                                <template v-else-if="currentView === 'brand'">
+                                    <th class="px-6 py-4">Brand</th>
+                                    <th v-if="showBrandCondition || showBrandGb" class="px-6 py-4">Detail</th>
+                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
+                                </template>
                                 <template v-else-if="['sales', 'activity'].includes(currentView)">
                                     <th class="px-6 py-4">Sales (Inventory)</th>
                                     <template v-if="currentView === 'sales'">
@@ -286,106 +310,161 @@
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
                                     <th class="px-6 py-4 text-right">Grand Total</th>
                                 </template>
-
-                                <template v-else-if="currentView === 'brand'">
-                                    <th class="px-6 py-4">Brand</th>
-                                    <th class="px-6 py-4 text-center">Unit Terjual</th>
-                                </template>
-
                                 <template v-else-if="currentView === 'type'">
                                     <th class="px-6 py-4">Brand</th>
                                     <th class="px-6 py-4">Tipe Produk</th>
                                     <th class="px-6 py-4 text-center">Unit Terjual</th>
                                 </template>
-
                                 <template v-else-if="currentView === 'condition'">
                                     <th class="px-6 py-4">Kondisi</th>
                                     <th class="px-6 py-4 text-center">Unit Terjual</th>
                                 </template>
-
                                 <template v-else-if="currentView === 'distributor'">
                                     <th class="px-6 py-4">Distributor</th>
                                     <th class="px-6 py-4 text-center">Unit Terjual</th>
                                 </template>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-50 dark:divide-surface-700/50">
-                            <tr v-for="(item, idx) in sortedData" :key="idx" 
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
-                                <td class="px-6 py-4">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
-                                        :class="getRankBadgeClass(idx)">
-                                        {{ idx + 1 }}
-                                    </div>
-                                </td>
-
-                                <!-- Daily History Data -->
-                                <template v-if="currentView === 'revenue'">
-                                    <td class="px-6 py-4">
-                                        <span class="font-bold text-text-primary">{{ formatDateString(item.reporting_date) }}</span>
-                                    </td>
-                                    <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0 }}</td>
-                                    <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units || 0 }}</td>
-                                    <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0 }}</td>
-                                    <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units }}</td>
-                                    <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
-                                        {{ formatCurrency(item.total_omset) }}
-                                    </td>
+                        <tbody class="divide-y divide-gray-100 dark:divide-surface-700 text-sm">
+                            <template v-if="currentView === 'brand'">
+                                <template v-for="(row, idx) in filteredBrandHierarchy" :key="row.brand">
+                                    <tr class="hover:bg-gray-50/50 dark:hover:bg-surface-700/30 transition-colors" :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': showBrandType || showBrandCondition || showBrandGb }">
+                                        <td class="px-6 py-4">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
+                                                :class="getRankBadgeClass(idx)">
+                                                {{ idx + 1 }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 font-bold text-text-primary">{{ row.brand }}</td>
+                                        <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                        <td class="px-6 py-4 text-center font-black text-purple-500">{{ row.qty }}</td>
+                                    </tr>
+                                    <!-- Brand Breakdown: Type -->
+                                    <template v-if="showBrandType" v-for="t in row.tree" :key="t.label">
+                                        <tr class="bg-gray-50/30 dark:bg-surface-900/30">
+                                            <td class="px-6 py-2"></td>
+                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-10">— {{ t.label }}</td>
+                                            <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
+                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{ t.qty }}</td>
+                                            <td class="px-6 py-2"></td>
+                                        </tr>
+                                        <!-- Brand Breakdown: Condition/GB -->
+                                        <template v-if="showBrandCondition || showBrandGb" v-for="(c, cIdx) in t.conditions" :key="idx + '-' + t.label + '-' + cIdx">
+                                            <tr class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
+                                                <td class="px-6 py-1.5"></td>
+                                                <td class="px-6 py-1.5"></td>
+                                                <td class="px-6 py-1.5">
+                                                    <div class="flex items-center gap-2">
+                                                        <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">
+                                                            {{ formatCondition(c.condition) }}
+                                                        </span>
+                                                        <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">
+                                                            {{ c.capacity }}GB
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                <td class="px-6 py-1.5"></td>
+                                            </tr>
+                                        </template>
+                                    </template>
+                                    <!-- Brand Breakdown: Condition/GB (if Type is Hidden) -->
+                                    <template v-if="!showBrandType && (showBrandCondition || showBrandGb)">
+                                        <template v-for="t in row.tree">
+                                            <template v-for="(c, cIdx) in t.conditions" :key="row.brand + '-' + cIdx">
+                                                <tr class="bg-white/30 dark:bg-surface-800/20">
+                                                    <td class="px-6 py-1.5"></td>
+                                                    <td class="px-6 py-1.5"></td>
+                                                    <td class="px-6 py-1.5 pl-10">
+                                                        <div class="flex items-center gap-2">
+                                                            <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">
+                                                                {{ formatCondition(c.condition) }}
+                                                            </span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">
+                                                                {{ c.capacity }}GB
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                    <td class="px-6 py-1.5"></td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                    </template>
                                 </template>
-
-                                <!-- CS Related Data -->
-                                <template v-else-if="['sales', 'activity'].includes(currentView)">
+                            </template>
+                            <template v-else>
+                                <tr v-for="(item, idx) in sortedData" :key="idx" 
+                                    class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                                     <td class="px-6 py-4">
-                                        <div class="flex items-center gap-3">
-                                            <img :src="item.photo
-                                                ? (item.photo.startsWith('http') ? item.photo : `${storageBaseUrl}/storage/${item.photo}`)
-                                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.cs_name)}&background=10b981&color=fff&size=48`"
-                                                class="w-10 h-10 rounded-xl object-cover border-2 border-surface-200 dark:border-surface-600 shadow-sm"
-                                                @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.cs_name)}&background=10b981&color=fff&size=48`" />
-                                            <span class="font-bold text-text-primary">{{ item.cs_name }}</span>
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
+                                            :class="getRankBadgeClass(idx)">
+                                            {{ idx + 1 }}
                                         </div>
                                     </td>
-                                    <template v-if="currentView === 'sales'">
+
+                                    <!-- Daily History Data -->
+                                    <template v-if="currentView === 'revenue'">
+                                        <td class="px-6 py-4">
+                                            <span class="font-bold text-text-primary">{{ formatDateString(item.reporting_date) }}</span>
+                                        </td>
                                         <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0 }}</td>
                                         <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units || 0 }}</td>
                                         <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0 }}</td>
+                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units }}</td>
+                                        <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
+                                            {{ formatCurrency(item.total_omset) }}
+                                        </td>
                                     </template>
-                                    <td class="px-6 py-4 text-center font-black text-primary-500">{{ item.total_sales }}</td>
-                                    <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-amber-500">{{ item.total_angkat_barang || 0 }}</td>
-                                    <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-red-500">{{ item.total_refund || 0 }}</td>
-                                    <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
-                                        {{ formatCurrency(item.grand_total) }}
-                                    </td>
-                                </template>
 
-                                <!-- Brand Data -->
-                                <template v-else-if="currentView === 'brand'">
-                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.brand }}</td>
-                                    <td class="px-6 py-4 text-center font-black text-purple-500">{{ item.qty }}</td>
-                                </template>
+                                    <!-- CS Related Data -->
+                                    <template v-else-if="['sales', 'activity'].includes(currentView)">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center gap-3">
+                                                <img :src="item.photo
+                                                    ? (item.photo.startsWith('http') ? item.photo : `${storageBaseUrl}/storage/${item.photo}`)
+                                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.cs_name)}&background=10b981&color=fff&size=48`"
+                                                    class="w-10 h-10 rounded-xl object-cover border-2 border-surface-200 dark:border-surface-600 shadow-sm"
+                                                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.cs_name)}&background=10b981&color=fff&size=48`" />
+                                                <span class="font-bold text-text-primary">{{ item.cs_name }}</span>
+                                            </div>
+                                        </td>
+                                        <template v-if="currentView === 'sales'">
+                                            <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0 }}</td>
+                                            <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units || 0 }}</td>
+                                            <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0 }}</td>
+                                        </template>
+                                        <td class="px-6 py-4 text-center font-black text-primary-500">{{ item.total_sales }}</td>
+                                        <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-amber-500">{{ item.total_angkat_barang || 0 }}</td>
+                                        <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-red-500">{{ item.total_refund || 0 }}</td>
+                                        <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
+                                            {{ formatCurrency(item.grand_total) }}
+                                        </td>
+                                    </template>
 
-                                <!-- Type Data -->
-                                <template v-else-if="currentView === 'type'">
-                                    <td class="px-6 py-4 text-text-secondary">{{ item.brand }}</td>
-                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.name }}</td>
-                                    <td class="px-6 py-4 text-center font-black text-emerald-500">{{ item.qty }}</td>
-                                </template>
+                                    <!-- Type Data -->
+                                    <template v-else-if="currentView === 'type'">
+                                        <td class="px-6 py-4 text-text-secondary">{{ item.brand }}</td>
+                                        <td class="px-6 py-4 font-bold text-text-primary">{{ item.name }}</td>
+                                        <td class="px-6 py-4 text-center font-black text-emerald-500">{{ item.qty }}</td>
+                                    </template>
 
-                                <!-- Condition Data -->
-                                <template v-else-if="currentView === 'condition'">
-                                    <td class="px-6 py-4">
-                                        <span class="px-3 py-1 rounded-lg text-xs font-bold border" :class="getConditionClass(item.condition)">
-                                            {{ formatCondition(item.condition) }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-center font-black text-orange-500">{{ item.qty }}</td>
-                                </template>
+                                    <!-- Condition Data -->
+                                    <template v-else-if="currentView === 'condition'">
+                                        <td class="px-6 py-4">
+                                            <span class="px-3 py-1 rounded-lg text-xs font-bold border" :class="getConditionClass(item.condition)">
+                                                {{ formatCondition(item.condition) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-center font-black text-orange-500">{{ item.qty }}</td>
+                                    </template>
 
-                                <template v-else-if="currentView === 'distributor'">
-                                    <td class="px-6 py-4 font-bold text-text-primary">{{ item.distributor || 'Tanpa Distributor' }}</td>
-                                    <td class="px-6 py-4 text-center font-black text-indigo-500">{{ item.qty }}</td>
-                                </template>
-                            </tr>
+                                    <template v-else-if="currentView === 'distributor'">
+                                        <td class="px-6 py-4 font-bold text-text-primary">{{ item.distributor || 'Tanpa Distributor' }}</td>
+                                        <td class="px-6 py-4 text-center font-black text-indigo-500">{{ item.qty }}</td>
+                                    </template>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -418,6 +497,12 @@ const loading = ref(false)
 const currentView = ref('menu')
 const searchQuery = ref('')
 const selectedPeriod = ref('daily')
+
+// Breakdown Toggles (Stock Opname style)
+const showBrandType = ref(false)
+const showBrandCondition = ref(false)
+const showBrandGb = ref(false)
+
 const sortConfig = ref({
     order: 'num-desc' // 'num-desc', 'num-asc', 'alpha-asc', 'alpha-desc'
 })
@@ -622,6 +707,7 @@ const formatCondition = (cond) => {
 const navigateTo = (view) => {
     currentView.value = view
     searchQuery.value = ''
+    resetBreakdowns()
     // Reset product filters when entering revenue view (filters are hidden there)
     if (view === 'revenue') {
         filters.value.distributor_id = null;
@@ -635,10 +721,68 @@ const navigateTo = (view) => {
     else sortConfig.value.order = 'num-desc'
 }
 
+const resetBreakdowns = () => {
+    showBrandType.value = false
+    showBrandCondition.value = false
+    showBrandGb.value = false
+}
+
 const goBack = () => {
     currentView.value = 'menu'
     searchQuery.value = ''
+    resetBreakdowns()
 }
+
+// Hierarchical Brand Report
+const brandHierarchy = computed(() => {
+    const raw = data.value.brand_sales || []
+    const map = new Map()
+
+    raw.forEach(item => {
+        const brand = item.brand
+        if (!map.has(brand)) {
+            map.set(brand, { brand, qty: 0, tree: new Map() })
+        }
+        const entry = map.get(brand)
+        entry.qty += item.qty
+
+        const type = item.name
+        if (!entry.tree.has(type)) {
+            entry.tree.set(type, { label: type, qty: 0, conditions: new Map() })
+        }
+        const tNode = entry.tree.get(type)
+        tNode.qty += item.qty
+
+        const cond = item.condition || '-'
+        const gb = item.storage || '-'
+        const cgKey = `${cond}||${gb}`
+
+        if (!tNode.conditions.has(cgKey)) {
+            tNode.conditions.set(cgKey, { 
+                condition: cond, 
+                capacity: gb, 
+                qty: 0 
+            })
+        }
+        tNode.conditions.get(cgKey).qty += item.qty
+    })
+
+    return Array.from(map.values())
+        .map(e => ({
+            ...e,
+            tree: Array.from(e.tree.values()).map(t => ({
+                ...t,
+                conditions: Array.from(t.conditions.values()).sort((a,b) => b.qty - a.qty)
+            })).sort((a,b) => b.qty - a.qty)
+        }))
+        .sort((a,b) => b.qty - a.qty)
+})
+
+const filteredBrandHierarchy = computed(() => {
+    if (!searchQuery.value) return brandHierarchy.value
+    const q = searchQuery.value.toLowerCase()
+    return brandHierarchy.value.filter(b => b.brand.toLowerCase().includes(q))
+})
 
 const handlePeriodChange = () => {
     if (selectedPeriod.value === 'daily') {
