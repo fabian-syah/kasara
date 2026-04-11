@@ -408,9 +408,11 @@ class AuditController extends Controller
                 'products.name', 
                 'product_details.condition', 
                 'product_details.storage',
+                'distributors.name as distributor_name',
                 DB::raw('count(*) as count')
             )
-            ->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage')
+            ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+            ->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')
             ->get();
 
         foreach ($hpDetailedResults as $item) {
@@ -419,6 +421,7 @@ class AuditController extends Controller
                 'name' => $item->name ?? 'Unknown',
                 'condition' => $item->condition ?? 'unknown',
                 'storage' => $item->storage ?? '-',
+                'distributor' => $item->distributor_name ?? 'Tanpa Distributor',
                 'qty' => $item->count,
                 'is_hp' => true
             ];
@@ -453,6 +456,7 @@ class AuditController extends Controller
                 'name' => $item->name ?? 'Unknown',
                 'condition' => '-',
                 'storage' => '-',
+                'distributor' => '-',
                 'qty' => (int) $item->count,
                 'is_hp' => false
             ];
