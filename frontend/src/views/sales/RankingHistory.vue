@@ -627,6 +627,46 @@
                                 </tr>
                             </template>
                         </tbody>
+                        <!-- Table Footer (Totals) -->
+                        <tfoot class="bg-gray-50 dark:bg-surface-900/50 border-t-2 border-gray-100 dark:border-surface-700">
+                            <tr class="font-black text-xs uppercase text-text-primary dark:text-white">
+                                <td class="px-6 py-4"></td>
+                                <td class="px-6 py-4 text-left">TOTAL</td>
+                                
+                                <template v-if="currentView === 'revenue'">
+                                    <td class="px-6 py-4 text-center">{{ totals.iphone }}</td>
+                                    <td class="px-6 py-4 text-center">{{ totals.android }}</td>
+                                    <td class="px-6 py-4 text-center">{{ totals.nonHp }}</td>
+                                    <td class="px-6 py-4 text-center text-amber-500">{{ totals.units }}</td>
+                                    <td class="px-6 py-4 text-right text-primary-500 font-mono">{{ formatCurrency(totals.revenue) }}</td>
+                                </template>
+
+                                <template v-else-if="currentView === 'brand' || currentView === 'distributor'">
+                                    <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4"></td>
+                                    <td class="px-6 py-4 text-center text-primary-500 text-base">{{ totals.units }}</td>
+                                    <td class="px-6 py-4"></td>
+                                </template>
+
+                                <template v-else-if="currentView === 'sales'">
+                                    <td class="px-6 py-4 text-center">{{ totals.iphone }}</td>
+                                    <td class="px-6 py-4 text-center">{{ totals.android }}</td>
+                                    <td class="px-6 py-4 text-center">{{ totals.nonHp }}</td>
+                                    <td class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
+                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
+                                </template>
+
+                                <template v-else-if="currentView === 'activity'">
+                                    <td class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
+                                    <td class="px-6 py-4 text-center text-amber-500">{{ totals.activity }}</td>
+                                    <td class="px-6 py-4 text-center text-red-500">{{ totals.refund }}</td>
+                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
+                                </template>
+
+                                <template v-else-if="currentView === 'type' || currentView === 'condition'">
+                                    <td class="px-6 py-4 text-center text-primary-500 text-base">{{ totals.units }}</td>
+                                </template>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
@@ -1012,6 +1052,38 @@ const filteredBrandHierarchy = computed(() => {
     const q = searchQuery.value.toLowerCase()
     return brandHierarchy.value.filter(b => b.brand.toLowerCase().includes(q))
 })
+
+const totals = computed(() => {
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity = 0, refund = 0;
+
+    if (currentView.value === 'brand') {
+        filteredBrandHierarchy.value.forEach(row => units += row.qty);
+    } else if (currentView.value === 'distributor') {
+        distributorHierarchy.value.forEach(row => units += row.qty);
+    } else {
+        sortedData.value.forEach(item => {
+            if (currentView.value === 'revenue') {
+                units += (item.total_units || 0);
+                iphone += (item.iphone_units || 0);
+                android += (item.android_units || 0);
+                nonHp += (item.non_hp_units || 0);
+                revenue += (item.total_omset || 0);
+            } else if (currentView.value === 'sales' || currentView.value === 'activity') {
+                units += (item.total_sales || 0);
+                iphone += (item.iphone_units || 0);
+                android += (item.android_units || 0);
+                nonHp += (item.non_hp_units || 0);
+                activity += (item.total_angkat_barang || 0);
+                refund += (item.total_refund || 0);
+                revenue += (item.grand_total || 0);
+            } else {
+                units += (item.qty || 0);
+            }
+        });
+    }
+
+    return { units, iphone, android, nonHp, revenue, activity, refund };
+});
 
 const handlePeriodChange = () => {
     if (selectedPeriod.value === 'daily') {
