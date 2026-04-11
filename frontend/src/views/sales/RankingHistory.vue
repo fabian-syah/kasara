@@ -57,8 +57,8 @@
                     </select>
                 </div>
 
-                <!-- Location Filter (Branch/OS) -->
-                <div class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1 shadow-sm">
+                <!-- Location Filter (Branch/OS) - Only for non-restricted users -->
+                <div v-if="!isRestricted" class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1 shadow-sm">
                     <div class="flex items-center gap-1 group">
                         <div class="p-1.5 bg-gray-50 dark:bg-surface-900 rounded-lg group-hover:bg-primary-500/10 transition-colors">
                             <MapPin v-if="locationType === 'branch'" :size="14" class="text-text-secondary group-hover:text-primary-500" />
@@ -81,6 +81,14 @@
                         <option :value="null">Semua Toko Online</option>
                         <option v-for="s in onlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
                     </select>
+                </div>
+                <!-- Restricted users see their location indicator -->
+                <div v-else class="flex items-center gap-2 px-4 py-2 bg-primary-500/5 border border-primary-500/20 rounded-xl">
+                    <MapPin v-if="authStore.user?.branch_id" :size="14" class="text-primary-500" />
+                    <Globe v-else :size="14" class="text-primary-500" />
+                    <span class="text-xs font-bold text-primary-600">
+                        {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'Cabang Saya' }}
+                    </span>
                 </div>
             </div>
         </div>
@@ -639,7 +647,13 @@ const fetchLocations = async () => {
 }
 
 onMounted(() => {
-    fetchLocations()
+    if (isRestricted.value) {
+        filters.value.branch_id = authStore.user?.branch_id || null;
+        filters.value.online_shop_id = authStore.user?.online_shop_id || null;
+        locationType.value = authStore.user?.branch_id ? 'branch' : 'online';
+    } else {
+        fetchLocations()
+    }
     fetchData()
 })
 </script>
