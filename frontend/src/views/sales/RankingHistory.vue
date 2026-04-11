@@ -695,12 +695,13 @@ const fetchLocations = async () => {
             axios.get('/branches'),
             axios.get('/online-shops'),
             axios.get('/distributors'),
-            axios.get('/products') // Fetch products for the 'type' filter
+            axios.get('/products?per_page=999')
         ]);
         branches.value = bRes.data;
         onlineShops.value = oRes.data;
-        distributors.value = dRes.data;
-        productTypes.value = pRes.data.data || pRes.data;
+        distributors.value = dRes.data?.data || dRes.data || [];
+        const allProducts = pRes.data?.data || pRes.data || [];
+        productTypes.value = Array.isArray(allProducts) ? allProducts.filter(p => p.type === 'hp') : [];
     } catch (error) {
         console.error('Error fetching locations:', error);
     }
@@ -722,10 +723,11 @@ const fetchGlobalFilters = async () => {
     try {
         const [dRes, pRes] = await Promise.all([
             axios.get('/distributors'),
-            axios.get('/products')
+            axios.get('/products?per_page=999')
         ]);
-        distributors.value = dRes.data;
-        productTypes.value = pRes.data.data || pRes.data;
+        distributors.value = dRes.data?.data || dRes.data || [];
+        const allProducts = pRes.data?.data || pRes.data || [];
+        productTypes.value = Array.isArray(allProducts) ? allProducts.filter(p => p.type === 'hp') : [];
     } catch (error) {
         console.error('Error fetching global filters:', error);
     }
