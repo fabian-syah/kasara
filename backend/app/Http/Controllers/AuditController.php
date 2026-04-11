@@ -512,12 +512,12 @@ class AuditController extends Controller
                     ->whereNull('deleted_at')
                     ->where(DB::raw('COALESCE(inventory_user_id, user_id)'), $item->owner_id)
                     ->select(
-                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
+                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
                         DB::raw("(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)) as nhp_units"),
                         DB::raw("(SELECT count(*) FROM stock_out_items 
-                            JOIN product_details pd_apple ON stock_out_items.product_detail_id = pd_apple.id
-                            JOIN products on pd_apple.product_id = products.id
-                            WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
+                            $itemFilterJoin JOIN product_details pd_iphone ON stock_out_items.product_detail_id = pd_iphone.id
+                            JOIN products on pd_iphone.product_id = products.id
+                            WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
                             $itemFilterWhere
                             AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
                         ) as iphone_units")
@@ -654,12 +654,12 @@ class AuditController extends Controller
                     ->where('reporting_date', $item->reporting_date)
                     ->whereNull('deleted_at')
                     ->select(
-                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
+                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
                         DB::raw("(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)) as nhp_units"),
                         DB::raw("(SELECT count(*) FROM stock_out_items 
-                            JOIN product_details pd_apple ON stock_out_items.product_detail_id = pd_apple.id
-                            JOIN products on pd_apple.product_id = products.id
-                            WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
+                            $itemFilterJoin JOIN product_details pd_iphone ON stock_out_items.product_detail_id = pd_iphone.id
+                            JOIN products on pd_iphone.product_id = products.id
+                            WHERE stock_out_items.stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
                             $itemFilterWhere
                             AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
                         ) as iphone_units")
