@@ -862,6 +862,11 @@ const sortedData = computed(() => {
     // Sort
     const { order } = sortConfig.value
     base.sort((a, b) => {
+        // Special case for daily revenue: default to newest date first
+        if (currentView.value === 'revenue' && order === 'num-desc') {
+            return (b.reporting_date || '').localeCompare(a.reporting_date || '');
+        }
+
         if (order === 'num-desc') return (b[numKey] || 0) - (a[numKey] || 0)
         if (order === 'num-asc') return (a[numKey] || 0) - (b[numKey] || 0)
         if (order === 'alpha-asc') return (a[alphaKey] || '').localeCompare(b[alphaKey] || '')
