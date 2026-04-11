@@ -211,34 +211,29 @@
                             </select>
                         </div>
 
-                        <!-- Dynamic Filters based on View -->
-                        <template v-if="['sales', 'activity', 'revenue'].includes(currentView)">
-                            <select v-model="filters.distributor_id" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px]">
-                                <option :value="null">Semua Distributor</option>
-                                <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
-                            </select>
-                        </template>
-
-                        <template v-if="['brand', 'type', 'condition', 'sales', 'revenue'].includes(currentView)">
-                            <select v-model="filters.product_type_id" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[120px]">
-                                <option :value="null">Semua Tipe</option>
-                                <option v-for="p in productTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
-                            </select>
-                            <select v-model="filters.condition" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
-                                <option :value="null">Semua Kondisi</option>
-                                <option value="new">Baru</option>
-                                <option value="ex_ibox">Ex iBox</option>
-                                <option value="second">Second</option>
-                            </select>
-                            <select v-model="filters.capacity" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px]">
-                                <option :value="null">Semua GB</option>
-                                <option v-for="gb in capacities" :key="gb" :value="gb">{{ gb }}GB</option>
-                            </select>
-                        </template>
+                        <!-- All Filters available on every view -->
+                        <select v-model="filters.distributor_id" @change="fetchData"
+                            class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px]">
+                            <option :value="null">Semua Distributor</option>
+                            <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                        <select v-model="filters.product_type_id" @change="fetchData"
+                            class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[120px]">
+                            <option :value="null">Semua Tipe</option>
+                            <option v-for="p in productTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
+                        <select v-model="filters.condition" @change="fetchData"
+                            class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                            <option :value="null">Semua Kondisi</option>
+                            <option value="new">Baru</option>
+                            <option value="ex_ibox">Ex iBox</option>
+                            <option value="second">Second</option>
+                        </select>
+                        <select v-model="filters.capacity" @change="fetchData"
+                            class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px]">
+                            <option :value="null">Semua GB</option>
+                            <option v-for="gb in capacities" :key="gb" :value="gb">{{ gb }}GB</option>
+                        </select>
                     </div>
 
                     <!-- Search -->

@@ -449,9 +449,12 @@ class AuditController extends Controller
         $csQuery = StockOut::whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate]);
 
-        if ($request->distributor_id) {
-            $csQuery->whereHas('items.productDetail', function($q) use ($request) {
-                $q->where('distributor_id', $request->distributor_id);
+        if ($requestedDistributorId || $requestedCondition || $requestedCapacity || $request->product_type_id) {
+            $csQuery->whereHas('items.productDetail', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+                if ($requestedDistributorId) $q->where('distributor_id', $requestedDistributorId);
+                if ($requestedCondition) $q->where('condition', $requestedCondition);
+                if ($requestedCapacity) $q->where('storage', $requestedCapacity);
+                if ($request->product_type_id) $q->where('product_id', $request->product_type_id);
             });
         }
         
@@ -564,6 +567,11 @@ class AuditController extends Controller
                         $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                 }
             })
+            ->where(function ($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity) {
+                if ($requestedDistributorId) $q->where('product_details.distributor_id', $requestedDistributorId);
+                if ($requestedCondition) $q->where('product_details.condition', $requestedCondition);
+                if ($requestedCapacity) $q->where('product_details.storage', $requestedCapacity);
+            })
             ->select('products.name', 'products.brand', DB::raw('count(*) as count'))
             ->groupBy('products.name', 'products.brand')
             ->get();
@@ -591,6 +599,11 @@ class AuditController extends Controller
                     if (!empty($onlineShopIds))
                         $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                 }
+            })
+            ->where(function ($q) use ($requestedDistributorId, $requestedCapacity, $request) {
+                if ($requestedDistributorId) $q->where('product_details.distributor_id', $requestedDistributorId);
+                if ($requestedCapacity) $q->where('product_details.storage', $requestedCapacity);
+                if ($request->product_type_id) $q->where('product_details.product_id', $request->product_type_id);
             })
             ->select('product_details.condition', DB::raw('count(*) as count'))
             ->groupBy('product_details.condition')
