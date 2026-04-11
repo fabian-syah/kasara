@@ -478,7 +478,8 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { 
     Loader2, ChevronDown, Calendar, Trophy, ArrowLeft, RefreshCw, 
     TrendingUp, Users, Layers, Smartphone, Tag, RotateCcw,
-    Search, ListFilter, ChevronRight, Truck, MapPin, Globe
+    Search, ListFilter, ChevronRight, Truck, MapPin, Globe,
+    ToggleLeft, ToggleRight
 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
@@ -735,7 +736,7 @@ const goBack = () => {
 
 // Hierarchical Brand Report
 const brandHierarchy = computed(() => {
-    const raw = data.value.brand_sales || []
+    const raw = salesData.value.brand_sales || []
     const map = new Map()
 
     raw.forEach(item => {
