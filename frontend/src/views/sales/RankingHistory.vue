@@ -48,12 +48,38 @@
 
                 <div v-else class="flex items-center gap-2">
                     <select v-model="selectedMonth" @change="handleMonthChange"
-                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0">
+                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0 shadow-sm transition-all hover:border-primary-500">
                         <option v-for="m in availableMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
                     </select>
                     <select v-model="selectedYear" @change="handleMonthChange"
-                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0">
+                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0 shadow-sm transition-all hover:border-primary-500">
                         <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+                    </select>
+                </div>
+
+                <!-- Location Filter (Branch/OS) -->
+                <div class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1 shadow-sm">
+                    <div class="flex items-center gap-1 group">
+                        <div class="p-1.5 bg-gray-50 dark:bg-surface-900 rounded-lg group-hover:bg-primary-500/10 transition-colors">
+                            <MapPin v-if="locationType === 'branch'" :size="14" class="text-text-secondary group-hover:text-primary-500" />
+                            <Globe v-else :size="14" class="text-text-secondary group-hover:text-primary-500" />
+                        </div>
+                        <select v-model="locationType" @change="handleLocationTypeChange"
+                            class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
+                            <option value="branch">Cabang</option>
+                            <option value="online">Online</option>
+                        </select>
+                    </div>
+                    <div class="w-px h-4 bg-gray-200 dark:bg-surface-700 mr-1"></div>
+                    <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchData"
+                        class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                        <option :value="null">Semua Cabang</option>
+                        <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                    </select>
+                    <select v-else v-model="filters.online_shop_id" @change="fetchData"
+                        class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                        <option :value="null">Semua Toko Online</option>
+                        <option v-for="s in onlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
                     </select>
                 </div>
             </div>
@@ -323,13 +349,17 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { 
     Loader2, ChevronDown, Calendar, Trophy, ArrowLeft, RefreshCw, 
     TrendingUp, Users, Layers, Smartphone, Tag, RotateCcw,
-    Search, ListFilter, ChevronRight, Truck
+    Search, ListFilter, ChevronRight, Truck, MapPin, Globe
 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 
 const authStore = useAuthStore()
 const storageBaseUrl = computed(() => authStore.storageBaseUrl)
+
+const branches = ref([])
+const onlineShops = ref([])
+const locationType = ref('branch')
 
 const loading = ref(false)
 const currentView = ref('menu')
@@ -431,6 +461,8 @@ const getTodayLocal = () => {
 const filters = ref({
     start_date: getTodayLocal(),
     end_date: getTodayLocal(),
+    branch_id: null,
+    online_shop_id: null
 })
 
 const formattedDateDisplay = computed(() => {
@@ -574,7 +606,9 @@ const fetchData = async () => {
     try {
         const params = { 
             start_date: filters.value.start_date,
-            end_date: filters.value.end_date
+            end_date: filters.value.end_date,
+            branch_id: filters.value.branch_id,
+            online_shop_id: filters.value.online_shop_id
         };
         const response = await axios.get('/audit/sales', { params })
         salesData.value = response.data
@@ -585,7 +619,27 @@ const fetchData = async () => {
     }
 }
 
+const handleLocationTypeChange = () => {
+    filters.value.branch_id = null;
+    filters.value.online_shop_id = null;
+    fetchData();
+}
+
+const fetchLocations = async () => {
+    try {
+        const [bRes, oRes] = await Promise.all([
+            axios.get('/branches'),
+            axios.get('/online-shops')
+        ]);
+        branches.value = bRes.data;
+        onlineShops.value = oRes.data;
+    } catch (error) {
+        console.error('Error fetching locations:', error);
+    }
+}
+
 onMounted(() => {
+    fetchLocations()
     fetchData()
 })
 </script>

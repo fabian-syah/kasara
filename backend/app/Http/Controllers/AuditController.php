@@ -99,7 +99,9 @@ class AuditController extends Controller
             });
         };
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'pindah_cabang', 'retur', 'cancel_penjualan'];
+        $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        $activityCategories = ['refund', 'angkat_barang'];
+        $salesCategories = array_merge($successCategories, $activityCategories, ['pindah_cabang', 'retur', 'cancel_penjualan']);
 
         // 1. Daily Sales
         $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
@@ -440,11 +442,18 @@ class AuditController extends Controller
             ->whereBetween('reporting_date', [$startDate, $endDate]);
         $scopeToAccess($csQuery);
 
-        $csSales = $csQuery->with(['inventoryUser', 'user'])
+        $csSales = $csQuery->with(['user'])
             ->select(
                 'user_id',
-                DB::raw("count(case when category in ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade') then 1 end) as total_units_sold"),
-                DB::raw("sum(case when category in ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade') then selling_price else 0 end) as total_revenue"),
+                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
+                    (SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + 
+                    COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)
+                ) ELSE 0 END) as total_units_sold"),
+                DB::raw("sum(case 
+                    when category in ('" . implode("','", $successCategories) . "') then selling_price 
+                    when category = 'refund' then -selling_price
+                    else 0 
+                end) as total_revenue"),
                 DB::raw("sum(case when category = 'tukar_tambah' or category = 'tukar_unit' or category = 'angkat_barang' or category = 'downgrade' then 1 else 0 end) as angkat_barang_count"),
                 DB::raw("sum(case when category = 'refund' then 1 else 0 end) as refund_count")
             )
@@ -519,13 +528,13 @@ class AuditController extends Controller
         }
 
         // 6. Daily History (Total Omset per Day)
-        $historyQuery = StockOut::whereIn('category', $salesCategories)
+        $historyQuery = StockOut::whereIn('category', $successCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate]);
         $scopeToAccess($historyQuery);
         $dailyHistory = $historyQuery->select(
                 'reporting_date',
                 DB::raw('sum(selling_price) as total_omset'),
-                DB::raw('count(*) as total_units')
+                DB::raw('sum((SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)) as total_units')
             )
             ->groupBy('reporting_date')
             ->orderByDesc('reporting_date')

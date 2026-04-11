@@ -283,7 +283,7 @@ class DashboardController extends Controller
             return null;
 
         try {
-            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund'];
 
             // Use reporting date logic
             $location = $user->branch ?: ($user->onlineShop ?: null);
@@ -327,7 +327,10 @@ class DashboardController extends Controller
                 $stats = $query->select(
                     'users.branch_id',
                     'users.online_shop_id',
-                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as total_omset')
+                    DB::raw("SUM(CASE 
+                        WHEN stock_outs.category = 'refund' THEN -COALESCE(stock_outs.selling_price, 0)
+                        ELSE COALESCE(stock_outs.selling_price, 0)
+                    END) as total_omset")
                 )
                     ->groupBy('users.branch_id', 'users.online_shop_id')
                     ->get();
@@ -380,8 +383,11 @@ class DashboardController extends Controller
                 return $query->select(
                     'users.id',
                     'users.name',
-                    DB::raw('COUNT(stock_outs.id) as units'),
-                    DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset')
+                    DB::raw("COUNT(CASE WHEN stock_outs.category != 'refund' THEN stock_outs.id END) as units"),
+                    DB::raw("SUM(CASE 
+                        WHEN stock_outs.category = 'refund' THEN -COALESCE(stock_outs.selling_price, 0)
+                        ELSE COALESCE(stock_outs.selling_price, 0)
+                    END) as omset")
                 )
                     ->groupBy('users.id', 'users.name')
                     ->orderByDesc('units')
