@@ -212,7 +212,7 @@
                         </div>
 
                         <!-- Dynamic Filters based on View -->
-                        <template v-if="['sales', 'activity'].includes(currentView)">
+                        <template v-if="['sales', 'activity', 'revenue'].includes(currentView)">
                             <select v-model="filters.distributor_id" @change="fetchData"
                                 class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px]">
                                 <option :value="null">Semua Distributor</option>
@@ -220,7 +220,12 @@
                             </select>
                         </template>
 
-                        <template v-if="['brand', 'type', 'condition'].includes(currentView)">
+                        <template v-if="['brand', 'type', 'condition', 'sales', 'revenue'].includes(currentView)">
+                            <select v-model="filters.product_type_id" @change="fetchData"
+                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[120px]">
+                                <option :value="null">Semua Tipe</option>
+                                <option v-for="p in productTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+                            </select>
                             <select v-model="filters.condition" @change="fetchData"
                                 class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
                                 <option :value="null">Semua Kondisi</option>
@@ -409,6 +414,7 @@ const branches = ref([])
 const onlineShops = ref([])
 const locationType = ref('branch')
 const distributors = ref([])
+const productTypes = ref([])
 const capacities = [16, 32, 64, 128, 256, 512, 1024]
 
 const loading = ref(false)
@@ -537,7 +543,7 @@ const sortedData = computed(() => {
         alphaKey = 'reporting_date'
     } else if (currentView.value === 'sales' || currentView.value === 'activity') {
         base = [...(salesData.value.cs_sales || [])]
-        numKey = currentView.value === 'sales' ? 'total_sales' : 'total_refund';
+        numKey = currentView.value === 'sales' ? 'total_sales' : 'total_angkat_barang';
         alphaKey = 'cs_name'
     } else if (currentView.value === 'brand') {
         base = [...(salesData.value.brand_sales || [])]
@@ -690,20 +696,23 @@ const handleLocationTypeChange = () => {
 
 const fetchLocations = async () => {
     try {
-        const [bRes, oRes, dRes] = await Promise.all([
+        const [bRes, oRes, dRes, pRes] = await Promise.all([
             axios.get('/branches'),
             axios.get('/online-shops'),
-            axios.get('/distributors')
+            axios.get('/distributors'),
+            axios.get('/products') // Fetch products for the 'type' filter
         ]);
         branches.value = bRes.data;
         onlineShops.value = oRes.data;
         distributors.value = dRes.data;
+        productTypes.value = pRes.data.data || pRes.data;
     } catch (error) {
         console.error('Error fetching locations:', error);
     }
 }
 
 onMounted(() => {
+    fetchGlobalFilters() // Always fetch distributors and products for filtering
     if (isRestricted.value) {
         filters.value.branch_id = authStore.user?.branch_id || null;
         filters.value.online_shop_id = authStore.user?.online_shop_id || null;
@@ -713,6 +722,19 @@ onMounted(() => {
     }
     fetchData()
 })
+
+const fetchGlobalFilters = async () => {
+    try {
+        const [dRes, pRes] = await Promise.all([
+            axios.get('/distributors'),
+            axios.get('/products')
+        ]);
+        distributors.value = dRes.data;
+        productTypes.value = pRes.data.data || pRes.data;
+    } catch (error) {
+        console.error('Error fetching global filters:', error);
+    }
+}
 </script>
 
 <style scoped>

@@ -98,6 +98,9 @@ class AuditController extends Controller
                 });
             });
         };
+        $requestedDistributorId = $request->distributor_id;
+        $requestedCondition = $request->condition;
+        $requestedCapacity = $request->capacity;
 
         $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
         $activityCategories = ['refund', 'angkat_barang'];
@@ -457,45 +460,79 @@ class AuditController extends Controller
             ->select(
                 'owners.id as owner_id',
                 'owners.name as owner_name',
+                'owners.full_name as owner_full_name',
                 'owners.photo as owner_photo',
                 'owners.photo_inventory as owner_photo_inv',
-                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
-                    (SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + 
-                    COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)
-                ) ELSE 0 END) as total_units_sold"),
-                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
-                    SELECT count(*) FROM stock_out_items 
-                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
-                    JOIN products ON product_details.product_id = products.id 
-                    WHERE stock_out_id = stock_outs.id AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
-                ) ELSE 0 END) as iphone_units"),
-                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
-                    SELECT count(*) FROM stock_out_items 
-                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
-                    JOIN products ON product_details.product_id = products.id 
-                    WHERE stock_out_id = stock_outs.id AND NOT (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
-                ) ELSE 0 END) as android_units"),
-                DB::raw("SUM(CASE WHEN category in ('" . implode("','", $successCategories) . "') THEN (
-                    SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id
-                ) ELSE 0 END) as non_hp_units"),
                 DB::raw("sum(case 
-                    when category in ('" . implode("','", $successCategories) . "') then selling_price 
-                    when category = 'refund' then -selling_price
+                    when stock_outs.category in ('" . implode("','", $successCategories) . "') then stock_outs.selling_price 
+                    when stock_outs.category = 'refund' then -stock_outs.selling_price
                     else 0 
                 end) as total_revenue"),
-                DB::raw("sum(case when category = 'tukar_tambah' or category = 'tukar_unit' or category = 'angkat_barang' or category = 'downgrade' then 1 else 0 end) as angkat_barang_count"),
-                DB::raw("sum(case when category = 'refund' then 1 else 0 end) as refund_count")
+                DB::raw("sum(case when stock_outs.category = 'tukar_tambah' or stock_outs.category = 'tukar_unit' or stock_outs.category = 'angkat_barang' or stock_outs.category = 'downgrade' then 1 else 0 end) as angkat_barang_count"),
+                DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as refund_count")
             )
-            ->groupBy('owners.id', 'owners.name', 'owners.photo', 'owners.photo_inventory')
+            ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($startDate, $endDate, $successCategories) {
+                // Fetch units separately to avoid complex aggregate issues
+                // We MUST re-apply the filters (distributor, condition, capacity) to these unit counts
+                $filterClause = " s2.reporting_date BETWEEN '$startDate' AND '$endDate' AND COALESCE(s2.inventory_user_id, s2.user_id) = $item->owner_id AND s2.category IN ('" . implode("','", $successCategories) . "')";
+                $itemFilterJoin = "";
+                $itemFilterWhere = "";
+                
+                if ($requestedDistributorId) {
+                    $itemFilterJoin .= " JOIN product_details pd_dist ON stock_out_items.product_detail_id = pd_dist.id ";
+                    $itemFilterWhere .= " AND pd_dist.distributor_id = $requestedDistributorId ";
+                }
+                if ($requestedCondition) {
+                    if (!str_contains($itemFilterJoin, 'product_details pd_dist')) {
+                        $itemFilterJoin .= " JOIN product_details pd_cond ON stock_out_items.product_detail_id = pd_cond.id ";
+                        $itemFilterWhere .= " AND pd_cond.condition = '$requestedCondition' ";
+                    } else {
+                        $itemFilterWhere .= " AND pd_dist.condition = '$requestedCondition' ";
+                    }
+                }
+                if ($requestedCapacity) {
+                    if (!str_contains($itemFilterJoin, 'product_details')) {
+                        $itemFilterJoin .= " JOIN product_details pd_cap ON stock_out_items.product_detail_id = pd_cap.id ";
+                        $itemFilterWhere .= " AND pd_cap.storage = '$requestedCapacity' ";
+                    } else {
+                        // Use existing alias from previous if
+                        $alias = str_contains($itemFilterJoin, 'pd_dist') ? 'pd_dist' : 'pd_cond';
+                        $itemFilterWhere .= " AND $alias.storage = '$requestedCapacity' ";
+                    }
+                }
+
+                $units = DB::table('stock_outs')
+                    ->whereIn('category', $successCategories)
+                    ->whereBetween('reporting_date', [$startDate, $endDate])
+                    ->whereNull('deleted_at')
+                    ->where(DB::raw('COALESCE(inventory_user_id, user_id)'), $item->owner_id)
+                    ->select(
+                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
+                        DB::raw("(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)) as nhp_units"),
+                        DB::raw("(SELECT count(*) FROM stock_out_items 
+                            JOIN product_details pd_apple ON stock_out_items.product_detail_id = pd_apple.id
+                            JOIN products on pd_apple.product_id = products.id
+                            WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
+                            $itemFilterWhere
+                            AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
+                        ) as iphone_units")
+                    )
+                    ->first();
+
+                $totalHp = (int) ($units->hp_units ?? 0);
+                $totalNonHp = (int) ($units->nhp_units ?? 0);
+                $iphoneUnits = (int) ($units->iphone_units ?? 0);
+
                 return [
-                    'cs_name' => $item->owner_name ?? 'Unknown',
+                    'owner_id' => $item->owner_id,
+                    'cs_name' => $item->owner_full_name ?? $item->owner_name ?? 'Unknown',
                     'photo' => $item->owner_photo_inv ?? $item->owner_photo ?? null,
-                    'total_sales' => (int) $item->total_units_sold,
-                    'iphone_units' => (int) $item->iphone_units,
-                    'android_units' => (int) $item->android_units,
-                    'non_hp_units' => (int) $item->non_hp_units,
+                    'total_sales' => $totalHp + $totalNonHp,
+                    'iphone_units' => $iphoneUnits,
+                    'android_units' => $totalHp - $iphoneUnits,
+                    'non_hp_units' => $totalNonHp,
                     'total_refund' => (int) $item->refund_count,
                     'total_angkat_barang' => (int) $item->angkat_barang_count,
                     'grand_total' => (float) $item->total_revenue
@@ -565,21 +602,70 @@ class AuditController extends Controller
         $scopeToAccess($historyQuery);
         $dailyHistory = $historyQuery->select(
                 'reporting_date',
-                DB::raw('sum(selling_price) as total_omset'),
-                DB::raw('sum((SELECT count(*) FROM stock_out_items WHERE stock_out_id = stock_outs.id) + COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)) as total_units'),
-                DB::raw("SUM((SELECT count(*) FROM stock_out_items 
-                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
-                    JOIN products ON product_details.product_id = products.id 
-                    WHERE stock_out_id = stock_outs.id AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%'))) as iphone_units"),
-                DB::raw("SUM((SELECT count(*) FROM stock_out_items 
-                    JOIN product_details ON stock_out_items.product_detail_id = product_details.id 
-                    JOIN products ON product_details.product_id = products.id 
-                    WHERE stock_out_id = stock_outs.id AND NOT (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%'))) as android_units"),
-                DB::raw("SUM(COALESCE((SELECT sum(quantity) FROM stock_out_non_hp_items WHERE stock_out_id = stock_outs.id), 0)) as non_hp_units")
+                DB::raw('sum(selling_price) as total_omset')
             )
             ->groupBy('reporting_date')
             ->orderByDesc('reporting_date')
-            ->get();
+            ->get()
+            ->map(function ($item) use ($successCategories) {
+                // Fetch units separately
+                // We MUST re-apply the filters (distributor, condition, capacity) to these unit counts
+                $filterClause = " s2.reporting_date = '$item->reporting_date' AND s2.category IN ('" . implode("','", $successCategories) . "')";
+                $itemFilterJoin = "";
+                $itemFilterWhere = "";
+
+                if ($requestedDistributorId) {
+                    $itemFilterJoin .= " JOIN product_details pd_dist ON stock_out_items.product_detail_id = pd_dist.id ";
+                    $itemFilterWhere .= " AND pd_dist.distributor_id = $requestedDistributorId ";
+                }
+                if ($requestedCondition) {
+                    if (!str_contains($itemFilterJoin, 'product_details pd_dist')) {
+                        $itemFilterJoin .= " JOIN product_details pd_cond ON stock_out_items.product_detail_id = pd_cond.id ";
+                        $itemFilterWhere .= " AND pd_cond.condition = '$requestedCondition' ";
+                    } else {
+                        $itemFilterWhere .= " AND pd_dist.condition = '$requestedCondition' ";
+                    }
+                }
+                if ($requestedCapacity) {
+                    if (!str_contains($itemFilterJoin, 'product_details')) {
+                        $itemFilterJoin .= " JOIN product_details pd_cap ON stock_out_items.product_detail_id = pd_cap.id ";
+                        $itemFilterWhere .= " AND pd_cap.storage = '$requestedCapacity' ";
+                    } else {
+                        $alias = str_contains($itemFilterJoin, 'pd_dist') ? 'pd_dist' : 'pd_cond';
+                        $itemFilterWhere .= " AND $alias.storage = '$requestedCapacity' ";
+                    }
+                }
+
+                $units = DB::table('stock_outs')
+                    ->whereIn('category', $successCategories)
+                    ->where('reporting_date', $item->reporting_date)
+                    ->whereNull('deleted_at')
+                    ->select(
+                        DB::raw("(SELECT count(*) FROM stock_out_items $itemFilterJoin WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause) $itemFilterWhere) as hp_units"),
+                        DB::raw("(SELECT COALESCE(sum(quantity), 0) FROM stock_out_non_hp_items WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)) as nhp_units"),
+                        DB::raw("(SELECT count(*) FROM stock_out_items 
+                            JOIN product_details pd_apple ON stock_out_items.product_detail_id = pd_apple.id
+                            JOIN products on pd_apple.product_id = products.id
+                            WHERE stock_out_id IN (SELECT id FROM stock_outs as s2 WHERE $filterClause)
+                            $itemFilterWhere
+                            AND (LOWER(products.brand) LIKE '%apple%' OR LOWER(products.brand) LIKE '%iphone%')
+                        ) as iphone_units")
+                    )
+                    ->first();
+
+                $totalHp = (int) ($units->hp_units ?? 0);
+                $totalNonHp = (int) ($units->nhp_units ?? 0);
+                $iphoneUnits = (int) ($units->iphone_units ?? 0);
+
+                return [
+                    'reporting_date' => $item->reporting_date,
+                    'total_omset' => (float) $item->total_omset,
+                    'total_units' => $totalHp + $totalNonHp,
+                    'iphone_units' => $iphoneUnits,
+                    'android_units' => $totalHp - $iphoneUnits,
+                    'non_hp_units' => $totalNonHp
+                ];
+            });
 
         // 7. Report per Distributor
         $distributorStats = DB::table('stock_out_items')
