@@ -211,8 +211,8 @@
                             </select>
                         </div>
 
-                        <!-- Filters (hidden on daily/revenue and brand view) -->
-                        <template v-if="!['revenue', 'brand'].includes(currentView)">
+                        <!-- Filters (hidden on daily/revenue, brand, and distributor view) -->
+                        <template v-if="!['revenue', 'brand', 'distributor'].includes(currentView)">
                         <select v-model="filters.distributor_id" @change="fetchData"
                             class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px] appearance-none">
                             <option :value="null" class="dark:bg-surface-800">Semua Distributor</option>
@@ -253,6 +253,34 @@
                         :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
                         <component :is="showBrandDistributor ? ToggleRight : ToggleLeft" :size="16" />
                         Tampilkan Distributor
+                    </button>
+                    <button @click="showBrandType = !showBrandType"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan Tipe
+                    </button>
+                    <button @click="showBrandCondition = !showBrandCondition"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandCondition ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan Kondisi
+                    </button>
+                    <button @click="showBrandGb = !showBrandGb"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandGb ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan GB
+                    </button>
+                </div>
+
+                <!-- Breakdown Toggles (Distributor View Only) -->
+                <div v-if="currentView === 'distributor'" class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 dark:border-surface-700">
+                    <button @click="showBrandDistributor = !showBrandDistributor"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                        :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                        <component :is="showBrandDistributor ? ToggleRight : ToggleLeft" :size="16" />
+                        Tampilkan Brand
                     </button>
                     <button @click="showBrandType = !showBrandType"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
@@ -423,6 +451,87 @@
                                         <template v-for="d in row.tree">
                                             <template v-for="t in d.types">
                                                 <template v-for="(c, cIdx) in t.conditions" :key="row.brand + '-' + cIdx">
+                                                    <tr class="bg-white/30 dark:bg-surface-800/20">
+                                                        <td class="px-6 py-1.5"></td>
+                                                        <td class="px-6 py-1.5"></td>
+                                                        <td class="px-6 py-1.5 pl-10">
+                                                            <div class="flex items-center gap-2">
+                                                                <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">
+                                                                    {{ formatCondition(c.condition) }}
+                                                                </span>
+                                                                <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">
+                                                                    {{ c.capacity }}GB
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                        <td class="px-6 py-1.5"></td>
+                                                    </tr>
+                                                </template>
+                                            </template>
+                                        </template>
+                                    </template>
+                                </template>
+                            </template>
+                            <template v-else-if="currentView === 'distributor'">
+                                <template v-for="(row, idx) in distributorHierarchy" :key="row.distributor">
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-surface-700/50 transition-colors group">
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center w-8 h-8 rounded-lg font-black text-sm" :class="getRankBadgeClass(idx)">
+                                                {{ idx + 1 }}
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex flex-col">
+                                                <span class="font-black text-sm text-text-primary dark:text-white uppercase tracking-tight">{{ row.distributor }}</span>
+                                            </div>
+                                        </td>
+                                        <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                        <td class="px-6 py-4 text-center font-black text-indigo-500 uppercase">{{ row.qty }}</td>
+                                        <td class="px-6 py-4"></td>
+                                    </tr>
+                                    <!-- Nested Brands under Distributor -->
+                                    <template v-if="showBrandType" v-for="b in row.tree" :key="b.label">
+                                        <tr class="bg-indigo-50/20 dark:bg-indigo-900/10">
+                                            <td class="px-6 py-2"></td>
+                                            <td class="px-6 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 pl-10">— {{ b.label }}</td>
+                                            <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
+                                            <td class="px-6 py-2 text-center text-xs font-black text-indigo-500">{{ b.qty }}</td>
+                                            <td class="px-6 py-2"></td>
+                                        </tr>
+                                        <template v-for="t in b.types">
+                                            <tr class="bg-gray-50/30 dark:bg-surface-900/30">
+                                                <td class="px-6 py-2"></td>
+                                                <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">{{ t.label }}</td>
+                                                <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
+                                                <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{ t.qty }}</td>
+                                                <td class="px-6 py-2"></td>
+                                            </tr>
+                                            <template v-if="showBrandCondition || showBrandGb" v-for="(c, cIdx) in t.conditions" :key="row.distributor + '-' + b.label + '-' + t.label + '-' + cIdx">
+                                                <tr class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
+                                                    <td class="px-6 py-1.5"></td>
+                                                    <td class="px-6 py-1.5"></td>
+                                                    <td class="px-6 py-1.5 pl-10">
+                                                        <div class="flex items-center gap-2">
+                                                            <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">
+                                                                {{ formatCondition(c.condition) }}
+                                                            </span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">
+                                                                {{ c.capacity }}GB
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                    <td class="px-6 py-1.5"></td>
+                                                </tr>
+                                            </template>
+                                        </template>
+                                    </template>
+                                    <!-- If Brand is hidden but Detail is shown -->
+                                    <template v-if="!showBrandType && (showBrandCondition || showBrandGb)">
+                                        <template v-for="b in row.tree">
+                                            <template v-for="t in b.types">
+                                                <template v-for="(c, cIdx) in t.conditions">
                                                     <tr class="bg-white/30 dark:bg-surface-800/20">
                                                         <td class="px-6 py-1.5"></td>
                                                         <td class="px-6 py-1.5"></td>
@@ -835,6 +944,61 @@ const brandHierarchy = computed(() => {
             tree: Array.from(e.tree.values()).map(d => ({
                 ...d,
                 types: Array.from(d.types.values()).map(t => ({
+                    ...t,
+                    conditions: Array.from(t.conditions.values()).sort((a,b) => b.qty - a.qty)
+                })).sort((a,b) => b.qty - a.qty)
+            })).sort((a,b) => b.qty - a.qty)
+        }))
+        .sort((a,b) => b.qty - a.qty)
+})
+
+// Hierarchical Distributor Report
+const distributorHierarchy = computed(() => {
+    const raw = salesData.value.distributor_sales || []
+    const map = new Map()
+
+    raw.forEach(item => {
+        const dist = item.distributor
+        if (!map.has(dist)) {
+            map.set(dist, { distributor: dist, qty: 0, tree: new Map() })
+        }
+        const entry = map.get(dist)
+        entry.qty += item.qty
+
+        const brand = item.brand || '-'
+        if (!entry.tree.has(brand)) {
+            entry.tree.set(brand, { label: brand, qty: 0, types: new Map() })
+        }
+        const bNode = entry.tree.get(brand)
+        bNode.qty += item.qty
+
+        const type = item.product_type || '-'
+        if (!bNode.types.has(type)) {
+            bNode.types.set(type, { label: type, qty: 0, conditions: new Map() })
+        }
+        const tNode = bNode.types.get(type)
+        tNode.qty += item.qty
+
+        const cond = item.condition || '-'
+        const gb = item.storage || '-'
+        const cgKey = `${cond}||${gb}`
+
+        if (!tNode.conditions.has(cgKey)) {
+            tNode.conditions.set(cgKey, { 
+                condition: cond, 
+                capacity: gb, 
+                qty: 0 
+            })
+        }
+        tNode.conditions.get(cgKey).qty += item.qty
+    })
+
+    return Array.from(map.values())
+        .map(e => ({
+            ...e,
+            tree: Array.from(e.tree.values()).map(b => ({
+                ...b,
+                types: Array.from(b.types.values()).map(t => ({
                     ...t,
                     conditions: Array.from(t.conditions.values()).sort((a,b) => b.qty - a.qty)
                 })).sort((a,b) => b.qty - a.qty)
