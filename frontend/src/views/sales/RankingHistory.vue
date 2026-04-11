@@ -211,7 +211,8 @@
                             </select>
                         </div>
 
-                        <!-- All Filters available on every view -->
+                        <!-- Filters (hidden on daily/revenue view) -->
+                        <template v-if="currentView !== 'revenue'">
                         <select v-model="filters.distributor_id" @change="fetchData"
                             class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px] appearance-none">
                             <option :value="null" class="dark:bg-surface-800">Semua Distributor</option>
@@ -234,6 +235,7 @@
                             <option :value="null" class="dark:bg-surface-800">Semua GB</option>
                             <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb }}GB</option>
                         </select>
+                        </template>
                     </div>
 
                     <!-- Search -->
@@ -620,6 +622,14 @@ const formatCondition = (cond) => {
 const navigateTo = (view) => {
     currentView.value = view
     searchQuery.value = ''
+    // Reset product filters when entering revenue view (filters are hidden there)
+    if (view === 'revenue') {
+        filters.value.distributor_id = null;
+        filters.value.product_type_id = null;
+        filters.value.condition = null;
+        filters.value.capacity = null;
+        fetchData();
+    }
     // Set default sort based on view
     if (view === 'revenue' || view === 'sales') sortConfig.value.order = 'num-desc'
     else sortConfig.value.order = 'num-desc'
