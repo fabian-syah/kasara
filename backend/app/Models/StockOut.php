@@ -22,8 +22,10 @@ class StockOut extends Model
                 if ($user) {
                     if ($user->branch_id) {
                         $location = $user->branch;
+                        $model->branch_id = $user->branch_id;
                     } elseif ($user->online_shop_id) {
                         $location = $user->onlineShop;
+                        $model->online_shop_id = $user->online_shop_id;
                     }
                 }
                 
@@ -101,6 +103,9 @@ class StockOut extends Model
         'global_discount_value',
         'global_discount_type',
         'notes',
+        'branch_id',
+        'online_shop_id',
+        'warehouse_id',
     ];
 
     protected $casts = [

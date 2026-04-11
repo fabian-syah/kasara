@@ -384,7 +384,8 @@ class AuditController extends Controller
 
         if ($request->condition) $hpQuery->where('product_details.condition', $request->condition);
         if ($request->product_type_id) $hpQuery->where('products.id', $request->product_type_id);
-        if ($request->capacity) $hpQuery->where('product_details.storage', $request->capacity); // storage is often used for GB
+        if ($request->capacity) $hpQuery->where('product_details.storage', $request->capacity);
+        if ($request->distributor_id) $hpQuery->where('product_details.distributor_id', $request->distributor_id);
 
         $hpQuery->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 if ($requestedBranchId) {
@@ -456,7 +457,9 @@ class AuditController extends Controller
         $scopeToAccess($csQuery);
 
         $csSales = $csQuery
-            ->leftJoin('users as owners', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'), '=', 'owners.id')
+            ->leftJoin('users as owners', function($join) {
+                $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
+            })
             ->select(
                 'owners.id as owner_id',
                 'owners.name as owner_name',
@@ -473,7 +476,7 @@ class AuditController extends Controller
             )
             ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')
             ->get()
-            ->map(function ($item) use ($startDate, $endDate, $successCategories) {
+            ->map(function ($item) use ($startDate, $endDate, $successCategories, $requestedDistributorId, $requestedCondition, $requestedCapacity) {
                 // Fetch units separately to avoid complex aggregate issues
                 // We MUST re-apply the filters (distributor, condition, capacity) to these unit counts
                 $filterClause = " s2.reporting_date BETWEEN '$startDate' AND '$endDate' AND COALESCE(s2.inventory_user_id, s2.user_id) = $item->owner_id AND s2.category IN ('" . implode("','", $successCategories) . "')";
@@ -599,6 +602,16 @@ class AuditController extends Controller
         // 6. Daily History (Total Omset per Day)
         $historyQuery = StockOut::whereIn('category', $successCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate]);
+
+        if ($requestedDistributorId || $requestedCondition || $requestedCapacity || $request->product_type_id) {
+            $historyQuery->whereHas('items.productDetail', function($q) use ($requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+                if ($requestedDistributorId) $q->where('distributor_id', $requestedDistributorId);
+                if ($requestedCondition) $q->where('condition', $requestedCondition);
+                if ($requestedCapacity) $q->where('storage', $requestedCapacity);
+                if ($request->product_type_id) $q->where('product_id', $request->product_type_id);
+            });
+        }
+
         $scopeToAccess($historyQuery);
         $dailyHistory = $historyQuery->select(
                 'reporting_date',
@@ -607,7 +620,7 @@ class AuditController extends Controller
             ->groupBy('reporting_date')
             ->orderByDesc('reporting_date')
             ->get()
-            ->map(function ($item) use ($successCategories) {
+            ->map(function ($item) use ($successCategories, $requestedDistributorId, $requestedCondition, $requestedCapacity) {
                 // Fetch units separately
                 // We MUST re-apply the filters (distributor, condition, capacity) to these unit counts
                 $filterClause = " s2.reporting_date = '$item->reporting_date' AND s2.category IN ('" . implode("','", $successCategories) . "')";
