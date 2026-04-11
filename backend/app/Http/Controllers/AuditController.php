@@ -373,7 +373,8 @@ class AuditController extends Controller
             ];
         });
 
-        // HP
+        // 2. Report per Brand
+        $brandStats = [];
         $hpQuery = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
