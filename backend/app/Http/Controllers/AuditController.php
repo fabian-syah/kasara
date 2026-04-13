@@ -40,13 +40,13 @@ class AuditController extends Controller
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
             $today = $logicalNow->toDateString();
-            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
             $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
-                // Daily view: only today and yesterday
-                if ($startDate < $yesterday) {
+                // Daily view: allow up to 7 days back
+                if ($startDate < $sevenDaysAgo) {
                     $startDate = $today;
                     $endDate = $today;
                 }

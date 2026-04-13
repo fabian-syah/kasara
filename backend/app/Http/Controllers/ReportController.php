@@ -199,12 +199,12 @@ class ReportController extends Controller
         $user = $request->user();
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
             $today = $logicalNow->toDateString();
-            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
             $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate && $endDate && $startDate === $endDate) {
-                if ($startDate < $yesterday) {
+                if ($startDate < $sevenDaysAgo) {
                     $startDate = $today;
                     $endDate = $today;
                 }
@@ -442,12 +442,12 @@ class ReportController extends Controller
         $user = $request->user();
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
             $today = $logicalNow->toDateString();
-            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
             $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate && $endDate && $startDate === $endDate) {
-                if ($startDate < $yesterday) {
+                if ($startDate < $sevenDaysAgo) {
                     $startDate = $today;
                     $endDate = $today;
                 }

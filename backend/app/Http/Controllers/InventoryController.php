@@ -561,8 +561,8 @@ class InventoryController extends Controller
             $d = $request->date;
             if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
                 $today = $logicalNow->toDateString();
-                $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday) $d = $today;
+                $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
+                if ($d < $sevenDaysAgo) $d = $today;
             }
             $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
@@ -802,6 +802,7 @@ class InventoryController extends Controller
     // Export Stock Out History as CSV
     public function exportStockOutHistory(Request $request)
     {
+        $user = $request->user();
         $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
 
         if ($request->search) {

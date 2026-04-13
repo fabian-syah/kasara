@@ -60,7 +60,7 @@ const getTodayLocal = () => {
 const getMinDate = computed(() => {
     if (!isRestricted.value) return null;
     const d = getLogicalDate();
-    d.setDate(d.getDate() - 1); // Allow today and yesterday
+    d.setDate(d.getDate() - 7); // Allow past 7 days
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');

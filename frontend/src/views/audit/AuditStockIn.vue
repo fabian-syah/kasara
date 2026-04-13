@@ -554,7 +554,7 @@ const restrictedYears = computed(() => {
 
 const getMinDate = () => {
     const d = getLogicalDate();
-    d.setDate(d.getDate() - 1); // Yesterday
+    d.setDate(d.getDate() - 7); // Allow past 7 days
     return d.toISOString().split('T')[0];
 };
 

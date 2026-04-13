@@ -802,8 +802,8 @@ class StockOutController extends Controller
             $d = $request->date;
             if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
                 $today = $logicalNow->toDateString();
-                $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday) {
+                $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
+                if ($d < $sevenDaysAgo) {
                     $d = $today;
                 }
             }
