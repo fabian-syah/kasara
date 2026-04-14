@@ -93,6 +93,21 @@ class User extends Authenticatable
         return $this->hasMany(UserPlacement::class);
     }
 
+    /**
+     * Check if the user has any specific assignment in any location category.
+     * This is used to determine if a restricted role (Audit/Analist) should
+     * get global access to a category or be limited to their assignments.
+     */
+    public function hasAnySpecificAssignment()
+    {
+        // Cache this for the request? Or simple check.
+        if ($this->branch_id || $this->online_shop_id || $this->warehouse_id || $this->distributor_id) {
+            return true;
+        }
+
+        return $this->placements()->exists();
+    }
+
     // Helper to get all accessible branch IDs (including primary and extra)
     public function getAccessibleBranchIds()
     {
@@ -108,7 +123,12 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist'])) {
-            return !empty($assignedIds) ? $assignedIds : \App\Models\Branch::pluck('id')->toArray();
+            // If they have any specific assignment anywhere, they are NOT a global auditor
+            if ($this->hasAnySpecificAssignment()) {
+                return $assignedIds;
+            }
+            // Fallback to all only if they have absolutely no assignments anywhere
+            return \App\Models\Branch::pluck('id')->toArray();
         }
 
         return $assignedIds;
@@ -129,7 +149,10 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist'])) {
-            return !empty($assignedIds) ? $assignedIds : \App\Models\OnlineShop::pluck('id')->toArray();
+            if ($this->hasAnySpecificAssignment()) {
+                return $assignedIds;
+            }
+            return \App\Models\OnlineShop::pluck('id')->toArray();
         }
 
         return $assignedIds;
@@ -150,7 +173,10 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist', 'admin_produk'])) {
-            return !empty($assignedIds) ? $assignedIds : \App\Models\Warehouse::pluck('id')->toArray();
+            if ($this->hasAnySpecificAssignment()) {
+                return $assignedIds;
+            }
+            return \App\Models\Warehouse::pluck('id')->toArray();
         }
 
         return $assignedIds;
@@ -171,7 +197,10 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist', 'admin_produk'])) {
-            return !empty($assignedIds) ? $assignedIds : \App\Models\Distributor::pluck('id')->toArray();
+            if ($this->hasAnySpecificAssignment()) {
+                return $assignedIds;
+            }
+            return \App\Models\Distributor::pluck('id')->toArray();
         }
 
         return $assignedIds;
