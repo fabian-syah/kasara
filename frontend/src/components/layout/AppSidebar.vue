@@ -122,7 +122,6 @@ const menuItems = [
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
         ]
     },
-    { id: "products", path: "/products", label: "Produk", icon: Package },
     {
         id: "transactions",
         path: "/transactions",

@@ -28,7 +28,7 @@ class ReportController extends Controller
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
 
-        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType) {
+        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType, $accessibleBranchIds, $accessibleOnlineShopIds, $isRestricted) {
             $hpNew = 0;
             $hpSecond = 0;
             $hpExIbox = 0;
@@ -254,6 +254,7 @@ class ReportController extends Controller
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+        $isRestricted = !$user->hasRole(['super_admin', 'analist', 'audit']);
 
         if ($isRestricted) {
             // Apply restrictions to the filters if they are provided
