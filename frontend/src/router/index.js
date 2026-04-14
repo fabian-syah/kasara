@@ -170,7 +170,7 @@ const routes = [
                 meta: {
                     title: 'Stock Opname',
                     menu: 'inventory',
-                    permissions: ['inventory.view']
+                    permissions: ['inventory.view', 'audit.view']
                 }
             },
             {
@@ -180,7 +180,7 @@ const routes = [
                 meta: {
                     title: 'Input Barang Masuk',
                     menu: 'inventory', // Highlight Inventory menu
-                    permissions: ['inventory.view', 'inventory.manage', 'inventory.stock_in']
+                    permissions: ['inventory.view', 'inventory.manage', 'inventory.stock_in', 'audit.view']
                 }
             },
             {
@@ -190,7 +190,7 @@ const routes = [
                 meta: {
                     title: 'Pengeluaran Stok',
                     menu: 'inventory',
-                    permissions: ['inventory.manage', 'inventory.stock_in', 'inventory.stock_out']
+                    permissions: ['inventory.manage', 'inventory.stock_in', 'inventory.stock_out', 'audit.view']
                 }
             },
             {
