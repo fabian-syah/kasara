@@ -67,20 +67,26 @@
                     </div>
 
                     <!-- Branch Filter -->
-                    <div v-if="canFilterBranch" class="relative min-w-[200px]">
+                    <div v-if="canFilterBranch && locations.length > 1" class="relative min-w-[200px]">
                         <select v-model="selectedLocationKey" @change="fetchData"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Lokasi</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                                 :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`">
-                                <span v-if="loc.type === 'branch'">[Cabang]</span>
-                                <span v-else-if="loc.type === 'online_shop'">[Toko]</span>
-                                <span v-else>[Gudang]</span>
-                                {{ loc.name }}
+                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : '[Gudang]' }} {{ loc.name }}
                             </option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+                    <!-- Single Branch Display -->
+                    <div v-else-if="canFilterBranch && locations.length === 1" 
+                        class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-primary-500"></div>
+                        <span class="text-xs font-bold text-text-secondary">
+                            {{ locations[0].type === 'branch' ? '[Cabang]' : locations[0].type === 'online_shop' ? '[Toko]' : '[Gudang]' }}
+                        </span>
+                        <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                     </div>
                 </div>
             </div>

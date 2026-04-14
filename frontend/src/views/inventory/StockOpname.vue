@@ -479,7 +479,7 @@ onMounted(() => { fetchAllInventory(); });
             </div>
             <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <!-- Location Filter -->
-                <div v-if="canFilterBranch" class="min-w-[180px] w-full sm:w-auto">
+                <div v-if="canFilterBranch && locations.length > 1" class="min-w-[180px] w-full sm:w-auto">
                     <select v-model="selectedLocationKey"
                         class="block w-full rounded-xl border-0 py-2 text-text-primary shadow-sm ring-1 ring-inset ring-surface-700/50 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                         <option value="all">Semua Lokasi</option>
@@ -488,6 +488,15 @@ onMounted(() => { fetchAllInventory(); });
                             {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
                         </option>
                     </select>
+                </div>
+                <!-- Single Branch Display -->
+                <div v-else-if="canFilterBranch && locations.length === 1" 
+                    class="px-4 py-2 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-primary-500"></div>
+                    <span class="text-xs font-bold text-text-secondary">
+                        {{ locations[0].type === 'branch' ? '[Cabang]' : '[Online]' }}
+                    </span>
+                    <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                 </div>
 
                 <button @click="fetchAllInventory"

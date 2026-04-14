@@ -4,7 +4,7 @@
             <h1 class="text-2xl font-bold tracking-tight text-text-primary">Audit Penjualan</h1>
 
             <!-- Location Filter (Branch + Online Shop) -->
-            <div v-if="canFilterBranch" class="min-w-[200px]">
+            <div v-if="canFilterBranch && locations.length > 1" class="min-w-[200px]">
                 <select v-model="selectedLocationKey" @change="fetchData"
                     class="block w-full rounded-2xl border-0 py-2.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-200 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                     <option value="all">Semua Cabang/Toko</option>
@@ -13,6 +13,12 @@
                         {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
                     </option>
                 </select>
+            </div>
+            <!-- Single Branch Display -->
+            <div v-else-if="canFilterBranch && locations.length === 1" 
+                class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-2xl flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-primary-500"></div>
+                <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
             </div>
 
             <!-- Date Filter -->

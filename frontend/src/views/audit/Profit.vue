@@ -6,7 +6,7 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-2 flex-wrap">
                 <!-- Location Filter (Branch + Online Shop) -->
-                <div v-if="canFilterBranch" class="min-w-[200px]">
+                <div v-if="canFilterBranch && locations.length > 1" class="min-w-[200px]">
                     <select v-model="selectedLocationKey" @change="fetchData"
                         class="block w-full rounded-md border-0 py-1.5 text-text-primary shadow-sm ring-1 ring-inset ring-surface-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                         <option value="all">Semua Cabang/Toko</option>
@@ -15,6 +15,12 @@
                             {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
                         </option>
                     </select>
+                </div>
+                <!-- Single Branch Display -->
+                <div v-else-if="canFilterBranch && locations.length === 1" 
+                    class="px-4 py-2 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-lg flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-primary-500"></div>
+                    <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                 </div>
 
                 <select v-model="selectedYear" @change="fetchData"

@@ -61,7 +61,7 @@
                     </div>
 
                     <!-- Branch Filter (Modern UI) -->
-                    <div v-if="canFilterBranch" class="relative min-w-[200px]">
+                    <div v-if="canFilterBranch && locations.length > 1" class="relative min-w-[200px]">
                         <select v-model="selectedLocationKey" @change="fetchData"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Cabang/Toko</option>
@@ -72,6 +72,12 @@
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+                    <!-- Single Branch Display (if only 1 branch available) -->
+                    <div v-else-if="canFilterBranch && locations.length === 1" 
+                        class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-primary-500"></div>
+                        <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                     </div>
 
                     <!-- Export Button -->
