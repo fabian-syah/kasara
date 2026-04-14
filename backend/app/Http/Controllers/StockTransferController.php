@@ -20,39 +20,33 @@ class StockTransferController extends Controller
     {
         $user = Auth::user();
 
-        // Determine user's placement
-        $destinationType = null;
-        $destinationId = null;
-
-        if ($user->branch_id) {
-            $destinationType = 'branch';
-            $destinationId = $user->branch_id;
-        } elseif ($user->warehouse_id) {
-            $destinationType = 'warehouse';
-            $destinationId = $user->warehouse_id;
-        } elseif ($user->online_shop_id) {
-            $destinationType = 'online_shop';
-            $destinationId = $user->online_shop_id;
-        } elseif ($user->hasRole('super_admin')) {
-            // Super admin can see all or filter by param
-            if ($request->branch_id) {
-                $destinationType = 'branch';
-                $destinationId = $request->branch_id;
-            }
-            // Add other filters if needed
-        }
-
-        if (!$destinationType && !$user->hasRole('super_admin')) {
-            return response()->json(['message' => 'Anda tidak memiliki lokasi untuk menerima barang.'], 403);
-        }
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleWarehouseIds = $user->getAccessibleWarehouseIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
 
         $query = StockOut::with(['user', 'items.product.brandRelation', 'nonHpItems.product.brandRelation', 'destination'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
-        if ($destinationType) {
-            $query->where('destination_type', $destinationType)
-                ->where('destination_id', $destinationId);
+        if (!$user->hasRole('super_admin')) {
+            $query->where(function($q) use ($accessibleBranchIds, $accessibleWarehouseIds, $accessibleOnlineShopIds) {
+                if (!empty($accessibleBranchIds)) {
+                    $q->orWhere(fn($sub) => $sub->where('destination_type', 'branch')->whereIn('destination_id', $accessibleBranchIds));
+                }
+                if (!empty($accessibleWarehouseIds)) {
+                    $q->orWhere(fn($sub) => $sub->where('destination_type', 'warehouse')->whereIn('destination_id', $accessibleWarehouseIds));
+                }
+                if (!empty($accessibleOnlineShopIds)) {
+                    $q->orWhere(fn($sub) => $sub->where('destination_type', 'online_shop')->whereIn('destination_id', $accessibleOnlineShopIds));
+                }
+                
+                if (empty($accessibleBranchIds) && empty($accessibleWarehouseIds) && empty($accessibleOnlineShopIds)) {
+                    $q->whereRaw('1=0');
+                }
+            });
+        } elseif ($request->branch_id) {
+            $query->where('destination_type', 'branch')
+                ->where('destination_id', $request->branch_id);
         }
 
         // Logic to allow finding transfers sent TO this user specifically? 

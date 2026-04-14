@@ -108,16 +108,18 @@ class DashboardController extends Controller
             ->whereIn('category', $categories)
             ->where('reporting_date', $currentReportingDate);
 
-        if ($role === 'online_shop' && $user->online_shop_id) {
-            $todaySalesQuery->whereHas('user', function ($q) use ($user) {
-                $q->where('online_shop_id', $user->online_shop_id);
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+
+        if ($isRestricted) {
+            $todaySalesQuery->whereHas('user', function ($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                $q->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                    if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
+                    if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                    if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $sub->whereRaw('1=0');
+                });
             });
-        } elseif ($role === 'toko_offline' && $user->branch_id) {
-            $todaySalesQuery->whereHas('user', function ($q) use ($user) {
-                $q->where('branch_id', $user->branch_id);
-            });
-        } else {
-            $todaySalesQuery->where('user_id', $user->id);
         }
 
         $todaySales = $todaySalesQuery->get();
@@ -251,10 +253,16 @@ class DashboardController extends Controller
         // Include both inventory and sales roles in the leaderboard
         $leaderboardQuery = User::role(['inventory', 'toko_offline'])->select('id', 'name', 'photo_inventory');
 
-        if ($user->online_shop_id) {
-            $leaderboardQuery->where('online_shop_id', $user->online_shop_id);
-        } elseif ($user->branch_id) {
-            $leaderboardQuery->where('branch_id', $user->branch_id);
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+
+        if ($isRestricted) {
+            $leaderboardQuery->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                if (!empty($accessibleBranchIds)) $q->orWhereIn('branch_id', $accessibleBranchIds);
+                if (!empty($accessibleOnlineShopIds)) $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
+            });
         }
 
         $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
@@ -473,6 +481,18 @@ class DashboardController extends Controller
                 ];
             };
 
+            $accessibleBranchIds = $user->getAccessibleBranchIds();
+            $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+            
+            // Only show rankings for locations this user has access to, or all if unrestricted
+            $restrictRanks = function($ranking) use ($user, $accessibleBranchIds, $accessibleOnlineShopIds) {
+                if ($user->hasRole('super_admin') || $user->hasRole('analist')) return $ranking;
+                return $ranking->filter(function($item) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                    if ($item['type'] === 'branch') return in_array($item['id'], $accessibleBranchIds);
+                    return in_array($item['id'], $accessibleOnlineShopIds);
+                })->values();
+            };
+
             $myType = $user->branch_id ? 'branch' : 'online_shop';
             $myId = $user->branch_id ?: $user->online_shop_id;
 
@@ -487,10 +507,10 @@ class DashboardController extends Controller
             };
 
             return [
-                'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
-                'yesterday' => $getPodiumData($yesterdayRanking, $lastMonthRanking, $myType, $myId),
-                'this_month' => $getPodiumData($thisMonthRanking, $lastMonthRanking, $myType, $myId),
-                'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
+                'today' => $getPodiumData($restrictRanks($todayRanking), $yesterdayRanking, $myType, $myId),
+                'yesterday' => $getPodiumData($restrictRanks($yesterdayRanking), $lastMonthRanking, $myType, $myId),
+                'this_month' => $getPodiumData($restrictRanks($thisMonthRanking), $lastMonthRanking, $myType, $myId),
+                'last_month' => $getPodiumData($restrictRanks($lastMonthRanking), null, $myType, $myId),
                 'summary' => [
                     'today_global' => $findMyRank($todayRanking),
                     'today_local' => $findMyUserRankInBranch($todayUserRanking, $user->id),

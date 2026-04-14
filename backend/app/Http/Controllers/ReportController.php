@@ -18,8 +18,12 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $isOnlineShop = $user->hasRole('online_shop') || $user->hasRole('toko_online') || $user->online_shop_id;
-        $isBranch = $user->branch_id && !$user->hasRole('super_admin') && !$user->hasRole('analist');
+        $isBranch = ($user->branch_id || !empty($user->placements)) && !$user->hasRole('super_admin') && !$user->hasRole('analist') && !$user->hasRole('audit');
         $filterType = $request->query('type', 'all'); // all, hp, non-hp
+
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+        $isRestricted = !$user->hasRole('super_admin');
 
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
@@ -37,12 +41,21 @@ class ReportController extends Controller
                     ->where('product_details.status', 'available')
                     ->whereNull('products.deleted_at');
 
-                if ($isOnlineShop && $user->online_shop_id) {
-                    $hpQuery->where('product_details.placement_type', 'online_shop')
-                        ->where('product_details.placement_id', $user->online_shop_id);
-                } elseif ($isBranch) {
-                    $hpQuery->where('product_details.placement_type', 'branch')
-                        ->where('product_details.placement_id', $user->branch_id);
+                if ($isRestricted) {
+                    if (!empty($accessibleOnlineShopIds) && !empty($accessibleBranchIds)) {
+                        $hpQuery->where(function($q) use ($accessibleOnlineShopIds, $accessibleBranchIds) {
+                            $q->where(fn($sub) => $sub->where('product_details.placement_type', 'online_shop')->whereIn('product_details.placement_id', $accessibleOnlineShopIds))
+                              ->orWhere(fn($sub) => $sub->where('product_details.placement_type', 'branch')->whereIn('product_details.placement_id', $accessibleBranchIds));
+                        });
+                    } elseif (!empty($accessibleOnlineShopIds)) {
+                        $hpQuery->where('product_details.placement_type', 'online_shop')
+                            ->whereIn('product_details.placement_id', $accessibleOnlineShopIds);
+                    } elseif (!empty($accessibleBranchIds)) {
+                        $hpQuery->where('product_details.placement_type', 'branch')
+                            ->whereIn('product_details.placement_id', $accessibleBranchIds);
+                    } else {
+                        $hpQuery->whereRaw('1=0');
+                    }
                 }
 
                 $hpStats = $hpQuery->select('product_details.condition', DB::raw('count(*) as count'))
@@ -60,12 +73,21 @@ class ReportController extends Controller
                     ->where('products.brand', $brand->name)
                     ->whereNull('products.deleted_at');
 
-                if ($isOnlineShop && $user->online_shop_id) {
-                    $nonHpQuery->where('inventories.placement_type', 'online_shop')
-                        ->where('inventories.placement_id', $user->online_shop_id);
-                } elseif ($isBranch) {
-                    $nonHpQuery->where('inventories.placement_type', 'branch')
-                        ->where('inventories.placement_id', $user->branch_id);
+                if ($isRestricted) {
+                    if (!empty($accessibleOnlineShopIds) && !empty($accessibleBranchIds)) {
+                        $nonHpQuery->where(function($q) use ($accessibleOnlineShopIds, $accessibleBranchIds) {
+                            $q->where(fn($sub) => $sub->where('inventories.placement_type', 'online_shop')->whereIn('inventories.placement_id', $accessibleOnlineShopIds))
+                              ->orWhere(fn($sub) => $sub->where('inventories.placement_type', 'branch')->whereIn('inventories.placement_id', $accessibleBranchIds));
+                        });
+                    } elseif (!empty($accessibleOnlineShopIds)) {
+                        $nonHpQuery->where('inventories.placement_type', 'online_shop')
+                            ->whereIn('inventories.placement_id', $accessibleOnlineShopIds);
+                    } elseif (!empty($accessibleBranchIds)) {
+                        $nonHpQuery->where('inventories.placement_type', 'branch')
+                            ->whereIn('inventories.placement_id', $accessibleBranchIds);
+                    } else {
+                        $nonHpQuery->whereRaw('1=0');
+                    }
                 }
 
                 $nonHpCount = $nonHpQuery->sum('inventories.quantity');
@@ -227,36 +249,61 @@ class ReportController extends Controller
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
 
         // Role-based scoping and strict isolation
-        $user = $request->user();
-        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+        $requestedBranchId = $branchId;
+        $requestedOnlineShopId = $onlineShopId;
 
-        // Final filter values
-        $filterBranchId = $branchId;
-        $filterOnlineShopId = $onlineShopId;
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
 
         if ($isRestricted) {
-            // Strict enforcement: if user has a branch, they can ONLY see that branch
-            // If user has an online shop, they can ONLY see that shop
-            $filterBranchId = $user->branch_id;
-            $filterOnlineShopId = $user->online_shop_id;
+            // Apply restrictions to the filters if they are provided
+            if ($requestedBranchId && !in_array($requestedBranchId, $accessibleBranchIds)) {
+                $requestedBranchId = 'FORBIDDEN';
+            }
+            if ($requestedOnlineShopId && !in_array($requestedOnlineShopId, $accessibleOnlineShopIds)) {
+                $requestedOnlineShopId = 'FORBIDDEN';
+            }
+
+            // If no specific filter requested, default to all accessible
+            if (!$requestedBranchId && !$requestedOnlineShopId) {
+                $filterBranchIds = $accessibleBranchIds;
+                $filterOnlineShopIds = $accessibleOnlineShopIds;
+            } else {
+                $filterBranchIds = $requestedBranchId === 'FORBIDDEN' ? [] : ($requestedBranchId ? [$requestedBranchId] : []);
+                $filterOnlineShopIds = $requestedOnlineShopId === 'FORBIDDEN' ? [] : ($requestedOnlineShopId ? [$requestedOnlineShopId] : []);
+            }
+        } else {
+            $filterBranchIds = $requestedBranchId ? [$requestedBranchId] : [];
+            $filterOnlineShopIds = $requestedOnlineShopId ? [$requestedOnlineShopId] : [];
         }
 
         // Helper to apply strict user-based filters to any query joined with users
-        $applyIsolation = function ($query, $ownerJoinRequired = false) use ($filterBranchId, $filterOnlineShopId) {
-            $tableName = 'users'; // default
+        $applyIsolation = function ($query, $ownerJoinRequired = false) use ($filterBranchIds, $filterOnlineShopIds, $isRestricted) {
+            if (!$isRestricted && empty($filterBranchIds) && empty($filterOnlineShopIds)) {
+                return $query;
+            }
 
+            $tableName = 'users'; // default
             if ($ownerJoinRequired) {
                 // If we need to join the transaction owner to check isolation independently of the CS
                 $query->join('users as owners', 'stock_outs.user_id', '=', 'owners.id');
                 $tableName = 'owners';
             }
 
-            if ($filterBranchId) {
-                $query->where("{$tableName}.branch_id", $filterBranchId);
-            }
-            if ($filterOnlineShopId) {
-                $query->where("{$tableName}.online_shop_id", $filterOnlineShopId);
-            }
+            $query->where(function($q) use ($tableName, $filterBranchIds, $filterOnlineShopIds) {
+                if (!empty($filterBranchIds)) {
+                    $q->orWhereIn("{$tableName}.branch_id", $filterBranchIds);
+                }
+                if (!empty($filterOnlineShopIds)) {
+                    $q->orWhereIn("{$tableName}.online_shop_id", $filterOnlineShopIds);
+                }
+                
+                // If restricted but no access allowed at all
+                if (empty($filterBranchIds) && empty($filterOnlineShopIds)) {
+                    $q->whereRaw('1=0');
+                }
+            });
+
             return $query;
         };
 
@@ -631,7 +678,22 @@ class ReportController extends Controller
             ];
         });
 
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+
         $report = $branchStats->concat($onlineStats);
+        
+        // Apply scope to the final collection
+        if ($isRestricted) {
+            $report = $report->filter(function($item) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                if ($item->type === 'Offline') {
+                    return in_array($item->id, $accessibleBranchIds);
+                } else {
+                    return in_array($item->id, $accessibleOnlineShopIds);
+                }
+            });
+        }
         
         $includeZero = $request->boolean('include_zero', false);
         

@@ -45,7 +45,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner']);
 
         // 2. Base Query
         if ($type === 'non-hp') {
@@ -317,7 +317,7 @@ class InventoryController extends Controller
         }
 
         // Role restriction (Unrestricted can see all, others only their accessible ones)
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner', 'audit'];
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user) {
                 $branchIds = $user->getAccessibleBranchIds();
@@ -1355,7 +1355,7 @@ class InventoryController extends Controller
         $account = \App\Models\User::findOrFail($id);
 
         // Security Check: Only the creator can edit (unless they have high roles)
-        $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+        $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk'];
         $userRole = strtolower($user->roles->first()->name ?? '');
         
         if ($account->created_by !== $user->id && !in_array($userRole, $unrestrictedRoles)) {
@@ -1594,7 +1594,7 @@ class InventoryController extends Controller
 
         // Common Restriction Logic (Same as Index)
         $applyLocationFilter = function ($query, $tablePrefix = '') use ($user) {
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user, $tablePrefix) {
                     $branchIds = $user->getAccessibleBranchIds();
@@ -2036,7 +2036,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'audit', 'analist', 'owner']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner']);
 
         // Non-HP Query
         $nonHpQuery = Inventory::with('product')
@@ -2212,7 +2212,7 @@ class InventoryController extends Controller
         $account = \App\Models\User::findOrFail($id);
 
         // Security Check: Only creator or high roles
-        $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+        $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk'];
         if ($account->created_by !== $user->id && !$user->hasRole($unrestrictedRoles)) {
             return response()->json(['message' => 'Unauthorized action.'], 403);
         }
