@@ -669,8 +669,9 @@ const fetchLocations = async () => {
         const allLocations = [...allBranches, ...allShops, ...allWarehouses];
 
         const user = authStore.user;
-        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-        const isGlobalRole = privilegedRoles.includes(role);
+        const role = (authStore.userRole || '').toLowerCase();
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
 
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
@@ -687,39 +688,27 @@ const fetchLocations = async () => {
             });
         }
 
-        allowedBranchIds = [
-            ...new Set(allowedBranchIds.map((id) => Number(id))),
-        ];
+        allowedBranchIds = [...new Set(allowedBranchIds.map((id) => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map((id) => Number(id)))];
-        allowedWarehouseIds = [
-            ...new Set(allowedWarehouseIds.map((id) => Number(id))),
-        ];
+        allowedWarehouseIds = [...new Set(allowedWarehouseIds.map((id) => Number(id)))];
 
-        const hasAnyRestriction =
-            allowedBranchIds.length > 0 ||
-            allowedShopIds.length > 0 ||
-            allowedWarehouseIds.length > 0;
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0;
 
-        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+        if (isAlwaysGlobal) {
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
             locations.value = allLocations.filter((loc) => {
-                if (loc.type === 'branch')
-                    return allowedBranchIds.includes(Number(loc.id));
-                if (loc.type === 'online_shop')
-                    return allowedShopIds.includes(Number(loc.id));
-                if (loc.type === 'warehouse')
-                    return allowedWarehouseIds.includes(Number(loc.id));
+                if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
+                if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
                 return false;
             });
-            if (
-                locations.value.length === 1 &&
-                selectedLocationKey.value === 'all'
-            ) {
+            if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
                 const loc = locations.value[0];
-                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'
-                    }:${loc.id}`;
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`;
             }
+        } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
+            locations.value = allLocations;
         } else {
             locations.value = [];
         }

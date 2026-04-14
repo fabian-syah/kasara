@@ -203,19 +203,6 @@ const formatCurrency = (value) => {
                     </div>
                 </div>
 
-                <!-- Non-IMEI Category -->
-                <div v-if="form.category === 'non_imei'" class="animate-in">
-                    <label class="block text-sm font-medium text-text-secondary mb-1">Kategori</label>
-                    <div class="relative">
-                        <Tag class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="16" />
-                        <select v-model="form.non_imei_category"
-                            class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
-                            <option value="">Pilih Kategori...</option>
-                            <option v-for="cat in nonImeiCategories" :key="cat" :value="cat">{{ cat }}</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div>
                     <label class="block text-sm font-medium text-text-secondary mb-1">Nama Tipe</label>
                     <div class="relative">
@@ -223,6 +210,19 @@ const formatCurrency = (value) => {
                         <input v-model="form.name" type="text"
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none placeholder:text-text-secondary"
                             placeholder="Contoh: iPhone 15 Pro, Casing..">
+                    </div>
+                </div>
+
+                <!-- Non-IMEI Category (Moved below Name) -->
+                <div v-if="form.category === 'non_imei'" class="animate-in">
+                    <label class="block text-sm font-medium text-text-secondary mb-1">Kategori Spesifik</label>
+                    <div class="relative">
+                        <Tag class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="16" />
+                        <select v-model="form.non_imei_category"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
+                            <option value="">Pilih Kategori...</option>
+                            <option v-for="cat in nonImeiCategories" :key="cat" :value="cat">{{ cat }}</option>
+                        </select>
                     </div>
                 </div>
 

@@ -909,8 +909,10 @@ const fetchBranches = async () => {
         const allLocations = [...allBranches, ...allShops];
 
         const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
-        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-        const isGlobalRole = privilegedRoles.some(r => role.includes(r));
+        const role = (authStore.userRole || '').toLowerCase();
+
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
 
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
@@ -929,7 +931,7 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
-        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+        if (isAlwaysGlobal) {
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
             locations.value = allLocations.filter(loc => {
@@ -941,6 +943,8 @@ const fetchBranches = async () => {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
+        } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
+            locations.value = allLocations;
         } else {
             locations.value = [];
         }

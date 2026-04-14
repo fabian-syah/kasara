@@ -830,10 +830,11 @@ const fetchBranches = async () => {
         const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
 
-        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-        const isGlobalRole = privilegedRoles.some(r => role.includes(r));
+        // New Logic: Distinguish between always-global roles and restricted-but-privileged roles
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
 
-        // Collect allowed IDs
+        // Collect allowed IDs from primary and placements
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
 
@@ -853,22 +854,28 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
-        // LOGIC: If global role OR (Audit role AND no specific assignments) -> Show all
-        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+        // Determine final location list
+        if (isAlwaysGlobal) {
+            // Can see everything
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
+            // Restricted to their assigned branches/shops
             locations.value = allLocations.filter(loc => {
                 if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
                 return false;
             });
 
-            // Auto-select first if needed
+            // Auto-select first if currently 'all' but only one location exists
             if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
+        } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
+            // Global Auditor role with NO specific assignments -> Show all
+            locations.value = allLocations;
         } else {
+            // Non-audit user with no assignments -> Show nothing or maybe should show own? 
             locations.value = [];
         }
     } catch (error) {

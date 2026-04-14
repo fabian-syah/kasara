@@ -180,8 +180,8 @@ const fetchBranches = async () => {
         console.log('[DEBUG-INVENTORY] Fresh User Data:', user);
         console.log('[DEBUG-INVENTORY] All Available Shops:', allShops);
 
-        const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-        const isGlobalRole = privilegedRoles.includes(role);
+        const privilegedRoles = ['super_admin', 'owner', 'admin_produk'];
+        const isAlwaysGlobal = privilegedRoles.some(r => role.includes(r));
 
         // Collect allowed IDs
         let allowedBranchIds = [];
@@ -203,8 +203,7 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
-        // LOGIC: If global role OR (Leader role AND no specific assignments) -> Show all
-        if (isGlobalRole || (['leader'].includes(role) && !hasAnyRestriction)) {
+        if (isAlwaysGlobal) {
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
             locations.value = allLocations.filter(loc => {
@@ -218,6 +217,8 @@ const fetchBranches = async () => {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
+        } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
+            locations.value = allLocations;
         } else {
             locations.value = [];
         }
