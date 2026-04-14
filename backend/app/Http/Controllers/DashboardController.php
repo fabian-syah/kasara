@@ -322,25 +322,24 @@ class DashboardController extends Controller
             // Reusable ranking function
             $getRankingForRange = function ($startDate, $endDate = null) use ($branches, $shops, $salesCategories) {
                 $query = DB::table('stock_outs')
-                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
-                    ->whereIn('stock_outs.category', $salesCategories)
-                    ->whereNull('stock_outs.deleted_at');
+                    ->whereIn('category', $salesCategories)
+                    ->whereNull('deleted_at');
 
                 if ($endDate) {
-                    $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $query->whereBetween('reporting_date', [$startDate, $endDate]);
                 } else {
-                    $query->where('stock_outs.reporting_date', $startDate);
+                    $query->where('reporting_date', $startDate);
                 }
 
                 $stats = $query->select(
-                    'users.branch_id',
-                    'users.online_shop_id',
+                    'branch_id',
+                    'online_shop_id',
                     DB::raw("SUM(CASE 
-                        WHEN stock_outs.category = 'refund' THEN -COALESCE(stock_outs.selling_price, 0)
-                        ELSE COALESCE(stock_outs.selling_price, 0)
+                        WHEN category = 'refund' THEN -COALESCE(selling_price, 0)
+                        ELSE COALESCE(selling_price, 0)
                     END) as total_omset")
                 )
-                    ->groupBy('users.branch_id', 'users.online_shop_id')
+                    ->groupBy('branch_id', 'online_shop_id')
                     ->get();
 
                 $ranks = collect();
@@ -507,10 +506,10 @@ class DashboardController extends Controller
             };
 
             return [
-                'today' => $getPodiumData($restrictRanks($todayRanking), $yesterdayRanking, $myType, $myId),
-                'yesterday' => $getPodiumData($restrictRanks($yesterdayRanking), $lastMonthRanking, $myType, $myId),
-                'this_month' => $getPodiumData($restrictRanks($thisMonthRanking), $lastMonthRanking, $myType, $myId),
-                'last_month' => $getPodiumData($restrictRanks($lastMonthRanking), null, $myType, $myId),
+                'today' => $getPodiumData($todayRanking, $yesterdayRanking, $myType, $myId),
+                'yesterday' => $getPodiumData($yesterdayRanking, $lastMonthRanking, $myType, $myId),
+                'this_month' => $getPodiumData($thisMonthRanking, $lastMonthRanking, $myType, $myId),
+                'last_month' => $getPodiumData($lastMonthRanking, null, $myType, $myId),
                 'summary' => [
                     'today_global' => $findMyRank($todayRanking),
                     'today_local' => $findMyUserRankInBranch($todayUserRanking, $user->id),
