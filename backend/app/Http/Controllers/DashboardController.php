@@ -113,12 +113,18 @@ class DashboardController extends Controller
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
 
         if ($isRestricted) {
-            $todaySalesQuery->whereHas('user', function ($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                $q->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                    if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
-                    if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
-                    if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $sub->whereRaw('1=0');
+            $todaySalesQuery->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                $q->whereHas('user', function ($qu) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                    $qu->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                        if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
+                        if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                    });
                 });
+
+                if (!empty($accessibleBranchIds)) $q->orWhereIn('branch_id', $accessibleBranchIds);
+                if (!empty($accessibleOnlineShopIds)) $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+
+                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
             });
         }
 
@@ -322,24 +328,25 @@ class DashboardController extends Controller
             // Reusable ranking function
             $getRankingForRange = function ($startDate, $endDate = null) use ($branches, $shops, $salesCategories) {
                 $query = DB::table('stock_outs')
-                    ->whereIn('category', $salesCategories)
-                    ->whereNull('deleted_at');
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereNull('stock_outs.deleted_at');
 
                 if ($endDate) {
-                    $query->whereBetween('reporting_date', [$startDate, $endDate]);
+                    $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
                 } else {
-                    $query->where('reporting_date', $startDate);
+                    $query->where('stock_outs.reporting_date', $startDate);
                 }
 
                 $stats = $query->select(
-                    'branch_id',
-                    'online_shop_id',
+                    DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
+                    DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(CASE 
-                        WHEN category = 'refund' THEN -COALESCE(selling_price, 0)
-                        ELSE COALESCE(selling_price, 0)
+                        WHEN stock_outs.category = 'refund' THEN -COALESCE(stock_outs.selling_price, 0)
+                        ELSE COALESCE(stock_outs.selling_price, 0)
                     END) as total_omset")
                 )
-                    ->groupBy('branch_id', 'online_shop_id')
+                    ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
                     ->get();
 
                 $ranks = collect();
