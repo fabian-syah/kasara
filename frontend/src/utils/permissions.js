@@ -200,12 +200,12 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'online_scan', 'online_analysis', 'pos', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'retur_items', 'users', 'transactions', 'audit_sales', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'reports', 'report_sales', 'report_ranking', 'report_brand', 'report_type', 'stock_in_history', 'stock_out_history', 'audit_pin_resets', 'settings', 'warehouses', 'distributors', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track', 'sales_check', 'sales_check_main', 'sales_ranking'],
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'online_scan', 'online_analysis', 'pos', 'inventory', 'master_data_group', 'monitoring_group', 'support_group', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'retur_items', 'users', 'transactions', 'audit_sales', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'reports', 'report_sales', 'report_ranking', 'report_brand', 'report_type', 'stock_in_history', 'stock_out_history', 'audit_pin_resets', 'settings', 'warehouses', 'distributors', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'online_shops', 'brands', 'types', 'prices', 'branches', 'questions', 'track', 'sales_check', 'sales_check_main', 'sales_ranking'],
     [ROLES.ANALIST]: ['reports', 'report_ranking'],
-    [ROLES.ADMIN_PRODUK]: ['dashboard', 'brands', 'types', 'prices', 'track'],
+    [ROLES.ADMIN_PRODUK]: ['dashboard', 'master_data_group', 'brands', 'types', 'prices', 'track'],
     [ROLES.AUDIT]: ['dashboard', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_pin_resets', 'audit_photo_approvals', 'users', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'track'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
-    [ROLES.LEADER]: ['dashboard', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track'],
+    [ROLES.LEADER]: ['dashboard', 'monitoring_group', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track'],
     [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'track'],
     [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'sales_ranking', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'track'],

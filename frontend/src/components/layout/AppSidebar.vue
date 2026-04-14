@@ -73,15 +73,15 @@ const menuItems = [
     // Online Shop Modules
     {
         id: "online_sales_group",
-        label: "Penjualan",
-        icon: ClipboardList,
+        label: "Modul Online Shop",
+        icon: Globe,
         items: [
             { id: "online_sales", path: "/online-shop/sales", label: "Penjualan Online" },
             { id: "shopee_history", path: "/online-shop/history", label: "History Orderan Online" },
+            { id: "online_scan", path: "/online-shop/scan", label: "Scan Pesanan" },
+            { id: "online_analysis", path: "/online-shop/analysis", label: "Analisa Shopee" },
         ]
     },
-    { id: "online_scan", path: "/online-shop/scan", label: "Scan Pesanan", icon: ScanBarcode },
-    { id: "online_analysis", path: "/online-shop/analysis", label: "Analisa Shopee", icon: LineChart },
     {
         id: "reports",
         label: "Pusat Laporan",
@@ -100,10 +100,17 @@ const menuItems = [
     { id: "branches", path: "/branches", label: "Cabang Fisik", icon: Building2 },
 
     // Special
-    { id: "distributor_monitoring", path: "/distributor/monitoring", label: "Monitoring Distributor", icon: PackageSearch },
-    { id: "online_monitoring", path: "/monitoring/online", label: "Monitoring Stok Online", icon: Globe },
-    { id: "warehouse_monitoring", path: "/monitoring/warehouse", label: "Monitoring Stok Gudang", icon: Warehouse },
-    { id: "stock_summary", path: "/monitoring/summary", label: "Ringkasan Stok", icon: Box },
+    {
+        id: "monitoring_group",
+        label: "Pusat Monitoring",
+        icon: BarChart3,
+        items: [
+            { id: "stock_summary", path: "/monitoring/summary", label: "Ringkasan Stok" },
+            { id: "distributor_monitoring", path: "/distributor/monitoring", label: "Monitoring Distributor" },
+            { id: "online_monitoring", path: "/monitoring/online", label: "Monitoring Online" },
+            { id: "warehouse_monitoring", path: "/monitoring/warehouse", label: "Monitoring Gudang" },
+        ]
+    },
 
     {
         id: "inventory",
@@ -116,7 +123,6 @@ const menuItems = [
         ]
     },
     { id: "products", path: "/products", label: "Produk", icon: Package },
-    { id: "users", path: "/users", label: "Staff & Role", icon: Users },
     {
         id: "transactions",
         path: "/transactions",
@@ -155,13 +161,22 @@ const menuItems = [
     // Incoming Transfer (Barang Masuk)
 
     // Master Data
-    { id: "warehouses", path: "/warehouses", label: "Cabang & Gudang", icon: Warehouse },
-    { id: "online_shops", path: "/online-shops", label: "Toko Online", icon: Globe },
-    { id: "brands", path: "/brands", label: "Data Merek", icon: Database },
-    { id: "types", path: "/types", label: "Tipe Produk", icon: Tags },
-    { id: "prices", path: "/prices", label: "Data Harga", icon: DollarSign },
-    { id: "categories", path: "/categories", label: "Kategori", icon: Box },
-    { id: "distributors", path: "/distributors", label: "Distributor", icon: Truck },
+    {
+        id: "master_data_group",
+        label: "Modul Master Data",
+        icon: Database,
+        items: [
+            { id: "users", path: "/users", label: "Staff & Role" },
+            { id: "warehouses", path: "/warehouses", label: "Cabang & Gudang" },
+            { id: "online_shops", path: "/online-shops", label: "Toko Online" },
+            { id: "brands", path: "/brands", label: "Data Merek" },
+            { id: "types", path: "/types", label: "Tipe Produk" },
+            { id: "prices", path: "/prices", label: "Data Harga" },
+            { id: "categories", path: "/categories", label: "Kategori" },
+            { id: "distributors", path: "/distributors", label: "Distributor" },
+            { id: "payment_methods", path: "/settings/payments", label: "Metode Pembayaran" },
+        ]
+    },
 
     // Sales Menus
     { id: "sales_create", path: "/sales/create", label: "Buat Penjualan", icon: ShoppingCart },
@@ -176,14 +191,18 @@ const menuItems = [
     },
 
     // Lacak Barang
-    { id: "questions", path: "/questions", label: "Pertanyaan", icon: HelpCircle },
-    { id: "track", path: "/track", label: "Lacak & History IMEI", icon: Search },
-
-    // Retur Masuk (Gudang)
-    { id: "retur_items", path: "/retur-items", label: "Retur Masuk", icon: ArrowDownRight },
+    {
+        id: "support_group",
+        label: "Lacak & Bantuan",
+        icon: Search,
+        items: [
+            { id: "track", path: "/track", label: "Lacak & History IMEI" },
+            { id: "questions", path: "/questions", label: "Pertanyaan CS/User" },
+            { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },
+        ]
+    },
 
     { id: "settings", path: "/settings", label: "Pengaturan", icon: Settings },
-    { id: "payment_methods", path: "/settings/payments", label: "Pembayaran", icon: DollarSign },
 ];
 
 // User info
