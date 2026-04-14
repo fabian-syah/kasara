@@ -239,6 +239,11 @@ onMounted(() => {
                                         }}</span>
                                     <span v-else class="italic">-</span>
                                 </div>
+                                <div v-else-if="type.non_imei_category" class="flex gap-2 text-xs">
+                                    <span
+                                        class="bg-surface-900 px-2 py-0.5 rounded text-emerald-400 border border-emerald-500/20 capitalize">{{
+                                        type.non_imei_category }}</span>
+                                </div>
                                 <span v-else class="text-xs italic">-</span>
                             </td>
                             <td class="px-5 py-3 text-text-secondary text-xs">
@@ -282,6 +287,9 @@ onMounted(() => {
                                 <span v-if="type.category === 'imei' && type.storage"
                                     class="bg-surface-900 px-2 py-0.5 rounded text-[10px] text-text-secondary">{{
                                     type.storage }}</span>
+                                <span v-else-if="type.non_imei_category"
+                                    class="bg-surface-900 px-2 py-0.5 rounded text-[10px] text-emerald-400 border border-emerald-500/20 capitalize">{{
+                                    type.non_imei_category }}</span>
                             </div>
                         </div>
                         <div class="flex gap-1 shrink-0">

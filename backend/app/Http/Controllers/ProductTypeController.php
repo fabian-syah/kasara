@@ -58,6 +58,7 @@ class ProductTypeController extends Controller
             'category' => 'required|in:imei,non_imei,service',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
+            'non_imei_category' => 'nullable|string',
             'cost_price' => 'nullable|numeric|min:0',
             'price' => 'nullable|numeric|min:0',
         ]);
@@ -86,6 +87,7 @@ class ProductTypeController extends Controller
             'category' => 'required|in:imei,non_imei,service',
             'ram' => 'nullable|string',
             'storage' => 'nullable|string',
+            'non_imei_category' => 'nullable|string',
             'cost_price' => 'nullable|numeric|min:0',
             'price' => 'nullable|numeric|min:0',
         ]);

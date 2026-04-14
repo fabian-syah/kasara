@@ -19,7 +19,8 @@ const form = ref({
     brand_id: '',
     name: '',
     category: 'imei', // imei, non_imei, service
-    storage: ''
+    storage: '',
+    non_imei_category: ''
 });
 
 const categories = [
@@ -42,6 +43,19 @@ const capacityOptions = [
     "16/128", "16/256", "16/512", "16/1024",
     "18/128", "18/256", "18/512", "18/1024",
     "24/256", "24/512", "24/1024", "24/2064"
+];
+
+const nonImeiCategories = [
+    'laptop',
+    'TV',
+    'accesories',
+    'elektronik',
+    'fashion',
+    'kendaraan',
+    'jasa',
+    'parfum',
+    'kosmetik',
+    'makanan'
 ];
 
 const isEditing = computed(() => !!props.type);
@@ -81,7 +95,8 @@ watch(() => props.type, (newVal) => {
             brand_id: '',
             name: '',
             category: 'imei',
-            storage: ''
+            storage: '',
+            non_imei_category: ''
         };
         selectedStorage.value = [];
     }
@@ -109,6 +124,8 @@ const save = async () => {
         const payload = { ...form.value };
         if (!showSpecs.value) {
             payload.storage = null;
+        } else {
+            payload.non_imei_category = null;
         }
 
         if (isEditing.value) {
@@ -182,6 +199,19 @@ const formatCurrency = (value) => {
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
                             <option value="" disabled>Pilih Merek...</option>
                             <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Non-IMEI Category -->
+                <div v-if="form.category === 'non_imei'" class="animate-in">
+                    <label class="block text-sm font-medium text-text-secondary mb-1">Kategori</label>
+                    <div class="relative">
+                        <Tag class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="16" />
+                        <select v-model="form.non_imei_category"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl pl-10 pr-4 py-2.5 text-text-primary focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none appearance-none">
+                            <option value="">Pilih Kategori...</option>
+                            <option v-for="cat in nonImeiCategories" :key="cat" :value="cat">{{ cat }}</option>
                         </select>
                     </div>
                 </div>
