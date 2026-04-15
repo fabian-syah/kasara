@@ -47,6 +47,7 @@ const categories = [
     { value: 'event_sponsorship', label: 'Barang Keluar Event / Sponsorship' },
     { value: 'promo', label: 'Barang Keluar Promo' },
     { value: 'inventaris', label: 'Barang Keluar Inventaris' },
+    { value: 'hilang', label: 'Barang Keluar Hilang' },
 ];
 
 const fetchData = async () => {
