@@ -180,10 +180,21 @@
                                     {{ item.receipt_id }}
                                 </td>
                                 <td class="px-4 py-4">
-                                    <span
-                                        class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20 whitespace-nowrap">
-                                        {{ getCategoryLabel(item.category) }}
-                                    </span>
+                                    <div class="flex items-center">
+                                        <span
+                                            v-if="item.category === 'hilang'"
+                                            class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400 border border-red-100 dark:border-red-500/30 whitespace-nowrap animate-pulse shadow-sm shadow-red-200/50 dark:shadow-none"
+                                        >
+                                            <AlertTriangle :size="12" class="text-red-500" />
+                                            {{ getCategoryLabel(item.category) }}
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20 whitespace-nowrap"
+                                        >
+                                            {{ getCategoryLabel(item.category) }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.type }}</td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">
@@ -410,6 +421,7 @@ import {
     PackageSearch,
     ChevronLeft,
     ChevronRight,
+    AlertTriangle,
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useAuthStore } from '../../store/auth';

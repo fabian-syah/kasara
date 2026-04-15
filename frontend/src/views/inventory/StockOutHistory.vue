@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-    Search, ArrowLeft, RefreshCw, Box, Calendar, User, Truck, ClipboardList, Info, Smartphone, Package, Download
+    Search, ArrowLeft, RefreshCw, Box, Calendar, User, Truck, ClipboardList, Info, Smartphone, Package, Download, AlertTriangle
 } from 'lucide-vue-next';
 import { stockOut, inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -237,6 +237,7 @@ const getCategoryLabel = (cat) => {
         'event': 'Event',
         'promo': 'Promo',
         'inventaris': 'Inventaris',
+        'event_sponsorship': 'Event / Sponsorship',
         'keluar': 'Keluar'
     };
     return labels[cat] || cat;
@@ -254,7 +255,8 @@ const getCategoryColor = (cat) => {
         'orderan_online': 'text-orange-500 bg-orange-500/10 border-orange-500/20',
         'retur': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
         'out': 'text-surface-400 bg-surface-400/10 border-surface-400/20',
-        'keluar': 'text-purple-500 bg-purple-500/10 border-purple-500/20'
+        'keluar': 'text-purple-500 bg-purple-500/10 border-purple-500/20',
+        'event_sponsorship': 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20',
     };
     return colors[cat] || 'text-surface-400 bg-surface-400/10 border-surface-400/20';
 };
@@ -395,8 +397,9 @@ const getCategoryColor = (cat) => {
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col items-start gap-1">
                                         <span
-                                            class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
-                                            :class="getCategoryColor(item.category)">
+                                            class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap flex items-center gap-1.5"
+                                            :class="item.category === 'hilang' ? 'bg-red-500/20 text-red-500 border-red-500/30 animate-pulse font-bold' : getCategoryColor(item.category)">
+                                            <AlertTriangle v-if="item.category === 'hilang'" :size="12" />
                                             {{ getCategoryLabel(item.category) }}
                                         </span>
                                         <span v-if="item.sub_category" class="text-[10px] text-text-secondary px-1">
@@ -480,8 +483,9 @@ const getCategoryColor = (cat) => {
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col items-start gap-1">
                                         <span
-                                            class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap"
-                                            :class="getCategoryColor(item.category)">
+                                            class="px-2 py-1 rounded-lg text-xs font-medium border capitalize whitespace-nowrap flex items-center gap-1.5"
+                                            :class="item.category === 'hilang' ? 'bg-red-500/20 text-red-500 border-red-500/30 animate-pulse font-bold' : getCategoryColor(item.category)">
+                                            <AlertTriangle v-if="item.category === 'hilang'" :size="12" />
                                             {{ getCategoryLabel(item.category) }}
                                         </span>
                                         <span v-if="item.sub_category" class="text-[10px] text-text-secondary px-1">
