@@ -106,6 +106,9 @@ class StockOut extends Model
         'branch_id',
         'online_shop_id',
         'warehouse_id',
+        'missing_category',
+        'person_in_charge',
+        'loss_chronology',
     ];
 
     protected $casts = [

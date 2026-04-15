@@ -184,8 +184,12 @@ class StockOutController extends Controller
                     'tukar_unit',
                     'downgrade',
                     'cancel_penjualan',
+                    'hilang',
                 ])
             ],
+            'missing_category' => 'required_if:category,hilang|nullable|string',
+            'person_in_charge' => 'required_if:category,hilang|nullable|string',
+            'loss_chronology' => 'required_if:category,hilang|nullable|string',
             'sub_category' => 'required_if:category,keluar|nullable|string',
             'product_detail_ids' => 'required_without:non_hp_items|array',
             'product_detail_ids.*' => 'exists:product_details,id',
@@ -569,6 +573,9 @@ class StockOutController extends Controller
                 'global_discount_value' => $request->global_discount_value ?? 0,
                 'global_discount_type' => $request->global_discount_type ?? 'fixed',
                 'total_discount' => $request->total_discount ?? 0,
+                'missing_category' => $request->missing_category,
+                'person_in_charge' => $request->person_in_charge,
+                'loss_chronology' => $request->loss_chronology,
             ]);
 
             // Pre-generate PDF in the background to speed up WhatsApp sharing later

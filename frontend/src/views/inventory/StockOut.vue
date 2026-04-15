@@ -69,6 +69,7 @@ const allCategories = [
     { id: 'event_sponsorship', name: 'Event / Sponsorship', icon: Calendar, color: 'cyan' },
     { id: 'promo', name: 'Promo', icon: Percent, color: 'red' },
     { id: 'inventaris', name: 'Inventaris', icon: Archive, color: 'slate' },
+    { id: 'hilang', name: 'HILANG', icon: AlertTriangle, color: 'red', priority: true },
 ];
 
 const categories = computed(() => {
@@ -117,6 +118,9 @@ const form = ref({
     shopee_tracking_no: '',
     selling_price: null,
     notes: '',
+    missing_category: '',
+    person_in_charge: '',
+    loss_chronology: '',
     inventory_user_id: null,
     transaction_pin: '',
     // Giveaway fields
@@ -583,6 +587,8 @@ const canSubmit = computed(() => {
             return form.value.giveaway_receiver && form.value.giveaway_phone && form.value.giveaway_address;
         case 'event_sponsorship':
             return form.value.event_receiver && form.value.event_phone;
+        case 'hilang':
+            return form.value.missing_category && form.value.person_in_charge && form.value.loss_chronology.length >= 10;
         default:
             return true;
     }
@@ -1172,6 +1178,38 @@ onMounted(() => {
                     <div>
                         <label class="label">Catatan Event</label>
                         <textarea v-model="form.event_notes" class="input" rows="2" placeholder="Keterangan event (opsional)..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Hilang Details -->
+                <div v-if="selectedCategory === 'hilang'" class="space-y-4">
+                    <div class="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle class="text-red-500 mt-1" :size="20" />
+                        <div>
+                            <p class="font-bold text-red-500 text-sm">Laporan Barang Hilang</p>
+                            <p class="text-xs text-red-500/80">Laporan ini akan masuk sebagai prioritas audit. Pastikan data yang diinput benar dan dapat dipertanggungjawabkan.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="label">Kategori Kehilangan *</label>
+                        <select v-model="form.missing_category" class="input">
+                            <option value="">-- Pilih Kategori --</option>
+                            <option value="dicuri / dirampok">Dicuri / Dirampok</option>
+                            <option value="disita / diambil paksa">Disita / Diambil Paksa</option>
+                            <option value="hilang saat stok opname">Hilang saat Stok Opname</option>
+                            <option value="penggelapan">Penggelapan</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="label">Penanggung Jawab *</label>
+                        <input v-model="form.person_in_charge" class="input" placeholder="Nama personil yang bertanggung jawab" />
+                    </div>
+
+                    <div>
+                        <label class="label">Kronologi Kehilangan / Detail *</label>
+                        <textarea v-model="form.loss_chronology" class="input" rows="4" placeholder="Jelaskan bagaimana barang tersebut hilang secara detail..."></textarea>
                     </div>
                 </div>
 

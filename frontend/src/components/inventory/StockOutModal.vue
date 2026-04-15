@@ -66,6 +66,9 @@ const stockOutForm = ref({
     giveaway_postal_code: '',
     giveaway_notes: '',
     notes: '',
+    missing_category: '',
+    person_in_charge: '',
+    loss_chronology: '',
 });
 
 // Modal Searcher
@@ -261,6 +264,7 @@ const stockOutCategories = ref([
     { id: 'retur', name: 'Retur Barang', icon: 'RotateCcw', color: 'red' },
     { id: 'kesalahan_input', name: 'Kesalahan Input', icon: 'AlertTriangle', color: 'yellow' },
     { id: 'keluar', name: 'Keluar', icon: 'LogOut', color: 'purple' },
+    { id: 'hilang', name: 'HILANG', icon: 'AlertTriangle', color: 'red', priority: true },
 ]);
 
 const availableStockOutCategories = computed(() => {
@@ -429,6 +433,10 @@ const canSubmitStockOut = computed(() => {
             return true;
         case 'inventaris':
             return selectedInventoryUser.value !== null;
+        case 'hilang':
+            return stockOutForm.value.missing_category && 
+                   stockOutForm.value.person_in_charge && 
+                   stockOutForm.value.loss_chronology.length >= 10;
         default:
             return true;
     }
@@ -519,6 +527,10 @@ async function submitStockOut(pin = null) {
             formData.append('notes', stockOutForm.value.shopee_notes);
         } else if (selectedStockOutCategory.value === 'keluar') {
             formData.append('notes', stockOutForm.value.notes);
+        } else if (selectedStockOutCategory.value === 'hilang') {
+            formData.append('missing_category', stockOutForm.value.missing_category);
+            formData.append('person_in_charge', stockOutForm.value.person_in_charge);
+            formData.append('loss_chronology', stockOutForm.value.loss_chronology);
         } else {
             Object.keys(stockOutForm.value).forEach(key => {
                 if (key !== 'proof_image' && stockOutForm.value[key] !== null && stockOutForm.value[key] !== '') {
@@ -668,8 +680,11 @@ async function submitStockOut(pin = null) {
                             @click="selectStockOutCategory(category)"
                             class="flex flex-col items-center justify-center p-6 rounded-2xl border border-surface-700 bg-surface-800 hover:bg-surface-700 transition-all group gap-3 text-center shadow-sm">
                             <div
-                                :class="`p-3 rounded-full bg-${category.color}-500/10 text-${category.color}-500 group-hover:scale-110`">
+                                :class="`p-3 rounded-full bg-${category.color}-500/10 text-${category.color}-500 group-hover:scale-110 relative`">
                                 <component :is="category.icon" :size="28" />
+                                <div v-if="category.priority" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 animate-pulse">
+                                    <AlertTriangle :size="12" />
+                                </div>
                             </div>
                             <span class="font-medium text-sm md:text-base text-text-primary">{{ category.name }}</span>
                         </button>
@@ -986,6 +1001,56 @@ async function submitStockOut(pin = null) {
                                 v-model="stockOutForm.receiver_name" class="input" /></div>
                         <div class="mt-3"><label class="label">Catatan</label><textarea v-model="stockOutForm.notes"
                                 class="input"></textarea></div>
+                    </template>
+
+                    <!-- HILANG -->
+                    <template v-if="selectedStockOutCategory === 'hilang'">
+                        <div class="bg-surface-700/30 p-4 rounded-xl border border-red-500/30 mb-4">
+                            <div class="flex items-center gap-2 mb-3 text-red-500">
+                                <AlertTriangle :size="18" />
+                                <span class="text-xs uppercase font-bold">Laporan Barang Hilang (Prioritas Audit)</span>
+                            </div>
+                            <div class="space-y-3 max-h-40 overflow-y-auto">
+                                <div v-for="(item, idx) in props.selectedItems" :key="item.id"
+                                    class="bg-surface-800 p-2 rounded-lg border border-surface-700 flex justify-between items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-bold text-red-400">{{ idx + 1 }}.</span>
+                                        <span class="text-xs font-medium text-white">{{ item.product?.name }}</span>
+                                    </div>
+                                    <span v-if="item.type !== 'non-hp'" class="text-[10px] font-mono bg-red-500/10 px-1.5 rounded text-red-400">{{ item.imei }}</span>
+                                    <div v-else class="flex gap-1 items-center">
+                                        <input type="number" v-model="item.out_quantity" class="w-12 bg-surface-900 border border-surface-700 p-1 text-center text-xs" />
+                                        <span class="text-[10px] text-text-secondary">Pcs</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="label">Pilih Kategori Kehilangan *</label>
+                            <select v-model="stockOutForm.missing_category" class="input">
+                                <option value="">-- Pilih Kategori --</option>
+                                <option value="dicuri / dirampok">Dicuri / Dirampok</option>
+                                <option value="disita / diambil paksa">Disita / Diambil Paksa</option>
+                                <option value="hilang saat stok opname">Hilang saat Stok Opname</option>
+                                <option value="penggelapan">Penggelapan</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="label font-bold text-red-500 flex items-center gap-2">
+                                <User :size="14" /> Penanggung Jawab *
+                            </label>
+                            <input v-model="stockOutForm.person_in_charge" class="input border-red-500/20" placeholder="Siapa yang bertanggung jawab atas kehilangan ini?" />
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="label font-bold text-red-500 flex items-center gap-2">
+                                <Smartphone :size="14" /> Kronologi Kehilangan *
+                            </label>
+                            <textarea v-model="stockOutForm.loss_chronology" class="input border-red-500/20" rows="5" placeholder="Jelaskan secara detail bagaimana barang bisa hilang..."></textarea>
+                            <p class="text-[10px] text-text-secondary mt-1">Minimal 10 karakter.</p>
+                        </div>
                     </template>
                 </div>
             </div>

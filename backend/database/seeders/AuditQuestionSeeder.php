@@ -48,6 +48,24 @@ class AuditQuestionSeeder extends Seeder
                 'category' => 'pindah_cabang_masuk',
                 'content' => 'Apakah ada selisih barang? Jika ya, apakah sudah dilaporkan?',
             ],
+
+            // Hilang
+            [
+                'category' => 'hilang',
+                'content' => 'Apakah kronologi kejadian sudah dijelaskan secara detail dan logis?',
+            ],
+            [
+                'category' => 'hilang',
+                'content' => 'Apakah berkas pendukung (laporan polisi/berita acara) sudah dilampirkan/lengkap?',
+            ],
+            [
+                'category' => 'hilang',
+                'content' => 'Apakah sudah dipastikan tidak ada unsur kesengajaan atau penggelapan oleh internal?',
+            ],
+            [
+                'category' => 'hilang',
+                'content' => 'Apakah kerugian ini sudah disetujui oleh manajemen untuk dihapus dari stok?',
+            ],
         ];
 
         foreach ($questions as $q) {
