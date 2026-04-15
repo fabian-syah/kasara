@@ -2198,7 +2198,9 @@ class AuditController extends Controller
             'hadiah',
             'brand_ambassador',
             'promo',
-            'inventaris'
+            'inventaris',
+            'event_sponsorship',
+            'hilang',
         ];
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])

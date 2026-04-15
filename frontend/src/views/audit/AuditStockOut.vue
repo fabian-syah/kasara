@@ -438,6 +438,8 @@ const getCategoryLabel = (val) => {
         'brand_ambassador': 'Brand Ambassador',
         'promo': 'Keluar Promo',
         'inventaris': 'Keluar Inventaris',
+        'event_sponsorship': 'Event / Sponsorship',
+        'hilang': 'Hilang / Dicuri',
     };
     return categories[val] || val;
 };
