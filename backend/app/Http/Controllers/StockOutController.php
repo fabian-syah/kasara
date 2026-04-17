@@ -1188,16 +1188,30 @@ class StockOutController extends Controller
             ->where('status', 'pending');
 
         // Filter by Source (Created by user in the same location)
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'audit', 'analist', 'owner'];
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->whereHas('user', function ($q) use ($user) {
-                if ($user->branch_id) {
-                    $q->where('branch_id', $user->branch_id);
-                } elseif ($user->warehouse_id) {
-                    $q->where('warehouse_id', $user->warehouse_id);
-                } elseif ($user->online_shop_id) {
-                    $q->where('online_shop_id', $user->online_shop_id);
-                } else {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                
+                $hasFilter = false;
+                $q->where(function ($sub) use ($branchIds, $warehouseIds, $onlineShopIds, &$hasFilter) {
+                    if (!empty($branchIds)) {
+                        $sub->orWhereIn('branch_id', $branchIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $sub->orWhereIn('warehouse_id', $warehouseIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        $hasFilter = true;
+                    }
+                });
+                
+                if (!$hasFilter) {
                     $q->where('id', $user->id);
                 }
             });

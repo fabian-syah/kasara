@@ -34,6 +34,16 @@ const selectedOnlineShopId = computed(() => {
     return selectedLocationKey.value.split(':')[1];
 })
 
+const selectedWarehouseId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('W:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
+
+const selectedDistributorId = computed(() => {
+    if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('D:')) return null;
+    return selectedLocationKey.value.split(':')[1];
+})
+
 const canFilterBranch = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
@@ -42,15 +52,19 @@ const canFilterBranch = computed(() => {
 
 const fetchBranches = async () => {
     try {
-        const [branchRes, shopRes, userRes] = await Promise.all([
+        const [branchRes, shopRes, warehouseRes, distributorRes, userRes] = await Promise.all([
             axios.get('/branches'),
             axios.get('/online-shops'),
+            axios.get('/warehouses'),
+            axios.get('/distributors'),
             axios.get('/user')
         ])
 
         const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
-        const allLocations = [...allBranches, ...allShops];
+        const allWarehouses = (warehouseRes.data.data || warehouseRes.data || []).map(w => ({ ...w, type: 'warehouse' }));
+        const allDistributors = (distributorRes.data.data || distributorRes.data || []).map(d => ({ ...d, type: 'distributor' }));
+        const allLocations = [...allBranches, ...allShops, ...allWarehouses, ...allDistributors];
 
         const user = userRes.data.user || userRes.data.data || userRes.data;
         const role = (authStore.userRole || '').toLowerCase();
@@ -62,18 +76,26 @@ const fetchBranches = async () => {
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
         let allowedShopIds = [];
         if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
+        let allowedWarehouseIds = [];
+        if (user?.warehouse_id) allowedWarehouseIds.push(user.warehouse_id);
+        let allowedDistributorIds = [];
+        if (user?.distributor_id) allowedDistributorIds.push(user.distributor_id);
 
         if (user?.placements && Array.isArray(user.placements)) {
             user.placements.forEach(p => {
                 if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
                 if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+                if (p.model_type === 'warehouse') allowedWarehouseIds.push(p.model_id);
+                if (p.model_type === 'distributor') allowedDistributorIds.push(p.model_id);
             });
         }
 
         allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+        allowedWarehouseIds = [...new Set(allowedWarehouseIds.map(id => Number(id)))];
+        allowedDistributorIds = [...new Set(allowedDistributorIds.map(id => Number(id)))];
 
-        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0 || allowedDistributorIds.length > 0;
 
         if (isAlwaysGlobal) {
             locations.value = allLocations;
@@ -81,12 +103,14 @@ const fetchBranches = async () => {
             locations.value = allLocations.filter(loc => {
                 if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
+                if (loc.type === 'distributor') return allowedDistributorIds.includes(Number(loc.id));
                 return false;
             });
 
             if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
                 const loc = locations.value[0];
-                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`;
             }
         } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
             locations.value = allLocations;
@@ -115,7 +139,9 @@ const fetchAllInventory = async () => {
     try {
         const queryParams = { 
             branch_id: selectedBranchId.value || undefined,
-            online_shop_id: selectedOnlineShopId.value || undefined
+            online_shop_id: selectedOnlineShopId.value || undefined,
+            warehouse_id: selectedWarehouseId.value || undefined,
+            distributor_id: selectedDistributorId.value || undefined
         };
 
         // Fetch HP
@@ -484,8 +510,8 @@ onMounted(() => { fetchAllInventory(); });
                         class="block w-full rounded-xl border-0 py-2 text-text-primary shadow-sm ring-1 ring-inset ring-surface-700/50 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 dark:bg-surface-800 dark:ring-surface-700">
                         <option value="all">Semua Lokasi</option>
                         <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                            :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
-                            {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
+                            :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
+                            {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'distributor' ? '[Distributor]' : '[Gudang]' }} {{ loc.name }}
                         </option>
                     </select>
                 </div>
@@ -494,7 +520,7 @@ onMounted(() => { fetchAllInventory(); });
                     class="px-4 py-2 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-primary-500"></div>
                     <span class="text-xs font-bold text-text-secondary">
-                        {{ locations[0].type === 'branch' ? '[Cabang]' : '[Online]' }}
+                        {{ locations[0].type === 'branch' ? '[Cabang]' : locations[0].type === 'online_shop' ? '[Toko]' : locations[0].type === 'distributor' ? '[Distributor]' : '[Gudang]' }}
                     </span>
                     <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                 </div>
