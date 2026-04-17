@@ -78,12 +78,16 @@ export function parseCurrency(val) {
     // For Rupiah, we usually don't have decimals. 
     // If there's a comma (standard ID decimal) at the end followed by exactly 2 zeros, strip it.
     str = str.replace(/,00$/, '');
+    str = str.replace(/\.00$/, '');
+
+    const isNegative = str.includes('-');
 
     // NEW LOGIC: Just strip everything that is not a digit.
     // This is the safest for IDR input fields where dots are thousands separators.
     const clean = str.replace(/\D/g, '');
     
-    const result = parseInt(clean, 10);
+    let result = parseInt(clean, 10);
+    if (isNegative) result = -result;
     return isNaN(result) ? 0 : result;
 }
 
