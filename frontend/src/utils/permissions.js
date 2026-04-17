@@ -130,16 +130,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.USERS_VIEW,
         PERMISSIONS.USERS_CREATE,
         PERMISSIONS.USERS_EDIT,
-        PERMISSIONS.REPORTS_PROFIT,
-        PERMISSIONS.ONLINE_ORDERS,
-        PERMISSIONS.ONLINE_SCAN,
-        PERMISSIONS.ONLINE_ANALYSIS,
-        PERMISSIONS.DISTRIBUTOR_MONITORING,
-        PERMISSIONS.ONLINE_MONITORING,
-        PERMISSIONS.WAREHOUSE_MONITORING,
-        PERMISSIONS.INVENTORY_VIEW,
-        PERMISSIONS.INVENTORY_MANAGE,
-        PERMISSIONS.INVENTORY_STOCK_IN
+        PERMISSIONS.REPORTS_PROFIT
     ],
 
     [ROLES.SECURITY]: [
@@ -212,7 +203,7 @@ export const ROLE_MENUS = {
     [ROLES.SUPER_ADMIN]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'online_scan', 'online_analysis', 'pos', 'inventory', 'master_data_group', 'monitoring_group', 'support_group', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'retur_items', 'users', 'warehouses', 'online_shops', 'brands', 'types', 'prices', 'categories', 'distributors', 'payment_methods', 'transactions', 'audit_sales', 'audit', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'reports', 'report_sales', 'report_ranking', 'report_brand', 'report_type', 'stock_in_history', 'stock_out_history', 'audit_pin_resets', 'settings', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'branches', 'questions', 'track', 'sales_check', 'sales_check_main', 'sales_ranking'],
     [ROLES.ANALIST]: ['reports', 'report_ranking'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'master_data_group', 'brands', 'types', 'prices', 'track'],
-    [ROLES.AUDIT]: ['dashboard', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_pin_resets', 'audit_photo_approvals', 'users', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'track', 'online_sales_group', 'online_sales', 'shopee_history', 'online_scan', 'online_analysis', 'monitoring_group', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'retur_items', 'master_data_group', 'warehouses', 'online_shops', 'distributors'],
+    [ROLES.AUDIT]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_pin_resets', 'audit_photo_approvals', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub'],
     [ROLES.SECURITY]: ['dashboard', 'transactions', 'track'],
     [ROLES.LEADER]: ['dashboard', 'monitoring_group', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'track'],
     [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'inventory_monitoring_hub', 'track'],
