@@ -64,10 +64,10 @@
                     <div v-if="canFilterBranch && locations.length > 1" class="relative min-w-[200px]">
                         <select v-model="selectedLocationKey" @change="fetchData"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                            <option value="all">Semua Cabang/Toko</option>
+                            <option value="all">Semua Cabang/Toko/Distributor</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                                :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
-                                {{ loc.name }}
+                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
+                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
                             </option>
                         </select>
                         <ChevronDown :size="16"
@@ -503,6 +503,7 @@ const exportExcel = async () => {
             const [type, id] = selectedLocationKey.value.split(':');
             params.branch_id = type === 'B' ? id : undefined;
             params.online_shop_id = type === 'S' ? id : undefined;
+            params.distributor_id = type === 'D' ? id : undefined;
         }
 
         const response = await axios.get('/audit/sales/export', {
@@ -816,7 +817,8 @@ const fetchBranches = async () => {
         // Reduced requests: use authStore.user if available instead of fetching again
         const requests = [
             axios.get('/branches'),
-            axios.get('/online-shops')
+            axios.get('/online-shops'),
+            axios.get('/distributors')
         ];
 
         // Only fetch user if not available in store
@@ -825,13 +827,11 @@ const fetchBranches = async () => {
         }
 
         const results = await Promise.all(requests);
-        const branchRes = results[0];
-        const shopRes = results[1];
-        const userRes = results[2];
-
+        const [branchRes, shopRes, distributorRes] = await Promise.all(requests);
         const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
-        const allLocations = [...allBranches, ...allShops];
+        const allDistributors = (distributorRes?.data?.data || distributorRes?.data || []).map(d => ({ ...d, type: 'distributor' }));
+        const allLocations = [...allBranches, ...allShops, ...allDistributors];
 
         const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
@@ -844,21 +844,24 @@ const fetchBranches = async () => {
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
 
-        let allowedShopIds = [];
-        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
+        let allowedDistributorIds = [];
+        if (user?.distributor_id) allowedDistributorIds.push(user.distributor_id);
 
         if (user?.placements && Array.isArray(user.placements)) {
             user.placements.forEach(p => {
                 if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
                 if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
+                if (p.model_type === 'warehouse') allowedWarehouseIds.push(p.model_id); // although not usually in sales
+                if (p.model_type === 'distributor') allowedDistributorIds.push(p.model_id);
             });
         }
 
         // Deduplicate
         allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+        allowedDistributorIds = [...new Set(allowedDistributorIds.map(id => Number(id)))];
 
-        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedDistributorIds.length > 0;
 
         // Determine final location list
         if (isAlwaysGlobal) {
@@ -869,13 +872,14 @@ const fetchBranches = async () => {
             locations.value = allLocations.filter(loc => {
                 if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
+                if (loc.type === 'distributor') return allowedDistributorIds.includes(Number(loc.id));
                 return false;
             });
 
             // Auto-select first if currently 'all' but only one location exists
             if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
                 const loc = locations.value[0];
-                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`;
             }
         } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
             // Global Auditor role with NO specific assignments -> Show all
@@ -901,6 +905,7 @@ const fetchData = async (page = 1) => {
             const [type, id] = selectedLocationKey.value.split(':');
             params.branch_id = type === 'B' ? id : undefined;
             params.online_shop_id = type === 'S' ? id : undefined;
+            params.distributor_id = type === 'D' ? id : undefined;
         }
 
         const response = await axios.get('/audit/sales', { params })

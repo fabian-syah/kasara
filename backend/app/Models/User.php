@@ -123,12 +123,7 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist'])) {
-            // If they have any specific assignment anywhere, they are NOT a global auditor
-            if ($this->hasAnySpecificAssignment()) {
-                return $assignedIds;
-            }
-            // Fallback to all only if they have absolutely no assignments anywhere
-            return \App\Models\Branch::pluck('id')->toArray();
+            return $assignedIds;
         }
 
         return $assignedIds;
@@ -149,10 +144,7 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist'])) {
-            if ($this->hasAnySpecificAssignment()) {
-                return $assignedIds;
-            }
-            return \App\Models\OnlineShop::pluck('id')->toArray();
+            return $assignedIds;
         }
 
         return $assignedIds;
@@ -173,10 +165,7 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist', 'admin_produk'])) {
-            if ($this->hasAnySpecificAssignment()) {
-                return $assignedIds;
-            }
-            return \App\Models\Warehouse::pluck('id')->toArray();
+            return $assignedIds;
         }
 
         return $assignedIds;
@@ -197,10 +186,7 @@ class User extends Authenticatable
         }
 
         if ($this->hasRole(['audit', 'analist', 'admin_produk'])) {
-            if ($this->hasAnySpecificAssignment()) {
-                return $assignedIds;
-            }
-            return \App\Models\Distributor::pluck('id')->toArray();
+            return $assignedIds;
         }
 
         return $assignedIds;

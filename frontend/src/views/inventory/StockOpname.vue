@@ -112,8 +112,6 @@ const fetchBranches = async () => {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`;
             }
-        } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
-            locations.value = allLocations;
         } else {
             locations.value = [];
         }

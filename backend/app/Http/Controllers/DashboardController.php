@@ -26,11 +26,11 @@ class DashboardController extends Controller
             return $this->getAdminProdukStats();
         }
 
-        if ($user->online_shop_id || $user->hasRole('online_shop') || $user->hasRole('toko_online')) {
+        if ($user->online_shop_id || $user->hasRole(['online_shop', 'toko_online', 'audit', 'analist']) && $user->getAccessibleOnlineShopIds()) {
             return $this->getOnlineShopStats($user);
         }
 
-        if ($user->branch_id || $user->hasRole('toko_offline') || $user->hasRole('offline_shop') || $user->hasRole('staff_cabang')) {
+        if ($user->branch_id || $user->hasRole(['toko_offline', 'offline_shop', 'staff_cabang', 'audit', 'analist']) && $user->getAccessibleBranchIds()) {
             return $this->getTokoOfflineStats($user);
         }
 

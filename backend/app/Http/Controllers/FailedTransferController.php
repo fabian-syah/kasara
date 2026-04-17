@@ -25,11 +25,48 @@ class FailedTransferController extends Controller
 
         // Find transfers where items are rejected in the pivot table
         // AND the user is the sender
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'destination', 'items' => function($q) {
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destination', 'items' => function($q) {
                 $q->withPivot('status', 'notes');
             }])
-            ->where('user_id', $user->id)
             ->where('category', 'pindah_cabang')
+            ->where(function($q) use ($user) {
+                // Determine if user has global access
+                if ($user->hasRole(['super_admin', 'owner', 'admin_produk'])) {
+                    return; // No location restriction
+                }
+
+                // Filter by Source Location (where it was sent from)
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $distributorIds = $user->getAccessibleDistributorIds();
+
+                $q->whereHas('user', function($sub) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, $user) {
+                    $hasFilter = false;
+                    $sub->where(function($nested) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, &$hasFilter) {
+                        if (!empty($branchIds)) {
+                            $nested->orWhereIn('branch_id', $branchIds);
+                            $hasFilter = true;
+                        }
+                        if (!empty($warehouseIds)) {
+                            $nested->orWhereIn('warehouse_id', $warehouseIds);
+                            $hasFilter = true;
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $nested->orWhereIn('online_shop_id', $onlineShopIds);
+                            $hasFilter = true;
+                        }
+                        if (!empty($distributorIds)) {
+                            $nested->orWhereIn('distributor_id', $distributorIds);
+                            $hasFilter = true;
+                        }
+                    });
+
+                    if (!$hasFilter) {
+                        $sub->where('id', $user->id);
+                    }
+                });
+            })
             ->where(function($query) {
                 $query->whereHas('items', function($q) {
                     $q->where('stock_out_items.status', 'rejected');
@@ -77,6 +114,9 @@ class FailedTransferController extends Controller
             } elseif ($user->online_shop_id) {
                 $placementType = 'online_shop';
                 $placementId = $user->online_shop_id;
+            } elseif ($user->distributor_id) {
+                $placementType = 'distributor';
+                $placementId = $user->distributor_id;
             }
 
             // 1. Restore HP items

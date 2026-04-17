@@ -1144,8 +1144,18 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
 
+            // Distributor
+            $distributorIds = $user->getAccessibleDistributorIds();
+            if (!empty($distributorIds)) {
+                $q->orWhere(function ($sub) use ($distributorIds) {
+                    $sub->where('destination_type', 'distributor')
+                        ->whereIn('destination_id', $distributorIds);
+                });
+                $hasFilter = true;
+            }
+
             if (!$hasFilter) {
-                if ($user->hasRole('super_admin')) {
+                if ($user->hasRole(['super_admin', 'owner', 'admin_produk'])) {
                     // Show all (do nothing, let base query stand)
                     $q->orWhereRaw('1 = 1');
                 } else {
@@ -1194,9 +1204,10 @@ class StockOutController extends Controller
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $distributorIds = $user->getAccessibleDistributorIds();
                 
                 $hasFilter = false;
-                $q->where(function ($sub) use ($branchIds, $warehouseIds, $onlineShopIds, &$hasFilter) {
+                $q->where(function ($sub) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, &$hasFilter) {
                     if (!empty($branchIds)) {
                         $sub->orWhereIn('branch_id', $branchIds);
                         $hasFilter = true;
@@ -1207,6 +1218,10 @@ class StockOutController extends Controller
                     }
                     if (!empty($onlineShopIds)) {
                         $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($distributorIds)) {
+                        $sub->orWhereIn('distributor_id', $distributorIds);
                         $hasFilter = true;
                     }
                 });
@@ -1291,6 +1306,9 @@ class StockOutController extends Controller
             } elseif ($destUser->online_shop_id) {
                 $destPlacementType = 'online_shop';
                 $destPlacementId = $destUser->online_shop_id;
+            } elseif ($destUser->distributor_id) {
+                $destPlacementType = 'distributor';
+                $destPlacementId = $destUser->distributor_id;
             }
 
             // 1. Process HP Items
@@ -1440,11 +1458,15 @@ class StockOutController extends Controller
                 $hasFilter = false;
 
                 $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $distributorIds = $user->getAccessibleDistributorIds();
+
                 if (!empty($branchIds)) {
+                    $hasFilter = true;
                     $q->orWhereHas('user', function ($sub) use ($branchIds) {
                         $sub->whereIn('branch_id', $branchIds);
                     });
-                    $hasFilter = true;
                 }
 
                 $warehouseIds = $user->getAccessibleWarehouseIds();
@@ -1459,6 +1481,14 @@ class StockOutController extends Controller
                 if (!empty($onlineShopIds)) {
                     $q->orWhereHas('user', function ($sub) use ($onlineShopIds) {
                         $sub->whereIn('online_shop_id', $onlineShopIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                $distributorIds = $user->getAccessibleDistributorIds();
+                if (!empty($distributorIds)) {
+                    $q->orWhereHas('user', function ($sub) use ($distributorIds) {
+                        $sub->whereIn('distributor_id', $distributorIds);
                     });
                     $hasFilter = true;
                 }
@@ -1497,6 +1527,16 @@ class StockOutController extends Controller
                     $q->orWhere(function ($sub) use ($onlineShopIds) {
                         $sub->where('destination_type', 'online_shop')
                             ->whereIn('destination_id', $onlineShopIds);
+                    });
+                    $hasFilter = true;
+                }
+
+                // Distributor
+                $distributorIds = $user->getAccessibleDistributorIds();
+                if (!empty($distributorIds)) {
+                    $q->orWhere(function ($sub) use ($distributorIds) {
+                        $sub->where('destination_type', 'distributor')
+                            ->whereIn('destination_id', $distributorIds);
                     });
                     $hasFilter = true;
                 }

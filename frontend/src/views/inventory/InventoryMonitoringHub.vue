@@ -354,7 +354,7 @@ onMounted(() => {
                                     {{ activeTab === 'incoming_otw' ? 'Dari Cabang' : 'Tujuan Cabang' }}
                                 </p>
                                 <p class="font-bold text-white text-lg">
-                                    {{ activeTab === 'incoming_otw' ? (transfer.user?.name || 'Unknown') :
+                                    {{ activeTab === 'incoming_otw' ? ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') :
                                         (transfer.destination?.name || transfer.receiver_name || 'Unknown') }}
                                 </p>
                             </div>
@@ -394,7 +394,7 @@ onMounted(() => {
                                         </span>
                                     </div>
                                     <p class="text-sm font-bold text-text-secondary">
-                                        {{ activeTab === 'history_in' ? 'Dari: ' + (transfer.user?.name || 'Unknown') :
+                                        {{ activeTab === 'history_in' ? 'Dari: ' + ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') :
                                             'Tujuan: ' + (transfer.destination?.name || 'Unknown') }}
                                     </p>
                                 </div>
@@ -559,7 +559,7 @@ onMounted(() => {
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                         <div class="detail-card">
                             <p class="label">Pengirim</p>
-                            <p class="value text-white">{{ selectedTransfer.user?.name || 'Unknown' }}</p>
+                            <p class="value text-white">{{ (selectedTransfer.inventory_user?.name || selectedTransfer.inventoryUser?.name || selectedTransfer.user?.name) || 'Unknown' }}</p>
                         </div>
                         <div class="detail-card">
                             <p class="label">Tujuan</p>

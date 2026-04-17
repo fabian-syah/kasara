@@ -72,8 +72,8 @@
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Lokasi</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`">
-                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : '[Gudang]' }} {{ loc.name }}
+                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
+                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
                             </option>
                         </select>
                         <ChevronDown :size="16"
@@ -681,10 +681,11 @@ const formatDate = (dateString) => {
 const fetchLocations = async () => {
     if (loading.value) return;
     try {
-        const [branchRes, shopRes, warehouseRes] = await Promise.all([
+        const [branchRes, shopRes, warehouseRes, distributorRes] = await Promise.all([
             axios.get('/branches'),
             axios.get('/online-shops'),
             axios.get('/warehouses'),
+            axios.get('/distributors'),
         ]);
 
         const allBranches = (branchRes.data.data || branchRes.data || []).map(
@@ -699,8 +700,13 @@ const fetchLocations = async () => {
             warehouseRes.data ||
             []
         ).map((w) => ({ ...w, type: 'warehouse' }));
+        const allDistributors = (
+            distributorRes?.data?.data ||
+            distributorRes?.data ||
+            []
+        ).map((d) => ({ ...d, type: 'distributor' }));
 
-        const allLocations = [...allBranches, ...allShops, ...allWarehouses];
+        const allLocations = [...allBranches, ...allShops, ...allWarehouses, ...allDistributors];
 
         const user = authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
@@ -713,20 +719,24 @@ const fetchLocations = async () => {
         if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
         let allowedWarehouseIds = [];
         if (user?.warehouse_id) allowedWarehouseIds.push(user.warehouse_id);
+        let allowedDistributorIds = [];
+        if (user?.distributor_id) allowedDistributorIds.push(user.distributor_id);
 
         if (user?.placements && Array.isArray(user.placements)) {
             user.placements.forEach((p) => {
                 if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
                 if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
                 if (p.model_type === 'warehouse') allowedWarehouseIds.push(p.model_id);
+                if (p.model_type === 'distributor') allowedDistributorIds.push(p.model_id);
             });
         }
 
         allowedBranchIds = [...new Set(allowedBranchIds.map((id) => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map((id) => Number(id)))];
         allowedWarehouseIds = [...new Set(allowedWarehouseIds.map((id) => Number(id)))];
+        allowedDistributorIds = [...new Set(allowedDistributorIds.map((id) => Number(id)))];
 
-        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0;
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0 || allowedDistributorIds.length > 0;
 
         if (isAlwaysGlobal) {
             locations.value = allLocations;
@@ -735,11 +745,12 @@ const fetchLocations = async () => {
                 if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
                 if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
+                if (loc.type === 'distributor') return allowedDistributorIds.includes(Number(loc.id));
                 return false;
             });
             if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
                 const loc = locations.value[0];
-                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : 'W'}:${loc.id}`;
+                selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`;
             }
         } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
             locations.value = allLocations;
@@ -760,6 +771,7 @@ const fetchData = async (page = 1) => {
             if (type === 'B') params.branch_id = id;
             else if (type === 'S') params.online_shop_id = id;
             else if (type === 'W') params.warehouse_id = id;
+            else if (type === 'D') params.distributor_id = id;
         }
 
         const response = await axios.get('/audit/stock-out', { params });

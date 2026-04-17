@@ -263,7 +263,7 @@ onMounted(() => {
                                     </p>
                                     <p class="text-base text-text-secondary font-medium flex items-center gap-2">
                                         <User :size="16" class="text-blue-500/70" />
-                                        Dari: <span class="text-white font-bold">{{ transfer.user?.name || 'Unknown' }}</span>
+                                        Dari: <span class="text-white font-bold">{{ (transfer.inventory_user?.name || transfer.inventoryUser?.name) || transfer.user?.name || 'Unknown' }}</span>
                                     </p>
                                 </div>
                             </div>

@@ -239,7 +239,7 @@ onMounted(() => {
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Dikirim Oleh</p>
                             <p class="text-xl font-bold text-white flex items-center gap-3">
                                 <div class="p-2 bg-purple-500/10 rounded-lg"><User :size="20" class="text-purple-500" /></div>
-                                {{ selectedTransfer.user?.name || 'Unknown' }}
+                                {{ (selectedTransfer.inventory_user?.name || selectedTransfer.inventoryUser?.name) || selectedTransfer.user?.name || 'Unknown' }}
                             </p>
                         </div>
                         <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
