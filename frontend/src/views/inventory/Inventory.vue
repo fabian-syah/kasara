@@ -746,7 +746,7 @@ async function fetchLocations() {
 
     let filteredLocations = allLocations;
 
-    if (!isGlobalRole && role !== 'audit') {
+    if (!isGlobalRole) {
       if (hasAnyRestriction) {
         filteredLocations = allLocations.filter(loc => {
           if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
@@ -754,6 +754,8 @@ async function fetchLocations() {
           if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
           return false;
         });
+      } else if (role === 'audit' || role === 'analist' || role === 'leader') {
+        filteredLocations = allLocations;
       } else {
         filteredLocations = [];
       }
