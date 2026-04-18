@@ -64,6 +64,7 @@ const showExpeditionModal = ref(false); // NEW: For adding expedition info
 const showTrackingModal = ref(false); // NEW: For real-time tracking display
 const isTracking = ref(false);
 const trackingData = ref(null);
+const trackingHtml = ref(""); // To store fetched HTML results
 
 const couriers = ref([
     'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express',
@@ -219,18 +220,27 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Using the EXISTING /n/ (Public Receipt) route to bypass VPS Route Cache
-    // We pass is_tracking=true to tell the controller to show tracking instead of receipt
-    const siteUrl = window.location.origin;
-    trackingData.value = `${siteUrl}/n/${encodeURIComponent(trackingNo)}?is_tracking=true&nums=${encodeURIComponent(trackingNo)}`;
-    
     showTrackingModal.value = true;
     isTracking.value = true;
+    trackingHtml.value = ""; // Reset
     
-    // Brief delay for the proxy to fetch data
-    setTimeout(() => {
+    try {
+        // Fetch tracking HTML directly from our proxy
+        const response = await api.get(`/n/${encodeURIComponent(trackingNo)}`, {
+            params: { is_tracking: 'true' },
+            responseType: 'text'
+        });
+        
+        // Clean up some common external elements if they leak in
+        let cleanHtml = response.data;
+        // Basic cleaning to ensure only content shows
+        trackingHtml.value = cleanHtml;
+    } catch (error) {
+        console.error("Tracking Error:", error);
+        toast.error('Gagal mengambil data pelacakan. Silakan coba lagi.');
+    } finally {
         isTracking.value = false;
-    }, 2500);
+    }
 }
 
 function closeTrackingModal() {
@@ -837,20 +847,20 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="height: 600px; min-height: 500px;">
-                    <!-- Loading Shell -->
-                    <div v-if="isTracking" class="absolute inset-0 z-10 bg-surface-900 flex flex-col items-center justify-center space-y-4">
+                <div class="modal-body p-6 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="min-height: 500px;">
+                    <!-- Loading State -->
+                    <div v-if="isTracking" class="absolute inset-0 z-10 bg-white/90 flex flex-col items-center justify-center space-y-4">
                         <Loader2 :size="48" class="animate-spin text-blue-500" />
-                        <p class="text-white font-black tracking-widest animate-pulse uppercase">Memuat Data Resi...</p>
+                        <p class="text-surface-900 font-black tracking-widest animate-pulse uppercase">Mencari Data Paket...</p>
                     </div>
 
-                    <!-- Integrated Iframe Result -->
-                    <iframe v-if="trackingData" :src="trackingData" 
-                        class="w-full h-full border-none bg-white"
-                        style="min-width: 300px; min-height: 500px;"
-                        sandbox="allow-scripts allow-forms allow-same-origin"
-                        allowfullscreen>
-                    </iframe>
+                    <!-- Integrated Result (DOM Injection) -->
+                    <div v-if="trackingHtml" v-html="trackingHtml" class="tracking-result-container text-surface-900 overflow-auto h-full pr-2">
+                    </div>
+                    
+                    <div v-else-if="!isTracking" class="h-full flex items-center justify-center text-surface-400 font-bold italic">
+                        Data pelacakan belum tersedia.
+                    </div>
                 </div>
 
                 <div class="modal-footer bg-surface-800 p-4">

@@ -12,10 +12,17 @@ class PublicReceiptController extends Controller
      */
     public function show($receiptId)
     {
-        // Hijack the existing receipt route if is_tracking is passed
-        // This bypasses Route Cache issues on the VPS
-        if (request()->query('is_tracking')) {
-            return $this->proxyTracking(request());
+        // Hijack with absolute priority
+        if (request()->has('is_tracking')) {
+            $noResi = $receiptId; // Use the URL segment directly
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://cekresi.com/?noresi=" . $noResi);
+                $html = $response->body();
+                $html = str_replace('<head>', '<head><base href="https://cekresi.com/"><style>header,footer,nav,.navbar,.ad-section,.sidebar{display:none!important;}body{background:white!important;}</style>', $html);
+                return response($html)->header('Content-Type', 'text/html');
+            } catch (\Exception $e) {
+                return response('Error Tracking: ' . $e->getMessage());
+            }
         }
 
         // Sanitized logic
