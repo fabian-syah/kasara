@@ -1513,7 +1513,8 @@ class StockOutController extends Controller
                 $biteshipMap = [
                     'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
                     'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
-                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide'
+                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide',
+                    'pos' => 'pos', 'pos indonesia' => 'pos', 'pcp' => 'pcp', 'jet' => 'jet', 'sap' => 'sap'
                 ];
                 $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
 
@@ -1521,36 +1522,39 @@ class StockOutController extends Controller
                     ->withHeaders(['authorization' => $biteshipKey])
                     ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
 
-                $bsData = $response->json();
-
-                if ($response->successful() && isset($bsData['success']) && $bsData['success']) {
-                    return response()->json([
-                        'success' => true,
-                        'provider' => 'biteship',
-                        'data' => [
-                            'summary' => [
-                                'awb' => $bsData['waybill_id'],
-                                'courier' => strtoupper($bsData['courier']['name']),
-                                'status' => strtoupper($bsData['status']),
-                                'date' => '' 
-                            ],
-                            'detail' => [
-                                'origin' => $bsData['origin']['city'] ?? '',
-                                'destination' => $bsData['destination']['city'] ?? '',
-                                'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
-                                'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
-                            ],
-                            'history' => array_map(function($h) {
-                                return [
-                                    'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
-                                    'desc' => $h['note'],
-                                    'location' => $h['status']
-                                ];
-                            }, $bsData['history'])
-                        ]
-                    ]);
+                if ($response->successful()) {
+                     $bsData = $response->json();
+                     if (isset($bsData['success']) && $bsData['success']) {
+                        return response()->json([
+                            'success' => true,
+                            'provider' => 'biteship',
+                            'data' => [
+                                'summary' => [
+                                    'awb' => $bsData['waybill_id'],
+                                    'courier' => strtoupper($bsData['courier']['name']),
+                                    'status' => strtoupper($bsData['status']),
+                                    'date' => '' 
+                                ],
+                                'detail' => [
+                                    'origin' => $bsData['origin']['city'] ?? '',
+                                    'destination' => $bsData['destination']['city'] ?? '',
+                                    'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
+                                    'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
+                                ],
+                                'history' => array_map(function($h) {
+                                    return [
+                                        'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
+                                        'desc' => $h['note'],
+                                        'location' => $h['status']
+                                    ];
+                                }, $bsData['history'])
+                            ]
+                        ]);
+                     }
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                // Log and continue to fallback
+            }
         }
 
         // --- 2. TRY BINDERBYTE AS FALLBACK ---
