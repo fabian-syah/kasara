@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import api from "../../api/axios";
+import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
 import PinModal from "../../components/modals/PinModal.vue";
@@ -225,16 +226,14 @@ async function trackPackage(courier, trackingNo) {
     trackingHtml.value = ""; // Reset
     
     try {
-        // Fetch tracking HTML directly from our proxy
-        const response = await api.get(`/n/${encodeURIComponent(trackingNo)}`, {
+        // Use raw axios to call the WEB route (without /api prefix)
+        const siteUrl = window.location.origin;
+        const response = await axios.get(`${siteUrl}/n/${encodeURIComponent(trackingNo)}`, {
             params: { is_tracking: 'true' },
             responseType: 'text'
         });
         
-        // Clean up some common external elements if they leak in
-        let cleanHtml = response.data;
-        // Basic cleaning to ensure only content shows
-        trackingHtml.value = cleanHtml;
+        trackingHtml.value = response.data;
     } catch (error) {
         console.error("Tracking Error:", error);
         toast.error('Gagal mengambil data pelacakan. Silakan coba lagi.');
