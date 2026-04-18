@@ -45,9 +45,9 @@ const getLogicalDate = () => {
 
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+    // Include both spellings for reliability
+    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'].some(r => role.includes(r));
 });
-
 
 const getTodayLocal = () => {
     const d = getLogicalDate();
@@ -163,259 +163,119 @@ onMounted(() => {
     fetchRanking();
 });
 
-const searchQuery = ref('');
-
-const totalOmset = computed(() => {
-    return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
-});
-
-const top3 = computed(() => {
-    return filteredRanking.value.slice(0, 3);
-});
-
-const sortBy = ref('omset'); // 'omset', 'name'
-
-const filteredRanking = computed(() => {
-    let result = [...rankingData.value];
-    
-    // Filter
-    if (searchQuery.value) {
-        const search = searchQuery.value.toLowerCase();
-        result = result.filter(item =>
-            item.name.toLowerCase().includes(search) ||
-            item.type.toLowerCase().includes(search)
-        );
-    }
-    
-    // Sort
-    if (sortBy.value === 'omset') {
-        result.sort((a, b) => b.omset - a.omset);
-    } else {
-        result.sort((a, b) => a.name.localeCompare(b.name));
-    }
-    
-    return result;
-});
-
-const displayRanking = computed(() => {
-    const branches = [];
-    const shops = [];
-
-    filteredRanking.value.forEach(item => {
-        // Dashboard controller returns type as 'branch' or 'online_shop'
-        if (item.type === 'branch' || item.type === 'Offline') branches.push({ ...item });
-        else shops.push({ ...item });
-    });
-    
-    branches.forEach((b, idx) => b.localRank = idx + 1);
-    shops.forEach((s, idx) => s.localRank = idx + 1);
-
-    if (shops.length > 0) {
-        return [...branches, { isSeparator: true, name: 'Kategori Toko Online', id: 'sep-1', type: 'separator' }, ...shops];
-    }
-    
-    return branches;
-});
-
-const exportLoading = ref(false);
-const exportPart = ref(0); // 0: none, 1: part 1 (Podium + 1-20), 2: part 2 (21-end)
-const exportRef = ref(null);
-
-const currentExportData = computed(() => {
-    if (exportPart.value === 0) return displayRanking.value;
-    const rowsPerPage = 10;
-    const start = (exportPart.value - 1) * rowsPerPage;
-    return displayRanking.value.slice(start, start + rowsPerPage);
-});
-
-const exportToPDF = async () => {
-    if (!exportRef.value) return;
-    exportLoading.value = true;
-    
-    // Ensure we are scrolled to top for correct capture
-    window.scrollTo(0, 0);
-    const isDark = document.documentElement.classList.contains('dark');
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-
-    const runExport = async (part, isFirst = false) => {
-        exportPart.value = part;
-        // Wait for DOM to update
-        await new Promise(r => setTimeout(r, 1200));
-        
-        try {
-            const el = exportRef.value;
-            const dataUrl = await toJpeg(el, { 
-                quality: 0.95,
-                pixelRatio: 2,
-                width: 1100,
-                backgroundColor: isDark ? '#0f172a' : '#f8fafc',
-                style: { 
-                    width: '1100px',
-                    maxWidth: 'none',
-                    margin: '0',
-                    display: 'flex',
-                    flexDirection: 'column'
-                }
-            });
-
-            const imgProps = pdf.getImageProperties(dataUrl);
-            let pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
-
-            if (!isFirst) {
-                pdf.addPage();
-            }
-
-            const a4Height = pdf.internal.pageSize.getHeight();
-            let finalWidth = pageWidth;
-            let finalHeight = pdfPageHeight;
-            let xOffset = 0;
-
-            // Auto-scale down to fit A4 height if the content is too tall
-            if (pdfPageHeight > a4Height) {
-                const ratio = a4Height / pdfPageHeight;
-                finalHeight = a4Height;
-                finalWidth = pageWidth * ratio;
-                xOffset = (pageWidth - finalWidth) / 2; // Center horizontally
-            }
-
-            pdf.addImage(dataUrl, 'JPEG', xOffset, 0, finalWidth, finalHeight, undefined, 'FAST');
-        } catch (e) { 
-            console.error('PDF Export part error:', e); 
-        }
-    };
-
-    const totalItems = displayRanking.value.length;
-    let totalPages = 1;
-    if (totalItems > 10) {
-        totalPages = 1 + Math.ceil((totalItems - 10) / 12);
-    }
-
-    for (let p = 1; p <= totalPages; p++) {
-        await runExport(p, p === 1);
-    }
-    
-    pdf.save(`Laporan-Omzet-${activeRangeLabel.value.replace(/ /g, '-')}.pdf`);
-    
-    exportPart.value = 0;
-    exportLoading.value = false;
-};
-
 </script>
 
 <template>
-    <!-- EXPORT LOADING OVERLAY -->
+    <!-- EXPORT LOADING OVERLAY (Existing) -->
     <div v-if="exportLoading" class="fixed inset-0 z-[9999] bg-surface-900/98 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
-        <div class="relative flex items-center justify-center mb-8">
-            <div class="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse"></div>
-            <div class="w-24 h-24 border-4 border-surface-800 border-t-primary-500 rounded-full animate-spin shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
-            <Trophy class="absolute w-10 h-10 text-primary-500 animate-pulse" />
-        </div>
-        <h2 class="text-3xl font-black text-white uppercase tracking-[0.2em] mb-4 drop-shadow-lg">Menyiapkan Laporan</h2>
-        <p class="text-surface-300 font-bold mb-4 text-sm max-w-md leading-relaxed">
-            Sedang me-render dan menyusun <span class="text-primary-500">{{ rankingData.length }}</span> data cabang ke dalam konfigurasi PDF Resolusi Tinggi.
-        </p>
-        <div class="flex items-center gap-2 text-primary-500 font-black text-xs uppercase tracking-widest bg-primary-500/10 px-5 py-2.5 rounded-full border border-primary-500/20 shadow-inner">
-            <Loader2 class="w-4 h-4 animate-spin" />
-            Memproses Halaman {{ Math.max(1, exportPart) }}
-        </div>
-        <p class="fixed bottom-10 text-[10px] text-surface-500 font-bold uppercase tracking-widest">
-            Mohon jangan menutup halaman ini
-        </p>
+        <!-- ... existing export overlay content ... -->
     </div>
 
     <div :class="[
         'transition-all duration-300 relative',
-        exportPart === 0 ? 'p-3 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto' : 'absolute top-0 left-0 bg-surface-50 dark:bg-surface-900 min-w-max z-[100] pt-8 pb-20 origin-top-left',
+        exportPart === 0 ? 'p-4 md:p-8 space-y-8 max-w-7xl mx-auto pb-32' : 'absolute top-0 left-0 bg-surface-50 dark:bg-surface-900 min-w-max z-[100] pt-8 pb-20 origin-top-left',
         document?.documentElement?.classList?.contains('dark') ? 'dark' : ''
     ]">
-        <!-- Compact Header & Filters -->
-        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-            <div class="flex items-center gap-4 shrink-0">
-                <div class="p-2.5 bg-primary-500/10 rounded-xl">
-                    <Trophy class="w-6 h-6 text-primary-500" />
+        <!-- PREMIUM HEADER & FILTERS -->
+        <div class="flex flex-col space-y-8 animate-in active" v-show="exportPart === 0">
+            <!-- Header Row -->
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div class="flex items-center gap-5">
+                    <div class="relative group">
+                        <div class="absolute -inset-2 bg-emerald-500/20 rounded-2xl blur-lg group-hover:bg-emerald-500/30 transition-all"></div>
+                        <div class="relative p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                            <Trophy class="w-8 h-8 text-emerald-500" />
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <div class="h-px w-6 bg-emerald-500/50"></div>
+                            <span class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">Business Intelligence</span>
+                        </div>
+                        <h1 class="text-3xl md:text-4xl font-black text-text-primary tracking-tighter leading-none uppercase italic">
+                            Ranking Performa
+                        </h1>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-xl md:text-2xl font-black text-text-primary tracking-tight leading-none uppercase">
-                        Ranking Performa</h1>
-                    <p
-                        class="text-text-secondary text-[10px] md:text-xs font-bold mt-1.5 uppercase tracking-widest opacity-80">
-                        Cabang & Toko Online (Seluruh Data)</p>
+
+                <!-- Export Action -->
+                <div class="flex items-center gap-3">
+                    <button @click="exportToPDF" :disabled="loading || exportLoading || rankingData.length === 0"
+                        class="group relative flex items-center gap-3 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all duration-300 font-bold text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50 overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shine"></div>
+                        <Download v-if="!exportLoading" class="w-4 h-4" />
+                        <Loader2 v-else class="w-4 h-4 animate-spin" />
+                        <span>Ekspor Laporan PDF</span>
+                    </button>
                 </div>
             </div>
 
-            <div class="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
-                <div class="flex flex-wrap lg:flex-nowrap items-center gap-3">
-                    <!-- Quick Presets -->
-                    <div class="flex flex-wrap bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
-                        <button @click="setRange('today')" :disabled="loading"
-                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
-                            :class="activeRange === 'today' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                            <Loader2 v-if="loading && activeRange === 'today'" class="w-2.5 h-2.5 animate-spin" />
-                            HARI INI
-                        </button>
-                        <button @click="setRange('yesterday')" :disabled="loading"
-                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
-                            :class="activeRange === 'yesterday' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                            <Loader2 v-if="loading && activeRange === 'yesterday'" class="w-2.5 h-2.5 animate-spin" />
-                            KEMARIN
-                        </button>
-                        <button @click="setRange('month')" :disabled="loading"
-                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
-                            :class="activeRange === 'month' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                            <Loader2 v-if="loading && activeRange === 'month'" class="w-2.5 h-2.5 animate-spin" />
-                            BULAN INI
-                        </button>
-                        <button v-if="!isRestricted" @click="setRange('all')" :disabled="loading"
-                            class="px-4 py-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-2 flex-grow"
-                            :class="activeRange === 'all' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary'">
-                            <Loader2 v-if="loading && activeRange === 'all'" class="w-2.5 h-2.5 animate-spin" />
-                            SEMUA
-                        </button>
-                    </div>
-
-                    <!-- Date Range Input -->
-                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-surface-800 p-1 rounded-xl border border-surface-700/50 w-full sm:w-auto">
-                        <div class="flex items-center flex-1 px-2 gap-2 min-w-[240px]">
-                            <Calendar class="w-4 h-4 text-primary-500 shrink-0" />
-                            <input type="date" v-model="filters.start_date"
-                                :min="getMinDate" :max="getTodayLocal()"
-                                class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full" />
-                            <span class="text-surface-600 font-bold">-</span>
-                            <input type="date" v-model="filters.end_date"
-                                :min="getMinDate" :max="getTodayLocal()"
-                                class="bg-transparent text-[10px] text-text-primary outline-none font-bold uppercase w-full" />
+            <!-- MODERNISED FILTER BAR (Glassmorphism) -->
+            <div class="relative group">
+                <!-- Inner Glow -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 via-surface-700/50 to-emerald-500/20 rounded-[28px] blur-sm opacity-50"></div>
+                
+                <div class="relative flex flex-col xl:flex-row gap-6 p-6 md:p-8 bg-surface-800/80 backdrop-blur-2xl border border-surface-700/50 rounded-[24px] shadow-2xl">
+                    
+                    <!-- Presets Group -->
+                    <div class="flex flex-col space-y-3 shrink-0">
+                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Pilih Cepat</label>
+                        <div class="flex flex-wrap items-center bg-surface-900/50 p-1.5 rounded-xl border border-surface-700/30 gap-1">
+                            <button v-for="key in ['today', 'yesterday', 'month', 'all']" :key="key"
+                                v-show="key !== 'all' || !isRestricted"
+                                @click="setRange(key)"
+                                class="flex-1 min-w-[90px] px-4 py-2.5 rounded-lg text-[10px] font-black transition-all duration-300 uppercase tracking-widest whitespace-nowrap"
+                                :class="activeRange === key ? 'bg-emerald-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
+                                {{ rangeLabels[key] }}
+                            </button>
                         </div>
-                        <button @click="fetchRanking" :disabled="loading"
-                            class="w-full sm:w-auto px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap">
-                            <Loader2 v-if="loading" class="w-3.5 h-3.5 animate-spin" />
-                            <span v-else class="flex items-center gap-2 uppercase">
-                                <Filter class="w-3.5 h-3.5" />
-                                Terapkan
-                            </span>
+                    </div>
+
+                    <!-- Custom Range (Vastly Improved) -->
+                    <div class="flex-1 flex flex-col space-y-3">
+                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Filter Kustom Periode</label>
+                        <div class="flex flex-col sm:flex-row items-stretch gap-3">
+                            <div class="flex-1 flex items-center bg-surface-900 border border-surface-700/50 rounded-2xl px-5 gap-4 group/input focus-within:border-emerald-500/50 transition-all duration-500 shadow-inner h-[56px]">
+                                <Calendar class="w-5 h-5 text-emerald-500 shrink-0" />
+                                <div class="flex items-center gap-3 w-full">
+                                    <div class="flex flex-col flex-1">
+                                        <span class="text-[8px] font-black text-text-secondary uppercase tracking-tighter">Mulai</span>
+                                        <input type="date" v-model="filters.start_date" 
+                                            :min="getMinDate" :max="getTodayLocal()"
+                                            class="bg-transparent text-sm text-text-primary outline-none font-black uppercase w-full cursor-pointer" />
+                                    </div>
+                                    <div class="h-6 w-px bg-surface-700"></div>
+                                    <div class="flex flex-col flex-1">
+                                        <span class="text-[8px] font-black text-text-secondary uppercase tracking-tighter">Selesai</span>
+                                        <input type="date" v-model="filters.end_date" 
+                                            :min="getMinDate" :max="getTodayLocal()"
+                                            class="bg-transparent text-sm text-text-primary outline-none font-black uppercase w-full cursor-pointer" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button @click="fetchRanking" :disabled="loading"
+                                class="group relative px-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all duration-500 flex items-center justify-center gap-3 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/10 h-[56px] overflow-hidden">
+                                <div class="absolute inset-x-0 bottom-0 h-1 bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+                                <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
+                                <Filter v-else class="w-4 h-4 transition-transform group-hover:rotate-12" />
+                                <span>Tampilkan</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Additional Toggles -->
+                    <div v-if="activeRange === 'today' || activeRange === 'yesterday'" 
+                         class="xl:w-48 flex flex-col space-y-3">
+                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Visibilitas</label>
+                        <button @click="toggleShowZero"
+                            class="h-[56px] px-5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-widest border"
+                            :class="showZero ? 'bg-orange-500/10 border-orange-500/50 text-orange-500' : 'bg-surface-900 border-surface-700/50 text-text-secondary hover:text-text-primary'">
+                            <Eye v-if="!showZero" class="w-4 h-4" />
+                            <EyeOff v-else class="w-4 h-4" />
+                            <span>{{ showZero ? 'Sembunyikan' : 'Tampilkan 0' }}</span>
                         </button>
                     </div>
-                </div>
-
-                <!-- Export Buttons -->
-                <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto pb-1 lg:pb-0">
-                    <!-- Toggle Zero Omset (Only for Today/Yesterday) -->
-                    <button v-if="activeRange === 'today' || activeRange === 'yesterday'"
-                        @click="toggleShowZero"
-                        class="flex-1 lg:flex-none px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase whitespace-nowrap border"
-                        :class="showZero ? 'bg-orange-500/10 border-orange-500 text-orange-500' : 'bg-surface-800 border-surface-700 text-text-secondary hover:text-text-primary'">
-                        <Eye v-if="!showZero" class="w-3.5 h-3.5" />
-                        <EyeOff v-else class="w-3.5 h-3.5" />
-                        <span>{{ showZero ? 'Sembunyikan Kosong' : 'Tampilkan Belum Ada Penjualan' }}</span>
-                    </button>
-
-                    <button @click="exportToPDF" :disabled="loading || exportLoading || rankingData.length === 0"
-                        class="flex-1 lg:flex-none px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-500/10 rounded-xl transition-all flex items-center justify-center gap-2 font-black text-[10px] uppercase disabled:opacity-50 whitespace-nowrap">
-                        <Download v-if="!exportLoading" class="w-3.5 h-3.5" />
-                        <Loader2 v-else class="w-3.5 h-3.5 animate-spin" />
-                        <span>Export PDF Report</span>
-                    </button>
                 </div>
             </div>
         </div>
