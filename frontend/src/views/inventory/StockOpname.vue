@@ -430,6 +430,9 @@ const distributorReport = computed(() => {
                 })).sort((a,b) => b.available - a.available)
             })).sort((a, b) => b.available - a.available)
         }))
+        .sort((a, b) => b.available - a.available);
+});
+
 // ===== CATEGORY REPORT (Non-HP Only) =====
 const categoryReport = computed(() => {
     const map = new Map();
