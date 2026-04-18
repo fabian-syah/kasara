@@ -1492,36 +1492,53 @@ class StockOutController extends Controller
 
         $courier = strtolower($request->courier);
         $awb = $request->awb;
+        $apiKey = env('BINDERBYTE_API_KEY');
         
+        if (!$apiKey) {
+            return response()->json(['message' => 'Layanan pelacakan sedang MAINTENANCE. Hubungi IT untuk setup BINDERBYTE_API_KEY.'], 500);
+        }
+
         // Map common names to API slugs for Binderbyte
         $courierMap = [
             'pos indonesia' => 'pos',
             'ninja xpress' => 'ninja',
             'lion parcel' => 'lion',
             'id express' => 'ide',
-            'shopee express' => 'spx',
-            'shopee' => 'spx',
-            'sap express' => 'sap',
-            'jet express' => 'jet',
-            'indah logistic' => 'indah',
+            'spx' => 'shopee',
+            'shopee express' => 'shopee',
+            'anteraja' => 'anteraja',
+            'sicepat' => 'sicepat',
+            'jne' => 'jne',
+            'j&t' => 'jnt',
+            'tiki' => 'tiki',
+            'wahana' => 'wahana'
         ];
-        $courier = $courierMap[$courier] ?? $courier;
+
+        $courierSlug = $courierMap[$courier] ?? $courier;
 
         try {
-            // Using Binderbyte API (Common 'free' tier API in Indonesia)
-            // USER: Replace your_api_key_here with actual key
-            $apiKey = env('BINDERBYTE_API_KEY', 'your_api_key_here');
-            $url = "https://api.binderbyte.com/v1/track?api_key={$apiKey}&courier={$courier}&awb={$awb}";
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                'api_key' => $apiKey,
+                'courier' => $courierSlug,
+                'awb' => $awb
+            ]);
 
-            $response = \Illuminate\Support\Facades\Http::get($url);
-            
-            if ($response->successful()) {
-                return $response->json();
-            } else {
-                return response()->json(['message' => 'Gagal mengambil data pelacakan dari provider.'], 422);
+            $data = $response->json();
+
+            if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $data['data']
+                ]);
             }
+
+            return response()->json([
+                'success' => false,
+                'message' => $data['message'] ?? 'Nomor resi tidak valid atau kurir belum didukung oleh BinderByte.'
+            ], 422);
+
         } catch (\Exception $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Gagal terhubung ke BinderByte: ' . $e->getMessage()], 500);
         }
     }
 
