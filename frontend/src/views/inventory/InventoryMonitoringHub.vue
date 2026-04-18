@@ -230,16 +230,20 @@ async function trackPackage(courier, trackingNo) {
     // Remove old scripts
     const oldScript = document.getElementById('cekresi-widget-script');
     if (oldScript) oldScript.remove();
+    const oldInit = document.getElementById('cekresi-widget-init');
+    if (oldInit) oldInit.remove();
     
     // Load CekResi.com official widget script (FREE & UNLIMITED)
+    // Correct URL: widgetcekresicom_v1.js (confirmed from cekresi.com/widget-cek-resi.php)
     const script = document.createElement('script');
     script.id = 'cekresi-widget-script';
     script.type = 'text/javascript';
-    script.src = 'https://cekresi.com/widget/widgetcekresi.js';
+    script.src = 'https://cekresi.com/widget/widgetcekresicom_v1.js';
     script.onload = () => {
         isTracking.value = false;
+        // Initialize widget with type 'w1', width '100%', height 500
         if (window.init_widget_cekresicom) {
-            window.init_widget_cekresicom('w1', 1, '100%', 500);
+            window.init_widget_cekresicom('w1', '100%', 500);
         }
     };
     script.onerror = () => {
