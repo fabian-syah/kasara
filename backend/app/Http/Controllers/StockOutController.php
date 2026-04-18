@@ -1511,16 +1511,16 @@ class StockOutController extends Controller
             return response()->json(['message' => 'Layanan pelacakan sedang MAINTENANCE. Hubungi IT untuk setup BINDERBYTE_API_KEY.'], 500);
         }
 
-        // Map common names to API slugs for Binderbyte (More robust list)
+        // Map to Official Binderbyte Slugs (Based on Documentation)
         $courierMap = [
             'jne' => 'jne',
+            'pos indonesia' => 'pos',
+            'pos' => 'pos',
             'j&t' => 'jnt',
             'jnt' => 'jnt',
-            'j&t express' => 'jnt',
+            'j&t cargo' => 'jnt_cargo',
+            'jnt cargo' => 'jnt_cargo',
             'sicepat' => 'sicepat',
-            'sicepat express' => 'sicepat',
-            'pos' => 'pos',
-            'pos indonesia' => 'pos',
             'tiki' => 'tiki',
             'anteraja' => 'anteraja',
             'wahana' => 'wahana',
@@ -1528,16 +1528,23 @@ class StockOutController extends Controller
             'ninja xpress' => 'ninja',
             'lion' => 'lion',
             'lion parcel' => 'lion',
-            'id express' => 'ide',
+            'pcp' => 'pcp',
+            'jet' => 'jet',
+            'rex' => 'rex',
+            'first' => 'first',
             'ide' => 'ide',
+            'id express' => 'ide',
             'shopee' => 'shopee',
             'shopee express' => 'shopee',
             'spx' => 'shopee',
-            'spx express' => 'shopee',
+            'kgx' => 'kgx',
             'sap' => 'sap',
-            'jet' => 'jet',
+            'jx' => 'jx',
+            'rpx' => 'rpx',
+            'lazada' => 'lex',
             'indah' => 'indah',
-            'indah logistic' => 'indah'
+            'indah cargo' => 'indah',
+            'dakota' => 'dakota'
         ];
 
         $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
