@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     ArrowLeft, RefreshCw, Search, Smartphone, Package, BarChart3, Box,
-    Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive
+    Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive, ListFilter
 } from 'lucide-vue-next';
 import { inventory as inventoryApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -128,6 +128,8 @@ const showConditionType = ref(false);
 const showDistributorBrand = ref(false);
 const showDistributorType = ref(false);
 const showDistributorGb = ref(false);
+const showCategoryBrand = ref(false);
+const showCategoryType = ref(false);
 const typeSortOrder = ref('available'); // 'available', 'name', 'brand'
 const itemMode = ref('hp'); // 'hp' or 'non-hp'
 const searchQuery = ref('');
@@ -428,6 +430,41 @@ const distributorReport = computed(() => {
                 })).sort((a,b) => b.available - a.available)
             })).sort((a, b) => b.available - a.available)
         }))
+// ===== CATEGORY REPORT (Non-HP Only) =====
+const categoryReport = computed(() => {
+    const map = new Map();
+    activeItems.value.forEach(item => {
+        const category = item.product?.category || 'Uncategorized';
+        if (!map.has(category)) {
+            map.set(category, { 
+                category, 
+                available: 0, 
+                tree: new Map() // Brand -> Type
+            });
+        }
+        const entry = map.get(category);
+        const avail = getAvailable(item);
+        entry.available += avail;
+
+        const brand = item.product?.brand || 'Lainnya';
+        const type = item.product?.name || 'Unknown';
+
+        if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
+        const bNode = entry.tree.get(brand);
+        bNode.available += avail;
+
+        if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0 });
+        bNode.types.get(type).available += avail;
+    });
+
+    return Array.from(map.values())
+        .map(e => ({ 
+            ...e, 
+            tree: Array.from(e.tree.values()).map(b => ({
+                ...b,
+                types: Array.from(b.types.values()).sort((a,b) => b.available - a.available)
+            })).sort((a, b) => b.available - a.available)
+        }))
         .sort((a, b) => b.available - a.available);
 });
 
@@ -442,6 +479,7 @@ const filteredBrand = computed(() => searchFilter(brandReport.value, ['brand']))
 const filteredType = computed(() => searchFilter(typeReport.value, ['name', 'brand']));
 const filteredCondition = computed(() => searchFilter(conditionReport.value, ['label', 'condition']));
 const filteredDistributor = computed(() => searchFilter(distributorReport.value, ['name']));
+const filteredCategory = computed(() => searchFilter(categoryReport.value, ['category']));
 
 function navigateTo(view) {
     currentView.value = view;
@@ -464,6 +502,8 @@ function resetBreakdowns() {
     showDistributorBrand.value = false;
     showDistributorType.value = false;
     showDistributorGb.value = false;
+    showCategoryBrand.value = false;
+    showCategoryType.value = false;
 }
 
 const conditionColor = (cond) => {
@@ -497,7 +537,8 @@ onMounted(() => { fetchAllInventory(); });
                             currentView === 'brand' ? 'Ringkasan stok per merek' :
                             currentView === 'type' ? 'Ringkasan stok per tipe produk' :
                             currentView === 'condition' ? 'Ringkasan stok per kondisi barang' :
-                            'Ringkasan stok per distributor/supplier' }}
+                            currentView === 'distributor' ? 'Ringkasan stok per distributor/supplier' :
+                            'Ringkasan stok per kategori produk' }}
                     </p>
                 </div>
             </div>
@@ -651,6 +692,25 @@ onMounted(() => { fetchAllInventory(); });
                             </span>
                         </div>
                     </button>
+
+                    <!-- Category (Non-HP Only) -->
+                    <button v-if="!isHpMode" @click="navigateTo('category')"
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-indigo-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/5 hover:translate-y-[-2px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500/20 transition-colors">
+                                <Box :size="24" class="text-indigo-400" />
+                            </div>
+                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-indigo-400 transition-colors" />
+                        </div>
+                        <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kategori</h3>
+                        <p class="text-sm text-text-secondary">Ringkasan stok per kategori barang (Non-HP)</p>
+                        <div class="mt-4 flex gap-2 flex-wrap">
+                            <span v-for="c in categoryReport.slice(0, 3)" :key="c.category"
+                                class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
+                                {{ c.category }}: {{ c.available }}
+                            </span>
+                        </div>
+                    </button>
                 </div>
             </div>
         </template>
@@ -755,6 +815,26 @@ onMounted(() => { fetchAllInventory(); });
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showDistributorGb ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per GB
+                        </button>
+                    </div>
+                    
+                    <!-- Toggle for Category View Breakdown -->
+                    <div v-else-if="currentView === 'category'" class="flex flex-wrap items-center gap-3">
+                        <button @click="showCategoryBrand = !showCategoryBrand"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showCategoryBrand
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showCategoryBrand ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Brand
+                        </button>
+                        <button @click="showCategoryType = !showCategoryType"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showCategoryType
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showCategoryType ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Tipe
                         </button>
                     </div>
                     <div v-else></div>
@@ -1199,6 +1279,81 @@ onMounted(() => { fetchAllInventory(); });
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showDistributorBrand ? 1 : 0) + (showDistributorType ? 1 : 0) + (showDistributorGb ? 1 : 0) + 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredDistributor.reduce((s, r) => s + r.available, 0) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </template>
+
+        <!-- ==================== CATEGORY REPORT ==================== -->
+        <template v-if="currentView === 'category'">
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                <div v-if="loading" class="p-12 flex justify-center items-center">
+                    <RefreshCw class="animate-spin text-primary-500" :size="32" />
+                </div>
+                <div v-else class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-text-primary">
+                        <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
+                            <tr>
+                                <th class="px-6 py-4">#</th>
+                                <th class="px-6 py-4">Kategori</th>
+                                <th v-if="showCategoryBrand" class="px-6 py-4">Brand</th>
+                                <th v-if="showCategoryType" class="px-6 py-4">Tipe Produk</th>
+                                <th class="px-6 py-4 text-center">Tersedia</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-700/50">
+                            <template v-for="(row, idx) in filteredCategory" :key="row.category">
+                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showCategoryBrand || showCategoryType }">
+                                    <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
+                                    <td class="px-6 py-4 font-bold text-white">{{ row.category }}</td>
+                                    <td v-if="showCategoryBrand" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showCategoryType" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Brand Breakdown -->
+                                <template v-if="showCategoryBrand" v-for="b in row.tree" :key="b.label">
+                                    <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
+                                        <td v-if="showCategoryType" class="px-6 py-2.5"></td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
+                                    </tr>
+
+                                    <!-- Type Breakdown (Hierarchical under Brand) -->
+                                    <template v-if="showCategoryType" v-for="t in b.types" :key="t.label">
+                                        <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">{{ t.label }}</td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        </tr>
+                                    </template>
+                                </template>
+
+                                <!-- Case: if Type is ON but Brand is OFF -->
+                                <template v-if="!showCategoryBrand && showCategoryType" v-for="b in row.tree">
+                                    <template v-for="t in b.types">
+                                        <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5"></td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
+                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        </tr>
+                                    </template>
+                                </template>
+                            </template>
+                        </tbody>
+                        <tfoot class="bg-surface-900/70 border-t border-surface-600">
+                            <tr class="font-bold">
+                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showCategoryBrand ? 1 : 0) + (showCategoryType ? 1 : 0) + 2">TOTAL</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredCategory.reduce((s, r) => s + r.available, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
