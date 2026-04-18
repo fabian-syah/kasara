@@ -34,8 +34,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::get('/inventory/fix-data', [InventoryController::class, 'fixMergedImeis']);
 Route::get('/inventory/fix-logs', [InventoryController::class, 'fixInventoryLogs']);
 
-Route::get('/transfers/track-proxy', [\App\Http\Controllers\StockOutController::class, 'proxyTracking']);
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/verify-password', [AuthController::class, 'verifyPassword']);

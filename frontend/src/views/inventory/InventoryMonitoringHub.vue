@@ -219,10 +219,10 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Using our new Backend Proxy to bypass Iframe (X-Frame-Options) restrictions
-    // This allows the tracking results to load directly inside our modal
-    const baseUrl = import.meta.env.VITE_API_URL || ''; 
-    trackingData.value = `${baseUrl}/api/transfers/track-proxy?nums=${encodeURIComponent(trackingNo)}`;
+    // Using a WEB route instead of API route to bypass SPA redirects and caching issues
+    // The path is now /external-package-tracker
+    const siteUrl = window.location.origin;
+    trackingData.value = `${siteUrl}/external-package-tracker?nums=${encodeURIComponent(trackingNo)}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
