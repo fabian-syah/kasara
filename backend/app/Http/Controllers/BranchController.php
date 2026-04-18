@@ -10,7 +10,23 @@ class BranchController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
         $query = Branch::query();
+
+        // Scope for restricted roles (Audit/Leader)
+        if ($user && !$user->hasRole(['super_admin', 'owner'])) {
+            if ($user->hasAnyRole(['audit', 'leader'])) {
+                $ids = $user->getAccessibleBranchIds();
+                $query->whereIn('id', $ids);
+            } else {
+                // Regular staff see their own
+                if ($user->branch_id) {
+                    $query->where('id', $user->branch_id);
+                } else {
+                    $query->whereRaw('1=0');
+                }
+            }
+        }
 
         if ($request->has('type')) {
             $query->where('type', $request->type);

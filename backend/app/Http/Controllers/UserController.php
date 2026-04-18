@@ -91,25 +91,26 @@ class UserController extends Controller
                     $branchIds = $user->getAccessibleBranchIds();
                     $onlineShopIds = $user->getAccessibleOnlineShopIds();
                     $warehouseIds = $user->getAccessibleWarehouseIds();
+                    $distributorIds = $user->getAccessibleDistributorIds();
 
-                    $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds) {
+                    $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                         if (!empty($branchIds))
                             $q->orWhereIn('branch_id', $branchIds);
 
                         if (!empty($warehouseIds))
                             $q->orWhereIn('warehouse_id', $warehouseIds);
 
+                        if (!empty($distributorIds))
+                            $q->orWhereIn('distributor_id', $distributorIds);
+
                         if (!empty($onlineShopIds)) {
-                            // Fix: Only show online shop users who are NOT assigned to a physical branch
-                            // This prevents "Branch Sales" from appearing in "Online Shop Audit"
                             $q->orWhere(function ($sub) use ($onlineShopIds) {
                                 $sub->whereIn('online_shop_id', $onlineShopIds)
                                     ->whereNull('branch_id');
                             });
                         }
 
-                        // Show all if empty? No, show nothing if no access
-                        if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds))
+                        if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
                             $q->whereRaw('0=1');
                     });
                 } else {

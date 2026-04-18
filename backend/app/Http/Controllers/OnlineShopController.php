@@ -9,7 +9,23 @@ class OnlineShopController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
         $query = OnlineShop::query();
+
+        // Scope for restricted roles
+        if ($user && !$user->hasRole(['super_admin', 'owner'])) {
+            if ($user->hasAnyRole(['audit', 'leader', 'toko_online'])) {
+                $ids = $user->getAccessibleOnlineShopIds();
+                $query->whereIn('id', $ids);
+            } else {
+                // Regular staff see their own
+                if ($user->online_shop_id) {
+                    $query->where('id', $user->online_shop_id);
+                } else {
+                    $query->whereRaw('1=0');
+                }
+            }
+        }
 
         if ($request->has('search')) {
             $query->where('name', 'ilike', '%' . $request->search . '%');

@@ -10,7 +10,23 @@ class DistributorController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
         $query = Distributor::query();
+
+        // Scope for restricted roles
+        if ($user && !$user->hasRole(['super_admin', 'owner'])) {
+            if ($user->hasAnyRole(['audit', 'leader', 'distributor', 'distribution'])) {
+                $ids = $user->getAccessibleDistributorIds();
+                $query->whereIn('id', $ids);
+            } else {
+                // Regular staff see their own
+                if ($user->distributor_id) {
+                    $query->where('id', $user->distributor_id);
+                } else {
+                    $query->whereRaw('1=0');
+                }
+            }
+        }
 
         if ($request->has('search')) {
             $search = $request->search;
