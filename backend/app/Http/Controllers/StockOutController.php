@@ -1508,6 +1508,7 @@ class StockOutController extends Controller
         }
 
         // --- 1. TRY BINDERBYTE FIRST (PRIMARY) ---
+        $binderErrors = [];
         if ($binderKeys) {
             $courierMap = [
                 'jne' => 'jne', 'pos indonesia' => 'pos', 'pos' => 'pos', 'j&t' => 'jnt', 'jnt' => 'jnt',
@@ -1540,11 +1541,16 @@ class StockOutController extends Controller
                     if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
                         return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
                     }
-                } catch (\Exception $e) {}
+                    
+                    $binderErrors[] = ($data['message'] ?? 'Error');
+                } catch (\Exception $e) {
+                    $binderErrors[] = $e->getMessage();
+                }
             }
         }
 
-        // --- 2. TRY BITESHIP AS FALLBACK (WAITING ACTIVATION) ---
+        // --- 2. TRY BITESHIP AS FALLBACK ---
+        $biteshipError = 'BiteShip key missing';
         if ($biteshipKey) {
             try {
                 $biteshipMap = [
@@ -1555,47 +1561,47 @@ class StockOutController extends Controller
                 ];
                 $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
 
-                // Documentation says: Bearer [API_KEY]
                 $response = \Illuminate\Support\Facades\Http::timeout(10)
                     ->withHeaders(['Authorization' => 'Bearer ' . $biteshipKey])
                     ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
 
-                if ($response->successful()) {
-                     $bsData = $response->json();
-                     if (isset($bsData['success']) && $bsData['success']) {
-                        return response()->json([
-                            'success' => true,
-                            'provider' => 'biteship',
-                            'data' => [
-                                'summary' => [
-                                    'awb' => $bsData['waybill_id'],
-                                    'courier' => strtoupper($bsData['courier']['name'] ?? $bsData['courier']['company']),
-                                    'status' => strtoupper($bsData['status']),
-                                    'date' => $bsData['updated_at'] ?? ''
-                                ],
-                                'detail' => [
-                                    'origin' => $bsData['origin']['city'] ?? '',
-                                    'destination' => $bsData['destination']['city'] ?? '',
-                                    'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
-                                    'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
-                                ],
-                                'history' => array_map(function($h) {
-                                    return [
-                                        'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
-                                        'desc' => $h['note'],
-                                        'location' => strtoupper($h['status'])
-                                    ];
-                                }, $bsData['history'] ?? [])
-                            ]
-                        ]);
-                     }
+                $bsData = $response->json();
+                if ($response->successful() && isset($bsData['success']) && $bsData['success']) {
+                    return response()->json([
+                        'success' => true,
+                        'provider' => 'biteship',
+                        'data' => [
+                            'summary' => [
+                                'awb' => $bsData['waybill_id'],
+                                'courier' => strtoupper($bsData['courier']['name'] ?? $bsData['courier']['company']),
+                                'status' => strtoupper($bsData['status']),
+                                'date' => $bsData['updated_at'] ?? ''
+                            ],
+                            'detail' => [
+                                'origin' => $bsData['origin']['city'] ?? '',
+                                'destination' => $bsData['destination']['city'] ?? '',
+                                'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
+                                'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
+                            ],
+                            'history' => array_map(function($h) {
+                                return [
+                                    'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
+                                    'desc' => $h['note'],
+                                    'location' => strtoupper($h['status'])
+                                ];
+                            }, $bsData['history'] ?? [])
+                        ]
+                    ]);
                 }
-            } catch (\Exception $e) {}
+                $biteshipError = $bsData['error'] ?? $bsData['message'] ?? 'Error';
+            } catch (\Exception $e) {
+                $biteshipError = $e->getMessage();
+            }
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Layanan pelacakan sedang LIMIT atau Maintenance di semua provider.'
+            'message' => "Gagal Lacak. Binderbyte: " . implode(', ', $binderErrors) . " | BiteShip: " . $biteshipError
         ], 422);
     }
 
