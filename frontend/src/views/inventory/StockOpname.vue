@@ -452,16 +452,29 @@ const categoryReport = computed(() => {
         const prodBrand = (item.product?.brand || '').toLowerCase();
         const prodName = (item.product?.name || '').toLowerCase();
 
-        // Match against valid list
-        let category = VALID_NONHP_CATEGORIES.find(c => 
-            prodCat === c.toLowerCase() || 
-            prodBrand === c.toLowerCase() ||
-            prodName.includes(c.toLowerCase())
-        );
+        // 1. Try to match against the user's specific list (with Indonesian synonyms)
+        let category = VALID_NONHP_CATEGORIES.find(c => {
+            const lowC = c.toLowerCase();
+            if (prodCat === lowC || prodBrand === lowC || prodName.includes(lowC)) return true;
+            
+            // Synonym: accesories -> aksesoris
+            if (lowC === 'accesories' && (prodCat.includes('aksesoris') || prodName.includes('aksesoris'))) return true;
+            // Synonym: elektronik -> electronic
+            if (lowC === 'elektronik' && (prodCat.includes('electr') || prodName.includes('electr'))) return true;
+            
+            return false;
+        });
 
-        // Fallback for non-matches
+        // 2. If no match in the 10, but the category/brand is specific (not generic)
         if (!category) {
-            category = 'Lainnya';
+            const genericTerms = ['non hp / non imei', 'uncategorized', 'unknown', 'lainnya', 'omset'];
+            if (prodCat && !genericTerms.includes(prodCat)) {
+                category = item.product.category;
+            } else if (prodBrand && !genericTerms.includes(prodBrand)) {
+                category = item.product.brand;
+            } else {
+                category = 'Lainnya';
+            }
         }
 
         if (!map.has(category)) {
