@@ -219,17 +219,17 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Using 17Track's stable external server which is dedicated for iFrame embeds
-    // This server is built for integration and won't block the site or 404
-    trackingData.value = `https://external.17track.net/id/result/post.shtml?nums=${encodeURIComponent(trackingNo)}`;
+    // Using CheckResi.com (special widget version)
+    // This provider is specifically designed for shop integrations and iframe-friendly
+    trackingData.value = `https://checkresi.com/widget/index.php?noresi=${encodeURIComponent(trackingNo)}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
     
-    // Professional delay for data transition
+    // Smooth transition
     setTimeout(() => {
         isTracking.value = false;
-    }, 2000);
+    }, 1500);
 }
 
 function closeTrackingModal() {
