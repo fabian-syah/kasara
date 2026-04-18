@@ -216,9 +216,8 @@ function closeExpeditionModal() {
 async function trackPackage(courier, trackingNo) {
     if (!trackingNo) return;
     
-    // Using direct tracking link that works better in iframes
-    // We use the language-specific direct path
-    trackingData.value = `https://parcelsapp.com/id/tracking/${trackingNo}`;
+    // Using 17Track widget which is reliable for iFrames and unlimited
+    trackingData.value = `https://www.17track.net/id/external-widget?nums=${trackingNo}&fc=0`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
