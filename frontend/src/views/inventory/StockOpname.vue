@@ -455,12 +455,31 @@ const categoryReport = computed(() => {
         // 1. Try to match against the user's specific list (with Indonesian synonyms)
         let category = VALID_NONHP_CATEGORIES.find(c => {
             const lowC = c.toLowerCase();
+            const lowerSearch = (prodCat + ' ' + prodBrand + ' ' + prodName).toLowerCase();
+            
             if (prodCat === lowC || prodBrand === lowC || prodName.includes(lowC)) return true;
             
-            // Synonym: accesories -> aksesoris
-            if (lowC === 'accesories' && (prodCat.includes('aksesoris') || prodName.includes('aksesoris'))) return true;
-            // Synonym: elektronik -> electronic
-            if (lowC === 'elektronik' && (prodCat.includes('electr') || prodName.includes('electr'))) return true;
+            // Synonym mapping
+            if (lowC === 'accesories') {
+                const syns = ['aksesoris', 'charger', 'kabel', 'cable', 'tempered', 'case', 'headset', 'earphone', 'baterai', 'battery', 'adaptor', 'powerbank', 'anti gores', 'pelindung'];
+                return syns.some(s => lowerSearch.includes(s));
+            }
+            if (lowC === 'elektronik') {
+                const syns = ['elektronik', 'electronic', 'speaker', 'mouse', 'keyboard', 'monitor', 'pc', 'printer', 'kipas', 'fan', 'lampu', 'light', 'steker', 'colokan'];
+                return syns.some(s => lowerSearch.includes(s));
+            }
+            if (lowC === 'fashion') {
+                const syns = ['baju', 'celana', 'kaos', 'shirt', 'jaket', 'sepatu', 'tas', 'dompet', 'jam tangan', 'aksesori fashion'];
+                return syns.some(s => lowerSearch.includes(s));
+            }
+            if (lowC === 'laptop') {
+                const syns = ['notebook', 'macbook', 'rog', 'tuf', 'thinkpad', 'laptop'];
+                return syns.some(s => lowerSearch.includes(s));
+            }
+            if (lowC === 'kendaraan') {
+                const syns = ['helm', 'oli', 'motor', 'ban', 'variasi motor', 'sparepart'];
+                return syns.some(s => lowerSearch.includes(s));
+            }
             
             return false;
         });
