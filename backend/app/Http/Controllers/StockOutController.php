@@ -902,6 +902,22 @@ class StockOutController extends Controller
     // Track by IMEI or Receipt ID
     public function track(Request $request)
     {
+        // NEW: Integrated Expedition Tracking Hijack
+        if ($request->has('noresi')) {
+            $noResi = $request->noresi;
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://cekresi.com/?noresi=" . $noResi);
+                $html = $response->body();
+                
+                // Clean HTML
+                $html = str_replace('<head>', '<head><base href="https://cekresi.com/"><style>header,footer,nav,.navbar,.ad-section,.sidebar{display:none!important;}body{background:white!important;}</style>', $html);
+                
+                return response()->json(['tracking_html' => $html]);
+            } catch (\Exception $e) {
+                return response()->json(['message' => 'Gagal melacak: ' . $e->getMessage()], 500);
+            }
+        }
+
         try {
             $query = $request->q;
             if (!$query || strlen($query) < 3) {

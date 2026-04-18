@@ -226,14 +226,17 @@ async function trackPackage(courier, trackingNo) {
     trackingHtml.value = ""; // Reset
     
     try {
-        // Use raw axios to call the WEB route (without /api prefix)
-        const siteUrl = window.location.origin;
-        const response = await axios.get(`${siteUrl}/n/${encodeURIComponent(trackingNo)}`, {
-            params: { is_tracking: 'true' },
-            responseType: 'text'
+        // Using existing /api/track route (which is already in the server's whitelist)
+        // We pass the 'noresi' parameter to trigger our expedition tracking hijack
+        const response = await api.get('/track', {
+            params: { noresi: trackingNo }
         });
         
-        trackingHtml.value = response.data;
+        if (response.data && response.data.tracking_html) {
+            trackingHtml.value = response.data.tracking_html;
+        } else {
+            toast.error('Data pelacakan tidak ditemukan.');
+        }
     } catch (error) {
         console.error("Tracking Error:", error);
         toast.error('Gagal mengambil data pelacakan. Silakan coba lagi.');
