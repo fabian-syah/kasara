@@ -1579,6 +1579,40 @@ class StockOutController extends Controller
 
                 $bsData = $response->json();
                 if ($response->successful() && isset($bsData['success']) && $bsData['success']) {
+                    // Mapper Bahasa Indonesia untuk BiteShip
+                    $statusIndo = [
+                        'allocated' => 'Kurir Dialokasikan',
+                        'picking_up' => 'Proses Penjemputan',
+                        'picked_up' => 'Berhasil Dijemput',
+                        'dropping_off' => 'Sedang Diantar',
+                        'delivered' => 'Diterima',
+                        'cancelled' => 'Dibatalkan',
+                        'on_hold' => 'Tertahan',
+                        'returned' => 'Dikembalikan',
+                    ];
+
+                    $history = array_map(function($h) use ($statusIndo) {
+                        $hTime = $h['updated_at'] ?? $h['time'] ?? date('Y-m-d H:i:s');
+                        $statusRaw = strtolower($h['status'] ?? '');
+                        
+                        // Terjemahkan Note jika standar
+                        $note = $h['note'] ?? 'Perubahan Status';
+                        $note = str_replace(
+                            ['Item is on the way to customer.', 'Your shipment is on hold at the moment.'],
+                            ['Pesanan dalam proses antar ke tujuan.', 'Pesanan Anda sedang tertahan saat ini.'],
+                            $note
+                        );
+
+                        return [
+                            'date' => date('Y-m-d H:i:s', strtotime($hTime)),
+                            'desc' => $note,
+                            'location' => strtoupper($statusIndo[$statusRaw] ?? $statusRaw ?? 'DALAM PROSES')
+                        ];
+                    }, $bsData['history'] ?? []);
+
+                    // Balik urutan: Terbaru di atas
+                    $history = array_reverse($history);
+
                     return response()->json([
                         'success' => true,
                         'provider' => 'biteship',
@@ -1586,7 +1620,7 @@ class StockOutController extends Controller
                             'summary' => [
                                 'awb' => $bsData['waybill_id'],
                                 'courier' => strtoupper($bsData['courier']['name'] ?? $bsData['courier']['company']),
-                                'status' => strtoupper($bsData['status']),
+                                'status' => strtoupper($statusIndo[strtolower($bsData['status'])] ?? $bsData['status']),
                                 'date' => $bsData['updated_at'] ?? ''
                             ],
                             'detail' => [
@@ -1595,14 +1629,7 @@ class StockOutController extends Controller
                                 'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
                                 'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
                             ],
-                            'history' => array_map(function($h) {
-                                $hTime = $h['updated_at'] ?? $h['time'] ?? date('Y-m-d H:i:s');
-                                return [
-                                    'date' => date('Y-m-d H:i:s', strtotime($hTime)),
-                                    'desc' => $h['note'] ?? 'Status Changed',
-                                    'location' => strtoupper($h['status'] ?? 'ON PROCESS')
-                                ];
-                            }, $bsData['history'] ?? [])
+                            'history' => $history
                         ]
                     ]);
                 }
