@@ -31,4 +31,31 @@ class PublicReceiptController extends Controller
 
         return view('receipts.show', compact('transaction'));
     }
+
+    /**
+     * Proxy tracking to bypass Iframe restrictions
+     */
+    public function proxyTracking(Request $request)
+    {
+        $noResi = $request->query('nums');
+        if (!$noResi) return response('Nomor resi tidak ditemukan', 400);
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://cekresi.com/?noresi=" . $noResi);
+            if (!$response->successful()) return response('Gagal mengambil data', 502);
+
+            $html = $response->body();
+            $html = str_replace('<head>', '<head><base href="https://cekresi.com/">', $html);
+            $cleanCss = '<style>
+                header, footer, nav, .navbar, .ad-section, .sidebar, .breadcrumb, .footer-section { display: none !important; }
+                body { padding: 0 !important; margin: 0 !important; background: transparent !important; }
+                .container { width: 100% !important; max-width: 100% !important; padding: 10px !important; }
+            </style>';
+            $html = str_replace('</head>', $cleanCss . '</head>', $html);
+
+            return response($html)->header('Content-Type', 'text/html');
+        } catch (\Exception $e) {
+            return response('Error: ' . $e->getMessage(), 500);
+        }
+    }
 }

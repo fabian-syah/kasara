@@ -219,10 +219,9 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Using a WEB route instead of API route to bypass SPA redirects and caching issues
-    // The path is now /external-package-tracker
+    // Using a public-facing route registered in web.php to bypass SPA routing issues
     const siteUrl = window.location.origin;
-    trackingData.value = `${siteUrl}/external-package-tracker?nums=${encodeURIComponent(trackingNo)}`;
+    trackingData.value = `${siteUrl}/resi-tracking?nums=${encodeURIComponent(trackingNo)}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
