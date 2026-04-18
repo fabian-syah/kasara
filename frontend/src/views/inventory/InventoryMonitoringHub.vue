@@ -61,6 +61,9 @@ const showReceiveModal = ref(false); // For incoming_otw
 const showReturnModal = ref(false); // For failed_otw (Confirm return to stock)
 const showDetailModal = ref(false); // For outgoing_otw, history_in, history_out
 const showExpeditionModal = ref(false); // NEW: For adding expedition info
+const showTrackingModal = ref(false); // NEW: For real-time tracking display
+const isTracking = ref(false);
+const trackingData = ref(null);
 
 const couriers = ref([
     'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express',
@@ -210,24 +213,28 @@ function closeExpeditionModal() {
     selectedTransfer.value = null;
 }
 
-function trackPackage(courier, trackingNo) {
+async function trackPackage(courier, trackingNo) {
     if (!trackingNo) {
         toast.error('Nomor resi belum diisi oleh pengirim.');
         return;
     }
     
-    // Open CekResi.com with tracking number pre-filled in a centered popup
-    const url = `https://cekresi.com/?noresi=${encodeURIComponent(trackingNo)}`;
-    const width = 800;
-    const height = 700;
-    const left = (window.screen.width - width) / 2;
-    const top = (window.screen.height - height) / 2;
+    // Set up the integrated tracking URL (RajaCekResi is highly compatible with iframes)
+    // It will automatically start searching for the given resident
+    trackingData.value = `https://www.rajacekresi.com/widget.php?resi=${encodeURIComponent(trackingNo)}`;
     
-    window.open(
-        url,
-        'CekResiPopup',
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-    );
+    showTrackingModal.value = true;
+    isTracking.value = true;
+    
+    // Simulate a professional loading feel
+    setTimeout(() => {
+        isTracking.value = false;
+    }, 2000);
+}
+
+function closeTrackingModal() {
+    showTrackingModal.value = false;
+    trackingData.value = null;
 }
 
 function closeModal() {
@@ -808,6 +815,46 @@ onMounted(() => {
                         class="action-btn bg-purple-600 hover:bg-purple-500">
                         <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                         <span v-else>SIMPAN INFORMASI</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Real-time Integrated Tracking Modal -->
+        <div v-if="showTrackingModal" class="modal-backdrop" @click.self="closeTrackingModal">
+            <div class="modal-content max-w-4xl max-h-[90vh]">
+                <div class="modal-header bg-surface-800">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-3">
+                            <Truck class="text-blue-500" /> Status Pengiriman
+                        </h2>
+                        <p class="text-sm font-bold text-text-secondary mt-1">
+                            Lacak Paket Real-time — Terintegrasi
+                        </p>
+                    </div>
+                    <button @click="closeTrackingModal" class="close-btn">
+                        <X :size="20" />
+                    </button>
+                </div>
+
+                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="height: 600px; min-height: 500px;">
+                    <!-- Loading Shell -->
+                    <div v-if="isTracking" class="absolute inset-0 z-10 bg-surface-900 flex flex-col items-center justify-center space-y-4">
+                        <Loader2 :size="48" class="animate-spin text-blue-500" />
+                        <p class="text-white font-black tracking-widest animate-pulse uppercase">Memuat Data Resi...</p>
+                    </div>
+
+                    <!-- Integrated Iframe Result -->
+                    <iframe v-if="trackingData" :src="trackingData" 
+                        class="w-full h-full border-none bg-white"
+                        style="min-width: 300px; min-height: 500px;"
+                        sandbox="allow-scripts allow-forms allow-same-origin"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+
+                <div class="modal-footer bg-surface-800 p-4">
+                    <button @click="closeTrackingModal" class="btn btn-secondary w-full rounded-xl font-bold py-3 text-sm">
+                        KEMBALI KE MONITORING
                     </button>
                 </div>
             </div>
