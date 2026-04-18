@@ -1507,52 +1507,13 @@ class StockOutController extends Controller
             } catch (\Exception $e) {}
         }
 
-        // --- 2. TRY BINDERBYTE FIRST (Multi-Key Rotation) ---
-        if ($binderKeys) {
-            $courierMap = [
-                'jne' => 'jne', 'pos indonesia' => 'pos', 'pos' => 'pos', 'j&t' => 'jnt', 'jnt' => 'jnt',
-                'j&t cargo' => 'jnt_cargo', 'jnt cargo' => 'jnt_cargo', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
-                'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'ninja xpress' => 'ninja',
-                'lion' => 'lion', 'lion parcel' => 'lion', 'id express' => 'ide', 'ide' => 'ide',
-                'shopee' => 'shopee', 'shopee express' => 'shopee', 'spx' => 'shopee', 'lazada' => 'lex'
-            ];
-            $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
-            
-            $keys = explode(',', $binderKeys);
-            foreach ($keys as $key) {
-                $key = trim($key);
-                if (empty($key)) continue;
-
-                try {
-                    $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
-                        'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
-                    ]);
-
-                    // Fallback for shopee/spx
-                    $data = $response->json();
-                    if ((!$response->successful() || (isset($data['status']) && $data['status'] != 200)) && ($courierSlug == 'shopee' || $courierSlug == 'spx')) {
-                        $retrySlug = ($courierSlug == 'shopee') ? 'spx' : 'shopee';
-                        $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
-                            'api_key' => $key, 'courier' => $retrySlug, 'awb' => $awb
-                        ]);
-                        $data = $response->json();
-                    }
-
-                    if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
-                        return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
-                    }
-                } catch (\Exception $e) {}
-            }
-        }
-
-        // --- 3. TRY BITESHIP AS FALLBACK ---
+        // --- 1. TRY BITESHIP FIRST (PRIMARY) ---
         if ($biteshipKey) {
             try {
-                // BiteShip uses different slugs
                 $biteshipMap = [
                     'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
-                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee express' => 'shopee',
-                    'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide'
+                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
+                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide'
                 ];
                 $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
 
@@ -1562,8 +1523,7 @@ class StockOutController extends Controller
 
                 $bsData = $response->json();
 
-                if ($response->successful() && $bsData['success']) {
-                    // Normalize BiteShip to our Standard Format
+                if ($response->successful() && isset($bsData['success']) && $bsData['success']) {
                     return response()->json([
                         'success' => true,
                         'provider' => 'biteship',
@@ -1591,6 +1551,43 @@ class StockOutController extends Controller
                     ]);
                 }
             } catch (\Exception $e) {}
+        }
+
+        // --- 2. TRY BINDERBYTE AS FALLBACK ---
+        if ($binderKeys) {
+            $courierMap = [
+                'jne' => 'jne', 'pos indonesia' => 'pos', 'pos' => 'pos', 'j&t' => 'jnt', 'jnt' => 'jnt',
+                'j&t cargo' => 'jnt_cargo', 'jnt cargo' => 'jnt_cargo', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
+                'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'ninja xpress' => 'ninja',
+                'lion' => 'lion', 'lion parcel' => 'lion', 'id express' => 'ide', 'ide' => 'ide',
+                'shopee' => 'shopee', 'shopee express' => 'shopee', 'spx' => 'shopee', 'lazada' => 'lex'
+            ];
+            $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
+            
+            $keys = explode(',', $binderKeys);
+            foreach ($keys as $key) {
+                $key = trim($key);
+                if (empty($key)) continue;
+
+                try {
+                    $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                        'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
+                    ]);
+
+                    $data = $response->json();
+                    if ((!$response->successful() || (isset($data['status']) && $data['status'] != 200)) && ($courierSlug == 'shopee' || $courierSlug == 'spx')) {
+                        $retrySlug = ($courierSlug == 'shopee') ? 'spx' : 'shopee';
+                        $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                            'api_key' => $key, 'courier' => $retrySlug, 'awb' => $awb
+                        ]);
+                        $data = $response->json();
+                    }
+
+                    if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
+                        return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
+                    }
+                } catch (\Exception $e) {}
+            }
         }
 
         return response()->json([
