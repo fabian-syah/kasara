@@ -1550,6 +1550,7 @@ class StockOutController extends Controller
         $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
 
         try {
+            // First Attempt
             $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
                 'api_key' => $apiKey,
                 'courier' => $courierSlug,
@@ -1558,6 +1559,19 @@ class StockOutController extends Controller
 
             $data = $response->json();
 
+            // Auto-Retry Fallback for Shopee (shopee <-> spx)
+            if ((!$response->successful() || (isset($data['status']) && $data['status'] != 200)) && 
+                ($courierSlug == 'shopee' || $courierSlug == 'spx')) {
+                
+                $retrySlug = ($courierSlug == 'shopee') ? 'spx' : 'shopee';
+                $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                    'api_key' => $apiKey,
+                    'courier' => $retrySlug,
+                    'awb' => $awb
+                ]);
+                $data = $response->json();
+            }
+
             if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
                 return response()->json([
                     'success' => true,
@@ -1565,9 +1579,10 @@ class StockOutController extends Controller
                 ]);
             }
 
+            $errorMsg = $data['message'] ?? 'Format resi/kurir tidak didukung.';
             return response()->json([
                 'success' => false,
-                'message' => $data['message'] ?? 'Nomor resi tidak valid atau kurir belum didukung oleh BinderByte.'
+                'message' => "BinderByte Error: " . $errorMsg . " (Slug Used: " . $courierSlug . ")"
             ], 422);
 
         } catch (\Exception $e) {
