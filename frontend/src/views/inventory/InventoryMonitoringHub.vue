@@ -219,9 +219,10 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Using a public-facing route registered in web.php to bypass SPA routing issues
+    // Using the EXISTING /n/ (Public Receipt) route to bypass VPS Route Cache
+    // We pass is_tracking=true to tell the controller to show tracking instead of receipt
     const siteUrl = window.location.origin;
-    trackingData.value = `${siteUrl}/resi-tracking?nums=${encodeURIComponent(trackingNo)}`;
+    trackingData.value = `${siteUrl}/n/${encodeURIComponent(trackingNo)}?is_tracking=true&nums=${encodeURIComponent(trackingNo)}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;

@@ -12,7 +12,13 @@ class PublicReceiptController extends Controller
      */
     public function show($receiptId)
     {
-        // Sanitize input: handle spaces, URL encoding, etc.
+        // Hijack the existing receipt route if is_tracking is passed
+        // This bypasses Route Cache issues on the VPS
+        if (request()->query('is_tracking')) {
+            return $this->proxyTracking(request());
+        }
+
+        // Sanitized logic
         $sanitizedId = trim(str_replace(['%20', ' '], '-', urldecode($receiptId)));
         $rawId = trim(urldecode($receiptId));
 
