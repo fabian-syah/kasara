@@ -1507,57 +1507,7 @@ class StockOutController extends Controller
             } catch (\Exception $e) {}
         }
 
-        // --- 1. TRY BITESHIP FIRST (PRIMARY) ---
-        if ($biteshipKey) {
-            try {
-                $biteshipMap = [
-                    'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
-                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
-                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide',
-                    'pos' => 'pos', 'pos indonesia' => 'pos', 'pcp' => 'pcp', 'jet' => 'jet', 'sap' => 'sap'
-                ];
-                $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
-
-                $response = \Illuminate\Support\Facades\Http::timeout(10)
-                    ->withHeaders(['authorization' => $biteshipKey])
-                    ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
-
-                if ($response->successful()) {
-                     $bsData = $response->json();
-                     if (isset($bsData['success']) && $bsData['success']) {
-                        return response()->json([
-                            'success' => true,
-                            'provider' => 'biteship',
-                            'data' => [
-                                'summary' => [
-                                    'awb' => $bsData['waybill_id'],
-                                    'courier' => strtoupper($bsData['courier']['name']),
-                                    'status' => strtoupper($bsData['status']),
-                                    'date' => '' 
-                                ],
-                                'detail' => [
-                                    'origin' => $bsData['origin']['city'] ?? '',
-                                    'destination' => $bsData['destination']['city'] ?? '',
-                                    'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
-                                    'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
-                                ],
-                                'history' => array_map(function($h) {
-                                    return [
-                                        'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
-                                        'desc' => $h['note'],
-                                        'location' => $h['status']
-                                    ];
-                                }, $bsData['history'])
-                            ]
-                        ]);
-                     }
-                }
-            } catch (\Exception $e) {
-                // Log and continue to fallback
-            }
-        }
-
-        // --- 2. TRY BINDERBYTE AS FALLBACK ---
+        // --- 1. TRY BINDERBYTE FIRST (PRIMARY) ---
         if ($binderKeys) {
             $courierMap = [
                 'jne' => 'jne', 'pos indonesia' => 'pos', 'pos' => 'pos', 'j&t' => 'jnt', 'jnt' => 'jnt',
@@ -1592,6 +1542,55 @@ class StockOutController extends Controller
                     }
                 } catch (\Exception $e) {}
             }
+        }
+
+        // --- 2. TRY BITESHIP AS FALLBACK (WAITING ACTIVATION) ---
+        if ($biteshipKey) {
+            try {
+                $biteshipMap = [
+                    'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
+                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
+                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide',
+                    'pos' => 'pos', 'pos indonesia' => 'pos', 'pcp' => 'pcp', 'jet' => 'jet', 'sap' => 'sap'
+                ];
+                $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
+
+                // Documentation says: Bearer [API_KEY]
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->withHeaders(['Authorization' => 'Bearer ' . $biteshipKey])
+                    ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
+
+                if ($response->successful()) {
+                     $bsData = $response->json();
+                     if (isset($bsData['success']) && $bsData['success']) {
+                        return response()->json([
+                            'success' => true,
+                            'provider' => 'biteship',
+                            'data' => [
+                                'summary' => [
+                                    'awb' => $bsData['waybill_id'],
+                                    'courier' => strtoupper($bsData['courier']['name'] ?? $bsData['courier']['company']),
+                                    'status' => strtoupper($bsData['status']),
+                                    'date' => $bsData['updated_at'] ?? ''
+                                ],
+                                'detail' => [
+                                    'origin' => $bsData['origin']['city'] ?? '',
+                                    'destination' => $bsData['destination']['city'] ?? '',
+                                    'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
+                                    'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
+                                ],
+                                'history' => array_map(function($h) {
+                                    return [
+                                        'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
+                                        'desc' => $h['note'],
+                                        'location' => strtoupper($h['status'])
+                                    ];
+                                }, $bsData['history'] ?? [])
+                            ]
+                        ]);
+                     }
+                }
+            } catch (\Exception $e) {}
         }
 
         return response()->json([
