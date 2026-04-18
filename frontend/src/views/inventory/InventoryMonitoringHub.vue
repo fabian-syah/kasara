@@ -221,37 +221,39 @@ async function trackPackage(courier, trackingNo) {
     trackingData.value = trackingNo;
     
     // Wait for DOM to render the container
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 400));
     
-    // Load 17Track widget script dynamically
-    const existingScript = document.getElementById('17track-script');
-    if (existingScript) existingScript.remove();
+    // Clean up previous widget content
+    const container = document.getElementById('cekresicom_id');
+    if (container) container.innerHTML = '';
     
+    // Remove old scripts
+    const oldScript = document.getElementById('cekresi-widget-script');
+    if (oldScript) oldScript.remove();
+    
+    // Load CekResi.com official widget script (FREE & UNLIMITED)
     const script = document.createElement('script');
-    script.id = '17track-script';
-    script.src = '//www.17track.net/externalcall.js';
+    script.id = 'cekresi-widget-script';
+    script.type = 'text/javascript';
+    script.src = 'https://cekresi.com/widget/widgetcekresi.js';
     script.onload = () => {
         isTracking.value = false;
-        if (window.YQV5) {
-            window.YQV5.trackSingle({
-                YQ_ContainerId: 'YQContainer',
-                YQ_Height: 560,
-                YQ_Fc: '0',
-                YQ_Lang: 'id',
-                YQ_Num: trackingNo
-            });
+        if (window.init_widget_cekresicom) {
+            window.init_widget_cekresicom('w1', 1, '100%', 500);
         }
     };
     script.onerror = () => {
         isTracking.value = false;
-        toast.error('Gagal memuat layanan pelacakan.');
+        toast.error('Gagal memuat widget CekResi.com');
     };
-    document.head.appendChild(script);
+    document.body.appendChild(script);
 }
 
 function closeTrackingModal() {
     showTrackingModal.value = false;
     trackingData.value = null;
+    const container = document.getElementById('cekresicom_id');
+    if (container) container.innerHTML = '';
 }
 
 function closeModal() {
@@ -860,8 +862,8 @@ onMounted(() => {
                         <p class="text-white font-black tracking-widest animate-pulse">MEMUAT PELACAKAN...</p>
                     </div>
 
-                    <!-- 17Track Widget Container -->
-                    <div id="YQContainer" class="w-full h-full overflow-y-auto"></div>
+                    <!-- CekResi.com Widget Container -->
+                    <div id="cekresicom_id" class="w-full h-full overflow-y-auto p-4"></div>
                 </div>
 
                 <div class="modal-footer bg-surface-800 p-4">
