@@ -221,61 +221,17 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
+    // Using our "Hijacked" Public Receipt route which we know works and bypasses SPA redirects
+    const siteUrl = window.location.origin;
+    trackingData.value = `${siteUrl}/n/${encodeURIComponent(trackingNo)}?is_tracking=true`;
+    
     showTrackingModal.value = true;
     isTracking.value = true;
     
-    // Clean up previous widget if exists
-    const container = document.getElementById('cekresicom_id');
-    if (container) container.innerHTML = '';
-
-    // Function to load script with a promise
-    const loadCekResiScript = () => {
-        return new Promise((resolve, reject) => {
-            if (window.init_widget_cekresicom) {
-                resolve();
-                return;
-            }
-            // Remove existing script if any to re-add
-            const existingScript = document.getElementById('cekresi-script');
-            if (existingScript) existingScript.remove();
-
-            const script = document.createElement('script');
-            script.src = 'https://cekresi.com/widget/widgetcekresicom_v1.js';
-            script.type = 'text/javascript';
-            script.id = 'cekresi-script';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.body.appendChild(script);
-        });
-    };
-
-    try {
-        await loadCekResiScript();
-        
-        // Wait for container to be completely available in DOM
-        await new Promise(r => setTimeout(r, 400));
-        
-        // Initialize Widget
-        if (window.init_widget_cekresicom) {
-            window.init_widget_cekresicom('w1', '100%', 500);
-            
-            // Try to pre-fill the tracking number
-            // CekResi widget generates the HTML asynchronously
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('#cekresicom_id input');
-                if (inputs.length > 0) {
-                    inputs.forEach(input => {
-                        input.value = trackingNo;
-                    });
-                }
-            }, 1000);
-        }
-    } catch (error) {
-        console.error("Widget Error:", error);
-        toast.error('Gagal memuat sistem pelacakan.');
-    } finally {
+    // Hide loader after a few seconds as the iframe loads
+    setTimeout(() => {
         isTracking.value = false;
-    }
+    }, 3000);
 }
 
 function closeTrackingModal() {
@@ -882,16 +838,20 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body p-4 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="min-height: 500px;">
+                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="height: 600px; min-height: 500px;">
                     <!-- Loading State -->
                     <div v-if="isTracking" class="absolute inset-0 z-10 bg-white/90 flex flex-col items-center justify-center space-y-4">
                         <Loader2 :size="48" class="animate-spin text-blue-500" />
-                        <p class="text-surface-900 font-black tracking-widest animate-pulse uppercase">Inisialisasi Sistem...</p>
+                        <p class="text-surface-900 font-black tracking-widest animate-pulse uppercase">Melacak Paket Otomatis...</p>
                     </div>
 
-                    <!-- Official CekResi.com Widget Container -->
-                    <!-- This ID is REQUIRED by their script -->
-                    <div id="cekresicom_id" class="w-full h-full overflow-y-auto"></div>
+                    <!-- Integrated Iframe Result -->
+                    <iframe v-if="trackingData" :src="trackingData" 
+                        class="w-full h-full border-none bg-white"
+                        style="min-width: 300px; min-height: 500px;"
+                        sandbox="allow-scripts allow-forms allow-same-origin"
+                        allowfullscreen>
+                    </iframe>
                 </div>
 
                 <div class="modal-footer bg-surface-800 p-4">
