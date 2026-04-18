@@ -1507,7 +1507,7 @@ class StockOutController extends Controller
             } catch (\Exception $e) {}
         }
 
-        // --- 1. TRY BINDERBYTE ONLY (100% PRIORITY & COST FREE) ---
+        // --- 1. TRY BINDERBYTE FIRST (PRIMARY - COST FREE) ---
         $binderErrors = [];
         if ($binderKeys) {
             $courierMap = [
@@ -1521,23 +1521,14 @@ class StockOutController extends Controller
                 'wahana' => 'wahana',
                 'ninja' => 'ninja', 'ninja xpress' => 'ninja',
                 'lion' => 'lion', 'lion parcel' => 'lion',
-                'pcp' => 'pcp',
-                'jet' => 'jet',
-                'rex' => 'rex',
-                'first' => 'first',
-                'id express' => 'ide', 'ide' => 'ide',
                 'shopee' => 'spx', 'shopee express' => 'spx', 'spx' => 'spx',
-                'kgx' => 'kgx',
-                'sap' => 'sap',
-                'rpx' => 'rpx',
-                'lazada' => 'lex', 'lex' => 'lex',
-                'indah' => 'indah_cargo', 'indah cargo' => 'indah_cargo', 'indah_cargo' => 'indah_cargo',
-                'dakota' => 'dakota',
-                'kurir_tokopedia' => 'kurir_tokopedia'
+                'id express' => 'ide', 'ide' => 'ide',
+                'indah' => 'indah_cargo', 'indah cargo' => 'indah_cargo',
+                'sap' => 'sap'
             ];
             $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
             
-            // Menggabungkan kunci dari .env dan kunci baru yang Anda berikan
+            // Combine ENV keys and the new key provided
             $keys = array_unique(array_filter(explode(',', $binderKeys . ',f8000a7fa7be89bb3796d9a753d248c2d1c0ac04ac994b7cb860b31240a730d1')));
             
             foreach ($keys as $key) {
@@ -1545,32 +1536,100 @@ class StockOutController extends Controller
                 if (empty($key)) continue;
 
                 try {
-                    $response = \Illuminate\Support\Facades\Http::timeout(25)->get("https://api.binderbyte.com/v1/track", [
+                    $response = \Illuminate\Support\Facades\Http::timeout(15)->get("https://api.binderbyte.com/v1/track", [
                         'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
                     ]);
 
                     $data = $response->json();
-                    
                     if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
                         return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
                     }
-                    
                     $binderErrors[] = ($data['message'] ?? 'Error');
                 } catch (\Exception $e) {
-                    $binderErrors[] = "Timeout/Error: " . $e->getMessage();
+                    $binderErrors[] = "Timeout/Down";
                 }
             }
         }
 
-        /* BITESHIP DISABLE (Agar tidak potong saldo & karena data kurang akurat)
+        // --- 2. TRY BITESHIP AS FALLBACK (PAID - RELIABLE) ---
+        // Jika Binderbyte gagal, terpaksa gunakan ini agar user tetap dapat data (terutama POS)
         if ($biteshipKey) {
-            ... logic disabled ...
+            try {
+                $biteshipMap = [
+                    'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
+                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
+                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide',
+                    'pos' => 'pos', 'pos indonesia' => 'pos', 'pcp' => 'pcp', 'jet' => 'jet', 'sap' => 'sap'
+                ];
+                $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
+
+                $response = \Illuminate\Support\Facades\Http::timeout(20)
+                    ->withHeaders(['Authorization' => 'Bearer ' . $biteshipKey])
+                    ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
+
+                $bsData = $response->json();
+                if ($response->successful() && isset($bsData['success']) && $bsData['success']) {
+                    // Mapper status untuk BiteShip
+                    $statusIndo = [
+                        'allocated' => 'Kurir Dialokasikan',
+                        'picking_up' => 'Proses Penjemputan',
+                        'picked_up' => 'Berhasil Dijemput',
+                        'dropping_off' => 'Sedang Diantar',
+                        'delivered' => 'Diterima',
+                        'cancelled' => 'Dibatalkan',
+                        'on_hold' => 'Tertahan/Hold',
+                        'returned' => 'Dikembalikan',
+                    ];
+
+                    $history = array_map(function($h) use ($statusIndo) {
+                        $hTime = $h['updated_at'] ?? $h['time'] ?? date('Y-m-d H:i:s');
+                        $statusRaw = strtolower($h['status'] ?? '');
+                        
+                        $note = $h['note'] ?? 'Status Update';
+                        // Terjemahkan note umum ke Indonesia agar UI tetap premium
+                        $replacements = [
+                            'Item is on the way to customer.' => 'Pesanan dalam proses antar ke tujuan.',
+                            'Your shipment is on hold at the moment.' => 'Pesanan sedang dalam pengawasan/tertahan.',
+                            'Courier is on the way to pick up item.' => 'Kurir sedang dalam perjalanan menjemput paket.',
+                        ];
+                        $note = $replacements[$note] ?? $note;
+
+                        return [
+                            'date' => date('Y-m-d H:i:s', strtotime($hTime)),
+                            'desc' => $note,
+                            'location' => strtoupper($statusIndo[$statusRaw] ?? $statusRaw ?? 'TRANSIT')
+                        ];
+                    }, $bsData['history'] ?? []);
+
+                    // Terbaru di atas
+                    $history = array_reverse($history);
+
+                    return response()->json([
+                        'success' => true,
+                        'provider' => 'biteship',
+                        'data' => [
+                            'summary' => [
+                                'awb' => $bsData['waybill_id'],
+                                'courier' => strtoupper($bsData['courier']['company']),
+                                'status' => strtoupper($statusIndo[strtolower($bsData['status'])] ?? $bsData['status']),
+                                'date' => $bsData['updated_at'] ?? ''
+                            ],
+                            'detail' => [
+                                'origin' => $bsData['origin']['city'] ?? 'ORIGIN',
+                                'destination' => $bsData['destination']['city'] ?? 'DESTINATION',
+                                'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
+                                'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
+                            ],
+                            'history' => $history
+                        ]
+                    ]);
+                }
+            } catch (\Exception $e) {}
         }
-        */
 
         return response()->json([
             'success' => false,
-            'message' => "Gagal Lacak via Binderbyte: " . implode(', ', $binderErrors) . ". (BiteShip Ter-Nonaktif untuk menghindari biaya)."
+            'message' => "Seluruh server pelacakan (Binderbyte & BiteShip) tidak merespon resi ini. Mohon cek berkala di web resmi " . strtoupper($courier)
         ], 422);
     }
 
