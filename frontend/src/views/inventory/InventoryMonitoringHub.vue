@@ -216,15 +216,14 @@ function closeExpeditionModal() {
 async function trackPackage(courier, trackingNo) {
     if (!trackingNo) return;
     
-    // Using a reliable universal tracking embed link
-    // This allows unlimited tracking without API keys
-    const courierSlug = courier?.toLowerCase() || 'auto';
-    trackingData.value = `https://parcelsapp.com/widget?trackingId=${trackingNo}&language=id`;
+    // Using direct tracking link that works better in iframes
+    // We use the language-specific direct path
+    trackingData.value = `https://parcelsapp.com/id/tracking/${trackingNo}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
     
-    // Small delay to simulate premium loading
+    // Delay to allow frame to start loading
     setTimeout(() => {
         isTracking.value = false;
     }, 1500);
