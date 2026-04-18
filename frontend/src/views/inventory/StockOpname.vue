@@ -442,30 +442,30 @@ const categoryReport = computed(() => {
             map.set(category, { 
                 category, 
                 available: 0, 
-                tree: new Map() // Brand -> Type
+                tree: new Map() // Location -> Type
             });
         }
         const entry = map.get(category);
         const avail = getAvailable(item);
         entry.available += avail;
 
-        const brand = item.product?.brand || 'Lainnya';
+        const location = item.placement_name || 'Tanpa Lokasi';
         const type = item.product?.name || 'Unknown';
 
-        if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
-        const bNode = entry.tree.get(brand);
-        bNode.available += avail;
+        if (!entry.tree.has(location)) entry.tree.set(location, { label: location, available: 0, types: new Map() });
+        const lNode = entry.tree.get(location);
+        lNode.available += avail;
 
-        if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0 });
-        bNode.types.get(type).available += avail;
+        if (!lNode.types.has(type)) lNode.types.set(type, { label: type, available: 0 });
+        lNode.types.get(type).available += avail;
     });
 
     return Array.from(map.values())
         .map(e => ({ 
             ...e, 
-            tree: Array.from(e.tree.values()).map(b => ({
-                ...b,
-                types: Array.from(b.types.values()).sort((a,b) => b.available - a.available)
+            tree: Array.from(e.tree.values()).map(l => ({
+                ...l,
+                types: Array.from(l.types.values()).sort((a,b) => b.available - a.available)
             })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
@@ -708,7 +708,7 @@ onMounted(() => { fetchAllInventory(); });
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kategori</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per kategori barang (Non-HP)</p>
                         <div class="mt-4 flex gap-2 flex-wrap">
-                            <span v-for="c in categoryReport.slice(0, 3)" :key="c.category"
+                            <span v-for="c in categoryReport.slice(0, 5)" :key="c.category"
                                 class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
                                 {{ c.category }}: {{ c.available }}
                             </span>
@@ -829,7 +829,7 @@ onMounted(() => { fetchAllInventory(); });
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showCategoryBrand ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per Brand
+                            Tampilkan per Lokasi
                         </button>
                         <button @click="showCategoryType = !showCategoryType"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
@@ -1301,7 +1301,7 @@ onMounted(() => { fetchAllInventory(); });
                             <tr>
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Kategori</th>
-                                <th v-if="showCategoryBrand" class="px-6 py-4">Brand</th>
+                                <th v-if="showCategoryBrand" class="px-6 py-4">Lokasi (Cabang/Store)</th>
                                 <th v-if="showCategoryType" class="px-6 py-4">Tipe Produk</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
