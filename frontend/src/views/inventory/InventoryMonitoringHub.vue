@@ -223,23 +223,56 @@ async function trackPackage(courier, trackingNo) {
     
     showTrackingModal.value = true;
     isTracking.value = true;
-    trackingHtml.value = ""; // Reset
     
-    try {
-        // Using existing /api/track route (which is already in the server's whitelist)
-        // We pass the 'noresi' parameter to trigger our expedition tracking hijack
-        const response = await api.get('/track', {
-            params: { noresi: trackingNo }
+    // Clean up previous widget if exists
+    const container = document.getElementById('cekresicom_id');
+    if (container) container.innerHTML = '';
+
+    // Function to load script with a promise
+    const loadCekResiScript = () => {
+        return new Promise((resolve, reject) => {
+            if (window.init_widget_cekresicom) {
+                resolve();
+                return;
+            }
+            // Remove existing script if any to re-add
+            const existingScript = document.getElementById('cekresi-script');
+            if (existingScript) existingScript.remove();
+
+            const script = document.createElement('script');
+            script.src = 'https://cekresi.com/widget/widgetcekresicom_v1.js';
+            script.type = 'text/javascript';
+            script.id = 'cekresi-script';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
         });
+    };
+
+    try {
+        await loadCekResiScript();
         
-        if (response.data && response.data.tracking_html) {
-            trackingHtml.value = response.data.tracking_html;
-        } else {
-            toast.error('Data pelacakan tidak ditemukan.');
+        // Wait for container to be completely available in DOM
+        await new Promise(r => setTimeout(r, 400));
+        
+        // Initialize Widget
+        if (window.init_widget_cekresicom) {
+            window.init_widget_cekresicom('w1', '100%', 500);
+            
+            // Try to pre-fill the tracking number
+            // CekResi widget generates the HTML asynchronously
+            setTimeout(() => {
+                const inputs = document.querySelectorAll('#cekresicom_id input');
+                if (inputs.length > 0) {
+                    inputs.forEach(input => {
+                        input.value = trackingNo;
+                    });
+                }
+            }, 1000);
         }
     } catch (error) {
-        console.error("Tracking Error:", error);
-        toast.error('Gagal mengambil data pelacakan. Silakan coba lagi.');
+        console.error("Widget Error:", error);
+        toast.error('Gagal memuat sistem pelacakan.');
     } finally {
         isTracking.value = false;
     }
@@ -849,20 +882,16 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body p-6 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="min-height: 500px;">
+                <div class="modal-body p-4 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="min-height: 500px;">
                     <!-- Loading State -->
                     <div v-if="isTracking" class="absolute inset-0 z-10 bg-white/90 flex flex-col items-center justify-center space-y-4">
                         <Loader2 :size="48" class="animate-spin text-blue-500" />
-                        <p class="text-surface-900 font-black tracking-widest animate-pulse uppercase">Mencari Data Paket...</p>
+                        <p class="text-surface-900 font-black tracking-widest animate-pulse uppercase">Inisialisasi Sistem...</p>
                     </div>
 
-                    <!-- Integrated Result (DOM Injection) -->
-                    <div v-if="trackingHtml" v-html="trackingHtml" class="tracking-result-container text-surface-900 overflow-auto h-full pr-2">
-                    </div>
-                    
-                    <div v-else-if="!isTracking" class="h-full flex items-center justify-center text-surface-400 font-bold italic">
-                        Data pelacakan belum tersedia.
-                    </div>
+                    <!-- Official CekResi.com Widget Container -->
+                    <!-- This ID is REQUIRED by their script -->
+                    <div id="cekresicom_id" class="w-full h-full overflow-y-auto"></div>
                 </div>
 
                 <div class="modal-footer bg-surface-800 p-4">
