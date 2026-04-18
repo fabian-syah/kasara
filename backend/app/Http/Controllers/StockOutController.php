@@ -1494,6 +1494,19 @@ class StockOutController extends Controller
         $awb = $request->awb;
         $apiKey = env('BINDERBYTE_API_KEY');
         
+        // Manual Fallback if Config is Cached
+        if (!$apiKey) {
+            try {
+                $envPath = base_path('.env');
+                if (file_exists($envPath)) {
+                    $envContent = file_get_contents($envPath);
+                    if (preg_match('/BINDERBYTE_API_KEY=(.*)/', $envContent, $matches)) {
+                        $apiKey = trim($matches[1], "\"' \n\r\t");
+                    }
+                }
+            } catch (\Exception $e) {}
+        }
+        
         if (!$apiKey) {
             return response()->json(['message' => 'Layanan pelacakan sedang MAINTENANCE. Hubungi IT untuk setup BINDERBYTE_API_KEY.'], 500);
         }
