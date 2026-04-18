@@ -434,20 +434,41 @@ const distributorReport = computed(() => {
 });
 
 // ===== CATEGORY REPORT (Non-HP Only) =====
+const VALID_NONHP_CATEGORIES = [
+    'laptop', 'TV', 'accesories', 'elektronik', 'fashion',
+    'kendaraan', 'jasa', 'parfum', 'kosmetik', 'makanan'
+];
+
 const categoryReport = computed(() => {
     const map = new Map();
+    
+    // Initialize with valid categories to ensure they show up even if 0
+    VALID_NONHP_CATEGORIES.forEach(c => {
+        map.set(c, { category: c, available: 0, tree: new Map() });
+    });
+
     activeItems.value.forEach(item => {
-        // Fix: Use Brand as category name if category is generic 'NON HP / NON IMEI'
-        let category = item.product?.category || 'Uncategorized';
-        if (category === 'NON HP / NON IMEI') {
-            category = item.product?.brand || 'Uncategorized';
+        const prodCat = (item.product?.category || '').toLowerCase();
+        const prodBrand = (item.product?.brand || '').toLowerCase();
+        const prodName = (item.product?.name || '').toLowerCase();
+
+        // Match against valid list
+        let category = VALID_NONHP_CATEGORIES.find(c => 
+            prodCat === c.toLowerCase() || 
+            prodBrand === c.toLowerCase() ||
+            prodName.includes(c.toLowerCase())
+        );
+
+        // Fallback for non-matches
+        if (!category) {
+            category = 'Lainnya';
         }
 
         if (!map.has(category)) {
             map.set(category, { 
                 category, 
                 available: 0, 
-                tree: new Map() // Location -> Type
+                tree: new Map() // Type -> Location
             });
         }
         const entry = map.get(category);
