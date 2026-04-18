@@ -67,6 +67,7 @@ const isTracking = ref(false);
 const trackingData = ref(null);
 const trackingHtml = ref(""); 
 const trackingResult = ref(null); // To store professional JSON results from Binderbyte
+const trackingProvider = ref(null); // To know which provider is being used (Binderbyte / BiteShip)
 
 const couriers = ref([
     'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express',
@@ -237,6 +238,7 @@ async function trackPackage(courier, trackingNo) {
         
         if (response.data && response.data.success) {
             trackingResult.value = response.data.data;
+            trackingProvider.value = response.data.provider || 'primary';
         } else {
             toast.error(response.data.message || 'Data pelacakan tidak ditemukan.');
         }
@@ -949,8 +951,12 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="modal-footer bg-surface-800 p-4">
-                    <button @click="closeTrackingModal" class="btn btn-secondary w-full rounded-xl font-bold py-3 text-sm">
+                <div class="modal-footer bg-surface-800 p-4 flex justify-between items-center">
+                    <span v-if="trackingResult" class="text-[10px] font-black text-surface-400 uppercase tracking-widest pl-2">
+                        System Source: <span class="text-blue-400">{{ trackingProvider }}</span>
+                    </span>
+                    <button @click="closeTrackingModal" 
+                        class="px-8 py-3 bg-surface-700 hover:bg-surface-600 text-white font-black rounded-2xl uppercase tracking-tighter text-sm transition-all duration-300 border-b-4 border-surface-900 active:border-b-0 active:translate-y-1">
                         KEMBALI KE MONITORING
                     </button>
                 </div>
