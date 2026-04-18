@@ -922,7 +922,7 @@ onMounted(() => {
                                 <!-- Line -->
                                 <div class="absolute left-[15px] top-2 bottom-2 w-[2px] bg-surface-200"></div>
 
-                                <div v-for="(step, index) in trackingResult.history" :key="index" class="relative pl-10">
+                                <div v-for="(step, index) in trackingResult.history" :key="step.date + index" class="relative pl-10">
                                     <!-- Dot -->
                                     <div :class="[
                                         'absolute left-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-4 border-surface-50',
@@ -951,12 +951,14 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <div class="modal-footer bg-surface-800 p-4 flex justify-between items-center">
-                    <span v-if="trackingResult" class="text-[10px] font-black text-surface-400 uppercase tracking-widest pl-2">
-                        System Source: <span class="text-blue-400">{{ trackingProvider }}</span>
-                    </span>
+                <div class="modal-footer bg-surface-800 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div v-if="trackingResult" class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest pl-2">
+                            System Source: <span class="text-blue-400">{{ trackingProvider || '-' }}</span>
+                        </span>
+                    </div>
                     <button @click="closeTrackingModal" 
-                        class="px-8 py-3 bg-surface-700 hover:bg-surface-600 text-white font-black rounded-2xl uppercase tracking-tighter text-sm transition-all duration-300 border-b-4 border-surface-900 active:border-b-0 active:translate-y-1">
+                        class="w-full sm:w-auto px-8 py-3 bg-surface-700 hover:bg-surface-600 text-white font-black rounded-2xl uppercase tracking-tighter text-sm transition-all duration-300 border-b-4 border-surface-900 active:border-b-0 active:translate-y-1">
                         KEMBALI KE MONITORING
                     </button>
                 </div>
