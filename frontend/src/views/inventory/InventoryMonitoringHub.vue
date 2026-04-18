@@ -838,21 +838,21 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <!-- Real-time Integrated Tracking Modal (Premium & Responsive) -->
+        <!-- Real-time Integrated Tracking Modal (High Stability, Premium & Dark Mode Ready) -->
         <div v-if="showTrackingModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-surface-950/90 backdrop-blur-md transition-all duration-300">
             <!-- Close Overlay -->
             <div class="absolute inset-0" @click="closeTrackingModal"></div>
 
-            <div class="bg-surface-50 w-full sm:max-w-2xl h-[92vh] sm:h-auto sm:max-h-[85vh] rounded-t-[40px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col border-t sm:border border-white relative z-10 animate-in fade-in slide-in-from-bottom-10 lg:duration-500">
-                <!-- Header -->
-                <div class="bg-surface-900 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
+            <div class="bg-surface-50 dark:bg-surface-900 w-full sm:max-w-2xl h-[92vh] sm:h-auto sm:max-h-[85vh] rounded-t-[40px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col border-t sm:border border-white/20 dark:border-surface-700 relative z-10 transition-all">
+                <!-- Header (Always Dark for Premium Look) -->
+                <div class="bg-surface-950 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
                             <Truck class="w-6 h-6 text-blue-400" />
                         </div>
                         <div>
                             <h2 class="text-xl md:text-2xl font-black tracking-tighter">Status Pengiriman</h2>
-                            <p class="text-[10px] md:text-xs font-black text-surface-400 uppercase tracking-widest leading-none">Tracking Berbasis Satelit</p>
+                            <p class="text-[10px] md:text-xs font-black text-surface-400 uppercase tracking-widest leading-none">Tracking Real-time Satelit</p>
                         </div>
                     </div>
                     <button @click="closeTrackingModal" class="bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all active:scale-90">
@@ -860,37 +860,28 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <!-- Body (Scrollable) -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar">
-                    <!-- Loading -->
-                    <div v-if="isTracking" class="flex flex-col items-center justify-center py-20 px-10 text-center">
+                <!-- Body wrapper -->
+                <div class="flex-1 overflow-hidden flex flex-col relative">
+                    <!-- 1. Loading State -->
+                    <div v-if="isTracking" key="tracking-loading" class="flex-1 flex flex-col items-center justify-center py-20 px-10 text-center bg-white dark:bg-surface-900">
                         <div class="relative w-16 h-16 mb-6">
-                            <div class="absolute inset-0 border-4 border-surface-200 rounded-full"></div>
+                            <div class="absolute inset-0 border-4 border-surface-200 dark:border-surface-800 rounded-full"></div>
                             <div class="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
                         </div>
-                        <h3 class="text-lg font-black text-surface-900 tracking-tighter uppercase">Menghubungkan...</h3>
+                        <h3 class="text-lg font-black text-surface-900 dark:text-white tracking-tighter uppercase">Menghubungkan...</h3>
                         <p class="text-xs font-bold text-surface-400 uppercase tracking-widest mt-1">Mengambil data dari kurir pusat</p>
                     </div>
 
-                    <!-- Not Found -->
-                    <div v-else-if="!trackingResult" class="flex flex-col items-center justify-center py-20 px-10 text-center">
-                        <div class="w-20 h-20 bg-surface-100 rounded-[32px] flex items-center justify-center mb-6">
-                            <SearchX class="w-10 h-10 text-surface-400" />
-                        </div>
-                        <h3 class="text-xl font-black text-surface-900 tracking-tighter">Resi Tidak Ditemukan</h3>
-                        <p class="text-sm text-surface-500 font-medium max-w-xs mx-auto">Mungkin resi masih baru atau server kurir sedang mengalami gangguan sinkronisasi.</p>
-                    </div>
-
-                    <!-- Main Content -->
-                    <div v-else>
+                    <!-- 2. Results Found State -->
+                    <div v-else-if="trackingResult" key="tracking-result" class="flex-1 overflow-y-auto custom-scrollbar flex flex-col bg-surface-50 dark:bg-surface-950">
                         <!-- Summary Card -->
-                        <div class="bg-white p-6 md:p-8 border-b border-surface-100">
+                        <div class="bg-white dark:bg-surface-900 p-6 md:p-8 border-b border-surface-100 dark:border-surface-800 shrink-0">
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8">
                                 <div class="space-y-1">
-                                    <span class="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-full border border-blue-100 uppercase tracking-widest">
+                                    <span class="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black rounded-full border border-blue-100 dark:border-blue-800 uppercase tracking-widest">
                                         {{ trackingResult.summary.courier }}
                                     </span>
-                                    <h1 class="text-3xl font-black text-surface-900 tracking-tighter">{{ trackingResult.summary.awb }}</h1>
+                                    <h1 class="text-3xl font-black text-surface-900 dark:text-white tracking-tighter">{{ trackingResult.summary.awb }}</h1>
                                 </div>
                                 <div :class="[
                                     'px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-tighter border-b-4 w-full sm:w-auto text-center shadow-lg',
@@ -902,19 +893,19 @@ onMounted(() => {
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="bg-surface-50 p-5 rounded-3xl border border-surface-100 transition-all hover:shadow-xl hover:shadow-surface-900/5 group">
-                                    <p class="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                                        <div class="w-2 h-2 rounded-full bg-blue-500"></div> PENGIRIM
+                                <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-3xl border border-surface-100 dark:border-surface-700 shadow-sm">
+                                    <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> PENGIRIM
                                     </p>
-                                    <p class="text-base font-black text-surface-900 leading-tight">{{ trackingResult.detail.shipper }}</p>
-                                    <p class="text-xs font-bold text-surface-500 truncate mt-1">{{ trackingResult.detail.origin }}</p>
+                                    <p class="text-base font-black text-surface-900 dark:text-white leading-tight truncate">{{ trackingResult.detail.shipper }}</p>
+                                    <p class="text-xs font-bold text-surface-500 dark:text-surface-400 truncate mt-1">{{ trackingResult.detail.origin }}</p>
                                 </div>
-                                <div class="bg-surface-50 p-5 rounded-3xl border border-surface-100 transition-all hover:shadow-xl hover:shadow-surface-900/5 group">
-                                    <p class="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                                        <div class="w-2 h-2 rounded-full bg-green-500"></div> PENERIMA
+                                <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-3xl border border-surface-100 dark:border-surface-700 shadow-sm">
+                                    <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-green-500"></span> PENERIMA
                                     </p>
-                                    <p class="text-base font-black text-surface-900 leading-tight">{{ trackingResult.detail.receiver }}</p>
-                                    <p class="text-xs font-bold text-surface-500 truncate mt-1">{{ trackingResult.detail.destination }}</p>
+                                    <p class="text-base font-black text-surface-900 dark:text-white leading-tight truncate">{{ trackingResult.detail.receiver }}</p>
+                                    <p class="text-xs font-bold text-surface-500 dark:text-surface-400 truncate mt-1">{{ trackingResult.detail.destination }}</p>
                                 </div>
                             </div>
                         </div>
@@ -922,38 +913,38 @@ onMounted(() => {
                         <!-- Timeline Content -->
                         <div class="p-6 md:p-8">
                             <div class="flex items-center gap-3 mb-8">
-                                <div class="w-1.5 h-6 bg-surface-900 rounded-full"></div>
-                                <h3 class="text-xs font-black text-surface-900 uppercase tracking-widest">Riwayat Perjalanan Paket</h3>
+                                <div class="w-1.5 h-6 bg-surface-900 dark:bg-blue-500 rounded-full"></div>
+                                <h3 class="text-xs font-black text-surface-900 dark:text-white uppercase tracking-widest">Riwayat Perjalanan</h3>
                             </div>
 
                             <div class="relative pl-6 space-y-0">
                                 <!-- Modern Vertical Line -->
-                                <div class="absolute left-6 top-4 bottom-4 w-1 bg-gradient-to-b from-blue-600 via-surface-200 to-transparent rounded-full -translate-x-1/2"></div>
+                                <div class="absolute left-6 top-4 bottom-4 w-1 bg-gradient-to-b from-blue-600 via-surface-200 dark:via-surface-800 to-transparent rounded-full -translate-x-1/2"></div>
 
-                                <div v-for="(step, index) in trackingResult.history" :key="step.date + index" 
-                                    class="relative pl-10 pb-10 last:pb-4 group">
+                                <div v-for="(step, index) in trackingResult.history" :key="'step-'+index" 
+                                    class="relative pl-10 pb-10 last:pb-4">
                                     <!-- Dynamic Dot -->
                                     <div :class="[
-                                        'absolute left-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-4 border-surface-50 transition-all duration-300 -translate-x-1/2',
-                                        index === 0 ? 'bg-blue-600 shadow-xl shadow-blue-500/50' : 'bg-surface-200'
+                                        'absolute left-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-4 border-surface-50 dark:border-surface-950 transition-all -translate-x-1/2',
+                                        index === 0 ? 'bg-blue-600 shadow-xl shadow-blue-500/50 scale-110' : 'bg-surface-200 dark:bg-surface-800'
                                     ]">
                                         <div v-if="index === 0" class="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
-                                        <div v-else class="w-2 h-2 bg-surface-400 rounded-full"></div>
+                                        <div v-else class="w-2 h-2 bg-surface-400 dark:bg-surface-600 rounded-full"></div>
                                     </div>
 
                                     <div :class="[
-                                        'p-5 rounded-[2rem] border transition-all duration-300',
-                                        index === 0 ? 'bg-white border-blue-100 shadow-xl shadow-surface-900/5' : 'bg-transparent border-transparent opacity-60'
+                                        'p-5 rounded-[2.5rem] border transition-all',
+                                        index === 0 ? 'bg-white dark:bg-surface-900 border-blue-100 dark:border-blue-900 shadow-xl shadow-surface-900/5 -translate-y-1' : 'bg-transparent border-transparent opacity-60'
                                     ]">
                                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                                            <p :class="['text-[11px] font-black uppercase tracking-widest', index === 0 ? 'text-blue-600' : 'text-surface-400']">
+                                            <p :class="['text-[11px] font-black uppercase tracking-widest text-surface-400 dark:text-surface-500']">
                                                 {{ step.date }}
                                             </p>
-                                            <span v-if="step.location" class="px-3 py-0.5 bg-surface-900 text-white text-[10px] font-black rounded-lg w-fit">
+                                            <span v-if="step.location" class="inline-block px-3 py-1 bg-surface-900 dark:bg-surface-800 text-white dark:text-blue-400 text-[10px] font-black rounded-xl w-fit whitespace-nowrap border dark:border-surface-700">
                                                 {{ step.location }}
                                             </span>
                                         </div>
-                                        <p :class="['text-sm md:text-base leading-relaxed', index === 0 ? 'font-black text-surface-900' : 'font-bold text-surface-600']">
+                                        <p :class="['text-sm md:text-base leading-relaxed break-words', index === 0 ? 'font-black text-surface-900 dark:text-white' : 'font-bold text-surface-600 dark:text-surface-400']">
                                             {{ step.desc }}
                                         </p>
                                     </div>
@@ -961,22 +952,31 @@ onMounted(() => {
                             </div>
                         </div>
                     </div>
+
+                    <!-- 3. Not Found State -->
+                    <div v-else key="tracking-empty" class="flex-1 flex flex-col items-center justify-center py-20 px-10 text-center bg-surface-50 dark:bg-surface-900">
+                        <div class="w-20 h-20 bg-surface-100 dark:bg-surface-800 rounded-[32px] flex items-center justify-center mb-6">
+                            <SearchX class="w-10 h-10 text-surface-400 dark:text-surface-500" />
+                        </div>
+                        <h3 class="text-xl font-black text-surface-900 dark:text-white tracking-tighter">Data Pelacakan Belum Muncul</h3>
+                        <p class="text-sm text-surface-500 font-bold mt-2 max-w-xs mx-auto uppercase tracking-tighter leading-tight">Mungkin resi masih baru atau server kurir sedang gangguan sinkronisasi.</p>
+                    </div>
                 </div>
 
                 <!-- Modern Footer -->
-                <div class="bg-white p-6 md:p-8 border-t border-surface-100 shrink-0">
+                <div class="bg-white dark:bg-surface-900 p-6 md:p-8 border-t border-surface-100 dark:border-surface-800 shrink-0">
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
                         <div v-if="trackingResult" class="flex items-center gap-3">
                             <div class="flex -space-x-2">
-                                <div class="w-6 h-6 rounded-full border-2 border-white bg-blue-600 shadow-sm transition-transform hover:-translate-y-1"></div>
-                                <div class="w-6 h-6 rounded-full border-2 border-white bg-surface-900 shadow-sm transition-transform hover:-translate-y-1"></div>
+                                <div class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-800 bg-blue-600"></div>
+                                <div class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-800 bg-surface-900 dark:bg-surface-700"></div>
                             </div>
-                            <span class="text-[10px] font-black text-surface-400 uppercase tracking-widest leading-none">
-                                API SOURCE: <span class="text-blue-600">{{ trackingProvider || 'PRIMARY' }}</span>
+                            <span class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest">
+                                API SOURCE: <span class="text-blue-600 dark:text-blue-400 font-black">{{ trackingProvider || 'PRIMARY' }}</span>
                             </span>
                         </div>
                         <button @click="closeTrackingModal" 
-                            class="w-full sm:w-auto px-12 py-4 bg-surface-900 hover:bg-surface-800 text-white font-black rounded-3xl uppercase tracking-tighter text-sm transition-all duration-300 active:scale-95 shadow-xl shadow-surface-900/20">
+                            class="w-full sm:w-auto px-12 py-4 bg-surface-950 dark:bg-blue-600 hover:bg-surface-900 dark:hover:bg-blue-500 text-white font-black rounded-[2rem] uppercase tracking-tighter text-sm transition-all duration-300 active:scale-95 shadow-xl shadow-surface-900/20">
                             KEMBALI KE MONITORING
                         </button>
                     </div>
