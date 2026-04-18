@@ -1477,12 +1477,17 @@ class StockOutController extends Controller
         $courier = strtolower($request->courier);
         $awb = $request->awb;
         
-        // Map common names to API slugs if necessary
+        // Map common names to API slugs for Binderbyte
         $courierMap = [
             'pos indonesia' => 'pos',
             'ninja xpress' => 'ninja',
             'lion parcel' => 'lion',
             'id express' => 'ide',
+            'shopee express' => 'spx',
+            'shopee' => 'spx',
+            'sap express' => 'sap',
+            'jet express' => 'jet',
+            'indah logistic' => 'indah',
         ];
         $courier = $courierMap[$courier] ?? $courier;
 

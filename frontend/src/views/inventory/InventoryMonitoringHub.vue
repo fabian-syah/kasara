@@ -208,30 +208,26 @@ function openExpeditionModal(transfer) {
     showExpeditionModal.value = true;
 }
 
+function closeExpeditionModal() {
+    showExpeditionModal.value = false;
+    selectedTransfer.value = null;
+}
+
 async function trackPackage(courier, trackingNo) {
-    if (!trackingNo || !courier) return;
+    if (!trackingNo) return;
     
-    isTracking.value = true;
-    trackingData.value = null;
+    // Using a reliable universal tracking embed link
+    // This allows unlimited tracking without API keys
+    const courierSlug = courier?.toLowerCase() || 'auto';
+    trackingData.value = `https://parcelsapp.com/widget?trackingId=${trackingNo}&language=id`;
+    
     showTrackingModal.value = true;
+    isTracking.value = true;
     
-    try {
-        const response = await api.get('/transfers/track-expedition', {
-            params: { courier, awb: trackingNo }
-        });
-        
-        if (response.data?.status === 200) {
-            trackingData.value = response.data.data;
-        } else {
-            toast.error(response.data?.message || "Data tidak ditemukan");
-        }
-    } catch (e) {
-        console.error(e);
-        toast.error("Gagal melacak unit. Pastikan API Key sudah diset di server.");
-        showTrackingModal.value = false;
-    } finally {
+    // Small delay to simulate premium loading
+    setTimeout(() => {
         isTracking.value = false;
-    }
+    }, 1500);
 }
 
 function closeTrackingModal() {
@@ -302,17 +298,23 @@ async function submitReturn(verifiedPin = null) {
 }
 
 async function submitExpedition() {
-    if (!selectedTransfer.value) return;
+    if (!selectedTransfer.value || isSubmitting.value) return;
     
     isSubmitting.value = true;
     try {
         await api.post(`/transfers/${selectedTransfer.value.id}/expedition`, expeditionForm.value);
-        toast.success("Informasi ekspedisi berhasil disimpan!");
-        fetchData(currentPage.value);
+        
+        // Wait for data reload before closing
+        await fetchData(currentPage.value);
+        
         closeExpeditionModal();
+        toast.success("Informasi ekspedisi berhasil disimpan!");
     } catch (e) {
+        console.error("Expedition Error:", e);
         toast.error(e.response?.data?.message || "Gagal menyimpan ekspedisi");
-    } finally { isSubmitting.value = false; }
+    } finally { 
+        isSubmitting.value = false; 
+    }
 }
 
 onMounted(() => {
@@ -832,60 +834,24 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body custom-scrollbar bg-surface-900/50">
+                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white h-[70vh]">
                     <!-- Loading State -->
-                    <div v-if="isTracking" class="py-20 text-center space-y-4">
-                        <Loader2 :size="48" class="animate-spin text-blue-500 mx-auto" />
-                        <p class="text-white font-black tracking-widest animate-pulse">MENGAMBIL DATA PELACAKAN...</p>
+                    <div v-if="isTracking" class="absolute inset-0 z-10 bg-surface-900 flex flex-col items-center justify-center space-y-4">
+                        <Loader2 :size="48" class="animate-spin text-blue-500" />
+                        <p class="text-white font-black tracking-widest animate-pulse">MEMUAT PELACAKAN...</p>
                     </div>
 
-                    <!-- Tracking Content -->
-                    <div v-else-if="trackingData" class="space-y-10">
-                        <!-- Summary Header -->
-                        <div class="grid grid-cols-2 gap-4">
-                             <div class="p-4 bg-surface-800 rounded-2xl border border-white/5">
-                                <p class="label">Status</p>
-                                <p class="text-sm font-black" :class="trackingData.summary?.status === 'DELIVERED' ? 'text-green-500' : 'text-blue-500'">
-                                    {{ trackingData.summary?.status }}
-                                </p>
-                             </div>
-                             <div class="p-4 bg-surface-800 rounded-2xl border border-white/5">
-                                <p class="label">Penerima</p>
-                                <p class="text-sm font-black text-white truncate">{{ trackingData.detail?.receiver || '-' }}</p>
-                             </div>
-                        </div>
-
-                        <!-- Timeline -->
-                        <div class="relative pl-8 space-y-10">
-                            <!-- Vertical Line -->
-                            <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-500 via-surface-700 to-transparent"></div>
-
-                            <div v-for="(history, index) in trackingData.history" :key="index" class="relative group">
-                                <!-- Dot -->
-                                <div class="absolute -left-[27px] top-1.5 w-4 h-4 rounded-full border-4 border-surface-900 shadow-xl transition-all duration-500"
-                                    :class="index === 0 ? 'bg-blue-500 scale-125 ring-4 ring-blue-500/20' : 'bg-surface-700'">
-                                </div>
-
-                                <div class="space-y-1">
-                                    <p class="text-[10px] font-black text-blue-500/60 uppercase tracking-widest">{{ history.date }}</p>
-                                    <p class="text-sm font-bold text-white leading-relaxed">{{ history.desc }}</p>
-                                    <p v-if="history.location" class="text-[11px] font-medium text-text-secondary italic">@ {{ history.location }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Error State -->
-                    <div v-else class="py-20 text-center space-y-4">
-                        <AlertTriangle :size="48" class="text-red-500 mx-auto" />
-                        <p class="text-white font-black tracking-widest">DATA TIDAK TERSEDIA</p>
-                        <p class="text-text-secondary text-sm">Gagal menghubungkan ke provider tracking.</p>
-                    </div>
+                    <!-- Embed Iframe -->
+                    <iframe v-if="trackingData" :src="trackingData" 
+                        class="w-full h-full border-none"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
                 </div>
 
-                <div class="modal-footer bg-surface-800 p-6">
-                    <button @click="closeTrackingModal" class="btn btn-secondary w-full rounded-xl font-black py-4">
-                        TUTUP PELACAKAN
+                <div class="modal-footer bg-surface-800 p-4">
+                    <button @click="closeTrackingModal" class="btn btn-secondary w-full rounded-xl font-bold py-3 text-sm">
+                        TUTUP
                     </button>
                 </div>
             </div>
