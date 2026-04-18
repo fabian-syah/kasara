@@ -1466,6 +1466,44 @@ class StockOutController extends Controller
         }
     }
 
+    // Fetch real-time tracking from external API
+    public function trackExpedition(Request $request)
+    {
+        $request->validate([
+            'courier' => 'required|string',
+            'awb' => 'required|string',
+        ]);
+
+        $courier = strtolower($request->courier);
+        $awb = $request->awb;
+        
+        // Map common names to API slugs if necessary
+        $courierMap = [
+            'pos indonesia' => 'pos',
+            'ninja xpress' => 'ninja',
+            'lion parcel' => 'lion',
+            'id express' => 'ide',
+        ];
+        $courier = $courierMap[$courier] ?? $courier;
+
+        try {
+            // Using Binderbyte API (Common 'free' tier API in Indonesia)
+            // USER: Replace your_api_key_here with actual key
+            $apiKey = env('BINDERBYTE_API_KEY', 'your_api_key_here');
+            $url = "https://api.binderbyte.com/v1/track?api_key={$apiKey}&courier={$courier}&awb={$awb}";
+
+            $response = \Illuminate\Support\Facades\Http::get($url);
+            
+            if ($response->successful()) {
+                return $response->json();
+            } else {
+                return response()->json(['message' => 'Gagal mengambil data pelacakan dari provider.'], 422);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
     // History of Transfers (Incoming and Outgoing)
     public function historyIncoming(Request $request)
     {

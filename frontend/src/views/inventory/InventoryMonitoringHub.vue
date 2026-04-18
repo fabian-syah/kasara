@@ -61,9 +61,11 @@ const showReceiveModal = ref(false); // For incoming_otw
 const showReturnModal = ref(false); // For failed_otw (Confirm return to stock)
 const showDetailModal = ref(false); // For outgoing_otw, history_in, history_out
 const showExpeditionModal = ref(false); // NEW: For adding expedition info
+const showTrackingModal = ref(false); // NEW: For real-time tracking display
 
 const couriers = ref([
-    'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express'
+    'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express',
+    'SAP Express', 'RPX', 'JET Express', 'Indah Logistic', 'First Logistics', 'NCS', 'REX', 'Shopee Express'
 ]);
 
 const expeditionForm = ref({
@@ -71,6 +73,9 @@ const expeditionForm = ref({
     expedition_tracking_no: "",
     expedition_date: new Date().toISOString().substr(0, 10),
 });
+
+const trackingData = ref(null);
+const isTracking = ref(false);
 
 const receiveForm = ref({
     accepted_items: [],
@@ -203,14 +208,35 @@ function openExpeditionModal(transfer) {
     showExpeditionModal.value = true;
 }
 
-function trackPackage(trackingNo) {
-    if (!trackingNo) return;
-    window.open(`https://cekresi.com/?noresi=${trackingNo}`, '_blank');
+async function trackPackage(courier, trackingNo) {
+    if (!trackingNo || !courier) return;
+    
+    isTracking.value = true;
+    trackingData.value = null;
+    showTrackingModal.value = true;
+    
+    try {
+        const response = await api.get('/transfers/track-expedition', {
+            params: { courier, awb: trackingNo }
+        });
+        
+        if (response.data?.status === 200) {
+            trackingData.value = response.data.data;
+        } else {
+            toast.error(response.data?.message || "Data tidak ditemukan");
+        }
+    } catch (e) {
+        console.error(e);
+        toast.error("Gagal melacak unit. Pastikan API Key sudah diset di server.");
+        showTrackingModal.value = false;
+    } finally {
+        isTracking.value = false;
+    }
 }
 
-function closeExpeditionModal() {
-    showExpeditionModal.value = false;
-    selectedTransfer.value = null;
+function closeTrackingModal() {
+    showTrackingModal.value = false;
+    trackingData.value = null;
 }
 
 function closeModal() {
@@ -421,7 +447,7 @@ onMounted(() => {
                                 </button>
 
                                 <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
-                                    @click.stop="trackPackage(transfer.expedition_tracking_no)"
+                                    @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
                                     class="p-2 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all group/btn flex items-center gap-2">
                                     <Search :size="14" />
                                     <span class="text-[10px] font-black uppercase tracking-wider">Lacak</span>
@@ -643,7 +669,7 @@ onMounted(() => {
                             <p class="label text-purple-400">No Resi</p>
                             <p class="value text-white flex items-center justify-between">
                                 <span>{{ selectedTransfer.expedition_tracking_no }}</span>
-                                <button @click="trackPackage(selectedTransfer.expedition_tracking_no)" class="p-1 hover:bg-white/10 rounded">
+                                <button @click="trackPackage(selectedTransfer.expedition_name, selectedTransfer.expedition_tracking_no)" class="p-1 hover:bg-white/10 rounded">
                                     <Search :size="14" class="text-purple-400" />
                                 </button>
                             </p>
@@ -785,6 +811,81 @@ onMounted(() => {
                         class="action-btn bg-purple-600 hover:bg-purple-500">
                         <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                         <span v-else>SIMPAN INFORMASI</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Real-time Tracking Modal -->
+        <div v-if="showTrackingModal" class="modal-backdrop" @click.self="closeTrackingModal">
+            <div class="modal-content max-w-2xl max-h-[85vh]">
+                <div class="modal-header bg-surface-800">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-3">
+                            <Truck class="text-blue-500" /> Status Pengiriman
+                        </h2>
+                        <p class="text-sm font-bold text-text-secondary mt-1" v-if="trackingData">
+                            {{ trackingData.summary?.courier }} — {{ trackingData.summary?.waybill }}
+                        </p>
+                    </div>
+                    <button @click="closeTrackingModal" class="close-btn">
+                        <X :size="20" />
+                    </button>
+                </div>
+
+                <div class="modal-body custom-scrollbar bg-surface-900/50">
+                    <!-- Loading State -->
+                    <div v-if="isTracking" class="py-20 text-center space-y-4">
+                        <Loader2 :size="48" class="animate-spin text-blue-500 mx-auto" />
+                        <p class="text-white font-black tracking-widest animate-pulse">MENGAMBIL DATA PELACAKAN...</p>
+                    </div>
+
+                    <!-- Tracking Content -->
+                    <div v-else-if="trackingData" class="space-y-10">
+                        <!-- Summary Header -->
+                        <div class="grid grid-cols-2 gap-4">
+                             <div class="p-4 bg-surface-800 rounded-2xl border border-white/5">
+                                <p class="label">Status</p>
+                                <p class="text-sm font-black" :class="trackingData.summary?.status === 'DELIVERED' ? 'text-green-500' : 'text-blue-500'">
+                                    {{ trackingData.summary?.status }}
+                                </p>
+                             </div>
+                             <div class="p-4 bg-surface-800 rounded-2xl border border-white/5">
+                                <p class="label">Penerima</p>
+                                <p class="text-sm font-black text-white truncate">{{ trackingData.detail?.receiver || '-' }}</p>
+                             </div>
+                        </div>
+
+                        <!-- Timeline -->
+                        <div class="relative pl-8 space-y-10">
+                            <!-- Vertical Line -->
+                            <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-500 via-surface-700 to-transparent"></div>
+
+                            <div v-for="(history, index) in trackingData.history" :key="index" class="relative group">
+                                <!-- Dot -->
+                                <div class="absolute -left-[27px] top-1.5 w-4 h-4 rounded-full border-4 border-surface-900 shadow-xl transition-all duration-500"
+                                    :class="index === 0 ? 'bg-blue-500 scale-125 ring-4 ring-blue-500/20' : 'bg-surface-700'">
+                                </div>
+
+                                <div class="space-y-1">
+                                    <p class="text-[10px] font-black text-blue-500/60 uppercase tracking-widest">{{ history.date }}</p>
+                                    <p class="text-sm font-bold text-white leading-relaxed">{{ history.desc }}</p>
+                                    <p v-if="history.location" class="text-[11px] font-medium text-text-secondary italic">@ {{ history.location }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div v-else class="py-20 text-center space-y-4">
+                        <AlertTriangle :size="48" class="text-red-500 mx-auto" />
+                        <p class="text-white font-black tracking-widest">DATA TIDAK TERSEDIA</p>
+                        <p class="text-text-secondary text-sm">Gagal menghubungkan ke provider tracking.</p>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-surface-800 p-6">
+                    <button @click="closeTrackingModal" class="btn btn-secondary w-full rounded-xl font-black py-4">
+                        TUTUP PELACAKAN
                     </button>
                 </div>
             </div>
