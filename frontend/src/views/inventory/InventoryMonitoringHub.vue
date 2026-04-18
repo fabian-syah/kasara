@@ -219,17 +219,18 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Using CheckResi.com (special widget version)
-    // This provider is specifically designed for shop integrations and iframe-friendly
-    trackingData.value = `https://checkresi.com/widget/index.php?noresi=${encodeURIComponent(trackingNo)}`;
+    // Using our new Backend Proxy to bypass Iframe (X-Frame-Options) restrictions
+    // This allows the tracking results to load directly inside our modal
+    const baseUrl = import.meta.env.VITE_API_URL || ''; 
+    trackingData.value = `${baseUrl}/api/transfers/track-proxy?nums=${encodeURIComponent(trackingNo)}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
     
-    // Smooth transition
+    // Brief delay for the proxy to fetch data
     setTimeout(() => {
         isTracking.value = false;
-    }, 1500);
+    }, 2500);
 }
 
 function closeTrackingModal() {

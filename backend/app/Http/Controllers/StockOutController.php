@@ -1788,4 +1788,29 @@ class StockOutController extends Controller
             
         return response()->json(['exists' => $exists]);
     }
+
+    /**
+     * Proxy tracking to bypass Iframe restrictions
+     */
+    public function proxyTracking(Request $request)
+    {
+        $noResi = $request->query('nums');
+        if (!$noResi) return response('Nomor resi tidak ditemukan', 400);
+
+        try {
+            // Fetch the tracking results from CekResi
+            $response = \Illuminate\Support\Facades\Http::get("https://cekresi.com/?noresi=" . $noResi);
+            $html = $response->body();
+
+            // Inject <base> tag so CSS/JS/Images load correctly from CekResi servers
+            $html = str_replace('<head>', '<head><base href="https://cekresi.com/">', $html);
+            
+            // Optional: Hide their header/footer via injected CSS if needed
+            $html = str_replace('</head>', '<style>header, footer, .navbar, .ad-section { display: none !important; }</style></head>', $html);
+
+            return response($html)->header('Content-Type', 'text/html');
+        } catch (\Exception $e) {
+            return response('Gagal memuat data pelacakan: ' . $e->getMessage(), 500);
+        }
+    }
 }
