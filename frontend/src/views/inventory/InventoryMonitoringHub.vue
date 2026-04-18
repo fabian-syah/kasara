@@ -216,16 +216,37 @@ function closeExpeditionModal() {
 async function trackPackage(courier, trackingNo) {
     if (!trackingNo) return;
     
-    // Using 17Track widget which is reliable for iFrames and unlimited
-    trackingData.value = `https://www.17track.net/id/external-widget?nums=${trackingNo}&fc=0`;
-    
     showTrackingModal.value = true;
     isTracking.value = true;
+    trackingData.value = trackingNo;
     
-    // Delay to allow frame to start loading
-    setTimeout(() => {
+    // Wait for DOM to render the container
+    await new Promise(r => setTimeout(r, 300));
+    
+    // Load 17Track widget script dynamically
+    const existingScript = document.getElementById('17track-script');
+    if (existingScript) existingScript.remove();
+    
+    const script = document.createElement('script');
+    script.id = '17track-script';
+    script.src = '//www.17track.net/externalcall.js';
+    script.onload = () => {
         isTracking.value = false;
-    }, 1500);
+        if (window.YQV5) {
+            window.YQV5.trackSingle({
+                YQ_ContainerId: 'YQContainer',
+                YQ_Height: 560,
+                YQ_Fc: '0',
+                YQ_Lang: 'id',
+                YQ_Num: trackingNo
+            });
+        }
+    };
+    script.onerror = () => {
+        isTracking.value = false;
+        toast.error('Gagal memuat layanan pelacakan.');
+    };
+    document.head.appendChild(script);
 }
 
 function closeTrackingModal() {
@@ -832,20 +853,15 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white" style="height: 600px; min-height: 500px;">
+                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="height: 600px; min-height: 500px;">
                     <!-- Loading State -->
                     <div v-if="isTracking" class="absolute inset-0 z-10 bg-surface-900 flex flex-col items-center justify-center space-y-4">
                         <Loader2 :size="48" class="animate-spin text-blue-500" />
                         <p class="text-white font-black tracking-widest animate-pulse">MEMUAT PELACAKAN...</p>
                     </div>
 
-                    <!-- Embed Iframe -->
-                    <iframe v-if="trackingData" :src="trackingData" 
-                        class="w-full h-full border-none"
-                        style="min-width: 300px; min-height: 500px;"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen>
-                    </iframe>
+                    <!-- 17Track Widget Container -->
+                    <div id="YQContainer" class="w-full h-full overflow-y-auto"></div>
                 </div>
 
                 <div class="modal-footer bg-surface-800 p-4">
