@@ -14,20 +14,17 @@ class DistributorController extends Controller
         $query = Distributor::query();
 
         // Scope for restricted roles
-        if ($user && !$user->hasRole(['super_admin', 'owner', 'admin_produk', 'inventory', 'gudang', 'audit', 'leader'])) {
-            if ($user->hasAnyRole(['distributor', 'distribution'])) {
-                $ids = $user->getAccessibleDistributorIds();
-                $query->whereIn('id', $ids);
-            } else {
-                // Regular staff see their own distributor if assigned
-                if ($user->distributor_id) {
-                    $query->where('id', $user->distributor_id);
-                } else {
-                    // Default to none if not an admin/internal role and no distributor assigned
-                    $query->whereRaw('1=0');
-                }
+        // Only restrict if the user has a specific distributor-limited role
+        if ($user && $user->hasAnyRole(['distributor', 'distribution'])) {
+            $ids = $user->getAccessibleDistributorIds();
+            $query->whereIn('id', $ids);
+        } else if ($user && !$user->hasRole(['super_admin', 'owner', 'admin_produk', 'inventory', 'gudang', 'audit', 'leader', 'sales', 'toko_offline', 'toko_online'])) {
+            // General fallback for any other non-staff roles that might have a distributor_id
+            if ($user->distributor_id) {
+                $query->where('id', $user->distributor_id);
             }
         }
+        // Staff roles (Implicitly including those in the hasRole check above) see all distributors
 
         if ($request->has('search')) {
             $search = $request->search;
