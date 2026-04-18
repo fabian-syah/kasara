@@ -163,6 +163,141 @@ onMounted(() => {
     fetchRanking();
 });
 
+const searchQuery = ref('');
+
+const totalOmset = computed(() => {
+    return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
+});
+
+const top3 = computed(() => {
+    return filteredRanking.value.slice(0, 3);
+});
+
+const sortBy = ref('omset'); // 'omset', 'name'
+
+const filteredRanking = computed(() => {
+    let result = [...rankingData.value];
+    
+    // Filter
+    if (searchQuery.value) {
+        const search = searchQuery.value.toLowerCase();
+        result = result.filter(item =>
+            item.name.toLowerCase().includes(search) ||
+            item.type.toLowerCase().includes(search)
+        );
+    }
+    
+    // Sort
+    if (sortBy.value === 'omset') {
+        result.sort((a, b) => b.omset - a.omset);
+    } else {
+        result.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    
+    return result;
+});
+
+const displayRanking = computed(() => {
+    const branches = [];
+    const shops = [];
+
+    filteredRanking.value.forEach(item => {
+        if (item.type === 'branch' || item.type === 'Offline') branches.push({ ...item });
+        else shops.push({ ...item });
+    });
+    
+    branches.forEach((b, idx) => b.localRank = idx + 1);
+    shops.forEach((s, idx) => s.localRank = idx + 1);
+
+    if (shops.length > 0) {
+        return [...branches, { isSeparator: true, name: 'Kategori Toko Online', id: 'sep-1', type: 'separator' }, ...shops];
+    }
+    
+    return branches;
+});
+
+const exportLoading = ref(false);
+const exportPart = ref(0); // 0: none, 1...
+const exportRef = ref(null);
+
+const currentExportData = computed(() => {
+    if (exportPart.value === 0) return displayRanking.value;
+    const rowsPerPage = 10;
+    const start = (exportPart.value - 1) * rowsPerPage;
+    return displayRanking.value.slice(start, start + rowsPerPage);
+});
+
+const exportToPDF = async () => {
+    if (!exportRef.value) return;
+    exportLoading.value = true;
+    
+    window.scrollTo(0, 0);
+    const isDark = document.documentElement.classList.contains('dark');
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    const runExport = async (part, isFirst = false) => {
+        exportPart.value = part;
+        await new Promise(r => setTimeout(r, 1200));
+        
+        try {
+            const el = exportRef.value;
+            const dataUrl = await toJpeg(el, { 
+                quality: 0.95,
+                pixelRatio: 2,
+                width: 1100,
+                backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+                style: { 
+                    width: '1100px',
+                    maxWidth: 'none',
+                    margin: '0',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }
+            });
+
+            const imgProps = pdf.getImageProperties(dataUrl);
+            let pdfPageHeight = (imgProps.height * pageWidth) / imgProps.width;
+
+            if (!isFirst) {
+                pdf.addPage();
+            }
+
+            const a4Height = pdf.internal.pageSize.getHeight();
+            let finalWidth = pageWidth;
+            let finalHeight = pdfPageHeight;
+            let xOffset = 0;
+
+            if (pdfPageHeight > a4Height) {
+                const ratio = a4Height / pdfPageHeight;
+                finalHeight = a4Height;
+                finalWidth = pageWidth * ratio;
+                xOffset = (pageWidth - finalWidth) / 2;
+            }
+
+            pdf.addImage(dataUrl, 'JPEG', xOffset, 0, finalWidth, finalHeight, undefined, 'FAST');
+        } catch (e) { 
+            console.error('PDF Export part error:', e); 
+        }
+    };
+
+    const totalItems = displayRanking.value.length;
+    let totalPages = 1;
+    if (totalItems > 10) {
+        totalPages = 1 + Math.ceil((totalItems - 10) / 12);
+    }
+
+    for (let p = 1; p <= totalPages; p++) {
+        await runExport(p, p === 1);
+    }
+    
+    pdf.save(`Laporan-Omzet-${activeRangeLabel.value.replace(/ /g, '-')}.pdf`);
+    
+    exportPart.value = 0;
+    exportLoading.value = false;
+};
+
 </script>
 
 <template>
@@ -200,7 +335,7 @@ onMounted(() => {
 
                 <!-- Export Action -->
                 <div class="flex items-center gap-3">
-                    <button @click="exportToPDF" :disabled="loading || exportLoading || rankingData.length === 0"
+                    <button @click="exportToPDF" :disabled="loading || exportLoading || (rankingData?.length || 0) === 0"
                         class="group relative flex items-center gap-3 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all duration-300 font-bold text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50 overflow-hidden">
                         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shine"></div>
                         <Download v-if="!exportLoading" class="w-4 h-4" />
@@ -496,7 +631,7 @@ onMounted(() => {
                                 </tr>
                             </thead>
                             <tbody :key="exportPart" class="divide-y divide-surface-800/50">
-                                <template v-for="(item, index) in (exportPart === 0 ? displayRanking : (exportPart === 1 ? displayRanking.slice(0, 10) : displayRanking.slice(10 + (exportPart - 2) * 12, 10 + (exportPart - 1) * 12)))" :key="item.type + '-' + (item.id || index)">
+                                <template v-for="(item, index) in (exportPart === 0 ? displayRanking : (exportPart === 1 ? (displayRanking?.slice(0, 10) || []) : (displayRanking?.slice(10 + (exportPart - 2) * 12, 10 + (exportPart - 1) * 12) || [])))" :key="item.type + '-' + (item.id || index)">
                                     <tr class="group hover:bg-surface-800/30 transition-all duration-300"
                                         :class="{'bg-surface-800/80' : item.isSeparator}">
                                         
