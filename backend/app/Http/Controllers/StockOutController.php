@@ -1511,11 +1511,29 @@ class StockOutController extends Controller
         $binderErrors = [];
         if ($binderKeys) {
             $courierMap = [
-                'jne' => 'jne', 'pos indonesia' => 'pos', 'pos' => 'pos', 'j&t' => 'jnt', 'jnt' => 'jnt',
-                'j&t cargo' => 'jnt_cargo', 'jnt cargo' => 'jnt_cargo', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
-                'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'ninja xpress' => 'ninja',
-                'lion' => 'lion', 'lion parcel' => 'lion', 'id express' => 'ide', 'ide' => 'ide',
-                'shopee' => 'shopee', 'shopee express' => 'shopee', 'spx' => 'shopee', 'lazada' => 'lex'
+                'jne' => 'jne',
+                'pos indonesia' => 'pos', 'pos' => 'pos',
+                'j&t' => 'jnt', 'jnt' => 'jnt',
+                'j&t cargo' => 'jnt_cargo', 'jnt cargo' => 'jnt_cargo',
+                'sicepat' => 'sicepat',
+                'tiki' => 'tiki',
+                'anteraja' => 'anteraja',
+                'wahana' => 'wahana',
+                'ninja' => 'ninja', 'ninja xpress' => 'ninja',
+                'lion' => 'lion', 'lion parcel' => 'lion',
+                'pcp' => 'pcp',
+                'jet' => 'jet',
+                'rex' => 'rex',
+                'first' => 'first',
+                'id express' => 'ide', 'ide' => 'ide',
+                'shopee' => 'spx', 'shopee express' => 'spx', 'spx' => 'spx',
+                'kgx' => 'kgx',
+                'sap' => 'sap',
+                'rpx' => 'rpx',
+                'lazada' => 'lex', 'lex' => 'lex',
+                'indah' => 'indah_cargo', 'indah cargo' => 'indah_cargo', 'indah_cargo' => 'indah_cargo',
+                'dakota' => 'dakota',
+                'kurir_tokopedia' => 'kurir_tokopedia'
             ];
             $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
             
@@ -1525,26 +1543,20 @@ class StockOutController extends Controller
                 if (empty($key)) continue;
 
                 try {
-                    $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                    $response = \Illuminate\Support\Facades\Http::timeout(20)->get("https://api.binderbyte.com/v1/track", [
                         'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
                     ]);
 
                     $data = $response->json();
-                    if ((!$response->successful() || (isset($data['status']) && $data['status'] != 200)) && ($courierSlug == 'shopee' || $courierSlug == 'spx')) {
-                        $retrySlug = ($courierSlug == 'shopee') ? 'spx' : 'shopee';
-                        $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
-                            'api_key' => $key, 'courier' => $retrySlug, 'awb' => $awb
-                        ]);
-                        $data = $response->json();
-                    }
-
+                    
+                    // Specific logic for SPX if needed, though spx is the official slug now
                     if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
                         return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
                     }
                     
                     $binderErrors[] = ($data['message'] ?? 'Error');
                 } catch (\Exception $e) {
-                    $binderErrors[] = $e->getMessage();
+                    $binderErrors[] = "Timeout/Error: " . $e->getMessage();
                 }
             }
         }
@@ -1561,7 +1573,7 @@ class StockOutController extends Controller
                 ];
                 $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
 
-                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                $response = \Illuminate\Support\Facades\Http::timeout(20)
                     ->withHeaders(['Authorization' => 'Bearer ' . $biteshipKey])
                     ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
 
@@ -1584,10 +1596,11 @@ class StockOutController extends Controller
                                 'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
                             ],
                             'history' => array_map(function($h) {
+                                $hTime = $h['updated_at'] ?? $h['time'] ?? date('Y-m-d H:i:s');
                                 return [
-                                    'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
-                                    'desc' => $h['note'],
-                                    'location' => strtoupper($h['status'])
+                                    'date' => date('Y-m-d H:i:s', strtotime($hTime)),
+                                    'desc' => $h['note'] ?? 'Status Changed',
+                                    'location' => strtoupper($h['status'] ?? 'ON PROCESS')
                                 ];
                             }, $bsData['history'] ?? [])
                         ]
