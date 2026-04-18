@@ -60,6 +60,17 @@ const isSubmitting = ref(false);
 const showReceiveModal = ref(false); // For incoming_otw
 const showReturnModal = ref(false); // For failed_otw (Confirm return to stock)
 const showDetailModal = ref(false); // For outgoing_otw, history_in, history_out
+const showExpeditionModal = ref(false); // NEW: For adding expedition info
+
+const couriers = ref([
+    'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express'
+]);
+
+const expeditionForm = ref({
+    expedition_name: "",
+    expedition_tracking_no: "",
+    expedition_date: new Date().toISOString().substr(0, 10),
+});
 
 const receiveForm = ref({
     accepted_items: [],
@@ -182,6 +193,26 @@ function openModal(transfer) {
     }
 }
 
+function openExpeditionModal(transfer) {
+    selectedTransfer.value = transfer;
+    expeditionForm.value = {
+        expedition_name: transfer.expedition_name || "",
+        expedition_tracking_no: transfer.expedition_tracking_no || "",
+        expedition_date: transfer.expedition_date || new Date().toISOString().substr(0, 10),
+    };
+    showExpeditionModal.value = true;
+}
+
+function trackPackage(trackingNo) {
+    if (!trackingNo) return;
+    window.open(`https://cekresi.com/?noresi=${trackingNo}`, '_blank');
+}
+
+function closeExpeditionModal() {
+    showExpeditionModal.value = false;
+    selectedTransfer.value = null;
+}
+
 function closeModal() {
     showReceiveModal.value = false; showReturnModal.value = false; showDetailModal.value = false;
     selectedTransfer.value = null;
@@ -241,6 +272,20 @@ async function submitReturn(verifiedPin = null) {
         fetchData(1); closeModal();
     } catch (e) {
         toast.error(e.response?.data?.message || 'Gagal memproses pengembalian.');
+    } finally { isSubmitting.value = false; }
+}
+
+async function submitExpedition() {
+    if (!selectedTransfer.value) return;
+    
+    isSubmitting.value = true;
+    try {
+        await api.post(`/transfers/${selectedTransfer.value.id}/expedition`, expeditionForm.value);
+        toast.success("Informasi ekspedisi berhasil disimpan!");
+        fetchData(currentPage.value);
+        closeExpeditionModal();
+    } catch (e) {
+        toast.error(e.response?.data?.message || "Gagal menyimpan ekspedisi");
     } finally { isSubmitting.value = false; }
 }
 
@@ -365,8 +410,26 @@ onMounted(() => {
                                 <Calendar :size="14" />
                                 <span class="text-xs font-bold">{{ formatDate(transfer.created_at) }}</span>
                             </div>
-                            <ChevronRight :size="18"
-                                class="text-text-secondary opacity-20 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
+                            
+                            <div class="flex items-center gap-3">
+                                <!-- Action Buttons -->
+                                <button v-if="activeTab === 'outgoing_otw'" 
+                                    @click.stop="openExpeditionModal(transfer)"
+                                    class="p-2 bg-purple-500/10 hover:bg-purple-500 text-purple-500 hover:text-white border border-purple-500/20 rounded-xl transition-all group/btn flex items-center gap-2">
+                                    <Truck :size="14" />
+                                    <span class="text-[10px] font-black uppercase">Ekspedisi</span>
+                                </button>
+
+                                <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
+                                    @click.stop="trackPackage(transfer.expedition_tracking_no)"
+                                    class="p-2 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all group/btn flex items-center gap-2">
+                                    <Search :size="14" />
+                                    <span class="text-[10px] font-black uppercase tracking-wider">Lacak</span>
+                                </button>
+
+                                <ChevronRight :size="18"
+                                    class="text-text-secondary opacity-20 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -570,6 +633,25 @@ onMounted(() => {
                             <p class="label">Waktu Kirim</p>
                             <p class="value text-white">{{ formatDate(selectedTransfer.created_at) }}</p>
                         </div>
+
+                        <!-- Expedition Info -->
+                        <div v-if="selectedTransfer.expedition_name" class="detail-card border-purple-500/20 bg-purple-500/5">
+                            <p class="label text-purple-400">Ekspedisi</p>
+                            <p class="value text-white">{{ selectedTransfer.expedition_name }}</p>
+                        </div>
+                        <div v-if="selectedTransfer.expedition_tracking_no" class="detail-card border-purple-500/20 bg-purple-500/5">
+                            <p class="label text-purple-400">No Resi</p>
+                            <p class="value text-white flex items-center justify-between">
+                                <span>{{ selectedTransfer.expedition_tracking_no }}</span>
+                                <button @click="trackPackage(selectedTransfer.expedition_tracking_no)" class="p-1 hover:bg-white/10 rounded">
+                                    <Search :size="14" class="text-purple-400" />
+                                </button>
+                            </p>
+                        </div>
+                        <div v-if="selectedTransfer.expedition_date" class="detail-card border-purple-500/20 bg-purple-500/5">
+                            <p class="label text-purple-400">Tgl Ekspedisi</p>
+                            <p class="value text-white">{{ formatDate(selectedTransfer.expedition_date) }}</p>
+                        </div>
                     </div>
 
                     <!-- Items -->
@@ -662,6 +744,51 @@ onMounted(() => {
         </div>
 
         <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
+
+        <!-- Expedition Modal -->
+        <div v-if="showExpeditionModal && selectedTransfer" class="modal-backdrop" @click.self="closeExpeditionModal">
+            <div class="modal-content max-w-lg">
+                <div class="modal-header">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-3">
+                            <Truck class="text-purple-500" /> Informasi Ekspedisi
+                        </h2>
+                        <p class="text-sm text-text-secondary font-medium">Nota: {{ selectedTransfer.receipt_id }}</p>
+                    </div>
+                    <button @click="closeExpeditionModal" class="close-btn">
+                        <X :size="20" />
+                    </button>
+                </div>
+                <div class="modal-body space-y-6 pb-12 custom-scrollbar">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="label">Pilih Ekspedisi</label>
+                            <select v-model="expeditionForm.expedition_name" class="modern-select">
+                                <option value="" disabled>Pilih Kurir...</option>
+                                <option v-for="c in couriers" :key="c" :value="c">{{ c }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label">Nomor Resi</label>
+                            <input v-model="expeditionForm.expedition_tracking_no" type="text" placeholder="Masukkan No Resi..."
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-purple-500 transition-all" />
+                        </div>
+                        <div>
+                            <label class="label">Tanggal Kirim</label>
+                            <input v-model="expeditionForm.expedition_date" type="date"
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-purple-500 transition-all" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="submitExpedition" :disabled="isSubmitting"
+                        class="action-btn bg-purple-600 hover:bg-purple-500">
+                        <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
+                        <span v-else>SIMPAN INFORMASI</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 

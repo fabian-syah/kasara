@@ -127,6 +127,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transfers/history', [\App\Http\Controllers\StockOutController::class, 'historyIncoming']);
     Route::get('/transfers/outgoing', [\App\Http\Controllers\StockOutController::class, 'indexOutgoing']); // NEW
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
+    Route::post('/transfers/{id}/expedition', [\App\Http\Controllers\StockOutController::class, 'updateExpedition']);
 
     // Failed Transfers (Gagal Kirim/OTW)
     Route::get('/transfers/failed', [FailedTransferController::class, 'indexFailed']);

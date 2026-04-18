@@ -109,6 +109,9 @@ class StockOut extends Model
         'missing_category',
         'person_in_charge',
         'loss_chronology',
+        'expedition_name',
+        'expedition_tracking_no',
+        'expedition_date',
     ];
 
     protected $casts = [

@@ -1433,6 +1433,38 @@ class StockOutController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
+    
+    // Update Expedition Info for a Transfer
+    public function updateExpedition(Request $request, $id)
+    {
+        $request->validate([
+            'expedition_name' => 'required|string',
+            'expedition_tracking_no' => 'required|string',
+            'expedition_date' => 'required|date',
+        ]);
+
+        try {
+            $stockOut = StockOut::findOrFail($id);
+            
+            // Only allow updates for transfers (pindah_cabang)
+            if ($stockOut->category !== 'pindah_cabang') {
+                return response()->json(['message' => 'Hanya transfer antar cabang yang dapat ditambahkan ekspedisi.'], 422);
+            }
+
+            $stockOut->update([
+                'expedition_name' => $request->expedition_name,
+                'expedition_tracking_no' => $request->expedition_tracking_no,
+                'expedition_date' => $request->expedition_date,
+            ]);
+
+            return response()->json([
+                'message' => 'Informasi ekspedisi berhasil diperbarui.',
+                'data' => $stockOut
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
 
     // History of Transfers (Incoming and Outgoing)
     public function historyIncoming(Request $request)
