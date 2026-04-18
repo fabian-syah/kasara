@@ -1507,7 +1507,7 @@ class StockOutController extends Controller
             } catch (\Exception $e) {}
         }
 
-        // --- 1. TRY BINDERBYTE FIRST (PRIMARY) ---
+        // --- 1. TRY BINDERBYTE ONLY (100% PRIORITY & COST FREE) ---
         $binderErrors = [];
         if ($binderKeys) {
             $courierMap = [
@@ -1537,19 +1537,20 @@ class StockOutController extends Controller
             ];
             $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
             
-            $keys = explode(',', $binderKeys);
+            // Menggabungkan kunci dari .env dan kunci baru yang Anda berikan
+            $keys = array_unique(array_filter(explode(',', $binderKeys . ',f8000a7fa7be89bb3796d9a753d248c2d1c0ac04ac994b7cb860b31240a730d1')));
+            
             foreach ($keys as $key) {
                 $key = trim($key);
                 if (empty($key)) continue;
 
                 try {
-                    $response = \Illuminate\Support\Facades\Http::timeout(20)->get("https://api.binderbyte.com/v1/track", [
+                    $response = \Illuminate\Support\Facades\Http::timeout(25)->get("https://api.binderbyte.com/v1/track", [
                         'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
                     ]);
 
                     $data = $response->json();
                     
-                    // Specific logic for SPX if needed, though spx is the official slug now
                     if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
                         return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
                     }
@@ -1561,87 +1562,15 @@ class StockOutController extends Controller
             }
         }
 
-        // --- 2. TRY BITESHIP AS FALLBACK ---
-        $biteshipError = 'BiteShip key missing';
+        /* BITESHIP DISABLE (Agar tidak potong saldo & karena data kurang akurat)
         if ($biteshipKey) {
-            try {
-                $biteshipMap = [
-                    'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
-                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
-                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide',
-                    'pos' => 'pos', 'pos indonesia' => 'pos', 'pcp' => 'pcp', 'jet' => 'jet', 'sap' => 'sap'
-                ];
-                $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
-
-                $response = \Illuminate\Support\Facades\Http::timeout(20)
-                    ->withHeaders(['Authorization' => 'Bearer ' . $biteshipKey])
-                    ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
-
-                $bsData = $response->json();
-                if ($response->successful() && isset($bsData['success']) && $bsData['success']) {
-                    // Mapper Bahasa Indonesia untuk BiteShip
-                    $statusIndo = [
-                        'allocated' => 'Kurir Dialokasikan',
-                        'picking_up' => 'Proses Penjemputan',
-                        'picked_up' => 'Berhasil Dijemput',
-                        'dropping_off' => 'Sedang Diantar',
-                        'delivered' => 'Diterima',
-                        'cancelled' => 'Dibatalkan',
-                        'on_hold' => 'Tertahan',
-                        'returned' => 'Dikembalikan',
-                    ];
-
-                    $history = array_map(function($h) use ($statusIndo) {
-                        $hTime = $h['updated_at'] ?? $h['time'] ?? date('Y-m-d H:i:s');
-                        $statusRaw = strtolower($h['status'] ?? '');
-                        
-                        // Terjemahkan Note jika standar
-                        $note = $h['note'] ?? 'Perubahan Status';
-                        $note = str_replace(
-                            ['Item is on the way to customer.', 'Your shipment is on hold at the moment.'],
-                            ['Pesanan dalam proses antar ke tujuan.', 'Pesanan Anda sedang tertahan saat ini.'],
-                            $note
-                        );
-
-                        return [
-                            'date' => date('Y-m-d H:i:s', strtotime($hTime)),
-                            'desc' => $note,
-                            'location' => strtoupper($statusIndo[$statusRaw] ?? $statusRaw ?? 'DALAM PROSES')
-                        ];
-                    }, $bsData['history'] ?? []);
-
-                    // Balik urutan: Terbaru di atas
-                    $history = array_reverse($history);
-
-                    return response()->json([
-                        'success' => true,
-                        'provider' => 'biteship',
-                        'data' => [
-                            'summary' => [
-                                'awb' => $bsData['waybill_id'],
-                                'courier' => strtoupper($bsData['courier']['name'] ?? $bsData['courier']['company']),
-                                'status' => strtoupper($statusIndo[strtolower($bsData['status'])] ?? $bsData['status']),
-                                'date' => $bsData['updated_at'] ?? ''
-                            ],
-                            'detail' => [
-                                'origin' => $bsData['origin']['city'] ?? '',
-                                'destination' => $bsData['destination']['city'] ?? '',
-                                'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
-                                'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
-                            ],
-                            'history' => $history
-                        ]
-                    ]);
-                }
-                $biteshipError = $bsData['error'] ?? $bsData['message'] ?? 'Error';
-            } catch (\Exception $e) {
-                $biteshipError = $e->getMessage();
-            }
+            ... logic disabled ...
         }
+        */
 
         return response()->json([
             'success' => false,
-            'message' => "Gagal Lacak. Binderbyte: " . implode(', ', $binderErrors) . " | BiteShip: " . $biteshipError
+            'message' => "Gagal Lacak via Binderbyte: " . implode(', ', $binderErrors) . ". (BiteShip Ter-Nonaktif untuk menghindari biaya)."
         ], 422);
     }
 
