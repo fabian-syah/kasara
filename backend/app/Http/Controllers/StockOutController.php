@@ -1798,19 +1798,30 @@ class StockOutController extends Controller
         if (!$noResi) return response('Nomor resi tidak ditemukan', 400);
 
         try {
-            // Fetch the tracking results from CekResi
-            $response = \Illuminate\Support\Facades\Http::get("https://cekresi.com/?noresi=" . $noResi);
+            // Using Http with timeout and no follow redirects to avoid loops
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://cekresi.com/?noresi=" . $noResi);
+            
+            if (!$response->successful()) {
+                return response('Gagal mengambil data dari CekResi', 502);
+            }
+
             $html = $response->body();
 
-            // Inject <base> tag so CSS/JS/Images load correctly from CekResi servers
+            // Force BASE HREF for all relative assets
             $html = str_replace('<head>', '<head><base href="https://cekresi.com/">', $html);
             
-            // Optional: Hide their header/footer via injected CSS if needed
-            $html = str_replace('</head>', '<style>header, footer, .navbar, .ad-section { display: none !important; }</style></head>', $html);
+            // Inject CSS to clean up the UI
+            $cleanCss = '<style>
+                header, footer, nav, .navbar, .ad-section, .sidebar, .breadcrumb, .footer-section { display: none !important; }
+                body { padding: 0 !important; margin: 0 !important; background: transparent !important; }
+                .container { width: 100% !important; max-width: 100% !important; padding: 10px !important; }
+            </style>';
+            
+            $html = str_replace('</head>', $cleanCss . '</head>', $html);
 
             return response($html)->header('Content-Type', 'text/html');
         } catch (\Exception $e) {
-            return response('Gagal memuat data pelacakan: ' . $e->getMessage(), 500);
+            return response('Error: ' . $e->getMessage(), 500);
         }
     }
 }

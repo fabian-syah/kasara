@@ -34,6 +34,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::get('/inventory/fix-data', [InventoryController::class, 'fixMergedImeis']);
 Route::get('/inventory/fix-logs', [InventoryController::class, 'fixInventoryLogs']);
 
+Route::get('/transfers/track-proxy', [\App\Http\Controllers\StockOutController::class, 'proxyTracking']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/verify-password', [AuthController::class, 'verifyPassword']);
@@ -129,7 +131,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
     Route::post('/transfers/{id}/expedition', [\App\Http\Controllers\StockOutController::class, 'updateExpedition']);
     Route::get('/transfers/track-expedition', [\App\Http\Controllers\StockOutController::class, 'trackExpedition']);
-    Route::get('/transfers/track-proxy', [\App\Http\Controllers\StockOutController::class, 'proxyTracking']);
 
     // Failed Transfers (Gagal Kirim/OTW)
     Route::get('/transfers/failed', [FailedTransferController::class, 'indexFailed']);
