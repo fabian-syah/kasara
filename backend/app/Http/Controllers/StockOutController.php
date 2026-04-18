@@ -1490,104 +1490,113 @@ class StockOutController extends Controller
             'awb' => 'required|string',
         ]);
 
+        $originalCourier = $request->courier;
         $courier = strtolower($request->courier);
         $awb = $request->awb;
-        $apiKey = env('BINDERBYTE_API_KEY');
         
-        // Manual Fallback if Config is Cached
-        if (!$apiKey) {
+        // --- 1. GET PROVIDER KEYS ---
+        $binderKeys = env('BINDERBYTE_API_KEY');
+        $biteshipKey = env('BITESHIP_API_KEY');
+        
+        // Manual Fallback for Cached Environment
+        if (!$binderKeys) {
             try {
-                $envPath = base_path('.env');
-                if (file_exists($envPath)) {
-                    $envContent = file_get_contents($envPath);
-                    if (preg_match('/BINDERBYTE_API_KEY=(.*)/', $envContent, $matches)) {
-                        $apiKey = trim($matches[1], "\"' \n\r\t");
+                $envContent = file_get_contents(base_path('.env'));
+                if (preg_match('/BINDERBYTE_API_KEY=(.*)/', $envContent, $matches)) $binderKeys = trim($matches[1], "\"' \n\r\t");
+                if (preg_match('/BITESHIP_API_KEY=(.*)/', $envContent, $matches)) $biteshipKey = trim($matches[1], "\"' \n\r\t");
+            } catch (\Exception $e) {}
+        }
+
+        // --- 2. TRY BINDERBYTE FIRST (Multi-Key Rotation) ---
+        if ($binderKeys) {
+            $courierMap = [
+                'jne' => 'jne', 'pos indonesia' => 'pos', 'pos' => 'pos', 'j&t' => 'jnt', 'jnt' => 'jnt',
+                'j&t cargo' => 'jnt_cargo', 'jnt cargo' => 'jnt_cargo', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
+                'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'ninja xpress' => 'ninja',
+                'lion' => 'lion', 'lion parcel' => 'lion', 'id express' => 'ide', 'ide' => 'ide',
+                'shopee' => 'shopee', 'shopee express' => 'shopee', 'spx' => 'shopee', 'lazada' => 'lex'
+            ];
+            $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
+            
+            $keys = explode(',', $binderKeys);
+            foreach ($keys as $key) {
+                $key = trim($key);
+                if (empty($key)) continue;
+
+                try {
+                    $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                        'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
+                    ]);
+
+                    // Fallback for shopee/spx
+                    $data = $response->json();
+                    if ((!$response->successful() || (isset($data['status']) && $data['status'] != 200)) && ($courierSlug == 'shopee' || $courierSlug == 'spx')) {
+                        $retrySlug = ($courierSlug == 'shopee') ? 'spx' : 'shopee';
+                        $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
+                            'api_key' => $key, 'courier' => $retrySlug, 'awb' => $awb
+                        ]);
+                        $data = $response->json();
                     }
+
+                    if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
+                        return response()->json(['success' => true, 'provider' => 'binderbyte', 'data' => $data['data']]);
+                    }
+                } catch (\Exception $e) {}
+            }
+        }
+
+        // --- 3. TRY BITESHIP AS FALLBACK ---
+        if ($biteshipKey) {
+            try {
+                // BiteShip uses different slugs
+                $biteshipMap = [
+                    'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
+                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee express' => 'shopee',
+                    'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide'
+                ];
+                $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
+
+                $response = \Illuminate\Support\Facades\Http::timeout(10)
+                    ->withHeaders(['authorization' => $biteshipKey])
+                    ->get("https://api.biteship.com/v1/trackings/{$awb}/couriers/{$bsSlug}");
+
+                $bsData = $response->json();
+
+                if ($response->successful() && $bsData['success']) {
+                    // Normalize BiteShip to our Standard Format
+                    return response()->json([
+                        'success' => true,
+                        'provider' => 'biteship',
+                        'data' => [
+                            'summary' => [
+                                'awb' => $bsData['waybill_id'],
+                                'courier' => strtoupper($bsData['courier']['name']),
+                                'status' => strtoupper($bsData['status']),
+                                'date' => '' 
+                            ],
+                            'detail' => [
+                                'origin' => $bsData['origin']['city'] ?? '',
+                                'destination' => $bsData['destination']['city'] ?? '',
+                                'shipper' => $bsData['origin']['contact_name'] ?? 'PENGIRIM',
+                                'receiver' => $bsData['destination']['contact_name'] ?? 'PENERIMA'
+                            ],
+                            'history' => array_map(function($h) {
+                                return [
+                                    'date' => date('Y-m-d H:i:s', strtotime($h['time'])),
+                                    'desc' => $h['note'],
+                                    'location' => $h['status']
+                                ];
+                            }, $bsData['history'])
+                        ]
+                    ]);
                 }
             } catch (\Exception $e) {}
         }
-        
-        if (!$apiKey) {
-            return response()->json(['message' => 'Layanan pelacakan sedang MAINTENANCE. Hubungi IT untuk setup BINDERBYTE_API_KEY.'], 500);
-        }
 
-        // Map to Official Binderbyte Slugs (Based on Documentation)
-        $courierMap = [
-            'jne' => 'jne',
-            'pos indonesia' => 'pos',
-            'pos' => 'pos',
-            'j&t' => 'jnt',
-            'jnt' => 'jnt',
-            'j&t cargo' => 'jnt_cargo',
-            'jnt cargo' => 'jnt_cargo',
-            'sicepat' => 'sicepat',
-            'tiki' => 'tiki',
-            'anteraja' => 'anteraja',
-            'wahana' => 'wahana',
-            'ninja' => 'ninja',
-            'ninja xpress' => 'ninja',
-            'lion' => 'lion',
-            'lion parcel' => 'lion',
-            'pcp' => 'pcp',
-            'jet' => 'jet',
-            'rex' => 'rex',
-            'first' => 'first',
-            'ide' => 'ide',
-            'id express' => 'ide',
-            'shopee' => 'shopee',
-            'shopee express' => 'shopee',
-            'spx' => 'shopee',
-            'kgx' => 'kgx',
-            'sap' => 'sap',
-            'jx' => 'jx',
-            'rpx' => 'rpx',
-            'lazada' => 'lex',
-            'indah' => 'indah',
-            'indah cargo' => 'indah',
-            'dakota' => 'dakota'
-        ];
-
-        $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
-
-        try {
-            // First Attempt
-            $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
-                'api_key' => $apiKey,
-                'courier' => $courierSlug,
-                'awb' => $awb
-            ]);
-
-            $data = $response->json();
-
-            // Auto-Retry Fallback for Shopee (shopee <-> spx)
-            if ((!$response->successful() || (isset($data['status']) && $data['status'] != 200)) && 
-                ($courierSlug == 'shopee' || $courierSlug == 'spx')) {
-                
-                $retrySlug = ($courierSlug == 'shopee') ? 'spx' : 'shopee';
-                $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
-                    'api_key' => $apiKey,
-                    'courier' => $retrySlug,
-                    'awb' => $awb
-                ]);
-                $data = $response->json();
-            }
-
-            if ($response->successful() && isset($data['status']) && $data['status'] == 200) {
-                return response()->json([
-                    'success' => true,
-                    'data' => $data['data']
-                ]);
-            }
-
-            $errorMsg = $data['message'] ?? 'Format resi/kurir tidak didukung.';
-            return response()->json([
-                'success' => false,
-                'message' => "BinderByte Error: " . $errorMsg . " (Slug Used: " . $courierSlug . ")"
-            ], 422);
-
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Gagal terhubung ke BinderByte: ' . $e->getMessage()], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Layanan pelacakan sedang LIMIT atau Maintenance di semua provider.'
+        ], 422);
     }
 
     // History of Transfers (Incoming and Outgoing)
