@@ -437,7 +437,12 @@ const distributorReport = computed(() => {
 const categoryReport = computed(() => {
     const map = new Map();
     activeItems.value.forEach(item => {
-        const category = item.product?.category || 'Uncategorized';
+        // Fix: Use Brand as category name if category is generic 'NON HP / NON IMEI'
+        let category = item.product?.category || 'Uncategorized';
+        if (category === 'NON HP / NON IMEI') {
+            category = item.product?.brand || 'Uncategorized';
+        }
+
         if (!map.has(category)) {
             map.set(category, { 
                 category, 
@@ -452,20 +457,20 @@ const categoryReport = computed(() => {
         const location = item.placement_name || 'Tanpa Lokasi';
         const type = item.product?.name || 'Unknown';
 
-        if (!entry.tree.has(location)) entry.tree.set(location, { label: location, available: 0, types: new Map() });
-        const lNode = entry.tree.get(location);
-        lNode.available += avail;
+        if (!entry.tree.has(type)) entry.tree.set(type, { label: type, available: 0, locations: new Map() });
+        const tNode = entry.tree.get(type);
+        tNode.available += avail;
 
-        if (!lNode.types.has(type)) lNode.types.set(type, { label: type, available: 0 });
-        lNode.types.get(type).available += avail;
+        if (!tNode.locations.has(location)) tNode.locations.set(location, { label: location, available: 0 });
+        tNode.locations.get(location).available += avail;
     });
 
     return Array.from(map.values())
         .map(e => ({ 
             ...e, 
-            tree: Array.from(e.tree.values()).map(l => ({
-                ...l,
-                types: Array.from(l.types.values()).sort((a,b) => b.available - a.available)
+            tree: Array.from(e.tree.values()).map(t => ({
+                ...t,
+                types: Array.from(t.locations.values()).sort((a,b) => b.available - a.available) // Reusing 'types' property name for UI compatibility or renaming
             })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
@@ -826,10 +831,10 @@ onMounted(() => { fetchAllInventory(); });
                         <button @click="showCategoryBrand = !showCategoryBrand"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showCategoryBrand
-                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showCategoryBrand ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per Lokasi
+                            Tampilkan per Tipe
                         </button>
                         <button @click="showCategoryType = !showCategoryType"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
@@ -837,7 +842,7 @@ onMounted(() => { fetchAllInventory(); });
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showCategoryType ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per Tipe
+                            Tampilkan per Lokasi
                         </button>
                     </div>
                     <div v-else></div>
@@ -1301,8 +1306,8 @@ onMounted(() => { fetchAllInventory(); });
                             <tr>
                                 <th class="px-6 py-4">#</th>
                                 <th class="px-6 py-4">Kategori</th>
-                                <th v-if="showCategoryBrand" class="px-6 py-4">Lokasi (Cabang/Store)</th>
-                                <th v-if="showCategoryType" class="px-6 py-4">Tipe Produk</th>
+                                <th v-if="showCategoryBrand" class="px-6 py-4">Tipe Produk</th>
+                                <th v-if="showCategoryType" class="px-6 py-4">Lokasi (Cabang/Store)</th>
                                 <th class="px-6 py-4 text-center">Tersedia</th>
                             </tr>
                         </thead>
