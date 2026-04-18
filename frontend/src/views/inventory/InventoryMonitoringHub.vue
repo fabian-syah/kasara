@@ -61,7 +61,6 @@ const showReceiveModal = ref(false); // For incoming_otw
 const showReturnModal = ref(false); // For failed_otw (Confirm return to stock)
 const showDetailModal = ref(false); // For outgoing_otw, history_in, history_out
 const showExpeditionModal = ref(false); // NEW: For adding expedition info
-const showTrackingModal = ref(false); // NEW: For real-time tracking display
 
 const couriers = ref([
     'JNE', 'J&T', 'Sicepat', 'POS Indonesia', 'Tiki', 'Wahana', 'Anteraja', 'Ninja Xpress', 'Lion Parcel', 'ID Express',
@@ -74,8 +73,6 @@ const expeditionForm = ref({
     expedition_date: new Date().toISOString().substr(0, 10),
 });
 
-const trackingData = ref(null);
-const isTracking = ref(false);
 
 const receiveForm = ref({
     accepted_items: [],
@@ -213,51 +210,24 @@ function closeExpeditionModal() {
     selectedTransfer.value = null;
 }
 
-async function trackPackage(courier, trackingNo) {
-    if (!trackingNo) return;
+function trackPackage(courier, trackingNo) {
+    if (!trackingNo) {
+        toast.error('Nomor resi belum diisi oleh pengirim.');
+        return;
+    }
     
-    showTrackingModal.value = true;
-    isTracking.value = true;
-    trackingData.value = trackingNo;
+    // Open CekResi.com with tracking number pre-filled in a centered popup
+    const url = `https://cekresi.com/?noresi=${encodeURIComponent(trackingNo)}`;
+    const width = 800;
+    const height = 700;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
     
-    // Wait for DOM to render the container
-    await new Promise(r => setTimeout(r, 400));
-    
-    // Clean up previous widget content
-    const container = document.getElementById('cekresicom_id');
-    if (container) container.innerHTML = '';
-    
-    // Remove old scripts
-    const oldScript = document.getElementById('cekresi-widget-script');
-    if (oldScript) oldScript.remove();
-    const oldInit = document.getElementById('cekresi-widget-init');
-    if (oldInit) oldInit.remove();
-    
-    // Load CekResi.com official widget script (FREE & UNLIMITED)
-    // Correct URL: widgetcekresicom_v1.js (confirmed from cekresi.com/widget-cek-resi.php)
-    const script = document.createElement('script');
-    script.id = 'cekresi-widget-script';
-    script.type = 'text/javascript';
-    script.src = 'https://cekresi.com/widget/widgetcekresicom_v1.js';
-    script.onload = () => {
-        isTracking.value = false;
-        // Initialize widget with type 'w1', width '100%', height 500
-        if (window.init_widget_cekresicom) {
-            window.init_widget_cekresicom('w1', '100%', 500);
-        }
-    };
-    script.onerror = () => {
-        isTracking.value = false;
-        toast.error('Gagal memuat widget CekResi.com');
-    };
-    document.body.appendChild(script);
-}
-
-function closeTrackingModal() {
-    showTrackingModal.value = false;
-    trackingData.value = null;
-    const container = document.getElementById('cekresicom_id');
-    if (container) container.innerHTML = '';
+    window.open(
+        url,
+        'CekResiPopup',
+        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+    );
 }
 
 function closeModal() {
@@ -838,41 +808,6 @@ onMounted(() => {
                         class="action-btn bg-purple-600 hover:bg-purple-500">
                         <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                         <span v-else>SIMPAN INFORMASI</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <!-- Real-time Tracking Modal -->
-        <div v-if="showTrackingModal" class="modal-backdrop" @click.self="closeTrackingModal">
-            <div class="modal-content max-w-4xl max-h-[90vh]">
-                <div class="modal-header bg-surface-800">
-                    <div>
-                        <h2 class="text-2xl font-black text-white flex items-center gap-3">
-                            <Truck class="text-blue-500" /> Status Pengiriman
-                        </h2>
-                        <p class="text-sm font-bold text-text-secondary mt-1">
-                            Layanan Pelacakan Universal
-                        </p>
-                    </div>
-                    <button @click="closeTrackingModal" class="close-btn">
-                        <X :size="20" />
-                    </button>
-                </div>
-
-                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white relative" style="height: 600px; min-height: 500px;">
-                    <!-- Loading State -->
-                    <div v-if="isTracking" class="absolute inset-0 z-10 bg-surface-900 flex flex-col items-center justify-center space-y-4">
-                        <Loader2 :size="48" class="animate-spin text-blue-500" />
-                        <p class="text-white font-black tracking-widest animate-pulse">MEMUAT PELACAKAN...</p>
-                    </div>
-
-                    <!-- CekResi.com Widget Container -->
-                    <div id="cekresicom_id" class="w-full h-full overflow-y-auto p-4"></div>
-                </div>
-
-                <div class="modal-footer bg-surface-800 p-4">
-                    <button @click="closeTrackingModal" class="btn btn-secondary w-full rounded-xl font-bold py-3 text-sm">
-                        TUTUP
                     </button>
                 </div>
             </div>
