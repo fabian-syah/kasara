@@ -853,7 +853,7 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-surface-50 relative flex flex-col" style="height: 650px;">
+                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-surface-50 relative flex flex-col h-[70vh] md:h-[650px]">
                     <!-- Loading State -->
                     <div v-if="isTracking" class="absolute inset-0 z-20 bg-white/90 flex flex-col items-center justify-center space-y-6">
                         <div class="relative">
@@ -880,17 +880,17 @@ onMounted(() => {
                     <!-- Professional Dashboard Content -->
                     <div v-if="trackingResult && !isTracking" class="flex-1 overflow-y-auto custom-scrollbar">
                         <!-- header summary -->
-                        <div class="bg-white p-6 border-b border-surface-100">
-                            <div class="flex items-start justify-between mb-6">
+                        <div class="bg-white p-4 md:p-6 border-b border-surface-100">
+                            <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
                                 <div>
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-600 uppercase tracking-widest mb-2 border border-blue-100">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] md:text-xs font-black bg-blue-50 text-blue-600 uppercase tracking-widest mb-2 border border-blue-100">
                                         {{ trackingResult.summary.courier }}
                                     </span>
-                                    <h2 class="text-2xl font-black text-surface-900 tracking-tighter">{{ trackingResult.summary.awb }}</h2>
+                                    <h2 class="text-xl md:text-2xl font-black text-surface-900 tracking-tighter break-all">{{ trackingResult.summary.awb }}</h2>
                                 </div>
-                                <div class="text-right">
+                                <div class="text-right w-full sm:w-auto">
                                     <div :class="[
-                                        'px-4 py-2 rounded-2xl font-black text-sm uppercase tracking-tighter border-b-4',
+                                        'px-4 py-2 rounded-2xl font-black text-xs md:text-sm uppercase tracking-tighter border-b-4 w-full sm:w-auto text-center',
                                         trackingResult.summary.status.toLowerCase().includes('delivered') ? 'bg-green-500 text-white border-green-700' : 'bg-orange-500 text-white border-orange-700'
                                     ]">
                                         {{ trackingResult.summary.status }}
@@ -898,23 +898,23 @@ onMounted(() => {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="p-4 bg-surface-50 rounded-2xl border border-surface-100">
-                                    <p class="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1">PENGIRIM</p>
-                                    <p class="text-sm font-bold text-surface-900 truncate">{{ trackingResult.detail.shipper }}</p>
-                                    <p class="text-[11px] text-surface-500">{{ trackingResult.detail.origin }}</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+                                <div class="p-3 md:p-4 bg-surface-50 rounded-2xl border border-surface-100">
+                                    <p class="text-[9px] md:text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1">PENGIRIM</p>
+                                    <p class="text-xs md:text-sm font-bold text-surface-900 truncate">{{ trackingResult.detail.shipper }}</p>
+                                    <p class="text-[10px] md:text-[11px] text-surface-500 truncate">{{ trackingResult.detail.origin }}</p>
                                 </div>
-                                <div class="p-4 bg-surface-50 rounded-2xl border border-surface-100">
-                                    <p class="text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1">PENERIMA</p>
-                                    <p class="text-sm font-bold text-surface-900 truncate">{{ trackingResult.detail.receiver }}</p>
-                                    <p class="text-[11px] text-surface-500">{{ trackingResult.detail.destination }}</p>
+                                <div class="p-3 md:p-4 bg-surface-50 rounded-2xl border border-surface-100">
+                                    <p class="text-[9px] md:text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1">PENERIMA</p>
+                                    <p class="text-xs md:text-sm font-bold text-surface-900 truncate">{{ trackingResult.detail.receiver }}</p>
+                                    <p class="text-[10px] md:text-[11px] text-surface-500 truncate">{{ trackingResult.detail.destination }}</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Timeline -->
-                        <div class="p-6">
-                            <h3 class="text-xs font-black text-surface-400 uppercase tracking-widest mb-6">Riwayat Perjalanan Paket</h3>
+                        <div class="p-4 md:p-6">
+                            <h3 class="text-[10px] md:text-xs font-black text-surface-400 uppercase tracking-widest mb-6">Riwayat Perjalanan Paket</h3>
                             
                             <div class="space-y-8 relative">
                                 <!-- Line -->

@@ -12,7 +12,6 @@ class PublicReceiptController extends Controller
      */
     public function show($receiptId)
     {
-        dd('CEK_KODINGAN_RUNNING');
         // Hijack with absolute priority
         if (request()->has('is_tracking')) {
             $noResi = $receiptId; // Use the URL segment directly
