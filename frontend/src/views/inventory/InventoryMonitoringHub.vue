@@ -219,14 +219,14 @@ async function trackPackage(courier, trackingNo) {
         return;
     }
     
-    // Set up the integrated tracking URL (RajaCekResi is highly compatible with iframes)
-    // It will automatically start searching for the given resident
-    trackingData.value = `https://www.rajacekresi.com/widget.php?resi=${encodeURIComponent(trackingNo)}`;
+    // Using 17Track's stable external server which is dedicated for iFrame embeds
+    // This server is built for integration and won't block the site or 404
+    trackingData.value = `https://external.17track.net/id/result/post.shtml?nums=${encodeURIComponent(trackingNo)}`;
     
     showTrackingModal.value = true;
     isTracking.value = true;
     
-    // Simulate a professional loading feel
+    // Professional delay for data transition
     setTimeout(() => {
         isTracking.value = false;
     }, 2000);
