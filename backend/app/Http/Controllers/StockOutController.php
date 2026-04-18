@@ -1511,23 +1511,36 @@ class StockOutController extends Controller
             return response()->json(['message' => 'Layanan pelacakan sedang MAINTENANCE. Hubungi IT untuk setup BINDERBYTE_API_KEY.'], 500);
         }
 
-        // Map common names to API slugs for Binderbyte
+        // Map common names to API slugs for Binderbyte (More robust list)
         $courierMap = [
-            'pos indonesia' => 'pos',
-            'ninja xpress' => 'ninja',
-            'lion parcel' => 'lion',
-            'id express' => 'ide',
-            'spx' => 'shopee',
-            'shopee express' => 'shopee',
-            'anteraja' => 'anteraja',
-            'sicepat' => 'sicepat',
             'jne' => 'jne',
             'j&t' => 'jnt',
+            'jnt' => 'jnt',
+            'j&t express' => 'jnt',
+            'sicepat' => 'sicepat',
+            'sicepat express' => 'sicepat',
+            'pos' => 'pos',
+            'pos indonesia' => 'pos',
             'tiki' => 'tiki',
-            'wahana' => 'wahana'
+            'anteraja' => 'anteraja',
+            'wahana' => 'wahana',
+            'ninja' => 'ninja',
+            'ninja xpress' => 'ninja',
+            'lion' => 'lion',
+            'lion parcel' => 'lion',
+            'id express' => 'ide',
+            'ide' => 'ide',
+            'shopee' => 'shopee',
+            'shopee express' => 'shopee',
+            'spx' => 'shopee',
+            'spx express' => 'shopee',
+            'sap' => 'sap',
+            'jet' => 'jet',
+            'indah' => 'indah',
+            'indah logistic' => 'indah'
         ];
 
-        $courierSlug = $courierMap[$courier] ?? $courier;
+        $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
 
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://api.binderbyte.com/v1/track", [
