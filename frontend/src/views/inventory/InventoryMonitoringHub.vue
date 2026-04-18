@@ -819,14 +819,14 @@ onMounted(() => {
         </div>
         <!-- Real-time Tracking Modal -->
         <div v-if="showTrackingModal" class="modal-backdrop" @click.self="closeTrackingModal">
-            <div class="modal-content max-w-2xl max-h-[85vh]">
+            <div class="modal-content max-w-4xl max-h-[90vh]">
                 <div class="modal-header bg-surface-800">
                     <div>
                         <h2 class="text-2xl font-black text-white flex items-center gap-3">
                             <Truck class="text-blue-500" /> Status Pengiriman
                         </h2>
-                        <p class="text-sm font-bold text-text-secondary mt-1" v-if="trackingData">
-                            {{ trackingData.summary?.courier }} — {{ trackingData.summary?.waybill }}
+                        <p class="text-sm font-bold text-text-secondary mt-1">
+                            Layanan Pelacakan Universal
                         </p>
                     </div>
                     <button @click="closeTrackingModal" class="close-btn">
@@ -834,7 +834,7 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white h-[70vh]">
+                <div class="modal-body p-0 rounded-b-[2.5rem] overflow-hidden bg-white" style="height: 600px; min-height: 500px;">
                     <!-- Loading State -->
                     <div v-if="isTracking" class="absolute inset-0 z-10 bg-surface-900 flex flex-col items-center justify-center space-y-4">
                         <Loader2 :size="48" class="animate-spin text-blue-500" />
@@ -844,6 +844,7 @@ onMounted(() => {
                     <!-- Embed Iframe -->
                     <iframe v-if="trackingData" :src="trackingData" 
                         class="w-full h-full border-none"
+                        style="min-width: 300px; min-height: 500px;"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                         allowfullscreen>
                     </iframe>
