@@ -134,7 +134,14 @@ class AuditController extends Controller
         // Load nonHpDetails relationship for Product details, but we will use JSON column for price
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('reporting_date', [$startDate, $endDate]);
+            ->whereBetween('reporting_date', [$startDate, $endDate])
+            ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
+                if ($request->category === 'orderan_online') {
+                    $q->whereIn('category', ['shopee', 'orderan_online']);
+                } else {
+                    $q->where('category', $request->category);
+                }
+            });
 
         $scopeToAccess($dailySalesQuery);
 
@@ -1556,7 +1563,14 @@ class AuditController extends Controller
 
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('reporting_date', [$startDate, $endDate]);
+            ->whereBetween('reporting_date', [$startDate, $endDate])
+            ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
+                if ($request->category === 'orderan_online') {
+                    $q->whereIn('category', ['shopee', 'orderan_online']);
+                } else {
+                    $q->where('category', $request->category);
+                }
+            });
 
         $scopeToAccess($dailySalesQuery);
 
@@ -2171,7 +2185,10 @@ class AuditController extends Controller
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
-            ->whereBetween('reporting_date', [$startDate, $endDate]);
+            ->whereBetween('reporting_date', [$startDate, $endDate])
+            ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
+                $q->where('category', $request->category);
+            });
 
         // Only received transfers are relevant for "In"
         $query->where(function ($q) {
@@ -2394,7 +2411,14 @@ class AuditController extends Controller
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
-            ->whereBetween('reporting_date', [$startDate, $endDate]);
+            ->whereBetween('reporting_date', [$startDate, $endDate])
+            ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
+                if ($request->category === 'orderan_online') {
+                    $q->whereIn('category', ['shopee', 'orderan_online']);
+                } else {
+                    $q->where('category', $request->category);
+                }
+            });
 
         // Filter by location
         $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {

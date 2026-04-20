@@ -81,6 +81,24 @@
                         <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                     </div>
 
+                    <!-- Category Filter -->
+                    <div class="relative min-w-[160px]">
+                        <select v-model="filters.category" @change="fetchData"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            <option value="all">Semua Kategori</option>
+                            <option value="penjualan_store">Penjualan Store</option>
+                            <option value="orderan_online">Orderan Online</option>
+                            <option value="bundling">Bundling</option>
+                            <option value="tukar_unit">Tukar Unit</option>
+                            <option value="tukar_tambah">Tukar Tambah</option>
+                            <option value="downgrade">Downgrade</option>
+                            <option value="refund">Refund</option>
+                            <option value="angkat_barang">Angkat Barang</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+
                     <!-- Export Button -->
                     <button @click="exportExcel" :disabled="exporting"
                         class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
@@ -169,7 +187,7 @@
                                     </span>
                                     <span v-else
                                         class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                                        {{ item.category }}
+                                        {{ (item.category === 'shopee' || item.category === 'orderan_online') ? 'Orderan Online' : item.category }}
                                     </span>
                                 </td>
                                 <td colspan="3" class="p-0 align-top">
@@ -663,7 +681,8 @@ const getTodayLocal = () => {
 const filters = ref({
     start_date: getTodayLocal(), // Start with today in local time
     end_date: getTodayLocal(),
-    branch_id: null
+    branch_id: null,
+    category: 'all'
 })
 
 const locations = ref([])

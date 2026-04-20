@@ -88,6 +88,18 @@
                         </span>
                         <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                     </div>
+
+                    <!-- Category Filter -->
+                    <div class="relative min-w-[160px]">
+                        <select v-model="filters.category" @change="fetchData"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            <option value="all">Semua Kategori</option>
+                            <option value="barang_masuk">Inventory</option>
+                            <option value="pindah_cabang">Transfer</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
                 </div>
             </div>
 
@@ -577,6 +589,8 @@ const getMaxDate = () => {
 const filters = ref({
     start_date: getTodayLocal(),
     end_date: getTodayLocal(),
+    branch_id: null,
+    category: 'all'
 });
 
 // Daily vs Monthly state variables
