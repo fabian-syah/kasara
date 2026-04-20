@@ -152,7 +152,6 @@ const fetchAllInventory = async () => {
     if (loading.value) return;
     loading.value = true;
     try {
-        const user = authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
         const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
         const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
@@ -162,7 +161,6 @@ const fetchAllInventory = async () => {
         let wId = selectedWarehouseId.value;
         let dId = selectedDistributorId.value;
 
-        // If 'all' is selected and user is NOT super admin, force their primary identity if it's the only one
         if (selectedLocationKey.value === 'all' && !isAlwaysGlobal) {
             if (locations.value.length === 1) {
                 const loc = locations.value[0];
@@ -177,50 +175,44 @@ const fetchAllInventory = async () => {
             branch_id: bId || undefined,
             online_shop_id: sId || undefined,
             warehouse_id: wId || undefined,
-            distributor_id: dId || undefined
+            distributor_id: dId || undefined,
+            per_page: 500 // Increased for efficiency
         };
 
-        // Fetch HP
-        let page = 1;
-        let hpAll = [];
-        let hasMore = true;
-        while (hasMore) {
-            const response = await inventoryApi.list({ ...queryParams, page, per_page: 100 });
-            const data = response.data;
-            if (data.data) {
-                const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
-                const filtered = data.data.filter(item => {
-                    const locName = (item.placement_name || '').toLowerCase();
-                    return !exclusionWords.some(word => locName.includes(word));
-                });
-                hpAll = hpAll.concat(filtered);
-                hasMore = data.current_page < data.last_page;
-                page++;
-            } else { hasMore = false; }
-        }
-        rawHpItems.value = hpAll;
+        const fetchType = async (type) => {
+            let page = 1;
+            let all = [];
+            let hasMore = true;
+            const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
 
-        // Fetch Non-HP
-        page = 1;
-        let nonHpAll = [];
-        hasMore = true;
-        while (hasMore) {
-            const response = await inventoryApi.list({ ...queryParams, page, per_page: 100, type: 'non-hp' });
-            const data = response.data;
-            if (data.data) {
-                const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
-                const filtered = data.data.filter(item => {
-                    const locName = (item.placement_name || '').toLowerCase();
-                    return !exclusionWords.some(word => locName.includes(word));
-                });
-                nonHpAll = nonHpAll.concat(filtered);
-                hasMore = data.current_page < data.last_page;
-                page++;
-            } else { hasMore = false; }
-        }
-        rawNonHpItems.value = nonHpAll;
+            while (hasMore) {
+                const response = await inventoryApi.list({ ...queryParams, page, type: type === 'hp' ? undefined : 'non-hp' });
+                const data = response.data;
+                if (data && data.data) {
+                    const filtered = data.data.filter(item => {
+                        const locName = (item.placement_name || '').toLowerCase();
+                        return !exclusionWords.some(word => locName.includes(word));
+                    });
+                    all = all.concat(filtered);
+                    hasMore = data.current_page < data.last_page;
+                    page++;
+                } else {
+                    hasMore = false;
+                }
+            }
+            return all;
+        };
+
+        // Fetch both in parallel
+        const [hpItems, nonHpItems] = await Promise.all([
+            fetchType('hp'),
+            fetchType('non-hp')
+        ]);
+
+        rawHpItems.value = hpItems;
+        rawNonHpItems.value = nonHpItems;
     } catch (error) {
-        console.error(error);
+        console.error('Fetch Error:', error);
         toast.error('Gagal memuat data inventory.');
     } finally {
         loading.value = false;
@@ -2276,7 +2268,7 @@ onMounted(() => { fetchAllInventory(); });
                                         <div class="h-px flex-1 bg-rose-500/30 print:bg-black"></div>
                                         <h4
                                             class="text-sm font-black text-rose-400 print:text-black uppercase tracking-[0.3em]">
-                                            TV / Monitor</h4>
+                                            TV</h4>
                                         <div class="h-px flex-1 bg-rose-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
