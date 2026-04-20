@@ -391,7 +391,8 @@ class AuditController extends Controller
                 'customer_wa' => $trx->customer_wa,
                 'notes' => $trx->notes,
                 'sales_account' => $trx->sales_account,
-                'inventory_user_name' => $trx->inventoryUser->name ?? null,
+                'inventory_user_name' => $trx->inventoryUser->full_name ?? ($trx->inventoryUser->name ?? ($trx->user->full_name ?? ($trx->user->name ?? '-'))),
+                'inventory_account_name' => $trx->inventoryUser->full_name ?? ($trx->inventoryUser->name ?? null),
                 'transaction_pin' => (string)$trx->transaction_pin === '9090' ? '9090' : null,
                 'audit_score' => $auditScore,
                 'audit_answered' => $trx->auditAnswers->count(),
@@ -1725,6 +1726,27 @@ class AuditController extends Controller
                 $auditScore = round(($yesCount / $totalQuestions) * 100);
             }
 
+            // Process split payments for the receipt modal
+            $processedSplitPayments = [];
+            if ($trx->split_payments) {
+                $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                if (is_array($splits)) {
+                    foreach ($splits as $sp) {
+                        $methodId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? ($sp['id'] ?? ($sp['method'] ?? null)));
+                        $amount = floatval($sp['amount'] ?? ($sp['paid'] ?? 0));
+                        $methodName = 'Unknown';
+                        $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id'); // Local fetch for safety or use global if available
+                        if ($methodId && isset($paymentMethods[$methodId])) {
+                            $methodName = $paymentMethods[$methodId]->name;
+                        }
+                        $processedSplitPayments[] = [
+                            'method_name' => $methodName,
+                            'amount' => $amount
+                        ];
+                    }
+                }
+            }
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
@@ -1752,6 +1774,15 @@ class AuditController extends Controller
                 )->count(),
                 'audit_total' => $totalQuestions,
                 'audit_yes' => $yesCount,
+                'inventory_user_name' => $trx->inventoryUser->full_name ?? ($trx->inventoryUser->name ?? ($trx->user->full_name ?? ($trx->user->name ?? '-'))),
+                'inventory_account_name' => $trx->inventoryUser->full_name ?? ($trx->inventoryUser->name ?? null),
+                'selling_price' => $hargaJual,
+                'total_discount' => $trx->total_discount ?? 0,
+                'payment_method_name' => $trx->paymentMethod->name ?? null,
+                'split_payments_data' => $processedSplitPayments,
+                'cash' => $trx->cash ?? 0,
+                'transfer' => $trx->transfer ?? 0,
+                'edc' => $trx->edc ?? 0,
             ];
         });
 
