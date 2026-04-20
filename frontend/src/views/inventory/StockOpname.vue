@@ -160,7 +160,7 @@ const fetchAllInventory = async () => {
             }
         }
 
-        const queryParams = { 
+        const queryParams = {
             branch_id: bId || undefined,
             online_shop_id: sId || undefined,
             warehouse_id: wId || undefined,
@@ -261,13 +261,13 @@ const copyToClipboard = () => {
 
     const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     const branch = activeBranchName.value;
-    
+
     let text = `====================\n`;
     text += `*STOCK OPNAME REPORT*\n`;
     text += `*${branch}*\n`;
     text += `*${dateStr}*\n`;
     text += `====================\n\n`;
-    
+
     text += `*RINGKASAN TOTAL*\n`;
     text += `iPhone New: *${report.stats.iphone_new || 0}*\n`;
     text += `iPhone Second: *${report.stats.iphone_scd || 0}*\n`;
@@ -278,9 +278,9 @@ const copyToClipboard = () => {
     text += `TV / Monitor: *${report.stats.tv || 0}*\n`;
     text += `--------------------\n`;
     text += `TOTAL HP: *${report.stats.total_hp || 0}*\n\n`;
-    
+
     text += `*RINCIAN UNIT*\n\n`;
-    
+
     const hasIphone = report.details.iphone_new.length > 0 || report.details.iphone_scd.length > 0 || report.details.iphone_ex_ibox.length > 0;
     if (hasIphone) {
         text += `*iPhone*\n`;
@@ -364,9 +364,9 @@ const brandReport = computed(() => {
     activeItems.value.forEach(item => {
         const brand = item.product?.brand || 'Lainnya';
         if (!map.has(brand)) {
-            map.set(brand, { 
-                brand, 
-                available: 0, 
+            map.set(brand, {
+                brand,
+                available: 0,
                 tree: new Map() // Type -> Condition
             });
         }
@@ -382,22 +382,22 @@ const brandReport = computed(() => {
         tNode.available += avail;
 
         if (!tNode.conditions.has(condKey)) {
-            tNode.conditions.set(condKey, { 
-                label: conditionLabels[condKey] || condKey, 
-                condition: condKey, 
-                available: 0 
+            tNode.conditions.set(condKey, {
+                label: conditionLabels[condKey] || condKey,
+                condition: condKey,
+                available: 0
             });
         }
         tNode.conditions.get(condKey).available += avail;
     });
 
     return Array.from(map.values())
-        .map(e => ({ 
-            ...e, 
+        .map(e => ({
+            ...e,
             tree: Array.from(e.tree.values()).map(t => ({
                 ...t,
-                conditions: Array.from(t.conditions.values()).sort((a,b) => b.available - a.available)
-            })).sort((a,b) => b.available - a.available)
+                conditions: Array.from(t.conditions.values()).sort((a, b) => b.available - a.available)
+            })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
 });
@@ -410,10 +410,10 @@ const typeReport = computed(() => {
         const brand = item.product?.brand || '-';
         const key = `${brand}||${name}`;
         if (!map.has(key)) {
-            map.set(key, { 
-                name, 
-                brand, 
-                available: 0, 
+            map.set(key, {
+                name,
+                brand,
+                available: 0,
                 tree: new Map() // GB -> Condition
             });
         }
@@ -431,21 +431,21 @@ const typeReport = computed(() => {
         gNode.available += avail;
 
         if (!gNode.conditions.has(condKey)) {
-            gNode.conditions.set(condKey, { 
-                label: conditionLabels[condKey] || condKey, 
-                condition: condKey, 
-                available: 0 
+            gNode.conditions.set(condKey, {
+                label: conditionLabels[condKey] || condKey,
+                condition: condKey,
+                available: 0
             });
         }
         gNode.conditions.get(condKey).available += avail;
     });
 
-    const result = Array.from(map.values()).map(e => ({ 
-        ...e, 
+    const result = Array.from(map.values()).map(e => ({
+        ...e,
         tree: Array.from(e.tree.values()).map(g => ({
             ...g,
-            conditions: Array.from(g.conditions.values()).sort((a,b) => b.available - a.available)
-        })).sort((a,b) => b.available - a.available)
+            conditions: Array.from(g.conditions.values()).sort((a, b) => b.available - a.available)
+        })).sort((a, b) => b.available - a.available)
     }));
 
     // Sorting
@@ -466,10 +466,10 @@ const conditionReport = computed(() => {
     activeItems.value.forEach(item => {
         const cond = item.condition || 'unknown';
         if (!map.has(cond)) {
-            map.set(cond, { 
-                condition: cond, 
-                label: conditionLabels[cond] || cond, 
-                available: 0, 
+            map.set(cond, {
+                condition: cond,
+                label: conditionLabels[cond] || cond,
+                available: 0,
                 tree: new Map() // Brand -> Type -> GB
             });
         }
@@ -498,14 +498,14 @@ const conditionReport = computed(() => {
     });
 
     return Array.from(map.values())
-        .map(e => ({ 
-            ...e, 
+        .map(e => ({
+            ...e,
             tree: Array.from(e.tree.values()).map(b => ({
                 ...b,
                 types: Array.from(b.types.values()).map(t => ({
                     ...t,
-                    gbs: Array.from(t.gbs.values()).sort((a,b) => b.available - a.available)
-                })).sort((a,b) => b.available - a.available)
+                    gbs: Array.from(t.gbs.values()).sort((a, b) => b.available - a.available)
+                })).sort((a, b) => b.available - a.available)
             })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
@@ -517,9 +517,9 @@ const distributorReport = computed(() => {
     activeItems.value.forEach(item => {
         const distName = item.distributor?.name || item.latest_distributor || item.latest_supplier || item.latestLog?.distributor?.name || 'Tidak Diketahui';
         if (!map.has(distName)) {
-            map.set(distName, { 
-                name: distName, 
-                available: 0, 
+            map.set(distName, {
+                name: distName,
+                available: 0,
                 tree: new Map() // Brand -> Type -> GB
             });
         }
@@ -548,14 +548,14 @@ const distributorReport = computed(() => {
     });
 
     return Array.from(map.values())
-        .map(e => ({ 
-            ...e, 
+        .map(e => ({
+            ...e,
             tree: Array.from(e.tree.values()).map(b => ({
                 ...b,
                 types: Array.from(b.types.values()).map(t => ({
                     ...t,
-                    gbs: Array.from(t.gbs.values()).sort((a,b) => b.available - a.available)
-                })).sort((a,b) => b.available - a.available)
+                    gbs: Array.from(t.gbs.values()).sort((a, b) => b.available - a.available)
+                })).sort((a, b) => b.available - a.available)
             })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
@@ -569,7 +569,7 @@ const VALID_NONHP_CATEGORIES = [
 
 const categoryReport = computed(() => {
     const map = new Map();
-    
+
     // Initialize with valid categories to ensure they show up even if 0
     VALID_NONHP_CATEGORIES.forEach(c => {
         map.set(c, { category: c, available: 0, tree: new Map() });
@@ -584,9 +584,9 @@ const categoryReport = computed(() => {
         let category = VALID_NONHP_CATEGORIES.find(c => {
             const lowC = c.toLowerCase();
             const lowerSearch = (prodCat + ' ' + prodBrand + ' ' + prodName).toLowerCase();
-            
+
             if (prodCat === lowC || prodBrand === lowC || prodName.includes(lowC)) return true;
-            
+
             // Synonym mapping
             if (lowC === 'accesories') {
                 const syns = ['aksesoris', 'charger', 'kabel', 'cable', 'tempered', 'case', 'headset', 'earphone', 'baterai', 'battery', 'adaptor', 'powerbank', 'anti gores', 'pelindung'];
@@ -608,7 +608,7 @@ const categoryReport = computed(() => {
                 const syns = ['helm', 'oli', 'motor', 'ban', 'variasi motor', 'sparepart'];
                 return syns.some(s => lowerSearch.includes(s));
             }
-            
+
             return false;
         });
 
@@ -625,9 +625,9 @@ const categoryReport = computed(() => {
         }
 
         if (!map.has(category)) {
-            map.set(category, { 
-                category, 
-                available: 0, 
+            map.set(category, {
+                category,
+                available: 0,
                 tree: new Map() // Type -> Location
             });
         }
@@ -647,11 +647,11 @@ const categoryReport = computed(() => {
     });
 
     return Array.from(map.values())
-        .map(e => ({ 
-            ...e, 
+        .map(e => ({
+            ...e,
             tree: Array.from(e.tree.values()).map(t => ({
                 ...t,
-                types: Array.from(t.locations.values()).sort((a,b) => b.available - a.available) // Reusing 'types' property name for UI compatibility or renaming
+                types: Array.from(t.locations.values()).sort((a, b) => b.available - a.available) // Reusing 'types' property name for UI compatibility or renaming
             })).sort((a, b) => b.available - a.available)
         }))
         .sort((a, b) => b.available - a.available);
@@ -716,11 +716,11 @@ const newEraReport = computed(() => {
         const cat = (item.product?.category || '').toLowerCase();
         const spec = (item.product?.non_imei_category || '').toLowerCase();
 
-        const isLaptop = cat.includes('laptop') || name.toLowerCase().includes('laptop') || spec.includes('laptop') || 
-                         ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
-        
-        const isTv = cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') || 
-                     name.toLowerCase().includes('televisi') || spec.includes('tv');
+        const isLaptop = cat.includes('laptop') || name.toLowerCase().includes('laptop') || spec.includes('laptop') ||
+            ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
+
+        const isTv = cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') ||
+            name.toLowerCase().includes('televisi') || spec.includes('tv');
 
         // Check if Laptop or TV (even if in HP data/IMEI source)
         if (isLaptop) {
@@ -773,11 +773,11 @@ const newEraReport = computed(() => {
         const brand = (item.product?.brand || '').toUpperCase();
         const displayName = brand ? `${brand} ${item.product?.name}` : item.product?.name;
 
-        const isLaptop = cat.includes('laptop') || name.includes('laptop') || spec.includes('laptop') || 
-                         ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
-        
-        const isTv = cat.includes('tv') || cat.includes('televisi') || name.includes('tv') || 
-                     name.includes('televisi') || spec.includes('tv');
+        const isLaptop = cat.includes('laptop') || name.includes('laptop') || spec.includes('laptop') ||
+            ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
+
+        const isTv = cat.includes('tv') || cat.includes('televisi') || name.includes('tv') ||
+            name.includes('televisi') || spec.includes('tv');
 
         if (isLaptop) {
             stats.laptop += avail;
@@ -788,22 +788,22 @@ const newEraReport = computed(() => {
         }
     });
 
-        // Default fallback sorting: ALPHABETICAL
-        const sortFn = (a, b) => a.name.localeCompare(b.name);
-        const mapToArr = (m) => Array.from(m.entries()).map(([name, qty]) => ({ name, qty })).sort(sortFn);
+    // Default fallback sorting: ALPHABETICAL
+    const sortFn = (a, b) => a.name.localeCompare(b.name);
+    const mapToArr = (m) => Array.from(m.entries()).map(([name, qty]) => ({ name, qty })).sort(sortFn);
 
-        return {
-            stats,
-            details: {
-                iphone_new: mapToArr(details.iphone_new),
-                iphone_scd: mapToArr(details.iphone_scd),
-                iphone_ex_ibox: mapToArr(details.iphone_ex_ibox),
-                android_new: mapToArr(details.android_new),
-                android_scd: mapToArr(details.android_scd),
-                laptop: mapToArr(details.laptop),
-                tv: mapToArr(details.tv)
-            }
-        };
+    return {
+        stats,
+        details: {
+            iphone_new: mapToArr(details.iphone_new),
+            iphone_scd: mapToArr(details.iphone_scd),
+            iphone_ex_ibox: mapToArr(details.iphone_ex_ibox),
+            android_new: mapToArr(details.android_new),
+            android_scd: mapToArr(details.android_scd),
+            laptop: mapToArr(details.laptop),
+            tv: mapToArr(details.tv)
+        }
+    };
 });
 
 // Filtered search for sub-views
@@ -873,11 +873,11 @@ onMounted(() => { fetchAllInventory(); });
                     <p class="text-text-secondary mt-0.5 text-sm">
                         {{ currentView === 'menu' ? 'Pilih jenis laporan untuk melihat detail' :
                             currentView === 'brand' ? 'Ringkasan stok per merek' :
-                            currentView === 'type' ? 'Ringkasan stok per tipe produk' :
-                            currentView === 'condition' ? 'Ringkasan stok per kondisi barang' :
-                            currentView === 'distributor' ? 'Ringkasan stok per distributor/supplier' :
-                            currentView === 'category' ? 'Ringkasan stok per kategori produk' :
-                            'Format ringkasan stok khusus New Era' }}
+                                currentView === 'type' ? 'Ringkasan stok per tipe produk' :
+                                    currentView === 'condition' ? 'Ringkasan stok per kondisi barang' :
+                                        currentView === 'distributor' ? 'Ringkasan stok per distributor/supplier' :
+                                            currentView === 'category' ? 'Ringkasan stok per kategori produk' :
+                                                'Format ringkasan stok khusus New Era' }}
                     </p>
                 </div>
             </div>
@@ -889,16 +889,18 @@ onMounted(() => { fetchAllInventory(); });
                         <option value="all">Semua Lokasi</option>
                         <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                             :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
-                            {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'distributor' ? '[Distributor]' : '[Gudang]' }} {{ loc.name }}
+                            {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type ===
+                                'distributor' ? '[Distributor]' : '[Gudang]' }} {{ loc.name }}
                         </option>
                     </select>
                 </div>
                 <!-- Single Branch Display -->
-                <div v-else-if="canFilterBranch && locations.length === 1" 
+                <div v-else-if="canFilterBranch && locations.length === 1"
                     class="px-4 py-2 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-primary-500"></div>
                     <span class="text-xs font-bold text-text-secondary">
-                        {{ locations[0].type === 'branch' ? '[Cabang]' : locations[0].type === 'online_shop' ? '[Toko]' : locations[0].type === 'distributor' ? '[Distributor]' : '[Gudang]' }}
+                        {{ locations[0].type === 'branch' ? '[Cabang]' : locations[0].type === 'online_shop' ? '[Toko]'
+                            : locations[0].type === 'distributor' ? '[Distributor]' : '[Gudang]' }}
                     </span>
                     <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                 </div>
@@ -940,19 +942,24 @@ onMounted(() => { fetchAllInventory(); });
                 <!-- Quick Stats -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">{{ isHpMode ? 'HP Tersedia' : 'Non-HP Tersedia' }}</div>
-                        <div class="text-2xl font-black" :class="isHpMode ? 'text-blue-400' : 'text-purple-400'">{{ isHpMode ? summaryStats.totalHp : summaryStats.totalNonHp }}</div>
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">{{ isHpMode ?
+                            'HP Tersedia' : 'Non-HP Tersedia' }}</div>
+                        <div class="text-2xl font-black" :class="isHpMode ? 'text-blue-400' : 'text-purple-400'">{{
+                            isHpMode ? summaryStats.totalHp : summaryStats.totalNonHp }}</div>
                     </div>
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Brand</div>
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Brand
+                        </div>
                         <div class="text-2xl font-black text-purple-400">{{ summaryStats.totalBrands }}</div>
                     </div>
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Tipe</div>
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Tipe
+                        </div>
                         <div class="text-2xl font-black text-emerald-400">{{ summaryStats.totalTypes }}</div>
                     </div>
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
-                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Distributor</div>
+                        <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Distributor
+                        </div>
                         <div class="text-2xl font-black text-amber-400">{{ summaryStats.totalDistributors }}</div>
                     </div>
                 </div>
@@ -967,7 +974,8 @@ onMounted(() => { fetchAllInventory(); });
                             <div class="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
                                 <Layers :size="24" class="text-blue-400" />
                             </div>
-                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-blue-400 transition-colors" />
+                            <ChevronRight :size="20"
+                                class="text-text-secondary group-hover:text-blue-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Brand</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok tersedia berdasarkan merek</p>
@@ -976,7 +984,8 @@ onMounted(() => { fetchAllInventory(); });
                                 class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
                                 {{ b.brand }}: {{ b.available }}
                             </span>
-                            <span v-if="brandReport.length > 4" class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
+                            <span v-if="brandReport.length > 4"
+                                class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
                                 +{{ brandReport.length - 4 }} lagi
                             </span>
                         </div>
@@ -986,15 +995,18 @@ onMounted(() => { fetchAllInventory(); });
                     <button @click="navigateTo('type')"
                         class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-emerald-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:translate-y-[-2px]">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                            <div
+                                class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
                                 <Smartphone :size="24" class="text-emerald-400" />
                             </div>
-                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-emerald-400 transition-colors" />
+                            <ChevronRight :size="20"
+                                class="text-text-secondary group-hover:text-emerald-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Tipe</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per model + breakdown GB</p>
                         <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
-                            <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
+                            <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan
+                                per GB</span>
                         </div>
                     </button>
 
@@ -1005,12 +1017,14 @@ onMounted(() => { fetchAllInventory(); });
                             <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
                                 <Tag :size="24" class="text-amber-400" />
                             </div>
-                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-amber-400 transition-colors" />
+                            <ChevronRight :size="20"
+                                class="text-text-secondary group-hover:text-amber-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kondisi</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per kondisi barang + breakdown GB</p>
                         <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-amber-400">
-                            <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan per GB</span>
+                            <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan
+                                per GB</span>
                         </div>
                     </button>
 
@@ -1021,7 +1035,8 @@ onMounted(() => { fetchAllInventory(); });
                             <div class="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
                                 <Truck :size="24" class="text-purple-400" />
                             </div>
-                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-purple-400 transition-colors" />
+                            <ChevronRight :size="20"
+                                class="text-text-secondary group-hover:text-purple-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Distributor</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per supplier/distributor</p>
@@ -1040,7 +1055,8 @@ onMounted(() => { fetchAllInventory(); });
                             <div class="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500/20 transition-colors">
                                 <Box :size="24" class="text-indigo-400" />
                             </div>
-                            <ChevronRight :size="20" class="text-text-secondary group-hover:text-indigo-400 transition-colors" />
+                            <ChevronRight :size="20"
+                                class="text-text-secondary group-hover:text-indigo-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kategori</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per kategori barang (Non-HP)</p>
@@ -1056,12 +1072,16 @@ onMounted(() => { fetchAllInventory(); });
                     <button v-if="isHpMode" @click="navigateTo('new_era')"
                         class="group bg-gradient-to-br from-surface-800 to-primary-500/10 rounded-2xl border border-primary-500/30 hover:border-primary-500 p-6 text-left transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 hover:translate-y-[-4px]">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                            <div
+                                class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
                                 <Sparkles :size="24" class="text-primary-400" />
                             </div>
-                            <div class="px-2 py-1 bg-primary-500 text-white text-[8px] font-black rounded uppercase tracking-widest">HOT</div>
+                            <div
+                                class="px-2 py-1 bg-primary-500 text-white text-[8px] font-black rounded uppercase tracking-widest">
+                                HOT</div>
                         </div>
-                        <h3 class="text-lg font-black text-text-primary mb-1 uppercase italic tracking-tight">Laporan New Era</h3>
+                        <h3 class="text-lg font-black text-text-primary mb-1 uppercase italic tracking-tight">Laporan
+                            New Era</h3>
                         <p class="text-xs text-text-secondary font-medium">Ringkasan stok khusus IMEI (New & Second)</p>
                         <div class="mt-4 flex items-center justify-between">
                             <span class="text-xs font-black text-primary-400">{{ summaryStats.totalHp }} UNIT</span>
@@ -1114,11 +1134,12 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showTypeCondition ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per Kondisi
                         </button>
-                        
+
                         <!-- Sort Filter -->
-                        <div class="flex items-center bg-surface-900/50 border border-surface-700/50 rounded-xl px-4 py-2 hover:border-primary-500/50 focus-within:border-primary-500 transition-all duration-200">
+                        <div
+                            class="flex items-center bg-surface-900/50 border border-surface-700/50 rounded-xl px-4 py-2 hover:border-primary-500/50 focus-within:border-primary-500 transition-all duration-200">
                             <ListFilter class="text-text-secondary mr-2" :size="16" />
-                            <select v-model="typeSortOrder" 
+                            <select v-model="typeSortOrder"
                                 class="bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer appearance-none min-w-[120px]">
                                 <option value="available" class="bg-[#1f2937] text-white">Stok Terbanyak</option>
                                 <option value="brand" class="bg-[#1f2937] text-white">Brand (A-Z)</option>
@@ -1182,13 +1203,13 @@ onMounted(() => { fetchAllInventory(); });
                             Tampilkan per GB
                         </button>
                     </div>
-                    
+
                     <!-- Toggle for Category View Breakdown -->
                     <div v-else-if="currentView === 'category'" class="flex flex-wrap items-center gap-3">
                         <button @click="showCategoryBrand = !showCategoryBrand"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showCategoryBrand
-                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showCategoryBrand ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per Tipe
@@ -1206,7 +1227,9 @@ onMounted(() => { fetchAllInventory(); });
 
                     <!-- Search -->
                     <div class="relative w-full sm:w-80 group">
-                        <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors" :size="20" />
+                        <Search
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors"
+                            :size="20" />
                         <input v-model="searchQuery" type="text" placeholder="Cari..."
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2.5 pl-11 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                     </div>
@@ -1235,16 +1258,21 @@ onMounted(() => { fetchAllInventory(); });
                         <tbody class="divide-y divide-surface-700/50">
                             <template v-for="(row, idx) in filteredBrand" :key="row.brand">
                                 <!-- Main Row -->
-                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showBrandType || showBrandCondition }">
+                                <tr class="hover:bg-surface-700/30 transition-colors"
+                                    :class="{ 'bg-surface-900/30': showBrandType || showBrandCondition }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4 font-bold text-white">{{ row.brand }}</td>
-                                    <td v-if="showBrandType || showBrandCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
-                                    <td v-if="showBrandType && showBrandCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showBrandType || showBrandCondition"
+                                        class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showBrandType && showBrandCondition"
+                                        class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td class="px-6 py-4 text-center">
-                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                        <span class="text-lg font-bold"
+                                            :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
+                                            row.available }}</span>
                                     </td>
                                 </tr>
-                                
+
                                 <!-- Brand Sub-rows (Type Breakdown) -->
                                 <template v-if="showBrandType" v-for="t in row.tree" :key="t.label">
                                     <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -1252,9 +1280,10 @@ onMounted(() => { fetchAllInventory(); });
                                         <td class="px-6 py-2.5"></td>
                                         <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
                                         <td v-if="showBrandCondition" class="px-6 py-2.5"></td>
-                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{
+                                            t.available }}</td>
                                     </tr>
-                                    
+
                                     <!-- Conditions under Type -->
                                     <template v-if="showBrandCondition" v-for="c in t.conditions" :key="c.label">
                                         <tr class="bg-surface-900/40 hover:bg-surface-700/40 transition-colors">
@@ -1262,11 +1291,14 @@ onMounted(() => { fetchAllInventory(); });
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5">
-                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border"
+                                                    :class="conditionColor(c.condition)">
                                                     {{ c.label }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ c.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                {{ c.available }}</td>
                                         </tr>
                                     </template>
                                 </template>
@@ -1278,11 +1310,14 @@ onMounted(() => { fetchAllInventory(); });
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5">
-                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border"
+                                                    :class="conditionColor(c.condition)">
                                                     {{ c.label }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ c.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ c.available }}</td>
                                         </tr>
                                     </template>
                                 </template>
@@ -1290,8 +1325,11 @@ onMounted(() => { fetchAllInventory(); });
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showBrandType ? 1 : 0) + (showBrandCondition ? 1 : 0) + 2">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredBrand.reduce((s, r) => s + r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-right text-text-secondary"
+                                    :colspan="(showBrandType ? 1 : 0) + (showBrandCondition ? 1 : 0) + 2">TOTAL</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{filteredBrand.reduce((s,
+                                    r) => s + r.available, 0)
+                                    }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1320,14 +1358,18 @@ onMounted(() => { fetchAllInventory(); });
                         <tbody class="divide-y divide-surface-700/50">
                             <template v-for="(row, idx) in filteredType" :key="row.name + row.brand">
                                 <!-- Main Row -->
-                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showPerGb || showTypeCondition }">
+                                <tr class="hover:bg-surface-700/30 transition-colors"
+                                    :class="{ 'bg-surface-900/30': showPerGb || showTypeCondition }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4 text-text-secondary">{{ row.brand }}</td>
                                     <td class="px-6 py-4 font-bold text-white">{{ row.name }}</td>
                                     <td v-if="showPerGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
-                                    <td v-if="showTypeCondition" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showTypeCondition" class="px-6 py-4 text-text-secondary italic text-xs">—
+                                    </td>
                                     <td class="px-6 py-4 text-center">
-                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                        <span class="text-lg font-bold"
+                                            :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
+                                            row.available }}</span>
                                     </td>
                                 </tr>
                                 <!-- GB Sub-rows -->
@@ -1337,12 +1379,14 @@ onMounted(() => { fetchAllInventory(); });
                                         <td class="px-6 py-2.5"></td>
                                         <td class="px-6 py-2.5"></td>
                                         <td class="px-6 py-2.5">
-                                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                                            <span
+                                                class="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary-500/10 text-primary-400 border border-primary-500/20">
                                                 {{ g.label }}
                                             </span>
                                         </td>
                                         <td v-if="showTypeCondition" class="px-6 py-2.5"></td>
-                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ g.available }}</td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{
+                                            g.available }}</td>
                                     </tr>
 
                                     <!-- Conditions under GB -->
@@ -1353,11 +1397,14 @@ onMounted(() => { fetchAllInventory(); });
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5">
-                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border"
+                                                    :class="conditionColor(c.condition)">
                                                     {{ c.label }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ c.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                {{ c.available }}</td>
                                         </tr>
                                     </template>
                                 </template>
@@ -1371,11 +1418,14 @@ onMounted(() => { fetchAllInventory(); });
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5 text-text-secondary italic text-xs">—</td>
                                             <td class="px-6 py-2.5">
-                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border" :class="conditionColor(c.condition)">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border"
+                                                    :class="conditionColor(c.condition)">
                                                     {{ c.label }}
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ c.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ c.available }}</td>
                                         </tr>
                                     </template>
                                 </template>
@@ -1383,8 +1433,11 @@ onMounted(() => { fetchAllInventory(); });
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showPerGb ? 1 : 0) + (showTypeCondition ? 1 : 0) + 3">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredType.reduce((s, r) => s + r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-right text-text-secondary"
+                                    :colspan="(showPerGb ? 1 : 0) + (showTypeCondition ? 1 : 0) + 3">TOTAL</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{filteredType.reduce((s, r)
+                                    => s + r.available, 0)
+                                    }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1412,21 +1465,27 @@ onMounted(() => { fetchAllInventory(); });
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
                             <template v-for="(row, idx) in filteredCondition" :key="row.condition">
-                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showPerGb || showConditionBrand || showConditionType }">
+                                <tr class="hover:bg-surface-700/30 transition-colors"
+                                    :class="{ 'bg-surface-900/30': showPerGb || showConditionBrand || showConditionType }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4">
-                                        <span class="px-3 py-1.5 rounded-xl text-xs font-bold border" :class="conditionColor(row.condition)">
+                                        <span class="px-3 py-1.5 rounded-xl text-xs font-bold border"
+                                            :class="conditionColor(row.condition)">
                                             {{ row.label }}
                                         </span>
                                     </td>
-                                    <td v-if="showConditionBrand" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
-                                    <td v-if="showConditionType" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showConditionBrand" class="px-6 py-4 text-text-secondary italic text-xs">—
+                                    </td>
+                                    <td v-if="showConditionType" class="px-6 py-4 text-text-secondary italic text-xs">—
+                                    </td>
                                     <td v-if="showPerGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td class="px-6 py-4 text-center">
-                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                        <span class="text-lg font-bold"
+                                            :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
+                                            row.available }}</span>
                                     </td>
                                 </tr>
-                                
+
                                 <!-- Brand Breakdown -->
                                 <template v-if="showConditionBrand" v-for="b in row.tree" :key="b.label">
                                     <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -1435,7 +1494,8 @@ onMounted(() => { fetchAllInventory(); });
                                         <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
                                         <td v-if="showConditionType" class="px-6 py-2.5"></td>
                                         <td v-if="showPerGb" class="px-6 py-2.5"></td>
-                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{
+                                            b.available }}</td>
                                     </tr>
 
                                     <!-- Type Breakdown (Hierarchical under Brand) -->
@@ -1444,9 +1504,13 @@ onMounted(() => { fetchAllInventory(); });
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">{{ t.label }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">
+                                                {{ t.label }}</td>
                                             <td v-if="showPerGb" class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ t.available }}</td>
                                         </tr>
 
                                         <!-- GB Breakdown (Hierarchical under Type) -->
@@ -1457,11 +1521,14 @@ onMounted(() => { fetchAllInventory(); });
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5">
-                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                    <span
+                                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
                                                         {{ gb.label }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                                <td
+                                                    class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                    {{ gb.available }}</td>
                                             </tr>
                                         </template>
                                     </template>
@@ -1475,9 +1542,12 @@ onMounted(() => { fetchAllInventory(); });
                                         <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}
+                                            </td>
                                             <td v-if="showPerGb" class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ t.available }}</td>
                                         </tr>
                                         <template v-if="showPerGb" v-for="gb in t.gbs">
                                             <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
@@ -1485,29 +1555,36 @@ onMounted(() => { fetchAllInventory(); });
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5">
-                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                    <span
+                                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
                                                         {{ gb.label }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                                <td
+                                                    class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                    {{ gb.available }}</td>
                                             </tr>
                                         </template>
                                     </template>
                                 </template>
 
                                 <!-- Special case: if ONLY GB is ON -->
-                                <template v-if="!showConditionBrand && !showConditionType && showPerGb" v-for="b in row.tree">
+                                <template v-if="!showConditionBrand && !showConditionType && showPerGb"
+                                    v-for="b in row.tree">
                                     <template v-for="t in b.types">
                                         <template v-for="gb in t.gbs">
                                             <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5">
-                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                    <span
+                                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
                                                         {{ gb.label }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                                <td
+                                                    class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                    {{ gb.available }}</td>
                                             </tr>
                                         </template>
                                     </template>
@@ -1516,8 +1593,12 @@ onMounted(() => { fetchAllInventory(); });
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showConditionBrand ? 1 : 0) + (showConditionType ? 1 : 0) + (showPerGb ? 1 : 0) + 2">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredCondition.reduce((s, r) => s + r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-right text-text-secondary"
+                                    :colspan="(showConditionBrand ? 1 : 0) + (showConditionType ? 1 : 0) + (showPerGb ? 1 : 0) + 2">
+                                    TOTAL</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{
+                                    filteredCondition.reduce((s, r) => s +
+                                    r.available, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1545,17 +1626,23 @@ onMounted(() => { fetchAllInventory(); });
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
                             <template v-for="(row, idx) in filteredDistributor" :key="row.name">
-                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showDistributorGb || showDistributorBrand || showDistributorType }">
+                                <tr class="hover:bg-surface-700/30 transition-colors"
+                                    :class="{ 'bg-surface-900/30': showDistributorGb || showDistributorBrand || showDistributorType }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4 font-bold text-white">{{ row.name }}</td>
-                                    <td v-if="showDistributorBrand" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
-                                    <td v-if="showDistributorType" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
-                                    <td v-if="showDistributorGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showDistributorBrand"
+                                        class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showDistributorType" class="px-6 py-4 text-text-secondary italic text-xs">
+                                        —</td>
+                                    <td v-if="showDistributorGb" class="px-6 py-4 text-text-secondary italic text-xs">—
+                                    </td>
                                     <td class="px-6 py-4 text-center">
-                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                        <span class="text-lg font-bold"
+                                            :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
+                                            row.available }}</span>
                                     </td>
                                 </tr>
-                                
+
                                 <!-- Brand Breakdown -->
                                 <template v-if="showDistributorBrand" v-for="b in row.tree" :key="b.label">
                                     <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -1564,7 +1651,8 @@ onMounted(() => { fetchAllInventory(); });
                                         <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
                                         <td v-if="showDistributorType" class="px-6 py-2.5"></td>
                                         <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
-                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{
+                                            b.available }}</td>
                                     </tr>
 
                                     <!-- Type Breakdown (Hierarchical under Brand) -->
@@ -1573,9 +1661,13 @@ onMounted(() => { fetchAllInventory(); });
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">{{ t.label }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">
+                                                {{ t.label }}</td>
                                             <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ t.available }}</td>
                                         </tr>
 
                                         <!-- GB Breakdown (Hierarchical under Type) -->
@@ -1586,11 +1678,14 @@ onMounted(() => { fetchAllInventory(); });
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5">
-                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                    <span
+                                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
                                                         {{ gb.label }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                                <td
+                                                    class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                    {{ gb.available }}</td>
                                             </tr>
                                         </template>
                                     </template>
@@ -1602,9 +1697,12 @@ onMounted(() => { fetchAllInventory(); });
                                         <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}
+                                            </td>
                                             <td v-if="showDistributorGb" class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ t.available }}</td>
                                         </tr>
                                         <template v-if="showDistributorGb" v-for="gb in t.gbs">
                                             <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
@@ -1612,28 +1710,35 @@ onMounted(() => { fetchAllInventory(); });
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5">
-                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                    <span
+                                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
                                                         {{ gb.label }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                                <td
+                                                    class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                    {{ gb.available }}</td>
                                             </tr>
                                         </template>
                                     </template>
                                 </template>
 
-                                <template v-if="!showDistributorBrand && !showDistributorType && showDistributorGb" v-for="b in row.tree">
+                                <template v-if="!showDistributorBrand && !showDistributorType && showDistributorGb"
+                                    v-for="b in row.tree">
                                     <template v-for="t in b.types">
                                         <template v-for="gb in t.gbs">
                                             <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5"></td>
                                                 <td class="px-6 py-2.5">
-                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
+                                                    <span
+                                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-primary-500/5 text-primary-400/80 border border-primary-500/10">
                                                         {{ gb.label }}
                                                     </span>
                                                 </td>
-                                                <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">{{ gb.available }}</td>
+                                                <td
+                                                    class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/70">
+                                                    {{ gb.available }}</td>
                                             </tr>
                                         </template>
                                     </template>
@@ -1642,8 +1747,12 @@ onMounted(() => { fetchAllInventory(); });
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showDistributorBrand ? 1 : 0) + (showDistributorType ? 1 : 0) + (showDistributorGb ? 1 : 0) + 2">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredDistributor.reduce((s, r) => s + r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-right text-text-secondary"
+                                    :colspan="(showDistributorBrand ? 1 : 0) + (showDistributorType ? 1 : 0) + (showDistributorGb ? 1 : 0) + 2">
+                                    TOTAL</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{
+                                    filteredDistributor.reduce((s, r) => s +
+                                    r.available, 0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1669,16 +1778,21 @@ onMounted(() => { fetchAllInventory(); });
                         </thead>
                         <tbody class="divide-y divide-surface-700/50">
                             <template v-for="(row, idx) in filteredCategory" :key="row.category">
-                                <tr class="hover:bg-surface-700/30 transition-colors" :class="{ 'bg-surface-900/30': showCategoryBrand || showCategoryType }">
+                                <tr class="hover:bg-surface-700/30 transition-colors"
+                                    :class="{ 'bg-surface-900/30': showCategoryBrand || showCategoryType }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4 font-bold text-white">{{ row.category }}</td>
-                                    <td v-if="showCategoryBrand" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
-                                    <td v-if="showCategoryType" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td v-if="showCategoryBrand" class="px-6 py-4 text-text-secondary italic text-xs">—
+                                    </td>
+                                    <td v-if="showCategoryType" class="px-6 py-4 text-text-secondary italic text-xs">—
+                                    </td>
                                     <td class="px-6 py-4 text-center">
-                                        <span class="text-lg font-bold" :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{ row.available }}</span>
+                                        <span class="text-lg font-bold"
+                                            :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
+                                            row.available }}</span>
                                     </td>
                                 </tr>
-                                
+
                                 <!-- Brand Breakdown -->
                                 <template v-if="showCategoryBrand" v-for="b in row.tree" :key="b.label">
                                     <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -1686,29 +1800,37 @@ onMounted(() => { fetchAllInventory(); });
                                         <td class="px-6 py-2.5"></td>
                                         <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ b.label }}</td>
                                         <td v-if="showCategoryType" class="px-6 py-2.5"></td>
-                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
+                                        <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{
+                                            b.available }}</td>
                                     </tr>
- 
+
                                     <!-- Type Breakdown (Hierarchical under Brand) -->
                                     <template v-if="showCategoryType" v-for="t in b.types" :key="t.label">
                                         <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">{{ t.label }}</td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-xs font-bold text-text-primary underline decoration-primary-500/30">
+                                                {{ t.label }}</td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ t.available }}</td>
                                         </tr>
                                     </template>
                                 </template>
- 
+
                                 <!-- Case: if Type is ON but Brand is OFF -->
                                 <template v-if="!showCategoryBrand && showCategoryType" v-for="b in row.tree">
                                     <template v-for="t in b.types">
                                         <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
                                             <td class="px-6 py-2.5"></td>
                                             <td class="px-6 py-2.5"></td>
-                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}</td>
-                                            <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ t.available }}</td>
+                                            <td class="px-6 py-2.5 text-xs font-bold text-text-primary">{{ t.label }}
+                                            </td>
+                                            <td
+                                                class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">
+                                                {{ t.available }}</td>
                                         </tr>
                                     </template>
                                 </template>
@@ -1716,8 +1838,11 @@ onMounted(() => { fetchAllInventory(); });
                         </tbody>
                         <tfoot class="bg-surface-900/70 border-t border-surface-600">
                             <tr class="font-bold">
-                                <td class="px-6 py-4 text-right text-text-secondary" :colspan="(showCategoryBrand ? 1 : 0) + (showCategoryType ? 1 : 0) + 2">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{ filteredCategory.reduce((s, r) => s + r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-right text-text-secondary"
+                                    :colspan="(showCategoryBrand ? 1 : 0) + (showCategoryType ? 1 : 0) + 2">TOTAL</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{
+                                    filteredCategory.reduce((s, r) => s + r.available,
+                                    0) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1729,30 +1854,41 @@ onMounted(() => { fetchAllInventory(); });
         <!-- ==================== NEW ERA REPORT ==================== -->
         <template v-else-if="currentView === 'new_era'">
             <div class="space-y-6 max-w-4xl mx-auto pb-32">
-                <div class="bg-surface-800 rounded-3xl border border-surface-700 p-6 md:p-10 shadow-2xl relative overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
+                <div
+                    class="bg-surface-800 rounded-3xl border border-surface-700 p-6 md:p-10 shadow-2xl relative overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
                     <!-- Background Decor (Non-Print) -->
-                    <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[100px] rounded-full print:hidden"></div>
-                    
+                    <div
+                        class="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[100px] rounded-full print:hidden">
+                    </div>
+
                     <!-- Copy Tool (Non-Print) -->
                     <div class="flex justify-end gap-3 mb-6 relative z-30 print:hidden">
-                        <button @click="fetchAllInventory()" 
+                        <button @click="fetchAllInventory()"
                             class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 active:scale-95 text-white rounded-xl text-xs font-bold transition-all cursor-pointer">
                             <RefreshCw :size="14" :class="{ 'animate-spin': loading }" /> Sync Data
                         </button>
-                        <button @click="copyToClipboard()" 
+                        <button @click="copyToClipboard()"
                             class="flex items-center gap-3 px-6 py-3 bg-primary-500 hover:bg-primary-400 active:scale-95 text-white rounded-2xl text-sm font-black transition-all shadow-xl shadow-primary-500/20 cursor-pointer">
-                            <Copy :size="18" /> SALIN LAPORAN (WA)
+                            <Copy :size="18" /> SALIN LAPORAN
                         </button>
                     </div>
 
                     <div class="relative">
-                        <div class="text-center mb-10 pb-8 border-b-4 border-double border-surface-700/50 print:border-black">
-                            <h2 class="text-xs font-black text-primary-500 print:text-black uppercase tracking-[0.5em] mb-4">Stock Report</h2>
-                            <p class="text-4xl font-black text-white print:text-black tabular-nums tracking-tighter mb-2">{{ activeBranchName }}</p>
+                        <div
+                            class="text-center mb-10 pb-8 border-b-4 border-double border-surface-700/50 print:border-black">
+                            <h2
+                                class="text-xs font-black text-primary-500 print:text-black uppercase tracking-[0.5em] mb-4">
+                                Stock Report</h2>
+                            <p
+                                class="text-4xl font-black text-white print:text-black tabular-nums tracking-tighter mb-2">
+                                {{ activeBranchName }}</p>
                             <div class="flex items-center justify-center gap-2">
                                 <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <p class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
-                                    {{ new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) }}
+                                <p
+                                    class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
+                                    {{ new Date().toLocaleDateString('id-ID', {
+                                        day: '2-digit', month: 'long', year:
+                                    'numeric' }) }}
                                 </p>
                             </div>
                         </div>
@@ -1763,60 +1899,78 @@ onMounted(() => { fetchAllInventory(); });
                                 <tbody class="text-lg font-bold">
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Iphone New</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_new }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.iphone_new }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Iphone Scd</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_scd }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.iphone_scd }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Iphone Ex Ibox</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_ex_ibox }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.iphone_ex_ibox }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Android New</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.android_new }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.android_new }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Android Scd</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.android_scd }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.android_scd }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Laptop</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.laptop }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.laptop }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Tv</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.tv }}</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.tv }}</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                            <div class="pt-6 border-t-2 border-surface-600 print:border-black mt-6">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-xl font-black text-white print:text-black uppercase italic">Total Handphone</span>
-                                    <span class="text-3xl font-black text-primary-500 print:text-black tabular-nums underline decoration-primary-500/30 underline-offset-8">{{ newEraReport.stats.total_hp }}</span>
-                                </div>
+                        <div class="pt-6 border-t-2 border-surface-600 print:border-black mt-6">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xl font-black text-white print:text-black uppercase italic">Total
+                                    Handphone</span>
+                                <span
+                                    class="text-3xl font-black text-primary-500 print:text-black tabular-nums underline decoration-primary-500/30 underline-offset-8">{{
+                                    newEraReport.stats.total_hp }}</span>
                             </div>
+                        </div>
 
                         <!-- Details Section -->
                         <div class="space-y-10">
-                            <div class="h-px w-full bg-gradient-to-r from-transparent via-surface-600 to-transparent print:bg-black"></div>
-                            
-                            <h3 class="text-2xl font-black text-white print:text-black uppercase tracking-tighter italic text-center">Rincian Unit</h3>
+                            <div
+                                class="h-px w-full bg-gradient-to-r from-transparent via-surface-600 to-transparent print:bg-black">
+                            </div>
+
+                            <h3
+                                class="text-2xl font-black text-white print:text-black uppercase tracking-tighter italic text-center">
+                                Rincian Unit</h3>
 
                             <!-- iPhone Sections -->
                             <div class="space-y-12">
                                 <div v-if="newEraReport.details.iphone_new.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-emerald-500/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-emerald-400 print:text-black uppercase tracking-[0.3em]">Iphone New</h4>
+                                        <h4
+                                            class="text-sm font-black text-emerald-400 print:text-black uppercase tracking-[0.3em]">
+                                            Iphone New</h4>
                                         <div class="h-px flex-1 bg-emerald-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.iphone_new" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.iphone_new" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1825,12 +1979,16 @@ onMounted(() => { fetchAllInventory(); });
                                 <div v-if="newEraReport.details.iphone_scd.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-amber-500/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-amber-400 print:text-black uppercase tracking-[0.3em]">Iphone Scd</h4>
+                                        <h4
+                                            class="text-sm font-black text-amber-400 print:text-black uppercase tracking-[0.3em]">
+                                            Iphone Scd</h4>
                                         <div class="h-px flex-1 bg-amber-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.iphone_scd" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.iphone_scd" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1839,12 +1997,16 @@ onMounted(() => { fetchAllInventory(); });
                                 <div v-if="newEraReport.details.iphone_ex_ibox.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-blue-500/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-blue-400 print:text-black uppercase tracking-[0.3em]">Iphone Ex Ibox</h4>
+                                        <h4
+                                            class="text-sm font-black text-blue-400 print:text-black uppercase tracking-[0.3em]">
+                                            Iphone Ex Ibox</h4>
                                         <div class="h-px flex-1 bg-blue-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.iphone_ex_ibox" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.iphone_ex_ibox" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1854,12 +2016,16 @@ onMounted(() => { fetchAllInventory(); });
                                 <div v-if="newEraReport.details.android_new.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-purple-500/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-purple-400 print:text-black uppercase tracking-[0.3em]">Android New</h4>
+                                        <h4
+                                            class="text-sm font-black text-purple-400 print:text-black uppercase tracking-[0.3em]">
+                                            Android New</h4>
                                         <div class="h-px flex-1 bg-purple-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.android_new" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.android_new" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1868,12 +2034,16 @@ onMounted(() => { fetchAllInventory(); });
                                 <div v-if="newEraReport.details.android_scd.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-indigo-500/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-indigo-400 print:text-black uppercase tracking-[0.3em]">Android Scd</h4>
+                                        <h4
+                                            class="text-sm font-black text-indigo-400 print:text-black uppercase tracking-[0.3em]">
+                                            Android Scd</h4>
                                         <div class="h-px flex-1 bg-indigo-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.android_scd" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.android_scd" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1883,12 +2053,16 @@ onMounted(() => { fetchAllInventory(); });
                                 <div v-if="newEraReport.details.laptop.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-blue-400/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-blue-400 print:text-black uppercase tracking-[0.3em]">Laptop</h4>
+                                        <h4
+                                            class="text-sm font-black text-blue-400 print:text-black uppercase tracking-[0.3em]">
+                                            Laptop</h4>
                                         <div class="h-px flex-1 bg-blue-400/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.laptop" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.laptop" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1898,12 +2072,16 @@ onMounted(() => { fetchAllInventory(); });
                                 <div v-if="newEraReport.details.tv.length > 0">
                                     <div class="flex items-center gap-4 mb-4 print:mb-2">
                                         <div class="h-px flex-1 bg-rose-500/30 print:bg-black"></div>
-                                        <h4 class="text-sm font-black text-rose-400 print:text-black uppercase tracking-[0.3em]">TV / Monitor</h4>
+                                        <h4
+                                            class="text-sm font-black text-rose-400 print:text-black uppercase tracking-[0.3em]">
+                                            TV / Monitor</h4>
                                         <div class="h-px flex-1 bg-rose-500/30 print:bg-black"></div>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
-                                        <div v-for="item in newEraReport.details.tv" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
-                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                        <div v-for="item in newEraReport.details.tv" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
@@ -1912,10 +2090,11 @@ onMounted(() => { fetchAllInventory(); });
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Action Buttons (Non-Print) -->
                 <div class="flex justify-center gap-4 pb-20 print:hidden">
-                    <button @click="goBack()" class="flex items-center gap-3 px-8 py-4 bg-surface-700 hover:bg-surface-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]">
+                    <button @click="goBack()"
+                        class="flex items-center gap-3 px-8 py-4 bg-surface-700 hover:bg-surface-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]">
                         <ArrowLeft :size="20" /> Kembali
                     </button>
                 </div>
@@ -1931,13 +2110,21 @@ onMounted(() => { fetchAllInventory(); });
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Fix for select options visibility in dark mode */
 select option {
-    background-color: #111827 !important; /* darker background */
+    background-color: #111827 !important;
+    /* darker background */
     color: #ffffff !important;
     padding: 10px;
 }
