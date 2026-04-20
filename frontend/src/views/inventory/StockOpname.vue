@@ -106,6 +106,8 @@ const fetchBranches = async () => {
 
         const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
         const filteredAllLocations = allLocations.filter(loc => {
+            // User said: hide test data only for super_admin and analist
+            if (!isAlwaysGlobal) return true;
             const name = (loc.name || '').toLowerCase();
             return !exclusionWords.some(word => name.includes(word));
         });
@@ -180,16 +182,20 @@ const fetchAllInventory = async () => {
         };
 
         const fetchType = async (type) => {
-            const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
             const firstResponse = await inventoryApi.list({ ...queryParams, page: 1, type: type === 'hp' ? undefined : 'non-hp' });
             const firstData = firstResponse.data;
             
             if (!firstData || !firstData.data) return [];
             
-            let all = firstData.data.filter(item => {
+            const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
+            const filterFn = (item) => {
+                // User said: hide test data only when shown to super_admin and analist
+                if (!isAlwaysGlobal) return true; 
                 const locName = (item.placement_name || '').toLowerCase();
                 return !exclusionWords.some(word => locName.includes(word));
-            });
+            };
+
+            let all = firstData.data.filter(filterFn);
 
             const lastPage = firstData.last_page;
             if (lastPage > 1) {
@@ -201,10 +207,7 @@ const fetchAllInventory = async () => {
                 const otherResponses = await Promise.all(pagePromises);
                 otherResponses.forEach(res => {
                     if (res.data && res.data.data) {
-                        const filtered = res.data.data.filter(item => {
-                            const locName = (item.placement_name || '').toLowerCase();
-                            return !exclusionWords.some(word => locName.includes(word));
-                        });
+                        const filtered = res.data.data.filter(filterFn);
                         all = all.concat(filtered);
                     }
                 });
