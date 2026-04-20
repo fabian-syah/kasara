@@ -23,7 +23,7 @@ import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatt
 
 
 
-import { Html5Qrcode } from "html5-qrcode";
+// Scanner will be imported dynamically when needed
 import StockOutModal from "../../components/inventory/StockOutModal.vue";
 const router = useRouter();
 const props = defineProps({
@@ -915,7 +915,7 @@ async function exportInventory() {
 
     <!-- Table -->
     <div class="card p-0 overflow-hidden">
-      <div class="table-container overflow-x-auto">
+      <div class="table-container overflow-x-auto inventory-table-container">
         <table class="table">
           <thead>
             <tr>
@@ -1373,7 +1373,7 @@ async function exportInventory() {
                         class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.refund.photo_customer"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          alt="Customer" />
+                          alt="Customer" loading="lazy" />
                         <div
                           class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                           <Eye :size="16" class="text-white" />
@@ -1452,7 +1452,7 @@ async function exportInventory() {
                         class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-amber-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.trade_in.photo_unit"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          alt="Unit" />
+                          alt="Unit" loading="lazy" />
                         <div
                           class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                           <Eye :size="16" class="text-white" />
@@ -1597,5 +1597,10 @@ async function exportInventory() {
   margin-bottom: 0.5rem;
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.inventory-table-container {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 500px;
 }
 </style>
