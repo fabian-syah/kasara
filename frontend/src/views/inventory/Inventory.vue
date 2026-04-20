@@ -766,24 +766,24 @@ async function exportInventory() {
       </div>
       <div v-if="!hideActions" class="flex flex-wrap gap-2 items-center justify-start md:justify-end w-full md:w-auto">
         <!-- History Buttons -->
-        <button class="btn btn-secondary" @click="router.push({ name: 'StockInHistory' })" title="Riwayat Masuk">
+        <button class="btn btn-secondary" @click="router.push({ name: 'StockInHistory' })" title="Riwayat Masuk" aria-label="Lihat Riwayat Stok Masuk">
           <Calendar :size="16" />
           <span class="hidden sm:inline">Riwayat Masuk</span>
         </button>
-        <button class="btn btn-secondary" @click="router.push({ name: 'StockOutHistory' })" title="Riwayat Keluar">
+        <button class="btn btn-secondary" @click="router.push({ name: 'StockOutHistory' })" title="Riwayat Keluar" aria-label="Lihat Riwayat Stok Keluar">
           <ArrowDownUp :size="16" />
           <span class="hidden sm:inline">Riwayat Keluar</span>
         </button>
 
         <button class="btn btn-secondary" @click="router.push({ name: 'outgoing_transfer_history' })"
-          title="Riwayat Transfer Keluar (Pindah Cabang)">
+          title="Riwayat Transfer Keluar (Pindah Cabang)" aria-label="Lihat Riwayat Transfer Keluar">
           <Truck :size="16" />
           <span class="hidden sm:inline">Trx Keluar</span>
         </button>
 
         <!-- Keluar Stok Button -->
         <button class="btn" :class="selectedItems.length > 0 ? 'btn-primary' : 'btn-secondary'"
-          @click="openStockOutModal" :disabled="selectedItems.length === 0">
+          @click="openStockOutModal" :disabled="selectedItems.length === 0" aria-label="Keluarkan stok item terpilih">
           <ArrowDownUp :size="16" />
           Keluar Stok
           <span v-if="selectedItems.length > 0" class="ml-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
@@ -830,8 +830,9 @@ async function exportInventory() {
       <div class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
         <!-- Search -->
         <div class="relative w-full xl:w-auto xl:flex-1 min-w-[200px]">
+          <label for="inventory-search" class="sr-only">Cari Inventaris</label>
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-          <input v-model="searchQuery" type="text" placeholder="Cari produk, SKU, atau IMEI..."
+          <input id="inventory-search" v-model="searchQuery" type="text" placeholder="Cari produk, SKU, atau IMEI..."
             class="input w-full pl-10" />
         </div>
 
@@ -839,13 +840,16 @@ async function exportInventory() {
         <div class="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto items-start md:items-center">
 
           <!-- Location Filter (Not Embedded Only) -->
-          <select v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" v-model="selectedLocationKey"
-            class="input w-full md:w-56 bg-surface-800">
-            <option value="all">Semua Lokasi</option>
-            <option v-for="loc in availableLocations" :key="loc.key" :value="loc.key">
-              {{ loc.type === 'branch' ? '[Cabang]' : (loc.type === 'online_shop' ? '[Toko]' : (loc.type === 'distributor' ? '[Distributor]' : '[Gudang]')) }} {{ loc.label }}
-            </option>
-          </select>
+          <div class="w-full md:w-56">
+            <label for="location-filter" class="sr-only">Filter Lokasi</label>
+            <select id="location-filter" v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" v-model="selectedLocationKey"
+              class="input w-full bg-surface-800">
+              <option value="all">Semua Lokasi</option>
+              <option v-for="loc in availableLocations" :key="loc.key" :value="loc.key">
+                {{ loc.type === 'branch' ? '[Cabang]' : (loc.type === 'online_shop' ? '[Toko]' : (loc.type === 'distributor' ? '[Distributor]' : '[Gudang]')) }} {{ loc.label }}
+              </option>
+            </select>
+          </div>
 
           <!-- Month Filter -->
           <select v-model="selectedMonth" class="input w-full md:w-48 bg-surface-800">
@@ -898,6 +902,7 @@ async function exportInventory() {
             <tr>
               <th class="w-12">
                 <label class="flex items-center cursor-pointer">
+                  <span class="sr-only">Pilih Semua</span>
                   <input type="checkbox" :checked="isAllSelected" :indeterminate.prop="isSomeSelected"
                     @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
@@ -914,7 +919,8 @@ async function exportInventory() {
                   <div v-if="activeFilterDropdown === 'brand'"
                     class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
                     <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
-                      <input v-model="filterSearchQuery.brand" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
+                      <label for="brand-search" class="sr-only">Cari Merek</label>
+                      <input id="brand-search" v-model="filterSearchQuery.brand" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
                     <div class="max-h-52 overflow-y-auto custom-scrollbar">
                       <div v-for="option in computedBrands" :key="option"
@@ -1151,7 +1157,8 @@ async function exportInventory() {
                 <div class="flex items-center justify-center gap-2">
 
                   <button @click.stop="openDetailModal(item)"
-                    class="p-2 hover:bg-surface-700 rounded-lg transition-colors">
+                    class="p-2 hover:bg-surface-700 rounded-lg transition-colors"
+                    :aria-label="'Lihat detail ' + (item.product?.name || 'barang')">
                     <Eye :size="16" class="text-text-secondary" />
                   </button>
                 </div>
@@ -1171,7 +1178,8 @@ async function exportInventory() {
       <div class="flex items-center gap-2">
         <button @click="changePage(inventoryStore.pagination.current_page - 1)"
           :disabled="inventoryStore.pagination.current_page === 1"
-          class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary">
+          class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary"
+          aria-label="Halaman sebelumnya">
           <ChevronLeft :size="20" />
         </button>
 
@@ -1188,7 +1196,8 @@ async function exportInventory() {
 
         <button @click="changePage(inventoryStore.pagination.current_page + 1)"
           :disabled="inventoryStore.pagination.current_page === inventoryStore.pagination.last_page"
-          class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary">
+          class="p-2 rounded-lg hover:bg-surface-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-text-secondary"
+          aria-label="Halaman berikutnya">
           <ChevronRight :size="20" />
         </button>
       </div>
@@ -1210,7 +1219,8 @@ async function exportInventory() {
             </div>
           </div>
           <button @click="showDetailModal = false"
-            class="p-2 hover:bg-surface-700 rounded-xl transition-colors text-text-secondary">
+            class="p-2 hover:bg-surface-700 rounded-xl transition-colors text-text-secondary"
+            aria-label="Tutup modal detail">
             <X :size="20" />
           </button>
         </div>
@@ -1325,7 +1335,7 @@ async function exportInventory() {
                         class="group relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-surface-800 border border-surface-700 overflow-hidden hover:border-primary-500/50 transition-all cursor-pointer">
                         <img :src="storageUrl + '/storage/' + selectedItemDetail.refund.photo_unit"
                           class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          alt="Unit" />
+                          :alt="'Foto unit refund ' + selectedItemDetail.product?.name" />
                         <div
                           class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                           <Eye :size="16" class="text-white" />
