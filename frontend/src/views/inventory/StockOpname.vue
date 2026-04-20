@@ -563,6 +563,17 @@ const newEraReport = computed(() => {
         const storage = item.storage || '';
         const gb = ram && storage ? `${ram}/${storage}` : (storage || ram);
         const displayName = gb ? `${name} ${gb}` : name;
+        const cat = (item.product?.category || '').toLowerCase();
+
+        // Check if Laptop or TV (even if in HP data/IMEI source)
+        if (cat.includes('laptop') || name.toLowerCase().includes('laptop')) {
+            stats.laptop += avail;
+            return;
+        }
+        if (cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') || name.toLowerCase().includes('televisi')) {
+            stats.tv += avail;
+            return;
+        }
 
         if (brand.includes('apple') || brand.includes('iphone')) {
             if (cond === 'new') {
@@ -572,30 +583,20 @@ const newEraReport = computed(() => {
                 stats.iphone_ex_ibox += avail;
                 details.iphone_ex_ibox.set(displayName, (details.iphone_ex_ibox.get(displayName) || 0) + avail);
             } else {
-                // second, ex_inter, refurbished, etc. counted as scd based on user's request
                 stats.iphone_scd += avail;
                 details.iphone_scd.set(displayName, (details.iphone_scd.get(displayName) || 0) + avail);
             }
             stats.total_hp += avail;
-        } else {
-            // Android
-            const nameLow = name.toLowerCase();
-            const catLow = (item.product?.category || '').toLowerCase();
-            
-            if (catLow.includes('laptop') || nameLow.includes('laptop')) {
-                stats.laptop += avail;
-            } else if (catLow.includes('tv') || nameLow.includes('tv') || nameLow.includes('televisi')) {
-                stats.tv += avail;
+        } else if (brand.length > 0 || name.length > 0) {
+            // Android / HP Others
+            if (cond === 'new') {
+                stats.android_new += avail;
+                details.android_new.set(displayName, (details.android_new.get(displayName) || 0) + avail);
             } else {
-                if (cond === 'new') {
-                    stats.android_new += avail;
-                    details.android_new.set(displayName, (details.android_new.get(displayName) || 0) + avail);
-                } else {
-                    stats.android_scd += avail;
-                    details.android_scd.set(displayName, (details.android_scd.get(displayName) || 0) + avail);
-                }
-                stats.total_hp += avail;
+                stats.android_scd += avail;
+                details.android_scd.set(displayName, (details.android_scd.get(displayName) || 0) + avail);
             }
+            stats.total_hp += avail;
         }
     });
 
@@ -604,10 +605,9 @@ const newEraReport = computed(() => {
         if (avail <= 0) return;
 
         const cat = (item.product?.category || '').toLowerCase();
-        const brand = (item.product?.brand || '').toLowerCase();
         const name = (item.product?.name || '').toLowerCase();
 
-        if (cat.includes('laptop') || name.includes('laptop') || brand.includes('laptop')) {
+        if (cat.includes('laptop') || name.includes('laptop')) {
             stats.laptop += avail;
         } else if (cat.includes('tv') || name.includes('tv') || name.includes('televisi')) {
             stats.tv += avail;
@@ -1564,43 +1564,41 @@ onMounted(() => { fetchAllInventory(); });
                             </p>
                         </div>
 
-                        <!-- Summary Grid -->
-                        <div class="space-y-4 mb-10">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 font-bold text-lg">
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Iphone New</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_new }}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Android New</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.android_new }}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Iphone Scd</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_scd }}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Android Scd</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.android_scd }}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Iphone Ex Ibox</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_ex_ibox }}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black md:hidden">
-                                    <!-- Mobile Spacer -->
-                                </div>
-                                <div class="hidden md:block"></div>
-
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Laptop</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.laptop }}</span>
-                                </div>
-                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
-                                    <span class="text-text-secondary print:text-black">Tv</span>
-                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.tv }}</span>
-                                </div>
-                            </div>
+                        <!-- Summary Table -->
+                        <div class="mb-10">
+                            <table class="w-full border-collapse">
+                                <tbody class="text-lg font-bold">
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Iphone New</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_new }}</td>
+                                    </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Iphone Scd</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_scd }}</td>
+                                    </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Iphone Ex Ibox</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_ex_ibox }}</td>
+                                    </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Android New</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.android_new }}</td>
+                                    </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Android Scd</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.android_scd }}</td>
+                                    </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Laptop</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.laptop }}</td>
+                                    </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Tv</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{ newEraReport.stats.tv }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
                             <div class="pt-6 border-t-2 border-surface-600 print:border-black mt-6">
                                 <div class="flex justify-between items-center">
@@ -1608,7 +1606,6 @@ onMounted(() => { fetchAllInventory(); });
                                     <span class="text-3xl font-black text-primary-500 print:text-black tabular-nums underline decoration-primary-500/30 underline-offset-8">{{ newEraReport.stats.total_hp }}</span>
                                 </div>
                             </div>
-                        </div>
 
                         <!-- Details Section -->
                         <div class="space-y-10">
