@@ -175,7 +175,7 @@
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no }}</td>
-                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.location_name || item.branch_name || '-' }}</td>
+                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name || '-' }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">

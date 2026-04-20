@@ -2237,6 +2237,21 @@ class AuditController extends Controller
                 $sourceLabel = 'Manual Entry';
             }
 
+            $outletName = 'APEX POS';
+            $invUser = $trx->inventoryUser ?? $trx->user;
+            if ($invUser) {
+                if ($invUser->branch_id) {
+                    $branch = \App\Models\Branch::find($invUser->branch_id);
+                    if ($branch) $outletName = $branch->name;
+                } elseif ($invUser->online_shop_id) {
+                    $shop = \App\Models\OnlineShop::find($invUser->online_shop_id);
+                    if ($shop) $outletName = $shop->name;
+                } elseif ($invUser->warehouse_id) {
+                    $warehouse = \App\Models\Warehouse::find($invUser->warehouse_id);
+                    if ($warehouse) $outletName = $warehouse->name;
+                }
+            }
+
             $actualCategory = $trx->category;
             // Map for frontend display in the context of Stock In audit
             $displayCategory = $actualCategory;
@@ -2259,6 +2274,7 @@ class AuditController extends Controller
                 'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
+                'outlet_name' => $outletName,
                 'audit_score' => $score,
                 'audit_answered' => $auditAnsCount,
                 'audit_total' => $currentQuestions,
@@ -2407,6 +2423,21 @@ class AuditController extends Controller
                 $sourceLabel = 'Manual Entry';
             }
 
+            $outletName = 'APEX POS';
+            $invUser = $trx->inventoryUser ?? $trx->user;
+            if ($invUser) {
+                if ($invUser->branch_id) {
+                    $branch = \App\Models\Branch::find($invUser->branch_id);
+                    if ($branch) $outletName = $branch->name;
+                } elseif ($invUser->online_shop_id) {
+                    $shop = \App\Models\OnlineShop::find($invUser->online_shop_id);
+                    if ($shop) $outletName = $shop->name;
+                } elseif ($invUser->warehouse_id) {
+                    $warehouse = \App\Models\Warehouse::find($invUser->warehouse_id);
+                    if ($warehouse) $outletName = $warehouse->name;
+                }
+            }
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
@@ -2420,6 +2451,7 @@ class AuditController extends Controller
                 'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
+                'outlet_name' => $outletName,
                 'audit_score' => $score,
                 'audit_answered' => $auditAnsCount,
                 'audit_total' => $currentQuestions,

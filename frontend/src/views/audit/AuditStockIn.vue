@@ -181,7 +181,7 @@
                                     {{ item.receipt_id }}
                                 </td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">
-                                    {{ item.location_name || item.branch_name || '-' }}
+                                    {{ item.outlet_name || '-' }}
                                 </td>
                                 <td class="px-4 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg" :class="item.category === 'pindah_cabang'
