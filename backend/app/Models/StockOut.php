@@ -251,7 +251,16 @@ class StockOut extends Model
                 ->orWhereRaw('LOWER(receiver_name) LIKE ?', ["%{$search}%"])
                 ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$search}%"])
                 ->orWhereRaw('LOWER(shopee_receiver) LIKE ?', ["%{$search}%"])
-                ->orWhereRaw('LOWER(shopee_tracking_no) LIKE ?', ["%{$search}%"]);
+                ->orWhereRaw('LOWER(shopee_tracking_no) LIKE ?', ["%{$search}%"])
+                ->orWhereHas('items.product', function ($pq) use ($search) {
+                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"]);
+                })
+                ->orWhereHas('nonHpDetails.product', function ($pq) use ($search) {
+                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$search}%"]);
+                });
         });
     }
 

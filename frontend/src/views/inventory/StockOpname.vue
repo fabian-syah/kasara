@@ -728,13 +728,14 @@ const newEraReport = computed(() => {
         const gb = ram && storage ? `${ram}/${storage}` : (storage || ram);
         const displayName = gb ? `${name} ${gb}` : name;
         const cat = (item.product?.category || '').toLowerCase();
+        const spec = (item.product?.non_imei_category || '').toLowerCase();
 
         // Check if Laptop or TV (even if in HP data/IMEI source)
-        if (cat.includes('laptop') || name.toLowerCase().includes('laptop')) {
+        if (cat.includes('laptop') || name.toLowerCase().includes('laptop') || spec.includes('laptop')) {
             stats.laptop += avail;
             return;
         }
-        if (cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') || name.toLowerCase().includes('televisi')) {
+        if (cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') || name.toLowerCase().includes('televisi') || spec.includes('tv')) {
             stats.tv += avail;
             return;
         }
@@ -774,10 +775,11 @@ const newEraReport = computed(() => {
 
         const cat = (item.product?.category || '').toLowerCase();
         const name = (item.product?.name || '').toLowerCase();
+        const spec = (item.product?.non_imei_category || '').toLowerCase();
 
-        if (cat.includes('laptop') || name.includes('laptop')) {
+        if (cat.includes('laptop') || name.includes('laptop') || spec.includes('laptop')) {
             stats.laptop += avail;
-        } else if (cat.includes('tv') || name.includes('tv') || name.includes('televisi')) {
+        } else if (cat.includes('tv') || name.includes('tv') || name.includes('televisi') || spec.includes('tv')) {
             stats.tv += avail;
         }
     });

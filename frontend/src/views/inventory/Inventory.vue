@@ -1136,6 +1136,7 @@ async function exportInventory() {
               <template v-else>
                 <th>Merek</th>
                 <th>Produk</th>
+                <th>Kategori</th>
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th>Stok</th>
                 <th class="hidden xl:table-cell">Distributor / Supplier</th>
@@ -1231,6 +1232,12 @@ async function exportInventory() {
 
               <!-- Non-HP Specific Columns -->
               <template v-else>
+                <td>
+                  <span v-if="item.product?.non_imei_category" class="px-2.5 py-1 rounded-lg bg-surface-800 text-xs font-bold text-primary-400 border border-primary-500/20 uppercase tracking-tight">
+                    {{ item.product.non_imei_category }}
+                  </span>
+                  <span v-else class="text-text-secondary/30 text-xs italic">Umum</span>
+                </td>
                 <td class="text-sm text-text-secondary hidden md:table-cell">
                   <div v-if="item.placement_name" class="font-medium text-text-primary">
                     {{ item.placement_name }}

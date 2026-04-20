@@ -301,6 +301,7 @@ const filteredItems = computed(() => {
     return inventoryItems.value.filter(item =>
         item.imei?.toLowerCase().includes(q) ||
         item.product?.name?.toLowerCase().includes(q) ||
+        item.product?.non_imei_category?.toLowerCase().includes(q) ||
         item.product?.sku?.toLowerCase().includes(q)
     );
 });

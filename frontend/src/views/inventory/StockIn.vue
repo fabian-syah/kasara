@@ -134,6 +134,12 @@ const filteredBrands = computed(() => {
     return brands.value.filter(b => brandIds.has(b.id));
 });
 
+const getNonHpCategory = (item) => {
+    if (!item.type_name || !item.filteredTypes) return null;
+    const type = item.filteredTypes.find(t => t.name === item.type_name);
+    return type?.non_imei_category || null;
+};
+
 const removeNonHpItem = (index) => {
     if (nonHpItems.value.length > 1) {
         nonHpItems.value.splice(index, 1);
@@ -1220,6 +1226,11 @@ onMounted(fetchInitialData);
                                     <datalist :id="'type-options-' + idx">
                                         <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
                                     </datalist>
+                                    <div v-if="getNonHpCategory(item)" class="mt-1 flex items-center">
+                                        <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-tighter border border-blue-500/20">
+                                            {{ getNonHpCategory(item) }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">QTY</label>

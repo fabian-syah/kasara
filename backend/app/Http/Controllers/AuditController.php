@@ -235,6 +235,7 @@ class AuditController extends Controller
                     'is_fixed' => true,
                     'brand' => $item->product->brand ?? '-',
                     'type' => 'Non-HP',
+                    'category' => $item->product->non_imei_category ?? null,
                     'imei' => '-',
                 ];
                 $calculatedTotal += ($netPrice * $qty);

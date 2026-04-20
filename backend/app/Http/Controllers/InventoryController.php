@@ -154,7 +154,9 @@ class InventoryController extends Controller
             $query->where(function ($q) use ($s, $type) {
                 if ($type === 'hp')
                     $q->where('imei', 'like', "%$s%");
-                $q->orWhereHas('product', fn($pq) => $pq->where('name', 'like', "%$s%")->orWhere('brand', 'like', "%$s%"));
+                $q->orWhereHas('product', fn($pq) => $pq->where('name', 'like', "%$s%")
+                    ->orWhere('brand', 'like', "%$s%")
+                    ->orWhere('non_imei_category', 'like', "%$s%"));
             });
         }
 
@@ -399,7 +401,8 @@ class InventoryController extends Controller
                         $q->where(function ($sub) use ($lowKeyword) {
                             $sub->whereHas('product', function ($sq) use ($lowKeyword) {
                                 $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"])
+                                    ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                             })
                                 ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                         });
@@ -615,7 +618,8 @@ class InventoryController extends Controller
                     $q->where(function ($sub) use ($lowKeyword) {
                         $sub->whereHas('product', function ($sq) use ($lowKeyword) {
                             $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                         })
                             ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                     });
@@ -706,7 +710,8 @@ class InventoryController extends Controller
                 $query->where(function ($q) use ($lowKeyword) {
                     $q->whereHas('product', function ($pq) use ($lowKeyword) {
                         $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"])
+                            ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                     })
                         ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                 });

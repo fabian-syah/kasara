@@ -189,8 +189,12 @@
                                             <div v-for="(detail, idx) in item.items" :key="idx"
                                                 class="grid grid-cols-[80px_100px_1fr_100px_150px_100px] border-b border-gray-100 dark:!border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                                 <div
-                                                    class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:!border-surface-700 flex items-start break-words">
-                                                    {{ detail.type || item.type }}</div>
+                                                    class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:!border-surface-700 flex flex-col items-start gap-1">
+                                                    <span>{{ detail.type || item.type }}</span>
+                                                    <span v-if="detail.category" class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-tighter border border-blue-500/20">
+                                                        {{ detail.category }}
+                                                    </span>
+                                                </div>
                                                 <div
                                                     class="px-4 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:!border-surface-700 flex items-start break-words whitespace-pre-wrap">
                                                     {{ detail.brand || item.brand_names }}</div>
