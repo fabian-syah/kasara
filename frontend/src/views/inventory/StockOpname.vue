@@ -292,11 +292,35 @@ const copyToClipboard = () => {
         }
     }
 
+    const fallbackCopyTextToClipboard = (text) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            toast.success('Laporan berhasil disalin!');
+        } catch (err) {
+            console.error('Fallback: Gagal menyalin', err);
+            alert('Gagal menyalin laporan.');
+        }
+        document.body.removeChild(textArea);
+    };
+
+    if (!navigator.clipboard) {
+        fallbackCopyTextToClipboard(text);
+        return;
+    }
+
     navigator.clipboard.writeText(text).then(() => {
         toast.success('Laporan berhasil disalin!');
     }).catch(err => {
         console.error('Failed to copy!', err);
-        alert('Gagal menyalin laporan.');
+        fallbackCopyTextToClipboard(text);
     });
 };
 
