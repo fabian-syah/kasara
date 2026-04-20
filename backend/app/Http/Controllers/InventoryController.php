@@ -972,6 +972,11 @@ class InventoryController extends Controller
                         $brandName = $item['brand_name'] ?? 'Unknown';
                         $typeName = $item['type_name'];
                         
+                        $foundType = \App\Models\ProductType::where('name', $typeName)
+                            ->where('brand_id', $item['brand_id'])
+                            ->first();
+                        $nonImeiCat = $foundType ? $foundType->non_imei_category : null;
+
                         $prod = Product::firstOrCreate(
                             [
                                 'name' => $typeName,
@@ -979,13 +984,19 @@ class InventoryController extends Controller
                                 'type' => 'non-hp'
                             ],
                             [
-                                'sku' => 'NHP-' . strtoupper(Str::random(8)),
+                                'sku' => 'NHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
                                 'category' => 'NON HP / NON IMEI',
+                                'non_imei_category' => $nonImeiCat,
                                 'has_imei' => false,
                                 'price' => $item['selling_price'] ?? 0,
                                 'brand_id' => $item['brand_id'] ?? null
                             ]
                         );
+
+                        // If product existed but category was null, update it
+                        if ($prod->wasRecentlyCreated === false && is_null($prod->non_imei_category) && $nonImeiCat) {
+                            $prod->update(['non_imei_category' => $nonImeiCat]);
+                        }
                         $pId = $prod->id;
                     }
 

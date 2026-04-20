@@ -712,7 +712,9 @@ const newEraReport = computed(() => {
         iphone_scd: new Map(),
         iphone_ex_ibox: new Map(),
         android_new: new Map(),
-        android_scd: new Map()
+        android_scd: new Map(),
+        laptop: new Map(),
+        tv: new Map()
     };
 
     rawHpItems.value.forEach(item => {
@@ -730,13 +732,21 @@ const newEraReport = computed(() => {
         const cat = (item.product?.category || '').toLowerCase();
         const spec = (item.product?.non_imei_category || '').toLowerCase();
 
+        const isLaptop = cat.includes('laptop') || name.toLowerCase().includes('laptop') || spec.includes('laptop') || 
+                         ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
+        
+        const isTv = cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') || 
+                     name.toLowerCase().includes('televisi') || spec.includes('tv');
+
         // Check if Laptop or TV (even if in HP data/IMEI source)
-        if (cat.includes('laptop') || name.toLowerCase().includes('laptop') || spec.includes('laptop')) {
+        if (isLaptop) {
             stats.laptop += avail;
+            details.laptop.set(displayName, (details.laptop.get(displayName) || 0) + avail);
             return;
         }
-        if (cat.includes('tv') || cat.includes('televisi') || name.toLowerCase().includes('tv') || name.toLowerCase().includes('televisi') || spec.includes('tv')) {
+        if (isTv) {
             stats.tv += avail;
+            details.tv.set(displayName, (details.tv.get(displayName) || 0) + avail);
             return;
         }
 
@@ -776,11 +786,21 @@ const newEraReport = computed(() => {
         const cat = (item.product?.category || '').toLowerCase();
         const name = (item.product?.name || '').toLowerCase();
         const spec = (item.product?.non_imei_category || '').toLowerCase();
+        const brand = (item.product?.brand || '').toUpperCase();
+        const displayName = brand ? `${brand} ${item.product?.name}` : item.product?.name;
 
-        if (cat.includes('laptop') || name.includes('laptop') || spec.includes('laptop')) {
+        const isLaptop = cat.includes('laptop') || name.includes('laptop') || spec.includes('laptop') || 
+                         ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
+        
+        const isTv = cat.includes('tv') || cat.includes('televisi') || name.includes('tv') || 
+                     name.includes('televisi') || spec.includes('tv');
+
+        if (isLaptop) {
             stats.laptop += avail;
-        } else if (cat.includes('tv') || name.includes('tv') || name.includes('televisi') || spec.includes('tv')) {
+            details.laptop.set(displayName, (details.laptop.get(displayName) || 0) + avail);
+        } else if (isTv) {
             stats.tv += avail;
+            details.tv.set(displayName, (details.tv.get(displayName) || 0) + avail);
         }
     });
 
@@ -794,7 +814,9 @@ const newEraReport = computed(() => {
             iphone_scd: mapToArr(details.iphone_scd),
             iphone_ex_ibox: mapToArr(details.iphone_ex_ibox),
             android_new: mapToArr(details.android_new),
-            android_scd: mapToArr(details.android_scd)
+            android_scd: mapToArr(details.android_scd),
+            laptop: mapToArr(details.laptop),
+            tv: mapToArr(details.tv)
         }
     };
 });
@@ -1862,6 +1884,36 @@ onMounted(() => { fetchAllInventory(); });
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
                                         <div v-for="item in newEraReport.details.android_scd" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Laptop Section -->
+                                <div v-if="newEraReport.details.laptop.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-blue-400/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-blue-400 print:text-black uppercase tracking-[0.3em]">Laptop</h4>
+                                        <div class="h-px flex-1 bg-blue-400/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.laptop" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- TV Section -->
+                                <div v-if="newEraReport.details.tv.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-rose-500/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-rose-400 print:text-black uppercase tracking-[0.3em]">TV / Monitor</h4>
+                                        <div class="h-px flex-1 bg-rose-500/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.tv" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
                                             <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>

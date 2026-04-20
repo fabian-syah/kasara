@@ -20,6 +20,7 @@ class Product extends Model
         'min_stock',
         'description',
         'category',
+        'non_imei_category',
         'brand',
         'brand_id',
         'image',
