@@ -1555,6 +1555,16 @@ onMounted(() => { fetchAllInventory(); });
                     <!-- Background Decor (Non-Print) -->
                     <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[100px] rounded-full print:hidden"></div>
                     
+                    <!-- Copy Tool (Non-Print) -->
+                    <div class="flex justify-end gap-3 mb-6 print:hidden">
+                        <button @click="fetchAllInventory()" class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded-xl text-xs font-bold transition-all">
+                            <RefreshCw :size="14" :class="{ 'animate-spin': loading }" /> Sync Data
+                        </button>
+                        <button @click="copyToClipboard" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all border border-emerald-500/20">
+                            <Copy :size="14" /> Salin Laporan
+                        </button>
+                    </div>
+
                     <div class="relative">
                         <!-- Report Header -->
                         <div class="text-center mb-10 pb-8 border-b border-surface-700/50 print:border-black">
@@ -1692,7 +1702,7 @@ onMounted(() => { fetchAllInventory(); });
                 
                 <!-- Action Buttons (Non-Print) -->
                 <div class="flex justify-center gap-4 pb-20 print:hidden">
-                    <button @click="window.print()" class="flex items-center gap-3 px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 hover:scale-[1.02] active:scale-[0.98]">
+                    <button @click="handlePrint()" class="flex items-center gap-3 px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 hover:scale-[1.02] active:scale-[0.98]">
                         <Printer :size="20" /> Cetak Laporan
                     </button>
                 </div>
