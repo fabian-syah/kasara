@@ -298,7 +298,7 @@ watch(() => route.path, () => {
                 class="lg:hidden p-2 bg-neutral-100 dark:bg-neutral-800 text-text-secondary hover:text-text-primary rounded-xl transition-colors">
                 <X :size="20" />
             </button>
-        </div>a
+        </div>
 
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto px-3 py-6 space-y-1.5 sidebar-scrollbar">
