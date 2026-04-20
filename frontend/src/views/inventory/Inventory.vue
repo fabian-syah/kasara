@@ -88,6 +88,7 @@ import {
   Percent,
   Archive,
   ChevronLeft,
+  ChevronRight,
   CheckCircle,
   Loader2,
   ScanBarcode,
@@ -818,8 +819,10 @@ async function exportInventory() {
     <!-- Tab Switcher -->
     <div class="flex space-x-1 rounded-xl bg-surface-800 p-1 w-full md:w-fit overflow-x-auto">
       <button v-for="tab in ['hp', 'non-hp']" :key="tab" @click="activeTab = tab"
-        class="w-32 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200" :class="activeTab === tab
-          ? 'bg-blue-600 text-white shadow'
+        class="w-36 rounded-lg py-2.5 text-sm font-medium leading-5 transition-all duration-200"
+        :aria-label="tab === 'hp' ? 'Pilih kategori Unit/HP' : 'Pilih kategori NON HP/NON IMEI'"
+        :class="activeTab === tab
+          ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25'
           : 'text-text-secondary hover:bg-surface-700/50 hover:text-white'
           ">
         {{ tab === 'hp' ? 'Unit / HP' : 'NON HP / NON IMEI' }}
@@ -852,30 +855,46 @@ async function exportInventory() {
           </div>
 
           <!-- Month Filter -->
-          <select v-model="selectedMonth" class="input w-full md:w-48 bg-surface-800">
-            <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
+          <div class="w-full md:w-48">
+            <label for="month-filter" class="sr-only">Filter Bulan</label>
+            <select id="month-filter" v-model="selectedMonth" class="input w-full bg-surface-800">
+              <option v-for="opt in monthOptions" :key="opt.label" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
 
+          <!-- Condition Filter -->
+          <div class="w-full md:w-32" v-if="activeTab === 'hp'">
+            <label for="condition-filter" class="sr-only">Filter Kondisi</label>
+            <select id="condition-filter" v-model="selectedCondition" class="input w-full bg-surface-800">
+              <option value="all">Kondisi</option>
+              <option value="new">Baru</option>
+              <option value="used">Bekas</option>
+              <option value="ex_ibox">Ex iBox</option>
+            </select>
+          </div>
 
-          <!-- Condition Filter (New - Only for HP) -->
-          <select v-if="activeTab === 'hp'" v-model="selectedCondition" @change="loadInventory(1)"
-            class="input w-full md:w-48 bg-surface-800">
-            <option value="all">Semua Kondisi</option>
-            <option value="new">Baru</option>
-            <option value="second">Bekas</option>
-            <option value="ex_ibox">Ex iBox (Khusus iPhone)</option>
-          </select>
+          <!-- Stock Status Filter -->
+          <div class="w-full md:w-32">
+            <label for="stock-status-filter" class="sr-only">Filter Status Stok</label>
+            <select id="stock-status-filter" v-model="selectedStockStatus" class="input w-full bg-surface-800">
+              <option value="all">S. Stok</option>
+              <option value="available">Tersedia</option>
+              <option value="sold">Terjual</option>
+              <option value="booking">Booking</option>
+              <option value="loss">Hilang</option>
+            </select>
+          </div>
 
-          <button @click="loadInventory(1)"
+          <button @click="loadInventory(1)" aria-label="Terapkan Filter"
             class="btn btn-primary w-full md:w-auto flex items-center justify-center gap-2">
             <Filter :size="16" />
             Filter
           </button>
 
           <!-- Export -->
-          <button @click="exportInventory" class="btn btn-secondary w-full md:w-auto">
+          <button @click="exportInventory" class="btn btn-secondary w-full md:w-auto" aria-label="Export Data">
             <Download :size="16" />
             Export
           </button>
@@ -910,11 +929,11 @@ async function exportInventory() {
 
               <template v-if="activeTab === 'hp'">
                 <!-- Filterable Brand Column (Faceted) -->
-                <th class="min-w-[120px] relative group" @click.stop>
-                  <div class="flex items-center justify-between cursor-pointer" @click="toggleFilterDropdown('brand')">
+                <th class="cursor-pointer group relative">
+                  <button @click="toggleFilterDropdown('brand')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Merek">
                     <span>Merek</span>
                     <Filter :size="14" :class="filterBrand.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
-                  </div>
+                  </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'brand'"
                     class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
@@ -938,17 +957,17 @@ async function exportInventory() {
                 </th>
 
                 <!-- Filterable Product Column (Faceted) -->
-                <th class="min-w-[150px] relative group" @click.stop>
-                  <div class="flex items-center justify-between cursor-pointer"
-                    @click="toggleFilterDropdown('product')">
+                <th class="cursor-pointer group relative">
+                  <button @click="toggleFilterDropdown('product')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Produk">
                     <span>Produk</span>
                     <Filter :size="14" :class="filterProduct.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
-                  </div>
+                  </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'product'"
                     class="absolute left-0 top-full mt-2 w-56 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
                     <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
-                      <input v-model="filterSearchQuery.product" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
+                      <label for="product-search" class="sr-only">Cari Produk</label>
+                      <input id="product-search" v-model="filterSearchQuery.product" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
                     <div class="max-h-52 overflow-y-auto custom-scrollbar">
                       <div v-for="option in computedProducts" :key="option"
@@ -966,17 +985,17 @@ async function exportInventory() {
                 </th>
 
                 <!-- Filterable Capacity Column (Faceted) -->
-                <th class="hidden lg:table-cell min-w-[120px] relative group" @click.stop>
-                  <div class="flex items-center justify-between cursor-pointer"
-                    @click="toggleFilterDropdown('capacity')">
+                <th class="hidden lg:table-cell cursor-pointer group relative">
+                  <button @click="toggleFilterDropdown('capacity')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Kapasitas">
                     <span>Kapasitas</span>
                     <Filter :size="14" :class="filterCapacity.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
-                  </div>
+                  </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'capacity'"
                     class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
                     <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
-                      <input v-model="filterSearchQuery.capacity" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
+                      <label for="capacity-search" class="sr-only">Cari Kapasitas</label>
+                      <input id="capacity-search" v-model="filterSearchQuery.capacity" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
                     <div class="max-h-52 overflow-y-auto custom-scrollbar">
                       <div v-for="option in computedCapacities" :key="option"
@@ -1072,7 +1091,7 @@ async function exportInventory() {
                 </td>
                 <td class="text-sm hidden lg:table-cell">
                   <span class="badge"
-                    :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400')">
+                    :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400')">
                     {{ item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas') }}
                   </span>
                 </td>
@@ -1100,7 +1119,7 @@ async function exportInventory() {
                 </td>
                 <td>
                   <span class="badge"
-                    :class="item.status === 'available' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-surface-600 text-surface-300'">
+                    :class="item.status === 'available' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-surface-600 text-text-primary'">
                     {{ item.status }}
                   </span>
                 </td>
