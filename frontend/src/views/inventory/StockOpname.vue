@@ -233,28 +233,35 @@ const conditionLabels = {
     'other': 'Lainnya'
 };
 const copyToClipboard = () => {
+    console.log('Generating report text...');
     const report = newEraReport.value;
+    if (!report || !report.stats) {
+        console.error('Report data missing!');
+        alert('Data laporan belum tersedia.');
+        return;
+    }
+
     const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     
     let text = `Laporan stok ***\n`;
     text += `${dateStr}\n\n`;
     
     const pad = (label, value) => {
-        const space = " ".repeat(Math.max(2, 20 - label.length));
+        const space = " ".repeat(Math.max(2, 20 - (label || '').length));
         return `${label}${space}${value}\n`;
     };
 
-    text += pad('Iphone new', report.stats.iphone_new);
-    text += pad('Iphone scd', report.stats.iphone_scd);
-    text += pad('Iphone ex ibox', report.stats.iphone_ex_ibox);
+    text += pad('Iphone new', report.stats.iphone_new || 0);
+    text += pad('Iphone scd', report.stats.iphone_scd || 0);
+    text += pad('Iphone ex ibox', report.stats.iphone_ex_ibox || 0);
     text += `\n`;
-    text += pad('Android new', report.stats.android_new);
-    text += pad('Android scd', report.stats.android_scd);
+    text += pad('Android new', report.stats.android_new || 0);
+    text += pad('Android scd', report.stats.android_scd || 0);
     text += `\n`;
-    text += pad('Laptop', report.stats.laptop);
-    text += pad('Tv', report.stats.tv);
+    text += pad('Laptop', report.stats.laptop || 0);
+    text += pad('Tv', report.stats.tv || 0);
     text += `\n`;
-    text += `Total  ${report.stats.total_hp} handphone\n`;
+    text += `Total  ${report.stats.total_hp || 0} handphone\n`;
     text += `_____________________\n\n`;
     
     text += `Rincian\n\n`;
@@ -1649,11 +1656,13 @@ onMounted(() => { fetchAllInventory(); });
                     <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[100px] rounded-full print:hidden"></div>
                     
                     <!-- Copy Tool (Non-Print) -->
-                    <div class="flex justify-end gap-3 mb-6 print:hidden">
-                        <button @click="fetchAllInventory()" class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 text-white rounded-xl text-xs font-bold transition-all">
+                    <div class="flex justify-end gap-3 mb-6 relative z-30 print:hidden">
+                        <button @click="fetchAllInventory()" 
+                            class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 active:scale-95 text-white rounded-xl text-xs font-bold transition-all cursor-pointer">
                             <RefreshCw :size="14" :class="{ 'animate-spin': loading }" /> Sync Data
                         </button>
-                        <button @click="copyToClipboard" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold transition-all border border-emerald-500/20">
+                        <button @click="copyToClipboard()" 
+                            class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-emerald-400 rounded-xl text-xs font-bold transition-all border border-emerald-500/20 cursor-pointer">
                             <Copy :size="14" /> Salin Laporan
                         </button>
                     </div>
