@@ -926,6 +926,10 @@ const fetchBranches = async () => {
 
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
+
+        let allowedShopIds = [];
+        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
+
         let allowedDistributorIds = [];
         if (user?.distributor_id) allowedDistributorIds.push(user.distributor_id);
 

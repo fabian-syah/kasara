@@ -848,6 +848,12 @@ const fetchBranches = async () => {
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
 
+        let allowedShopIds = [];
+        if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
+
+        let allowedWarehouseIds = [];
+        if (user?.warehouse_id) allowedWarehouseIds.push(user.warehouse_id);
+
         let allowedDistributorIds = [];
         if (user?.distributor_id) allowedDistributorIds.push(user.distributor_id);
 
@@ -863,9 +869,10 @@ const fetchBranches = async () => {
         // Deduplicate
         allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
         allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
+        allowedWarehouseIds = [...new Set(allowedWarehouseIds.map(id => Number(id)))];
         allowedDistributorIds = [...new Set(allowedDistributorIds.map(id => Number(id)))];
 
-        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedDistributorIds.length > 0;
+        const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0 || allowedDistributorIds.length > 0;
 
         // Determine final location list
         if (isAlwaysGlobal) {
