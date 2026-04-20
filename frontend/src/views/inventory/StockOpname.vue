@@ -262,63 +262,86 @@ const copyToClipboard = () => {
     }
 
     const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    const branch = activeBranchName.value;
     
-    let text = `Laporan stok ***\n`;
-    text += `${activeBranchName.value}\n`;
-    text += `${dateStr}\n\n`;
+    let text = '';
+    text += `*LAPORAN STOK*\n`;
+    text += `${branch}\n`;
+    text += `${dateStr}\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
     
-    const pad = (label, value) => {
-        const space = " ".repeat(Math.max(2, 20 - (label || '').length));
-        return `${label}${space}${value}\n`;
-    };
-
-    text += pad('Iphone new', report.stats.iphone_new || 0);
-    text += pad('Iphone scd', report.stats.iphone_scd || 0);
-    text += pad('Iphone ex ibox', report.stats.iphone_ex_ibox || 0);
-    text += `\n`;
-    text += pad('Android new', report.stats.android_new || 0);
-    text += pad('Android scd', report.stats.android_scd || 0);
-    text += `\n`;
-    text += pad('Laptop', report.stats.laptop || 0);
-    text += pad('Tv', report.stats.tv || 0);
-    text += `\n`;
-    text += `Total  ${report.stats.total_hp || 0} handphone\n`;
-    text += `_____________________\n\n`;
+    // Summary section with aligned numbers
+    const items = [
+        ['iPhone New', report.stats.iphone_new || 0],
+        ['iPhone Scd', report.stats.iphone_scd || 0],
+        ['iPhone Ex iBox', report.stats.iphone_ex_ibox || 0],
+        ['Android New', report.stats.android_new || 0],
+        ['Android Scd', report.stats.android_scd || 0],
+        ['Laptop', report.stats.laptop || 0],
+        ['TV', report.stats.tv || 0],
+    ];
     
-    text += `Rincian\n\n`;
+    const maxLabel = Math.max(...items.map(i => i[0].length));
+    items.forEach(([label, val], idx) => {
+        const dots = '.'.repeat(Math.max(2, maxLabel + 4 - label.length));
+        text += `${label} ${dots} *${val}*\n`;
+        if (idx === 2 || idx === 4) text += `\n`;
+    });
     
-    if (report.details.iphone_new.length > 0 || report.details.iphone_scd.length > 0 || report.details.iphone_ex_ibox.length > 0) {
-        text += `Iphone\n`;
+    text += `\n━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `*TOTAL: ${report.stats.total_hp || 0} unit HP*\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    
+    // Detail section
+    text += `*RINCIAN UNIT*\n\n`;
+    
+    const hasIphone = report.details.iphone_new.length > 0 || report.details.iphone_scd.length > 0 || report.details.iphone_ex_ibox.length > 0;
+    if (hasIphone) {
+        text += `*iPhone*\n`;
+        text += `──────────────────\n`;
+        
         if (report.details.iphone_new.length > 0) {
-            text += `New\n`;
-            report.details.iphone_new.forEach(it => text += `${it.name}: ${it.qty}\n`);
-            text += `\n`;
+            text += `\n▸ *New*\n`;
+            report.details.iphone_new.forEach(it => {
+                text += `   ${it.name} : *${it.qty}*\n`;
+            });
         }
         if (report.details.iphone_scd.length > 0) {
-            text += `Scd\n`;
-            report.details.iphone_scd.forEach(it => text += `${it.name}: ${it.qty}\n`);
-            text += `\n`;
+            text += `\n▸ *Second*\n`;
+            report.details.iphone_scd.forEach(it => {
+                text += `   ${it.name} : *${it.qty}*\n`;
+            });
         }
         if (report.details.iphone_ex_ibox.length > 0) {
-            text += `Ex Ibox\n`;
-            report.details.iphone_ex_ibox.forEach(it => text += `${it.name}: ${it.qty}\n`);
-            text += `\n`;
+            text += `\n▸ *Ex iBox*\n`;
+            report.details.iphone_ex_ibox.forEach(it => {
+                text += `   ${it.name} : *${it.qty}*\n`;
+            });
         }
+        text += `\n`;
     }
 
-    if (report.details.android_new.length > 0 || report.details.android_scd.length > 0) {
-        text += `Android\n`;
+    const hasAndroid = report.details.android_new.length > 0 || report.details.android_scd.length > 0;
+    if (hasAndroid) {
+        text += `*Android*\n`;
+        text += `──────────────────\n`;
+        
         if (report.details.android_new.length > 0) {
-            text += `New\n`;
-            report.details.android_new.forEach(it => text += `${it.name}: ${it.qty}\n`);
-            text += `\n`;
+            text += `\n▸ *New*\n`;
+            report.details.android_new.forEach(it => {
+                text += `   ${it.name} : *${it.qty}*\n`;
+            });
         }
         if (report.details.android_scd.length > 0) {
-            text += `Scd\n`;
-            report.details.android_scd.forEach(it => text += `${it.name}: ${it.qty}\n`);
-            text += `\n`;
+            text += `\n▸ *Second*\n`;
+            report.details.android_scd.forEach(it => {
+                text += `   ${it.name} : *${it.qty}*\n`;
+            });
         }
+        text += `\n`;
     }
+
+    text += `━━━━━━━━━━━━━━━━━━━━\n`;
 
     const fallbackCopyTextToClipboard = (text) => {
         const textArea = document.createElement("textarea");
