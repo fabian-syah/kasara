@@ -578,6 +578,8 @@ class ReportController extends Controller
             ->where('is_active', true)
             ->where('name', 'NOT ILIKE', '%TRIAL%')
             ->where('name', 'NOT ILIKE', '%ANU%')
+            ->where('name', 'NOT ILIKE', '%TESTING%')
+            ->where('name', 'NOT ILIKE', '%HUFT%')
             ->get();
         $branchStats = $branches->map(function($b) use ($branchBase, $branchItemCounts, $branchAndroidModels) {
             $base = $branchBase[$b->id] ?? null;
@@ -661,6 +663,8 @@ class ReportController extends Controller
             ->where('is_active', true)
             ->where('name', 'NOT ILIKE', '%TRIAL%')
             ->where('name', 'NOT ILIKE', '%ANU%')
+            ->where('name', 'NOT ILIKE', '%TESTING%')
+            ->where('name', 'NOT ILIKE', '%HUFT%')
             ->get();
         $onlineStats = $shops->map(function($s) use ($onlineBase, $onlineItemCounts, $onlineAndroidModels) {
             $base = $onlineBase[$s->id] ?? null;
