@@ -541,11 +541,23 @@ const conditionReport = computed(() => {
             if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
             tNode.gbs.get(gb).available += avail;
         }
+
+        // Location Breakdown
+        if (!entry.locations) entry.locations = new Map();
+        const locName = item.placement_name || 'Tanpa Lokasi';
+        entry.locations.set(locName, (entry.locations.get(locName) || 0) + avail);
     });
+
+    const mapToLocArr = (locMap) => {
+        return Array.from(locMap.entries())
+            .map(([name, qty]) => ({ name, qty }))
+            .sort((a, b) => b.qty - a.qty);
+    };
 
     return Array.from(map.values())
         .map(e => ({
             ...e,
+            locations: mapToLocArr(e.locations || new Map()),
             tree: Array.from(e.tree.values()).map(b => ({
                 ...b,
                 types: Array.from(b.types.values()).map(t => ({
@@ -591,11 +603,23 @@ const distributorReport = computed(() => {
             if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
             tNode.gbs.get(gb).available += avail;
         }
+
+        // Location Breakdown
+        if (!entry.locations) entry.locations = new Map();
+        const locName = item.placement_name || 'Tanpa Lokasi';
+        entry.locations.set(locName, (entry.locations.get(locName) || 0) + avail);
     });
+
+    const mapToLocArr = (locMap) => {
+        return Array.from(locMap.entries())
+            .map(([name, qty]) => ({ name, qty }))
+            .sort((a, b) => b.qty - a.qty);
+    };
 
     return Array.from(map.values())
         .map(e => ({
             ...e,
+            locations: mapToLocArr(e.locations || new Map()),
             tree: Array.from(e.tree.values()).map(b => ({
                 ...b,
                 types: Array.from(b.types.values()).map(t => ({
@@ -690,11 +714,22 @@ const categoryReport = computed(() => {
 
         if (!tNode.locations.has(location)) tNode.locations.set(location, { label: location, available: 0 });
         tNode.locations.get(location).available += avail;
+
+        // Top-level location tracking for "Tampilkan per Cabang"
+        if (!entry.locations) entry.locations = new Map();
+        entry.locations.set(location, (entry.locations.get(location) || 0) + avail);
     });
+
+    const mapToLocArr = (locMap) => {
+        return Array.from(locMap.entries())
+            .map(([name, qty]) => ({ name, qty }))
+            .sort((a, b) => b.qty - a.qty);
+    };
 
     return Array.from(map.values())
         .map(e => ({
             ...e,
+            locations: mapToLocArr(e.locations || new Map()),
             tree: Array.from(e.tree.values()).map(t => ({
                 ...t,
                 types: Array.from(t.locations.values()).sort((a, b) => b.available - a.available) // Reusing 'types' property name for UI compatibility or renaming
@@ -1189,7 +1224,7 @@ onMounted(() => { fetchAllInventory(); });
                                 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showBrandLocation ? ToggleRight : ToggleLeft" :size="18" />
-                            Sebaran Cabang
+                            Tampilkan per Cabang
                         </button>
                     </div>
 
@@ -1217,7 +1252,7 @@ onMounted(() => { fetchAllInventory(); });
                                 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showTypeLocation ? ToggleRight : ToggleLeft" :size="18" />
-                            Sebaran Cabang
+                            Tampilkan per Cabang
                         </button>
 
                         <!-- Sort Filter -->
@@ -1259,6 +1294,14 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showPerGb ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per GB
                         </button>
+                        <button @click="showConditionLocation = !showConditionLocation"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showConditionLocation
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showConditionLocation ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Cabang
+                        </button>
                     </div>
 
                     <!-- Toggle for Distributor View Breakdown -->
@@ -1287,25 +1330,33 @@ onMounted(() => { fetchAllInventory(); });
                             <component :is="showDistributorGb ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per GB
                         </button>
+                        <button @click="showDistributorLocation = !showDistributorLocation"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showDistributorLocation
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showDistributorLocation ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Cabang
+                        </button>
                     </div>
 
                     <!-- Toggle for Category View Breakdown -->
                     <div v-else-if="currentView === 'category'" class="flex flex-wrap items-center gap-3">
-                        <button @click="showCategoryBrand = !showCategoryBrand"
-                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
-                            :class="showCategoryBrand
-                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
-                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
-                            <component :is="showCategoryBrand ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per Tipe
-                        </button>
                         <button @click="showCategoryType = !showCategoryType"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
                             :class="showCategoryType
                                 ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showCategoryType ? ToggleRight : ToggleLeft" :size="18" />
-                            Tampilkan per Lokasi
+                            Tampilkan per Tipe
+                        </button>
+                        <button @click="showCategoryLocation = !showCategoryLocation"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showCategoryLocation
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showCategoryLocation ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Cabang
                         </button>
                     </div>
                     <div v-else></div>
@@ -1358,7 +1409,7 @@ onMounted(() => { fetchAllInventory(); });
                                     </td>
                                 </tr>
 
-                                <!-- Brand Location Breakdown -->
+                                <!-- Brand Location Breakdown (Renamed to Tampilkan per Cabang label in UI) -->
                                 <tr v-if="showBrandLocation" class="bg-indigo-500/5">
                                     <td colspan="5" class="px-6 py-3">
                                         <div class="flex flex-wrap gap-2">
@@ -1471,7 +1522,7 @@ onMounted(() => { fetchAllInventory(); });
                                     </td>
                                 </tr>
 
-                                <!-- Type Location Breakdown -->
+                                <!-- Type Location Breakdown (Renamed in UI) -->
                                 <tr v-if="showTypeLocation" class="bg-indigo-500/5">
                                     <td colspan="6" class="px-6 py-3">
                                         <div class="flex flex-wrap gap-2">
@@ -1594,6 +1645,19 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
                                                 row.available }}</span>
+                                    </td>
+                                </tr>
+
+                                <!-- Condition Location Breakdown -->
+                                <tr v-if="showConditionLocation" class="bg-indigo-500/5">
+                                    <td colspan="6" class="px-6 py-3">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span v-for="loc in row.locations" :key="loc.name"
+                                                class="px-3 py-1.5 rounded-xl bg-surface-900 border border-indigo-500/20 text-[11px] flex items-center gap-2 shadow-sm shadow-indigo-500/5">
+                                                <span class="text-text-secondary font-medium">{{ loc.name }}</span>
+                                                <span class="font-black text-indigo-400">{{ loc.qty }}</span>
+                                            </span>
+                                        </div>
                                     </td>
                                 </tr>
 
@@ -1754,6 +1818,19 @@ onMounted(() => { fetchAllInventory(); });
                                     </td>
                                 </tr>
 
+                                <!-- Distributor Location Breakdown -->
+                                <tr v-if="showDistributorLocation" class="bg-indigo-500/5">
+                                    <td colspan="6" class="px-6 py-3">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span v-for="loc in row.locations" :key="loc.name"
+                                                class="px-3 py-1.5 rounded-xl bg-surface-900 border border-indigo-500/20 text-[11px] flex items-center gap-2 shadow-sm shadow-indigo-500/5">
+                                                <span class="text-text-secondary font-medium">{{ loc.name }}</span>
+                                                <span class="font-black text-indigo-400">{{ loc.qty }}</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+
                                 <!-- Brand Breakdown -->
                                 <template v-if="showDistributorBrand" v-for="b in row.tree" :key="b.label">
                                     <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -1901,6 +1978,19 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
                                                 row.available }}</span>
+                                    </td>
+                                </tr>
+
+                                <!-- Category Location Breakdown -->
+                                <tr v-if="showCategoryLocation" class="bg-indigo-500/5">
+                                    <td colspan="5" class="px-6 py-3">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span v-for="loc in row.locations" :key="loc.name"
+                                                class="px-3 py-1.5 rounded-xl bg-surface-900 border border-indigo-500/20 text-[11px] flex items-center gap-2 shadow-sm shadow-indigo-500/5">
+                                                <span class="text-text-secondary font-medium">{{ loc.name }}</span>
+                                                <span class="font-black text-indigo-400">{{ loc.qty }}</span>
+                                            </span>
+                                        </div>
                                     </td>
                                 </tr>
 
