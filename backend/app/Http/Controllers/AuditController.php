@@ -346,9 +346,12 @@ class AuditController extends Controller
                     }
                 }
             } else {
-                // Fallback for older transactions without split_payments
-                if ($trx->category === 'penjualan_offline') {
+                // Fallback for older transactions without split_payments or simple single-payment transactions
+                $methodCat = strtolower($trx->paymentMethod->category ?? '');
+                if ($methodCat === 'tunai' || ($trx->category === 'penjualan_offline' && !$methodCat)) {
                     $cash = $trx->selling_price;
+                } elseif ($methodCat === 'edc' || $methodCat === 'debit') {
+                    $edc = $trx->selling_price;
                 } else {
                     $transfer = $trx->selling_price;
                 }
