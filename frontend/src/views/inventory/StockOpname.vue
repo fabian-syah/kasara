@@ -139,11 +139,29 @@ const searchQuery = ref('');
 const fetchAllInventory = async () => {
     loading.value = true;
     try {
+        const user = authStore.user;
+        const role = (authStore.userRole || '').toLowerCase();
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
+
+        let bId = selectedBranchId.value;
+        let sId = selectedOnlineShopId.value;
+        let wId = selectedWarehouseId.value;
+        let dId = selectedDistributorId.value;
+
+        // If 'all' is selected and user is NOT super admin, force their primary identity if it's the only one
+        if (selectedLocationKey.value === 'all' && !isAlwaysGlobal) {
+            if (user?.branch_id && !user?.placements?.length) bId = user.branch_id;
+            else if (user?.online_shop_id && !user?.placements?.length) sId = user.online_shop_id;
+            else if (user?.warehouse_id && !user?.placements?.length) wId = user.warehouse_id;
+            else if (user?.distributor_id && !user?.placements?.length) dId = user.distributor_id;
+        }
+
         const queryParams = { 
-            branch_id: selectedBranchId.value || undefined,
-            online_shop_id: selectedOnlineShopId.value || undefined,
-            warehouse_id: selectedWarehouseId.value || undefined,
-            distributor_id: selectedDistributorId.value || undefined
+            branch_id: bId || undefined,
+            online_shop_id: sId || undefined,
+            warehouse_id: wId || undefined,
+            distributor_id: dId || undefined
         };
 
         // Fetch HP
@@ -631,7 +649,16 @@ const categoryReport = computed(() => {
 });
 
 const activeBranchName = computed(() => {
-    if (selectedLocationKey.value === 'all') return 'SEMUA CABANG';
+    if (selectedLocationKey.value === 'all') {
+        const role = (authStore.userRole || '').toLowerCase();
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
+        
+        if (!isAlwaysGlobal && locations.value.length === 1) {
+            return locations.value[0].name.toUpperCase();
+        }
+        return 'SEMUA CABANG';
+    }
     const loc = locations.value.find(l => {
         const key = `${l.type === 'branch' ? 'B' : l.type === 'online_shop' ? 'S' : l.type === 'warehouse' ? 'W' : 'D'}:${l.id}`;
         return key === selectedLocationKey.value;
