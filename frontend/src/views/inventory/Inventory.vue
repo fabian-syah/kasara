@@ -920,9 +920,9 @@ async function exportInventory() {
           <thead>
             <tr>
               <th class="w-12">
-                <label class="flex items-center cursor-pointer">
+                <label for="select-all-checkbox" class="flex items-center cursor-pointer">
                   <span class="sr-only">Pilih Semua</span>
-                  <input type="checkbox" :checked="isAllSelected" :indeterminate.prop="isSomeSelected"
+                  <input id="select-all-checkbox" type="checkbox" :checked="isAllSelected" :indeterminate.prop="isSomeSelected"
                     @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
               </th>
@@ -1061,8 +1061,9 @@ async function exportInventory() {
               class="cursor-pointer transition-all hover:bg-surface-700/30"
               :class="isSelected(item) ? 'bg-primary-500/10' : ''">
               <td @click.stop>
-                <label class="flex items-center">
-                  <input type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)"
+                <label :for="'item-select-' + item.id" class="flex items-center cursor-pointer">
+                  <span class="sr-only">Pilih item {{ item.product?.name }}</span>
+                  <input :id="'item-select-' + item.id" type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)"
                     class="checkbox border-surface-400" />
                 </label>
               </td>

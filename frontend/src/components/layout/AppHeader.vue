@@ -47,13 +47,13 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
         <!-- Left Side: Hamburger & Toggle & Search -->
         <div class="flex items-center gap-3 flex-1">
             <!-- Mobile hamburger -->
-            <button @click="emit('toggle-mobile-menu')"
+            <button @click="emit('toggle-mobile-menu')" aria-label="Buka Menu"
                 class="lg:hidden p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
                 <Menu :size="22" />
             </button>
 
             <!-- Desktop sidebar toggle -->
-            <button @click="emit('toggle-sidebar')"
+            <button @click="emit('toggle-sidebar')" aria-label="Toggle Sidebar"
                 class="hidden lg:flex p-2 text-text-secondary hover:text-text-primary rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -79,14 +79,14 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
         <div class="flex items-center gap-1 sm:gap-2">
 
             <!-- Dark mode quick toggle -->
-            <button @click="themeStore.toggleDarkMode"
+            <button @click="themeStore.toggleDarkMode" :aria-label="themeStore.isDark ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'"
                 class="hidden md:block p-2.5 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
                 <Sun v-if="themeStore.isDark" :size="20" />
                 <Moon v-else :size="20" />
             </button>
 
             <!-- Notifications -->
-            <button
+            <button aria-label="Notifikasi"
                 class="relative p-2.5 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
                 <Bell :size="20" />
                 <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-surface-950"></span>

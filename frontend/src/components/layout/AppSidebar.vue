@@ -294,11 +294,11 @@ watch(() => route.path, () => {
                 </span>
             </router-link>
             <!-- Close Button (Mobile Only) -->
-            <button @click="emit('close-mobile-menu')"
+            <button @click="emit('close-mobile-menu')" aria-label="Tutup Menu"
                 class="lg:hidden p-2 bg-neutral-100 dark:bg-neutral-800 text-text-secondary hover:text-text-primary rounded-xl transition-colors">
                 <X :size="20" />
             </button>
-        </div>
+        </div>a
 
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto px-3 py-6 space-y-1.5 sidebar-scrollbar">
@@ -331,7 +331,9 @@ watch(() => route.path, () => {
                     <!-- Submenu Items -->
                     <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
                         class="ml-8 space-y-1 mt-1.5 border-l-2 border-neutral-100 dark:border-neutral-800/60 pl-2">
-                        <router-link v-for="subitem in item.items.filter(si => visibleMenuItems.some(v => v.id === si.id) || getMenuForRole(authStore.userRole).includes(si.id))" :key="subitem.id" :to="subitem.path"
+                        <router-link
+                            v-for="subitem in item.items.filter(si => visibleMenuItems.some(v => v.id === si.id) || getMenuForRole(authStore.userRole).includes(si.id))"
+                            :key="subitem.id" :to="subitem.path"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
                             :class="isActiveRoute(subitem.path)
                                 ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'
