@@ -253,10 +253,8 @@ const conditionLabels = {
     'other': 'Lainnya'
 };
 const copyToClipboard = () => {
-    console.log('Generating report text...');
     const report = newEraReport.value;
     if (!report || !report.stats) {
-        console.error('Report data missing!');
         alert('Data laporan belum tersedia.');
         return;
     }
@@ -264,59 +262,40 @@ const copyToClipboard = () => {
     const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     const branch = activeBranchName.value;
     
-    let text = '';
-    text += `*LAPORAN STOK*\n`;
-    text += `${branch}\n`;
-    text += `${dateStr}\n`;
-    text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+    let text = `====================\n`;
+    text += `*STOCK OPNAME REPORT*\n`;
+    text += `*${branch}*\n`;
+    text += `*${dateStr}*\n`;
+    text += `====================\n\n`;
     
-    // Summary section with aligned numbers
-    const items = [
-        ['iPhone New', report.stats.iphone_new || 0],
-        ['iPhone Scd', report.stats.iphone_scd || 0],
-        ['iPhone Ex iBox', report.stats.iphone_ex_ibox || 0],
-        ['Android New', report.stats.android_new || 0],
-        ['Android Scd', report.stats.android_scd || 0],
-        ['Laptop', report.stats.laptop || 0],
-        ['TV', report.stats.tv || 0],
-    ];
+    text += `*RINGKASAN TOTAL*\n`;
+    text += `iPhone New: *${report.stats.iphone_new || 0}*\n`;
+    text += `iPhone Second: *${report.stats.iphone_scd || 0}*\n`;
+    text += `iPhone Ex iBox: *${report.stats.iphone_ex_ibox || 0}*\n`;
+    text += `Android New: *${report.stats.android_new || 0}*\n`;
+    text += `Android Second: *${report.stats.android_scd || 0}*\n`;
+    text += `Laptop: *${report.stats.laptop || 0}*\n`;
+    text += `TV / Monitor: *${report.stats.tv || 0}*\n`;
+    text += `--------------------\n`;
+    text += `TOTAL HP: *${report.stats.total_hp || 0}*\n\n`;
     
-    const maxLabel = Math.max(...items.map(i => i[0].length));
-    items.forEach(([label, val], idx) => {
-        const dots = '.'.repeat(Math.max(2, maxLabel + 4 - label.length));
-        text += `${label} ${dots} *${val}*\n`;
-        if (idx === 2 || idx === 4) text += `\n`;
-    });
-    
-    text += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-    text += `*TOTAL: ${report.stats.total_hp || 0} unit HP*\n`;
-    text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-    
-    // Detail section
     text += `*RINCIAN UNIT*\n\n`;
     
     const hasIphone = report.details.iphone_new.length > 0 || report.details.iphone_scd.length > 0 || report.details.iphone_ex_ibox.length > 0;
     if (hasIphone) {
         text += `*iPhone*\n`;
         text += `──────────────────\n`;
-        
         if (report.details.iphone_new.length > 0) {
             text += `\n▸ *New*\n`;
-            report.details.iphone_new.forEach(it => {
-                text += `   ${it.name} : *${it.qty}*\n`;
-            });
+            report.details.iphone_new.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         }
         if (report.details.iphone_scd.length > 0) {
             text += `\n▸ *Second*\n`;
-            report.details.iphone_scd.forEach(it => {
-                text += `   ${it.name} : *${it.qty}*\n`;
-            });
+            report.details.iphone_scd.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         }
         if (report.details.iphone_ex_ibox.length > 0) {
             text += `\n▸ *Ex iBox*\n`;
-            report.details.iphone_ex_ibox.forEach(it => {
-                text += `   ${it.name} : *${it.qty}*\n`;
-            });
+            report.details.iphone_ex_ibox.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         }
         text += `\n`;
     }
@@ -325,30 +304,40 @@ const copyToClipboard = () => {
     if (hasAndroid) {
         text += `*Android*\n`;
         text += `──────────────────\n`;
-        
         if (report.details.android_new.length > 0) {
             text += `\n▸ *New*\n`;
-            report.details.android_new.forEach(it => {
-                text += `   ${it.name} : *${it.qty}*\n`;
-            });
+            report.details.android_new.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         }
         if (report.details.android_scd.length > 0) {
             text += `\n▸ *Second*\n`;
-            report.details.android_scd.forEach(it => {
-                text += `   ${it.name} : *${it.qty}*\n`;
-            });
+            report.details.android_scd.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         }
+        text += `\n`;
+    }
+
+    const hasLaptop = report.details.laptop.length > 0;
+    if (hasLaptop) {
+        text += `*Laptop*\n`;
+        text += `──────────────────\n`;
+        report.details.laptop.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
+        text += `\n`;
+    }
+
+    const hasTv = report.details.tv.length > 0;
+    if (hasTv) {
+        text += `*TV / Monitor*\n`;
+        text += `──────────────────\n`;
+        report.details.tv.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         text += `\n`;
     }
 
     text += `━━━━━━━━━━━━━━━━━━━━\n`;
 
-    const fallbackCopyTextToClipboard = (text) => {
+    const fallbackCopy = (t) => {
         const textArea = document.createElement("textarea");
-        textArea.value = text;
+        textArea.value = t;
         textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        textArea.style.top = "-999999px";
+        textArea.style.left = "-9999px";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -356,23 +345,18 @@ const copyToClipboard = () => {
             document.execCommand('copy');
             toast.success('Laporan berhasil disalin!');
         } catch (err) {
-            console.error('Fallback: Gagal menyalin', err);
-            alert('Gagal menyalin laporan.');
+            toast.error('Gagal menyalin laporan.');
         }
         document.body.removeChild(textArea);
     };
 
     if (!navigator.clipboard) {
-        fallbackCopyTextToClipboard(text);
-        return;
+        fallbackCopy(text);
+    } else {
+        navigator.clipboard.writeText(text)
+            .then(() => toast.success('Laporan berhasil disalin!'))
+            .catch(() => fallbackCopy(text));
     }
-
-    navigator.clipboard.writeText(text).then(() => {
-        toast.success('Laporan berhasil disalin!');
-    }).catch(err => {
-        console.error('Failed to copy!', err);
-        fallbackCopyTextToClipboard(text);
-    });
 };
 
 const brandReport = computed(() => {
@@ -804,21 +788,22 @@ const newEraReport = computed(() => {
         }
     });
 
-    const sortFn = (a, b) => b.qty - a.qty;
-    const mapToArr = (m) => Array.from(m.entries()).map(([name, qty]) => ({ name, qty })).sort(sortFn);
+        // Default fallback sorting: ALPHABETICAL
+        const sortFn = (a, b) => a.name.localeCompare(b.name);
+        const mapToArr = (m) => Array.from(m.entries()).map(([name, qty]) => ({ name, qty })).sort(sortFn);
 
-    return {
-        stats,
-        details: {
-            iphone_new: mapToArr(details.iphone_new),
-            iphone_scd: mapToArr(details.iphone_scd),
-            iphone_ex_ibox: mapToArr(details.iphone_ex_ibox),
-            android_new: mapToArr(details.android_new),
-            android_scd: mapToArr(details.android_scd),
-            laptop: mapToArr(details.laptop),
-            tv: mapToArr(details.tv)
-        }
-    };
+        return {
+            stats,
+            details: {
+                iphone_new: mapToArr(details.iphone_new),
+                iphone_scd: mapToArr(details.iphone_scd),
+                iphone_ex_ibox: mapToArr(details.iphone_ex_ibox),
+                android_new: mapToArr(details.android_new),
+                android_scd: mapToArr(details.android_scd),
+                laptop: mapToArr(details.laptop),
+                tv: mapToArr(details.tv)
+            }
+        };
 });
 
 // Filtered search for sub-views
@@ -974,22 +959,6 @@ onMounted(() => { fetchAllInventory(); });
 
                 <!-- Report Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- New Era (IMEI Priority) -->
-                    <button v-if="isHpMode" @click="navigateTo('new_era')"
-                        class="group bg-gradient-to-br from-surface-800 to-primary-500/10 rounded-2xl border border-primary-500/30 hover:border-primary-500 p-6 text-left transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 hover:translate-y-[-4px]">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
-                                <Sparkles :size="24" class="text-primary-400" />
-                            </div>
-                            <div class="px-2 py-1 bg-primary-500 text-white text-[8px] font-black rounded uppercase tracking-widest">HOT</div>
-                        </div>
-                        <h3 class="text-lg font-black text-text-primary mb-1 uppercase italic tracking-tight">Laporan New Era</h3>
-                        <p class="text-xs text-text-secondary font-medium">Ringkasan stok khusus IMEI (New & Second)</p>
-                        <div class="mt-4 flex items-center justify-between">
-                            <span class="text-xs font-black text-primary-400">{{ summaryStats.totalHp }} UNIT</span>
-                            <ChevronRight :size="16" class="text-primary-500" />
-                        </div>
-                    </button>
 
                     <!-- Brand -->
                     <button @click="navigateTo('brand')"
@@ -1080,6 +1049,23 @@ onMounted(() => { fetchAllInventory(); });
                                 class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
                                 {{ c.category }}: {{ c.available }}
                             </span>
+                        </div>
+                    </button>
+
+                    <!-- New Era (IMEI Priority) - MOVED TO END -->
+                    <button v-if="isHpMode" @click="navigateTo('new_era')"
+                        class="group bg-gradient-to-br from-surface-800 to-primary-500/10 rounded-2xl border border-primary-500/30 hover:border-primary-500 p-6 text-left transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 hover:translate-y-[-4px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                                <Sparkles :size="24" class="text-primary-400" />
+                            </div>
+                            <div class="px-2 py-1 bg-primary-500 text-white text-[8px] font-black rounded uppercase tracking-widest">HOT</div>
+                        </div>
+                        <h3 class="text-lg font-black text-text-primary mb-1 uppercase italic tracking-tight">Laporan New Era</h3>
+                        <p class="text-xs text-text-secondary font-medium">Ringkasan stok khusus IMEI (New & Second)</p>
+                        <div class="mt-4 flex items-center justify-between">
+                            <span class="text-xs font-black text-primary-400">{{ summaryStats.totalHp }} UNIT</span>
+                            <ChevronRight :size="16" class="text-primary-500" />
                         </div>
                     </button>
                 </div>
@@ -1754,18 +1740,21 @@ onMounted(() => { fetchAllInventory(); });
                             <RefreshCw :size="14" :class="{ 'animate-spin': loading }" /> Sync Data
                         </button>
                         <button @click="copyToClipboard()" 
-                            class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-emerald-400 rounded-xl text-xs font-bold transition-all border border-emerald-500/20 cursor-pointer">
-                            <Copy :size="14" /> Salin Laporan
+                            class="flex items-center gap-3 px-6 py-3 bg-primary-500 hover:bg-primary-400 active:scale-95 text-white rounded-2xl text-sm font-black transition-all shadow-xl shadow-primary-500/20 cursor-pointer">
+                            <Copy :size="18" /> SALIN LAPORAN (WA)
                         </button>
                     </div>
 
                     <div class="relative">
-                        <div class="text-center mb-10 pb-8 border-b border-surface-700/50 print:border-black">
-                            <h2 class="text-3xl font-black text-white print:text-black uppercase tracking-tighter italic mb-2">Laporan Stok New Era</h2>
-                            <p class="text-primary-400 font-black text-lg mb-1">{{ activeBranchName }}</p>
-                            <p class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
-                                {{ new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) }}
-                            </p>
+                        <div class="text-center mb-10 pb-8 border-b-4 border-double border-surface-700/50 print:border-black">
+                            <h2 class="text-xs font-black text-primary-500 print:text-black uppercase tracking-[0.5em] mb-4">Stock Report</h2>
+                            <p class="text-4xl font-black text-white print:text-black tabular-nums tracking-tighter mb-2">{{ activeBranchName }}</p>
+                            <div class="flex items-center justify-center gap-2">
+                                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <p class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
+                                    {{ new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) }}
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Summary Table -->
