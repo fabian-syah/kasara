@@ -151,27 +151,25 @@ class InventoryController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function ($q) use ($s) {
-                // Always search by IMEI directly first
-                $q->whereHas('productDetails', function ($dq) use ($s) {
-                    $dq->where('imei', 'like', "%$s%");
-                });
+            $query->where(function ($q) use ($s, $type) {
+                if ($type === 'hp') {
+                    $q->where('imei', 'like', "%$s%");
+                }
 
-                // Then search by product name, brand, or category
                 $q->orWhereHas('product', function ($pq) use ($s) {
                     $pq->where('name', 'like', "%$s%")
-                       ->orWhere('brand', 'like', "%$s%");
-                    
+                        ->orWhere('brand', 'like', "%$s%");
+
                     // Safe check for non_imei_category if column exists
                     if (\Schema::hasColumn('products', 'non_imei_category')) {
                         $pq->orWhere('non_imei_category', 'like', "%$s%");
                     } else {
-                        // Fallback: search via ProductType relation if available or join
+                        // Fallback: search via join-like check if needed
                         $pq->orWhereExists(function ($eq) use ($s) {
                             $eq->select(\DB::raw(1))
-                               ->from('product_types')
-                               ->whereColumn('product_types.name', 'products.name')
-                               ->where('product_types.category', 'like', "%$s%");
+                                ->from('product_types')
+                                ->whereColumn('product_types.name', 'products.name')
+                                ->where('product_types.category', 'like', "%$s%");
                         });
                     }
                 });
