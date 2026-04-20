@@ -274,7 +274,7 @@ const copyToClipboard = () => {
     text += `Android New: *${report.stats.android_new || 0}*\n`;
     text += `Android Second: *${report.stats.android_scd || 0}*\n`;
     text += `Laptop: *${report.stats.laptop || 0}*\n`;
-    text += `TV / Monitor: *${report.stats.tv || 0}*\n`;
+    text += `TV: *${report.stats.tv || 0}*\n`;
     text += `--------------------\n`;
     text += `TOTAL HP: *${report.stats.total_hp || 0}*\n\n`;
 
@@ -324,7 +324,7 @@ const copyToClipboard = () => {
 
     const hasTv = report.details.tv.length > 0;
     if (hasTv) {
-        text += `*TV / Monitor*\n`;
+        text += `*TV*\n`;
         text += `──────────────────\n`;
         report.details.tv.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         text += `\n`;
