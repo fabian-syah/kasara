@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\VerifiesPin;
 
@@ -224,7 +225,8 @@ class InventoryController extends Controller
         }
 
         $items->getCollection()->transform(function ($item) use ($type, $request) {
-            $item->placement_name = $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id);
+            $placement = $item->placement instanceof \Illuminate\Database\Eloquent\Relations\Relation ? $item->placement()->first() : $item->placement;
+            $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
             if ($type === 'non-hp') {
                 // Fetch latest log manually to guarantee accuracy against user_id and product_id

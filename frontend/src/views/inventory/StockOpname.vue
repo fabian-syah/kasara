@@ -137,6 +137,7 @@ const itemMode = ref('hp'); // 'hp' or 'non-hp'
 const searchQuery = ref('');
 
 const fetchAllInventory = async () => {
+    if (loading.value) return;
     loading.value = true;
     try {
         const user = authStore.user;
