@@ -314,29 +314,29 @@ const exportToPDF = async () => {
         <!-- PREMIUM HEADER & FILTERS -->
         <div class="flex flex-col space-y-8 animate-in active" v-show="exportPart === 0">
             <!-- Header Row -->
-            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                <div class="flex items-center gap-5">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div class="flex items-center gap-4 md:gap-5">
                     <div class="relative group">
                         <div class="absolute -inset-2 bg-emerald-500/20 rounded-2xl blur-lg group-hover:bg-emerald-500/30 transition-all"></div>
-                        <div class="relative p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-                            <Trophy class="w-8 h-8 text-emerald-500" />
+                        <div class="relative p-3 md:p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                            <Trophy class="w-6 h-6 md:w-8 md:h-8 text-emerald-500" />
                         </div>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2 mb-1.5">
-                            <div class="h-px w-6 bg-emerald-500/50"></div>
-                            <span class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">Business Intelligence</span>
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="h-px w-4 md:w-6 bg-emerald-500/50"></div>
+                            <span class="text-[8px] md:text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">Business Intelligence</span>
                         </div>
-                        <h1 class="text-3xl md:text-4xl font-black text-text-primary tracking-tighter leading-none uppercase italic">
+                        <h1 class="text-2xl md:text-3xl lg:text-4xl font-black text-text-primary tracking-tighter leading-none uppercase italic">
                             Ranking Performa
                         </h1>
                     </div>
                 </div>
 
                 <!-- Export Action -->
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 w-full md:w-auto">
                     <button @click="exportToPDF" :disabled="loading || exportLoading || (rankingData?.length || 0) === 0"
-                        class="group relative flex items-center gap-3 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all duration-300 font-bold text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50 overflow-hidden">
+                        class="group relative flex items-center justify-center gap-3 px-6 py-3 md:py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all duration-300 font-bold text-[10px] md:text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50 overflow-hidden w-full md:w-auto">
                         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shine"></div>
                         <Download v-if="!exportLoading" class="w-4 h-4" />
                         <Loader2 v-else class="w-4 h-4 animate-spin" />
@@ -350,47 +350,47 @@ const exportToPDF = async () => {
                 <!-- Inner Glow -->
                 <div class="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 via-surface-700/50 to-emerald-500/20 rounded-[28px] blur-sm opacity-50"></div>
                 
-                <div class="relative flex flex-col xl:flex-row gap-6 p-6 md:p-8 bg-surface-800/80 backdrop-blur-2xl border border-surface-700/50 rounded-[24px] shadow-2xl">
+                <div class="relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-6 p-5 md:p-8 bg-surface-800/80 backdrop-blur-2xl border border-surface-700/50 rounded-[24px] shadow-2xl">
                     
                     <!-- Presets Group -->
-                    <div class="flex flex-col space-y-3 shrink-0">
+                    <div class="flex flex-col space-y-3 xl:col-span-3">
                         <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Pilih Cepat</label>
-                        <div class="flex flex-wrap items-center bg-surface-900/50 p-1.5 rounded-xl border border-surface-700/30 gap-1">
+                        <div class="grid grid-cols-2 xs:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-1 bg-surface-900/50 p-1.5 rounded-xl border border-surface-700/30">
                             <button v-for="key in ['today', 'yesterday', 'month', 'all']" :key="key"
                                 v-show="key !== 'all' || !isRestricted"
                                 @click="setRange(key)"
-                                class="flex-1 min-w-[90px] px-4 py-2.5 rounded-lg text-[10px] font-black transition-all duration-300 uppercase tracking-widest whitespace-nowrap"
+                                class="px-2 py-2.5 rounded-lg text-[9px] font-black transition-all duration-300 uppercase tracking-widest whitespace-nowrap"
                                 :class="activeRange === key ? 'bg-emerald-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
                                 {{ rangeLabels[key] }}
                             </button>
                         </div>
                     </div>
 
-                    <!-- Custom Range (Vastly Improved) -->
-                    <div class="flex-1 flex flex-col space-y-3">
-                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Filter Kustom Periode</label>
-                        <div class="flex flex-col sm:flex-row items-stretch gap-3">
-                            <div class="flex-1 flex items-center bg-surface-900 border border-surface-700/50 rounded-2xl px-5 gap-4 group/input focus-within:border-emerald-500/50 transition-all duration-500 shadow-inner h-[56px]">
-                                <Calendar class="w-5 h-5 text-emerald-500 shrink-0" />
-                                <div class="flex items-center gap-3 w-full">
-                                    <div class="flex flex-col flex-1">
-                                        <span class="text-[8px] font-black text-text-secondary uppercase tracking-tighter">Mulai</span>
+                    <!-- Custom Range -->
+                    <div class="flex flex-col space-y-3 md:col-span-1 xl:col-span-6">
+                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Filter Periode</label>
+                        <div class="flex flex-col lg:flex-row items-stretch gap-3">
+                            <div class="flex-1 flex items-center bg-surface-900 border border-surface-700/50 rounded-2xl px-4 md:px-5 gap-3 md:gap-4 group/input focus-within:border-emerald-500/50 transition-all duration-500 shadow-inner h-[56px]">
+                                <Calendar class="w-4 h-4 md:w-5 md:h-5 text-emerald-500 shrink-0" />
+                                <div class="flex items-center gap-2 md:gap-3 w-full">
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <span class="text-[7px] md:text-[8px] font-black text-text-secondary uppercase tracking-tighter">Mulai</span>
                                         <input type="date" v-model="filters.start_date" 
                                             :min="getMinDate" :max="getTodayLocal()"
-                                            class="bg-transparent text-sm text-text-primary outline-none font-black uppercase w-full cursor-pointer" />
+                                            class="bg-transparent text-[11px] md:text-sm text-text-primary outline-none font-black uppercase w-full cursor-pointer" />
                                     </div>
-                                    <div class="h-6 w-px bg-surface-700"></div>
-                                    <div class="flex flex-col flex-1">
-                                        <span class="text-[8px] font-black text-text-secondary uppercase tracking-tighter">Selesai</span>
+                                    <div class="h-6 w-px bg-surface-700 shrink-0"></div>
+                                    <div class="flex flex-col flex-1 min-w-0">
+                                        <span class="text-[7px] md:text-[8px] font-black text-text-secondary uppercase tracking-tighter">Selesai</span>
                                         <input type="date" v-model="filters.end_date" 
                                             :min="getMinDate" :max="getTodayLocal()"
-                                            class="bg-transparent text-sm text-text-primary outline-none font-black uppercase w-full cursor-pointer" />
+                                            class="bg-transparent text-[11px] md:text-sm text-text-primary outline-none font-black uppercase w-full cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
 
                             <button @click="fetchRanking" :disabled="loading"
-                                class="group relative px-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all duration-500 flex items-center justify-center gap-3 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/10 h-[56px] overflow-hidden">
+                                class="group relative px-6 lg:px-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all duration-500 flex items-center justify-center gap-3 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/10 h-[56px] overflow-hidden">
                                 <div class="absolute inset-x-0 bottom-0 h-1 bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
                                 <Loader2 v-if="loading" class="w-4 h-4 animate-spin" />
                                 <Filter v-else class="w-4 h-4 transition-transform group-hover:rotate-12" />
@@ -401,8 +401,8 @@ const exportToPDF = async () => {
 
                     <!-- Additional Toggles -->
                     <div v-if="activeRange === 'today' || activeRange === 'yesterday'" 
-                         class="xl:w-48 flex flex-col space-y-3">
-                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Visibilitas</label>
+                         class="flex flex-col space-y-3 xl:col-span-3">
+                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Opsi Tampilan</label>
                         <button @click="toggleShowZero"
                             class="h-[56px] px-5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 font-black text-[10px] uppercase tracking-widest border"
                             :class="showZero ? 'bg-orange-500/10 border-orange-500/50 text-orange-500' : 'bg-surface-900 border-surface-700/50 text-text-secondary hover:text-text-primary'">
@@ -466,63 +466,63 @@ const exportToPDF = async () => {
 
                 <!-- Juara 2 -->
                 <div v-if="top3[1]"
-                    class="order-2 lg:order-1 flex flex-col items-center w-full lg:flex-1 max-w-[285px]">
+                    class="order-2 lg:order-1 flex flex-col items-center w-full lg:flex-1 max-w-[200px] md:max-w-[285px]">
                     <div class="relative group">
                         <div
                             class="absolute -inset-4 bg-slate-400/5 rounded-full blur-xl group-hover:bg-slate-400/10 transition-all">
                         </div>
                         <div
-                            class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center transition-colors bg-surface-800 border-2 border-slate-400/30 shadow-xl">
+                            class="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-2xl flex items-center justify-center transition-colors bg-surface-800 border-2 border-slate-400/30 shadow-xl">
                             <component :is="top3[1].type === 'Offline' ? Store : Globe"
-                                class="w-8 h-8 lg:w-10 lg:h-10 text-slate-400" />
+                                class="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-slate-400" />
                             <div
-                                class="absolute -top-3 -right-3 w-8 h-8 bg-slate-400 text-surface-900 rounded-xl flex items-center justify-center font-black text-lg border-4 border-surface-900">
+                                class="absolute -top-2 -right-2 md:-top-3 md:-right-3 w-6 h-6 md:w-8 md:h-8 bg-slate-400 text-surface-900 rounded-lg md:rounded-xl flex items-center justify-center font-black text-sm md:text-lg border-2 md:border-4 border-surface-900">
                                 2</div>
                         </div>
                     </div>
-                    <div class="mt-6 text-center w-full px-2">
-                        <h3 class="font-black text-base lg:text-lg text-text-primary truncate uppercase leading-tight">
+                    <div class="mt-4 md:mt-6 text-center w-full px-2">
+                        <h3 class="font-black text-sm md:text-base lg:text-lg text-text-primary truncate uppercase leading-tight">
                             {{ top3[1].name }}</h3>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{{ top3[1].type
+                        <p class="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 md:mt-1.5">{{ top3[1].type
                             }} UNIT</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
-                            <span class="text-lg lg:text-xl font-black text-slate-400 tabular-nums">{{
+                        <div class="mt-3 md:mt-4 px-3 md:px-4 py-1.5 md:py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                            <span class="text-sm md:text-lg lg:text-xl font-black text-slate-400 tabular-nums">{{
                                 formatCurrency(top3[1].omset) }}</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Juara 1 (THE KING - UNIK & BEDA) -->
+                <!-- Juara 1 (THE KING) -->
                 <div v-if="top3[0]"
-                    class="order-1 lg:order-2 flex flex-col items-center w-full lg:w-[350px] xl:w-[400px] relative shrink-0">
+                    class="order-1 lg:order-2 flex flex-col items-center w-full lg:w-[320px] xl:w-[400px] relative shrink-0">
                     <!-- BACKGROUND GLOW PULSE -->
-                    <div class="absolute inset-0 bg-primary-500/10 blur-[100px] rounded-full animate-pulse-slow"></div>
+                    <div class="absolute inset-0 bg-primary-500/10 blur-[80px] md:blur-[100px] rounded-full animate-pulse-slow"></div>
 
-                    <div class="relative group mb-4">
+                    <div class="relative group mb-2 md:mb-4">
                         <!-- SHINY EFFECT -->
                         <div
-                            class="absolute inset-0 bg-gradient-to-tr from-primary-500/0 via-white/20 to-primary-500/0 opacity-0 group-hover:animate-shine pointer-events-none rounded-[40px]">
+                            class="absolute inset-0 bg-gradient-to-tr from-primary-500/0 via-white/20 to-primary-500/0 opacity-0 group-hover:animate-shine pointer-events-none rounded-[30px] md:rounded-[40px]">
                         </div>
 
                         <div
-                            class="relative w-32 h-32 lg:w-44 lg:h-44 rounded-[40px] flex items-center justify-center transition-all overflow-visible bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-8 ring-primary-500/5">
+                            class="relative w-24 h-24 md:w-32 md:h-32 lg:w-44 lg:h-44 rounded-[30px] md:rounded-[40px] flex items-center justify-center transition-all overflow-visible bg-surface-800 border-4 border-primary-500 shadow-[0_0_50px_rgba(245,158,11,0.25)] hover:scale-105 duration-500 ring-4 md:ring-8 ring-primary-500/5">
                             <component :is="top3[0].type === 'Offline' ? Store : Globe"
-                                class="w-16 h-16 lg:w-20 lg:h-20 text-primary-500" />
+                                class="w-10 h-10 md:w-16 md:h-16 lg:w-20 lg:h-20 text-primary-500" />
 
                             <!-- Floater Badge 1 -->
                             <div
-                                class="absolute -top-6 -right-6 w-14 h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-[20px] flex items-center justify-center font-black text-3xl shadow-2xl animate-bounce-slow border-8 border-surface-900">
+                                class="absolute -top-3 -right-3 md:-top-6 md:-right-6 w-10 h-10 md:w-14 md:h-14 lg:w-16 lg:h-16 bg-primary-500 text-white rounded-xl md:rounded-[20px] flex items-center justify-center font-black text-xl md:text-3xl shadow-2xl animate-bounce-slow border-4 md:border-8 border-surface-900">
                                 1</div>
 
                             <!-- TOP BADGE -->
-                            <div class="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                            <div class="absolute -top-8 md:-top-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
                                 <Crown
-                                    class="w-10 h-10 text-primary-500 fill-primary-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-bounce" />
+                                    class="w-6 h-6 md:w-10 md:h-10 text-primary-500 fill-primary-500 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] animate-bounce" />
                             </div>
 
                             <!-- KING OF SALES LABEL -->
                             <div
-                                class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-surface-900 whitespace-nowrap uppercase tracking-[0.2em] z-10">
+                                class="absolute -bottom-3 md:-bottom-4 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-[7px] md:text-[9px] font-black px-3 md:px-4 py-1 md:py-1.5 rounded-full shadow-lg border-2 border-surface-900 whitespace-nowrap uppercase tracking-[0.2em] z-10">
                                 THE KING OF SALES
                             </div>
                         </div>
@@ -539,20 +539,20 @@ const exportToPDF = async () => {
                         <p class="text-xs font-black text-primary-500 uppercase tracking-[0.3em] mt-3">WINNER OF THE
                             PERIOD</p>
 
-                        <div class="mt-8 relative group cursor-default">
+                        <div class="mt-6 md:mt-8 relative group cursor-default">
                             <div
                                 class="absolute -inset-4 bg-primary-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
                             </div>
                             <div
-                                class="relative px-12 py-6 bg-gradient-to-br from-primary-500 to-primary-600 shadow-[0_15px_35px_rgba(245,158,11,0.3)] rounded-[32px] border-4 border-white/20 overflow-hidden group">
+                                class="relative px-6 md:px-12 py-4 md:py-6 bg-gradient-to-br from-primary-500 to-primary-600 shadow-[0_15px_35px_rgba(245,158,11,0.3)] rounded-2xl md:rounded-[32px] border-4 border-white/20 overflow-hidden group">
                                 <div
                                     class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shine-fast">
                                 </div>
                                 <p
-                                    class="text-white/70 text-[10px] font-black uppercase tracking-widest mb-1.5 leading-none">
+                                    class="text-white/70 text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 leading-none">
                                     Total Omset Perolehan</p>
                                 <span
-                                    class="text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none">{{
+                                    class="text-xl md:text-2xl lg:text-4xl font-black text-white tabular-nums drop-shadow-md drop-shadow-primary-900/50 leading-none">{{
                                     formatCurrency(top3[0].omset) }}</span>
                             </div>
                         </div>
@@ -561,27 +561,27 @@ const exportToPDF = async () => {
                 </div>
 
                 <!-- Juara 3 -->
-                <div v-if="top3[2]" class="order-3 flex flex-col items-center w-full lg:flex-1 max-w-[285px]">
+                <div v-if="top3[2]" class="order-3 flex flex-col items-center w-full lg:flex-1 max-w-[200px] md:max-w-[285px]">
                     <div class="relative group">
                         <div
                             class="absolute -inset-4 bg-amber-700/5 rounded-full blur-xl group-hover:bg-amber-700/10 transition-all">
                         </div>
                         <div
-                            class="relative w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center transition-colors bg-surface-800 border-2 border-amber-700/30 shadow-xl">
+                            class="relative w-14 h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center transition-colors bg-surface-800 border-2 border-amber-700/30 shadow-xl">
                             <component :is="top3[2].type === 'Offline' ? Store : Globe"
-                                class="w-6 h-6 lg:w-8 lg:h-8 text-amber-700" />
+                                class="w-5 h-5 md:w-6 md:h-6 lg:w-8 lg:h-8 text-amber-700" />
                             <div
-                                class="absolute -top-2.5 -right-2.5 w-8 h-8 bg-amber-700 text-surface-900 rounded-xl flex items-center justify-center font-black text-base border-4 border-surface-900">
+                                class="absolute -top-2 -right-2 md:-top-2.5 md:-right-2.5 w-6 h-6 md:w-8 md:h-8 bg-amber-700 text-surface-900 rounded-lg md:rounded-xl flex items-center justify-center font-black text-xs md:text-base border-2 md:border-4 border-surface-900">
                                 3</div>
                         </div>
                     </div>
-                    <div class="mt-6 text-center w-full px-2">
-                        <h3 class="font-black text-base text-text-primary truncate uppercase leading-tight">{{
+                    <div class="mt-4 md:mt-6 text-center w-full px-2">
+                        <h3 class="font-black text-sm md:text-base text-text-primary truncate uppercase leading-tight">{{
                             top3[2].name }}</h3>
-                        <p class="text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-1.5">{{ top3[2].type
+                        <p class="text-[8px] md:text-[9px] font-bold text-amber-700 uppercase tracking-widest mt-1 md:mt-1.5">{{ top3[2].type
                             }} UNIT</p>
-                        <div class="mt-4 px-4 py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
-                            <span class="text-lg font-black text-amber-700 tabular-nums">{{
+                        <div class="mt-3 md:mt-4 px-3 md:px-4 py-1.5 md:py-2 bg-surface-800/80 rounded-xl border border-surface-700 shadow-lg">
+                            <span class="text-sm md:text-lg font-black text-amber-700 tabular-nums">{{
                                 formatCurrency(top3[2].omset) }}</span>
                         </div>
                     </div>
