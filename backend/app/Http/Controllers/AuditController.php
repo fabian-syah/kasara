@@ -141,6 +141,19 @@ class AuditController extends Controller
                 } else {
                     $q->where('category', $request->category);
                 }
+            })
+            ->when($request->search, function ($q) use ($request) {
+                $s = $request->search;
+                $q->where(function ($sq) use ($s) {
+                    $sq->where('receipt_id', 'like', "%$s%")
+                       ->orWhere('customer_name', 'like', "%$s%")
+                       ->orWhere('receiver_name', 'like', "%$s%")
+                       ->orWhere('shopee_receiver', 'like', "%$s%")
+                       ->orWhereHas('user', fn($uq) => $uq->where('name', 'like', "%$s%"))
+                       ->orWhereHas('items', fn($iq) => $iq->where('imei', 'like', "%$s%"))
+                       ->orWhereHas('items.product', fn($pq) => $pq->where('name', 'like', "%$s%"))
+                       ->orWhereHas('nonHpDetails.product', fn($pq) => $pq->where('name', 'like', "%$s%"));
+                });
             });
 
         $scopeToAccess($dailySalesQuery);
@@ -335,7 +348,7 @@ class AuditController extends Controller
                             $cat = trim(strtolower($method->category ?? ''));
                             $name = trim(strtolower($method->name ?? ''));
 
-                            if ($cat === 'tunai' || $cat === 'cash' || str_contains($name, 'cash') || str_contains($name, 'tunai')) {
+                            if ($cat === 'tunai' || $cat === 'cash' || str_contains($name, 'cash') || str_contains($name, 'tunai') || str_contains($name, 'cash toko')) {
                                 $cash += $amount;
                             } elseif ($cat === 'edc' || $cat === 'debit' || str_contains($name, 'edc') || str_contains($name, 'debit')) {
                                 $edc += $amount;
@@ -343,7 +356,15 @@ class AuditController extends Controller
                                 $transfer += $amount;
                             }
                         } else {
-                            $transfer += $amount;
+                            // Try to guess from name if ID is missing but name exists in split data
+                            $lowName = strtolower($sp['method_name'] ?? '');
+                            if (str_contains($lowName, 'cash') || str_contains($lowName, 'tunai')) {
+                                $cash += $amount;
+                            } else if (str_contains($lowName, 'edc') || str_contains($lowName, 'debit')) {
+                                $edc += $amount;
+                            } else {
+                                $transfer += $amount;
+                            }
                         }
 
                         $processedSplitPayments[] = [

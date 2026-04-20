@@ -99,6 +99,20 @@
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
 
+                    <!-- Search Filter -->
+                    <div class="relative min-w-[200px] flex-1 lg:flex-none">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search :size="16" class="text-gray-400" />
+                        </div>
+                        <input type="text" v-model="searchQuery" @input="debouncedSearch"
+                            placeholder="Cari Nama/Nota/IMEI..."
+                            class="w-full bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
+                        <button v-if="searchQuery" @click="clearSearch"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                            <X :size="14" />
+                        </button>
+                    </div>
+
                     <!-- Export Button -->
                     <button @click="exportExcel" :disabled="exporting"
                         class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
@@ -434,14 +448,26 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2 } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2, Search, X } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
+import { debounce } from '../../utils/debounce'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
 
 const authStore = useAuthStore()
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')
+
+// Search & Filters
+const searchQuery = ref("")
+const debouncedSearch = debounce(() => {
+    fetchData(1)
+}, 500)
+
+const clearSearch = () => {
+    searchQuery.value = ""
+    fetchData(1)
+}
 
 // Dropped Tabs Logic - Now displaying all sections vertically
 const loading = ref(false)
@@ -866,7 +892,7 @@ const fetchData = async (page = 1) => {
     loading.value = true
     try {
         // Map selected location key to specific filter params
-        const params = { ...filters.value, page };
+        const params = { ...filters.value, page, search: searchQuery.value };
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;
