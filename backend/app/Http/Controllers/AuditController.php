@@ -90,46 +90,76 @@ class AuditController extends Controller
 
         $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
             $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                    if ($requestedBranchId) {
-                        if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
-                            $sub->where('branch_id', $requestedBranchId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedOnlineShopId) {
-                        if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
-                            $sub->where('online_shop_id', $requestedOnlineShopId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedWarehouseId) {
-                        if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
-                            $sub->where('warehouse_id', $requestedWarehouseId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedDistributorId) {
-                        if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
-                            $sub->where('distributor_id', $requestedDistributorId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
+                if ($requestedBranchId) {
+                    if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                        $q->where('branch_id', $requestedBranchId);
                     } else {
-                        if (!empty($branchIds)) {
-                            $sub->orWhereIn('branch_id', $branchIds);
-                        }
-                        if (!empty($onlineShopIds)) {
-                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
-                        }
-                        if (!empty($warehouseIds)) {
-                            $sub->orWhereIn('warehouse_id', $warehouseIds);
-                        }
-                        if (!empty($distributorIds)) {
-                            $sub->orWhereIn('distributor_id', $distributorIds);
-                        }
+                        $q->whereRaw('1=0');
                     }
-                });
+                } elseif ($requestedOnlineShopId) {
+                    if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
+                        $q->where('online_shop_id', $requestedOnlineShopId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } elseif ($requestedWarehouseId) {
+                    if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
+                        $q->where('warehouse_id', $requestedWarehouseId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } elseif ($requestedDistributorId) {
+                    if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
+                        $q->where('distributor_id', $requestedDistributorId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } else {
+                    $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        if (!empty($branchIds)) $sub->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds)) $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds)) $sub->orWhereIn('warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds)) $sub->orWhereIn('distributor_id', $distributorIds);
+                    });
+                }
+            });
+        };
+
+        // Scoper for DB::table queries that have 'users' join already
+        $dbScope = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $query->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                if ($requestedBranchId) {
+                    if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                        $sub->where('users.branch_id', $requestedBranchId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } elseif ($requestedOnlineShopId) {
+                    if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
+                        $sub->where('users.online_shop_id', $requestedOnlineShopId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } elseif ($requestedWarehouseId) {
+                    if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
+                        $sub->where('users.warehouse_id', $requestedWarehouseId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } elseif ($requestedDistributorId) {
+                    if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
+                        $sub->where('users.distributor_id', $requestedDistributorId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } else {
+                    $sub->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds)) $q->orWhereIn('users.warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds)) $q->orWhereIn('users.distributor_id', $distributorIds);
+                    });
+                }
             });
         };
 
@@ -276,8 +306,7 @@ class AuditController extends Controller
                 ->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereIn('stock_outs.category', $salesCategories)
                 ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                ->tap(fn($q) => $scopeToAccess($q))
-                ->selectSub(fn($sq) => $sq->from('users')->whereColumn('users.id', 'stock_outs.user_id')->select('branch_id'), 'branch_id')
+                ->tap(fn($q) => $dbScope($q))
                 ->select('products.name', 'products.brand', DB::raw('count(*) as count'))
                 ->groupBy('products.name', 'products.brand')
                 ->get(),
@@ -289,7 +318,7 @@ class AuditController extends Controller
                 ->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereIn('stock_outs.category', $salesCategories)
                 ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                ->tap(fn($q) => $scopeToAccess($q))
+                ->tap(fn($q) => $dbScope($q))
                 ->select('product_details.condition', DB::raw('count(*) as count'))
                 ->groupBy('product_details.condition')
                 ->get(),
@@ -303,7 +332,7 @@ class AuditController extends Controller
                 ->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereIn('stock_outs.category', $salesCategories)
                 ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                ->tap(fn($q) => $scopeToAccess($q))
+                ->tap(fn($q) => $dbScope($q))
                 ->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), 'products.brand', 'products.name as product_type', 'product_details.condition', 'product_details.storage', DB::raw('count(*) as qty'))
                 ->groupBy('distributor', 'products.brand', 'product_type', 'product_details.condition', 'product_details.storage')
                 ->get(),
@@ -316,7 +345,7 @@ class AuditController extends Controller
                 ->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereIn('stock_outs.category', $salesCategories)
                 ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                ->tap(fn($q) => $scopeToAccess($q))
+                ->tap(fn($q) => $dbScope($q))
                 ->select('products.id', 'products.name', 'products.brand')
                 ->distinct()
                 ->orderBy('products.name')
@@ -330,7 +359,7 @@ class AuditController extends Controller
                 ->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereIn('stock_outs.category', $salesCategories)
                 ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                ->tap(fn($q) => $scopeToAccess($q))
+                ->tap(fn($q) => $dbScope($q))
                 ->select('distributors.id', 'distributors.name')
                 ->distinct()
                 ->orderBy('distributors.name')
