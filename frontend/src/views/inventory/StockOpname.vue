@@ -205,9 +205,8 @@ const fetchAllInventory = async () => {
 };
 
 onMounted(async () => {
-    if (canFilterBranch.value) {
-        await fetchBranches();
-    }
+    // ALWAYS resolve user's location - even non-privileged users need branch scoping
+    await fetchBranches();
     fetchAllInventory();
 });
 
