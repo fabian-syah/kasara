@@ -619,7 +619,7 @@ const saveChecklist = async () => {
         const res = await axios.post(`/audit/checklist/${checklistStockOutId.value}`, payload)
 
         // Update the score in the table
-        const item = salesRecords.value.daily_sales.find(s => s.id === checklistStockOutId.value)
+        const item = salesRecords.value.daily_sales.data.find(s => s.id === checklistStockOutId.value)
         if (item) {
             item.audit_score = res.data.score
             item.audit_answered = res.data.answered
@@ -827,7 +827,11 @@ const fetchBranches = async () => {
         }
 
         const results = await Promise.all(requests);
-        const [branchRes, shopRes, distributorRes] = await Promise.all(requests);
+        const branchRes = results[0];
+        const shopRes = results[1];
+        const distributorRes = results[2];
+        const userRes = results[3]; // This will be the user response if requested
+
         const allBranches = (branchRes.data.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
         const allDistributors = (distributorRes?.data?.data || distributorRes?.data || []).map(d => ({ ...d, type: 'distributor' }));

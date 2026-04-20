@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import {
     ArrowLeft, RefreshCw, Search, Smartphone, Package, BarChart3, Box,
     Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive, ListFilter,
-    Sparkles, Printer
+    Sparkles, Printer, Copy
 } from 'lucide-vue-next';
 import { inventory as inventoryApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -231,6 +231,73 @@ const conditionLabels = {
     'refurbished': 'Refurbished',
     'service': 'Service/Retur',
     'other': 'Lainnya'
+};
+const copyToClipboard = () => {
+    const report = newEraReport.value;
+    const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+    
+    let text = `Laporan stok ***\n`;
+    text += `${dateStr}\n\n`;
+    
+    const pad = (label, value) => {
+        const space = " ".repeat(Math.max(2, 20 - label.length));
+        return `${label}${space}${value}\n`;
+    };
+
+    text += pad('Iphone new', report.stats.iphone_new);
+    text += pad('Iphone scd', report.stats.iphone_scd);
+    text += pad('Iphone ex ibox', report.stats.iphone_ex_ibox);
+    text += `\n`;
+    text += pad('Android new', report.stats.android_new);
+    text += pad('Android scd', report.stats.android_scd);
+    text += `\n`;
+    text += pad('Laptop', report.stats.laptop);
+    text += pad('Tv', report.stats.tv);
+    text += `\n`;
+    text += `Total  ${report.stats.total_hp} handphone\n`;
+    text += `_____________________\n\n`;
+    
+    text += `Rincian\n\n`;
+    
+    if (report.details.iphone_new.length > 0 || report.details.iphone_scd.length > 0 || report.details.iphone_ex_ibox.length > 0) {
+        text += `Iphone\n`;
+        if (report.details.iphone_new.length > 0) {
+            text += `New\n`;
+            report.details.iphone_new.forEach(it => text += `${it.name}: ${it.qty}\n`);
+            text += `\n`;
+        }
+        if (report.details.iphone_scd.length > 0) {
+            text += `Scd\n`;
+            report.details.iphone_scd.forEach(it => text += `${it.name}: ${it.qty}\n`);
+            text += `\n`;
+        }
+        if (report.details.iphone_ex_ibox.length > 0) {
+            text += `Ex Ibox\n`;
+            report.details.iphone_ex_ibox.forEach(it => text += `${it.name}: ${it.qty}\n`);
+            text += `\n`;
+        }
+    }
+
+    if (report.details.android_new.length > 0 || report.details.android_scd.length > 0) {
+        text += `Android\n`;
+        if (report.details.android_new.length > 0) {
+            text += `New\n`;
+            report.details.android_new.forEach(it => text += `${it.name}: ${it.qty}\n`);
+            text += `\n`;
+        }
+        if (report.details.android_scd.length > 0) {
+            text += `Scd\n`;
+            report.details.android_scd.forEach(it => text += `${it.name}: ${it.qty}\n`);
+            text += `\n`;
+        }
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+        toast.success('Laporan berhasil disalin!');
+    }).catch(err => {
+        console.error('Failed to copy!', err);
+        alert('Gagal menyalin laporan.');
+    });
 };
 
 const brandReport = computed(() => {
@@ -553,7 +620,8 @@ const newEraReport = computed(() => {
     };
 
     rawHpItems.value.forEach(item => {
-        const avail = getAvailable(item);
+        // Force HP detection logic: always check status for IMEI items
+        const avail = ['available', 'booking', 'process'].includes(item.status) ? 1 : 0;
         if (avail <= 0) return;
 
         const brand = (item.product?.brand || '').toLowerCase();
@@ -601,7 +669,8 @@ const newEraReport = computed(() => {
     });
 
     rawNonHpItems.value.forEach(item => {
-        const avail = getAvailable(item);
+        // Force Non-HP detection logic: always check quantity/balance
+        const avail = item.quantity || item.balance || 0;
         if (avail <= 0) return;
 
         const cat = (item.product?.category || '').toLowerCase();
@@ -1702,8 +1771,8 @@ onMounted(() => { fetchAllInventory(); });
                 
                 <!-- Action Buttons (Non-Print) -->
                 <div class="flex justify-center gap-4 pb-20 print:hidden">
-                    <button @click="handlePrint()" class="flex items-center gap-3 px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 hover:scale-[1.02] active:scale-[0.98]">
-                        <Printer :size="20" /> Cetak Laporan
+                    <button @click="goBack()" class="flex items-center gap-3 px-8 py-4 bg-surface-700 hover:bg-surface-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]">
+                        <ArrowLeft :size="20" /> Kembali
                     </button>
                 </div>
             </div>
