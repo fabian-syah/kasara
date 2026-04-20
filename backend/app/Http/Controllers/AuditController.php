@@ -318,19 +318,19 @@ class AuditController extends Controller
                 $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
                 if (is_array($splits)) {
                     foreach ($splits as $sp) {
-                        $methodId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
-                        $amount = floatval($sp['amount'] ?? 0);
+                        $methodId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? ($sp['id'] ?? ($sp['method'] ?? null)));
+                        $amount = floatval($sp['amount'] ?? ($sp['paid'] ?? 0));
 
                         $methodName = 'Unknown';
                         if ($methodId && isset($paymentMethods[$methodId])) {
                             $method = $paymentMethods[$methodId];
                             $methodName = $method->name;
-                            $cat = strtolower($method->category ?? '');
-                            $name = strtolower($method->name ?? '');
+                            $cat = trim(strtolower($method->category ?? ''));
+                            $name = trim(strtolower($method->name ?? ''));
 
-                            if ($cat === 'tunai') {
+                            if ($cat === 'tunai' || $cat === 'cash' || str_contains($name, 'cash') || str_contains($name, 'tunai')) {
                                 $cash += $amount;
-                            } elseif ($cat === 'edc' || $cat === 'debit') {
+                            } elseif ($cat === 'edc' || $cat === 'debit' || str_contains($name, 'edc') || str_contains($name, 'debit')) {
                                 $edc += $amount;
                             } else {
                                 $transfer += $amount;
@@ -347,10 +347,12 @@ class AuditController extends Controller
                 }
             } else {
                 // Fallback for older transactions without split_payments or simple single-payment transactions
-                $methodCat = strtolower($trx->paymentMethod->category ?? '');
-                if ($methodCat === 'tunai' || ($trx->category === 'penjualan_offline' && !$methodCat)) {
+                $methodCat = trim(strtolower($trx->paymentMethod->category ?? ''));
+                $methodName = trim(strtolower($trx->paymentMethod->name ?? ''));
+                
+                if ($methodCat === 'tunai' || $methodCat === 'cash' || str_contains($methodName, 'cash') || str_contains($methodName, 'tunai') || ($trx->category === 'penjualan_offline' && !$methodCat)) {
                     $cash = $trx->selling_price;
-                } elseif ($methodCat === 'edc' || $methodCat === 'debit') {
+                } elseif ($methodCat === 'edc' || $methodCat === 'debit' || str_contains($methodName, 'edc') || str_contains($methodName, 'debit')) {
                     $edc = $trx->selling_price;
                 } else {
                     $transfer = $trx->selling_price;
