@@ -1551,7 +1551,7 @@ class AuditController extends Controller
             });
         };
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
         $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
             ->whereIn('category', $salesCategories)
@@ -2347,6 +2347,12 @@ class AuditController extends Controller
             'retur',
             'kesalahan_input',
             'giveaway_customer',
+            'shopee',
+            'penjualan_store',
+            'bundling',
+            'tukar_unit',
+            'tukar_tambah',
+            'downgrade',
             'hadiah',
             'brand_ambassador',
             'promo',
