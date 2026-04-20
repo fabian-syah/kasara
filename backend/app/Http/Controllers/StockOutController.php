@@ -77,7 +77,7 @@ class StockOutController extends Controller
                 $y = (int) $request->year;
 
                 // Role-based Month/Year Restriction
-                if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+                if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                     $currentMonth = (int) $logicalNow->format('m');
                     $currentYear = (int) $logicalNow->format('Y');
                     
@@ -1171,7 +1171,7 @@ class StockOutController extends Controller
             }
 
             if (!$hasFilter) {
-                if ($user->hasRole(['super_admin', 'owner', 'admin_produk'])) {
+                if ($user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist'])) {
                     // Show all (do nothing, let base query stand)
                     $q->orWhereRaw('1 = 1');
                 } else {

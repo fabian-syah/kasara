@@ -40,7 +40,7 @@ class AuditController extends Controller
         $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
             $today = $logicalNow->toDateString();
             $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
@@ -1168,7 +1168,7 @@ class AuditController extends Controller
         $month = $request->month; // Optional
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
             $currentYear = $logicalNow->format('Y');
             $currentMonth = (int)$logicalNow->format('n');
             $prevMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
@@ -1518,7 +1518,7 @@ class AuditController extends Controller
         $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
             $today = $logicalNow->toDateString();
             $yesterday = $logicalNow->copy()->subDay()->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
@@ -2018,7 +2018,7 @@ class AuditController extends Controller
         $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
             $today = $logicalNow->toDateString();
             $yesterday = $logicalNow->copy()->subDay()->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
@@ -2177,7 +2177,7 @@ class AuditController extends Controller
         $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
             $today = $logicalNow->toDateString();
             $yesterday = $logicalNow->copy()->subDay()->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
@@ -2384,7 +2384,7 @@ class AuditController extends Controller
         $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
             $today = $logicalNow->toDateString();
             $yesterday = $logicalNow->copy()->subDay()->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();

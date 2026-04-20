@@ -45,7 +45,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
 
         // 2. Base Query
         if ($type === 'non-hp') {
@@ -581,7 +581,7 @@ class InventoryController extends Controller
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
             $d = $request->date;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $today = $logicalNow->toDateString();
                 $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
                 if ($d < $sevenDaysAgo) $d = $today;
@@ -590,7 +590,7 @@ class InventoryController extends Controller
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $currentMonth = (int) $logicalNow->format('m');
                 $currentYear = (int) $logicalNow->format('Y');
                 $lastMonthTemp = $logicalNow->copy()->subMonth();
@@ -685,7 +685,7 @@ class InventoryController extends Controller
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
             $d = $request->date;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $today = $logicalNow->toDateString();
                 $yesterday = $logicalNow->copy()->subDay()->toDateString();
                 if ($d < $yesterday) $d = $today;
@@ -694,7 +694,7 @@ class InventoryController extends Controller
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $currentMonth = (int) $logicalNow->format('m');
                 $currentYear = (int) $logicalNow->format('Y');
                 $lastMonthTemp = $logicalNow->copy()->subMonth();
@@ -767,7 +767,7 @@ class InventoryController extends Controller
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $currentMonth = (int) $logicalNow->format('m');
                 $currentYear = (int) $logicalNow->format('Y');
                 $lastMonthTemp = $logicalNow->copy()->subMonth();
@@ -854,7 +854,7 @@ class InventoryController extends Controller
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
             $d = $request->date;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $today = $logicalNow->toDateString();
                 $yesterday = $logicalNow->copy()->subDay()->toDateString();
                 if ($d < $yesterday) $d = $today;
@@ -863,7 +863,7 @@ class InventoryController extends Controller
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
+            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $currentMonth = (int) $logicalNow->format('m');
                 $currentYear = (int) $logicalNow->format('Y');
                 $lastMonthTemp = $logicalNow->copy()->subMonth();
@@ -1645,7 +1645,7 @@ class InventoryController extends Controller
 
         // Common Restriction Logic (Same as Index)
         $applyLocationFilter = function ($query, $tablePrefix = '') use ($user) {
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user, $tablePrefix) {
                     $branchIds = $user->getAccessibleBranchIds();
@@ -2087,7 +2087,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
 
         // Non-HP Query
         $nonHpQuery = Inventory::with('product')
@@ -2263,7 +2263,7 @@ class InventoryController extends Controller
         $account = \App\Models\User::findOrFail($id);
 
         // Security Check: Only creator or high roles
-        $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk'];
+        $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
         if ($account->created_by !== $user->id && !$user->hasRole($unrestrictedRoles)) {
             return response()->json(['message' => 'Unauthorized action.'], 403);
         }
@@ -2301,7 +2301,7 @@ class InventoryController extends Controller
                 $item = ProductDetail::findOrFail($id);
 
                 // Check authorization
-                $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+                $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk', 'analist'];
                 if ($item->user_id !== $user->id && !$user->hasRole($unrestrictedRoles)) {
                     throw new \Exception('Anda tidak memiliki izin untuk menghapus item ini.');
                 }
@@ -2331,7 +2331,7 @@ class InventoryController extends Controller
                 }
 
                 // Check authorization
-                $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk'];
+                $unrestrictedRoles = ['super_admin', 'owner', 'audit', 'admin_produk', 'analist'];
                 if ($log->user_id !== $user->id && !$user->hasRole($unrestrictedRoles)) {
                     throw new \Exception('Anda tidak memiliki izin untuk menghapus log ini.');
                 }
