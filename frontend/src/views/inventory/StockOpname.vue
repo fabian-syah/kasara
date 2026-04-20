@@ -109,7 +109,7 @@ const fetchBranches = async () => {
                 return false;
             });
 
-            if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+            if (locations.value.length === 1) {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`;
             }
@@ -151,10 +151,13 @@ const fetchAllInventory = async () => {
 
         // If 'all' is selected and user is NOT super admin, force their primary identity if it's the only one
         if (selectedLocationKey.value === 'all' && !isAlwaysGlobal) {
-            if (user?.branch_id && !user?.placements?.length) bId = user.branch_id;
-            else if (user?.online_shop_id && !user?.placements?.length) sId = user.online_shop_id;
-            else if (user?.warehouse_id && !user?.placements?.length) wId = user.warehouse_id;
-            else if (user?.distributor_id && !user?.placements?.length) dId = user.distributor_id;
+            if (locations.value.length === 1) {
+                const loc = locations.value[0];
+                if (loc.type === 'branch') bId = loc.id;
+                else if (loc.type === 'online_shop') sId = loc.id;
+                else if (loc.type === 'warehouse') wId = loc.id;
+                else if (loc.type === 'distributor') dId = loc.id;
+            }
         }
 
         const queryParams = { 
@@ -649,13 +652,16 @@ const categoryReport = computed(() => {
 });
 
 const activeBranchName = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+    const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
+
     if (selectedLocationKey.value === 'all') {
-        const role = (authStore.userRole || '').toLowerCase();
-        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
-        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
-        
         if (!isAlwaysGlobal && locations.value.length === 1) {
             return locations.value[0].name.toUpperCase();
+        }
+        if (!isAlwaysGlobal && locations.value.length > 1) {
+            return 'GABUNGAN CABANG SAYA';
         }
         return 'SEMUA CABANG';
     }
@@ -663,7 +669,7 @@ const activeBranchName = computed(() => {
         const key = `${l.type === 'branch' ? 'B' : l.type === 'online_shop' ? 'S' : l.type === 'warehouse' ? 'W' : 'D'}:${l.id}`;
         return key === selectedLocationKey.value;
     });
-    return loc ? loc.name.toUpperCase() : 'SEMUA CABANG';
+    return loc ? loc.name.toUpperCase() : (isAlwaysGlobal ? 'SEMUA CABANG' : 'CABANG SAYA');
 });
 
 // ===== NEW ERA REPORT (Special IMEI) =====
