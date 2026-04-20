@@ -118,9 +118,9 @@
                                     </div>
                                 </th>
                                 <th class="px-6 py-4">Status Pembayaran</th>
-                                <th class="px-6 py-4">Cash</th>
+                                <th class="px-6 py-4">Cash Toko</th>
                                 <th class="px-6 py-4">Transfer</th>
-                                <th class="px-6 py-4">Debit</th>
+                                <th class="px-6 py-4">EDC</th>
                                 <th class="px-6 py-4 text-center">Cek Audit</th>
                                 <th class="px-6 py-4 text-center">Aksi</th>
                             </tr>
@@ -250,10 +250,9 @@
                                         {{ item.status }}
                                     </span>
                                 </td>
-                                <!-- Backend doesn't split payment methods yet, hardcoding 0 or logic if available later -->
-                                <td class="px-6 py-4 text-text-primary font-mono text-xs">{{ formatCurrency(item.cash_amount || item.cash || 0) }}</td>
-                                <td class="px-6 py-4 text-text-primary font-mono text-xs">{{ formatCurrency(item.transfer_amount || item.transfer || 0) }}</td>
-                                <td class="px-6 py-4 text-text-primary font-mono text-xs">{{ formatCurrency(item.debit_amount || item.debit || 0) }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ formatCurrency(item.cash) }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ formatCurrency(item.transfer) }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ formatCurrency(item.edc) }}</td>
                                 <td class="px-6 py-4 text-center">
                                     <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"

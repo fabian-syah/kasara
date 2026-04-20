@@ -313,7 +313,7 @@ class AuditController extends Controller
             $processedSplitPayments = [];
             $cash = 0;
             $transfer = 0;
-            $debit = 0;
+            $edc = 0;
             if ($trx->split_payments) {
                 $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
                 if (is_array($splits)) {
@@ -328,10 +328,10 @@ class AuditController extends Controller
                             $cat = strtolower($method->category ?? '');
                             $name = strtolower($method->name ?? '');
 
-                            if (str_contains($cat, 'cash') || str_contains($cat, 'tunai') || str_contains($name, 'cash') || str_contains($name, 'tunai')) {
+                            if ($cat === 'tunai') {
                                 $cash += $amount;
-                            } elseif (str_contains($cat, 'debit') || str_contains($name, 'debit') || str_contains($name, 'edc')) {
-                                $debit += $amount;
+                            } elseif ($cat === 'edc' || $cat === 'debit') {
+                                $edc += $amount;
                             } else {
                                 $transfer += $amount;
                             }
@@ -375,7 +375,7 @@ class AuditController extends Controller
                 'split_payments_data' => $processedSplitPayments,
                 'cash' => $cash,
                 'transfer' => $transfer,
-                'debit' => $debit,
+                'edc' => $edc,
                 'grand_total' => $trx->selling_price, // Final Paid Amount
                 'total_discount' => $calculatedGlobalDiscount,
                 'global_discount_value' => $calculatedGlobalDiscount,
