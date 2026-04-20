@@ -82,6 +82,11 @@ class AuditController extends Controller
         $requestedOnlineShopId = $request->online_shop_id;
         $requestedDistributorId = $request->distributor_id;
         $requestedWarehouseId = $request->warehouse_id;
+        $requestedCategory = $request->category;
+        $requestedSearch = $request->search;
+        $requestedCondition = $request->condition;
+        $requestedProductTypeId = $request->product_type_id;
+        $requestedCapacity = $request->capacity;
 
         $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
             $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
@@ -127,9 +132,6 @@ class AuditController extends Controller
                 });
             });
         };
-        $requestedDistributorId = $request->distributor_id;
-        $requestedCondition = $request->condition;
-        $requestedCapacity = $request->capacity;
 
         $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan'];
         $activityCategories = ['refund', 'angkat_barang'];
@@ -148,17 +150,17 @@ class AuditController extends Controller
             fn() => StockOut::with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
                 ->whereIn('category', $salesCategories)
                 ->whereBetween('reporting_date', [$startDate, $endDate])
-                ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
-                    if ($request->category === 'orderan_online' || $request->category === 'shopee') {
+                ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
+                    if ($requestedCategory === 'orderan_online' || $requestedCategory === 'shopee') {
                         $q->whereIn('category', ['shopee', 'orderan_online']);
-                    } elseif ($request->category === 'penjualan_store' || $request->category === 'penjualan_offline') {
+                    } elseif ($requestedCategory === 'penjualan_store' || $requestedCategory === 'penjualan_offline') {
                         $q->whereIn('category', ['penjualan_store', 'penjualan_offline']);
                     } else {
-                        $q->where('category', $request->category);
+                        $q->where('category', $requestedCategory);
                     }
                 })
-                ->when($request->search, function ($q) use ($request) {
-                    $s = $request->search;
+                ->when($requestedSearch, function ($q) use ($requestedSearch) {
+                    $s = $requestedSearch;
                     $q->where(function ($sq) use ($s) {
                         $sq->where('receipt_id', 'like', "%$s%")
                             ->orWhere('customer_name', 'like', "%$s%")
@@ -175,7 +177,7 @@ class AuditController extends Controller
                 ->paginate(50),
 
             // 2. Brand Stats
-            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $request) {
+            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $requestedCondition, $requestedProductTypeId, $requestedCapacity, $requestedDistributorId) {
                 $hpQuery = DB::table('stock_out_items')
                     ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                     ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
@@ -184,10 +186,10 @@ class AuditController extends Controller
                     ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
                     ->whereIn('stock_outs.category', $salesCategories)
                     ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                    ->when($request->condition, fn($q) => $q->where('product_details.condition', $request->condition))
-                    ->when($request->product_type_id, fn($q) => $q->where('products.id', $request->product_type_id))
-                    ->when($request->capacity, fn($q) => $q->where('product_details.storage', $request->capacity))
-                    ->when($request->distributor_id, fn($q) => $q->where('product_details.distributor_id', $request->distributor_id))
+                    ->when($requestedCondition, fn($q) => $q->where('product_details.condition', $requestedCondition))
+                    ->when($requestedProductTypeId, fn($q) => $q->where('products.id', $requestedProductTypeId))
+                    ->when($requestedCapacity, fn($q) => $q->where('product_details.storage', $requestedCapacity))
+                    ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId))
                     ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -233,7 +235,7 @@ class AuditController extends Controller
             },
 
             // 3. CS Sales Stats
-            function () use ($salesCategories, $startDate, $endDate, $scopeToAccess, $requestedDistributorId, $requestedCondition, $requestedCapacity, $request) {
+            function () use ($salesCategories, $startDate, $endDate, $scopeToAccess) {
                 $query = StockOut::whereIn('category', $salesCategories)
                     ->whereBetween('reporting_date', [$startDate, $endDate]);
                 $scopeToAccess($query);
@@ -334,7 +336,6 @@ class AuditController extends Controller
                 ->orderBy('distributors.name')
                 ->get(),
         ]);
-        ;
 
         // Process paginated data with pre-fetched relations
         $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($paymentMethods, $branches, $onlineShops, $warehouses, $questions) {
@@ -351,13 +352,13 @@ class AuditController extends Controller
                 $mainHp = $hpItems->first();
                 $mainNonHp = $nonHpItems->first();
                 $bundlePrice = 0;
-                $bundleName = $trx->bundle_description ?: ($mainHp ? $mainHp->product->name . ' + BUNDLING' : 'PAKET BUNDLING');
+                $bundleName = $trx->bundle_description ?: ($mainHp ? ($mainHp->product?->name . ' + BUNDLING') : 'PAKET BUNDLING');
                 if ($mainHp) {
-                    $bundlePrice += ($mainHp->pivot->selling_price - ($mainHp->pivot->item_discount ?? 0));
+                    $bundlePrice += ($mainHp->pivot?->selling_price ?? 0) - ($mainHp->pivot?->item_discount ?? 0);
                     $bundleHpId = $mainHp->id;
                 }
                 if ($mainNonHp) {
-                    $bundlePrice += ($mainNonHp->selling_price - ($mainNonHp->item_discount ?? 0));
+                    $bundlePrice += ($mainNonHp->selling_price ?? 0) - ($mainNonHp->item_discount ?? 0);
                     $bundleNonHpId = $mainNonHp->id;
                 }
                 $details[] = ['name' => $bundleName, 'qty' => 1, 'price' => $bundlePrice, 'item_discount' => 0, 'distributed_discount' => 0, 'is_fixed' => true, 'type' => 'Bundle', 'imei' => $mainHp ? $mainHp->imei : '-'];
@@ -367,8 +368,20 @@ class AuditController extends Controller
             foreach ($hpItems as $item) {
                 if ($item->id === $bundleHpId)
                     continue;
-                $netPrice = ($item->pivot->selling_price ?? $item->selling_price) - ($item->pivot->item_discount ?? 0);
-                $details[] = ['name' => $item->product->name ?? 'Unknown HP', 'qty' => 1, 'price' => $netPrice, 'item_discount' => 0, 'distributed_discount' => 0, 'is_fixed' => true, 'brand' => $item->product->brand ?? '-', 'type' => 'HP', 'imei' => $item->imei ?? '-', 'storage' => $item->storage ?? null, 'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second'))];
+                $netPrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
+                $details[] = [
+                    'name' => $item->product?->name ?? 'Unknown HP',
+                    'qty' => 1,
+                    'price' => $netPrice,
+                    'item_discount' => 0,
+                    'distributed_discount' => 0,
+                    'is_fixed' => true,
+                    'brand' => $item->product?->brand ?? '-',
+                    'type' => 'HP',
+                    'imei' => $item->imei ?? '-',
+                    'storage' => $item->storage ?? null,
+                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second'))
+                ];
                 $calculatedTotal += $netPrice;
             }
 
@@ -377,7 +390,18 @@ class AuditController extends Controller
                 if ($qty <= 0)
                     continue;
                 $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
-                $details[] = ['name' => $item->product->name ?? 'Item Non-HP', 'qty' => $qty, 'price' => $netPrice, 'item_discount' => 0, 'distributed_discount' => 0, 'is_fixed' => true, 'brand' => $item->product->brand ?? '-', 'type' => 'Non-HP', 'category' => $item->product->non_imei_category ?? null, 'imei' => '-'];
+                $details[] = [
+                    'name' => $item->product?->name ?? 'Item Non-HP',
+                    'qty' => $qty,
+                    'price' => $netPrice,
+                    'item_discount' => 0,
+                    'distributed_discount' => 0,
+                    'is_fixed' => true,
+                    'brand' => $item->product?->brand ?? '-',
+                    'type' => 'Non-HP',
+                    'category' => $item->product?->non_imei_category ?? null,
+                    'imei' => '-'
+                ];
                 $calculatedTotal += ($netPrice * $qty);
             }
 
@@ -401,7 +425,7 @@ class AuditController extends Controller
             }
 
             $currentQuestions = $questions->get($trx->category, collect());
-            $answers = $trx->auditAnswers;
+            $answers = $trx->auditAnswers ?? collect();
             $yesCount = $answers->where('answer', true)->count();
             $totalQuestions = $currentQuestions->count();
             foreach ($currentQuestions as $cq) {
@@ -429,7 +453,7 @@ class AuditController extends Controller
                     $m = $paymentMethods->get($mid);
                     $mName = $m->name ?? 'Unknown';
                     $processedSplitPayments[] = ['method_name' => $mName, 'amount' => $amt];
-                    $cat = strtolower($m->category ?? '');
+                    $cat = strtolower($m?->category ?? '');
                     $nm = strtolower($mName);
                     if ($cat === 'tunai' || str_contains($nm, 'cash') || str_contains($nm, 'tunai'))
                         $cash += $amt;
@@ -439,8 +463,8 @@ class AuditController extends Controller
                         $transfer += $amt;
                 }
             } else {
-                $mCat = strtolower($method->category ?? '');
-                $mName = strtolower($method->name ?? '');
+                $mCat = strtolower($method?->category ?? '');
+                $mName = strtolower($method?->name ?? '');
                 if ($mCat === 'tunai' || str_contains($mName, 'cash') || str_contains($mName, 'tunai'))
                     $cash = $trx->selling_price;
                 elseif ($mCat === 'edc' || str_contains($mName, 'edc') || str_contains($mName, 'debit'))
@@ -451,7 +475,7 @@ class AuditController extends Controller
 
             return [
                 'id' => $trx->id,
-                'date' => $trx->created_at->toDateTimeString(),
+                'date' => $trx->created_at?->toDateTimeString() ?? '-',
                 'order_no' => $trx->receipt_id,
                 'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                 'category' => $trx->category,
@@ -465,7 +489,7 @@ class AuditController extends Controller
                 'audit_total' => $totalQuestions,
                 'outlet_name' => $outletName,
                 'outlet_address' => $outletAddress,
-                'sales_name' => $trx->inventoryUser->name ?? $trx->user->name ?? 'PSTORE',
+                'sales_name' => $trx->inventoryUser?->name ?? $trx->user?->name ?? 'PSTORE',
                 'split_payments_data' => $processedSplitPayments,
                 'brand_names' => collect()->concat($hpItems->map(fn($i) => $i->product?->brand))->concat($nonHpItems->map(fn($i) => $i->product?->brand))->unique()->filter()->implode(', ') ?: '-',
             ];
