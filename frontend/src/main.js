@@ -9,11 +9,6 @@ import './style.css'
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
 axios.defaults.withCredentials = true; // Penting untuk Sanctum
 
-// Disable Vue Devtools di Production secara eksplisit untuk membersihkan Lighthouse warning
-if (import.meta.env.PROD) {
-    window.__VUE_PROD_DEVTOOLS__ = false;
-}
-
 const app = createApp(App)
 const pinia = createPinia()
 
@@ -32,7 +27,7 @@ app.directive('money', {
             // Safely handle values that might have decimals (like 1000.00)
             const numericValue = typeof val === 'number' ? val : parseFloat(val.toString().replace(/[^0-9.-]/g, ''));
             if (isNaN(numericValue)) return '';
-            
+
             const clean = Math.round(numericValue).toString();
             return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         };
@@ -59,7 +54,7 @@ app.directive('money', {
         } else {
             initialVal = binding.value;
         }
-        
+
         if (initialVal !== undefined) {
             input.value = format(initialVal);
         }
@@ -67,10 +62,10 @@ app.directive('money', {
         input.addEventListener('input', (e) => {
             const originalValue = input.value;
             const selectionStart = input.selectionStart;
-            
+
             // Count digits before the cursor to maintain position after formatting
             const digitsBeforeCursor = originalValue.slice(0, selectionStart).replace(/\D/g, '').length;
-            
+
             // Clean and format
             const clean = originalValue.replace(/\D/g, '');
             if (!clean) {
@@ -78,15 +73,15 @@ app.directive('money', {
                 sync(0);
                 return;
             }
-            
+
             const numeric = parseInt(clean, 10);
             const formatted = numeric.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            
+
             input.value = formatted;
-            
+
             // Update data source
             sync(numeric);
-            
+
             // Restore cursor position
             let newPos = 0;
             let digitsFound = 0;

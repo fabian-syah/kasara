@@ -601,7 +601,7 @@ async function fetchInventoryUsers() {
     try {
         const response = await inventoryApi.myAccounts();
         const accounts = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-        
+
         // Include current user in the list if they're not there (backend excludes self)
         const currentUser = authStore.user;
         if (currentUser && !accounts.some(u => u.id === currentUser.id)) {
@@ -612,7 +612,7 @@ async function fetchInventoryUsers() {
                 pin_enabled: currentUser.pin_enabled || !!currentUser.transaction_pin_exists
             });
         }
-        
+
         // Normalize all accounts to have boolean pin_enabled and ensured types
         const normalizedAccounts = accounts.map(u => ({
             ...u,
@@ -620,9 +620,9 @@ async function fetchInventoryUsers() {
             // Explicitly mandatory if the account HAS a PIN set up
             pin_enabled: Boolean(u.pin_enabled || u.has_pin || u.transaction_pin_exists)
         }));
-        
+
         inventoryUsers.value = normalizedAccounts;
-        
+
         // Auto select if currently null OR invalid
         if ((!form.value.inventory_user_id || !inventoryUsers.value.some(u => u.id === form.value.inventory_user_id)) && inventoryUsers.value.length > 0) {
             // Priority: existing form.inventory_user_id if valid, otherwise first in list
@@ -640,7 +640,7 @@ async function fetchInventoryUsers() {
 function handleStartSubmit() {
     console.log("[DEBUG PIN] handleStartSubmit called");
     window.alert("DEBUG: Tombol Konfirmasi Ditekan!");
-    
+
     if (!canSubmit.value) {
         console.warn("[DEBUG PIN] canSubmit is false, aborting");
         window.alert("DEBUG: canSubmit is false");
@@ -649,10 +649,10 @@ function handleStartSubmit() {
 
     const selectedId = form.value.inventory_user_id;
     const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
-    
+
     console.log("[DEBUG PIN] Selected User ID:", selectedId);
     console.log("[DEBUG PIN] Found Target Account:", target);
-    
+
     if (target) {
         console.log("[DEBUG PIN] Target PIN Status - pin_enabled:", target.pin_enabled, "transaction_pin_exists:", target.transaction_pin_exists, "has_pin:", target.has_pin);
     }
@@ -697,7 +697,7 @@ async function submitStockOut() {
                 formData.append(key, form.value[key]);
             }
         });
-        
+
         console.log("[DEBUG PIN] Sending POST to /stock-outs with Category:", selectedCategory.value);
         if (form.value.transaction_pin) {
             console.log("[DEBUG PIN] Transaction PIN is present in payload (hidden for security)");
@@ -722,7 +722,7 @@ async function submitStockOut() {
         const response = await api.post('/stock-outs', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        
+
         console.log("[DEBUG PIN] Submit SUCCESS:", response.data);
         toast.success(`Stok berhasil dikeluarkan! ID: ${response.data.data.receipt_id}`);
 
@@ -734,7 +734,7 @@ async function submitStockOut() {
         console.error("[DEBUG PIN] Caught Exception in submitStockOut:", e);
         const errorMsg = e.response?.data?.message || "";
         console.error("[DEBUG PIN] Backend Error Message:", errorMsg);
-        
+
         if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
             console.warn("[DEBUG PIN] WATCHDOG: Backend rejected due to PIN. Forcing PIN Modal.");
             const targetId = form.value.inventory_user_id;
@@ -742,7 +742,7 @@ async function submitStockOut() {
             accountNeedingPin.value = target;
             showPinModal.value = true;
             toast.error(errorMsg);
-            
+
             // Clear wrong PIN
             form.value.transaction_pin = '';
         } else if (e.response && e.response.status === 422) {
@@ -907,7 +907,7 @@ onMounted(() => {
                                 </td>
                                 <td class="p-4 text-right">
                                     <span class="text-text-secondary text-sm">{{ formatCurrency(item.cost_price)
-                                        }}</span>
+                                    }}</span>
                                 </td>
                                 <td class="p-4 text-center">
                                     <span :class="[
@@ -1147,7 +1147,8 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="label">Alamat Pengiriman *</label>
-                        <textarea v-model="form.giveaway_address" class="input" rows="2" placeholder="Alamat lengkap tujuan giveaway..."></textarea>
+                        <textarea v-model="form.giveaway_address" class="input" rows="2"
+                            placeholder="Alamat lengkap tujuan giveaway..."></textarea>
                     </div>
                     <div class="grid grid-cols-2 gap-4 text-xs">
                         <div>
@@ -1161,7 +1162,8 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="label">Catatan Giveaway</label>
-                        <textarea v-model="form.giveaway_notes" class="input" rows="2" placeholder="Catatan tambahan (opsional)..."></textarea>
+                        <textarea v-model="form.giveaway_notes" class="input" rows="2"
+                            placeholder="Catatan tambahan (opsional)..."></textarea>
                     </div>
                 </div>
 
@@ -1170,7 +1172,8 @@ onMounted(() => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="label">Nama Penerima / Event *</label>
-                            <input v-model="form.event_receiver" class="input" placeholder="Nama event atau penanggung jawab" />
+                            <input v-model="form.event_receiver" class="input"
+                                placeholder="Nama event atau penanggung jawab" />
                         </div>
                         <div>
                             <label class="label">No. WA *</label>
@@ -1179,7 +1182,8 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="label">Catatan Event</label>
-                        <textarea v-model="form.event_notes" class="input" rows="2" placeholder="Keterangan event (opsional)..."></textarea>
+                        <textarea v-model="form.event_notes" class="input" rows="2"
+                            placeholder="Keterangan event (opsional)..."></textarea>
                     </div>
                 </div>
 
@@ -1189,7 +1193,9 @@ onMounted(() => {
                         <AlertTriangle class="text-red-500 mt-1" :size="20" />
                         <div>
                             <p class="font-bold text-red-500 text-sm">Laporan Barang Hilang</p>
-                            <p class="text-xs text-red-500/80">Laporan ini akan masuk sebagai prioritas audit. Pastikan data yang diinput benar dan dapat dipertanggungjawabkan.</p>
+                            <p class="text-xs text-red-500/80">Laporan ini akan masuk sebagai prioritas audit. Pastikan
+                                data yang
+                                diinput benar dan dapat dipertanggungjawabkan.</p>
                         </div>
                     </div>
 
@@ -1206,12 +1212,14 @@ onMounted(() => {
 
                     <div>
                         <label class="label">Penanggung Jawab *</label>
-                        <input v-model="form.person_in_charge" class="input" placeholder="Nama personil yang bertanggung jawab" />
+                        <input v-model="form.person_in_charge" class="input"
+                            placeholder="Nama personil yang bertanggung jawab" />
                     </div>
 
                     <div>
                         <label class="label">Kronologi Kehilangan / Detail *</label>
-                        <textarea v-model="form.loss_chronology" class="input" rows="4" placeholder="Jelaskan bagaimana barang tersebut hilang secara detail..."></textarea>
+                        <textarea v-model="form.loss_chronology" class="input" rows="4"
+                            placeholder="Jelaskan bagaimana barang tersebut hilang secara detail..."></textarea>
                     </div>
                 </div>
 
@@ -1268,11 +1276,11 @@ onMounted(() => {
         </div>
 
         <!-- Modals and Alerts -->
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified" @verified="onPinVerified" />
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
+            @verified="onPinVerified" />
 
         <!-- Non HP Modal -->
-        <div v-if="showNonHpModal"
-            class="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4">
+        <div v-if="showNonHpModal" class="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4">
             <div class="bg-surface-800 rounded-2xl w-full max-w-md p-6 border border-surface-700">
                 <h3 class="font-bold text-lg text-white mb-4">Tambah Barang Non-HP</h3>
                 <div class="space-y-4">
@@ -1291,11 +1299,11 @@ onMounted(() => {
                     </div>
                     <div v-if="selectedCategory === 'shopee'">
                         <label class="label">Harga Jual (per unit)</label>
-                        <input v-money:selling_price="newNonHpItem" type="text" class="input font-bold" placeholder="0" />
+                        <input v-money:selling_price="newNonHpItem" type="text" class="input font-bold"
+                            placeholder="0" />
                     </div>
                     <div class="flex justify-end gap-2 mt-6">
-                        <button @click="showNonHpModal = false"
-                            class="btn btn-secondary px-4">Batal</button>
+                        <button @click="showNonHpModal = false" class="btn btn-secondary px-4">Batal</button>
                         <button @click="addNonHpItem" class="btn btn-primary px-4">Tambah</button>
                     </div>
                 </div>
@@ -1303,8 +1311,7 @@ onMounted(() => {
         </div>
 
         <!-- Scanner Modal -->
-        <div v-if="isScanning"
-            class="fixed inset-0 bg-black/95 z-[150] flex flex-col items-center justify-center p-4">
+        <div v-if="isScanning" class="fixed inset-0 bg-black/95 z-[150] flex flex-col items-center justify-center p-4">
             <div class="relative w-full max-w-lg bg-surface-800 rounded-2xl overflow-hidden">
                 <div class="flex items-center justify-between p-4 border-b border-surface-700">
                     <h3 class="text-white font-bold flex items-center gap-2">
@@ -1344,10 +1351,10 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        
+
         <!-- PIN Verification modal -->
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false"
-            @success="onPinVerified" @verified="onPinVerified" />
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
+            @verified="onPinVerified" />
     </div>
 </template>
 
@@ -1407,4 +1414,4 @@ onMounted(() => {
     height: 2px;
     background: white;
 }
-</style>
+</style>
