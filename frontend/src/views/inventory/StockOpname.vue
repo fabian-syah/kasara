@@ -25,6 +25,12 @@ const currentView = ref('menu');
 const locations = ref([])
 const selectedLocationKey = ref('all')
 
+const showBrandLocation = ref(false)
+const showTypeLocation = ref(false)
+const showConditionLocation = ref(false)
+const showDistributorLocation = ref(false)
+const showCategoryLocation = ref(false)
+
 const selectedBranchId = computed(() => {
     if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return null;
     return selectedLocationKey.value.split(':')[1];
@@ -98,10 +104,16 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0 || allowedDistributorIds.length > 0;
 
+        const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
+        const filteredAllLocations = allLocations.filter(loc => {
+            const name = (loc.name || '').toLowerCase();
+            return !exclusionWords.some(word => name.includes(word));
+        });
+
         if (isAlwaysGlobal) {
-            locations.value = allLocations;
+            locations.value = filteredAllLocations;
         } else if (hasAnyRestriction) {
-            locations.value = allLocations.filter(loc => {
+            locations.value = filteredAllLocations.filter(loc => {
                 if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
                 if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
@@ -176,7 +188,12 @@ const fetchAllInventory = async () => {
             const response = await inventoryApi.list({ ...queryParams, page, per_page: 100 });
             const data = response.data;
             if (data.data) {
-                hpAll = hpAll.concat(data.data);
+                const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
+                const filtered = data.data.filter(item => {
+                    const locName = (item.placement_name || '').toLowerCase();
+                    return !exclusionWords.some(word => locName.includes(word));
+                });
+                hpAll = hpAll.concat(filtered);
                 hasMore = data.current_page < data.last_page;
                 page++;
             } else { hasMore = false; }
@@ -191,7 +208,12 @@ const fetchAllInventory = async () => {
             const response = await inventoryApi.list({ ...queryParams, page, per_page: 100, type: 'non-hp' });
             const data = response.data;
             if (data.data) {
-                nonHpAll = nonHpAll.concat(data.data);
+                const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
+                const filtered = data.data.filter(item => {
+                    const locName = (item.placement_name || '').toLowerCase();
+                    return !exclusionWords.some(word => locName.includes(word));
+                });
+                nonHpAll = nonHpAll.concat(filtered);
                 hasMore = data.current_page < data.last_page;
                 page++;
             } else { hasMore = false; }
@@ -389,11 +411,23 @@ const brandReport = computed(() => {
             });
         }
         tNode.conditions.get(condKey).available += avail;
+
+        // Location Breakdown
+        if (!entry.locations) entry.locations = new Map();
+        const locName = item.placement_name || 'Tanpa Lokasi';
+        entry.locations.set(locName, (entry.locations.get(locName) || 0) + avail);
     });
+
+    const mapToLocArr = (locMap) => {
+        return Array.from(locMap.entries())
+            .map(([name, qty]) => ({ name, qty }))
+            .sort((a, b) => b.qty - a.qty);
+    };
 
     return Array.from(map.values())
         .map(e => ({
             ...e,
+            locations: mapToLocArr(e.locations || new Map()),
             tree: Array.from(e.tree.values()).map(t => ({
                 ...t,
                 conditions: Array.from(t.conditions.values()).sort((a, b) => b.available - a.available)
@@ -438,10 +472,22 @@ const typeReport = computed(() => {
             });
         }
         gNode.conditions.get(condKey).available += avail;
+
+        // Location Breakdown
+        if (!entry.locations) entry.locations = new Map();
+        const locName = item.placement_name || 'Tanpa Lokasi';
+        entry.locations.set(locName, (entry.locations.get(locName) || 0) + avail);
     });
+
+    const mapToLocArr = (locMap) => {
+        return Array.from(locMap.entries())
+            .map(([name, qty]) => ({ name, qty }))
+            .sort((a, b) => b.qty - a.qty);
+    };
 
     const result = Array.from(map.values()).map(e => ({
         ...e,
+        locations: mapToLocArr(e.locations || new Map()),
         tree: Array.from(e.tree.values()).map(g => ({
             ...g,
             conditions: Array.from(g.conditions.values()).sort((a, b) => b.available - a.available)
@@ -835,6 +881,9 @@ function resetBreakdowns() {
     showPerGb.value = false;
     showBrandCondition.value = false;
     showTypeCondition.value = false;
+    showBrandLocation.value = false;
+    showTypeLocation.value = false;
+    showConditionLocation.value = false;
     showConditionBrand.value = false;
     showConditionType.value = false;
     showDistributorBrand.value = false;
@@ -1116,6 +1165,34 @@ onMounted(() => { fetchAllInventory(); });
                         </button>
                     </div>
 
+                    <!-- Toggle for Brand View Breakdown -->
+                    <div v-else-if="currentView === 'brand'" class="flex items-center gap-3">
+                        <button v-if="isHpMode" @click="showBrandType = !showBrandType"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showBrandType
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Tipe
+                        </button>
+                        <button v-if="isHpMode" @click="showBrandCondition = !showBrandCondition"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showBrandCondition
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showBrandCondition ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Kondisi
+                        </button>
+                        <button @click="showBrandLocation = !showBrandLocation"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showBrandLocation
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showBrandLocation ? ToggleRight : ToggleLeft" :size="18" />
+                            Sebaran Cabang
+                        </button>
+                    </div>
+
                     <!-- Toggle for Type View Breakdown -->
                     <div v-else-if="currentView === 'type'" class="flex flex-wrap items-center gap-3">
                         <button v-if="isHpMode" @click="showPerGb = !showPerGb"
@@ -1133,6 +1210,14 @@ onMounted(() => { fetchAllInventory(); });
                                 : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
                             <component :is="showTypeCondition ? ToggleRight : ToggleLeft" :size="18" />
                             Tampilkan per Kondisi
+                        </button>
+                        <button @click="showTypeLocation = !showTypeLocation"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border"
+                            :class="showTypeLocation
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showTypeLocation ? ToggleRight : ToggleLeft" :size="18" />
+                            Sebaran Cabang
                         </button>
 
                         <!-- Sort Filter -->
@@ -1273,6 +1358,19 @@ onMounted(() => { fetchAllInventory(); });
                                     </td>
                                 </tr>
 
+                                <!-- Brand Location Breakdown -->
+                                <tr v-if="showBrandLocation" class="bg-indigo-500/5">
+                                    <td colspan="5" class="px-6 py-3">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span v-for="loc in row.locations" :key="loc.name"
+                                                class="px-3 py-1.5 rounded-xl bg-surface-900 border border-indigo-500/20 text-[11px] flex items-center gap-2 shadow-sm shadow-indigo-500/5">
+                                                <span class="text-text-secondary font-medium">{{ loc.name }}</span>
+                                                <span class="font-black text-indigo-400">{{ loc.qty }}</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+
                                 <!-- Brand Sub-rows (Type Breakdown) -->
                                 <template v-if="showBrandType" v-for="t in row.tree" :key="t.label">
                                     <tr class="bg-surface-900/20 hover:bg-surface-700/20 transition-colors">
@@ -1370,6 +1468,19 @@ onMounted(() => { fetchAllInventory(); });
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
                                                 row.available }}</span>
+                                    </td>
+                                </tr>
+
+                                <!-- Type Location Breakdown -->
+                                <tr v-if="showTypeLocation" class="bg-indigo-500/5">
+                                    <td colspan="6" class="px-6 py-3">
+                                        <div class="flex flex-wrap gap-2">
+                                            <span v-for="loc in row.locations" :key="loc.name"
+                                                class="px-3 py-1.5 rounded-xl bg-surface-900 border border-indigo-500/20 text-[11px] flex items-center gap-2 shadow-sm shadow-indigo-500/5">
+                                                <span class="text-text-secondary font-medium">{{ loc.name }}</span>
+                                                <span class="font-black text-indigo-400">{{ loc.qty }}</span>
+                                            </span>
+                                        </div>
                                     </td>
                                 </tr>
                                 <!-- GB Sub-rows -->
