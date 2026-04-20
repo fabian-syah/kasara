@@ -52,18 +52,10 @@ class ProductDetail extends Model
         return $this->belongsTo(Distributor::class);
     }
 
-    // Dynamic relationship for placement
+    // Standard polymorphic relationship for placement
     public function placement()
     {
-        if ($this->placement_type === 'branch')
-            return $this->belongsTo(Branch::class, 'placement_id');
-        if ($this->placement_type === 'warehouse')
-            return $this->belongsTo(Warehouse::class, 'placement_id');
-        if ($this->placement_type === 'online_shop')
-            return $this->belongsTo(OnlineShop::class, 'placement_id');
-        if ($this->placement_type === 'distributor')
-            return $this->belongsTo(Distributor::class, 'placement_id');
-        return null;
+        return $this->morphTo(__FUNCTION__, 'placement_type', 'placement_id');
     }
 
     // Relationship for stock outs (to get return proof_image)

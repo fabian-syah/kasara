@@ -50,13 +50,17 @@ class InventoryController extends Controller
 
         // 2. Base Query
         if ($type === 'non-hp') {
-            $query = Inventory::with(['product', 'user', 'user.distributor', 'latestLog', 'latestLog.distributor'])
+            $query = Inventory::with(['product', 'user', 'user.distributor', 'latestLog', 'latestLog.distributor', 'placement'])
+                ->select('*', DB::raw('SUM(quantity) as total_quantity'))
                 ->where('quantity', '>', 0)
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'non-hp')->orWhere('has_imei', false);
-                });
+                })
+                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
         } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user', 'refund', 'refund.paymentMethod', 'tradeIn', 'tradeIn.paymentMethod'])
+            $query = ProductDetail::with(['product', 'distributor', 'user', 'refund', 'refund.paymentMethod', 'tradeIn', 'tradeIn.paymentMethod', 'placement', 'stockOuts' => function ($q) {
+                $q->where('category', 'retur');
+            }])
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'hp')->orWhere('has_imei', true);
                 });
@@ -99,12 +103,10 @@ class InventoryController extends Controller
         if ($request->filled('warehouse_id'))
             $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
 
-        // Explicit placement_type filter (used for Monitoring pages)
         if ($request->filled('placement_type')) {
             $query->where('placement_type', $request->placement_type);
         }
 
-        // Explicit distributor_id filter (used for Distributor Monitoring)
         if ($request->filled('distributor_id')) {
             $query->where('placement_type', 'distributor')->where('placement_id', $request->distributor_id);
         }
@@ -114,25 +116,21 @@ class InventoryController extends Controller
             $query->whereHas('product', fn($q) => $q->whereIn('brand', $brands));
         }
 
-        // NEW: Product Name Filter
         if ($request->filled('product')) {
             $products = explode(',', $request->product);
             $query->whereHas('product', fn($q) => $q->whereIn('name', $products));
         }
 
         if ($type === 'hp') {
-            // FIXED: Smart Capacity Filter (Handles RAM/Storage or just Storage)
             if ($request->filled('capacity')) {
                 $caps = explode(',', $request->capacity);
                 $query->where(function ($q) use ($caps) {
                     foreach ($caps as $cap) {
                         $cap = trim($cap);
                         if (str_contains($cap, '/')) {
-                            // Format: RAM/Storage (e.g. "8GB/128GB")
                             [$ram, $storage] = explode('/', $cap);
                             $q->orWhere(fn($sq) => $sq->where('ram', $ram)->where('storage', $storage));
                         } else {
-                            // Fallback: Check storage usually
                             $q->orWhere('storage', $cap);
                         }
                     }
@@ -161,11 +159,9 @@ class InventoryController extends Controller
                     $pq->where('name', 'like', "%$s%")
                         ->orWhere('brand', 'like', "%$s%");
 
-                    // Safe check for non_imei_category if column exists
                     if (\Schema::hasColumn('products', 'non_imei_category')) {
                         $pq->orWhere('non_imei_category', 'like', "%$s%");
                     } else {
-                        // Fallback: search via join-like check if needed
                         $pq->orWhereExists(function ($eq) use ($s) {
                             $eq->select(\DB::raw(1))
                                 ->from('product_types')
@@ -177,78 +173,35 @@ class InventoryController extends Controller
             });
         }
 
-        // 5. Diagnostics
-        if ($request->has('debug')) {
-            return response()->json([
-                'diagnostic' => [
-                    'os_ids' => $osIds,
-                    'hp_count' => ($type === 'hp') ? (clone $query)->count() : 0,
-                    'sql' => $query->toSql(),
-                    'bindings' => $query->getBindings()
-                ]
-            ]);
-        }
-
-        // 6. Pagination & Response
+        // 5. Pagination & Response
         $perPage = $request->per_page ?? 20;
         if ($perPage == -1) $perPage = 999999;
 
-        if ($type === 'non-hp') {
-            $query->orderBy('id', 'desc');
-            $rawItems = $query->get();
-            $grouped = collect();
-
-            foreach ($rawItems as $item) {
-                // Generate unique key for grouping
-                $key = "{$item->product_id}-{$item->placement_type}-{$item->placement_id}-{$item->user_id}";
-                if (!$grouped->has($key)) {
-                    $grouped->put($key, clone $item);
-                } else {
-                    $existing = $grouped->get($key);
-                    $existing->quantity += $item->quantity;
-                    $existing->id = max($existing->id, $item->id);
-                }
-            }
-            $grouped = $grouped->sortByDesc('id')->values();
-
-            // Manual pagination
-            $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
-            $items = new \Illuminate\Pagination\LengthAwarePaginator(
-                $grouped->forPage($page, $perPage)->values(),
-                $grouped->count(),
-                $perPage,
-                $page,
-                ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(), 'query' => $request->query()]
-            );
-        } else {
-            $items = $query->latest()->paginate($perPage);
-        }
+        // Execute query with pagination
+        $items = $query->latest('id')->paginate($perPage);
 
         $items->getCollection()->transform(function ($item) use ($type, $request) {
-            $placement = $item->placement instanceof \Illuminate\Database\Eloquent\Relations\Relation ? $item->placement()->first() : $item->placement;
+            // placement is already eager-loaded
+            $placement = $item->placement;
             $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
             if ($type === 'non-hp') {
-                // Fetch latest log manually to guarantee accuracy against user_id and product_id
-                $log = \App\Models\InventoryLog::with('distributor')
-                    ->where('product_id', $item->product_id)
-                    ->where('user_id', $item->user_id)
-                    ->where('type', 'in')
-                    ->latest()
-                    ->first();
+                // Use eager-loaded total_quantity from select
+                $item->quantity = $item->total_quantity ?? $item->quantity;
 
+                // Use eager-loaded latestLog
+                $log = $item->latestLog;
                 $item->latest_distributor = $log && $log->distributor ? $log->distributor->name : null;
                 $item->latest_supplier = $log ? $log->supplier_name : null;
 
-                // Fallback to user's distributor if nothing found in log
                 if (!$item->latest_distributor && !$item->latest_supplier && $item->user && $item->user->distributor) {
                     $item->latest_distributor = $item->user->distributor->name;
                 }
             }
 
-            // Attach retur stock-out data when fetching service/retur items
             if ($request->status === 'service' && $type === 'hp') {
-                $returStockOut = $item->stockOuts()->where('category', 'retur')->latest()->first();
+                // Use eager-loaded stockOuts (filtered by retur in with clause)
+                $returStockOut = $item->stockOuts->first();
                 if ($returStockOut) {
                     $item->retur_data = [
                         'receipt_id' => $returStockOut->receipt_id,
@@ -269,7 +222,7 @@ class InventoryController extends Controller
         });
 
         $res = $items->toArray();
-        $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0; // Simplified for safety
+        $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0;
 
         return response()->json($res);
     }
