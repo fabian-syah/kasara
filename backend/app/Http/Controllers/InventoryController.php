@@ -17,7 +17,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\VerifiesPin;
-use Laravel\Octane\Facades\Octane;
 
 class InventoryController extends Controller
 {
@@ -66,9 +65,19 @@ class InventoryController extends Controller
                 })
                 ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
         } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user', 'refund', 'refund.paymentMethod', 'tradeIn', 'tradeIn.paymentMethod', 'placement', 'stockOuts' => function ($q) {
-                $q->where('category', 'retur');
-            }])
+            $query = ProductDetail::with([
+                'product',
+                'distributor',
+                'user',
+                'refund',
+                'refund.paymentMethod',
+                'tradeIn',
+                'tradeIn.paymentMethod',
+                'placement',
+                'stockOuts' => function ($q) {
+                    $q->where('category', 'retur');
+                }
+            ])
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'hp')->orWhere('has_imei', true);
                 });
@@ -183,20 +192,16 @@ class InventoryController extends Controller
 
         // 5. Pagination & Response
         $perPage = $request->per_page ?? 20;
-        if ($perPage == -1) $perPage = 999999;
+        if ($perPage == -1)
+            $perPage = 999999;
 
         // HIGH-PERFORMANCE CACHING
         // Cache based on all parameters and user ID for 60 seconds
         $cacheKey = 'inv_v3_' . md5(json_encode($request->all()) . '_' . Auth::id());
-        
+
         return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($query, $perPage, $type, $request) {
-            [
-                $items,
-                $totalValue
-            ] = Octane::concurrently([
-                fn() => $query->latest('id')->paginate($perPage),
-                fn() => $type === 'hp' ? (clone $query)->sum('selling_price') : 0
-            ]);
+            // Execute query with pagination
+            $items = $query->latest('id')->paginate($perPage);
 
             $items->getCollection()->transform(function ($item) use ($type, $request) {
                 $placement = $item->placement;
@@ -234,7 +239,7 @@ class InventoryController extends Controller
             });
 
             $res = $items->toArray();
-            $res['total_value'] = $totalValue;
+            $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0;
 
             return response()->json($res);
         });
@@ -386,7 +391,7 @@ class InventoryController extends Controller
                             $sub->whereHas('product', function ($sq) use ($lowKeyword) {
                                 $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                                     ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                                
+
                                 if (\Schema::hasColumn('products', 'non_imei_category')) {
                                     $sq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                                 }
@@ -552,7 +557,8 @@ class InventoryController extends Controller
             if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $today = $logicalNow->toDateString();
                 $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
-                if ($d < $sevenDaysAgo) $d = $today;
+                if ($d < $sevenDaysAgo)
+                    $d = $today;
             }
             $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
@@ -606,7 +612,7 @@ class InventoryController extends Controller
                         $sub->whereHas('product', function ($sq) use ($lowKeyword) {
                             $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                                 ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                            
+
                             if (\Schema::hasColumn('products', 'non_imei_category')) {
                                 $sq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                             }
@@ -656,7 +662,8 @@ class InventoryController extends Controller
             if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $today = $logicalNow->toDateString();
                 $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday) $d = $today;
+                if ($d < $yesterday)
+                    $d = $today;
             }
             $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
@@ -701,7 +708,7 @@ class InventoryController extends Controller
                     $q->whereHas('product', function ($pq) use ($lowKeyword) {
                         $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                             ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                        
+
                         if (\Schema::hasColumn('products', 'non_imei_category')) {
                             $pq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                         }
@@ -729,7 +736,8 @@ class InventoryController extends Controller
             if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
                 $today = $logicalNow->toDateString();
                 $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday) $d = $today;
+                if ($d < $yesterday)
+                    $d = $today;
             }
             $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
@@ -810,7 +818,7 @@ class InventoryController extends Controller
                 $q->whereHas('product', function ($pq) use ($lowKeyword) {
                     $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                         ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                    
+
                     if (\Schema::hasColumn('products', 'non_imei_category')) {
                         $pq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                     }
@@ -825,7 +833,8 @@ class InventoryController extends Controller
             if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                 $today = $logicalNow->toDateString();
                 $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday) $d = $today;
+                if ($d < $yesterday)
+                    $d = $today;
             }
             $query->whereDate('created_at', $d);
         } elseif ($request->month && $request->year) {
@@ -895,10 +904,10 @@ class InventoryController extends Controller
 
             // For HP
             'imeis' => 'required_if:type,hp|array',
-            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'], 
+            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'],
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
-            'storage' => 'nullable|string', 
+            'storage' => 'nullable|string',
             'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
             'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
@@ -921,7 +930,8 @@ class InventoryController extends Controller
 
         // PIN Verification using Trait
         $pinError = $this->verifyPin($request, $ownerUserId);
-        if ($pinError) return $pinError;
+        if ($pinError)
+            return $pinError;
 
         DB::beginTransaction();
 
@@ -949,26 +959,28 @@ class InventoryController extends Controller
 
             // 1. Handle Non-HP (Quantity Based)
             if ($request->type === 'non-hp') {
-                $items = $request->items ?? [[
-                    'product_id' => $request->product_id,
-                    'quantity' => $request->quantity,
-                    'selling_price' => $request->selling_price,
-                    // Brand/Type for auto-creation if product_id is null
-                    'brand_id' => $request->brand_id,
-                    'brand_name' => $request->brand_name,
-                    'type_name' => $request->type_name,
-                ]];
+                $items = $request->items ?? [
+                    [
+                        'product_id' => $request->product_id,
+                        'quantity' => $request->quantity,
+                        'selling_price' => $request->selling_price,
+                        // Brand/Type for auto-creation if product_id is null
+                        'brand_id' => $request->brand_id,
+                        'brand_name' => $request->brand_name,
+                        'type_name' => $request->type_name,
+                    ]
+                ];
 
                 $results = [];
 
                 foreach ($items as $item) {
                     $pId = $item['product_id'] ?? null;
-                    
+
                     if (!$pId && !empty($item['type_name'])) {
                         // AUTO CREATE PRODUCT IF NOT EXISTS
                         $brandName = $item['brand_name'] ?? 'Unknown';
                         $typeName = $item['type_name'];
-                        
+
                         $foundType = \App\Models\ProductType::where('name', $typeName)
                             ->where('brand_id', $item['brand_id'])
                             ->first();
@@ -982,7 +994,7 @@ class InventoryController extends Controller
                         if (\Schema::hasColumn('products', 'non_imei_category')) {
                             $productParams['non_imei_category'] = $nonImeiCat;
                         }
-                        
+
                         $prod = Product::firstOrCreate(
                             $productParams,
                             [
@@ -1003,7 +1015,8 @@ class InventoryController extends Controller
                         $pId = $prod->id;
                     }
 
-                    if (!$pId) continue;
+                    if (!$pId)
+                        continue;
 
                     $distributorId = $item['distributor_id'] ?? $request->distributor_id;
                     $costPrice = $item['cost_price'] ?? 0;
@@ -1067,7 +1080,9 @@ class InventoryController extends Controller
                 foreach ($results as $inv) {
                     try {
                         event(new \App\Events\StockInEvent($inv));
-                    } catch (\Exception $e) { \Log::error("Event fail: " . $e->getMessage()); }
+                    } catch (\Exception $e) {
+                        \Log::error("Event fail: " . $e->getMessage());
+                    }
                 }
 
                 return response()->json(['message' => 'Multiple stock in successful', 'count' => count($results)], 201);
@@ -1255,7 +1270,8 @@ class InventoryController extends Controller
 
         // PIN Verification using Trait
         $pinError = $this->verifyPin($request);
-        if ($pinError) return $pinError;
+        if ($pinError)
+            return $pinError;
 
         $item = ProductDetail::findOrFail($id);
         $oldStatus = $item->status;
@@ -1376,7 +1392,7 @@ class InventoryController extends Controller
         // Security Check: Only the creator can edit (unless they have high roles)
         $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk'];
         $userRole = strtolower($user->roles->first()->name ?? '');
-        
+
         if ($account->created_by !== $user->id && !in_array($userRole, $unrestrictedRoles)) {
             return response()->json(['message' => 'Unauthorized action. Hanya pembuat akun yang bisa mengedit.'], 403);
         }
@@ -1412,7 +1428,7 @@ class InventoryController extends Controller
 
         if ($photoField) {
             $path = $request->file($photoField)->store('account-photos', 'public');
-            
+
             // Logic: Jika sudah ada foto, kirim ke pending dulu. 
             if ($account->photo_inventory || $account->photo) {
                 $account->pending_photo_inventory = $path;
@@ -1586,15 +1602,18 @@ class InventoryController extends Controller
 
         $user = Auth::user();
         $inventoryUsers = \App\Models\User::role(['inventory', 'toko_offline'])
-            ->with(['roles', 'createdBy' => function($q) {
-                $q->select('id', 'name', 'full_name');
-            }])
+            ->with([
+                'roles',
+                'createdBy' => function ($q) {
+                    $q->select('id', 'name', 'full_name');
+                }
+            ])
             ->where('created_by', $user->id) // Only show accounts created by this user (staff)
             ->where('id', '!=', $user->id)   // Double check to exclude self
             ->where('is_active', true)
             ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory')
             ->get()
-            ->map(function($u) {
+            ->map(function ($u) {
                 $u->has_pin = !empty($u->transaction_pin);
                 return $u;
             });
@@ -2181,10 +2200,10 @@ class InventoryController extends Controller
     public function approvePhoto($id)
     {
         $user = User::findOrFail($id);
-        
+
         // Pilih salah satu yang ada datanya
         $pendingPath = $user->pending_photo_inventory ?: $user->pending_photo;
-        
+
         if (!$pendingPath) {
             return response()->json(['message' => 'Tidak ada foto yang menunggu persetujuan.'], 400);
         }
@@ -2200,11 +2219,11 @@ class InventoryController extends Controller
         // Pindahkan pending ke asli (Sync keduanya)
         $user->photo_inventory = $pendingPath;
         $user->photo = $pendingPath;
-        
+
         // Kosongkan semua pending
         $user->pending_photo_inventory = null;
         $user->pending_photo = null;
-        
+
         $user->save();
 
         return response()->json(['success' => true, 'message' => 'Foto berhasil disetujui.']);
@@ -2308,9 +2327,12 @@ class InventoryController extends Controller
                 $invQuery = Inventory::where('product_id', $log->product_id)
                     ->where('user_id', $log->user_id);
 
-                if ($log->branch_id) $invQuery->where('placement_type', 'branch')->where('placement_id', $log->branch_id);
-                elseif ($log->warehouse_id) $invQuery->where('placement_type', 'warehouse')->where('placement_id', $log->warehouse_id);
-                elseif ($log->online_shop_id) $invQuery->where('placement_type', 'online_shop')->where('placement_id', $log->online_shop_id);
+                if ($log->branch_id)
+                    $invQuery->where('placement_type', 'branch')->where('placement_id', $log->branch_id);
+                elseif ($log->warehouse_id)
+                    $invQuery->where('placement_type', 'warehouse')->where('placement_id', $log->warehouse_id);
+                elseif ($log->online_shop_id)
+                    $invQuery->where('placement_type', 'online_shop')->where('placement_id', $log->online_shop_id);
 
                 $inventory = $invQuery->first();
 
@@ -2338,7 +2360,7 @@ class InventoryController extends Controller
 
                 // We can also mark the original log as voided if we had a column, 
                 // but setting description or deleting is common. Let's soft-delete it.
-                $log->delete(); 
+                $log->delete();
             }
 
             DB::commit();
