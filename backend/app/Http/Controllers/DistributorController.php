@@ -13,13 +13,15 @@ class DistributorController extends Controller
         $user = $request->user();
         $query = Distributor::query();
 
-        // Scope for restricted roles
-        // Only restrict if the user has a specific distributor-limited role
-        if ($user && $user->hasAnyRole(['distributor', 'distribution'])) {
+        // Role-based access control
+        if ($user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'inventory', 'gudang', 'audit', 'leader', 'sales', 'toko_offline', 'toko_online'])) {
+            // Full access (Global)
+        } else if ($user && $user->hasAnyRole(['distributor', 'distribution'])) {
+            // Assigned access
             $ids = $user->getAccessibleDistributorIds();
             $query->whereIn('id', $ids);
-        } else if ($user && !$user->hasRole(['super_admin', 'owner', 'admin_produk', 'inventory', 'gudang', 'audit', 'leader', 'sales', 'toko_offline', 'toko_online'])) {
-            // General fallback for any other non-staff roles that might have a distributor_id
+        } else {
+            // Own assignment access (fallback for other roles with distributor_id)
             if ($user->distributor_id) {
                 $query->where('id', $user->distributor_id);
             }

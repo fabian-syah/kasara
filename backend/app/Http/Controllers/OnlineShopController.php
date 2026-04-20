@@ -12,18 +12,19 @@ class OnlineShopController extends Controller
         $user = $request->user();
         $query = OnlineShop::query();
 
-        // Scope for restricted roles
-        if ($user && !$user->hasRole(['super_admin', 'owner'])) {
-            if ($user->hasAnyRole(['audit', 'leader', 'toko_online'])) {
-                $ids = $user->getAccessibleOnlineShopIds();
-                $query->whereIn('id', $ids);
+        // Role-based access control
+        if ($user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
+            // Full access (Global)
+        } else if ($user->hasAnyRole(['audit', 'leader', 'toko_online'])) {
+            // Assigned access
+            $ids = $user->getAccessibleOnlineShopIds();
+            $query->whereIn('id', $ids);
+        } else {
+            // Own assignment access
+            if ($user->online_shop_id) {
+                $query->where('id', $user->online_shop_id);
             } else {
-                // Regular staff see their own
-                if ($user->online_shop_id) {
-                    $query->where('id', $user->online_shop_id);
-                } else {
-                    $query->whereRaw('1=0');
-                }
+                $query->whereRaw('1=0');
             }
         }
 

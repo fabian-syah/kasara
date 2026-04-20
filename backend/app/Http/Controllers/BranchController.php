@@ -13,18 +13,19 @@ class BranchController extends Controller
         $user = $request->user();
         $query = Branch::query();
 
-        // Scope for restricted roles (Audit/Leader)
-        if ($user && !$user->hasRole(['super_admin', 'owner'])) {
-            if ($user->hasAnyRole(['audit', 'leader'])) {
-                $ids = $user->getAccessibleBranchIds();
-                $query->whereIn('id', $ids);
+        // Role-based access control
+        if ($user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
+            // Full access (Global)
+        } else if ($user->hasAnyRole(['audit', 'leader'])) {
+            // Assigned access
+            $ids = $user->getAccessibleBranchIds();
+            $query->whereIn('id', $ids);
+        } else {
+            // Own assignment access
+            if ($user->branch_id) {
+                $query->where('id', $user->branch_id);
             } else {
-                // Regular staff see their own
-                if ($user->branch_id) {
-                    $query->where('id', $user->branch_id);
-                } else {
-                    $query->whereRaw('1=0');
-                }
+                $query->whereRaw('1=0');
             }
         }
 

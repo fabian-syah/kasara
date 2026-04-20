@@ -141,7 +141,7 @@ const fetchAllInventory = async () => {
     try {
         const user = authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
-        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
         const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
 
         let bId = selectedBranchId.value;
