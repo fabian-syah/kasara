@@ -31,8 +31,7 @@
                         </div>
                         <!-- Use showPicker() explicitly on click to ensure calendar opens consistently -->
                         <input type="date" v-model="filters.start_date" @change="handleDateChange"
-                            @click="$event.target.showPicker()"
-                            :min="getMinDate" :max="getTodayLocal()"
+                            @click="$event.target.showPicker()" :min="getMinDate" :max="getTodayLocal()"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
 
                     </div>
@@ -43,7 +42,8 @@
                         <div class="relative min-w-[140px]">
                             <select v-model="selectedMonth" @change="handleMonthChange"
                                 class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
+                                <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}
+                                </option>
                             </select>
                             <ChevronDown :size="16"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -67,14 +67,15 @@
                             <option value="all">Semua Cabang/Toko/Distributor</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                                 :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
-                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
+                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type
+                                    === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
                             </option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                     <!-- Single Branch Display (if only 1 branch available) -->
-                    <div v-else-if="canFilterBranch && locations.length === 1" 
+                    <div v-else-if="canFilterBranch && locations.length === 1"
                         class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
                         <div class="w-2 h-2 rounded-full bg-primary-500"></div>
                         <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
@@ -134,7 +135,8 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else-if="!salesRecords.daily_sales.data || salesRecords.daily_sales.data.length === 0">
+                            <tr
+                                v-else-if="!salesRecords.daily_sales.data || salesRecords.daily_sales.data.length === 0">
                                 <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
@@ -149,12 +151,14 @@
                             </tr>
                             <tr v-else v-for="(item, index) in salesRecords.daily_sales.data" :key="item.id"
                                 class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
-                                <td class="px-6 py-4 text-text-secondary">{{ (salesRecords.daily_sales.current_page - 1) *
+                                <td class="px-6 py-4 text-text-secondary">{{ (salesRecords.daily_sales.current_page - 1)
+                                    *
                                     salesRecords.daily_sales.per_page + index + 1 }}</td>
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
-                                    }}</td>
+                                }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
-                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name || '-' }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name ||
+                                    '-' }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
                                     item.customer_phone }}</td>
@@ -186,7 +190,7 @@
                                                             <div>{{ detail.name }}</div>
                                                             <div v-if="detail.storage"
                                                                 class="mt-0.5 text-[10px] text-gray-500">{{
-                                                                detail.storage }}</div>
+                                                                    detail.storage }}</div>
                                                             <div v-if="detail.imei && detail.imei !== '-'"
                                                                 class="mt-0.5 text-xs text-blue-500 font-mono">IMEI: {{
                                                                     detail.imei }}</div>
@@ -194,7 +198,7 @@
                                                                 class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                                                 :class="detail.condition === 'new' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">{{
                                                                     detail.condition === 'new' ? 'Baru' : detail.condition
-                                                                === 'ex_ibox' ? 'Ex iBox' : 'Second' }}</span>
+                                                                        === 'ex_ibox' ? 'Ex iBox' : 'Second' }}</span>
                                                         </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
@@ -205,7 +209,7 @@
                                             <div v-if="item.items && item.items.length > 1"
                                                 class="px-6 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-end bg-gray-50/50 dark:!bg-surface-800/50">
                                                 <span>Total: <span class="font-bold text-text-primary ml-1">{{ item.qty
-                                                }}</span></span>
+                                                        }}</span></span>
                                             </div>
                                         </template>
                                         <template v-else>
@@ -224,14 +228,14 @@
                                                             <div>{{ item.product_names || '-' }}</div>
                                                             <div v-if="item.storages"
                                                                 class="mt-0.5 text-[10px] text-gray-500">{{
-                                                                item.storages }}</div>
+                                                                    item.storages }}</div>
                                                             <div v-if="item.imeis && item.imeis !== '-'"
                                                                 class="mt-0.5 text-xs text-blue-500 font-mono">IMEI: {{
                                                                     item.imeis }}</div>
                                                             <span v-if="item.conditions"
                                                                 class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
                                                                 :class="item.conditions === 'Baru' ? 'bg-emerald-500/10 text-emerald-500' : item.conditions === 'Ex iBox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'">{{
-                                                                item.conditions }}</span>
+                                                                    item.conditions }}</span>
                                                         </div>
                                                         <div
                                                             class="bg-gray-100 dark:!bg-surface-700 px-2 py-0.5 rounded text-xs font-bold text-text-primary whitespace-nowrap mt-0.5">
@@ -250,9 +254,12 @@
                                         {{ item.status }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ formatCurrency(item.cash) }}</td>
-                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ formatCurrency(item.transfer) }}</td>
-                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ formatCurrency(item.edc) }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{
+                                    formatCurrency(item.cash) }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{
+                                    formatCurrency(item.transfer) }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{
+                                    formatCurrency(item.edc) }}</td>
                                 <td class="px-6 py-4 text-center">
                                     <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"
@@ -274,7 +281,9 @@
                                             title="Cek Audit">
                                             <ClipboardCheck :size="16" />
                                         </button>
-                                        <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)" @click="handleCancelSale(item)"
+                                        <button
+                                            v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
+                                            @click="handleCancelSale(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-red-500 hover:text-red-600 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Batalkan Penjualan">
                                             <Trash2 :size="16" />
@@ -310,78 +319,6 @@
                             <ChevronRight :size="18" />
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 2: Laporan per Brand -->
-        <div
-            class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
-            <h2 class="text-xl font-bold text-text-primary mb-6">Laporan per Brand</h2>
-
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
-                <table class="w-full text-sm text-left">
-                    <thead
-                        class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
-                        <tr>
-                            <th class="px-6 py-4 w-16">No</th>
-                            <th class="px-6 py-4">Brand</th>
-                            <th class="px-6 py-4">Jumlah</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                        <tr v-if="salesRecords.brand_sales.length === 0">
-                            <td colspan="3" class="px-6 py-12 text-center text-gray-500">Tidak ada data brand</td>
-                        </tr>
-                        <tr v-else v-for="(item, index) in salesRecords.brand_sales" :key="index"
-                            class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
-                            <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
-                            <td class="px-6 py-4 font-medium text-text-primary">{{ item.brand }}</td>
-                            <td class="px-6 py-4 text-text-primary font-semibold">{{ item.qty }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Section 3: Laporan per CS -->
-        <div
-            class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
-            <h2 class="text-xl font-bold text-text-primary mb-6">Laporan per CS</h2>
-
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead
-                            class="text-xs font-semibold text-gray-500 uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
-                            <tr>
-                                <th class="px-6 py-4 w-16">No</th>
-                                <th class="px-6 py-4">Nama CS</th>
-                                <th class="px-6 py-4">Total Penjualan (Unit)</th>
-                                <th class="px-6 py-4">Total Tukar Tambah</th>
-                                <th class="px-6 py-4">Total Refund / Angkut Barang</th>
-                                <th class="px-6 py-4">Grand Total Penjualan</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                            <tr v-if="salesRecords.cs_sales.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-500">Tidak ada data CS</td>
-                            </tr>
-                            <tr v-else v-for="(item, index) in salesRecords.cs_sales" :key="index"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
-                                <td class="px-6 py-4 text-gray-500">{{ index + 1 }}</td>
-                                <td class="px-6 py-4 font-medium text-text-primary">{{ item.cs_name }}</td>
-                                <td class="px-6 py-4 text-text-primary pl-12 font-semibold">{{
-                                    item.total_sales }}</td>
-                                <td class="px-6 py-4 text-gray-500 pl-12">{{ item.total_trade_in || 0 }}</td>
-                                <td class="px-6 py-4 text-gray-500 pl-12">{{ item.total_refund || 0 }}</td>
-                                <td class="px-6 py-4 font-medium text-purple-600 dark:text-purple-400 font-mono">{{
-                                    formatCurrency(item.grand_total) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
@@ -472,7 +409,8 @@
     </Teleport>
 
     <!-- Cancel Sale Modal -->
-    <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchData" />
+    <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false"
+        @success="fetchData" />
 </template>
 
 <script setup>
