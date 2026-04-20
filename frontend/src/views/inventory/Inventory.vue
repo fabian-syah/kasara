@@ -104,6 +104,7 @@ import { debounce } from "../../utils/debounce";
 
 // Local state
 const isLoading = ref(false);
+const isInitialLoading = ref(true);
 const inventoryItems = ref([]);
 const pagination = ref({
   current_page: 1,
@@ -251,8 +252,7 @@ watch(activeTab, () => {
   fetchFilterOptions();
 });
 
-const isInitialLoading = ref(true);
-const isLoading = ref(false);
+
 
 const filterSearchQuery = reactive({
   brand: '',
@@ -385,7 +385,7 @@ onMounted(() => {
         inventoryStore.handleStockOut(e.stockOut);
       });
   }
-  fetchInventoryUsers();
+
 
   productTypesApi.list().then(res => {
     typeList.value = res.data.data;
