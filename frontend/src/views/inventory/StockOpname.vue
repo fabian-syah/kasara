@@ -1327,9 +1327,9 @@ onMounted(() => { fetchAllInventory(); });
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showBrandType ? 1 : 0) + (showBrandCondition ? 1 : 0) + 2">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{filteredBrand.reduce((s,
-                                    r) => s + r.available, 0)
-                                    }}</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">
+                                    {{ filteredBrand.reduce((s, r) => s + r.available, 0) }}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1435,9 +1435,9 @@ onMounted(() => { fetchAllInventory(); });
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showPerGb ? 1 : 0) + (showTypeCondition ? 1 : 0) + 3">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{filteredType.reduce((s, r)
-                                    => s + r.available, 0)
-                                    }}</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">
+                                    {{ filteredType.reduce((s, r) => s + r.available, 0) }}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1596,9 +1596,9 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showConditionBrand ? 1 : 0) + (showConditionType ? 1 : 0) + (showPerGb ? 1 : 0) + 2">
                                     TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{
-                                    filteredCondition.reduce((s, r) => s +
-                                    r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">
+                                    {{ filteredCondition.reduce((s, r) => s + r.available, 0) }}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1750,9 +1750,9 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showDistributorBrand ? 1 : 0) + (showDistributorType ? 1 : 0) + (showDistributorGb ? 1 : 0) + 2">
                                     TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{
-                                    filteredDistributor.reduce((s, r) => s +
-                                    r.available, 0) }}</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">
+                                    {{ filteredDistributor.reduce((s, r) => s + r.available, 0) }}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -1840,9 +1840,9 @@ onMounted(() => { fetchAllInventory(); });
                             <tr class="font-bold">
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showCategoryBrand ? 1 : 0) + (showCategoryType ? 1 : 0) + 2">TOTAL</td>
-                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">{{
-                                    filteredCategory.reduce((s, r) => s + r.available,
-                                    0) }}</td>
+                                <td class="px-6 py-4 text-center text-emerald-400 text-lg">
+                                    {{ filteredCategory.reduce((s, r) => s + r.available, 0) }}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
