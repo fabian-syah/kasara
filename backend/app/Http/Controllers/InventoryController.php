@@ -1751,6 +1751,49 @@ class InventoryController extends Controller
         ]);
     }
 
+    public function getMetaLocations(Request $request)
+    {
+        $user = Auth::user();
+
+        // 1. Accessibility Restrictions
+        $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);
+        $bIds = (array) ($user->getAccessibleBranchIds() ?: []);
+        $wIds = (array) ($user->getAccessibleWarehouseIds() ?: []);
+        $dIds = (array) ($user->getAccessibleDistributorIds() ?: []);
+
+        if ($user->online_shop_id) $osIds[] = $user->online_shop_id;
+        if ($user->branch_id) $bIds[] = $user->branch_id;
+        if ($user->warehouse_id) $wIds[] = $user->warehouse_id;
+
+        $osIds = array_unique(array_filter($osIds));
+        $bIds = array_unique(array_filter($bIds));
+        $wIds = array_unique(array_filter($wIds));
+        $dIds = array_unique(array_filter($dIds));
+
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
+
+        if (app()->bound(\Laravel\Octane\Contracts\DispatchesTasks::class)) {
+            [$branches, $shops, $warehouses, $distributors] = \Laravel\Octane\Facades\Octane::concurrently([
+                fn() => \App\Models\Branch::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $bIds))->get(['id', 'name']),
+                fn() => \App\Models\OnlineShop::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $osIds))->get(['id', 'name']),
+                fn() => \App\Models\Warehouse::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $wIds))->get(['id', 'name']),
+                fn() => \App\Models\Distributor::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $dIds))->get(['id', 'name']),
+            ]);
+        } else {
+            $branches = \App\Models\Branch::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $bIds))->get(['id', 'name']);
+            $shops = \App\Models\OnlineShop::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $osIds))->get(['id', 'name']);
+            $warehouses = \App\Models\Warehouse::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $wIds))->get(['id', 'name']);
+            $distributors = \App\Models\Distributor::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $dIds))->get(['id', 'name']);
+        }
+
+        return response()->json([
+            'branches' => $branches,
+            'online_shops' => $shops,
+            'warehouses' => $warehouses,
+            'distributors' => $distributors
+        ]);
+    }
+
     /**
      * Monitoring Stok Online Shop
      * For leaders assigned to online shops — shows stock grouped by online shop.

@@ -141,6 +141,13 @@ const selectedMonth = ref(monthOptions[0].value);
 
 const typeList = ref([]);
 const brandList = ref([]);
+const availableLocations = ref([]);
+const selectedLocationKey = ref('all');
+const selectedLocationValue = computed(() => {
+  if (!selectedLocationKey.value || selectedLocationKey.value === 'all') return null;
+  return selectedLocationKey.value.split('_')[1];
+});
+let inventoryController = null;
 // Column Filters (Faceted)
 const filterProduct = ref([])
 const filterCapacity = ref([])
@@ -241,26 +248,40 @@ watch(activeTab, () => {
   selectedStockStatus.value = 'all';
 
   loadInventory(1);
-  fetchFilterOptions(); // Re-fetch options for new tab
+  fetchFilterOptions();
+});
+
+const isInitialLoading = ref(true);
+const isLoading = ref(false);
+
+const filterSearchQuery = reactive({
+  brand: '',
+  product: '',
+  capacity: '',
+  location: ''
 });
 
 async function loadInventory(page = 1) {
+  if (inventoryController) inventoryController.abort();
+  inventoryController = new AbortController();
+
   isLoading.value = true;
   try {
     const params = {
       page: page,
       search: debouncedSearch.value,
       type: activeTab.value,
-      branch_id: effectiveBranchId.value,
-      online_shop_id: effectiveOnlineShopId.value,
-      warehouse_id: effectiveWarehouseId.value,
-      distributor_id: effectiveDistributorId.value,
+      branch_id: selectedLocationKey.value?.startsWith('branch_') ? selectedLocationValue.value : undefined,
+      online_shop_id: selectedLocationKey.value?.startsWith('shop_') ? selectedLocationValue.value : undefined,
+      warehouse_id: selectedLocationKey.value?.startsWith('warehouse_') ? selectedLocationValue.value : undefined,
+      distributor_id: selectedLocationKey.value?.startsWith('distributor_') ? selectedLocationValue.value : undefined,
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
       condition: selectedCondition.value !== 'all' ? selectedCondition.value : undefined,
       stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : undefined,
       status: selectedStockStatus.value === 'all' ? undefined : selectedStockStatus.value,
+      signal: inventoryController.signal
     };
 
     if (props.pageMode === 'online_shop') {
@@ -269,73 +290,48 @@ async function loadInventory(page = 1) {
       params.placement_type = 'warehouse';
     } else if (props.pageMode === 'distributor') {
       params.placement_type = 'distributor';
-      // For distributor, we also need to pass distributor_id if it's set in the user context
       if (authStore.user?.distributor_id) {
         params.distributor_id = authStore.user.distributor_id;
       }
     }
 
-    // Use store action to populate both inventoryStore.products AND pagination
     await inventoryStore.fetchProducts(params);
 
-    // Sync local ref for components that still rely on it (if any)
     inventoryItems.value = inventoryStore.products;
     pagination.value = inventoryStore.pagination;
 
   } catch (error) {
+    if (error.name === 'AbortError') return;
     console.error("Error loading inventory:", error);
     toast.error("Gagal memuat data inventory");
   } finally {
     isLoading.value = false;
+    isInitialLoading.value = false;
   }
 }
 
 const locations = ref([]);
-const selectedLocationKey = ref('all');
-
-const effectiveBranchId = computed(() => {
-  if (props.isEmbedded || props.pageMode !== 'inventory') return props.branchId || undefined;
-  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return undefined;
-  return selectedLocationKey.value.split(':')[1];
-});
-
-const effectiveOnlineShopId = computed(() => {
-  if (props.isEmbedded) return props.onlineShopId || undefined;
-  if (props.pageMode === 'online_shop') {
-    if (selectedLocationKey.value === 'all') return undefined; // Let API handle multiple accessible shops
-    return selectedLocationKey.value.split(':')[1];
-  }
-  if (props.pageMode !== 'inventory') return undefined;
-  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('S:')) return undefined;
-  return selectedLocationKey.value.split(':')[1];
-});
-
-const effectiveWarehouseId = computed(() => {
-  if (props.isEmbedded) return undefined;
-  if (props.pageMode === 'warehouse') {
-    if (selectedLocationKey.value === 'all') return undefined;
-    return selectedLocationKey.value.split(':')[1];
-  }
-  if (props.pageMode !== 'inventory') return undefined;
-  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('W:')) return undefined;
-  return selectedLocationKey.value.split(':')[1];
-});
-
-const effectiveDistributorId = computed(() => {
-  if (props.isEmbedded) return undefined;
-  if (props.pageMode === 'distributor') {
-    if (selectedLocationKey.value === 'all') return undefined;
-    return selectedLocationKey.value.split(':')[1];
-  }
-  if (props.pageMode !== 'inventory') return undefined;
-  if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('D:')) return undefined;
-  return selectedLocationKey.value.split(':')[1];
-});
 
 const canFilterBranch = computed(() => {
-  if (props.pageMode !== 'inventory') return true; // Let the specific mode load its own locations
+  if (props.pageMode !== 'inventory') return true;
   const role = (authStore.userRole || '').toLowerCase();
   return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
+});
+
+const computedBrands = computed(() => {
+  return brandOptions.value.filter(b => b.toLowerCase().includes(filterSearchQuery.brand.toLowerCase()));
+});
+
+const computedProducts = computed(() => {
+  return productOptions.value.filter(p => p.toLowerCase().includes(filterSearchQuery.product.toLowerCase()));
+});
+
+const computedCapacities = computed(() => {
+  return capacityOptions.value.filter(c => c.toLowerCase().includes(filterSearchQuery.capacity.toLowerCase()));
+});
+
+const computedLocations = computed(() => {
+  return availableLocations.value.filter(loc => loc.label.toLowerCase().includes(filterSearchQuery.location.toLowerCase()));
 });
 
 // Watchers
@@ -365,53 +361,36 @@ const { user } = storeToRefs(authStore);
 
 onMounted(() => {
   document.addEventListener('click', (e) => {
-    // If click is not inside a th with group class, close dropdown
     if (!e.target.closest('.group')) {
       activeFilterDropdown.value = null;
     }
   });
 
-  loadInventory(); // Use new loader
+  loadInventory();
   fetchInventoryUsers();
-  fetchFilterOptions(); // Fetch options on mount
+  fetchFilterOptions();
   if (canFilterBranch.value && !props.isEmbedded) {
     fetchLocations();
   }
 
-  // Real-time Updates
   if (window.Echo) {
     window.Echo.channel('inventory')
       .listen('.StockInEvent', (e) => {
-        console.log('StockIn Event:', e);
-        // The event name might be prefixed with dot or namespace depending on Laravel Echo config.
-        // Usually it's just the class name if broadcastAs returns it, or full class name.
-        // In my Event class I used broadcastAs() return 'StockInEvent'.
-        // So .listen('.StockInEvent') or just 'StockInEvent'.
-        // If I used broadcastAs, I don't need dot.
-        // Wait, if I use broadcastAs, it's just that string.
-        // Let's assume 'StockInEvent'.
-
         inventoryStore.pushNewProduct(e.product);
         toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
       });
 
     window.Echo.channel('stock-out')
       .listen('.StockOutEvent', (e) => {
-        console.log('StockOut Event:', e);
         inventoryStore.handleStockOut(e.stockOut);
       });
   }
-  fetchBranches();
-  fetchWarehouses();
-  fetchOnlineShops();
-  fetchDistributors();
+  fetchInventoryUsers();
 
-  // Fetch Product Types for capacity lookup
   productTypesApi.list().then(res => {
     typeList.value = res.data.data;
   }).catch(err => console.error("Failed to load types", err));
 
-  // Fetch Brands
   brandsApi.list().then(res => {
     brandList.value = res.data.data || res.data;
   }).catch(err => console.error("Failed to load brands", err));
@@ -446,10 +425,8 @@ async function onProvinceChange(id) {
   selectedRegionIds.value.village = "";
   cities.value = []; districts.value = []; villages.value = [];
 
-  // Save Name based on Category
   const p = provinces.value.find(x => x.id == id);
   const name = p ? p.name : "";
-  console.log("Province Selected:", id, p, name);
 
   if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_province = name;
@@ -473,7 +450,6 @@ async function onCityChange(id) {
 
   const c = cities.value.find(x => x.id == id);
   const name = c ? c.name : "";
-  console.log("City Selected:", id, c, name);
 
   if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_city = name;
@@ -496,7 +472,6 @@ async function onDistrictChange(id) {
 
   const d = districts.value.find(x => x.id == id);
   const name = d ? d.name : "";
-  console.log("District Selected:", id, d, name);
 
   if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_district = name;
@@ -516,7 +491,6 @@ function onVillageChange(id) {
   selectedRegionIds.value.village = id;
   const v = villages.value.find(x => x.id == id);
   const name = v ? v.name : "";
-  console.log("Village Selected:", id, v, name);
 
   if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
     stockOutForm.value.shopee_village = name;
@@ -530,17 +504,14 @@ onUnmounted(() => {
   document.removeEventListener('click', (e) => { });
 });
 
-// Watcher untuk debounce search
 watch(searchQuery, debounce((newVal) => {
   debouncedSearch.value = newVal;
 }, 300));
 
-// Fix: Reset page to 1 when search changes
 watch(debouncedSearch, () => {
   loadInventory(1);
 });
 
-// Stock Out Categories
 const stockOutCategories = ref([
   { id: 'orderan_online', name: 'Orderan Online', icon: 'ShoppingBag', color: 'orange', role: 'toko_online' },
   { id: 'pindah_cabang', name: 'Pindah Cabang', icon: 'ArrowRightLeft', color: 'blue' },
@@ -549,17 +520,8 @@ const stockOutCategories = ref([
   { id: 'keluar', name: 'Keluar', icon: 'LogOut', color: 'purple' },
 ]);
 
-const keluarSubCategories = [
-  'Giveaway customer',
-  'Hadiah',
-  'Brand ambasador',
-  'Event / Sponsorship',
-  'Promo',
-  'Inventaris'
-];
-
 const availableStockOutCategories = computed(() => {
-  const role = authStore.userRole; // Assuming role slip is stored here
+  const role = authStore.userRole;
   return stockOutCategories.value.filter(cat => {
     if (cat.role && role !== cat.role && role !== 'super_admin') return false;
     return true;
@@ -570,7 +532,6 @@ const requiresInventoryUser = computed(() => {
   return ['pindah_cabang', 'inventaris'].includes(selectedStockOutCategory.value);
 });
 
-// Inventory Users State
 const inventoryUsers = ref([]);
 const selectedInventoryUser = ref(null);
 const isLoadingUsers = ref(false);
@@ -587,21 +548,10 @@ async function fetchInventoryUsers() {
   }
 }
 
-// Filtered items (Granular)
 const filteredProducts = computed(() => {
-  // Rely on Server Side Filtering
-  // The API already filtered based on search, category, brand, etc.
-  let items = inventoryStore.products;
-
-  // Only keep the Non-HP 0 quantity filter if needed visually,
-  // but backend also filters quantity > 0 for index.
-  // We can keep it or remove it. Backend index() for non-hp does `where('quantity', '>', 0)`.
-  // So we can just return items.
-
-  return items;
+  return inventoryStore.products;
 });
 
-// Selection helpers
 const isAllSelected = computed(() => {
   if (filteredProducts.value.length === 0) return false;
   return filteredProducts.value.every(item => isSelected(item));
@@ -613,48 +563,24 @@ const isSomeSelected = computed(() => {
   return selectedCount > 0 && selectedCount < filteredProducts.value.length;
 });
 
-function toggleSelectAll() {
-  if (isAllSelected.value) {
-    filteredProducts.value.forEach(item => {
-      // Ensure strict matching with ID and Type
-      const itemType = item.type || activeTab.value;
-      const idx = selectedItems.value.findIndex(i => i.id === item.id && i.type === itemType);
-      if (idx !== -1) selectedItems.value.splice(idx, 1);
-    });
+const toggleSelectAll = () => {
+  if (selectedItems.value.length === filteredProducts.value.length) {
+    selectedItems.value = [];
   } else {
-    filteredProducts.value.forEach(item => {
-      // Ensure usage of toggleSelect logic for consistency
-      // But we can manually do it here to avoid toggle behavior
-      if (!item.type) {
-        item.type = activeTab.value;
-      }
-
-      if (!isSelected(item)) {
-        // Init properties
-        if (item.type === 'non-hp' && !item.out_quantity) {
-          item.out_quantity = 1;
-        }
-        item.selling_price = item.selling_price || 0;
-
-        selectedItems.value.push(item);
-      }
-    });
+    selectedItems.value = [...filteredProducts.value];
   }
-}
+};
 
 function toggleSelect(item) {
-  // Ensure item has type
   if (!item.type) {
     item.type = activeTab.value;
   }
 
   const idx = selectedItems.value.findIndex(i => i.id === item.id && i.type === item.type);
   if (idx === -1) {
-    // Init quantity for non-hp
     if (item.type === 'non-hp') {
       item.out_quantity = 1;
     }
-    // Init selling price
     item.selling_price = item.selling_price || 0;
 
     selectedItems.value.push(item);
@@ -667,10 +593,6 @@ function isSelected(item) {
   return selectedItems.value.some(i => i.id === item.id && i.type === activeTab.value);
 }
 
-// Cleanup
-
-
-// Stats
 const stats = computed(() => [
   {
     label: "Total Produk",
@@ -685,8 +607,6 @@ const stats = computed(() => [
     color: "emerald",
   },
 ]);
-
-
 
 const currentBranch = ref(null);
 const isTogglingReturn = ref(false);
@@ -713,106 +633,44 @@ async function fetchWarehouses() {
   }
 }
 
-async function fetchLocations() {
+const fetchLocations = async () => {
   try {
-    const [branchRes, shopRes, warehouseRes, distributorRes] = await Promise.all([
-      branchesApi.list({ type: 'physical' }),
-      onlineShopsApi.list(),
-      warehousesApi.list(),
-      distributorsApi.list()
-    ]);
-    const allBranches = (branchRes.data?.data || branchRes.data || [])
-      .filter(b => b.is_active !== false && b.is_active !== 0)
-      .map(b => ({ ...b, type: 'branch' }));
-    const allShops = (shopRes.data?.data || shopRes.data || [])
-      .filter(s => s.is_active !== false && s.is_active !== 0)
-      .map(s => ({ ...s, type: 'online_shop' }));
-    const allWarehouses = (warehouseRes.data?.data || warehouseRes.data || [])
-      .filter(w => w.is_active !== false && w.is_active !== 0)
-      .map(w => ({ ...w, type: 'warehouse' }));
-    const allDistributors = (distributorRes.data?.data || distributorRes.data || [])
-      .filter(d => d.is_active !== false && d.is_active !== 0)
-      .map(d => ({ ...d, type: 'distributor' }));
-    const allLocations = [...allBranches, ...allShops, ...allWarehouses, ...allDistributors];
+    const response = await api.get('/inventory/meta-locations');
+    const { branches: bList, online_shops: sList, warehouses: wList, distributors: dList } = response.data;
 
-    const user = authStore.user;
-    const role = (authStore.userRole || '').toLowerCase();
-    const isGlobalRole = ['super_admin', 'owner'].includes(role);
+    const locs = [];
 
-    let allowedBranchIds = [];
-    if (user?.branch_id) allowedBranchIds.push(user.branch_id);
-    let allowedShopIds = [];
-    if (user?.online_shop_id) allowedShopIds.push(user.online_shop_id);
-    let allowedWarehouseIds = [];
-    if (user?.warehouse_id) allowedWarehouseIds.push(user.warehouse_id);
-    let allowedDistributorIds = [];
-    if (user?.distributor_id) allowedDistributorIds.push(user.distributor_id);
+    bList.forEach(b => {
+      locs.push({ key: `branch_${b.id}`, value: b.id, label: b.name, type: 'branch', icon: MapPin });
+    });
 
-    if (user?.placements && Array.isArray(user.placements)) {
-      user.placements.forEach(p => {
-        if (p.model_type === 'branch') allowedBranchIds.push(p.model_id);
-        if (p.model_type === 'online_shop') allowedShopIds.push(p.model_id);
-        if (p.model_type === 'warehouse') allowedWarehouseIds.push(p.model_id);
-        if (p.model_type === 'distributor') allowedDistributorIds.push(p.model_id);
-      });
-    }
+    sList.forEach(s => {
+      locs.push({ key: `shop_${s.id}`, value: s.id, label: s.name, type: 'online_shop', icon: ShoppingBag });
+    });
 
-    allowedBranchIds = [...new Set(allowedBranchIds.map(id => Number(id)))];
-    allowedShopIds = [...new Set(allowedShopIds.map(id => Number(id)))];
-    allowedWarehouseIds = [...new Set(allowedWarehouseIds.map(id => Number(id)))];
-    allowedDistributorIds = [...new Set(allowedDistributorIds.map(id => Number(id)))];
+    wList.forEach(w => {
+      locs.push({ key: `warehouse_${w.id}`, value: w.id, label: w.name, type: 'warehouse', icon: Database });
+    });
 
-    const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedWarehouseIds.length > 0 || allowedDistributorIds.length > 0;
+    dList.forEach(d => {
+      locs.push({ key: `distributor_${d.id}`, value: d.id, label: d.name, type: 'distributor', icon: Truck });
+    });
 
-    let filteredLocations = allLocations;
-
-    if (!isGlobalRole) {
-      if (hasAnyRestriction) {
-        filteredLocations = allLocations.filter(loc => {
-          if (loc.type === 'branch') return allowedBranchIds.includes(Number(loc.id));
-          if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
-          if (loc.type === 'warehouse') return allowedWarehouseIds.includes(Number(loc.id));
-          if (loc.type === 'distributor') return allowedDistributorIds.includes(Number(loc.id));
-          return false;
-        });
-      } else if (role === 'audit' || role === 'analist' || role === 'leader') {
-        filteredLocations = allLocations;
-      } else {
-        filteredLocations = [];
-      }
-    }
-
-    // Apply pageMode restriction
-    if (props.pageMode === 'online_shop') {
-      locations.value = filteredLocations.filter(loc => loc.type === 'online_shop');
-    } else if (props.pageMode === 'warehouse') {
-      locations.value = filteredLocations.filter(loc => loc.type === 'warehouse');
-    } else if (props.pageMode === 'distributor') {
-      locations.value = []; // Handled separately or no location filter for distributor yet
-    } else {
-      locations.value = filteredLocations;
-    }
-
-    if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
-      const loc = locations.value[0];
-      selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'distributor' ? 'D' : 'W'}:${loc.id}`;
-    }
-  } catch (error) {
-    console.error('Error fetching locations:', error);
+    availableLocations.value = locs;
+  } catch (err) {
+    console.error('Error loading locations:', err);
   }
-}
+};
 
 async function fetchBranches() {
   try {
     const response = await branchesApi.list();
     const allBranches = response.data.data || response.data;
-    // Filter to only active branches
     branches.value = allBranches.filter(b => b.is_active);
   } catch (e) {
     console.error("Gagal memuat cabang", e);
   }
 }
-
 
 const onlineShops = ref([]);
 const distributors = ref([]);
@@ -834,8 +692,6 @@ async function fetchDistributors() {
     console.error("Gagal load distributors", e);
   }
 }
-
-
 
 const categories = computed(() => inventoryStore.categories);
 
@@ -984,15 +840,10 @@ async function exportInventory() {
 
           <!-- Location Filter (Not Embedded Only) -->
           <select v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" v-model="selectedLocationKey"
-            class="input w-full md:w-48 bg-surface-800">
+            class="input w-full md:w-56 bg-surface-800">
             <option value="all">Semua Lokasi</option>
-            <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-              :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'distributor' ? 'D' : 'W'}:${loc.id}`">
-              <span v-if="loc.type === 'branch'">[Cabang]</span>
-              <span v-else-if="loc.type === 'online_shop'">[Toko]</span>
-              <span v-else-if="loc.type === 'distributor'">[Distributor]</span>
-              <span v-else>[Gudang]</span>
-              {{ loc.name }}
+            <option v-for="loc in availableLocations" :key="loc.key" :value="loc.key">
+              {{ loc.type === 'branch' ? '[Cabang]' : (loc.type === 'online_shop' ? '[Toko]' : (loc.type === 'distributor' ? '[Distributor]' : '[Gudang]')) }} {{ loc.label }}
             </option>
           </select>
 
@@ -1061,18 +912,22 @@ async function exportInventory() {
                   </div>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'brand'"
-                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
-                    <div v-for="option in brandOptions" :key="option"
-                      class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
-                      @click.stop="toggleFilter(filterBrand, option)">
-                      <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                        :class="filterBrand.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
-                        <Check v-if="filterBrand.includes(option)" :size="10" class="text-white" />
-                      </div>
-                      <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
+                    <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
+                      <input v-model="filterSearchQuery.brand" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
-                    <div v-if="brandOptions.length === 0" class="text-xs text-text-secondary text-center py-2">No
-                      options</div>
+                    <div class="max-h-52 overflow-y-auto custom-scrollbar">
+                      <div v-for="option in computedBrands" :key="option"
+                        class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                        @click.stop="toggleFilter(filterBrand, option)">
+                        <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                          :class="filterBrand.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          <Check v-if="filterBrand.includes(option)" :size="10" class="text-white" />
+                        </div>
+                        <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                      </div>
+                      <div v-if="computedBrands.length === 0" class="text-xs text-text-secondary text-center py-2">Tidak ada hasil</div>
+                    </div>
                   </div>
                 </th>
 
@@ -1085,18 +940,22 @@ async function exportInventory() {
                   </div>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'product'"
-                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
-                    <div v-for="option in productOptions" :key="option"
-                      class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
-                      @click.stop="toggleFilter(filterProduct, option)">
-                      <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                        :class="filterProduct.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
-                        <Check v-if="filterProduct.includes(option)" :size="10" class="text-white" />
-                      </div>
-                      <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                    class="absolute left-0 top-full mt-2 w-56 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
+                    <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
+                      <input v-model="filterSearchQuery.product" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
-                    <div v-if="productOptions.length === 0" class="text-xs text-text-secondary text-center py-2">No
-                      options</div>
+                    <div class="max-h-52 overflow-y-auto custom-scrollbar">
+                      <div v-for="option in computedProducts" :key="option"
+                        class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                        @click.stop="toggleFilter(filterProduct, option)">
+                        <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                          :class="filterProduct.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          <Check v-if="filterProduct.includes(option)" :size="10" class="text-white" />
+                        </div>
+                        <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                      </div>
+                      <div v-if="computedProducts.length === 0" class="text-xs text-text-secondary text-center py-2">Tidak ada hasil</div>
+                    </div>
                   </div>
                 </th>
 
@@ -1109,18 +968,22 @@ async function exportInventory() {
                   </div>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'capacity'"
-                    class="absolute left-0 top-full mt-2 w-40 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2 max-h-60 overflow-y-auto">
-                    <div v-for="option in capacityOptions" :key="option"
-                      class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
-                      @click.stop="toggleFilter(filterCapacity, option)">
-                      <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                        :class="filterCapacity.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
-                        <Check v-if="filterCapacity.includes(option)" :size="10" class="text-white" />
-                      </div>
-                      <span class="text-sm text-text-primary">{{ option }}</span>
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
+                    <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
+                      <input v-model="filterSearchQuery.capacity" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
-                    <div v-if="capacityOptions.length === 0" class="text-xs text-text-secondary text-center py-2">No
-                      options</div>
+                    <div class="max-h-52 overflow-y-auto custom-scrollbar">
+                      <div v-for="option in computedCapacities" :key="option"
+                        class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                        @click.stop="toggleFilter(filterCapacity, option)">
+                        <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                          :class="filterCapacity.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          <Check v-if="filterCapacity.includes(option)" :size="10" class="text-white" />
+                        </div>
+                        <span class="text-sm text-text-primary">{{ option }}</span>
+                      </div>
+                      <div v-if="computedCapacities.length === 0" class="text-xs text-text-secondary text-center py-2">Tidak ada hasil</div>
+                    </div>
                   </div>
                 </th>
 
@@ -1148,10 +1011,17 @@ async function exportInventory() {
             </tr>
           </thead>
           <tbody>
-            <tr v-if="inventoryStore.isLoading">
-              <td colspan="15" class="text-center py-12">
-                <RefreshCw :size="24" class="animate-spin mx-auto text-blue-400 mb-2" />
-                <p class="text-text-secondary">Memuat data...</p>
+            <tr v-if="isLoading">
+              <td colspan="15" class="p-0">
+                <div v-for="i in 5" :key="i" class="flex items-center border-b border-surface-700/50 p-4 gap-4">
+                  <div class="w-10 h-10 bg-surface-700 rounded-lg animate-pulse"></div>
+                  <div class="flex-1 space-y-2">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-1/4"></div>
+                    <div class="h-3 bg-surface-800 rounded animate-pulse w-1/2"></div>
+                  </div>
+                  <div class="w-24 h-4 bg-surface-700 rounded animate-pulse"></div>
+                  <div class="w-24 h-4 bg-surface-700 rounded animate-pulse"></div>
+                </div>
               </td>
             </tr>
             <tr v-else-if="filteredProducts.length === 0">
