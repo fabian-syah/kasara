@@ -86,10 +86,10 @@
                             <option value="all">Semua Kategori</option>
                             <option value="penjualan_store">Penjualan Store</option>
                             <option value="orderan_online">Orderan Online</option>
-                            <option value="bundling">Bundling</option>
                             <option value="tukar_unit">Tukar Unit</option>
                             <option value="tukar_tambah">Tukar Tambah</option>
                             <option value="downgrade">Downgrade</option>
+                            <option value="cancel_penjualan">Cancel Penjualan</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />

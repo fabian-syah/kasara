@@ -96,10 +96,10 @@
                             <option value="all">Semua Kategori</option>
                             <option value="penjualan_store">Penjualan Store</option>
                             <option value="orderan_online">Orderan Online</option>
-                            <option value="bundling">Bundling</option>
                             <option value="tukar_unit">Tukar Unit</option>
                             <option value="tukar_tambah">Tukar Tambah</option>
                             <option value="downgrade">Downgrade</option>
+                            <option value="cancel_penjualan">Cancel Penjualan</option>
                             <option value="pindah_cabang">Pindah Cabang</option>
                             <option value="rusak">Rusak</option>
                             <option value="mati">Mati</option>
