@@ -257,9 +257,14 @@ class StockOut extends Model
                         ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"]);
                 })
                 ->orWhereHas('nonHpDetails.product', function ($pq) use ($search) {
-                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$search}%"]);
+                    $pq->where(function($qq) use ($search) {
+                        $qq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
+                           ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"]);
+                        
+                        if (\Schema::hasColumn('products', 'non_imei_category')) {
+                            $qq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$search}%"]);
+                        }
+                    });
                 });
         });
     }

@@ -419,8 +419,11 @@ class InventoryController extends Controller
                         $q->where(function ($sub) use ($lowKeyword) {
                             $sub->whereHas('product', function ($sq) use ($lowKeyword) {
                                 $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"])
-                                    ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                                
+                                if (\Schema::hasColumn('products', 'non_imei_category')) {
+                                    $sq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                                }
                             })
                                 ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                         });
@@ -636,8 +639,11 @@ class InventoryController extends Controller
                     $q->where(function ($sub) use ($lowKeyword) {
                         $sub->whereHas('product', function ($sq) use ($lowKeyword) {
                             $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                            
+                            if (\Schema::hasColumn('products', 'non_imei_category')) {
+                                $sq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                            }
                         })
                             ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                     });
@@ -728,8 +734,11 @@ class InventoryController extends Controller
                 $query->where(function ($q) use ($lowKeyword) {
                     $q->whereHas('product', function ($pq) use ($lowKeyword) {
                         $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"])
-                            ->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                        
+                        if (\Schema::hasColumn('products', 'non_imei_category')) {
+                            $pq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                        }
                     })
                         ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
                 });
@@ -835,6 +844,10 @@ class InventoryController extends Controller
                 $q->whereHas('product', function ($pq) use ($lowKeyword) {
                     $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                         ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                    
+                    if (\Schema::hasColumn('products', 'non_imei_category')) {
+                        $pq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
+                    }
                 })
                     ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
             });
@@ -995,16 +1008,20 @@ class InventoryController extends Controller
                             ->first();
                         $nonImeiCat = $foundType ? $foundType->non_imei_category : null;
 
+                        $productParams = [
+                            'name' => $typeName,
+                            'brand' => $brandName,
+                            'type' => 'non-hp'
+                        ];
+                        if (\Schema::hasColumn('products', 'non_imei_category')) {
+                            $productParams['non_imei_category'] = $nonImeiCat;
+                        }
+                        
                         $prod = Product::firstOrCreate(
-                            [
-                                'name' => $typeName,
-                                'brand' => $brandName,
-                                'type' => 'non-hp'
-                            ],
+                            $productParams,
                             [
                                 'sku' => 'NHP-' . strtoupper(\Illuminate\Support\Str::random(8)),
                                 'category' => 'NON HP / NON IMEI',
-                                'non_imei_category' => $nonImeiCat,
                                 'has_imei' => false,
                                 'price' => $item['selling_price'] ?? 0,
                                 'brand_id' => $item['brand_id'] ?? null
@@ -1012,8 +1029,10 @@ class InventoryController extends Controller
                         );
 
                         // If product existed but category was null, update it
-                        if ($prod->wasRecentlyCreated === false && is_null($prod->non_imei_category) && $nonImeiCat) {
-                            $prod->update(['non_imei_category' => $nonImeiCat]);
+                        if ($prod->wasRecentlyCreated === false && $nonImeiCat) {
+                            if (\Schema::hasColumn('products', 'non_imei_category') && is_null($prod->non_imei_category)) {
+                                $prod->update(['non_imei_category' => $nonImeiCat]);
+                            }
                         }
                         $pId = $prod->id;
                     }

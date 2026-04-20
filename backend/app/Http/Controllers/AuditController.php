@@ -126,7 +126,6 @@ class AuditController extends Controller
         $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan'];
         $activityCategories = ['refund', 'angkat_barang'];
         $salesCategories = array_merge($successCategories, $activityCategories);
-        // Excluded: 'pindah_cabang', 'retur', 'cancel_penjualan' per user request to clean up Sales Ranking
 
         // 1. Daily Sales
         $paymentMethods = \App\Models\PaymentMethod::all()->keyBy('id');
@@ -136,8 +135,10 @@ class AuditController extends Controller
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
-                if ($request->category === 'orderan_online') {
+                if ($request->category === 'orderan_online' || $request->category === 'shopee') {
                     $q->whereIn('category', ['shopee', 'orderan_online']);
+                } elseif ($request->category === 'penjualan_store' || $request->category === 'penjualan_offline') {
+                    $q->whereIn('category', ['penjualan_store', 'penjualan_offline']);
                 } else {
                     $q->where('category', $request->category);
                 }
@@ -405,6 +406,9 @@ class AuditController extends Controller
                 'status' => $trx->status === 'received' ? 'Lunas' : 'Pending',
                 'payment_method' => $trx->paymentMethod->name ?? ($trx->category === 'penjualan_offline' ? 'Offline' : 'Online'),
                 'payment_method_name' => $trx->paymentMethod->name ?? null,
+                'sales_account' => $trx->sales_account ?? $trx->inventoryUser->name ?? $trx->user->name ?? 'PSTORE',
+                'sales_name' => $trx->inventoryUser->name ?? $trx->user->name ?? 'PSTORE',
+                'inventory_account_name' => $trx->inventoryUser->name ?? 'PSTORE',
                 'split_payments_data' => $processedSplitPayments,
                 'cash' => $cash,
                 'transfer' => $transfer,
