@@ -184,54 +184,54 @@ class InventoryController extends Controller
         $perPage = $request->per_page ?? 20;
         if ($perPage == -1) $perPage = 999999;
 
-        // Execute query with pagination
-        $items = $query->latest('id')->paginate($perPage);
+        // HIGH-PERFORMANCE CACHING
+        // Cache based on all parameters and user ID for 60 seconds
+        $cacheKey = 'inv_v3_' . md5(json_encode($request->all()) . '_' . Auth::id());
+        
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($query, $perPage, $type, $request) {
+            // Execute query with pagination
+            $items = $query->latest('id')->paginate($perPage);
 
-        $items->getCollection()->transform(function ($item) use ($type, $request) {
-            // placement is already eager-loaded
-            $placement = $item->placement;
-            $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
+            $items->getCollection()->transform(function ($item) use ($type, $request) {
+                $placement = $item->placement;
+                $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
-            if ($type === 'non-hp') {
-                // Use eager-loaded total_quantity from select
-                $item->quantity = $item->total_quantity ?? $item->quantity;
+                if ($type === 'non-hp') {
+                    $item->quantity = $item->total_quantity ?? $item->quantity;
+                    $log = $item->latestLog;
+                    $item->latest_distributor = $log && $log->distributor ? $log->distributor->name : null;
+                    $item->latest_supplier = $log ? $log->supplier_name : null;
 
-                // Use eager-loaded latestLog
-                $log = $item->latestLog;
-                $item->latest_distributor = $log && $log->distributor ? $log->distributor->name : null;
-                $item->latest_supplier = $log ? $log->supplier_name : null;
-
-                if (!$item->latest_distributor && !$item->latest_supplier && $item->user && $item->user->distributor) {
-                    $item->latest_distributor = $item->user->distributor->name;
+                    if (!$item->latest_distributor && !$item->latest_supplier && $item->user && $item->user->distributor) {
+                        $item->latest_distributor = $item->user->distributor->name;
+                    }
                 }
-            }
 
-            if ($request->status === 'service' && $type === 'hp') {
-                // Use eager-loaded stockOuts (filtered by retur in with clause)
-                $returStockOut = $item->stockOuts->first();
-                if ($returStockOut) {
-                    $item->retur_data = [
-                        'receipt_id' => $returStockOut->receipt_id,
-                        'customer_name' => $returStockOut->customer_name,
-                        'customer_phone' => $returStockOut->customer_phone,
-                        'retur_officer' => $returStockOut->retur_officer,
-                        'retur_issue' => $returStockOut->retur_issue,
-                        'retur_seal' => $returStockOut->retur_seal,
-                        'proof_image' => $returStockOut->proof_image ? asset('storage/' . $returStockOut->proof_image) : null,
-                        'selling_price' => $returStockOut->selling_price,
-                        'notes' => $returStockOut->notes,
-                        'created_at' => $returStockOut->created_at?->toDateTimeString(),
-                    ];
+                if ($request->status === 'service' && $type === 'hp') {
+                    $returStockOut = $item->stockOuts->first();
+                    if ($returStockOut) {
+                        $item->retur_data = [
+                            'receipt_id' => $returStockOut->receipt_id,
+                            'customer_name' => $returStockOut->customer_name,
+                            'customer_phone' => $returStockOut->customer_phone,
+                            'retur_officer' => $returStockOut->retur_officer,
+                            'retur_issue' => $returStockOut->retur_issue,
+                            'retur_seal' => $returStockOut->retur_seal,
+                            'proof_image' => $returStockOut->proof_image ? asset('storage/' . $returStockOut->proof_image) : null,
+                            'selling_price' => $returStockOut->selling_price,
+                            'notes' => $returStockOut->notes,
+                            'created_at' => $returStockOut->created_at?->toDateTimeString(),
+                        ];
+                    }
                 }
-            }
+                return $item;
+            });
 
-            return $item;
+            $res = $items->toArray();
+            $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0;
+
+            return response()->json($res);
         });
-
-        $res = $items->toArray();
-        $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0;
-
-        return response()->json($res);
     }
 
     public function export(Request $request)

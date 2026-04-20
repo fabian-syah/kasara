@@ -180,25 +180,34 @@ const fetchAllInventory = async () => {
         };
 
         const fetchType = async (type) => {
-            let page = 1;
-            let all = [];
-            let hasMore = true;
             const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
+            const firstResponse = await inventoryApi.list({ ...queryParams, page: 1, type: type === 'hp' ? undefined : 'non-hp' });
+            const firstData = firstResponse.data;
+            
+            if (!firstData || !firstData.data) return [];
+            
+            let all = firstData.data.filter(item => {
+                const locName = (item.placement_name || '').toLowerCase();
+                return !exclusionWords.some(word => locName.includes(word));
+            });
 
-            while (hasMore) {
-                const response = await inventoryApi.list({ ...queryParams, page, type: type === 'hp' ? undefined : 'non-hp' });
-                const data = response.data;
-                if (data && data.data) {
-                    const filtered = data.data.filter(item => {
-                        const locName = (item.placement_name || '').toLowerCase();
-                        return !exclusionWords.some(word => locName.includes(word));
-                    });
-                    all = all.concat(filtered);
-                    hasMore = data.current_page < data.last_page;
-                    page++;
-                } else {
-                    hasMore = false;
+            const lastPage = firstData.last_page;
+            if (lastPage > 1) {
+                const pagePromises = [];
+                for (let p = 2; p <= lastPage; p++) {
+                    pagePromises.push(inventoryApi.list({ ...queryParams, page: p, type: type === 'hp' ? undefined : 'non-hp' }));
                 }
+                
+                const otherResponses = await Promise.all(pagePromises);
+                otherResponses.forEach(res => {
+                    if (res.data && res.data.data) {
+                        const filtered = res.data.data.filter(item => {
+                            const locName = (item.placement_name || '').toLowerCase();
+                            return !exclusionWords.some(word => locName.includes(word));
+                        });
+                        all = all.concat(filtered);
+                    }
+                });
             }
             return all;
         };
