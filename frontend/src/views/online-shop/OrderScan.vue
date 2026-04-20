@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+// Scanner will be imported dynamically
 import { useRouter } from 'vue-router'
 import { onlineShop } from '../../api/axios'
 import { useToast } from '../../composables/useToast'
@@ -78,6 +78,7 @@ const startScanner = async () => {
         }
     }
 
+    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
     html5QrCode.value = new Html5Qrcode(scannerId, {
         experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         verbose: false

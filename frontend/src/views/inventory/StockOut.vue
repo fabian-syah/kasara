@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "../../composables/useToast";
 import api, { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
 import { formatCurrency, parseCurrency } from "../../utils/formatters";
-import { Html5Qrcode } from "html5-qrcode";
+// Scanner will be imported dynamically
 import PinModal from "../../components/modals/PinModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
@@ -430,6 +430,7 @@ async function startScanner() {
     await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
+        const { Html5Qrcode } = await import("html5-qrcode");
         html5QrCode = new Html5Qrcode(scannerContainerId);
 
         const config = {
