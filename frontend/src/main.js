@@ -9,6 +9,11 @@ import './style.css'
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
 axios.defaults.withCredentials = true; // Penting untuk Sanctum
 
+// Disable Vue Devtools di Production secara eksplisit untuk membersihkan Lighthouse warning
+if (import.meta.env.PROD) {
+    window.__VUE_PROD_DEVTOOLS__ = false;
+}
+
 const app = createApp(App)
 const pinia = createPinia()
 
