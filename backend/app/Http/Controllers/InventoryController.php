@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\VerifiesPin;
+use Laravel\Octane\Facades\Octane;
 
 class InventoryController extends Controller
 {
@@ -189,8 +190,13 @@ class InventoryController extends Controller
         $cacheKey = 'inv_v3_' . md5(json_encode($request->all()) . '_' . Auth::id());
         
         return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($query, $perPage, $type, $request) {
-            // Execute query with pagination
-            $items = $query->latest('id')->paginate($perPage);
+            [
+                $items,
+                $totalValue
+            ] = Octane::concurrently([
+                fn() => $query->latest('id')->paginate($perPage),
+                fn() => $type === 'hp' ? (clone $query)->sum('selling_price') : 0
+            ]);
 
             $items->getCollection()->transform(function ($item) use ($type, $request) {
                 $placement = $item->placement;
@@ -228,7 +234,7 @@ class InventoryController extends Controller
             });
 
             $res = $items->toArray();
-            $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0;
+            $res['total_value'] = $totalValue;
 
             return response()->json($res);
         });
