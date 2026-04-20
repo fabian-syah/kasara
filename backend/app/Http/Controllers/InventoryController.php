@@ -51,7 +51,14 @@ class InventoryController extends Controller
         // 2. Base Query
         if ($type === 'non-hp') {
             $query = Inventory::with(['product', 'user', 'user.distributor', 'latestLog', 'latestLog.distributor', 'placement'])
-                ->select('*', DB::raw('SUM(quantity) as total_quantity'))
+                ->select(
+                    'product_id',
+                    'placement_type',
+                    'placement_id',
+                    'user_id',
+                    DB::raw('SUM(quantity) as total_quantity'),
+                    DB::raw('MAX(id) as id') // Needed for ordering
+                )
                 ->where('quantity', '>', 0)
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'non-hp')->orWhere('has_imei', false);
