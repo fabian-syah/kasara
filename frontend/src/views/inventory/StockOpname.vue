@@ -70,7 +70,7 @@ const fetchBranches = async () => {
         const user = userRes.data.user || userRes.data.data || userRes.data;
         const role = (authStore.userRole || '').toLowerCase();
 
-        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
         const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
 
         let allowedBranchIds = [];
