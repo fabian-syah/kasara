@@ -122,6 +122,7 @@
                                 <th class="px-4 py-4">No</th>
                                 <th class="px-4 py-4">Waktu</th>
                                 <th class="px-4 py-4">No Pesanan</th>
+                                <th class="px-4 py-4">Cabang</th>
                                 <th class="px-4 py-4">Nama</th>
                                 <th class="px-4 py-4">Kategori</th>
                                 <th colspan="4"
@@ -173,8 +174,8 @@
                                     profitRecords.daily_sales.per_page + index + 1 }}</td>
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
-                                <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
-                                }}</td>
+                                <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no }}</td>
+                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.location_name || item.branch_name || '-' }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
@@ -891,13 +892,13 @@ const formatNumber = (value) => {
 
 const formatDate = (dateString) => {
     if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleString('id-ID', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-    })
+    }).replace(/\./g, ':')
 }
 
 const fetchBranches = async () => {

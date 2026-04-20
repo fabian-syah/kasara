@@ -446,11 +446,13 @@ const displayDate = computed(() => {
     // Parse backend timestamps / date strings
     const dateObj = new Date(rawDate);
     if (!isNaN(dateObj.getTime())) {
-        return dateObj.toLocaleDateString("id-ID", {
+        return dateObj.toLocaleString("id-ID", {
             day: '2-digit',
             month: 'short',
-            year: 'numeric'
-        });
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).replace(/\./g, ':'); // Ensure HH:mm format vs dots
     }
     return rawDate;
 });

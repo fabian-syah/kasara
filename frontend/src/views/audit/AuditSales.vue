@@ -101,6 +101,7 @@
                                 <th class="px-6 py-4">No</th>
                                 <th class="px-6 py-4">Waktu Pesanan</th>
                                 <th class="px-6 py-4">Nomor Pesanan</th>
+                                <th class="px-6 py-4">Cabang</th>
                                 <th class="px-6 py-4">Nama</th>
                                 <th class="px-6 py-4">No HP</th>
                                 <th class="px-6 py-4">Kategori</th>
@@ -153,6 +154,7 @@
                                 <td class="px-6 py-4 font-medium text-text-primary">{{ formatDate(item.date)
                                     }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{ item.order_no }}</td>
+                                <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.location_name || item.branch_name || '-' }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                 <td class="px-6 py-4 text-text-primary font-medium">{{
                                     item.customer_phone }}</td>
@@ -249,9 +251,9 @@
                                     </span>
                                 </td>
                                 <!-- Backend doesn't split payment methods yet, hardcoding 0 or logic if available later -->
-                                <td class="px-6 py-4 text-text-primary font-mono text-xs">Rp 0</td>
-                                <td class="px-6 py-4 text-text-primary font-mono text-xs">Rp 0</td>
-                                <td class="px-6 py-4 text-text-primary font-mono text-xs">Rp 0</td>
+                                <td class="px-6 py-4 text-text-primary font-mono text-xs">{{ formatCurrency(item.cash_amount || item.cash || 0) }}</td>
+                                <td class="px-6 py-4 text-text-primary font-mono text-xs">{{ formatCurrency(item.transfer_amount || item.transfer || 0) }}</td>
+                                <td class="px-6 py-4 text-text-primary font-mono text-xs">{{ formatCurrency(item.debit_amount || item.debit || 0) }}</td>
                                 <td class="px-6 py-4 text-center">
                                     <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"

@@ -133,6 +133,7 @@
                                 <th class="px-4 py-4">No</th>
                                 <th class="px-4 py-4">Waktu</th>
                                 <th class="px-4 py-4">ID Transaksi</th>
+                                <th class="px-4 py-4">Lokasi</th>
                                 <th class="px-4 py-4">Kategori</th>
                                 <th class="px-4 py-4">Tipe</th>
                                 <th class="px-4 py-4">Brand</th>
@@ -178,6 +179,9 @@
                                 </td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">
                                     {{ item.receipt_id }}
+                                </td>
+                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">
+                                    {{ item.location_name || item.branch_name || '-' }}
                                 </td>
                                 <td class="px-4 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg" :class="item.category === 'pindah_cabang'
@@ -641,13 +645,13 @@ const canFilterBranch = computed(() => {
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleString('id-ID', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-    });
+    }).replace(/\./g, ':');
 };
 
 const fetchLocations = async () => {
