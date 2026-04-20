@@ -579,89 +579,94 @@ class AuditController extends Controller
         }
 
         // Use Octane to run independent counts in parallel for sub-100ms response
+        // Extract IDs for serialization-friendly capture in closures
+        $bIds = $branchIds;
+        $osIds = $onlineShopIds;
+        $wIds = $warehouseIds;
+        $dIds = $distributorIds;
+
         [$hpStock, $nonHpStock, $inHp, $inNonHp, $outHp, $outNonHp] = Octane::concurrently([
             // 1. Current HP Stock
             fn() => ProductDetail::where('status', 'available')
-                ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                    if (!empty($branchIds))
-                        $q->orWhere(fn($s) => $s->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
-                    if (!empty($onlineShopIds))
-                        $q->orWhere(fn($s) => $s->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds));
-                    if (!empty($warehouseIds))
-                        $q->orWhere(fn($s) => $s->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
-                    if (!empty($distributorIds))
-                        $q->orWhere(fn($s) => $s->where('placement_type', 'distributor')->whereIn('placement_id', $distributorIds));
+                ->where(function ($q) use ($bIds, $osIds, $wIds, $dIds) {
+                    if (!empty($bIds))
+                        $q->orWhere(fn($s) => $s->where('placement_type', 'branch')->whereIn('placement_id', $bIds));
+                    if (!empty($osIds))
+                        $q->orWhere(fn($s) => $s->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds));
+                    if (!empty($wIds))
+                        $q->orWhere(fn($s) => $s->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds));
+                    if (!empty($dIds))
+                        $q->orWhere(fn($s) => $s->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
                 })->count(),
 
             // 2. Current Non-HP Stock
-            fn() => (int) Inventory::where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                if (!empty($branchIds))
-                    $q->orWhere(fn($s) => $s->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
-                if (!empty($onlineShopIds))
-                    $q->orWhere(fn($s) => $s->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds));
-                if (!empty($warehouseIds))
-                    $q->orWhere(fn($s) => $s->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
-                if (!empty($distributorIds))
-                    $q->orWhere(fn($s) => $s->where('placement_type', 'distributor')->whereIn('placement_id', $distributorIds));
+            fn() => (int) Inventory::where(function ($q) use ($bIds, $osIds, $wIds, $dIds) {
+                if (!empty($bIds))
+                    $q->orWhere(fn($s) => $s->where('placement_type', 'branch')->whereIn('placement_id', $bIds));
+                if (!empty($osIds))
+                    $q->orWhere(fn($s) => $s->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds));
+                if (!empty($wIds))
+                    $q->orWhere(fn($s) => $s->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds));
+                if (!empty($dIds))
+                    $q->orWhere(fn($s) => $s->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
             })->sum('quantity'),
 
             // 3. Stock In HP (This Month)
             fn() => DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                 ->where('stock_outs.status', 'received')->whereMonth('stock_outs.reporting_date', now()->month)->whereYear('stock_outs.reporting_date', now()->year)
-                ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                    if (!empty($branchIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'branch')->whereIn('stock_outs.destination_id', $branchIds));
-                    if (!empty($onlineShopIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'online_shop')->whereIn('stock_outs.destination_id', $onlineShopIds));
-                    if (!empty($warehouseIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'warehouse')->whereIn('stock_outs.destination_id', $warehouseIds));
-                    if (!empty($distributorIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'distributor')->whereIn('stock_outs.destination_id', $distributorIds));
+                ->where(function ($q) use ($bIds, $osIds, $wIds, $dIds) {
+                    if (!empty($bIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'branch')->whereIn('stock_outs.destination_id', $bIds));
+                    if (!empty($osIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'online_shop')->whereIn('stock_outs.destination_id', $osIds));
+                    if (!empty($wIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'warehouse')->whereIn('stock_outs.destination_id', $wIds));
+                    if (!empty($dIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'distributor')->whereIn('stock_outs.destination_id', $dIds));
                 })->count(),
 
             // 4. Stock In Non-HP (This Month)
             fn() => (int) DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
                 ->where('stock_outs.status', 'received')->whereMonth('stock_outs.reporting_date', now()->month)->whereYear('stock_outs.reporting_date', now()->year)
-                ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                    if (!empty($branchIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'branch')->whereIn('stock_outs.destination_id', $branchIds));
-                    if (!empty($onlineShopIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'online_shop')->whereIn('stock_outs.destination_id', $onlineShopIds));
-                    if (!empty($warehouseIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'warehouse')->whereIn('stock_outs.destination_id', $warehouseIds));
-                    if (!empty($distributorIds))
-                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'distributor')->whereIn('stock_outs.destination_id', $distributorIds));
+                ->where(function ($q) use ($bIds, $osIds, $wIds, $dIds) {
+                    if (!empty($bIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'branch')->whereIn('stock_outs.destination_id', $bIds));
+                    if (!empty($osIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'online_shop')->whereIn('stock_outs.destination_id', $osIds));
+                    if (!empty($wIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'warehouse')->whereIn('stock_outs.destination_id', $wIds));
+                    if (!empty($dIds))
+                        $q->orWhere(fn($s) => $s->where('stock_outs.destination_type', 'distributor')->whereIn('stock_outs.destination_id', $dIds));
                 })->sum('quantity'),
 
             // 5. Stock Out HP (This Month)
             fn() => DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereMonth('stock_outs.reporting_date', now()->month)->whereYear('stock_outs.reporting_date', now()->year)
-                ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                    if (!empty($branchIds))
-                        $q->orWhereIn('users.branch_id', $branchIds);
-                    if (!empty($onlineShopIds))
-                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                    if (!empty($warehouseIds))
-                        $q->orWhereIn('users.warehouse_id', $warehouseIds);
-                    if (!empty($distributorIds))
-                        $q->orWhereIn('users.distributor_id', $distributorIds);
+                ->where(function ($q) use ($bIds, $osIds, $wIds, $dIds) {
+                    if (!empty($bIds))
+                        $q->orWhereIn('users.branch_id', $bIds);
+                    if (!empty($osIds))
+                        $q->orWhereIn('users.online_shop_id', $osIds);
+                    if (!empty($wIds))
+                        $q->orWhereIn('users.warehouse_id', $wIds);
+                    if (!empty($dIds))
+                        $q->orWhereIn('users.distributor_id', $dIds);
                 })->count(),
 
             // 6. Stock Out Non-HP (This Month)
             fn() => (int) DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->whereMonth('stock_outs.reporting_date', now()->month)->whereYear('stock_outs.reporting_date', now()->year)
-                ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                    if (!empty($branchIds))
-                        $q->orWhereIn('users.branch_id', $branchIds);
-                    if (!empty($onlineShopIds))
-                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                    if (!empty($warehouseIds))
-                        $q->orWhereIn('users.warehouse_id', $warehouseIds);
-                    if (!empty($distributorIds))
-                        $q->orWhereIn('users.distributor_id', $distributorIds);
+                ->where(function ($q) use ($bIds, $osIds, $wIds, $dIds) {
+                    if (!empty($bIds))
+                        $q->orWhereIn('users.branch_id', $bIds);
+                    if (!empty($osIds))
+                        $q->orWhereIn('users.online_shop_id', $osIds);
+                    if (!empty($wIds))
+                        $q->orWhereIn('users.warehouse_id', $wIds);
+                    if (!empty($dIds))
+                        $q->orWhereIn('users.distributor_id', $dIds);
                 })->sum('quantity'),
         ]);
-        ;
 
         return response()->json([
             'stock' => $hpStock + $nonHpStock,
