@@ -262,8 +262,7 @@ const copyToClipboard = () => {
     const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     const branch = activeBranchName.value;
 
-    let text = `====================\n`;
-    text += `*STOCK OPNAME REPORT*\n`;
+    let text = `*LAPORAN STOCK*\n`;
     text += `*${branch}*\n`;
     text += `*${dateStr}*\n`;
     text += `====================\n\n`;
@@ -1269,7 +1268,7 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
-                                            row.available }}</span>
+                                                row.available }}</span>
                                     </td>
                                 </tr>
 
@@ -1328,7 +1327,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showBrandType ? 1 : 0) + (showBrandCondition ? 1 : 0) + 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">
-                                    {{ filteredBrand.reduce((s, r) => s + r.available, 0) }}
+                                    {{filteredBrand.reduce((s, r) => s + r.available, 0)}}
                                 </td>
                             </tr>
                         </tfoot>
@@ -1369,7 +1368,7 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
-                                            row.available }}</span>
+                                                row.available }}</span>
                                     </td>
                                 </tr>
                                 <!-- GB Sub-rows -->
@@ -1436,7 +1435,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showPerGb ? 1 : 0) + (showTypeCondition ? 1 : 0) + 3">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">
-                                    {{ filteredType.reduce((s, r) => s + r.available, 0) }}
+                                    {{filteredType.reduce((s, r) => s + r.available, 0)}}
                                 </td>
                             </tr>
                         </tfoot>
@@ -1482,7 +1481,7 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
-                                            row.available }}</span>
+                                                row.available }}</span>
                                     </td>
                                 </tr>
 
@@ -1597,7 +1596,7 @@ onMounted(() => { fetchAllInventory(); });
                                     :colspan="(showConditionBrand ? 1 : 0) + (showConditionType ? 1 : 0) + (showPerGb ? 1 : 0) + 2">
                                     TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">
-                                    {{ filteredCondition.reduce((s, r) => s + r.available, 0) }}
+                                    {{filteredCondition.reduce((s, r) => s + r.available, 0)}}
                                 </td>
                             </tr>
                         </tfoot>
@@ -1639,7 +1638,7 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
-                                            row.available }}</span>
+                                                row.available }}</span>
                                     </td>
                                 </tr>
 
@@ -1751,7 +1750,7 @@ onMounted(() => { fetchAllInventory(); });
                                     :colspan="(showDistributorBrand ? 1 : 0) + (showDistributorType ? 1 : 0) + (showDistributorGb ? 1 : 0) + 2">
                                     TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">
-                                    {{ filteredDistributor.reduce((s, r) => s + r.available, 0) }}
+                                    {{filteredDistributor.reduce((s, r) => s + r.available, 0)}}
                                 </td>
                             </tr>
                         </tfoot>
@@ -1789,7 +1788,7 @@ onMounted(() => { fetchAllInventory(); });
                                     <td class="px-6 py-4 text-center">
                                         <span class="text-lg font-bold"
                                             :class="row.available > 0 ? 'text-emerald-400' : 'text-red-400'">{{
-                                            row.available }}</span>
+                                                row.available }}</span>
                                     </td>
                                 </tr>
 
@@ -1841,7 +1840,7 @@ onMounted(() => { fetchAllInventory(); });
                                 <td class="px-6 py-4 text-right text-text-secondary"
                                     :colspan="(showCategoryBrand ? 1 : 0) + (showCategoryType ? 1 : 0) + 2">TOTAL</td>
                                 <td class="px-6 py-4 text-center text-emerald-400 text-lg">
-                                    {{ filteredCategory.reduce((s, r) => s + r.available, 0) }}
+                                    {{filteredCategory.reduce((s, r) => s + r.available, 0)}}
                                 </td>
                             </tr>
                         </tfoot>
@@ -1888,7 +1887,8 @@ onMounted(() => { fetchAllInventory(); });
                                     class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
                                     {{ new Date().toLocaleDateString('id-ID', {
                                         day: '2-digit', month: 'long', year:
-                                    'numeric' }) }}
+                                            'numeric'
+                                    }) }}
                                 </p>
                             </div>
                         </div>
@@ -1942,7 +1942,7 @@ onMounted(() => { fetchAllInventory(); });
                                     Handphone</span>
                                 <span
                                     class="text-3xl font-black text-primary-500 print:text-black tabular-nums underline decoration-primary-500/30 underline-offset-8">{{
-                                    newEraReport.stats.total_hp }}</span>
+                                        newEraReport.stats.total_hp }}</span>
                             </div>
                         </div>
 
