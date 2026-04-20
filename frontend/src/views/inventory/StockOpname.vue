@@ -244,6 +244,7 @@ const copyToClipboard = () => {
     const dateStr = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
     
     let text = `Laporan stok ***\n`;
+    text += `${activeBranchName.value}\n`;
     text += `${dateStr}\n\n`;
     
     const pad = (label, value) => {
@@ -629,6 +630,15 @@ const categoryReport = computed(() => {
         .sort((a, b) => b.available - a.available);
 });
 
+const activeBranchName = computed(() => {
+    if (selectedLocationKey.value === 'all') return 'SEMUA CABANG';
+    const loc = locations.value.find(l => {
+        const key = `${l.type === 'branch' ? 'B' : l.type === 'online_shop' ? 'S' : l.type === 'warehouse' ? 'W' : 'D'}:${l.id}`;
+        return key === selectedLocationKey.value;
+    });
+    return loc ? loc.name.toUpperCase() : 'SEMUA CABANG';
+});
+
 // ===== NEW ERA REPORT (Special IMEI) =====
 const newEraReport = computed(() => {
     const stats = {
@@ -688,12 +698,15 @@ const newEraReport = computed(() => {
             stats.total_hp += avail;
         } else if (brand.length > 0 || name.length > 0) {
             // Android / HP Others
+            const brandRaw = item.product?.brand || '';
+            const androidName = `${brandRaw} ${displayName}`.trim();
+
             if (cond === 'new') {
                 stats.android_new += avail;
-                details.android_new.set(displayName, (details.android_new.get(displayName) || 0) + avail);
+                details.android_new.set(androidName, (details.android_new.get(androidName) || 0) + avail);
             } else {
                 stats.android_scd += avail;
-                details.android_scd.set(displayName, (details.android_scd.get(displayName) || 0) + avail);
+                details.android_scd.set(androidName, (details.android_scd.get(androidName) || 0) + avail);
             }
             stats.total_hp += avail;
         }
@@ -1668,9 +1681,9 @@ onMounted(() => { fetchAllInventory(); });
                     </div>
 
                     <div class="relative">
-                        <!-- Report Header -->
                         <div class="text-center mb-10 pb-8 border-b border-surface-700/50 print:border-black">
                             <h2 class="text-3xl font-black text-white print:text-black uppercase tracking-tighter italic mb-2">Laporan Stok New Era</h2>
+                            <p class="text-primary-400 font-black text-lg mb-1">{{ activeBranchName }}</p>
                             <p class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
                                 {{ new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) }}
                             </p>
