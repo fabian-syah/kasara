@@ -3,7 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     ArrowLeft, RefreshCw, Search, Smartphone, Package, BarChart3, Box,
-    Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive, ListFilter
+    Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive, ListFilter,
+    Sparkles, Printer
 } from 'lucide-vue-next';
 import { inventory as inventoryApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -130,6 +131,7 @@ const showDistributorType = ref(false);
 const showDistributorGb = ref(false);
 const showCategoryBrand = ref(false);
 const showCategoryType = ref(false);
+const showBrandType = ref(false);
 const typeSortOrder = ref('available'); // 'available', 'name', 'brand'
 const itemMode = ref('hp'); // 'hp' or 'non-hp'
 const searchQuery = ref('');
@@ -529,6 +531,104 @@ const categoryReport = computed(() => {
         .sort((a, b) => b.available - a.available);
 });
 
+// ===== NEW ERA REPORT (Special IMEI) =====
+const newEraReport = computed(() => {
+    const stats = {
+        iphone_new: 0,
+        iphone_scd: 0,
+        iphone_ex_ibox: 0,
+        android_new: 0,
+        android_scd: 0,
+        laptop: 0,
+        tv: 0,
+        total_hp: 0
+    };
+
+    const details = {
+        iphone_new: new Map(),
+        iphone_scd: new Map(),
+        iphone_ex_ibox: new Map(),
+        android_new: new Map(),
+        android_scd: new Map()
+    };
+
+    rawHpItems.value.forEach(item => {
+        const avail = getAvailable(item);
+        if (avail <= 0) return;
+
+        const brand = (item.product?.brand || '').toLowerCase();
+        const cond = item.condition || 'second';
+        const name = item.product?.name || '';
+        const ram = item.ram || '';
+        const storage = item.storage || '';
+        const gb = ram && storage ? `${ram}/${storage}` : (storage || ram);
+        const displayName = gb ? `${name} ${gb}` : name;
+
+        if (brand.includes('apple') || brand.includes('iphone')) {
+            if (cond === 'new') {
+                stats.iphone_new += avail;
+                details.iphone_new.set(displayName, (details.iphone_new.get(displayName) || 0) + avail);
+            } else if (cond === 'ex_ibox') {
+                stats.iphone_ex_ibox += avail;
+                details.iphone_ex_ibox.set(displayName, (details.iphone_ex_ibox.get(displayName) || 0) + avail);
+            } else {
+                // second, ex_inter, refurbished, etc. counted as scd based on user's request
+                stats.iphone_scd += avail;
+                details.iphone_scd.set(displayName, (details.iphone_scd.get(displayName) || 0) + avail);
+            }
+            stats.total_hp += avail;
+        } else {
+            // Android
+            const nameLow = name.toLowerCase();
+            const catLow = (item.product?.category || '').toLowerCase();
+            
+            if (catLow.includes('laptop') || nameLow.includes('laptop')) {
+                stats.laptop += avail;
+            } else if (catLow.includes('tv') || nameLow.includes('tv') || nameLow.includes('televisi')) {
+                stats.tv += avail;
+            } else {
+                if (cond === 'new') {
+                    stats.android_new += avail;
+                    details.android_new.set(displayName, (details.android_new.get(displayName) || 0) + avail);
+                } else {
+                    stats.android_scd += avail;
+                    details.android_scd.set(displayName, (details.android_scd.get(displayName) || 0) + avail);
+                }
+                stats.total_hp += avail;
+            }
+        }
+    });
+
+    rawNonHpItems.value.forEach(item => {
+        const avail = getAvailable(item);
+        if (avail <= 0) return;
+
+        const cat = (item.product?.category || '').toLowerCase();
+        const brand = (item.product?.brand || '').toLowerCase();
+        const name = (item.product?.name || '').toLowerCase();
+
+        if (cat.includes('laptop') || name.includes('laptop') || brand.includes('laptop')) {
+            stats.laptop += avail;
+        } else if (cat.includes('tv') || name.includes('tv') || name.includes('televisi')) {
+            stats.tv += avail;
+        }
+    });
+
+    const sortFn = (a, b) => b.qty - a.qty;
+    const mapToArr = (m) => Array.from(m.entries()).map(([name, qty]) => ({ name, qty })).sort(sortFn);
+
+    return {
+        stats,
+        details: {
+            iphone_new: mapToArr(details.iphone_new),
+            iphone_scd: mapToArr(details.iphone_scd),
+            iphone_ex_ibox: mapToArr(details.iphone_ex_ibox),
+            android_new: mapToArr(details.android_new),
+            android_scd: mapToArr(details.android_scd)
+        }
+    };
+});
+
 // Filtered search for sub-views
 const searchFilter = (items, fields) => {
     if (!searchQuery.value) return items;
@@ -599,7 +699,8 @@ onMounted(() => { fetchAllInventory(); });
                             currentView === 'type' ? 'Ringkasan stok per tipe produk' :
                             currentView === 'condition' ? 'Ringkasan stok per kondisi barang' :
                             currentView === 'distributor' ? 'Ringkasan stok per distributor/supplier' :
-                            'Ringkasan stok per kategori produk' }}
+                            currentView === 'category' ? 'Ringkasan stok per kategori produk' :
+                            'Format ringkasan stok khusus New Era' }}
                     </p>
                 </div>
             </div>
@@ -680,7 +781,24 @@ onMounted(() => { fetchAllInventory(); });
                 </div>
 
                 <!-- Report Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- New Era (IMEI Priority) -->
+                    <button v-if="isHpMode" @click="navigateTo('new_era')"
+                        class="group bg-gradient-to-br from-surface-800 to-primary-500/10 rounded-2xl border border-primary-500/30 hover:border-primary-500 p-6 text-left transition-all duration-300 hover:shadow-xl hover:shadow-primary-500/10 hover:translate-y-[-4px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                                <Sparkles :size="24" class="text-primary-400" />
+                            </div>
+                            <div class="px-2 py-1 bg-primary-500 text-white text-[8px] font-black rounded uppercase tracking-widest">HOT</div>
+                        </div>
+                        <h3 class="text-lg font-black text-text-primary mb-1 uppercase italic tracking-tight">Laporan New Era</h3>
+                        <p class="text-xs text-text-secondary font-medium">Ringkasan stok khusus IMEI (New & Second)</p>
+                        <div class="mt-4 flex items-center justify-between">
+                            <span class="text-xs font-black text-primary-400">{{ summaryStats.totalHp }} UNIT</span>
+                            <ChevronRight :size="16" class="text-primary-500" />
+                        </div>
+                    </button>
+
                     <!-- Brand -->
                     <button @click="navigateTo('brand')"
                         class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-blue-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:translate-y-[-2px]">
@@ -782,6 +900,14 @@ onMounted(() => { fetchAllInventory(); });
                 <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                     <!-- Toggle for Brand View Breakdown -->
                     <div v-if="currentView === 'brand'" class="flex items-center gap-3">
+                        <button v-if="isHpMode" @click="showBrandType = !showBrandType"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
+                            :class="showBrandType
+                                ? 'bg-primary-500/10 border-primary-500/30 text-primary-400'
+                                : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white'">
+                            <component :is="showBrandType ? ToggleRight : ToggleLeft" :size="18" />
+                            Tampilkan per Tipe
+                        </button>
                         <button v-if="isHpMode" @click="showBrandCondition = !showBrandCondition"
                             class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border"
                             :class="showBrandCondition
@@ -996,7 +1122,7 @@ onMounted(() => { fetchAllInventory(); });
         </template>
 
         <!-- ==================== TYPE REPORT ==================== -->
-        <template v-if="currentView === 'type'">
+        <template v-else-if="currentView === 'type'">
             <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
                 <div v-if="loading" class="p-12 flex justify-center items-center">
                     <RefreshCw class="animate-spin text-primary-500" :size="32" />
@@ -1089,7 +1215,7 @@ onMounted(() => { fetchAllInventory(); });
         </template>
 
         <!-- ==================== CONDITION REPORT ==================== -->
-        <template v-if="currentView === 'condition'">
+        <template v-else-if="currentView === 'condition'">
             <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
                 <div v-if="loading" class="p-12 flex justify-center items-center">
                     <RefreshCw class="animate-spin text-primary-500" :size="32" />
@@ -1222,7 +1348,7 @@ onMounted(() => { fetchAllInventory(); });
         </template>
 
         <!-- ==================== DISTRIBUTOR REPORT ==================== -->
-        <template v-if="currentView === 'distributor'">
+        <template v-else-if="currentView === 'distributor'">
             <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
                 <div v-if="loading" class="p-12 flex justify-center items-center">
                     <RefreshCw class="animate-spin text-primary-500" :size="32" />
@@ -1346,9 +1472,8 @@ onMounted(() => { fetchAllInventory(); });
                 </div>
             </div>
         </template>
-
         <!-- ==================== CATEGORY REPORT ==================== -->
-        <template v-if="currentView === 'category'">
+        <template v-else-if="currentView === 'category'">
             <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
                 <div v-if="loading" class="p-12 flex justify-center items-center">
                     <RefreshCw class="animate-spin text-primary-500" :size="32" />
@@ -1385,7 +1510,7 @@ onMounted(() => { fetchAllInventory(); });
                                         <td v-if="showCategoryType" class="px-6 py-2.5"></td>
                                         <td class="px-6 py-2.5 text-center text-sm font-semibold text-emerald-400/80">{{ b.available }}</td>
                                     </tr>
-
+ 
                                     <!-- Type Breakdown (Hierarchical under Brand) -->
                                     <template v-if="showCategoryType" v-for="t in b.types" :key="t.label">
                                         <tr class="bg-surface-900/30 hover:bg-surface-700/30 transition-colors">
@@ -1397,7 +1522,7 @@ onMounted(() => { fetchAllInventory(); });
                                         </tr>
                                     </template>
                                 </template>
-
+ 
                                 <!-- Case: if Type is ON but Brand is OFF -->
                                 <template v-if="!showCategoryBrand && showCategoryType" v-for="b in row.tree">
                                     <template v-for="t in b.types">
@@ -1422,6 +1547,160 @@ onMounted(() => { fetchAllInventory(); });
             </div>
         </template>
 
+
+        <!-- ==================== NEW ERA REPORT ==================== -->
+        <template v-else-if="currentView === 'new_era'">
+            <div class="space-y-6 max-w-4xl mx-auto pb-32">
+                <div class="bg-surface-800 rounded-3xl border border-surface-700 p-6 md:p-10 shadow-2xl relative overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
+                    <!-- Background Decor (Non-Print) -->
+                    <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary-500/10 blur-[100px] rounded-full print:hidden"></div>
+                    
+                    <div class="relative">
+                        <!-- Report Header -->
+                        <div class="text-center mb-10 pb-8 border-b border-surface-700/50 print:border-black">
+                            <h2 class="text-3xl font-black text-white print:text-black uppercase tracking-tighter italic mb-2">Laporan Stok New Era</h2>
+                            <p class="text-text-secondary print:text-black font-bold text-sm tracking-widest uppercase">
+                                {{ new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) }}
+                            </p>
+                        </div>
+
+                        <!-- Summary Grid -->
+                        <div class="space-y-4 mb-10">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 font-bold text-lg">
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Iphone New</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_new }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Android New</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.android_new }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Iphone Scd</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_scd }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Android Scd</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.android_scd }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Iphone Ex Ibox</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.iphone_ex_ibox }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black md:hidden">
+                                    <!-- Mobile Spacer -->
+                                </div>
+                                <div class="hidden md:block"></div>
+
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Laptop</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.laptop }}</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1 border-b border-surface-700/30 print:border-black">
+                                    <span class="text-text-secondary print:text-black">Tv</span>
+                                    <span class="text-white print:text-black tabular-nums">{{ newEraReport.stats.tv }}</span>
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t-2 border-surface-600 print:border-black mt-6">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xl font-black text-white print:text-black uppercase italic">Total Handphone</span>
+                                    <span class="text-3xl font-black text-primary-500 print:text-black tabular-nums underline decoration-primary-500/30 underline-offset-8">{{ newEraReport.stats.total_hp }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Details Section -->
+                        <div class="space-y-10">
+                            <div class="h-px w-full bg-gradient-to-r from-transparent via-surface-600 to-transparent print:bg-black"></div>
+                            
+                            <h3 class="text-2xl font-black text-white print:text-black uppercase tracking-tighter italic text-center">Rincian Unit</h3>
+
+                            <!-- iPhone Sections -->
+                            <div class="space-y-12">
+                                <div v-if="newEraReport.details.iphone_new.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-emerald-500/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-emerald-400 print:text-black uppercase tracking-[0.3em]">Iphone New</h4>
+                                        <div class="h-px flex-1 bg-emerald-500/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.iphone_new" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="newEraReport.details.iphone_scd.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-amber-500/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-amber-400 print:text-black uppercase tracking-[0.3em]">Iphone Scd</h4>
+                                        <div class="h-px flex-1 bg-amber-500/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.iphone_scd" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="newEraReport.details.iphone_ex_ibox.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-blue-500/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-blue-400 print:text-black uppercase tracking-[0.3em]">Iphone Ex Ibox</h4>
+                                        <div class="h-px flex-1 bg-blue-500/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.iphone_ex_ibox" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Android Sections -->
+                                <div v-if="newEraReport.details.android_new.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-purple-500/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-purple-400 print:text-black uppercase tracking-[0.3em]">Android New</h4>
+                                        <div class="h-px flex-1 bg-purple-500/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.android_new" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="newEraReport.details.android_scd.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-indigo-500/30 print:bg-black"></div>
+                                        <h4 class="text-sm font-black text-indigo-400 print:text-black uppercase tracking-[0.3em]">Android Scd</h4>
+                                        <div class="h-px flex-1 bg-indigo-500/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.android_scd" :key="item.name" class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{ item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons (Non-Print) -->
+                <div class="flex justify-center gap-4 pb-20 print:hidden">
+                    <button @click="window.print()" class="flex items-center gap-3 px-8 py-4 bg-primary-500 hover:bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-primary-500/20 hover:scale-[1.02] active:scale-[0.98]">
+                        <Printer :size="20" /> Cetak Laporan
+                    </button>
+                </div>
+            </div>
+        </template>
 
     </div>
 </template>
