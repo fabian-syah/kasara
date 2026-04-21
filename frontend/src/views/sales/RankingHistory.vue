@@ -1584,10 +1584,10 @@ const handlePeriodChange = () => {
         const today = getTodayLocal();
         filters.value.start_date = today;
         filters.value.end_date = today;
+        fetchData(); // Pastikan data harian langsung di-fetch
     } else {
         handleMonthChange();
     }
-    // No need to call fetchData here as watchers will handle it
 }
 
 const handleDateChange = () => {
