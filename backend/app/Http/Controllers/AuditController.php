@@ -481,6 +481,47 @@ class AuditController extends Controller
                             'condition' => $s->condition
                         ];
                     }
+
+                    // 4. Other Stock Info (Accessories, Apply, etc.)
+                    $otherStocksQuery = DB::table('inventories')
+                        ->join('products', 'inventories.product_id', '=', 'products.id')
+                        ->join('users', 'inventories.user_id', '=', 'users.id')
+                        ->where('inventories.quantity', '>', 0);
+                    
+                    $applyLocationFilters($otherStocksQuery);
+
+                    $otherStocks = $otherStocksQuery->select(
+                        'products.name',
+                        'products.brand',
+                        'inventories.quantity',
+                        DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
+                                    WHERE il.product_id = products.id AND il.user_id = inventories.user_id 
+                                    AND il.type = 'in' 
+                                    ORDER BY il.id DESC LIMIT 1) as log_dist_name")
+                    )->get();
+
+                    foreach ($otherStocks as $s) {
+                        $name = strtolower($s->name);
+                        $brand = strtolower($s->brand ?? '');
+                        $dist = strtolower($s->log_dist_name ?? '');
+                        $qty = (int)$s->quantity;
+                        $pName = $s->name;
+
+                        $cat = null;
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $cat = 'accessories'; }
+                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
+                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
+                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
+                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
+                        elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
+                        elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
+
+                        if ($cat) {
+                            $stockReport[$cat] = ($stockReport[$cat] ?? 0) + $qty;
+                            $stockDetails[$cat][$pName] = ($stockDetails[$cat][$pName] ?? 0) + $qty;
+                        }
+                    }
+                    
                     
                     $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($aStatsQuery);

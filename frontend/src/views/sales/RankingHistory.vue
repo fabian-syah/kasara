@@ -407,8 +407,8 @@
                                 </div>
                             </div>
 
-                            <!-- OTHER CATEGORIES (SOLD) -->
-                            <div v-for="cat in categoryStocks" :key="cat.label" :class="{ 'opacity-50': !cat.count && !Object.keys(cat.items).length }">
+                            <!-- OTHER CATEGORIES (STOCK & SOLD) -->
+                            <div v-for="cat in categoryStocks" :key="cat.label" :class="{ 'opacity-50': !cat.count && !cat.remaining && !Object.keys(cat.items).length && !Object.keys(cat.remainingItems).length }">
                                 <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
@@ -418,27 +418,49 @@
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <div v-if="cat.count || Object.keys(cat.items).length" class="space-y-4">
-                                    <div class="flex justify-center mb-6">
-                                        <div class="bg-emerald-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-emerald-200/50">
-                                            <span class="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
-                                                {{ cat.count }} {{ cat.suffix }}
-                                            </span>
+                                <div v-if="cat.count || cat.remaining || Object.keys(cat.items).length || Object.keys(cat.remainingItems).length" class="space-y-8">
+                                    <!-- Sisa Section -->
+                                    <div v-if="cat.remaining || Object.keys(cat.remainingItems || {}).length">
+                                        <div class="flex justify-center mb-6">
+                                            <div class="bg-blue-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-blue-200/50">
+                                                <span class="text-xs font-black text-blue-800 dark:text-blue-400 uppercase tracking-widest">
+                                                    {{ cat.remaining }} Sisa
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                            <div v-for="(qty, name) in cat.remainingItems" :key="'rem-'+name" 
+                                                 class="flex justify-between items-center border-b border-blue-200/30 pb-3">
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                                    {{ name }}
+                                                </span>
+                                                <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty }}</span>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                                        <div v-for="(qty, name) in cat.items" :key="name" 
-                                             class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
-                                            <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                {{ name }}
-                                            </span>
-                                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
+                                    <!-- Terjual Section -->
+                                    <div v-if="cat.count || Object.keys(cat.items || {}).length">
+                                        <div class="flex justify-center mb-6">
+                                            <div class="bg-emerald-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-emerald-200/50">
+                                                <span class="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
+                                                    {{ cat.count }} Terjual
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                            <div v-for="(qty, name) in cat.items" :key="'sold-'+name" 
+                                                 class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                                    {{ name }}
+                                                </span>
+                                                <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div v-else class="text-center">
-                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit {{ cat.suffix }}</span>
+                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit {{ cat.label }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1412,13 +1434,43 @@ const appleLuxItems = computed(() => {
 const categoryStocks = computed(() => {
     const summary = salesData.value?.report_summary || {};
     const soldDetails = summary.sold_details || {};
+    const stockReport = summary.stock_report || {};
+    const stockDetails = summary.stock_details || {};
     const distMap = summary.dist_map || {};
     
     return [
-        { label: 'STOK ACCESSORIES', count: distMap.accessories || 0, items: soldDetails.accessories || {}, suffix: 'Terjual' },
-        { label: 'STOK APPLY', count: distMap.apply || 0, items: soldDetails.apply || {}, suffix: 'Terjual' },
-        { label: 'STOK LAPTOP', count: distMap.laptop || 0, items: soldDetails.laptop || {}, suffix: 'Terjual' },
-        { label: 'STOK ARCIS', count: distMap.arcis || 0, items: soldDetails.arcis || {}, suffix: 'Terjual' }
+        { 
+            label: 'STOK ACCESSORIES', 
+            count: distMap.accessories || 0, 
+            items: soldDetails.accessories || {}, 
+            remaining: stockReport.accessories || 0,
+            remainingItems: stockDetails.accessories || {},
+            suffix: 'Terjual' 
+        },
+        { 
+            label: 'STOK APPLY', 
+            count: distMap.apply || 0, 
+            items: soldDetails.apply || {}, 
+            remaining: stockReport.apply || 0,
+            remainingItems: stockDetails.apply || {},
+            suffix: 'Terjual' 
+        },
+        { 
+            label: 'STOK LAPTOP', 
+            count: distMap.laptop || 0, 
+            items: soldDetails.laptop || {}, 
+            remaining: stockReport.laptop || 0,
+            remainingItems: stockDetails.laptop || {},
+            suffix: 'Terjual' 
+        },
+        { 
+            label: 'STOK ARCIS', 
+            count: distMap.arcis || 0, 
+            items: soldDetails.arcis || {}, 
+            remaining: stockReport.arcis || 0,
+            remainingItems: stockDetails.arcis || {},
+            suffix: 'Terjual' 
+        }
     ];
 });
 
@@ -1485,12 +1537,29 @@ const getBaseReportText = (isForCopy = false) => {
     ];
 
     categories.forEach(cat => {
-        text += `🔷 stok ${cat.label}\n`;
-        text += `Terjual : ${summary.dist_map?.[cat.key] || 0}\n`;
-        Object.entries(soldDetails[cat.key] || {}).forEach(([name, qty]) => {
-            text += `- ${name} : ${qty}\n`;
-        });
-        text += `\n`;
+        const remaining = summary.stock_report?.[cat.key] || 0;
+        const sold = summary.dist_map?.[cat.key] || 0;
+        const remainingItems = stockDetails[cat.key] || {};
+        const soldItems = soldDetails[cat.key] || {};
+
+        if (remaining > 0 || sold > 0) {
+            text += `🔷 stok ${cat.label}\n`;
+            
+            if (remaining > 0) {
+                text += `Sisa : ${remaining}\n`;
+                Object.entries(remainingItems).forEach(([name, qty]) => {
+                    text += `- ${name} : ${qty}\n`;
+                });
+            }
+
+            if (sold > 0) {
+                text += `Terjual : ${sold}\n`;
+                Object.entries(soldItems).forEach(([name, qty]) => {
+                    text += `- ${name} : ${qty}\n`;
+                });
+            }
+            text += `\n`;
+        }
     });
 
     if (isForCopy) {
