@@ -329,42 +329,60 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods) {
                 try {
-                    $paymentData = DB::table('stock_outs')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('category', $salesCategories)->whereBetween('reporting_date', [$startDate, $endDate])->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                    $paymentData = DB::table('stock_outs')
+                        ->join('users', function($join) {
+                            $join->on('users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
+                        })
+                        ->whereIn('stock_outs.category', $salesCategories)
+                        ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                        ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                             if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
                             elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
                             else {
                                 if (!empty($branchIds)) $sub->orWhereIn('users.branch_id', $branchIds);
                                 if (!empty($onlineShopIds)) $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
                             }
-                        })->select('selling_price', 'payment_method_id', 'split_payments')->get();
+                        })
+                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')
+                        ->get();
+
                     $pSums = []; $paymentTotal = 0;
                     foreach ($paymentData as $p) {
-                        $amt = (float)$p->selling_price; $mName = 'Lainnya';
+                        $amt = (float)$p->selling_price; 
+                        $paymentTotal += $amt; // Always add to grand total
+                        
+                        $mName = 'Belum Ada Metode';
                         if ($p->payment_method_id) {
                             $m = $paymentMethods->get($p->payment_method_id);
                             $mName = $m?->name ?? 'Lainnya';
-                            if (!isset($pSums[$mName])) $pSums[$mName] = 0;
-                            $pSums[$mName] += $amt; $paymentTotal += $amt;
                         }
+                        
                         $splits = $p->split_payments;
                         if ($splits) {
                             if (is_string($splits)) $splits = json_decode($splits, true);
                             if (is_array($splits)) {
-                                if (isset($pSums[$mName])) { $pSums[$mName] -= $amt; $paymentTotal -= $amt; }
                                 foreach ($splits as $sp) {
                                     $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
                                     $sAmt = (float)($sp['amount'] ?? 0);
                                     if ($mid) {
                                         $sm = $paymentMethods->get($mid);
                                         $smName = $sm?->name ?? 'Lainnya';
-                                        if (!isset($pSums[$smName])) $pSums[$smName] = 0;
-                                        $pSums[$smName] += $sAmt; $paymentTotal += $sAmt;
+                                        $pSums[$smName] = ($pSums[$smName] ?? 0) + $sAmt;
                                     }
                                 }
+                                continue; // Skip single payment logic if split
                             }
                         }
+                        
+                        $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
                     }
-                    $baseStats = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+
+                    // Combined HP & Non-HP Stats
+                    $baseUserJoin = function($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        $query->join('users', function($join) {
+                            $join->on('users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
+                        })
+                        ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                             if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
                             elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
                             else {
@@ -372,22 +390,78 @@ class AuditController extends Controller
                                 if (!empty($onlineShopIds)) $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
                             }
                         });
-                    $dStats = (clone $baseStats)->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->select(DB::raw("COALESCE(distributors.name, 'Lainnya') as name"), DB::raw('count(*) as qty'))->groupBy('name')->get()->pluck('qty', 'name');
-                    $uStats = (clone $baseStats)->select(
+                    };
+
+                    // HP Stats
+                    $hpStatsQuery = DB::table('stock_out_items')
+                        ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                        ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', $salesCategories)
+                        ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $baseUserJoin($hpStatsQuery);
+
+                    $dStatsHp = (clone $hpStatsQuery)
+                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                        ->select(DB::raw("COALESCE(distributors.name, 'Lainnya') as name"), DB::raw('count(*) as qty'))
+                        ->groupBy('name')->get()->pluck('qty', 'name')->toArray();
+
+                    $uStatsHp = (clone $hpStatsQuery)
+                        ->select(
                             DB::raw("count(case when products.brand = 'Apple' then 1 end) as iphone"),
-                            DB::raw("count(case when products.brand != 'Apple' and products.brand is not null then 1 end) as android"),
-                            DB::raw("count(case when LOWER(products.name) LIKE '%laptop%' then 1 end) as laptop"),
-                            DB::raw("count(case when LOWER(products.name) LIKE '%tv%' then 1 end) as tv")
+                            DB::raw("count(case when products.brand != 'Apple' and products.brand is not null then 1 end) as android")
                         )->first();
-                    $aStats = DB::table('stock_outs')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereBetween('reporting_date', [$startDate, $endDate])->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                            if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
-                            else {
-                                if (!empty($branchIds)) $sub->orWhereIn('users.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
+
+                    // Non-HP Stats
+                    $nhpStatsQuery = DB::table('stock_out_non_hp_items')
+                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+                        ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', $salesCategories)
+                        ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $baseUserJoin($nhpStatsQuery);
+
+                    $dStatsNhp = (clone $nhpStatsQuery)
+                        ->select(DB::raw("products.name as name"), DB::raw('sum(quantity) as qty'))
+                        ->groupBy('name')->get()->pluck('qty', 'name')->toArray();
+                    
+                    $uStatsNhp = (clone $nhpStatsQuery)
+                        ->select(
+                            DB::raw("sum(case when LOWER(products.name) LIKE '%laptop%' then quantity else 0 end) as laptop"),
+                            DB::raw("sum(case when LOWER(products.name) LIKE '%tv%' then quantity else 0 end) as tv")
+                        )->first();
+
+                    // Merge Distributors (HP + Non-HP)
+                    $dStatsCombined = $dStatsHp;
+                    foreach ($dStatsNhp as $name => $qty) {
+                        $lcName = strtolower($name);
+                        $found = false;
+                        foreach ($dStatsCombined as $cName => $cQty) {
+                            if (strtolower($cName) === $lcName) {
+                                $dStatsCombined[$cName] += $qty;
+                                $found = true; break;
                             }
-                        })->select('category', DB::raw("count(*) as qty"))->groupBy('category')->get()->pluck('qty', 'category');
-                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'distributors' => $dStats, 'units' => $uStats, 'activities' => $aStats];
+                        }
+                        if (!$found) $dStatsCombined[$name] = $qty;
+                    }
+
+                    $aStats = DB::table('stock_outs')
+                        ->whereBetween('reporting_date', [$startDate, $endDate])
+                        ->whereIn('category', $salesCategories);
+                    $baseUserJoin($aStats);
+                    $aStatsList = $aStats->select('category', DB::raw("count(*) as qty"))->groupBy('category')->get()->pluck('qty', 'category');
+
+                    return [
+                        'payments' => $pSums,
+                        'payment_total' => $paymentTotal,
+                        'distributors' => $dStatsCombined,
+                        'units' => [
+                            'iphone' => $uStatsHp->iphone ?? 0,
+                            'android' => $uStatsHp->android ?? 0,
+                            'laptop' => $uStatsNhp->laptop ?? 0,
+                            'tv' => $uStatsNhp->tv ?? 0
+                        ],
+                        'activities' => $aStatsList
+                    ];
                 } catch (\Exception $e) {
                     return ['payments' => [], 'payment_total' => 0, 'distributors' => [], 'units' => ['iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0], 'activities' => [], 'error' => $e->getMessage()];
                 }
