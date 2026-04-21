@@ -329,56 +329,8 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods) {
                 try {
-                    $paymentData = DB::table('stock_outs')
-                        ->join('users', function($join) {
-                            $join->on('users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
-                        })
-                        ->whereIn('stock_outs.category', $salesCategories)
-                        ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                        ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                            if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
-                            else {
-                                if (!empty($branchIds)) $sub->orWhereIn('users.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
-                            }
-                        })
-                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')
-                        ->get();
-
-                    $pSums = []; $paymentTotal = 0;
-                    foreach ($paymentData as $p) {
-                        $amt = (float)$p->selling_price; 
-                        $paymentTotal += $amt; // Always add to grand total
-                        
-                        $mName = 'Belum Ada Metode';
-                        if ($p->payment_method_id) {
-                            $m = $paymentMethods->get($p->payment_method_id);
-                            $mName = $m?->name ?? 'Lainnya';
-                        }
-                        
-                        $splits = $p->split_payments;
-                        if ($splits) {
-                            if (is_string($splits)) $splits = json_decode($splits, true);
-                            if (is_array($splits)) {
-                                foreach ($splits as $sp) {
-                                    $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
-                                    $sAmt = (float)($sp['amount'] ?? 0);
-                                    if ($mid) {
-                                        $sm = $paymentMethods->get($mid);
-                                        $smName = $sm?->name ?? 'Lainnya';
-                                        $pSums[$smName] = ($pSums[$smName] ?? 0) + $sAmt;
-                                    }
-                                }
-                                continue; // Skip single payment logic if split
-                            }
-                        }
-                        
-                        $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
-                    }
-
-                    // Combined HP & Non-HP Stats
-                    $baseUserJoin = function($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                    // Logic to scope by branch (reusable)
+                    $userScope = function($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         $query->join('users', function($join) {
                             $join->on('users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                         })
@@ -392,78 +344,109 @@ class AuditController extends Controller
                         });
                     };
 
-                    // HP Stats
-                    $hpStatsQuery = DB::table('stock_out_items')
-                        ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-                        ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-                        ->join('products', 'product_details.product_id', '=', 'products.id')
-                        ->whereIn('stock_outs.category', $salesCategories)
-                        ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $baseUserJoin($hpStatsQuery);
-
-                    $dStatsHp = (clone $hpStatsQuery)
-                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
-                        ->select(DB::raw("COALESCE(distributors.name, 'Lainnya') as name"), DB::raw('count(*) as qty'))
-                        ->groupBy('name')->get()->pluck('qty', 'name')->toArray();
-
-                    $uStatsHp = (clone $hpStatsQuery)
-                        ->select(
-                            DB::raw("count(case when products.brand = 'Apple' then 1 end) as iphone"),
-                            DB::raw("count(case when products.brand != 'Apple' and products.brand is not null then 1 end) as android")
-                        )->first();
-
-                    // Non-HP Stats
-                    $nhpStatsQuery = DB::table('stock_out_non_hp_items')
-                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-                        ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                        ->whereIn('stock_outs.category', $salesCategories)
-                        ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $baseUserJoin($nhpStatsQuery);
-
-                    $dStatsNhp = (clone $nhpStatsQuery)
-                        ->select(DB::raw("products.name as name"), DB::raw('sum(quantity) as qty'))
-                        ->groupBy('name')->get()->pluck('qty', 'name')->toArray();
+                    // 1. Payment Summary
+                    $paymentData = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $userScope($paymentData);
+                    $payments = $paymentData->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
                     
-                    $uStatsNhp = (clone $nhpStatsQuery)
-                        ->select(
-                            DB::raw("sum(case when LOWER(products.name) LIKE '%laptop%' then quantity else 0 end) as laptop"),
-                            DB::raw("sum(case when LOWER(products.name) LIKE '%tv%' then quantity else 0 end) as tv")
-                        )->first();
-
-                    // Merge Distributors (HP + Non-HP)
-                    $dStatsCombined = $dStatsHp;
-                    foreach ($dStatsNhp as $name => $qty) {
-                        $lcName = strtolower($name);
-                        $found = false;
-                        foreach ($dStatsCombined as $cName => $cQty) {
-                            if (strtolower($cName) === $lcName) {
-                                $dStatsCombined[$cName] += $qty;
-                                $found = true; break;
+                    $pSums = []; $paymentTotal = 0;
+                    foreach ($payments as $p) {
+                        $amt = (float)$p->selling_price; $paymentTotal += $amt;
+                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'Belum Ada Metode';
+                        $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
+                        if (is_array($splits)) {
+                            foreach ($splits as $sp) {
+                                $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
+                                $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float)($sp['amount'] ?? 0);
                             }
+                        } else {
+                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
                         }
-                        if (!$found) $dStatsCombined[$name] = $qty;
                     }
 
-                    $aStats = DB::table('stock_outs')
-                        ->whereBetween('reporting_date', [$startDate, $endDate])
-                        ->whereIn('category', $salesCategories);
-                    $baseUserJoin($aStats);
+                    // 2. Sales Custom Mapping (Units)
+                    $map = [
+                        'apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'debs' => 0, 
+                        'arcis' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 
+                        'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
+                    ];
+
+                    // HP Items Base
+                    $hpItems = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $userScope($hpItems);
+                    $hpData = $hpItems->select('products.brand', 'products.name as product_name', 'distributors.name as dist_name')->get();
+
+                    foreach ($hpData as $item) {
+                        $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
+                        if ($isAppleLux) $map['apple_lux']++;
+                        else $map['hp']++; // Case: HP category minus Apple Luxury
+
+                        if ($item->brand === 'Apple') $map['iphone']++;
+                        else $map['android']++;
+                    }
+
+                    // Non-HP Items Base
+                    $nhpItems = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $userScope($nhpItems);
+                    $nhpData = $nhpItems->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity')->get();
+
+                    foreach ($nhpData as $item) {
+                        $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
+                        $qty = (int)$item->quantity;
+                        
+                        // Jaringan Mapping (Merk Based)
+                        $jaringanBrands = ['jasa / service', '4g / lte', 'jasa', 'jaringan'];
+                        $isJaringan = false;
+                        foreach($jaringanBrands as $jb) { if(str_contains($brand, $jb) || str_contains($name, $jb)) { $isJaringan = true; break; } }
+
+                        if ($isJaringan) $map['jaringan'] += $qty;
+                        elseif (str_contains($name, 'laptop')) $map['laptop'] += $qty;
+                        elseif (str_contains($name, 'tv')) $map['tv'] += $qty;
+                        elseif (str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
+                        elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
+                        elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
+                        elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
+                        elseif (str_contains($name, 'dokter pstore')) $map['dokter_pstore'] += $qty;
+                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) $map['perdana'] += $qty;
+                    }
+
+                    // 3. Stock Report (Current Inventory)
+                    // We need to fetch available stocks for same branch
+                    $stockReport = [
+                        'apple_lux' => 0, 'accessories' => 0, 'apply' => 0, 'laptop' => 0, 'arcis' => 0
+                    ];
+                    
+                    // Simple logic: count available product_details for specific distributors
+                    $hpStocks = DB::table('product_details')
+                        ->join('users', 'product_details.owner_id', '=', 'users.id')
+                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                        ->where('product_details.status', 'available')
+                        ->where(function($q) use ($requestedBranchId, $requestedOnlineShopId) {
+                            if($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
+                            elseif($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                        });
+                    
+                    $stockReport['apple_lux'] = (clone $hpStocks)->where('distributors.name', 'like', '%Apple Luxury%')->count();
+                    
+                    // Non-HP Stocks (from products table usually)
+                    $nhpStocks = DB::table('products')
+                        ->where('stock_quantity', '>', 0);
+                    // (Note: In your DB, stock_quantity might be global or branch-specific, 
+                    // if it's branch specific you'd join with a stocks table. Assuming simple for now)
+
+                    $aStats = DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->whereIn('category', $salesCategories);
+                    $userScope($aStats);
                     $aStatsList = $aStats->select('category', DB::raw("count(*) as qty"))->groupBy('category')->get()->pluck('qty', 'category');
 
                     return [
                         'payments' => $pSums,
                         'payment_total' => $paymentTotal,
-                        'distributors' => $dStatsCombined,
-                        'units' => [
-                            'iphone' => $uStatsHp->iphone ?? 0,
-                            'android' => $uStatsHp->android ?? 0,
-                            'laptop' => $uStatsNhp->laptop ?? 0,
-                            'tv' => $uStatsNhp->tv ?? 0
-                        ],
+                        'dist_map' => $map,
+                        'stock_report' => $stockReport,
                         'activities' => $aStatsList
                     ];
                 } catch (\Exception $e) {
-                    return ['payments' => [], 'payment_total' => 0, 'distributors' => [], 'units' => ['iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0], 'activities' => [], 'error' => $e->getMessage()];
+                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'stock_report' => [], 'error' => $e->getMessage()];
                 }
             }
         ]);
