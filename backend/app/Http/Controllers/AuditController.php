@@ -43,23 +43,11 @@ class AuditController extends Controller
             ]);
         }
 
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
+        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
 
-        // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-            $limitDate = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
-            
-            // Just ensure it's not older than last month
-            if ($startDate < $limitDate) {
-                $startDate = $limitDate;
-            }
-            // Ensure end date isn't in the future
-            if ($endDate > $logicalNow->toDateString()) {
-                $endDate = $logicalNow->toDateString();
-            }
-        }
+        // No more clipping logic here to prevent data loss on monthly reports.
+        // Frontend will handle valid date ranges.
 
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;

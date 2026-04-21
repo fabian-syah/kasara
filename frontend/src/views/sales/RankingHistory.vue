@@ -1588,7 +1588,9 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv                : ${summary.dist_map?.tv || 0}\n\n`;
 
-    text += `PENGUNJUNG  :\n_____________`;
+    text += `PENGUNJUNG  :\n`;
+    text += `DEBUG DATES: ${summary.debug_dates?.start} to ${summary.debug_dates?.end}\n`;
+    text += `_____________`;
 
     return text;
 }
