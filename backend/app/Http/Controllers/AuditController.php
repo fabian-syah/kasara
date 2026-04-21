@@ -175,7 +175,7 @@ class AuditController extends Controller
         $paymentMethods = PaymentMethod::all()->keyBy('id');
 
         // Use Octane to run independent queries in parallel
-        [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors] = Octane::concurrently([
+        [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
             // 1. Paginated Sales Query
             fn() => StockOut::with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
                 ->whereIn('category', $salesCategories)
@@ -413,6 +413,96 @@ class AuditController extends Controller
                 ->distinct()
                 ->orderBy('distributors.name')
                 ->get(),
+
+            // 10. Unified Report Summary for Export
+            function () use ($salesCategories, $startDate, $endDate, $scopeToAccess, $dbScope, $paymentMethods) {
+                // Payment Statistics
+                $paymentQuery = StockOut::whereIn('category', $salesCategories)
+                    ->whereBetween('reporting_date', [$startDate, $endDate]);
+                $scopeToAccess($paymentQuery);
+                $allPayments = $paymentQuery->get();
+
+                $pSums = [];
+                $paymentTotal = 0;
+                foreach ($allPayments as $p) {
+                    $amt = (float)$p->selling_price;
+                    $paymentTotal += $amt;
+                    $m = $paymentMethods->get($p->payment_method_id);
+                    $mName = $m->name ?? 'Lainnya';
+                    
+                    if (!isset($pSums[$mName])) $pSums[$mName] = 0;
+                    $pSums[$mName] += $amt;
+                    
+                    // Handle split payments if any
+                    $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
+                    if ($splits) {
+                        // Note: If split payments exist, the main selling_price logic above might need adjustment 
+                        // depending on how the system records them. Assuming we sum the splits:
+                        // (Re-calculating based on splits to be more precise if they exist)
+                        $pSums[$mName] -= $amt; // Remove the single entry if it was actually a split
+                        $paymentTotal -= $amt;
+                        
+                        foreach ((array)$splits as $sp) {
+                            $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? ($sp['id'] ?? null));
+                            $sAmt = (float)($sp['amount'] ?? 0);
+                            $sm = $paymentMethods->get($mid);
+                            $smName = $sm->name ?? 'Lainnya';
+                            
+                            if (!isset($pSums[$smName])) $pSums[$smName] = 0;
+                            $pSums[$smName] += $sAmt;
+                            $paymentTotal += $sAmt;
+                        }
+                    }
+                }
+
+                // Distributor Statistics
+                $dStats = DB::table('stock_out_items')
+                    ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                    ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                    ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                    ->tap(fn($q) => $dbScope($q))
+                    ->select(DB::raw("COALESCE(distributors.name, 'Lainnya') as name"), DB::raw('count(*) as qty'))
+                    ->groupBy('name')
+                    ->get()
+                    ->pluck('qty', 'name');
+
+                // Unit Statistics (HP Categories)
+                $uStats = DB::table('stock_out_items')
+                    ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                    ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                    ->join('products', 'product_details.product_id', '=', 'products.id')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                    ->tap(fn($q) => $dbScope($q))
+                    ->select(
+                        DB::raw("count(case when products.brand = 'Apple' then 1 end) as iphone"),
+                        DB::raw("count(case when products.brand != 'Apple' and products.brand is not null then 1 end) as android"),
+                        DB::raw("count(case when products.type = 'laptop' then 1 end) as laptop"),
+                        DB::raw("count(case when products.type = 'tv' then 1 end) as tv")
+                    )->first();
+
+                // Activity Statistics
+                $aStats = DB::table('stock_outs')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->whereBetween('reporting_date', [$startDate, $endDate])
+                    ->tap(fn($q) => $dbScope($q))
+                    ->select('category', DB::raw("count(*) as qty"))
+                    ->groupBy('category')
+                    ->get()
+                    ->pluck('qty', 'category');
+
+                return [
+                    'payments' => $pSums,
+                    'payment_total' => $paymentTotal,
+                    'distributors' => $dStats,
+                    'units' => $uStats,
+                    'activities' => $aStats
+                ];
+            }
         ]);
 
         // Process paginated data with pre-fetched relations
@@ -586,6 +676,7 @@ class AuditController extends Controller
             'distributor_sales' => $distributorStatsRaw,
             'cs_sales' => $csSalesRaw,
             'daily_history' => $dailyHistoryRaw,
+            'report_summary' => $reportSummary,
             'filter_options' => ['products' => $soldProducts, 'distributors' => $soldDistributors]
         ]);
         ;

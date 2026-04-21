@@ -1114,42 +1114,35 @@ const generatedReportText = computed(() => {
     const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
     const dateStr = filters.value.start_date ? formatDateString(filters.value.start_date) : formatDateString(today);
     
-    // 1. Payment Summary
-    let cash = 0, transfer = 0, edc = 0;
-    const dailyData = salesData.value.daily_sales?.data || [];
-    dailyData.forEach(trx => {
-        cash += (trx.cash || 0);
-        transfer += (trx.transfer || 0);
-        edc += (trx.edc || 0);
-    });
+    // Data dari Server (Backend Summary)
+    const summary = salesData.value.report_summary || {
+        payments: {},
+        payment_total: 0,
+        distributors: {},
+        units: { iphone: 0, android: 0, laptop: 0, tv: 0 },
+        activities: {}
+    };
 
-    // 2. Distributor Summary
-    const distData = salesData.value.distributor_sales || [];
-    const getDistQty = (name) => {
-        const d = distData.find(i => i.distributor.toLowerCase().includes(name.toLowerCase()));
-        return d ? d.qty : 0;
+    // Build dynamic payment text
+    let paymentText = '';
+    if (summary.payments && Object.keys(summary.payments).length > 0) {
+        Object.entries(summary.payments).forEach(([name, amount]) => {
+            paymentText += `${name} : ${formatCurrency(amount)}\n`;
+        });
+    } else {
+        paymentText = 'Belum ada transaksi\n';
     }
 
-    // 3. Unit Stats
-    let iphone = 0, android = 0, appleLux = 0;
-    const csData = salesData.value.cs_sales || [];
-    csData.forEach(cs => {
-        iphone += (cs.iphone_units || 0);
-        android += (cs.android_units || 0);
-        // Assuming Apple Lux is tracked via distributor or specific logic
-    });
-    // Search for Apple Lux in distributor data if it has its own distributor entry
-    appleLux = getDistQty('apple lux');
+    const getDist = (key) => {
+        if (!summary.distributors) return 0;
+        const found = Object.keys(summary.distributors).find(k => k.toLowerCase().includes(key.toLowerCase()));
+        return found ? summary.distributors[found] : 0;
+    };
 
-    // 4. Activity Stats
-    let tukarUnit = 0, tukarTambah = 0, downgrade = 0, refund = 0, angkatBarang = 0;
-    csData.forEach(cs => {
-        // Since cs_sales doesn't have the deep breakdown anymore, we estimate or use combined
-        // In the template provided, activity ranking was split.
-        // We'll use the total_angkat_barang and total_refund we already have
-        angkatBarang += (cs.total_angkat_barang || 0);
-        refund += (cs.total_refund || 0);
-    });
+    const iphone = summary.units?.iphone || 0;
+    const appleLux = getDist('apple lux');
+    const android = summary.units?.android || 0;
+    const activities = summary.activities || {};
 
     return `*LAPORAN PENJUALAN *
 ${storeName.toUpperCase()}
@@ -1158,28 +1151,22 @@ ${dateStr}
 
 PENJUALAN ALL
 
-CASH : ${formatCurrency(cash)}
-Transfer PSM:
-Transfer apple lux :
-Edc bca :
-Edc bni :
-Edc mandiri :
-
-Total : ${formatCurrency(cash + transfer + edc)}
+${paymentText}
+Total : ${formatCurrency(summary.payment_total)}
 
 ______
 
 Rincian Penjualan berdasarkan distributor
 
-🟦 Penjualan HP : ${getDistQty('hp')} unit
+🟦 Penjualan HP : ${getDist('hp')} unit
 🟦 Penjualan apple lux : ${appleLux} unit
-⬜️ Penjualan accesories : ${getDistQty('accesories')} unit
-⬜️ Penjualan apply : ${getDistQty('apply')} unit
-⬜️ Penjualan debs : ${getDistQty('debs')} unit
-⬜️ Penjualan arcis : ${getDistQty('arcis')} unit
-⬜️ Penjualan dokter pstore : ${getDistQty('dokter')} unit
-⬜️ Penjualan perdana : ${getDistQty('perdana')} unit
-⬜️ Penjualan jaringan : ${getDistQty('jaringan')} unit
+⬜️ Penjualan accesories : ${getDist('aksesoris') || getDist('accesories')} unit
+⬜️ Penjualan apply : ${getDist('apply')} unit
+⬜️ Penjualan debs : ${getDist('debs')} unit
+⬜️ Penjualan arcis : ${getDist('arcis')} unit
+⬜️ Penjualan dokter pstore : ${getDist('dokter')} unit
+⬜️ Penjualan perdana : ${getDist('perdana')} unit
+⬜️ Penjualan jaringan : ${getDist('jaringan')} unit
 
 ______________
 Laporan keuangan
@@ -1209,14 +1196,14 @@ Apple lux   : ${appleLux}
 Android      : ${android}
 Total HP     : ${iphone + android + appleLux}
 
-Tukar unit          : 
-Tukar tambah   : 
-Downgrade       : 
-Refund               : ${refund}
-Angkat barang  : ${angkatBarang}
+Tukar unit          : ${activities.tukar_unit || 0}
+Tukar tambah   : ${activities.tukar_tambah || 0}
+Downgrade       : ${activities.downgrade || 0}
+Refund               : ${activities.refund || 0}
+Angkat barang  : ${activities.angkat_barang || 0}
 
-Laptop        : ${getDistQty('laptop')}
-Tv                : ${getDistQty('tv')}
+Laptop        : ${summary.units?.laptop || 0}
+Tv                : ${summary.units?.tv || 0}
 
 PENGUNJUNG  :
 ______________
@@ -1225,13 +1212,13 @@ Laporan stok
 🔷 stok apple lux
 
 🔷 stok accesories
-Terjual : ${getDistQty('accesories')}
+Terjual : ${getDist('aksesoris') || getDist('aksesories')}
 
 🔷 stok apply
-Terjual : ${getDistQty('apply')}
+Terjual : ${getDist('apply')}
 
 🔷 stok laptop
-Terjual : ${getDistQty('laptop')}
+Terjual : ${summary.units?.laptop || 0}
 
 🔷 stok arcis 
 Terjual : ${getDistQty('arcis')}
