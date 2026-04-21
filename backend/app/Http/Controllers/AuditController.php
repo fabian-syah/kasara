@@ -328,113 +328,118 @@ class AuditController extends Controller
 
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $paymentMethods) {
-                // Use the proven exact scope strategy from Daily History & Brand Stats
-                $applyLocalScope = function($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                    $query->join('users', 'stock_outs.user_id', '=', 'users.id')
-                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                            ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                                if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                                elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                                else {
-                                    if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                                    if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                                }
-                            });
-                };
+                try {
+                    // Use the proven exact scope strategy from Daily History & Brand Stats
+                    $applyLocalScope = function($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        $query->join('users', 'stock_outs.user_id', '=', 'users.id')
+                                ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                                ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                                    if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
+                                    elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                                    else {
+                                        if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
+                                        if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                    }
+                                });
+                    };
 
-                // 1. Total Omset & Payments
-                $pQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
-                $applyLocalScope($pQuery);
-                $payments = $pQuery->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
-                
-                $pSums = []; $paymentTotal = 0;
-                foreach ($payments as $p) {
-                    $amt = (float)$p->selling_price; $paymentTotal += $amt;
-                    $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'Belum Lunas / Lainnya';
-                    $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
-                    if (is_array($splits)) {
-                        foreach ($splits as $sp) {
-                            $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
-                            $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float)($sp['amount'] ?? 0);
+                    // 1. Total Omset & Payments
+                    $pQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($pQuery);
+                    $payments = $pQuery->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
+                    
+                    $pSums = []; $paymentTotal = 0;
+                    foreach ($payments as $p) {
+                        $amt = (float)$p->selling_price; $paymentTotal += $amt;
+                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'Belum Lunas / Lainnya';
+                        $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
+                        if (is_array($splits)) {
+                            foreach ($splits as $sp) {
+                                $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
+                                $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float)($sp['amount'] ?? 0);
+                            }
+                        } else {
+                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
                         }
-                    } else {
-                        $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
                     }
+
+                    // 2. Unit Mapping
+                    $map = [
+                        'apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'debs' => 0, 
+                        'arcis' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 
+                        'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
+                    ];
+
+                    $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($hpItemsQuery);
+                    $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name')->get();
+
+                    foreach ($hpData as $item) {
+                        $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
+                        if ($isAppleLux) $map['apple_lux']++;
+                        else $map['hp']++;
+                        if (isset($item->brand) && $item->brand === 'Apple') $map['iphone']++;
+                        else $map['android']++;
+                    }
+
+                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($nhpItemsQuery);
+                    
+                    // Complex subquery to find the distributor name from the corresponding inventory log
+                    $nhpData = $nhpItemsQuery->select(
+                        'products.name', 
+                        'products.brand', 
+                        'stock_out_non_hp_items.quantity',
+                        DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
+                                    WHERE il.product_id = products.id AND il.user_id = stock_outs.user_id 
+                                    AND il.type = 'out' AND CAST(il.created_at AS DATE) = CAST(stock_outs.created_at AS DATE) 
+                                    ORDER BY il.id DESC LIMIT 1) as log_dist_name")
+                    )->get();
+
+                    foreach ($nhpData as $item) {
+                        $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
+                        $dist = strtolower($item->log_dist_name ?? '');
+                        $qty = (int)$item->quantity;
+
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
+                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
+                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
+                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
+                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) $map['dokter_pstore'] += $qty;
+                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) $map['jaringan'] += $qty;
+                        elseif (str_contains($name, 'laptop')) $map['laptop'] += $qty;
+                        elseif (str_contains($name, 'tv')) $map['tv'] += $qty;
+                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) $map['perdana'] += $qty;
+                    }
+
+                    // 3. Stock Info
+                    $stockReport = ['apple_lux' => 0];
+                    
+                    // Simple query string for valid owner logic
+                    $stockReport['apple_lux'] = DB::table('product_details')
+                        ->join('users', 'product_details.user_id', '=', 'users.id')
+                        ->where('product_details.status', 'available')
+                        ->whereExists(function($q) { 
+                            $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); 
+                        })
+                        ->where(function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                            if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
+                            elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                            else {
+                                if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
+                                if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                            }
+                        })->count();
+                    
+                    $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($aStatsQuery);
+                    $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
+
+                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'stock_report' => $stockReport, 'activities' => $aStatsList];
+                } catch (\Exception $e) {
+                    file_put_contents(public_path('error_debug.txt'), 'ERROR LINE: ' . $e->getLine() . "\nMSG: " . $e->getMessage() . "\n\n" . $e->getTraceAsString());
+                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'stock_report' => [], 'error' => $e->getMessage()];
                 }
-
-                // 2. Unit Mapping
-                $map = [
-                    'apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'debs' => 0, 
-                    'arcis' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 
-                    'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
-                ];
-
-                $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
-                $applyLocalScope($hpItemsQuery);
-                $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name')->get();
-
-                foreach ($hpData as $item) {
-                    $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
-                    if ($isAppleLux) $map['apple_lux']++;
-                    else $map['hp']++;
-                    if (isset($item->brand) && $item->brand === 'Apple') $map['iphone']++;
-                    else $map['android']++;
-                }
-
-                $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
-                $applyLocalScope($nhpItemsQuery);
-                
-                // Complex subquery to find the distributor name from the corresponding inventory log
-                $nhpData = $nhpItemsQuery->select(
-                    'products.name', 
-                    'products.brand', 
-                    'stock_out_non_hp_items.quantity',
-                    DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
-                                WHERE il.product_id = products.id AND il.user_id = stock_outs.user_id 
-                                AND il.type = 'out' AND CAST(il.created_at AS DATE) = CAST(stock_outs.created_at AS DATE) 
-                                ORDER BY il.id DESC LIMIT 1) as log_dist_name")
-                )->get();
-
-                foreach ($nhpData as $item) {
-                    $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
-                    $dist = strtolower($item->log_dist_name ?? '');
-                    $qty = (int)$item->quantity;
-
-                    if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
-                    elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
-                    elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
-                    elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
-                    elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) $map['dokter_pstore'] += $qty;
-                    elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) $map['jaringan'] += $qty;
-                    elseif (str_contains($name, 'laptop')) $map['laptop'] += $qty;
-                    elseif (str_contains($name, 'tv')) $map['tv'] += $qty;
-                    elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) $map['perdana'] += $qty;
-                }
-
-                // 3. Stock Info
-                $stockReport = ['apple_lux' => 0];
-                
-                // Simple query string for valid owner logic
-                $stockReport['apple_lux'] = DB::table('product_details')
-                    ->join('users', 'product_details.owner_id', '=', 'users.id')
-                    ->where('product_details.status', 'available')
-                    ->whereExists(function($q) { 
-                        $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); 
-                    })
-                    ->where(function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->count();
-                
-                $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
-                $applyLocalScope($aStatsQuery);
-                $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
-
-                return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'stock_report' => $stockReport, 'activities' => $aStatsList];
             }
         ]);
 
