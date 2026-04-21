@@ -384,31 +384,25 @@
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <div v-if="appleLuxItems.length" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
                                     <div v-for="(item, x) in appleLuxItems" :key="x" 
                                          class="flex flex-col border-b border-emerald-200/30 pb-3 group">
                                         <div class="flex justify-between items-center mb-1">
                                             <div class="flex flex-col">
-                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                    {{ item.name }} {{ formatStorage(item.storage) }}
-                                                </span>
-                                                <span class="text-[9px] font-bold text-emerald-600/60 uppercase">{{ formatCondition(item.condition) }}</span>
-                                            </div>
-                                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">1</span>
+                                            <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                {{ item.name }} {{ formatStorage(item.storage) }}
+                                            </span>
+                                            <span class="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest">{{ item.condition }}</span>
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-black text-emerald-600/40 uppercase tracking-widest">IMEI</span>
-                                            <span class="text-[9px] font-black text-emerald-800/60 dark:text-emerald-500/60 font-mono">{{ item.imei }}</span>
-                                        </div>
+                                        <div class="flex flex-col items-end">
+                                            <span class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{ item.qty }}</span>
+                                        </div></div>
                                     </div>
-                                </div>
-                                <div v-else class="text-center">
-                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit Apple Lux</span>
                                 </div>
                             </div>
 
                             <!-- OTHER CATEGORIES (STOCK, SOLD, IN) -->
-                            <div v-for="cat in categoryStocks" :key="cat.label" :class="{ 'opacity-50': !Object.keys(cat.items).length && !Object.keys(cat.remainingItems).length && !Object.keys(cat.inItems).length }">
+                            <div v-for="cat in categoryStocks" :key="cat.label" v-show="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length">
                                 <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
@@ -1419,7 +1413,8 @@ const distributorHierarchy = computed(() => {
 
 const formatStorage = (storage) => {
     if (!storage) return '';
-    const s = String(storage).toUpperCase();
+    let s = String(storage).toUpperCase().trim();
+    if (s.endsWith('GBGB')) s = s.replace('GBGB', 'GB');
     return s.includes('GB') || s.includes('TB') ? s : s + ' GB';
 }
 
@@ -1587,11 +1582,6 @@ const getBaseReportText = (isForCopy = false) => {
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv                : ${summary.dist_map?.tv || 0}\n\n`;
-
-    text += `PENGUNJUNG  :\n`;
-    text += `DEBUG DATES: ${summary.debug_dates?.start} to ${summary.debug_dates?.end}\n`;
-    text += `ERROR: ${summary.error || 'None'}\n`;
-    text += `_____________`;
 
     return text;
 }
