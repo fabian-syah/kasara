@@ -219,7 +219,221 @@
             </div>
         </template>
 
-        <!-- ==================== SUB-VIEWS ==================== -->
+        <!-- ==================== REPORT VIEW (NEW ERA) ==================== -->
+        <template v-else-if="currentView === 'report'">
+            <div class="flex justify-center pb-12 w-full px-4 sm:px-6">
+                <!-- REPORT CARD NEW ERA UI -->
+                <div
+                    class="bg-[#eafdf3] dark:bg-surface-900 w-full max-w-4xl rounded-[32px] shadow-[0_20px_60px_-15px_rgba(16,185,129,0.15)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 border border-emerald-100 dark:border-emerald-900/30">
+                    
+                    <!-- Action Buttons Overlay -->
+                    <div class="p-6 md:p-8 flex justify-between items-start relative z-10 w-full">
+                        <button @click="currentView = 'menu'" class="p-3 bg-white/60 dark:bg-surface-800/60 hover:bg-emerald-100 dark:hover:bg-surface-700 text-emerald-800 dark:text-emerald-400 rounded-full transition-all backdrop-blur-md shadow-sm border border-emerald-100/50 dark:border-surface-600/50 hover:scale-105 active:scale-95">
+                            <ArrowLeft :size="20" />
+                        </button>
+                        
+                        <button @click="copyReportToClipboard"
+                            class="flex items-center gap-2 px-8 py-3 bg-[#0fa968] hover:bg-[#0cd07f] text-white rounded-full font-black tracking-wider text-xs shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 group">
+                            <Copy v-if="!reportCopied" :size="16" class="group-hover:scale-110 transition-transform"/>
+                            <Check v-else :size="16" />
+                            {{ reportCopied ? 'TERSALIN!' : 'SALIN LAPORAN' }}
+                        </button>
+                    </div>
+
+                    <div class="px-8 md:px-16 pb-16 mt-[-20px]">
+                        <!-- Header -->
+                        <div class="text-center mb-10">
+                            <p class="text-[10px] font-black tracking-[0.35em] text-emerald-800/80 dark:text-emerald-500 uppercase mb-4">STOCK REPORT</p>
+                            <h2 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
+                            </h2>
+                            <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
+                                <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                                {{ formattedDateDisplay }}
+                            </p>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
+
+                        <!-- PENJUALAN ALL -->
+                        <div class="space-y-4 mb-2">
+                            <div v-for="(amount, method) in (salesData?.report_summary?.payments || {})" :key="method" 
+                                 class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
+                                <span class="uppercase tracking-wide">{{ method }}</span>
+                                <span>{{ formatCurrency(amount) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
+                            <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
+                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0) }}</span>
+                        </div>
+
+                        <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
+                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Penjualan Distributor</h3>
+                        
+                        <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan HP</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.hp || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan Apple Lux</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Accesories</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Apply</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apply || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Debs</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.debs || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Arcis</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.arcis || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Dokter Pstore</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Perdana</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.perdana || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Jaringan</span></div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.jaringan || 0) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
+                    
+                        <!-- TOTAL UNIT HP -->
+                        <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Iphone New / Scd</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Apple Lux</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Android New / Scd</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.android || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Laptop</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Tv</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
+                            <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
+                            <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
+                        </div>
+                        
+                        <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
+
+                        <!-- RINCIAN LAINNYA & STOK -->
+                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Unit & Stok</h3>
+                        
+                        <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Tukar Unit</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Tukar Tambah</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Downgrade</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.downgrade || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Refund</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.refund || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Angkat Barang</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Stok Section grid like New Era -->
+                        <div class="grid grid-cols-2 gap-4 mt-12">
+                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLE LUX</span>
+                                </div>
+                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 capitalize">Sisa</span>
+                                    <span class="text-xl">{{ salesData?.report_summary?.stock_report?.apple_lux || 0 }}</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK ACCESORIES</span>
+                                </div>
+                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
+                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.accessories || 0 }}</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLY</span>
+                                </div>
+                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
+                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.apply || 0 }}</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK LAPTOP</span>
+                                </div>
+                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
+                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK ARCIS</span>
+                                </div>
+                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
+                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
+                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.arcis || 0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ==================== SUB-VIEWS (RANKINGS) ==================== -->
         <template v-else>
             <!-- Sub-view Header (Search & Sort) -->
             <div
@@ -785,221 +999,7 @@
             </div>
         </template>
 
-        <!-- Sales Report Modal -->
-        <div v-if="showReportModal"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm px-6">
-            <!-- REPORT MODAL NEW ERA UI -->
-            <div
-                class="bg-[#eafdf3] dark:bg-surface-900 w-full max-w-2xl rounded-[32px] shadow-2xl shadow-emerald-500/10 overflow-hidden animate-in border border-emerald-100/50 dark:border-emerald-900/30">
-                
-                <!-- Action Buttons Overlay -->
-                <div class="p-6 flex justify-between items-start relative z-10 w-full">
-                    <button @click="showReportModal = false" class="p-2.5 bg-white/50 dark:bg-surface-800/50 hover:bg-emerald-100 dark:hover:bg-surface-700 text-emerald-800 dark:text-emerald-400 rounded-full transition-colors backdrop-blur-md">
-                        <ArrowLeft :size="20" />
-                    </button>
-                    
-                    <button @click="copyReportToClipboard"
-                        class="flex items-center gap-2 px-6 py-2.5 bg-[#0fa968] hover:bg-[#0cd07f] text-white rounded-full font-black tracking-wider text-[11px] shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
-                        <Copy v-if="!reportCopied" :size="14" />
-                        <Check v-else :size="14" />
-                        {{ reportCopied ? 'TERSALIN!' : 'SALIN LAPORAN' }}
-                    </button>
-                </div>
-
-                <div class="px-10 pb-14 mt-[-20px] overflow-y-auto max-h-[75vh] custom-scrollbar">
-                    
-                    <!-- Header -->
-                    <div class="text-center mb-10">
-                        <p class="text-[10px] font-black tracking-[0.35em] text-emerald-800/80 dark:text-emerald-500 uppercase mb-4">STOCK REPORT</p>
-                        <h2 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
-                            {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
-                        </h2>
-                        <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
-                            <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
-                            {{ formattedDateDisplay }}
-                        </p>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
-
-                    <!-- PENJUALAN ALL -->
-                    <div class="space-y-4 mb-2">
-                        <div v-for="(amount, method) in (salesData?.report_summary?.payments || {})" :key="method" 
-                             class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
-                            <span class="uppercase tracking-wide">{{ method }}</span>
-                            <span>{{ formatCurrency(amount) }}</span>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
-                        <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
-                        <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0) }}</span>
-                    </div>
-
-                    <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
-                    <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Penjualan Distributor</h3>
-                    
-                    <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan HP</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.hp || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan Apple Lux</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Accesories</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Apply</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apply || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Debs</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.debs || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Arcis</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.arcis || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Dokter Pstore</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Perdana</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.perdana || 0) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Jaringan</span></div>
-                            <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.jaringan || 0) }}</span>
-                        </div>
-                    </div>
-
-                    <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
-                
-                    <!-- TOTAL UNIT HP -->
-                    <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Iphone New / Scd</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Apple Lux</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Android New / Scd</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.android || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Laptop</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Tv</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
-                        <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
-                        <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
-                    </div>
-                    
-                    <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
-
-                    <!-- RINCIAN LAINNYA & STOK -->
-                    <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Unit & Stok</h3>
-                    
-                    <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Tukar Unit</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Tukar Tambah</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Downgrade</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.downgrade || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Refund</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.refund || 0 }}</span>
-                        </div>
-                        <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                            <span class="capitalize">Angkat Barang</span>
-                            <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Stok Section grid like New Era -->
-                    <div class="grid grid-cols-2 gap-4 mt-12">
-                        <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                            <div class="flex items-center gap-2 mb-3">
-                                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLE LUX</span>
-                            </div>
-                            <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                <span class="text-xs text-gray-500 capitalize">Sisa</span>
-                                <span class="text-xl">{{ salesData?.report_summary?.stock_report?.apple_lux || 0 }}</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                            <div class="flex items-center gap-2 mb-3">
-                                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK ACCESORIES</span>
-                            </div>
-                            <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                <span class="text-xl">{{ salesData?.report_summary?.dist_map?.accessories || 0 }}</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                            <div class="flex items-center gap-2 mb-3">
-                                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLY</span>
-                            </div>
-                            <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                <span class="text-xl">{{ salesData?.report_summary?.dist_map?.apply || 0 }}</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                            <div class="flex items-center gap-2 mb-3">
-                                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK LAPTOP</span>
-                            </div>
-                            <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                <span class="text-xl">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                            <div class="flex items-center gap-2 mb-3">
-                                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK ARCIS</span>
-                            </div>
-                            <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                <span class="text-xl">{{ salesData?.report_summary?.dist_map?.arcis || 0 }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div>
+</div>
 </template>
 
 <script setup>
@@ -1464,7 +1464,8 @@ const displayReportText = computed(() => getBaseReportText(false));
 const generatedReportText = computed(() => getBaseReportText(true));
 
 const openSalesReport = () => {
-    showReportModal.value = true;
+    // Switch view to report instead of opening modal
+    currentView.value = 'report';
     reportCopied.value = false;
 }
 
