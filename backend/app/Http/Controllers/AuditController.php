@@ -388,19 +388,31 @@ class AuditController extends Controller
 
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
-                    $nhpData = $nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity')->get();
+                    
+                    // Complex subquery to find the distributor name from the corresponding inventory log
+                    $nhpData = $nhpItemsQuery->select(
+                        'products.name', 
+                        'products.brand', 
+                        'stock_out_non_hp_items.quantity',
+                        DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
+                                  WHERE il.product_id = products.id AND il.user_id = stock_outs.user_id 
+                                  AND il.type = 'out' AND DATE(il.created_at) = DATE(stock_outs.created_at) 
+                                  ORDER BY il.id DESC LIMIT 1) as log_dist_name")
+                    )->get();
 
                     foreach ($nhpData as $item) {
                         $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
+                        $dist = strtolower($item->log_dist_name ?? '');
                         $qty = (int)$item->quantity;
-                        if (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) $map['jaringan'] += $qty;
+
+                        if (str_contains($dist, 'pstore accesories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
+                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
+                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
+                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
+                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) $map['dokter_pstore'] += $qty;
+                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) $map['jaringan'] += $qty;
                         elseif (str_contains($name, 'laptop')) $map['laptop'] += $qty;
                         elseif (str_contains($name, 'tv')) $map['tv'] += $qty;
-                        elseif (str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
-                        elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
-                        elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
-                        elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
-                        elseif (str_contains($name, 'dokter pstore')) $map['dokter_pstore'] += $qty;
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) $map['perdana'] += $qty;
                     }
 
