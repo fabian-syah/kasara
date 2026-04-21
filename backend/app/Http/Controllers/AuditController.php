@@ -327,24 +327,20 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $paymentMethods) {
+            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $paymentMethods) {
                 try {
-                    // Pre-fetch valid user IDs for this scope to avoid complex joins in Octane
-                    $validUserIds = DB::table('users')
-                        ->where(function($q) use ($requestedBranchId, $requestedOnlineShopId) {
-                            if ($requestedBranchId) $q->where('branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $q->where('online_shop_id', $requestedOnlineShopId);
-                        })->pluck('id');
-
-                    if ($validUserIds->isEmpty()) {
-                        return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'stock_report' => [], 'activities' => []];
-                    }
-
-                    // Helper to apply scope to DB queries
-                    $applyLocalScope = function($query) use ($validUserIds, $startDate, $endDate) {
-                        $query->whereIn('stock_outs.user_id', $validUserIds)
-                              ->whereDate('stock_outs.reporting_date', '>=', $startDate)
-                              ->whereDate('stock_outs.reporting_date', '<=', $endDate);
+                    // Use the proven exact scope strategy from Daily History & Brand Stats
+                    $applyLocalScope = function($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        $query->join('users', 'stock_outs.user_id', '=', 'users.id')
+                              ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                              ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                                  if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
+                                  elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                                  else {
+                                      if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
+                                      if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                  }
+                              });
                     };
 
                     // 1. Total Omset & Payments
@@ -405,7 +401,7 @@ class AuditController extends Controller
                         $dist = strtolower($item->log_dist_name ?? '');
                         $qty = (int)$item->quantity;
 
-                        if (str_contains($dist, 'pstore accesories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
                         elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
                         elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
                         elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
@@ -418,7 +414,22 @@ class AuditController extends Controller
 
                     // 3. Stock Info
                     $stockReport = ['apple_lux' => 0];
-                    $stockReport['apple_lux'] = DB::table('product_details')->where('status', 'available')->whereIn('owner_id', $validUserIds)->whereExists(function($q) { $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); })->count();
+                    
+                    // Simple query string for valid owner logic
+                    $stockReport['apple_lux'] = DB::table('product_details')
+                        ->join('users', 'product_details.owner_id', '=', 'users.id')
+                        ->where('product_details.status', 'available')
+                        ->whereExists(function($q) { 
+                            $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); 
+                        })
+                        ->where(function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                            if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
+                            elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                            else {
+                                if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
+                                if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                            }
+                        })->count();
                     
                     $aStatsQuery = DB::table('stock_outs')->whereIn('category', $salesCategories);
                     $applyLocalScope($aStatsQuery);
