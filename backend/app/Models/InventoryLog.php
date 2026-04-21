@@ -8,6 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 class InventoryLog extends Model
 {
     use HasFactory;
+    
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (!$model->created_at && now()->hour < 5) {
+                $model->created_at = now()->subDay();
+            }
+        });
+    }
 
     protected $fillable = [
         'product_id',

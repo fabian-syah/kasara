@@ -1134,8 +1134,9 @@ class InventoryController extends Controller
                         ]);
 
                         // FORCE UPDATE created_at (Bypass Mass Assignment Protection if not fillable)
-                        $existing->created_at = now();
-                        $existing->updated_at = now();
+                        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+                        $existing->created_at = $logicalNow;
+                        $existing->updated_at = $logicalNow;
                         $existing->save();
 
                         $newDetails[] = $existing;
@@ -1547,8 +1548,9 @@ class InventoryController extends Controller
                             // Create new row
                             $newDetail = $detail->replicate();
                             $newDetail->imei = $singleImei;
-                            $newDetail->created_at = now();
-                            $newDetail->updated_at = now();
+                            $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+                            $newDetail->created_at = $logicalNow;
+                            $newDetail->updated_at = $logicalNow;
                             $newDetail->save();
                             $newRowsCount++;
                         }
