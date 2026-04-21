@@ -49,32 +49,14 @@ class AuditController extends Controller
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-            $today = $logicalNow->toDateString();
-            $sevenDaysAgo = $logicalNow->copy()->subDays(7)->toDateString();
-            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
             $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
-
-            if ($startDate === $endDate) {
-                // Daily view: allow up to 7 days back
-                if ($startDate < $sevenDaysAgo) {
-                    $startDate = $today;
-                    $endDate = $today;
-                }
-            } else {
-                // Range/Monthly view: only current and previous month
-                if ($startDate < $startOfLastMonth) {
-                    $startDate = $startOfThisMonth;
-                    // Ensure end date also doesn't go too far back if they try to trick it
-                    if ($endDate < $startOfThisMonth) {
-                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
-                    }
-                }
-
-                // Extra safety: ensure they can't see previous years
-                $currentYear = $logicalNow->format('Y');
-                if (date('Y', strtotime($startDate)) < $currentYear) {
-                    $startDate = $startOfThisMonth;
-                }
+            // Basic safety: Don't allow beyond last month
+            if ($startDate < $startOfLastMonth) {
+                $startDate = $logicalNow->copy()->startOfMonth()->toDateString();
+            }
+            // Don't allow seeing "future" dates beyond logical today
+            if ($endDate > $logicalNow->toDateString()) {
+                $endDate = $logicalNow->toDateString();
             }
         }
 

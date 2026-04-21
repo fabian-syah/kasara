@@ -1173,6 +1173,9 @@ const filters = ref({
 })
 
 const formattedDateDisplay = computed(() => {
+    if (selectedPeriod.value === 'monthly') {
+        return `${months[selectedMonth.value - 1]} ${selectedYear.value}`;
+    }
     if (!filters.value.start_date) return 'Pilih Tanggal';
     const date = new Date(filters.value.start_date);
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
