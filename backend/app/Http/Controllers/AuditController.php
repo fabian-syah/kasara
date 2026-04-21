@@ -49,12 +49,13 @@ class AuditController extends Controller
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
-            // Basic safety: Don't allow beyond last month
-            if ($startDate < $startOfLastMonth) {
-                $startDate = $logicalNow->copy()->startOfMonth()->toDateString();
+            $limitDate = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
+            
+            // Just ensure it's not older than last month
+            if ($startDate < $limitDate) {
+                $startDate = $limitDate;
             }
-            // Don't allow seeing "future" dates beyond logical today
+            // Ensure end date isn't in the future
             if ($endDate > $logicalNow->toDateString()) {
                 $endDate = $logicalNow->toDateString();
             }
