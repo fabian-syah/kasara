@@ -1218,55 +1218,76 @@ const distributorHierarchy = computed(() => {
 })
 
 const generatedReportText = computed(() => {
-    const today = new Date();
-    const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
-    const dateStr = filters.value.start_date ? formatDateString(filters.value.start_date) : formatDateString(today);
-
-    // Data dari Server (Backend Summary)
-    const summary = salesData.value.report_summary || {
-        payments: {},
-        payment_total: 0,
-        distributors: {},
-        units: { iphone: 0, android: 0, laptop: 0, tv: 0 },
-        activities: {}
-    };
-
-    // Build dynamic payment text
-    let paymentText = '';
-    if (summary.payments && Object.keys(summary.payments).length > 0) {
-        Object.entries(summary.payments).forEach(([name, amount]) => {
-            paymentText += `${name} : ${formatCurrency(amount)}\n`;
-        });
-    } else {
-        paymentText = 'Belum ada transaksi\n';
-    }
-
-    const getDist = (key) => {
-        if (!summary.distributors) return 0;
-        const found = Object.keys(summary.distributors).find(k => k.toLowerCase().includes(key.toLowerCase()));
-        return found ? summary.distributors[found] : 0;
-    };
-
-    const iphone = summary.units?.iphone || 0;
-    const appleLux = getDist('apple lux');
-    const android = summary.units?.android || 0;
+    if (!salesData.value || !salesData.value.report_summary) return '';
+    const summary = salesData.value.report_summary;
+    const map = summary.dist_map || {};
+    const stock = summary.stock_report || {};
+    const payments = summary.payments || {};
     const activities = summary.activities || {};
+    
+    const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
+    const dateStr = filters.value.start_date ? formatDateString(filters.value.start_date) : formatDateString(new Date());
 
-    return `*LAPORAN PENJUALAN *
-${storeName.toUpperCase()}
+    let text = `*LAPORAN PENJUALAN *\n`;
+    text += `${storeName.toUpperCase()}\n`;
+    text += `${dateStr}\n`;
+    text += `============\n\n`;
 
-🔷 stok accesories
-Terjual : ${getDist('aksesoris') || getDist('aksesories')}
+    text += `PENJUALAN ALL\n\n`;
+    if (summary.payment_total === 0) {
+        text += `Belum ada transaksi\n`;
+    } else {
+        Object.entries(payments).forEach(([method, amount]) => {
+            text += `${method.toUpperCase()} : ${formatCurrency(amount)}\n`;
+        });
+    }
+    text += `\nTotal : ${formatCurrency(summary.payment_total)}\n`;
+    text += `______\n\n`;
 
-🔷 stok apply
-Terjual : ${getDist('apply')}
+    text += `Rincian Penjualan berdasarkan distributor\n\n`;
+    text += `🟦 Penjualan HP : ${map.hp || 0} unit\n`;
+    text += `🟦 Penjualan apple lux : ${map.apple_lux || 0} unit\n`;
+    text += `⬜️ Penjualan accesories : ${map.accessories || 0} unit\n`;
+    text += `⬜️ Penjualan apply : ${map.apply || 0} unit\n`;
+    text += `⬜️ Penjualan debs : ${map.debs || 0} unit\n`;
+    text += `⬜️ Penjualan arcis : ${map.arcis || 0} unit\n`;
+    text += `⬜️ Penjualan dokter pstore : ${map.dokter_pstore || 0} unit\n`;
+    text += `⬜️ Penjualan perdana : ${map.perdana || 0} unit\n`;
+    text += `⬜️ Penjualan jaringan : ${map.jaringan || 0} unit\n`;
 
-🔷 stok laptop
-Terjual : ${summary.units?.laptop || 0}
+    text += `\n______________\n`;
+    text += `Laporan keuangan\n\n`;
+    text += `🔶 total cash ready\n………………\n………………\n\n`;
+    text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
+    text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
+    text += `AWAL   :\nIN          :\nSISA     :\n`;
 
-🔷 stok arcis 
-Terjual : ${getDist('arcis')}
-`;
+    text += `______________\n`;
+    text += `unit HP keluar\n\n`;
+    text += `Iphone       : ${map.iphone || 0}\n`;
+    text += `Apple lux   : ${map.apple_lux || 0}\n`;
+    text += `Android      : ${map.android || 0}\n`;
+    text += `Total HP     : ${(map.hp || 0) + (map.apple_lux || 0)}\n\n`;
+
+    text += `Tukar unit          : ${activities.tukar_unit || 0}\n`;
+    text += `Tukar tambah   : ${activities.tukar_tambah || 0}\n`;
+    text += `Downgrade       : ${activities.downgrade || 0}\n`;
+    text += `Refund               : ${activities.refund || 0}\n`;
+    text += `Angkat barang  : ${activities.angkat_barang || 0}\n\n`;
+
+    text += `Laptop        : ${map.laptop || 0}\n`;
+    text += `Tv                : ${map.tv || 0}\n\n`;
+    text += `PENGUNJUNG  :\n`;
+
+    text += `______________\n`;
+    text += `Laporan stok\n\n`;
+    text += `🔷 stok apple lux\nSisa : ${stock.apple_lux || 0}\n\n`;
+    text += `🔷 stok accesories\nTerjual : ${map.accessories || 0}\n\n`;
+    text += `🔷 stok apply\nTerjual : ${map.apply || 0}\n\n`;
+    text += `🔷 stok laptop\nTerjual : ${map.laptop || 0}\n\n`;
+    text += `🔷 stok arcis \nTerjual : ${map.arcis || 0}\n\n`;
+
+    return text;
 })
 
 const openSalesReport = () => {
