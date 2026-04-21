@@ -371,57 +371,72 @@
                             </div>
                         </div>
 
-                        <!-- Stok Section grid like New Era -->
-                        <div class="space-y-4 mt-12 pb-12">
-                            <!-- APPLE LUXURY -->
-                            <div class="bg-white/50 dark:bg-surface-800/60 p-6 rounded-[28px] border border-emerald-100/80 dark:border-surface-700 shadow-sm">
-                                <div class="flex items-center justify-between mb-4 border-b border-emerald-100/50 pb-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                        <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLE LUX</span>
-                                    </div>
-                                    <span class="text-xl font-black text-emerald-950 dark:text-white">{{ salesData?.report_summary?.stock_report?.apple_lux || 0 }} <span class="text-[10px] font-black text-emerald-600/50">SISA</span></span>
+                        <!-- STOCK SECTIONS (IMAGE STYLE) -->
+                        <div class="mt-12 space-y-16 pb-20">
+                            <!-- APPLE LUXURY GROUPED BY CONDITION -->
+                            <div v-for="group in groupedAppleLux" :key="group.label" :class="{ 'opacity-50': !group.items.length }">
+                                <!-- Group Header with Lines -->
+                                <div class="flex items-center gap-4 mb-8">
+                                    <div class="h-px bg-emerald-200/60 flex-1"></div>
+                                    <h4 class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
+                                        {{ group.label }}
+                                    </h4>
+                                    <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
-                                <div class="space-y-4">
-                                    <div v-for="(item, sIdx) in (salesData?.report_summary?.stock_details?.apple_lux || [])" :key="sIdx" 
-                                         class="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/30">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <span class="text-xs font-black uppercase text-gray-900 dark:text-white">{{ item.name }}</span>
-                                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded-full">{{ formatCondition(item.condition) }}</span>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <div class="flex gap-2">
-                                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">IMEI:</span>
-                                                <span class="text-[10px] font-black text-emerald-800 dark:text-emerald-400 font-mono tracking-tighter">{{ item.imei }}</span>
-                                            </div>
-                                            <span v-if="item.storage" class="text-[10px] font-black bg-white dark:bg-surface-800 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/50 text-emerald-950 dark:text-emerald-200">
-                                                {{ item.storage }}GB
+
+                                <!-- Responsive Grid Items -->
+                                <div v-if="group.items.length" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                    <div v-for="(item, x) in group.items" :key="x" 
+                                         class="flex flex-col border-b border-emerald-200/30 pb-3 group">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                {{ item.name }} {{ item.storage ? item.storage + 'GB' : '' }}
                                             </span>
+                                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">1</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] font-black text-emerald-600/40 uppercase tracking-widest">IMEI</span>
+                                            <span class="text-[9px] font-black text-emerald-800/60 dark:text-emerald-500/60 font-mono">{{ item.imei }}</span>
                                         </div>
                                     </div>
-                                    <div v-if="!(salesData?.report_summary?.stock_details?.apple_lux || []).length" class="text-[10px] italic text-gray-400 text-center py-4">Tidak ada sisa stok</div>
+                                </div>
+                                <div v-else class="text-center">
+                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit</span>
                                 </div>
                             </div>
 
-                            <!-- OTHER DISTRIBUTORS SOLD ITEMIZATION -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div v-for="catKey in ['accessories', 'apply', 'laptop', 'arcis']" :key="catKey"
-                                     class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[24px] border border-emerald-100/80 dark:border-surface-700 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4 border-b border-emerald-100/30 pb-2">
-                                        <div class="flex items-center gap-2">
-                                            <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                                            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK {{ catKey }}</span>
+                            <!-- OTHER CATEGORIES (SOLD) -->
+                            <div v-for="cat in categoryStocks" :key="cat.label" :class="{ 'opacity-50': !cat.count && !Object.keys(cat.items).length }">
+                                <!-- Category Header -->
+                                <div class="flex items-center gap-4 mb-8">
+                                    <div class="h-px bg-emerald-200/60 flex-1"></div>
+                                    <h4 class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
+                                        {{ cat.label }}
+                                    </h4>
+                                    <div class="h-px bg-emerald-200/60 flex-1"></div>
+                                </div>
+
+                                <div v-if="cat.count || Object.keys(cat.items).length" class="space-y-4">
+                                    <div class="flex justify-center mb-6">
+                                        <div class="bg-emerald-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-emerald-200/50">
+                                            <span class="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
+                                                {{ cat.count }} {{ cat.suffix }}
+                                            </span>
                                         </div>
-                                        <span class="text-lg font-black text-emerald-950 dark:text-white">{{ salesData?.report_summary?.dist_map?.[catKey] || 0 }} <span class="text-[9px] font-black text-emerald-600/50 uppercase">Terjual</span></span>
                                     </div>
-                                    <div class="space-y-1.5">
-                                        <div v-for="(qty, name) in (salesData?.report_summary?.sold_details?.[catKey] || {})" :key="name" 
-                                             class="flex justify-between items-center text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                                            <span class="uppercase line-clamp-1">{{ name }}</span>
-                                            <span class="text-emerald-600 font-black">{{ qty }}</span>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                        <div v-for="(qty, name) in cat.items" :key="name" 
+                                             class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
+                                            <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                                {{ name }}
+                                            </span>
+                                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
                                         </div>
-                                        <div v-if="!Object.keys(salesData?.report_summary?.sold_details?.[catKey] || {}).length" class="text-[9px] italic text-gray-400">Belum ada unit terjual</div>
                                     </div>
+                                </div>
+                                <div v-else class="text-center">
+                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit {{ cat.suffix }}</span>
                                 </div>
                             </div>
                         </div>
@@ -1381,6 +1396,37 @@ const distributorHierarchy = computed(() => {
         }))
         .sort((a, b) => b.qty - a.qty)
 })
+
+const groupedAppleLux = computed(() => {
+    const units = salesData.value?.report_summary?.stock_details?.apple_lux || [];
+    const groups = {
+        'new': { label: 'IPHONE NEW', items: [] },
+        'ex_ibox': { label: 'IPHONE EX IBOX', items: [] },
+        'second': { label: 'IPHONE SCD', items: [] }
+    };
+    
+    units.forEach(u => {
+        const cat = u.condition || 'second';
+        if (groups[cat]) {
+            groups[cat].items.push(u);
+        }
+    });
+
+    return Object.values(groups);
+});
+
+const categoryStocks = computed(() => {
+    const summary = salesData.value?.report_summary || {};
+    const soldDetails = summary.sold_details || {};
+    const distMap = summary.dist_map || {};
+    
+    return [
+        { label: 'STOK ACCESSORIES', count: distMap.accessories || 0, items: soldDetails.accessories || {}, suffix: 'Terjual' },
+        { label: 'STOK APPLY', count: distMap.apply || 0, items: soldDetails.apply || {}, suffix: 'Terjual' },
+        { label: 'STOK LAPTOP', count: distMap.laptop || 0, items: soldDetails.laptop || {}, suffix: 'Terjual' },
+        { label: 'STOK ARCIS', count: distMap.arcis || 0, items: soldDetails.arcis || {}, suffix: 'Terjual' }
+    ];
+});
 
 const getBaseReportText = (isForCopy = false) => {
     if (!salesData.value || !salesData.value.report_summary) return '';
