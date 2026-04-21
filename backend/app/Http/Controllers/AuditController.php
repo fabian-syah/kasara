@@ -369,10 +369,12 @@ class AuditController extends Controller
                         'arcis' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 
                         'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
                     ];
+                    $mapRp = $map;
+                    $processedStockOuts = [];
 
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($hpItemsQuery);
-                    $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name')->get();
+                    $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
 
                     foreach ($hpData as $item) {
                         $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
@@ -380,6 +382,16 @@ class AuditController extends Controller
                         else $map['hp']++;
                         if (isset($item->brand) && $item->brand === 'Apple') $map['iphone']++;
                         else $map['android']++;
+
+                        $soId = $item->stock_out_id;
+                        $price = 0;
+                        if (!isset($processedStockOuts[$soId])) {
+                            $price = (float)$item->selling_price;
+                            $processedStockOuts[$soId] = true;
+                        }
+
+                        if ($isAppleLux) $mapRp['apple_lux'] += $price;
+                        else $mapRp['hp'] += $price;
                     }
 
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
@@ -390,6 +402,8 @@ class AuditController extends Controller
                         'products.name', 
                         'products.brand', 
                         'stock_out_non_hp_items.quantity',
+                        'stock_outs.id as stock_out_id',
+                        'stock_outs.selling_price',
                         DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
                                     WHERE il.product_id = products.id AND il.user_id = stock_outs.user_id 
                                     AND il.type = 'out' AND CAST(il.created_at AS DATE) = CAST(stock_outs.created_at AS DATE) 
@@ -401,15 +415,22 @@ class AuditController extends Controller
                         $dist = strtolower($item->log_dist_name ?? '');
                         $qty = (int)$item->quantity;
 
-                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
-                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) $map['apply'] += $qty;
-                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) $map['debs'] += $qty;
-                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) $map['arcis'] += $qty;
-                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) $map['dokter_pstore'] += $qty;
-                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) $map['jaringan'] += $qty;
-                        elseif (str_contains($name, 'laptop')) $map['laptop'] += $qty;
-                        elseif (str_contains($name, 'tv')) $map['tv'] += $qty;
-                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) $map['perdana'] += $qty;
+                        $soId = $item->stock_out_id;
+                        $price = 0;
+                        if (!isset($processedStockOuts[$soId])) {
+                            $price = (float)$item->selling_price;
+                            $processedStockOuts[$soId] = true;
+                        }
+
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $map['accessories'] += $qty; $mapRp['accessories'] += $price; }
+                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $map['apply'] += $qty; $mapRp['apply'] += $price; }
+                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $map['debs'] += $qty; $mapRp['debs'] += $price; }
+                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $map['arcis'] += $qty; $mapRp['arcis'] += $price; }
+                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $map['dokter_pstore'] += $qty; $mapRp['dokter_pstore'] += $price; }
+                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; }
+                        elseif (str_contains($name, 'laptop')) { $map['laptop'] += $qty; $mapRp['laptop'] += $price; }
+                        elseif (str_contains($name, 'tv')) { $map['tv'] += $qty; $mapRp['tv'] += $price; }
+                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; }
                     }
 
                     // 3. Stock Info
@@ -435,10 +456,10 @@ class AuditController extends Controller
                     $applyLocalScope($aStatsQuery);
                     $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
 
-                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'stock_report' => $stockReport, 'activities' => $aStatsList];
+                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'dist_map_rp' => $mapRp, 'stock_report' => $stockReport, 'activities' => $aStatsList];
                 } catch (\Exception $e) {
                     file_put_contents(public_path('error_debug.txt'), 'ERROR LINE: ' . $e->getLine() . "\nMSG: " . $e->getMessage() . "\n\n" . $e->getTraceAsString());
-                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'stock_report' => [], 'error' => $e->getMessage()];
+                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'dist_map_rp' => [], 'stock_report' => [], 'error' => $e->getMessage()];
                 }
             }
         ]);

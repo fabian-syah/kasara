@@ -812,7 +812,7 @@
                     <div class="relative group">
                         <pre
                             class="bg-gray-50 dark:bg-surface-900 p-6 rounded-2xl text-[13px] font-mono leading-relaxed text-text-primary whitespace-pre-wrap border-2 border-dashed border-gray-200 dark:border-surface-700 min-h-[400px]">
-                    {{ generatedReportText }}
+                    {{ displayReportText }}
                 </pre>
                         <button @click="copyReportToClipboard"
                             class="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-primary-500/20 transition-all active:scale-95">
@@ -1217,10 +1217,11 @@ const distributorHierarchy = computed(() => {
         .sort((a, b) => b.qty - a.qty)
 })
 
-const generatedReportText = computed(() => {
+const getBaseReportText = (isForCopy = false) => {
     if (!salesData.value || !salesData.value.report_summary) return '';
     const summary = salesData.value.report_summary;
     const map = summary.dist_map || {};
+    const mapRp = summary.dist_map_rp || {};
     const stock = summary.stock_report || {};
     const payments = summary.payments || {};
     const activities = summary.activities || {};
@@ -1245,22 +1246,24 @@ const generatedReportText = computed(() => {
     text += `______\n\n`;
 
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
-    text += `🟦 Penjualan HP : ${map.hp || 0} unit\n`;
-    text += `🟦 Penjualan apple lux : ${map.apple_lux || 0} unit\n`;
-    text += `⬜️ Penjualan accesories : ${map.accessories || 0} unit\n`;
-    text += `⬜️ Penjualan apply : ${map.apply || 0} unit\n`;
-    text += `⬜️ Penjualan debs : ${map.debs || 0} unit\n`;
-    text += `⬜️ Penjualan arcis : ${map.arcis || 0} unit\n`;
-    text += `⬜️ Penjualan dokter pstore : ${map.dokter_pstore || 0} unit\n`;
-    text += `⬜️ Penjualan perdana : ${map.perdana || 0} unit\n`;
-    text += `⬜️ Penjualan jaringan : ${map.jaringan || 0} unit\n`;
+    text += `🟦 Penjualan HP : ${formatCurrency(mapRp.hp || 0)}\n`;
+    text += `🟦 Penjualan apple lux : ${formatCurrency(mapRp.apple_lux || 0)}\n`;
+    text += `⬜️ Penjualan accesories : ${formatCurrency(mapRp.accessories || 0)}\n`;
+    text += `⬜️ Penjualan apply : ${formatCurrency(mapRp.apply || 0)}\n`;
+    text += `⬜️ Penjualan debs : ${formatCurrency(mapRp.debs || 0)}\n`;
+    text += `⬜️ Penjualan arcis : ${formatCurrency(mapRp.arcis || 0)}\n`;
+    text += `⬜️ Penjualan dokter pstore : ${formatCurrency(mapRp.dokter_pstore || 0)}\n`;
+    text += `⬜️ Penjualan perdana : ${formatCurrency(mapRp.perdana || 0)}\n`;
+    text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
 
-    text += `\n______________\n`;
-    text += `Laporan keuangan\n\n`;
-    text += `🔶 total cash ready\n………………\n………………\n\n`;
-    text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
-    text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
-    text += `AWAL   :\nIN          :\nSISA     :\n`;
+    if (isForCopy) {
+        text += `\n______________\n`;
+        text += `Laporan keuangan\n\n`;
+        text += `🔶 total cash ready\n………………\n………………\n\n`;
+        text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
+        text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
+        text += `AWAL   :\nIN          :\nSISA     :\n`;
+    }
 
     text += `______________\n`;
     text += `unit HP keluar\n\n`;
@@ -1288,7 +1291,10 @@ const generatedReportText = computed(() => {
     text += `🔷 stok arcis \nTerjual : ${map.arcis || 0}\n\n`;
 
     return text;
-})
+}
+
+const displayReportText = computed(() => getBaseReportText(false));
+const generatedReportText = computed(() => getBaseReportText(true));
 
 const openSalesReport = () => {
     showReportModal.value = true;
