@@ -1221,7 +1221,7 @@ Terjual : ${getDist('apply')}
 Terjual : ${summary.units?.laptop || 0}
 
 🔷 stok arcis 
-Terjual : ${getDistQty('arcis')}
+Terjual : ${getDist('arcis')}
 `;
 })
 

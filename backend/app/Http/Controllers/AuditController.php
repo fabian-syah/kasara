@@ -426,31 +426,42 @@ class AuditController extends Controller
                 $paymentTotal = 0;
                 foreach ($allPayments as $p) {
                     $amt = (float)$p->selling_price;
-                    $paymentTotal += $amt;
-                    $m = $paymentMethods->get($p->payment_method_id);
-                    $mName = $m->name ?? 'Lainnya';
+                    $mName = 'Lainnya';
                     
-                    if (!isset($pSums[$mName])) $pSums[$mName] = 0;
-                    $pSums[$mName] += $amt;
+                    // Main Payment Method
+                    if ($p->payment_method_id) {
+                        $m = $paymentMethods->get($p->payment_method_id);
+                        $mName = $m->name ?? 'Lainnya';
+                        if (!isset($pSums[$mName])) $pSums[$mName] = 0;
+                        $pSums[$mName] += $amt;
+                        $paymentTotal += $amt;
+                    }
                     
                     // Handle split payments if any
-                    $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
+                    $splits = $p->split_payments;
                     if ($splits) {
-                        // Note: If split payments exist, the main selling_price logic above might need adjustment 
-                        // depending on how the system records them. Assuming we sum the splits:
-                        // (Re-calculating based on splits to be more precise if they exist)
-                        $pSums[$mName] -= $amt; // Remove the single entry if it was actually a split
-                        $paymentTotal -= $amt;
+                        if (is_string($splits)) {
+                            $splits = json_decode($splits, true);
+                        }
                         
-                        foreach ((array)$splits as $sp) {
-                            $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? ($sp['id'] ?? null));
-                            $sAmt = (float)($sp['amount'] ?? 0);
-                            $sm = $paymentMethods->get($mid);
-                            $smName = $sm->name ?? 'Lainnya';
-                            
-                            if (!isset($pSums[$smName])) $pSums[$smName] = 0;
-                            $pSums[$smName] += $sAmt;
-                            $paymentTotal += $sAmt;
+                        if (is_array($splits)) {
+                            // Deduct the main amount if we're breaking it down into splits
+                            if (isset($pSums[$mName])) {
+                                $pSums[$mName] -= $amt;
+                                $paymentTotal -= $amt;
+                            }
+
+                            foreach ($splits as $sp) {
+                                $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? ($sp['id'] ?? null));
+                                $sAmt = (float)($sp['amount'] ?? 0);
+                                if ($mid) {
+                                    $sm = $paymentMethods->get($mid);
+                                    $smName = $sm->name ?? 'Lainnya';
+                                    if (!isset($pSums[$smName])) $pSums[$smName] = 0;
+                                    $pSums[$smName] += $sAmt;
+                                    $paymentTotal += $sAmt;
+                                }
+                            }
                         }
                     }
                 }
