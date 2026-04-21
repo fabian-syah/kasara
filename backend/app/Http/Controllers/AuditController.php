@@ -327,20 +327,29 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods) {
+            function () use ($salesCategories, $startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $paymentMethods) {
                 try {
-                    // Match scoping with Task 1 (Seller-based branch filtering)
-                    $applyScope = function($query) use ($requestedBranchId, $requestedOnlineShopId) {
-                        $query->join('users as seller', 'seller.id', '=', 'stock_outs.user_id')
-                        ->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId) {
-                            if ($requestedBranchId) $sub->where('seller.branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $sub->where('seller.online_shop_id', $requestedOnlineShopId);
-                        });
+                    // Pre-fetch valid user IDs for this scope to avoid complex joins in Octane
+                    $validUserIds = DB::table('users')
+                        ->where(function($q) use ($requestedBranchId, $requestedOnlineShopId) {
+                            if ($requestedBranchId) $q->where('branch_id', $requestedBranchId);
+                            elseif ($requestedOnlineShopId) $q->where('online_shop_id', $requestedOnlineShopId);
+                        })->pluck('id');
+
+                    if ($validUserIds->isEmpty()) {
+                        return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'stock_report' => [], 'activities' => []];
+                    }
+
+                    // Helper to apply scope to DB queries
+                    $applyLocalScope = function($query) use ($validUserIds, $startDate, $endDate) {
+                        $query->whereIn('stock_outs.user_id', $validUserIds)
+                              ->whereDate('stock_outs.reporting_date', '>=', $startDate)
+                              ->whereDate('stock_outs.reporting_date', '<=', $endDate);
                     };
 
                     // 1. Total Omset & Payments
-                    $pQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $applyScope($pQuery);
+                    $pQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($pQuery);
                     $payments = $pQuery->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
                     
                     $pSums = []; $paymentTotal = 0;
@@ -365,20 +374,20 @@ class AuditController extends Controller
                         'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
                     ];
 
-                    $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $applyScope($hpItemsQuery);
+                    $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($hpItemsQuery);
                     $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name')->get();
 
                     foreach ($hpData as $item) {
                         $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
                         if ($isAppleLux) $map['apple_lux']++;
                         else $map['hp']++;
-                        if ($item->brand === 'Apple') $map['iphone']++;
+                        if (isset($item->brand) && $item->brand === 'Apple') $map['iphone']++;
                         else $map['android']++;
                     }
 
-                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $applyScope($nhpItemsQuery);
+                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
+                    $applyLocalScope($nhpItemsQuery);
                     $nhpData = $nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity')->get();
 
                     foreach ($nhpData as $item) {
@@ -397,10 +406,10 @@ class AuditController extends Controller
 
                     // 3. Stock Info
                     $stockReport = ['apple_lux' => 0];
-                    $stockReport['apple_lux'] = DB::table('product_details')->join('users', 'product_details.owner_id', '=', 'users.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->where('product_details.status', 'available')->where('distributors.name', 'like', '%Apple Luxury%')->where(function($q) use ($requestedBranchId, $requestedOnlineShopId) { if($requestedBranchId) $q->where('users.branch_id', $requestedBranchId); elseif($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId); })->count();
+                    $stockReport['apple_lux'] = DB::table('product_details')->where('status', 'available')->whereIn('owner_id', $validUserIds)->whereExists(function($q) { $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); })->count();
                     
-                    $aStatsQuery = DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->whereIn('category', $salesCategories);
-                    $applyScope($aStatsQuery);
+                    $aStatsQuery = DB::table('stock_outs')->whereIn('category', $salesCategories);
+                    $applyLocalScope($aStatsQuery);
                     $aStatsList = $aStatsQuery->select('category', DB::raw("count(*) as qty"))->groupBy('category')->get()->pluck('qty', 'category');
 
                     return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'stock_report' => $stockReport, 'activities' => $aStatsList];
