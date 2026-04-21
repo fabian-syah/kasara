@@ -191,6 +191,19 @@
                     <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Distributor</h3>
                     <p class="text-sm text-text-secondary">Ranking penjualan berdasarkan asal distributor</p>
                 </button>
+
+                <!-- Card: Laporan Penjualan (New) -->
+                <button @click="openSalesReport"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                            <FileText :size="24" class="text-primary-500" />
+                        </div>
+                        <ChevronRight :size="20" class="text-text-secondary group-hover:text-primary-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan Penjualan</h3>
+                    <p class="text-sm text-text-secondary">Jenerate laporan teks lengkap untuk dikopi</p>
+                </button>
             </div>
         </template>
 
@@ -592,9 +605,6 @@
                                         </td>
                                         <template v-if="currentView === 'sales'">
                                             <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0 }}</td>
-                                            <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units || 0 }}</td>
-                                            <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0 }}</td>
-                                        </template>
                                         <td class="px-6 py-4 text-center font-black text-primary-500">{{ item.total_sales }}</td>
                                         <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-amber-500">{{ item.total_angkat_barang || 0 }}</td>
                                         <td v-if="currentView === 'activity'" class="px-6 py-4 text-center font-bold text-red-500">{{ item.total_refund || 0 }}</td>
@@ -671,16 +681,56 @@
                 </div>
             </div>
         </template>
+
+        <!-- Sales Report Modal -->
+        <div v-if="showReportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm px-6">
+            <div class="bg-white dark:bg-surface-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in">
+                <div class="p-6 border-b border-gray-100 dark:border-surface-700 flex justify-between items-center bg-gray-50/50 dark:bg-surface-900/50">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-primary-500/10 rounded-xl">
+                            <FileText :size="20" class="text-primary-500" />
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-text-primary uppercase tracking-tight">Laporan Penjualan</h3>
+                            <p class="text-xs text-text-secondary font-bold">{{ formattedDateDisplay }}</p>
+                        </div>
+                    </div>
+                    <button @click="showReportModal = false" class="p-2 hover:bg-gray-200 dark:hover:bg-surface-700 rounded-xl transition-colors">
+                        <X :size="20" class="text-text-secondary" />
+                    </button>
+                </div>
+
+                <div class="p-6 overflow-y-auto max-h-[70vh]">
+                    <div class="relative group">
+                        <pre class="bg-gray-50 dark:bg-surface-900 p-6 rounded-2xl text-[13px] font-mono leading-relaxed text-text-primary whitespace-pre-wrap border-2 border-dashed border-gray-200 dark:border-surface-700 min-h-[400px]">
+{{ generatedReportText }}
+                        </pre>
+                        <button @click="copyReportToClipboard" 
+                            class="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-primary-500/20 transition-all active:scale-95">
+                            <Copy v-if="!reportCopied" :size="14" />
+                            <Check v-else :size="14" />
+                            {{ reportCopied ? 'Tersalin!' : 'Salin Laporan' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-gray-50 dark:bg-surface-900/50 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-3">
+                    <button @click="showReportModal = false" class="px-6 py-2 rounded-xl text-sm font-bold text-text-secondary hover:text-text-primary transition-colors">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { 
-    Loader2, ChevronDown, Calendar, Trophy, ArrowLeft, RefreshCw, 
-    TrendingUp, Users, Layers, Smartphone, Tag, RotateCcw,
-    Search, ListFilter, ChevronRight, Truck, MapPin, Globe,
-    ToggleLeft, ToggleRight
+    Trophy, ArrowLeft, Calendar, Loader2, Search, RefreshCw, 
+    Smartphone, Layers, Tag, RotateCcw, ChevronRight, Users, 
+    Truck, ListFilter, MapPin, Globe, ToggleLeft, ToggleRight,
+    FileText, X, Copy, Check
 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
@@ -706,18 +756,22 @@ const showBrandType = ref(false)
 const showBrandCondition = ref(false)
 const showBrandGb = ref(false)
 
+const showReportModal = ref(false)
+const reportCopied = ref(false)
+
 const sortConfig = ref({
     order: 'num-desc' // 'num-desc', 'num-asc', 'alpha-asc', 'alpha-desc'
 })
 
 const viewLabels = {
-    'revenue': 'Ringkasan Penjualan Harian',
-    'sales': 'Peringkat Berdasarkan Unit Terjual',
-    'brand': 'Penjualan Berdasarkan Brand',
-    'type': 'Penjualan Berdasarkan Tipe Produk',
-    'condition': 'Penjualan Berdasarkan Kondisi',
+    'menu': 'Pilih kategori peringkat yang ingin Anda lihat',
+    'revenue': 'Peringkat Penjualan per Tanggal',
+    'sales': 'Peringkat Penjualan per Sales',
+    'brand': 'Penjualan per Merek Produk',
+    'type': 'Penjualan per Tipe/Model',
+    'condition': 'Penjualan per Kondisi',
     'activity': 'Peringkat Angkat Barang & Refund',
-    'distributor': 'Penjualan Berdasarkan Distributor'
+    'distributor': 'Peringkat Penjualan per Distributor'
 }
 
 const months = [
@@ -1051,6 +1105,150 @@ const distributorHierarchy = computed(() => {
         }))
         .sort((a,b) => b.qty - a.qty)
 })
+
+const generatedReportText = computed(() => {
+    const today = new Date();
+    const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
+    const dateStr = filters.value.start_date ? formatDateString(filters.value.start_date) : formatDateString(today);
+    
+    // 1. Payment Summary
+    let cash = 0, transfer = 0, edc = 0;
+    const dailyData = salesData.value.daily_sales?.data || [];
+    dailyData.forEach(trx => {
+        cash += (trx.cash || 0);
+        transfer += (trx.transfer || 0);
+        edc += (trx.edc || 0);
+    });
+
+    // 2. Distributor Summary
+    const distData = salesData.value.distributor_sales || [];
+    const getDistQty = (name) => {
+        const d = distData.find(i => i.distributor.toLowerCase().includes(name.toLowerCase()));
+        return d ? d.qty : 0;
+    }
+
+    // 3. Unit Stats
+    let iphone = 0, android = 0, appleLux = 0;
+    const csData = salesData.value.cs_sales || [];
+    csData.forEach(cs => {
+        iphone += (cs.iphone_units || 0);
+        android += (cs.android_units || 0);
+        // Assuming Apple Lux is tracked via distributor or specific logic
+    });
+    // Search for Apple Lux in distributor data if it has its own distributor entry
+    appleLux = getDistQty('apple lux');
+
+    // 4. Activity Stats
+    let tukarUnit = 0, tukarTambah = 0, downgrade = 0, refund = 0, angkatBarang = 0;
+    csData.forEach(cs => {
+        // Since cs_sales doesn't have the deep breakdown anymore, we estimate or use combined
+        // In the template provided, activity ranking was split.
+        // We'll use the total_angkat_barang and total_refund we already have
+        angkatBarang += (cs.total_angkat_barang || 0);
+        refund += (cs.total_refund || 0);
+    });
+
+    return `*LAPORAN PENJUALAN *
+${storeName.toUpperCase()}
+${dateStr}
+============
+
+PENJUALAN ALL
+
+CASH : ${formatCurrency(cash)}
+Transfer PSM:
+Transfer apple lux :
+Edc bca :
+Edc bni :
+Edc mandiri :
+
+Total : ${formatCurrency(cash + transfer + edc)}
+
+______
+
+Rincian Penjualan berdasarkan distributor
+
+🟦 Penjualan HP : ${getDistQty('hp')} unit
+🟦 Penjualan apple lux : ${appleLux} unit
+⬜️ Penjualan accesories : ${getDistQty('accesories')} unit
+⬜️ Penjualan apply : ${getDistQty('apply')} unit
+⬜️ Penjualan debs : ${getDistQty('debs')} unit
+⬜️ Penjualan arcis : ${getDistQty('arcis')} unit
+⬜️ Penjualan dokter pstore : ${getDistQty('dokter')} unit
+⬜️ Penjualan perdana : ${getDistQty('perdana')} unit
+⬜️ Penjualan jaringan : ${getDistQty('jaringan')} unit
+
+______________
+Laporan keuangan
+
+🔶 total cash ready
+………………
+………………
+
+🔶 RICIAN PENGELUARAN
+………………
+………………
+Total     :
+
+🔶 RINCIAN DEPOSIT TOKO
+………………
+………………
+Total     :
+
+AWAL   :
+IN          :
+SISA     :
+______________
+unit HP keluar
+
+Iphone       : ${iphone}
+Apple lux   : ${appleLux}
+Android      : ${android}
+Total HP     : ${iphone + android + appleLux}
+
+Tukar unit          : 
+Tukar tambah   : 
+Downgrade       : 
+Refund               : ${refund}
+Angkat barang  : ${angkatBarang}
+
+Laptop        : ${getDistQty('laptop')}
+Tv                : ${getDistQty('tv')}
+
+PENGUNJUNG  :
+______________
+Laporan stok
+
+🔷 stok apple lux
+
+🔷 stok accesories
+Terjual : ${getDistQty('accesories')}
+
+🔷 stok apply
+Terjual : ${getDistQty('apply')}
+
+🔷 stok laptop
+Terjual : ${getDistQty('laptop')}
+
+🔷 stok arcis 
+Terjual : ${getDistQty('arcis')}
+`;
+})
+
+const openSalesReport = () => {
+    showReportModal.value = true;
+    reportCopied.value = false;
+}
+
+const copyReportToClipboard = async () => {
+    try {
+        await navigator.clipboard.writeText(generatedReportText.value);
+        reportCopied.value = true;
+        setTimeout(() => { reportCopied.value = false; }, 2000);
+    } catch (err) {
+        console.error('Failed to copy!', err);
+    }
+}
 
 const filteredBrandHierarchy = computed(() => {
     if (!searchQuery.value) return brandHierarchy.value
