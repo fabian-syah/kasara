@@ -314,7 +314,7 @@ class AuditController extends Controller
                 try {
                     // Use the proven exact scope strategy from Daily History & Brand Stats
                     $applyLocalScope = function($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        $query->join('users', 'stock_outs.user_id', '=', 'users.id')
+                        $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
                                 ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                                 ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                                     if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
@@ -565,7 +565,8 @@ class AuditController extends Controller
                         'stock_details' => $stockDetails,
                         'sold_details' => $soldDetails,
                         'in_details' => $inDetails,
-                        'activities' => $aStatsList
+                        'activities' => $aStatsList,
+                        'debug_dates' => ['start' => $startDate, 'end' => $endDate]
                     ];
                 } catch (\Exception $e) {
                     file_put_contents(public_path('error_debug.txt'), 'ERROR LINE: ' . $e->getLine() . "\nMSG: " . $e->getMessage() . "\n\n" . $e->getTraceAsString());
