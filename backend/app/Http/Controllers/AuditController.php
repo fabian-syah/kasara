@@ -527,11 +527,60 @@ class AuditController extends Controller
                     $applyLocalScope($aStatsQuery);
                     $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
 
+                    // 5. Stock In Summary (Units coming IN on this day)
+                    $inMap = [
+                        'hp' => 0, 'apple_lux' => 0, 'accessories' => 0, 'apply' => 0,
+                        'laptop' => 0, 'arcis' => 0, 'dokter_pstore' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0
+                    ];
+
+                    // HP In
+                    $hpInQuery = DB::table('product_details')
+                        ->join('users', 'product_details.user_id', '=', 'users.id')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                        ->whereBetween('product_details.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                    $applyLocationFilters($hpInQuery);
+                    $hpInData = $hpInQuery->select('distributors.name as dist_name', DB::raw('count(*) as qty'))->groupBy('distributors.name')->get();
+                    foreach ($hpInData as $row) {
+                        $d = strtolower($row->dist_name ?? '');
+                        if (str_contains($d, 'apple luxury')) $inMap['apple_lux'] += $row->qty;
+                        else $inMap['hp'] += $row->qty;
+                    }
+
+                    // Non-HP In
+                    $nhpInQuery = DB::table('inventory_logs')
+                        ->join('users', 'inventory_logs.user_id', '=', 'users.id')
+                        ->join('products', 'inventory_logs.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'inventory_logs.distributor_id', '=', 'distributors.id')
+                        ->where('inventory_logs.type', 'in')
+                        ->whereBetween('inventory_logs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                    $applyLocationFilters($nhpInQuery);
+                    $nhpInData = $nhpInQuery->select('distributors.name as dist_name', 'products.name as p_name', 'products.brand', DB::raw('sum(quantity) as qty'))->groupBy('distributors.name', 'products.name', 'products.brand')->get();
+                    foreach ($nhpInData as $row) {
+                        $name = strtolower($row->p_name);
+                        $brand = strtolower($row->brand ?? '');
+                        $dist = strtolower($row->dist_name ?? '');
+                        $qty = (int)$row->qty;
+
+                        $cat = null;
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $cat = 'accessories'; }
+                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
+                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
+                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
+                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
+                        elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
+                        elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
+                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $inMap['perdana'] += $qty; }
+
+                        if ($cat) $inMap[$cat] += $qty;
+                    }
+
                     return [
                         'payments' => $pSums, 
                         'payment_total' => $paymentTotal, 
                         'dist_map' => $map, 
                         'dist_map_rp' => $mapRp, 
+                        'dist_in_map' => $inMap,
                         'stock_report' => $stockReport, 
                         'stock_details' => $stockDetails,
                         'sold_details' => $soldDetails,
