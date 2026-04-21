@@ -329,11 +329,9 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods) {
                 try {
-                    // Logic to scope by branch (reusable)
-                    $userScope = function($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        $query->join('users', function($join) {
-                            $join->on('users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
-                        })
+                    // Optimized scope logic to avoid multiple join issues in Octane
+                    $applyScope = function($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        $query->join('users', 'users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'))
                         ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                             if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
                             elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
@@ -344,15 +342,15 @@ class AuditController extends Controller
                         });
                     };
 
-                    // 1. Payment Summary
-                    $paymentData = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $userScope($paymentData);
-                    $payments = $paymentData->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
+                    // 1. Total Omset & Payments
+                    $pQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $applyScope($pQuery);
+                    $payments = $pQuery->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
                     
                     $pSums = []; $paymentTotal = 0;
                     foreach ($payments as $p) {
                         $amt = (float)$p->selling_price; $paymentTotal += $amt;
-                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'Belum Ada Metode';
+                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'Belum Lunas / Lainnya';
                         $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
                         if (is_array($splits)) {
                             foreach ($splits as $sp) {
@@ -364,42 +362,33 @@ class AuditController extends Controller
                         }
                     }
 
-                    // 2. Sales Custom Mapping (Units)
+                    // 2. Unit Mapping
                     $map = [
                         'apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'debs' => 0, 
                         'arcis' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 
                         'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
                     ];
 
-                    // HP Items Base
-                    $hpItems = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $userScope($hpItems);
-                    $hpData = $hpItems->select('products.brand', 'products.name as product_name', 'distributors.name as dist_name')->get();
+                    $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $applyScope($hpItemsQuery);
+                    $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name')->get();
 
                     foreach ($hpData as $item) {
                         $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
                         if ($isAppleLux) $map['apple_lux']++;
-                        else $map['hp']++; // Case: HP category minus Apple Luxury
-
+                        else $map['hp']++;
                         if ($item->brand === 'Apple') $map['iphone']++;
                         else $map['android']++;
                     }
 
-                    // Non-HP Items Base
-                    $nhpItems = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                    $userScope($nhpItems);
-                    $nhpData = $nhpItems->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity')->get();
+                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                    $applyScope($nhpItemsQuery);
+                    $nhpData = $nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity')->get();
 
                     foreach ($nhpData as $item) {
                         $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
                         $qty = (int)$item->quantity;
-                        
-                        // Jaringan Mapping (Merk Based)
-                        $jaringanBrands = ['jasa / service', '4g / lte', 'jasa', 'jaringan'];
-                        $isJaringan = false;
-                        foreach($jaringanBrands as $jb) { if(str_contains($brand, $jb) || str_contains($name, $jb)) { $isJaringan = true; break; } }
-
-                        if ($isJaringan) $map['jaringan'] += $qty;
+                        if (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) $map['jaringan'] += $qty;
                         elseif (str_contains($name, 'laptop')) $map['laptop'] += $qty;
                         elseif (str_contains($name, 'tv')) $map['tv'] += $qty;
                         elseif (str_contains($name, 'accessories') || str_contains($brand, 'acc')) $map['accessories'] += $qty;
@@ -410,41 +399,15 @@ class AuditController extends Controller
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) $map['perdana'] += $qty;
                     }
 
-                    // 3. Stock Report (Current Inventory)
-                    // We need to fetch available stocks for same branch
-                    $stockReport = [
-                        'apple_lux' => 0, 'accessories' => 0, 'apply' => 0, 'laptop' => 0, 'arcis' => 0
-                    ];
+                    // 3. Stock Info
+                    $stockReport = ['apple_lux' => 0];
+                    $stockReport['apple_lux'] = DB::table('product_details')->join('users', 'product_details.owner_id', '=', 'users.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->where('product_details.status', 'available')->where('distributors.name', 'like', '%Apple Luxury%')->where(function($q) use ($requestedBranchId, $requestedOnlineShopId) { if($requestedBranchId) $q->where('users.branch_id', $requestedBranchId); elseif($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId); })->count();
                     
-                    // Simple logic: count available product_details for specific distributors
-                    $hpStocks = DB::table('product_details')
-                        ->join('users', 'product_details.owner_id', '=', 'users.id')
-                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
-                        ->where('product_details.status', 'available')
-                        ->where(function($q) use ($requestedBranchId, $requestedOnlineShopId) {
-                            if($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                            elseif($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        });
-                    
-                    $stockReport['apple_lux'] = (clone $hpStocks)->where('distributors.name', 'like', '%Apple Luxury%')->count();
-                    
-                    // Non-HP Stocks (from products table usually)
-                    $nhpStocks = DB::table('products')
-                        ->where('stock_quantity', '>', 0);
-                    // (Note: In your DB, stock_quantity might be global or branch-specific, 
-                    // if it's branch specific you'd join with a stocks table. Assuming simple for now)
+                    $aStatsQuery = DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->whereIn('category', $salesCategories);
+                    $applyScope($aStatsQuery);
+                    $aStatsList = $aStatsQuery->select('category', DB::raw("count(*) as qty"))->groupBy('category')->get()->pluck('qty', 'category');
 
-                    $aStats = DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->whereIn('category', $salesCategories);
-                    $userScope($aStats);
-                    $aStatsList = $aStats->select('category', DB::raw("count(*) as qty"))->groupBy('category')->get()->pluck('qty', 'category');
-
-                    return [
-                        'payments' => $pSums,
-                        'payment_total' => $paymentTotal,
-                        'dist_map' => $map,
-                        'stock_report' => $stockReport,
-                        'activities' => $aStatsList
-                    ];
+                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'stock_report' => $stockReport, 'activities' => $aStatsList];
                 } catch (\Exception $e) {
                     return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'stock_report' => [], 'error' => $e->getMessage()];
                 }
