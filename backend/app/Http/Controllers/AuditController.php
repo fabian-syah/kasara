@@ -329,16 +329,12 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods) {
                 try {
-                    // Optimized scope logic to avoid multiple join issues in Octane
-                    $applyScope = function($query) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        $query->join('users', 'users.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'))
-                        ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                            if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
-                            else {
-                                if (!empty($branchIds)) $sub->orWhereIn('users.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
-                            }
+                    // Match scoping with Task 1 (Seller-based branch filtering)
+                    $applyScope = function($query) use ($requestedBranchId, $requestedOnlineShopId) {
+                        $query->join('users as seller', 'seller.id', '=', 'stock_outs.user_id')
+                        ->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId) {
+                            if ($requestedBranchId) $sub->where('seller.branch_id', $requestedBranchId);
+                            elseif ($requestedOnlineShopId) $sub->where('seller.online_shop_id', $requestedOnlineShopId);
                         });
                     };
 
