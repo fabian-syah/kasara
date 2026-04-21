@@ -373,25 +373,27 @@
 
                         <!-- STOCK SECTIONS (IMAGE STYLE) -->
                         <div class="mt-12 space-y-16 pb-20">
-                            <!-- APPLE LUXURY GROUPED BY CONDITION -->
-                            <div v-for="group in groupedAppleLux" :key="group.label" :class="{ 'opacity-50': !group.items.length }">
-                                <!-- Group Header with Lines -->
+                            <!-- APPLE LUXURY (SINGLE SECTION) -->
+                            <div :class="{ 'opacity-50': !appleLuxItems.length }">
+                                <!-- Group Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                     <h4 class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
-                                        {{ group.label }}
+                                        STOK APPLE LUX
                                     </h4>
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <!-- Responsive Grid Items -->
-                                <div v-if="group.items.length" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                                    <div v-for="(item, x) in group.items" :key="x" 
+                                <div v-if="appleLuxItems.length" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+                                    <div v-for="(item, x) in appleLuxItems" :key="x" 
                                          class="flex flex-col border-b border-emerald-200/30 pb-3 group">
                                         <div class="flex justify-between items-center mb-1">
-                                            <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                {{ item.name }} {{ item.storage ? item.storage + 'GB' : '' }}
-                                            </span>
+                                            <div class="flex flex-col">
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                    {{ item.name }} {{ formatStorage(item.storage) }}
+                                                </span>
+                                                <span class="text-[9px] font-bold text-emerald-600/60 uppercase">{{ formatCondition(item.condition) }}</span>
+                                            </div>
                                             <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">1</span>
                                         </div>
                                         <div class="flex items-center gap-2">
@@ -401,7 +403,7 @@
                                     </div>
                                 </div>
                                 <div v-else class="text-center">
-                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit</span>
+                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit Apple Lux</span>
                                 </div>
                             </div>
 
@@ -1397,22 +1399,14 @@ const distributorHierarchy = computed(() => {
         .sort((a, b) => b.qty - a.qty)
 })
 
-const groupedAppleLux = computed(() => {
-    const units = salesData.value?.report_summary?.stock_details?.apple_lux || [];
-    const groups = {
-        'new': { label: 'IPHONE NEW', items: [] },
-        'ex_ibox': { label: 'IPHONE EX IBOX', items: [] },
-        'second': { label: 'IPHONE SCD', items: [] }
-    };
-    
-    units.forEach(u => {
-        const cat = u.condition || 'second';
-        if (groups[cat]) {
-            groups[cat].items.push(u);
-        }
-    });
+const formatStorage = (storage) => {
+    if (!storage) return '';
+    const s = String(storage).toUpperCase();
+    return s.includes('GB') || s.includes('TB') ? s : s + ' GB';
+}
 
-    return Object.values(groups);
+const appleLuxItems = computed(() => {
+    return salesData.value?.report_summary?.stock_details?.apple_lux || [];
 });
 
 const categoryStocks = computed(() => {
