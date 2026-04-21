@@ -408,7 +408,7 @@
                             </div>
 
                             <!-- OTHER CATEGORIES (STOCK, SOLD, IN) -->
-                            <div v-for="cat in categoryStocks" :key="cat.label" :class="{ 'opacity-50': !cat.count && !cat.remaining && !cat.in && !Object.keys(cat.items).length && !Object.keys(cat.remainingItems).length && !Object.keys(cat.inItems).length }">
+                            <div v-for="cat in categoryStocks" :key="cat.label" :class="{ 'opacity-50': !Object.keys(cat.items).length && !Object.keys(cat.remainingItems).length && !Object.keys(cat.inItems).length }">
                                 <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
@@ -418,75 +418,36 @@
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <div v-if="cat.count || cat.remaining || cat.in || Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length" class="space-y-8">
-                                    <div class="flex flex-wrap justify-center gap-4 mb-6">
-                                        <!-- Masuk Badge -->
-                                        <div v-if="cat.in" class="bg-amber-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-amber-200/50">
-                                            <span class="text-xs font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest">
-                                                {{ cat.in }} Masuk
-                                            </span>
-                                        </div>
-                                        <!-- Sisa Badge -->
-                                        <div v-if="cat.remaining" class="bg-blue-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-blue-200/50">
-                                            <span class="text-xs font-black text-blue-800 dark:text-blue-400 uppercase tracking-widest">
-                                                {{ cat.remaining }} Sisa
-                                            </span>
-                                        </div>
-                                        <!-- Terjual Badge -->
-                                        <div v-if="cat.count" class="bg-emerald-100/50 dark:bg-surface-800 px-6 py-2 rounded-full border border-emerald-200/50">
-                                            <span class="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
-                                                {{ cat.count }} Terjual
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Grid for Details -->
+                                <div v-if="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length" class="space-y-8">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                                        <!-- Masuk Details -->
-                                        <div v-if="Object.keys(cat.inItems || {}).length">
-                                            <h5 class="text-[9px] font-black text-amber-600/60 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div> RINCIAN MASUK
-                                            </h5>
-                                            <div class="space-y-3">
-                                                <div v-for="(qty, name) in cat.inItems" :key="'in-'+name" 
-                                                     class="flex justify-between items-center border-b border-amber-200/30 pb-3">
-                                                    <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                        {{ name }}
-                                                    </span>
-                                                    <span class="text-xs font-black text-amber-700 dark:text-amber-400">{{ qty }}</span>
-                                                </div>
+                                        <!-- Combined List (Unified) -->
+                                        <div v-if="Object.keys(cat.inItems || {}).length" class="space-y-3">
+                                            <div v-for="(qty, name) in cat.inItems" :key="'in-'+name" 
+                                                 class="flex justify-between items-center border-b border-amber-200/30 pb-3">
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                                    {{ name }}
+                                                </span>
+                                                <span class="text-xs font-black text-amber-700 dark:text-amber-400">{{ qty }}</span>
                                             </div>
                                         </div>
 
-                                        <!-- Sisa Details -->
-                                        <div v-if="Object.keys(cat.remainingItems || {}).length">
-                                            <h5 class="text-[9px] font-black text-blue-600/60 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div> RINCIAN SISA
-                                            </h5>
-                                            <div class="space-y-3">
-                                                <div v-for="(qty, name) in cat.remainingItems" :key="'rem-'+name" 
-                                                     class="flex justify-between items-center border-b border-blue-200/30 pb-3">
-                                                    <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                        {{ name }}
-                                                    </span>
-                                                    <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty }}</span>
-                                                </div>
+                                        <div v-if="Object.keys(cat.remainingItems || {}).length" class="space-y-3">
+                                            <div v-for="(qty, name) in cat.remainingItems" :key="'rem-'+name" 
+                                                 class="flex justify-between items-center border-b border-blue-200/30 pb-3">
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                                    {{ name }}
+                                                </span>
+                                                <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty }}</span>
                                             </div>
                                         </div>
 
-                                        <!-- Terjual Details -->
-                                        <div v-if="Object.keys(cat.items || {}).length">
-                                            <h5 class="text-[9px] font-black text-emerald-600/60 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> RINCIAN TERJUAL
-                                            </h5>
-                                            <div class="space-y-3">
-                                                <div v-for="(qty, name) in cat.items" :key="'sold-'+name" 
-                                                     class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
-                                                    <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                        {{ name }}
-                                                    </span>
-                                                    <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
-                                                </div>
+                                        <div v-if="Object.keys(cat.items || {}).length" class="space-y-3">
+                                            <div v-for="(qty, name) in cat.items" :key="'sold-'+name" 
+                                                 class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                                    {{ name }}
+                                                </span>
+                                                <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1564,7 +1525,6 @@ const getBaseReportText = (isForCopy = false) => {
 
     // Apple Lux Sisa
     text += `🔷 stok apple lux\n`;
-    text += `Sisa : ${summary.stock_report?.apple_lux || 0}\n`;
     (stockDetails.apple_lux || []).forEach(item => {
         text += `- ${item.name} | ${item.storage}GB | ${formatCondition(item.condition)} | IMEI: ${item.imei}\n`;
     });
@@ -1579,36 +1539,24 @@ const getBaseReportText = (isForCopy = false) => {
     ];
 
     categories.forEach(cat => {
-        const remaining = summary.stock_report?.[cat.key] || 0;
-        const sold = summary.dist_map?.[cat.key] || 0;
-        const incoming = summary.dist_in_map?.[cat.key] || 0;
         const remainingItems = stockDetails[cat.key] || {};
         const soldItems = soldDetails[cat.key] || {};
         const inItems = summary.in_details?.[cat.key] || {};
 
-        if (remaining > 0 || sold > 0 || incoming > 0) {
+        if (Object.keys(remainingItems).length > 0 || Object.keys(soldItems).length > 0 || Object.keys(inItems).length > 0) {
             text += `🔷 stok ${cat.label}\n`;
             
-            if (incoming > 0) {
-                text += `Masuk : ${incoming}\n`;
-                Object.entries(inItems).forEach(([name, qty]) => {
-                    text += `- ${name} : ${qty}\n`;
-                });
-            }
+            Object.entries(inItems).forEach(([name, qty]) => {
+                text += `- ${name} : ${qty}\n`;
+            });
 
-            if (remaining > 0) {
-                text += `Sisa : ${remaining}\n`;
-                Object.entries(remainingItems).forEach(([name, qty]) => {
-                    text += `- ${name} : ${qty}\n`;
-                });
-            }
+            Object.entries(remainingItems).forEach(([name, qty]) => {
+                text += `- ${name} : ${qty}\n`;
+            });
 
-            if (sold > 0) {
-                text += `Terjual : ${sold}\n`;
-                Object.entries(soldItems).forEach(([name, qty]) => {
-                    text += `- ${name} : ${qty}\n`;
-                });
-            }
+            Object.entries(soldItems).forEach(([name, qty]) => {
+                text += `- ${name} : ${qty}\n`;
+            });
             text += `\n`;
         }
     });

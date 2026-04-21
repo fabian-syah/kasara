@@ -409,11 +409,7 @@ class AuditController extends Controller
                         'products.brand', 
                         'stock_out_non_hp_items.quantity',
                         'stock_outs.id as stock_out_id',
-                        'stock_outs.selling_price',
-                        DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
-                                    WHERE il.product_id = products.id AND il.user_id = stock_outs.user_id 
-                                    AND il.type = 'out' AND CAST(il.created_at AS DATE) = CAST(stock_outs.created_at AS DATE) 
-                                    ORDER BY il.id DESC LIMIT 1) as log_dist_name")
+                        'stock_outs.selling_price'
                     )->get();
 
                     foreach ($nhpData as $item) {
@@ -493,11 +489,7 @@ class AuditController extends Controller
                     $otherStocks = $otherStocksQuery->select(
                         'products.name',
                         'products.brand',
-                        'inventories.quantity',
-                        DB::raw("(SELECT d.name FROM distributors d JOIN inventory_logs il ON d.id = il.distributor_id 
-                                    WHERE il.product_id = products.id AND il.user_id = inventories.user_id 
-                                    AND il.type = 'in' 
-                                    ORDER BY il.id DESC LIMIT 1) as log_dist_name")
+                        'inventories.quantity'
                     )->get();
 
                     foreach ($otherStocks as $s) {
@@ -594,7 +586,19 @@ class AuditController extends Controller
                     ];
                 } catch (\Exception $e) {
                     file_put_contents(public_path('error_debug.txt'), 'ERROR LINE: ' . $e->getLine() . "\nMSG: " . $e->getMessage() . "\n\n" . $e->getTraceAsString());
-                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'dist_map_rp' => [], 'stock_report' => [], 'sold_details' => [], 'stock_details' => [], 'error' => $e->getMessage()];
+                    return [
+                        'payments' => [], 
+                        'payment_total' => 0, 
+                        'dist_map' => [], 
+                        'dist_map_rp' => [], 
+                        'dist_in_map' => [],
+                        'stock_report' => [], 
+                        'sold_details' => [], 
+                        'stock_details' => [], 
+                        'in_details' => [],
+                        'activities' => [],
+                        'error' => $e->getMessage()
+                    ];
                 }
             }
         ]);
