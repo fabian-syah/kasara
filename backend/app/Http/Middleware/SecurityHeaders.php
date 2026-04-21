@@ -38,14 +38,14 @@ class SecurityHeaders
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
  
         // 6. Permissions Policy
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=()');
+        $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self), payment=()');
  
         // 7. Strict Content-Security-Policy (CSP)
         $csp = "default-src 'self'; " .
                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.stokps.com; " .
                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
                "font-src 'self' https://fonts.gstatic.com data:; " .
-               "img-src 'self' data: https://ui-avatars.com https://api.stokps.com; " .
+               "img-src 'self' data: blob: https://ui-avatars.com https://api.stokps.com; " .
                "connect-src 'self' https://api.stokps.com https://www.emsifa.com; " .
                "object-src 'none'; " .
                "frame-ancestors 'self'; " .
