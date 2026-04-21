@@ -548,6 +548,7 @@ class AuditController extends Controller
                     }
 
                     // Non-HP In
+                    $inDetails = [];
                     $nhpInQuery = DB::table('inventory_logs')
                         ->join('users', 'inventory_logs.user_id', '=', 'users.id')
                         ->join('products', 'inventory_logs.product_id', '=', 'products.id')
@@ -561,6 +562,7 @@ class AuditController extends Controller
                         $brand = strtolower($row->brand ?? '');
                         $dist = strtolower($row->dist_name ?? '');
                         $qty = (int)$row->qty;
+                        $pName = $row->p_name;
 
                         $cat = null;
                         if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $cat = 'accessories'; }
@@ -572,7 +574,10 @@ class AuditController extends Controller
                         elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $inMap['perdana'] += $qty; }
 
-                        if ($cat) $inMap[$cat] += $qty;
+                        if ($cat) {
+                            $inMap[$cat] += $qty;
+                            $inDetails[$cat][$pName] = ($inDetails[$cat][$pName] ?? 0) + $qty;
+                        }
                     }
 
                     return [
@@ -584,6 +589,7 @@ class AuditController extends Controller
                         'stock_report' => $stockReport, 
                         'stock_details' => $stockDetails,
                         'sold_details' => $soldDetails,
+                        'in_details' => $inDetails,
                         'activities' => $aStatsList
                     ];
                 } catch (\Exception $e) {
