@@ -1590,6 +1590,7 @@ const getBaseReportText = (isForCopy = false) => {
 
     text += `PENGUNJUNG  :\n`;
     text += `DEBUG DATES: ${summary.debug_dates?.start} to ${summary.debug_dates?.end}\n`;
+    text += `ERROR: ${summary.error || 'None'}\n`;
     text += `_____________`;
 
     return text;
