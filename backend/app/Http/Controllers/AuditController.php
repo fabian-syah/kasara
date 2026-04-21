@@ -471,10 +471,15 @@ class AuditController extends Controller
                     };
                     $applyLocationFilters($appleLuxQuery);
                     
-                    $appleLuxStock = $appleLuxQuery->select('products.name', DB::raw('count(*) as qty'))->groupBy('products.name')->get();
+                    $appleLuxStock = $appleLuxQuery->select('products.name', 'product_details.imei', 'product_details.storage', 'product_details.condition')->get();
                     foreach ($appleLuxStock as $s) {
-                        $stockReport['apple_lux'] += $s->qty;
-                        $stockDetails['apple_lux'][$s->name] = $s->qty;
+                        $stockReport['apple_lux']++;
+                        $stockDetails['apple_lux'][] = [
+                            'name' => $s->name,
+                            'imei' => $s->imei,
+                            'storage' => $s->storage,
+                            'condition' => $s->condition
+                        ];
                     }
                     
                     $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);

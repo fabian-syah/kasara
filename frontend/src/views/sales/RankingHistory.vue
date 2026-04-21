@@ -382,13 +382,24 @@
                                     </div>
                                     <span class="text-xl font-black text-emerald-950 dark:text-white">{{ salesData?.report_summary?.stock_report?.apple_lux || 0 }} <span class="text-[10px] font-black text-emerald-600/50">SISA</span></span>
                                 </div>
-                                <div class="space-y-2">
-                                    <div v-for="(qty, name) in (salesData?.report_summary?.stock_details?.apple_lux || {})" :key="name" 
-                                         class="flex justify-between items-center text-[11px] font-bold text-gray-600 dark:text-gray-400">
-                                        <span class="uppercase">{{ name }}</span>
-                                        <span class="text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
+                                <div class="space-y-4">
+                                    <div v-for="(item, sIdx) in (salesData?.report_summary?.stock_details?.apple_lux || [])" :key="sIdx" 
+                                         class="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100/50 dark:border-emerald-900/30">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <span class="text-xs font-black uppercase text-gray-900 dark:text-white">{{ item.name }}</span>
+                                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2 py-0.5 rounded-full">{{ formatCondition(item.condition) }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex gap-2">
+                                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">IMEI:</span>
+                                                <span class="text-[10px] font-black text-emerald-800 dark:text-emerald-400 font-mono tracking-tighter">{{ item.imei }}</span>
+                                            </div>
+                                            <span v-if="item.storage" class="text-[10px] font-black bg-white dark:bg-surface-800 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/50 text-emerald-950 dark:text-emerald-200">
+                                                {{ item.storage }}GB
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div v-if="!Object.keys(salesData?.report_summary?.stock_details?.apple_lux || {}).length" class="text-[10px] italic text-gray-400">Tidak ada sisa stok</div>
+                                    <div v-if="!(salesData?.report_summary?.stock_details?.apple_lux || []).length" class="text-[10px] italic text-gray-400 text-center py-4">Tidak ada sisa stok</div>
                                 </div>
                             </div>
 
@@ -1418,8 +1429,8 @@ const getBaseReportText = (isForCopy = false) => {
     // Apple Lux Sisa
     text += `🔷 stok apple lux\n`;
     text += `Sisa : ${summary.stock_report?.apple_lux || 0}\n`;
-    Object.entries(stockDetails.apple_lux || {}).forEach(([name, qty]) => {
-        text += `- ${name} : ${qty}\n`;
+    (stockDetails.apple_lux || []).forEach(item => {
+        text += `- ${item.name} | ${item.storage}GB | ${formatCondition(item.condition)} | IMEI: ${item.imei}\n`;
     });
     text += `\n`;
 
