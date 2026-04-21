@@ -264,27 +264,76 @@ class AuditController extends Controller
                 ];
             },
 
-            // 3. CS Sales Stats
+            // 3. CS Sales Stats (Individual Performance)
             function () use ($salesCategories, $startDate, $endDate, $scopeToAccess) {
-                $query = StockOut::whereIn('category', $salesCategories)
+                // To get unit counts correctly per CS, we need to join stock_out_items
+                // We'll do this by first getting the base query filtered by scope
+                $baseQuery = StockOut::whereIn('category', $salesCategories)
                     ->whereBetween('reporting_date', [$startDate, $endDate]);
-                $scopeToAccess($query);
+                $scopeToAccess($baseQuery);
 
-                return $query->leftJoin('users as owners', function ($join) {
+                // Clone for items stats to avoid interfering with revenue totals
+                $itemStatsQuery = (clone $baseQuery)
+                    ->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                    ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                    ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
+                    ->select(
+                        DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
+                        DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"),
+                        DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units")
+                    )
+                    ->groupBy('owner_id')
+                    ->get()
+                    ->keyBy('owner_id');
+
+                $nhpStatsQuery = (clone $baseQuery)
+                    ->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+                    ->select(
+                        DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
+                        DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units")
+                    )
+                    ->groupBy('owner_id')
+                    ->get()
+                    ->keyBy('owner_id');
+
+                // Main Stats (Revenue & Activity)
+                $mainStats = $baseQuery->leftJoin('users as owners', function ($join) {
                     $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                 })
                     ->select(
                         'owners.id as owner_id',
-                        'owners.name as owner_name',
-                        'owners.full_name as owner_full_name',
-                        'owners.photo as owner_photo',
-                        'owners.photo_inventory as owner_photo_inv',
-                        DB::raw("sum(case when stock_outs.category in ('shopee','orderan_online','penjualan_offline','penjualan_store','tukar_unit','tukar_tambah','downgrade','cancel_penjualan') then stock_outs.selling_price when stock_outs.category = 'refund' then -stock_outs.selling_price else 0 end) as total_revenue"),
-                        DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as angkat_barang_count"),
-                        DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as refund_count")
+                        'owners.name as cs_name',
+                        'owners.full_name as full_name',
+                        'owners.photo as photo',
+                        'owners.photo_inventory as photo_inv',
+                        DB::raw("sum(case when stock_outs.category in ('shopee','orderan_online','penjualan_offline','penjualan_store','tukar_unit','tukar_tambah','downgrade','cancel_penjualan') then stock_outs.selling_price when stock_outs.category = 'refund' then -stock_outs.selling_price else 0 end) as grand_total"),
+                        DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"),
+                        DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund")
                     )
                     ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')
                     ->get();
+
+                return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery) {
+                    $items = $itemStatsQuery->get($stat->owner_id);
+                    $nhp = $nhpStatsQuery->get($stat->owner_id);
+
+                    $iphone = (int) ($items->iphone_units ?? 0);
+                    $android = (int) ($items->android_units ?? 0);
+                    $nonHp = (int) ($nhp->non_hp_units ?? 0);
+
+                    return [
+                        'owner_id' => $stat->owner_id,
+                        'cs_name' => $stat->cs_name ?? 'Unknown',
+                        'photo' => $stat->photo ?? $stat->photo_inv,
+                        'grand_total' => (float) $stat->grand_total,
+                        'total_angkat_barang' => (int) $stat->total_angkat_barang,
+                        'total_refund' => (int) $stat->total_refund,
+                        'iphone_units' => $iphone,
+                        'android_units' => $android,
+                        'non_hp_units' => $nonHp,
+                        'total_sales' => $iphone + $android + $nonHp,
+                    ];
+                });
             },
 
             // 4. Daily History
