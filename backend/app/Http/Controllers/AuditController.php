@@ -371,17 +371,24 @@ class AuditController extends Controller
                     ];
                     $mapRp = $map;
                     $processedStockOuts = [];
+                    $soldDetails = [
+                        'apple_lux' => [], 'hp' => [], 'accessories' => [], 'apply' => [], 
+                        'debs' => [], 'arcis' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => []
+                    ];
 
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($hpItemsQuery);
-                    $hpData = $hpItemsQuery->select('products.brand', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
+                    $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
 
                     foreach ($hpData as $item) {
                         $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
-                        if ($isAppleLux) $map['apple_lux']++;
-                        else $map['hp']++;
+                        $cat = $isAppleLux ? 'apple_lux' : 'hp';
+                        $map[$cat]++;
                         if (isset($item->brand) && $item->brand === 'Apple') $map['iphone']++;
                         else $map['android']++;
+
+                        $pName = $item->name ?? 'Unknown HP';
+                        $soldDetails[$cat][$pName] = ($soldDetails[$cat][$pName] ?? 0) + 1;
 
                         $soId = $item->stock_out_id;
                         $price = 0;
@@ -397,7 +404,6 @@ class AuditController extends Controller
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
                     
-                    // Complex subquery to find the distributor name from the corresponding inventory log
                     $nhpData = $nhpItemsQuery->select(
                         'products.name', 
                         'products.brand', 
@@ -414,6 +420,7 @@ class AuditController extends Controller
                         $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
                         $dist = strtolower($item->log_dist_name ?? '');
                         $qty = (int)$item->quantity;
+                        $pName = $item->name ?? 'Unknown Item';
 
                         $soId = $item->stock_out_id;
                         $price = 0;
@@ -422,44 +429,71 @@ class AuditController extends Controller
                             $processedStockOuts[$soId] = true;
                         }
 
-                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $map['accessories'] += $qty; $mapRp['accessories'] += $price; }
-                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $map['apply'] += $qty; $mapRp['apply'] += $price; }
-                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $map['debs'] += $qty; $mapRp['debs'] += $price; }
-                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $map['arcis'] += $qty; $mapRp['arcis'] += $price; }
-                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $map['dokter_pstore'] += $qty; $mapRp['dokter_pstore'] += $price; }
+                        $cat = null;
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $cat = 'accessories'; }
+                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
+                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
+                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
+                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
                         elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; }
-                        elseif (str_contains($name, 'laptop')) { $map['laptop'] += $qty; $mapRp['laptop'] += $price; }
-                        elseif (str_contains($name, 'tv')) { $map['tv'] += $qty; $mapRp['tv'] += $price; }
+                        elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
+                        elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; }
+
+                        if ($cat) {
+                            $map[$cat] += $qty; 
+                            $mapRp[$cat] += $price;
+                            $soldDetails[$cat][$pName] = ($soldDetails[$cat][$pName] ?? 0) + $qty;
+                        }
                     }
 
                     // 3. Stock Info
                     $stockReport = ['apple_lux' => 0];
+                    $stockDetails = ['apple_lux' => []];
                     
-                    // Simple query string for valid owner logic
-                    $stockReport['apple_lux'] = DB::table('product_details')
+                    $appleLuxQuery = DB::table('product_details')
                         ->join('users', 'product_details.user_id', '=', 'users.id')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
                         ->whereExists(function($q) { 
                             $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); 
-                        })
-                        ->where(function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                            if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                            else {
-                                if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                            }
-                        })->count();
+                        });
+                    $applyLocationFilters = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                        else {
+                            if (!empty($branchIds)) $q->where(function($qq) use ($branchIds, $onlineShopIds) {
+                                $qq->whereIn('users.branch_id', $branchIds);
+                                if (!empty($onlineShopIds)) $qq->orWhereIn('users.online_shop_id', $onlineShopIds);
+                            });
+                            elseif (!empty($onlineShopIds)) $q->whereIn('users.online_shop_id', $onlineShopIds);
+                        }
+                    };
+                    $applyLocationFilters($appleLuxQuery);
+                    
+                    $appleLuxStock = $appleLuxQuery->select('products.name', DB::raw('count(*) as qty'))->groupBy('products.name')->get();
+                    foreach ($appleLuxStock as $s) {
+                        $stockReport['apple_lux'] += $s->qty;
+                        $stockDetails['apple_lux'][$s->name] = $s->qty;
+                    }
                     
                     $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($aStatsQuery);
                     $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
 
-                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'dist_map_rp' => $mapRp, 'stock_report' => $stockReport, 'activities' => $aStatsList];
+                    return [
+                        'payments' => $pSums, 
+                        'payment_total' => $paymentTotal, 
+                        'dist_map' => $map, 
+                        'dist_map_rp' => $mapRp, 
+                        'stock_report' => $stockReport, 
+                        'stock_details' => $stockDetails,
+                        'sold_details' => $soldDetails,
+                        'activities' => $aStatsList
+                    ];
                 } catch (\Exception $e) {
                     file_put_contents(public_path('error_debug.txt'), 'ERROR LINE: ' . $e->getLine() . "\nMSG: " . $e->getMessage() . "\n\n" . $e->getTraceAsString());
-                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'dist_map_rp' => [], 'stock_report' => [], 'error' => $e->getMessage()];
+                    return ['payments' => [], 'payment_total' => 0, 'dist_map' => [], 'dist_map_rp' => [], 'stock_report' => [], 'sold_details' => [], 'stock_details' => [], 'error' => $e->getMessage()];
                 }
             }
         ]);

@@ -372,59 +372,45 @@
                         </div>
 
                         <!-- Stok Section grid like New Era -->
-                        <div class="grid grid-cols-2 gap-4 mt-12">
-                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLE LUX</span>
+                        <div class="space-y-4 mt-12 pb-12">
+                            <!-- APPLE LUXURY -->
+                            <div class="bg-white/50 dark:bg-surface-800/60 p-6 rounded-[28px] border border-emerald-100/80 dark:border-surface-700 shadow-sm">
+                                <div class="flex items-center justify-between mb-4 border-b border-emerald-100/50 pb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLE LUX</span>
+                                    </div>
+                                    <span class="text-xl font-black text-emerald-950 dark:text-white">{{ salesData?.report_summary?.stock_report?.apple_lux || 0 }} <span class="text-[10px] font-black text-emerald-600/50">SISA</span></span>
                                 </div>
-                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                    <span class="text-xs text-gray-500 capitalize">Sisa</span>
-                                    <span class="text-xl">{{ salesData?.report_summary?.stock_report?.apple_lux || 0 }}</span>
-                                </div>
-                            </div>
-
-                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK ACCESORIES</span>
-                                </div>
-                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.accessories || 0 }}</span>
+                                <div class="space-y-2">
+                                    <div v-for="(qty, name) in (salesData?.report_summary?.stock_details?.apple_lux || {})" :key="name" 
+                                         class="flex justify-between items-center text-[11px] font-bold text-gray-600 dark:text-gray-400">
+                                        <span class="uppercase">{{ name }}</span>
+                                        <span class="text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
+                                    </div>
+                                    <div v-if="!Object.keys(salesData?.report_summary?.stock_details?.apple_lux || {}).length" class="text-[10px] italic text-gray-400">Tidak ada sisa stok</div>
                                 </div>
                             </div>
 
-                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK APPLY</span>
-                                </div>
-                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.apply || 0 }}</span>
-                                </div>
-                            </div>
-
-                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK LAPTOP</span>
-                                </div>
-                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[20px] shadow-sm shadow-emerald-500/5 border border-emerald-100/80 dark:border-surface-700">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK ARCIS</span>
-                                </div>
-                                <div class="text-sm font-black text-emerald-950 dark:text-white flex justify-between items-center">
-                                    <span class="text-xs text-gray-500 capitalize">Terjual</span>
-                                    <span class="text-xl">{{ salesData?.report_summary?.dist_map?.arcis || 0 }}</span>
+                            <!-- OTHER DISTRIBUTORS SOLD ITEMIZATION -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div v-for="catKey in ['accessories', 'apply', 'laptop', 'arcis']" :key="catKey"
+                                     class="bg-white/50 dark:bg-surface-800/60 p-5 rounded-[24px] border border-emerald-100/80 dark:border-surface-700 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4 border-b border-emerald-100/30 pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-400">STOK {{ catKey }}</span>
+                                        </div>
+                                        <span class="text-lg font-black text-emerald-950 dark:text-white">{{ salesData?.report_summary?.dist_map?.[catKey] || 0 }} <span class="text-[9px] font-black text-emerald-600/50 uppercase">Terjual</span></span>
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <div v-for="(qty, name) in (salesData?.report_summary?.sold_details?.[catKey] || {})" :key="name" 
+                                             class="flex justify-between items-center text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                                            <span class="uppercase line-clamp-1">{{ name }}</span>
+                                            <span class="text-emerald-600 font-black">{{ qty }}</span>
+                                        </div>
+                                        <div v-if="!Object.keys(salesData?.report_summary?.sold_details?.[catKey] || {}).length" class="text-[9px] italic text-gray-400">Belum ada unit terjual</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -432,6 +418,7 @@
                 </div>
             </div>
         </template>
+
 
         <!-- ==================== SUB-VIEWS (RANKINGS) ==================== -->
         <template v-else>
@@ -1423,6 +1410,36 @@ const getBaseReportText = (isForCopy = false) => {
     text += `⬜️ Penjualan perdana : ${formatCurrency(mapRp.perdana || 0)}\n`;
     text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
 
+    text += `\nLaporan stok\n\n`;
+    
+    const stockDetails = summary.stock_details || {};
+    const soldDetails = summary.sold_details || {};
+
+    // Apple Lux Sisa
+    text += `🔷 stok apple lux\n`;
+    text += `Sisa : ${summary.stock_report?.apple_lux || 0}\n`;
+    Object.entries(stockDetails.apple_lux || {}).forEach(([name, qty]) => {
+        text += `- ${name} : ${qty}\n`;
+    });
+    text += `\n`;
+
+    // Other Sales Categories
+    const categories = [
+        { key: 'accessories', label: 'accesories' },
+        { key: 'apply', label: 'apply' },
+        { key: 'laptop', label: 'laptop' },
+        { key: 'arcis', label: 'arcis' }
+    ];
+
+    categories.forEach(cat => {
+        text += `🔷 stok ${cat.label}\n`;
+        text += `Terjual : ${summary.dist_map?.[cat.key] || 0}\n`;
+        Object.entries(soldDetails[cat.key] || {}).forEach(([name, qty]) => {
+            text += `- ${name} : ${qty}\n`;
+        });
+        text += `\n`;
+    });
+
     if (isForCopy) {
         text += `\n______________\n`;
         text += `Laporan keuangan\n\n`;
@@ -1432,12 +1449,11 @@ const getBaseReportText = (isForCopy = false) => {
         text += `AWAL   :\nIN          :\nSISA     :\n`;
     }
 
-    text += `______________\n`;
-    text += `unit HP keluar\n\n`;
-    text += `Iphone       : ${map.iphone || 0}\n`;
-    text += `Apple lux   : ${map.apple_lux || 0}\n`;
-    text += `Android      : ${map.android || 0}\n`;
-    text += `Total HP     : ${(map.hp || 0) + (map.apple_lux || 0)}\n\n`;
+    text += `______________\nunit HP keluar\n\n`;
+    text += `Iphone       : ${summary.dist_map?.iphone || 0}\n`;
+    text += `Apple lux   : ${summary.dist_map?.apple_lux || 0}\n`;
+    text += `Android      : ${summary.dist_map?.android || 0}\n`;
+    text += `Total HP     : ${(summary.dist_map?.hp || 0) + (summary.dist_map?.apple_lux || 0)}\n\n`;
 
     text += `Tukar unit          : ${activities.tukar_unit || 0}\n`;
     text += `Tukar tambah   : ${activities.tukar_tambah || 0}\n`;
@@ -1445,17 +1461,10 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Refund               : ${activities.refund || 0}\n`;
     text += `Angkat barang  : ${activities.angkat_barang || 0}\n\n`;
 
-    text += `Laptop        : ${map.laptop || 0}\n`;
-    text += `Tv                : ${map.tv || 0}\n\n`;
-    text += `PENGUNJUNG  :\n`;
+    text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
+    text += `Tv                : ${summary.dist_map?.tv || 0}\n\n`;
 
-    text += `______________\n`;
-    text += `Laporan stok\n\n`;
-    text += `🔷 stok apple lux\nSisa : ${stock.apple_lux || 0}\n\n`;
-    text += `🔷 stok accesories\nTerjual : ${map.accessories || 0}\n\n`;
-    text += `🔷 stok apply\nTerjual : ${map.apply || 0}\n\n`;
-    text += `🔷 stok laptop\nTerjual : ${map.laptop || 0}\n\n`;
-    text += `🔷 stok arcis \nTerjual : ${map.arcis || 0}\n\n`;
+    text += `PENGUNJUNG  :\n_____________`;
 
     return text;
 }
