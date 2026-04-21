@@ -1392,7 +1392,9 @@ const getBaseReportText = (isForCopy = false) => {
     const activities = summary.activities || {};
     
     const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
-    const dateStr = filters.value.start_date ? formatDateString(filters.value.start_date) : formatDateString(new Date());
+    const dateStr = selectedPeriod.value === 'monthly' 
+        ? `${months[selectedMonth.value - 1]} ${selectedYear.value}`
+        : formatDateString(filters.value.start_date);
 
     let text = `*LAPORAN PENJUALAN *\n`;
     text += `${storeName.toUpperCase()}\n`;

@@ -15,6 +15,10 @@ class SecurityHeaders
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->isMethod('OPTIONS')) {
+            return $next($request);
+        }
+
         /** @var Response $response */
         $response = $next($request);
  
@@ -33,9 +37,9 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         
         // 5. Origin Isolation (COOP, COEP, CORP)
-        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
-        $response->headers->set('Cross-Origin-Embedder-Policy', 'credentialless'); // More compatible than require-corp
-        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+        $response->headers->set('Cross-Origin-Embedder-Policy', 'credentialless'); 
+        $response->headers->set('Cross-Origin-Resource-Policy', 'cross-origin');
  
         // 6. Permissions Policy
         $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self), payment=()');
