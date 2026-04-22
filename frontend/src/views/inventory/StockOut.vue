@@ -367,8 +367,13 @@ async function openStockOutForm() {
         }
     }
 
-    showForm.value = true;
+    // Pre-fetch all destination types to ensure complete lists
+    fetchBranches();
     fetchWarehouses();
+    fetchOnlineShops();
+    fetchDistributors();
+
+    showForm.value = true;
 }
 
 function resetForm() {

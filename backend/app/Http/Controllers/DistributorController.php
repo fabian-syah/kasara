@@ -14,7 +14,7 @@ class DistributorController extends Controller
         $query = Distributor::query();
 
         // Role-based access control
-        if ($request->get('ignore_scope') == '1' || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'inventory', 'gudang', 'audit', 'leader', 'sales', 'toko_offline', 'toko_online'])) {
+        if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'inventory', 'gudang', 'audit', 'leader', 'sales', 'toko_offline', 'toko_online'])) {
             // Full access (Global)
         } else if ($user && $user->hasAnyRole(['distributor', 'distribution'])) {
             // Assigned access
