@@ -530,6 +530,8 @@ class AuditController extends Controller
                         'dokter_pstore' => DB::table('distributors')->where('name', 'ilike', '%Dokter Pstore%')->pluck('id')->toArray(),
                         'accessories' => DB::table('distributors')->where('name', 'ilike', '%Accesories%')->pluck('id')->toArray(),
                         'perdana' => DB::table('distributors')->where('name', 'ilike', '%Sim Card%')->pluck('id')->toArray(),
+                        'laptop' => DB::table('distributors')->where('name', 'ilike', '%Laptopsss%')->pluck('id')->toArray(),
+                        'tv' => DB::table('distributors')->where('name', 'ilike', '%tvstOre%')->pluck('id')->toArray(),
                     ];
 
                     foreach ($nhpData as $item) {
@@ -558,6 +560,10 @@ class AuditController extends Controller
                             $cat = 'arcis';
                         } elseif (in_array($distId, $catDistMap['dokter_pstore'])) {
                             $cat = 'dokter_pstore';
+                        } elseif (in_array($distId, $catDistMap['laptop'])) {
+                            $cat = 'laptop';
+                        } elseif (in_array($distId, $catDistMap['tv'])) {
+                            $cat = 'tv';
                         } elseif (in_array($distId, $catDistMap['perdana'])) {
                             $map['perdana'] += $qty;
                             $mapRp['perdana'] += $price;

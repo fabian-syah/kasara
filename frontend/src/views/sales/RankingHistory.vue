@@ -336,6 +336,18 @@
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.jaringan || 0) }}</span>
                             </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Laptop</span>
+                                </div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.laptop || 0) }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan TV</span>
+                                </div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.tv || 0) }}</span>
+                            </div>
                         </div>
 
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
@@ -1515,6 +1527,16 @@ const categoryStocks = computed(() => {
             suffix: 'Terjual'
         },
         {
+            label: 'STOK ARCIS',
+            count: distMap.arcis || 0,
+            items: soldDetails.arcis || {},
+            in: distInMap.arcis || 0,
+            inItems: inDetails.arcis || {},
+            remaining: stockReport.arcis || 0,
+            remainingItems: stockDetails.arcis || {},
+            suffix: 'Terjual'
+        },
+        {
             label: 'STOK LAPTOP',
             count: distMap.laptop || 0,
             items: soldDetails.laptop || {},
@@ -1525,13 +1547,13 @@ const categoryStocks = computed(() => {
             suffix: 'Terjual'
         },
         {
-            label: 'STOK ARCIS',
-            count: distMap.arcis || 0,
-            items: soldDetails.arcis || {},
-            in: distInMap.arcis || 0,
-            inItems: inDetails.arcis || {},
-            remaining: stockReport.arcis || 0,
-            remainingItems: stockDetails.arcis || {},
+            label: 'STOK TV',
+            count: distMap.tv || 0,
+            items: soldDetails.tv || {},
+            in: distInMap.tv || 0,
+            inItems: inDetails.tv || {},
+            remaining: stockReport.tv || 0,
+            remainingItems: stockDetails.tv || {},
             suffix: 'Terjual'
         }
     ];
@@ -1565,7 +1587,8 @@ const getBaseReportText = (isForCopy = false) => {
         });
     }
     text += `\nTotal : ${formatCurrency(summary.payment_total)}\n`;
-    text += `______\n\n`;
+    text += `__________________\n`;
+    text += `__________________\n\n`;
 
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
     text += `🟦 Penjualan HP : ${formatCurrency(mapRp.hp || 0)}\n`;
@@ -1577,73 +1600,17 @@ const getBaseReportText = (isForCopy = false) => {
     text += `⬜️ Penjualan dokter pstore : ${formatCurrency(mapRp.dokter_pstore || 0)}\n`;
     text += `⬜️ Penjualan perdana : ${formatCurrency(mapRp.perdana || 0)}\n`;
     text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
-
-    text += `\nLaporan stok\n\n`;
-
-    const stockDetails = summary.stock_details || {};
-    const soldDetails = summary.sold_details || {};
-
-    // Apple Luxury Sisa
-    text += `🔷 stok Apple Luxury\n`;
-    // Group Apple Luxury by name and storage
-    const appleLuxGrouped = {};
-    (stockDetails.apple_lux || []).forEach(item => {
-        let storageStr = (item.storage || '').toString().toUpperCase();
-        if (storageStr && !storageStr.includes('GB')) storageStr += ' GB';
-        const key = `${item.name} ${storageStr}`;
-        appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
-    });
-    Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
-        text += `- ${name} : ${qty} unit\n`;
-    });
-    text += `\n`;
-
-    // Other Sales Categories
-    const categories = [
-        { key: 'accessories', label: 'accesories' },
-        { key: 'apply', label: 'apply' },
-        { key: 'laptop', label: 'laptop' },
-        { key: 'arcis', label: 'arcis' }
-    ];
-
-    categories.forEach(cat => {
-        const remainingItems = stockDetails[cat.key] || {};
-        const soldItems = soldDetails[cat.key] || {};
-        const inItems = summary.in_details?.[cat.key] || {};
-
-        if (Object.keys(remainingItems).length > 0 || Object.keys(soldItems).length > 0 || Object.keys(inItems).length > 0) {
-            text += `🔷 stok ${cat.label}\n`;
-
-            Object.entries(inItems).forEach(([name, qty]) => {
-                text += `- ${name} : ${qty}\n`;
-            });
-
-            Object.entries(remainingItems).forEach(([name, qty]) => {
-                text += `- ${name} : ${qty}\n`;
-            });
-
-            Object.entries(soldItems).forEach(([name, qty]) => {
-                text += `- ${name} : ${qty}\n`;
-            });
-            text += `\n`;
-        }
-    });
-
-    if (isForCopy) {
-        text += `\n______________\n`;
-        text += `Laporan keuangan\n\n`;
-        text += `🔶 total cash ready\n………………\n………………\n\n`;
-        text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
-        text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
-        text += `AWAL   :\nIN          :\nSISA     :\n`;
-    }
+    text += `⬜️ Penjualan laptop : ${formatCurrency(mapRp.laptop || 0)}\n`;
+    text += `⬜️ Penjualan tv : ${formatCurrency(mapRp.tv || 0)}\n`;
+    text += `__________________\n`;
+    text += `__________________\n`;
 
     const iphoneCount = summary.dist_map?.iphone || 0;
     const appleLuxCount = summary.dist_map?.apple_lux || 0;
     const androidCount = summary.dist_map?.android || 0;
-    const totalHP = iphoneCount + androidCount;
+    const totalHP = (summary.dist_map?.hp || 0) + (summary.dist_map?.apple_lux || 0);
 
-    text += `______________\nunit HP keluar\n\n`;
+    text += `unit HP keluar\n\n`;
     text += `Iphone           : ${iphoneCount}\n`;
     text += `Apple Luxury     : ${appleLuxCount}\n`;
     text += `Android          : ${androidCount}\n`;
@@ -1657,6 +1624,62 @@ const getBaseReportText = (isForCopy = false) => {
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv                : ${summary.dist_map?.tv || 0}\n\n`;
+
+    if (isForCopy) {
+        text += `Laporan keuangan\n\n`;
+        text += `🔶 total cash ready\n………………\n………………\n\n`;
+        text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
+        text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
+        text += `AWAL   :\nIN          :\nSISA     :\n`;
+        text += `____________\n`;
+    }
+
+    text += `Laporan stok\n`;
+
+    // ADDED: Rincian Unit & Stok TITLE before stock sections as requested
+    text += `Rincian Unit & Stok\n\n`;
+
+    const stockDetails = summary.stock_details || {};
+    const soldDetails = summary.sold_details || {};
+
+    // Apple Luxury Sisa - Only if there is stock
+    const appleLuxGrouped = {};
+    (stockDetails.apple_lux || []).forEach(item => {
+        let storageStr = (item.storage || '').toString().toUpperCase();
+        if (storageStr && !storageStr.includes('GB')) storageStr += ' GB';
+        const key = `${item.name} ${storageStr}`;
+        appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
+    });
+
+    if (Object.keys(appleLuxGrouped).length > 0) {
+        text += `🔷 stok Apple Luxury\n`;
+        Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
+            text += `- ${name} : ${qty} unit\n`;
+        });
+        text += `\n`;
+    }
+
+    // Other Sales Categories
+    const categories = [
+        { key: 'accessories', label: 'accesories' },
+        { key: 'apply', label: 'apply' },
+        { key: 'debs', label: 'debs' },
+        { key: 'arcis', label: 'arcis' },
+        { key: 'laptop', label: 'laptop' },
+        { key: 'tv', label: 'tv' }
+    ];
+
+    categories.forEach(cat => {
+        const remainingItems = stockDetails[cat.key] || {};
+        // We only care about CURRENT STOCK (remainingItems) for "Laporan Stok" section as per request
+        if (Object.keys(remainingItems).length > 0) {
+            text += `🔷 stok ${cat.label}\n`;
+            Object.entries(remainingItems).forEach(([name, qty]) => {
+                text += `- ${name} : ${qty}\n`;
+            });
+            text += `\n`;
+        }
+    });
 
     return text;
 }
