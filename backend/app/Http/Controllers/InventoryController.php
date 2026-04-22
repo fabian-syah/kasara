@@ -56,14 +56,13 @@ class InventoryController extends Controller
                     'placement_type',
                     'placement_id',
                     'user_id',
-                    'distributor_id',
                     DB::raw('SUM(quantity) as total_quantity'),
                     DB::raw('MAX(id) as id'), // Needed for ordering
                     DB::raw('MAX(distributor_id) as distributor_id')
                 )
                 ->where('quantity', '>', 0)
                 ->whereHas('product', function ($q) {
-                    $q->where('type', 'non-hp')->orWhere('has_imei', false);
+                    $q->where('type', 'non-hp');
                 })
                 ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
         } else {
