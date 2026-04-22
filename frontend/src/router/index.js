@@ -102,16 +102,7 @@ const routes = [
                     permissions: ['distributor.monitoring']
                 }
             },
-            {
-                path: 'distributor/sales-report',
-                name: 'DistributorSalesReport',
-                component: () => import('../views/distributor/SalesReport.vue'),
-                meta: {
-                    title: 'Laporan Penjualan',
-                    menu: 'distributor_sales_report',
-                    permissions: ['distributor.monitoring', 'transactions.view']
-                }
-            },
+
             {
                 path: 'monitoring/online',
                 name: 'OnlineStockMonitoring',
@@ -590,16 +581,7 @@ const routes = [
                     permissions: ['transactions.view']
                 }
             },
-            {
-                path: 'distributor/sales-report',
-                name: 'DistributorSalesReport',
-                component: () => import('../views/distributor/SalesReport.vue'),
-                meta: {
-                    title: 'Laporan Penjualan',
-                    menu: 'distributor_sales_report',
-                    permissions: ['distributor.monitoring', 'transactions.view']
-                }
-            },
+
             {
                 path: 'system-status',
                 name: 'SystemStatus',
