@@ -57,8 +57,9 @@ class InventoryController extends Controller
                     'placement_id',
                     'user_id',
                     DB::raw('SUM(quantity) as total_quantity'),
-                    DB::raw('MAX(id) as id'), // Needed for ordering
-                    DB::raw('MAX(distributor_id) as distributor_id')
+                    DB::raw('MAX(id) as id'), 
+                    DB::raw('MAX(distributor_id) as distributor_id'),
+                    DB::raw('MAX(cost_price) as cost_price') // Aggregated HPP
                 )
                 ->where('quantity', '>', 0)
                 ->whereHas('product', function ($q) {
@@ -236,6 +237,10 @@ class InventoryController extends Controller
 
                     $item->latest_distributor = $distName ?? '-';
                     $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
+
+                    // Set prices for Detail Modal
+                    $item->selling_price = $item->product->price ?? ($item->product->selling_price ?? 0);
+                    $item->price = $item->selling_price;
                 }
 
                 if ($request->status === 'service' && $type === 'hp') {
