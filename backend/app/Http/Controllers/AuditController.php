@@ -634,65 +634,64 @@ class AuditController extends Controller
                     $otherStocksQuery = DB::table('inventories')
                         ->leftJoin('products', 'inventories.product_id', '=', 'products.id')
                         ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
+                        ->leftJoin('users', 'inventories.user_id', '=', 'users.id')
                         ->where('inventories.quantity', '>', 0);
 
                     $applyLocationFilters($otherStocksQuery);
 
-                     $otherStocks = $otherStocksQuery->leftJoin('users', 'inventories.user_id', '=', 'users.id')
-                        ->select(
-                            'products.name',
-                            'products.brand',
-                            'inventories.quantity',
-                            DB::raw('COALESCE(inventories.distributor_id, users.distributor_id) as distributor_id')
-                        )->get();
-                    $catDistMap = [
-                        'apply' => [11],
-                        'arcis' => [14],
-                        'debs' => [13],
-                        'dokter_pstore' => [15],
-                        'accessories' => [10],
-                        'perdana' => [18],
-                        'laptop' => [16],
-                        'tv' => [17],
-                    ];
+                    $otherStocks = $otherStocksQuery->select(
+                        'products.name',
+                        'products.brand',
+                        'inventories.quantity',
+                        'distributors.name as dist_name',
+                        DB::raw('COALESCE(inventories.distributor_id, users.distributor_id) as distributor_id')
+                    )->get();
+
+                    $consolidatedStock = [];
 
                     foreach ($otherStocks as $s) {
-                        $name = strtolower($s->name);
-                        $brand = strtolower($s->brand ?? '');
-                        $qty = (int) $s->quantity;
-                        // Normalize whitespace to merge duplicates like "Item Name " and "Item  Name"
                         $pName = preg_replace('/\s+/', ' ', trim($s->name));
-                        $distId = (int) $s->distributor_id;
-
+                        $brand = strtolower($s->brand ?? '');
+                        $lowerName = strtolower($s->name);
+                        $distId = (int)$s->distributor_id;
+                        $distName = strtolower($s->dist_name ?? '');
+                        $qty = (int)$s->quantity;
                         $cat = null;
-                        
-                        // 1. Map by ID
-                        if ($distId === 6) $cat = 'apple_lux';
-                        elseif (in_array($distId, $catDistMap['apply'])) $cat = 'apply';
-                        elseif (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
-                        elseif (in_array($distId, $catDistMap['debs'])) $cat = 'debs';
-                        elseif (in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
-                        elseif (in_array($distId, $catDistMap['dokter_pstore'])) $cat = 'dokter_pstore';
-                        elseif (in_array($distId, $catDistMap['laptop'])) $cat = 'laptop';
-                        elseif (in_array($distId, $catDistMap['tv'])) $cat = 'tv';
-                        elseif (in_array($distId, $catDistMap['perdana'])) $cat = 'perdana';
 
-                        // 2. Map by Brand / Name Fallback (If ID is missing/null)
+                        // Unified Mapping Logic (ID -> DistName -> Brand -> Name)
+                        if (in_array($distId, $catDistMap['apply']) || str_contains($distName, 'apply')) $cat = 'apply';
+                        elseif (in_array($distId, $catDistMap['arcis']) || str_contains($distName, 'arcis')) $cat = 'arcis';
+                        elseif (in_array($distId, $catDistMap['debs']) || str_contains($distName, 'debs')) $cat = 'debs';
+                        elseif (in_array($distId, $catDistMap['dokter_pstore']) || str_contains($distName, 'dokter pstore')) $cat = 'dokter_pstore';
+                        elseif (in_array($distId, $catDistMap['accessories']) || str_contains($distName, 'accesories')) $cat = 'accessories';
+                        elseif (in_array($distId, $catDistMap['perdana']) || str_contains($distName, 'sim card')) {
+                             if (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan')) $cat = 'jaringan';
+                             else $cat = 'perdana';
+                        }
+                        elseif (in_array($distId, $catDistMap['laptop']) || str_contains($distName, 'laptopsss')) $cat = 'laptop';
+                        elseif (in_array($distId, $catDistMap['tv']) || str_contains($distName, 'tvstore')) $cat = 'tv';
+
+                        // Keyword Fallback
                         if (!$cat) {
-                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($name, 'tempered')) $cat = 'apply';
-                            elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($name, 'serum') || str_contains($name, 'parfum')) $cat = 'arcis';
-                            elseif (str_contains($brand, 'debs') || str_contains($name, 'debs')) $cat = 'debs';
-                            elseif (str_contains($brand, 'dokter pstore') || str_contains($name, 'dokter pstore') || str_contains($name, 'service')) $cat = 'dokter_pstore';
-                            elseif (str_contains($brand, 'laptop') || str_contains($name, 'laptop')) $cat = 'laptop';
-                            elseif (str_contains($brand, 'tv') || str_contains($name, 'tv') || str_contains($brand, 'tvstore')) $cat = 'tv';
-                            elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($brand, 'jaringan')) $cat = 'jaringan';
-                            elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana') || str_contains($brand, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa') || str_contains($name, 'voucher')) $cat = 'perdana';
-                            elseif ($brand === 'accessories' || str_contains($name, 'accessories')) $cat = 'accessories';
+                            if (str_contains($brand, 'apply') || str_contains($lowerName, 'apply') || str_contains($lowerName, 'adapter') || str_contains($lowerName, 'cable') || str_contains($lowerName, 'tempered')) $cat = 'apply';
+                            elseif (str_contains($brand, 'arcis') || str_contains($lowerName, 'arcis')) $cat = 'arcis';
+                            elseif (str_contains($brand, 'debs') || str_contains($lowerName, 'debs')) $cat = 'debs';
+                            elseif (str_contains($brand, 'laptop') || str_contains($lowerName, 'laptop') || str_contains($brand, 'lenovo') || str_contains($brand, 'msi')) $cat = 'laptop';
+                            elseif (str_contains($brand, 'tv') || str_contains($brand, 'coocaa') || str_contains($lowerName, 'tv')) $cat = 'tv';
                         }
 
                         if ($cat) {
-                            $stockReport[$cat] = ($stockReport[$cat] ?? 0) + $qty;
-                            $stockDetails[$cat][$pName] = ($stockDetails[$cat][$pName] ?? 0) + $qty;
+                            $consolidatedStock[$cat][$pName] = ($consolidatedStock[$cat][$pName] ?? 0) + $qty;
+                        }
+                    }
+
+                    // Fill final report with consolidated data
+                    foreach ($consolidatedStock as $catKey => $items) {
+                        $stockReport[$catKey] = 0;
+                        $stockDetails[$catKey] = [];
+                        foreach ($items as $name => $totalQty) {
+                            $stockReport[$catKey] += $totalQty;
+                            $stockDetails[$catKey][] = $name . " : " . $totalQty . " unit";
                         }
                     }
 
