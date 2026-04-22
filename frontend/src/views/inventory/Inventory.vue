@@ -1031,7 +1031,6 @@ async function exportInventory() {
               </template>
 
               <th class="hidden 2xl:table-cell">Catatan</th>
-              <th class="hidden xl:table-cell">Akun Inventory</th>
               <th class="text-center">Aksi</th>
             </tr>
           </thead>
@@ -1113,7 +1112,7 @@ async function exportInventory() {
                   </div>
                 </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
-                   {{ item.latest_distributor || item.latest_supplier || '-' }}
+                   {{ item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
                 <td class="text-sm font-bold text-blue-500 text-right">
                   Rp {{ formatNumber(item.selling_price || item.price) }}
@@ -1151,7 +1150,7 @@ async function exportInventory() {
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
                 </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
-                  {{ item.latest_distributor || item.latest_supplier || '-' }}
+                   {{ item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
               </template>
 
@@ -1162,17 +1161,7 @@ async function exportInventory() {
                 <span v-else class="text-text-secondary/30">-</span>
               </td>
 
-              <td class="hidden xl:table-cell">
-                <div class="flex flex-col">
-                  <!-- For Non-HP, user info might not be directly on item, but typically 'updated_by' or similar. 
-                             Inventory model doesn't strictly track owner like ProductDetail does. 
-                             We'll show '-' if not available or maybe the updated_at -->
-                  <span class="text-sm font-medium text-text-primary">{{ item.user?.full_name || item.user?.name ||
-                    '-'
-                  }}</span>
-                  <span class="text-[10px] text-text-secondary">{{ item.user?.username }}</span>
-                </div>
-              </td>
+
               <td @click.stop>
                 <div class="flex items-center justify-center gap-2">
 
