@@ -687,33 +687,32 @@ class AuditController extends Controller
                         $qty = (int) $s->quantity;
                         // Normalize whitespace to merge duplicates like "Item Name " and "Item  Name"
                         $pName = preg_replace('/\s+/', ' ', trim($s->name));
-                        $distId = $s->distributor_id;
+                        $distId = (int) $s->distributor_id;
 
                         $cat = null;
                         
-                        if ((int)$distId === 6) {
-                            $cat = 'apple_lux';
-                        } elseif (in_array((int)$distId, $catDistMap['apply'])) {
-                            $cat = 'apply';
-                        } elseif (in_array((int)$distId, $catDistMap['accessories'])) {
-                            $cat = 'accessories';
-                        } elseif (in_array((int)$distId, $catDistMap['debs'])) {
-                            $cat = 'debs';
-                        } elseif (in_array((int)$distId, $catDistMap['arcis'])) {
-                            $cat = 'arcis';
-                        } elseif (in_array((int)$distId, $catDistMap['dokter_pstore'])) {
-                            $cat = 'dokter_pstore';
-                        } elseif (in_array((int)$distId, $catDistMap['laptop'])) {
-                            $cat = 'laptop';
-                        } elseif (in_array((int)$distId, $catDistMap['tv'])) {
-                            $cat = 'tv';
-                        } elseif (in_array((int)$distId, $catDistMap['perdana'])) {
-                            // Split ID 18 between Sim Card (perdana) and 4G (jaringan)
-                            if (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
-                                $cat = 'jaringan';
-                            } else {
-                                $cat = 'perdana';
-                            }
+                        // 1. Map by ID
+                        if ($distId === 6) $cat = 'apple_lux';
+                        elseif (in_array($distId, $catDistMap['apply'])) $cat = 'apply';
+                        elseif (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
+                        elseif (in_array($distId, $catDistMap['debs'])) $cat = 'debs';
+                        elseif (in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
+                        elseif (in_array($distId, $catDistMap['dokter_pstore'])) $cat = 'dokter_pstore';
+                        elseif (in_array($distId, $catDistMap['laptop'])) $cat = 'laptop';
+                        elseif (in_array($distId, $catDistMap['tv'])) $cat = 'tv';
+                        elseif (in_array($distId, $catDistMap['perdana'])) $cat = 'perdana';
+
+                        // 2. Map by Brand / Name Fallback (If ID is missing/null)
+                        if (!$cat) {
+                            if (str_contains($brand, 'apply')) $cat = 'apply';
+                            elseif (str_contains($brand, 'arcis')) $cat = 'arcis';
+                            elseif (str_contains($brand, 'debs')) $cat = 'debs';
+                            elseif (str_contains($brand, 'dokter pstore')) $cat = 'dokter_pstore';
+                            elseif (str_contains($brand, 'laptop') || str_contains($name, 'laptop')) $cat = 'laptop';
+                            elseif (str_contains($brand, 'tv') || str_contains($name, 'tv') || str_contains($brand, 'tvstore')) $cat = 'tv';
+                            elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan')) $cat = 'jaringan';
+                            elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana') || str_contains($brand, 'sim card')) $cat = 'perdana';
+                            elseif ($brand === 'accessories' || str_contains($name, 'accessories')) $cat = 'accessories';
                         }
 
                         if ($cat) {
