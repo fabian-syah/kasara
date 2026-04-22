@@ -161,7 +161,7 @@ watch(() => props.show, (newVal) => {
 
 async function fetchBranches() {
     try {
-        const response = await branchesApi.list();
+        const response = await branchesApi.list({ ignore_scope: 1, all: 1 });
         const allBranches = response.data.data || response.data;
         branches.value = allBranches.filter(b => b.is_active);
     } catch (e) {
@@ -171,7 +171,7 @@ async function fetchBranches() {
 
 async function fetchWarehouses() {
     try {
-        const response = await warehousesApi.list();
+        const response = await warehousesApi.list({ ignore_scope: 1, all: 1 });
         warehouses.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal load warehouses", e);
@@ -180,7 +180,7 @@ async function fetchWarehouses() {
 
 async function fetchOnlineShops() {
     try {
-        const response = await onlineShopsApi.list();
+        const response = await onlineShopsApi.list({ ignore_scope: 1, all: 1 });
         onlineShops.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal load online shops", e);
@@ -189,7 +189,7 @@ async function fetchOnlineShops() {
 
 async function fetchDistributors() {
     try {
-        const response = await distributorsApi.list();
+        const response = await distributorsApi.list({ ignore_scope: 1, all: 1 });
         distributors.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal load distributors", e);

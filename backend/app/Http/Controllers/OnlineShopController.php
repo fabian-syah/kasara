@@ -9,20 +9,15 @@ class OnlineShopController extends Controller
 {
     public function index(Request $request)
     {
+        // FORCED ALL DATA: Same logic that worked for BranchController
+        return response()->json([
+            'success' => true,
+            'debug_message' => 'FORCED ALL ONLINE SHOPS',
+            'data' => \App\Models\OnlineShop::latest()->get()
+        ]);
+
         // DEBUG: Log the request to server error log
         error_log("OnlineShop Request: ignore_scope=" . $request->ignore_scope . ", all=" . $request->all);
-
-        // EMERGENCY BYPASS
-        // anu
-        if ($request->ignore_scope || $request->all) {
-            $data = \App\Models\OnlineShop::all();
-            return response()->json([
-                'success' => true,
-                'debug_count' => count($data),
-                'debug_sql' => 'select all',
-                'data' => $data
-            ]);
-        }
 
         $user = $request->user();
         $query = \App\Models\OnlineShop::query();

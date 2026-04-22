@@ -9,21 +9,16 @@ use Illuminate\Validation\Rule;
 class WarehouseController extends Controller
 {
     public function index(Request $request)
-    // forced update
     {
+        // FORCED ALL DATA: Same logic that worked for BranchController
+        return response()->json([
+            'success' => true,
+            'debug_message' => 'FORCED ALL WAREHOUSES',
+            'data' => Warehouse::latest()->get()
+        ]);
+
         // DEBUG: Log the request to server error log
         error_log("Warehouse Request: ignore_scope=" . $request->ignore_scope . ", all=" . $request->all);
-
-        // EMERGENCY BYPASS
-        if ($request->ignore_scope || $request->all) {
-            $data = Warehouse::all();
-            return response()->json([
-                'success' => true,
-                'debug_count' => count($data),
-                'debug_sql' => 'select all',
-                'data' => $data
-            ]);
-        }
 
         $user = $request->user();
         $query = Warehouse::query();
