@@ -152,6 +152,7 @@ class AuditController extends Controller
         $warehouses = Warehouse::all()->keyBy('id');
         $questions = Question::all()->groupBy('category');
         $paymentMethods = PaymentMethod::all()->keyBy('id');
+        $distributors = Distributor::all()->keyBy('id');
 
         // Define a manual helper because closures inside Octane can be tricky
         $helper_scopeUser = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
@@ -616,12 +617,13 @@ class AuditController extends Controller
         ]);
 
 
-        $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
+        $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors) {
             $details = [];
             $calculatedTotal = 0;
             foreach ($trx->items as $item) {
                 $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
-                $dName = $dId ? (\App\Models\Distributor::find($dId)->name ?? 'KOSONG') : 'KOSONG';
+                $dist = $dId ? $distributors->get($dId) : null;
+                $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
                 $netPrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
                 $details[] = ['name' => $item->product?->name ?? 'Unknown HP', 'qty' => 1, 'price' => $netPrice, 'brand' => $item->product?->brand ?? '-', 'type' => 'HP', 'imei' => $item->imei ?? '-', 'distributor_name' => $dName];
                 $calculatedTotal += $netPrice;
@@ -629,7 +631,8 @@ class AuditController extends Controller
             foreach ($trx->nonHpDetails as $item) {
                 $qty = $item->quantity;
                 $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
-                $dName = $item->distributor_id ? (\App\Models\Distributor::find($item->distributor_id)->name ?? 'KOSONG') : 'KOSONG';
+                $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
+                $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
                 $details[] = ['name' => $item->product?->name ?? 'Item Non-HP', 'qty' => $qty, 'price' => $price, 'brand' => $item->product?->brand ?? '-', 'type' => 'Non-HP', 'distributor_name' => $dName];
                 $calculatedTotal += ($price * $qty);
             }

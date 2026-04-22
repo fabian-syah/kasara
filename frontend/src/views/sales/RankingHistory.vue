@@ -1832,11 +1832,11 @@ const fetchGlobalFilters = async () => {
     try {
         const [dRes, pRes] = await Promise.all([
             axios.get('/distributors'),
-            axios.get('/products?per_page=999')
+            axios.get('/products?type=hp&per_page=999')
         ]);
         distributors.value = dRes.data?.data || dRes.data || [];
         const allProducts = pRes.data?.data || pRes.data || [];
-        productTypes.value = Array.isArray(allProducts) ? allProducts.filter(p => p.type === 'hp') : [];
+        productTypes.value = Array.isArray(allProducts) ? allProducts : [];
     } catch (error) {
         console.error('Error fetching global filters:', error);
     }

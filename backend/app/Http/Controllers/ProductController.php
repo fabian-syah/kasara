@@ -28,6 +28,10 @@ class ProductController extends Controller
             $query->where('brand', $request->brand);
         }
 
+        if ($request->type) {
+            $query->where('type', $request->type);
+        }
+
         return $query->latest()->paginate($request->per_page ?? 20);
     }
 
