@@ -263,6 +263,7 @@
                         <!-- PENJUALAN ALL -->
                         <div class="space-y-4 mb-2">
                             <div v-for="(amount, method) in (salesData?.report_summary?.payments || {})" :key="method"
+                                v-show="amount > 0"
                                 class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">{{ method }}</span>
                                 <span>{{ formatCurrency(amount) }}</span>
@@ -1540,7 +1541,9 @@ const getBaseReportText = (isForCopy = false) => {
         text += `Belum ada transaksi\n`;
     } else {
         Object.entries(payments).forEach(([method, amount]) => {
-            text += `${method.toUpperCase()} : ${formatCurrency(amount)}\n`;
+            if (amount > 0) {
+                text += `${method.toUpperCase()} : ${formatCurrency(amount)}\n`;
+            }
         });
     }
     text += `\nTotal : ${formatCurrency(summary.payment_total)}\n`;
