@@ -377,10 +377,16 @@ class AuditController extends Controller
                         $pName = strtolower($item->name ?? '');
                         $brand = strtolower($item->brand ?? '');
                         
-                        // Strict check: Only Apple Lux if name/dist actually says so
-                        $isAppleLux = (str_contains($distName, 'apple lux') || 
-                                      str_contains($distName, 'apple luxury') || 
-                                      str_contains($pName, 'apple lux'));
+                        // Ultra-Strict: Must have a distributor AND match the name
+                        $isAppleLux = false;
+                        if (!empty($distName)) {
+                            $isAppleLux = (str_contains($distName, 'apple lux') || str_contains($distName, 'apple luxury'));
+                        }
+                        
+                        // Optional: Product name check ONLY if distributor is empty or also matches
+                        if (!$isAppleLux && str_contains($pName, 'apple lux')) {
+                            $isAppleLux = true;
+                        }
 
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
@@ -441,6 +447,7 @@ class AuditController extends Controller
                         elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
                         elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; }
+                        else { $cat = 'hp'; } // Default to HP for unknown items to avoid Apple Lux dump
 
                         if ($cat) {
                             $map[$cat] = ($map[$cat] ?? 0) + $qty; 
