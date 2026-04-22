@@ -13,7 +13,7 @@ class OnlineShopController extends Controller
         if ($request->ignore_scope || $request->all) {
             return response()->json([
                 'success' => true,
-                'data' => \App\Models\OnlineShop::latest()->get()
+                'data' => \App\Models\OnlineShop::all()
             ]);
         }
 
