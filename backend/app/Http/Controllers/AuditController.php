@@ -531,7 +531,8 @@ class AuditController extends Controller
                         ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
 
-                    $nhpData = $nhpItemsQuery->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
+                    $nhpData = $nhpItemsQuery->join('users', 'stock_outs.user_id', '=', 'users.id')
+                        ->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
                         ->select(
                             'products.name',
                             'products.brand',
@@ -539,7 +540,7 @@ class AuditController extends Controller
                             'stock_out_non_hp_items.selling_price as item_price',
                             'stock_out_non_hp_items.item_discount',
                             'stock_outs.id as stock_out_id',
-                            'stock_out_non_hp_items.distributor_id',
+                            DB::raw('COALESCE(stock_out_non_hp_items.distributor_id, users.distributor_id) as distributor_id'),
                             'distributors.name as dist_name'
                         )->get();
 
@@ -659,13 +660,13 @@ class AuditController extends Controller
 
                     $applyLocationFilters($otherStocksQuery);
 
-                    $otherStocks = $otherStocksQuery->select(
-                        'products.name',
-                        'products.brand',
-                        'inventories.quantity',
-                        'inventories.distributor_id',
-                        'distributors.name as dist_name'
-                    )->get();
+                     $otherStocks = $otherStocksQuery->join('users', 'inventories.user_id', '=', 'users.id')
+                        ->select(
+                            'products.name',
+                            'products.brand',
+                            'inventories.quantity',
+                            DB::raw('COALESCE(inventories.distributor_id, users.distributor_id) as distributor_id')
+                        )->get();
                     $catDistMap = [
                         'apply' => [11],
                         'arcis' => [14],
