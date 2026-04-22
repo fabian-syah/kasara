@@ -530,7 +530,7 @@ class AuditController extends Controller
                         'dokter_pstore' => DB::table('distributors')->where('name', 'ilike', '%Dokter Pstore%')->pluck('id')->toArray(),
                         'accessories' => DB::table('distributors')->where('name', 'ilike', '%Accesories%')->pluck('id')->toArray(),
                         'perdana' => DB::table('distributors')->where('name', 'ilike', '%Sim Card%')->pluck('id')->toArray(),
-                        'laptop' => DB::table('distributors')->where('name', 'ilike', '%Laptopsss%')->pluck('id')->toArray(),
+                        'laptop' => DB::table('distributors')->where('name', 'ilike', '%Laptop%')->pluck('id')->toArray(),
                         'tv' => DB::table('distributors')->where('name', 'ilike', '%tvstOre%')->pluck('id')->toArray(),
                     ];
 
@@ -543,7 +543,7 @@ class AuditController extends Controller
 
                         $price = ((float) ($item->item_price ?? 0) - (float) ($item->item_discount ?? 0)) * $qty;
 
-                        $cat = 'hp'; // Default safety
+                        $cat = null;
                         
                         // Check by Distributor ID mapping first (HIGHEST PRIORITY)
                         $isAppleLuxNhp = in_array($distId, $appleLuxIds);
@@ -580,6 +580,12 @@ class AuditController extends Controller
                                 $map['jaringan'] += $qty;
                                 $mapRp['jaringan'] += $price;
                                 $cat = null;
+                            } elseif (str_contains($name, 'tv')) {
+                                $cat = 'tv';
+                            } elseif (str_contains($name, 'laptop')) {
+                                $cat = 'laptop';
+                            } elseif (str_contains($name, 'acc') || str_contains($name, 'accessories')) {
+                                $cat = 'accessories';
                             }
                         }
 
