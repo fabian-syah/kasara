@@ -655,7 +655,7 @@
                                         <th class="px-6 py-4 text-center">Android</th>
                                         <th class="px-6 py-4 text-center">Non-HP</th>
                                     </template>
-                                    <th class="px-6 py-4 text-center">Total Penjualan</th>
+                                    <th class="px-6 py-4 text-center">{{ currentView === 'activity' ? 'Total Unit Terjual' : 'Total Penjualan' }}</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">
                                         Tukar/Angkat/Downgrade</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
@@ -1113,7 +1113,7 @@ const viewLabels = {
     'brand': 'Penjualan per Merek Produk',
     'type': 'Penjualan per Tipe/Model',
     'condition': 'Penjualan per Kondisi',
-    'activity': 'Peringkat Angkat Barang & Refund',
+    'activity': 'Peringkat Berdasarkan Aktivitas Unit (Tukar/Refund/Angkat)',
     'distributor': 'Peringkat Penjualan per Distributor'
 }
 
@@ -1229,6 +1229,13 @@ const sortedData = computed(() => {
     } else if (currentView.value === 'sales' || currentView.value === 'activity') {
         base = [...(salesData.value.cs_sales || [])]
         numKey = currentView.value === 'sales' ? 'total_sales' : 'total_angkat_barang';
+        // If activity view, we might want to prioritize (angkat + refund)
+        if (currentView.value === 'activity') {
+            base.forEach(item => {
+                item._sortValue = (item.total_angkat_barang || 0) + (item.total_refund || 0);
+            });
+            numKey = '_sortValue';
+        }
         alphaKey = 'cs_name'
     } else if (currentView.value === 'brand') {
         base = [...(salesData.value.brand_sales || [])]
