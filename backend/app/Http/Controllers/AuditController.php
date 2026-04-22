@@ -406,7 +406,6 @@ class AuditController extends Controller
                         'products.name', 
                         'products.brand', 
                         'stock_out_non_hp_items.quantity',
-                        'stock_out_non_hp_items.distributor_id',
                         'stock_outs.id as stock_out_id',
                         'stock_outs.selling_price'
                     )->get();
@@ -415,7 +414,6 @@ class AuditController extends Controller
                         $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
                         $qty = (int)$item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
-                        $distId = $item->distributor_id;
 
                         $soId = $item->stock_out_id;
                         $price = 0;
@@ -424,13 +422,12 @@ class AuditController extends Controller
                             $processedStockOuts[$soId] = true;
                         }
 
-                        $cat = 'hp';
-                        if ($distId == 6 || $distId == 8) { $cat = 'apple_lux'; }
-                        elseif ($distId == 10 || str_contains($name, 'accessories') || str_contains($brand, 'acc') || str_contains($name, 'acc')) { $cat = 'accessories'; }
-                        elseif ($distId == 11 || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
-                        elseif ($distId == 13 || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
-                        elseif ($distId == 14 || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
-                        elseif ($distId == 15 || str_contains($name, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
+                        $cat = 'hp'; // Default safety
+                        if (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) { $cat = 'accessories'; }
+                        elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
+                        elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
+                        elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
+                        elseif (str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
                         elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; }
                         elseif (str_contains($name, 'hp')) { $cat = 'hp'; }
                         elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
