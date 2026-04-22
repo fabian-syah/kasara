@@ -223,7 +223,7 @@ class InventoryController extends Controller
                     
                     if (!$distName) {
                         $log = $item->latestLog;
-                        $distName = $log && $log->distributor ? $log->distributor->name : null;
+                        $distName = $log && $log->distributor ? $log->distributor->name : ($log->supplier_name ?? null);
                     }
                     
                     if (!$distName && $item->user && $item->user->distributor) {
