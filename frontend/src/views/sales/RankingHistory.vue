@@ -247,7 +247,8 @@
                             <p
                                 class="text-[10px] font-black tracking-[0.35em] text-emerald-800/80 dark:text-emerald-500 uppercase mb-4">
                                 STOCK REPORT</p>
-                            <h2 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+                            <h2
+                                class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
                                 {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
                             </h2>
                             <p
@@ -270,7 +271,8 @@
                             </div>
                         </div>
 
-                        <div class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
+                        <div
+                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
                             <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0) }}</span>
                         </div>
@@ -295,13 +297,14 @@
                                 { key: 'laptop', label: 'Penjualan Laptop', color: 'border border-gray-400 bg-white' },
                                 { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' }
                             ]">
-                                <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))" 
-                                     class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))"
+                                    class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                     <div class="flex items-center gap-3">
-                                        <div :class="['w-2.5 h-2.5 rounded-sm', cat.color]"></div> 
+                                        <div :class="['w-2.5 h-2.5 rounded-sm', cat.color]"></div>
                                         <span class="capitalize">{{ cat.label }}</span>
                                     </div>
-                                    <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0) }}</span>
+                                    <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0)
+                                        }}</span>
                                 </div>
                             </template>
                         </div>
@@ -309,65 +312,89 @@
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
 
                         <!-- unit HP keluar -->
-                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                        <h3
+                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
                             unit HP keluar</h3>
-                        
+
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Iphone</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone
+                                    || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Apple Luxury</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Android</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.android || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.android || 0 }}</span>
                             </div>
 
-                            <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-8">
+                            <div
+                                class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-8">
                                 <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
-                                <span class="text-2xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
+                                <span class="text-2xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) +
+                                    (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
                             </div>
 
                             <!-- Transaction Activities -->
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Unit</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Tambah</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Downgrade</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.downgrade || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.downgrade || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Refund</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.refund || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.refund || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Angkat Barang</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
 
                             <!-- Non-HP Sales in Unit Section -->
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Laptop</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop
+                                    || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tv</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv ||
+                                    0 }}</span>
                             </div>
                         </div>
 
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mt-12 mb-8"></div>
 
                         <!-- RINCIAN UNIT & STOK Title for Stock Section -->
-                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                        <h3
+                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
                             RINCIAN UNIT & STOK</h3>
 
                         <!-- STOCK SECTIONS (IMAGE STYLE) -->
@@ -395,7 +422,10 @@
                                                 </span>
                                             </div>
                                             <div class="flex flex-col items-end">
-                                                <span class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{ item.qty }} UNIT</span>
+                                                <span
+                                                    class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{
+                                                    item.qty }}
+                                                    UNIT</span>
                                             </div>
                                         </div>
                                     </div>
@@ -439,7 +469,7 @@
                                                     {{ name }}
                                                 </span>
                                                 <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty
-                                                    }}</span>
+                                                }}</span>
                                             </div>
                                         </div>
 
@@ -514,7 +544,7 @@
                                 class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px] appearance-none">
                                 <option :value="null" class="dark:bg-surface-800">Semua GB</option>
                                 <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb
-                                }}GB</option>
+                                    }}GB</option>
                             </select>
                         </template>
                     </div>
@@ -626,7 +656,8 @@
                                         <th class="px-6 py-4 text-center">Android</th>
                                         <th class="px-6 py-4 text-center">Non-HP</th>
                                     </template>
-                                    <th v-if="currentView === 'sales'" class="px-6 py-4 text-center">Total Penjualan</th>
+                                    <th v-if="currentView === 'sales'" class="px-6 py-4 text-center">Total Penjualan
+                                    </th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">
                                         Tukar/Angkat/Downgrade</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
@@ -920,7 +951,8 @@
                                             item.android_units || 0 }}</td>
                                         <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units
                                             || 0 }}</td>
-                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units || 0 }}</td>
+                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units
+                                            || 0 }}</td>
                                         <td
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                             {{ formatCurrency(item.total_omset) }}
@@ -947,8 +979,9 @@
                                             <td class="px-6 py-4 text-center text-gray-500 font-bold">{{
                                                 item.non_hp_units || 0 }}</td>
                                         </template>
-                                        <td v-if="currentView === 'sales'" class="px-6 py-4 text-center font-black text-primary-500">{{
-                                            item.total_sales }}</td>
+                                        <td v-if="currentView === 'sales'"
+                                            class="px-6 py-4 text-center font-black text-primary-500">{{
+                                                item.total_sales }}</td>
                                         <td v-if="currentView === 'activity'"
                                             class="px-6 py-4 text-center font-bold text-amber-500">{{
                                                 item.total_angkat_barang || 0 }}</td>
@@ -1019,7 +1052,8 @@
                                 </template>
 
                                 <template v-else-if="currentView === 'activity'">
-                                    <td v-if="currentView === 'sales'" class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
+                                    <td v-if="currentView === 'sales'" class="px-6 py-4 text-center text-primary-500">{{
+                                        totals.units }}</td>
                                     <td class="px-6 py-4 text-center text-amber-500">{{ totals.activity }}</td>
                                     <td class="px-6 py-4 text-center text-red-500">{{ totals.refund }}</td>
                                     <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
@@ -1203,7 +1237,7 @@ const sortedData = computed(() => {
         if (currentView.value === 'activity') {
             base = base.filter(item => ((item.total_angkat_barang || 0) + (item.total_refund || 0)) > 0);
         }
-        
+
         numKey = currentView.value === 'sales' ? 'total_sales' : 'total_angkat_barang';
         // If activity view, we might want to prioritize (angkat + refund)
         if (currentView.value === 'activity') {
@@ -1551,7 +1585,7 @@ const getBaseReportText = (isForCopy = false) => {
     text += `__________________\n\n`;
 
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
-    
+
     // Helper to decide if we should show a category
     const shouldShowCategory = (key) => {
         const revenue = mapRp[key] || 0;
@@ -1602,7 +1636,7 @@ const getBaseReportText = (isForCopy = false) => {
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv                : ${summary.dist_map?.tv || 0}\n`;
-    
+
     if (isForCopy) {
         text += `pengunjung: .........\n`;
         text += `__________________\n`;
@@ -1655,10 +1689,6 @@ const getBaseReportText = (isForCopy = false) => {
             text += `\n`;
         }
     });
-
-    if (isForCopy) {
-        text += `pengunjung: .....\n`;
-    }
 
     return text;
 }

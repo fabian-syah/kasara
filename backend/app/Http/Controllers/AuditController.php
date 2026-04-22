@@ -661,7 +661,7 @@ class AuditController extends Controller
                         $name = strtolower($s->name);
                         $brand = strtolower($s->brand ?? '');
                         $qty = (int) $s->quantity;
-                        $pName = $s->name;
+                        $pName = trim($s->name);
                         $distId = $s->distributor_id;
 
                         $cat = null;
@@ -685,9 +685,7 @@ class AuditController extends Controller
                             $cat = 'perdana';
                         }
                         // Fallbacks for items without distributor_id or legacy mappings
-                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
-                            $cat = 'jaringan';
-                        } elseif (str_contains($brand, 'accessories') || str_contains($name, 'accessories')) {
+                        elseif (str_contains($brand, 'accessories') || str_contains($name, 'accessories')) {
                             $cat = 'accessories';
                         } elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) {
                             $cat = 'apply';
