@@ -13,6 +13,7 @@ class OnlineShopController extends Controller
         error_log("OnlineShop Request: ignore_scope=" . $request->ignore_scope . ", all=" . $request->all);
 
         // EMERGENCY BYPASS
+        // anu
         if ($request->ignore_scope || $request->all) {
             $data = \App\Models\OnlineShop::all();
             return response()->json([
