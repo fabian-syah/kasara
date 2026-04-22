@@ -521,29 +521,16 @@ class AuditController extends Controller
                         else $mapRp['hp'] += $price;
                     }
 
-                    // 3. Non-HP Sales Aggregation
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')
                         ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
                         ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                        ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
                         ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
+                    $nhpData = $nhpItemsQuery->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+                        ->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
+                        ->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.item_discount', DB::raw('COALESCE(stock_out_non_hp_items.distributor_id, users.distributor_id) as distributor_id'))->get();
 
-                    $nhpData = $nhpItemsQuery->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
-                        ->select(
-                            'products.name',
-                            'products.brand',
-                            'stock_out_non_hp_items.quantity',
-                            'stock_out_non_hp_items.selling_price as item_price',
-                            'stock_out_non_hp_items.item_discount',
-                            DB::raw('COALESCE(stock_out_non_hp_items.distributor_id, users.distributor_id) as distributor_id')
-                        )->get();
-
-                    $catDistMap = [
-                        'apply' => [11], 'arcis' => [14], 'debs' => [13], 'dokter_pstore' => [15],
-                        'accessories' => [10], 'perdana' => [18], 'laptop' => [16], 'tv' => [17],
-                    ];
-
+                    $catDistMap = ['apply' => [11], 'arcis' => [14], 'debs' => [13], 'dokter_pstore' => [15], 'accessories' => [10], 'perdana' => [18], 'laptop' => [16], 'tv' => [17]];
                     foreach ($nhpData as $item) {
                         $distId = (int)$item->distributor_id;
                         $brand = strtolower($item->brand ?? '');
@@ -551,34 +538,23 @@ class AuditController extends Controller
                         $qty = (int)$item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
                         $cat = null;
-
                         if (in_array($distId, $catDistMap['apply'])) $cat = 'apply';
                         elseif (in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
                         elseif (in_array($distId, $catDistMap['debs'])) $cat = 'debs';
                         elseif (in_array($distId, $catDistMap['dokter_pstore'])) $cat = 'dokter_pstore';
                         elseif (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
-                        elseif (in_array($distId, $catDistMap['perdana'])) $cat = 'perdana';
                         elseif (in_array($distId, $catDistMap['laptop'])) $cat = 'laptop';
                         elseif (in_array($distId, $catDistMap['tv'])) $cat = 'tv';
-
                         if (!$cat) {
                             if (str_contains($brand, 'apply') || str_contains($lowerName, 'apply') || str_contains($lowerName, 'adapter') || str_contains($lowerName, 'cable') || str_contains($lowerName, 'tempered')) $cat = 'apply';
-                            elseif (str_contains($brand, 'arcis') || str_contains($lowerName, 'arcis') || str_contains($lowerName, 'serum') || str_contains($lowerName, 'parfum')) $cat = 'arcis';
+                            elseif (str_contains($brand, 'arcis') || str_contains($lowerName, 'arcis')) $cat = 'arcis';
                             elseif (str_contains($brand, 'debs') || str_contains($lowerName, 'debs')) $cat = 'debs';
-                            elseif (str_contains($brand, 'dokter pstore') || str_contains($lowerName, 'dokter pstore') || str_contains($lowerName, 'service')) $cat = 'dokter_pstore';
                             elseif (str_contains($brand, 'laptop') || str_contains($lowerName, 'laptop') || str_contains($brand, 'lenovo') || str_contains($brand, 'msi')) $cat = 'laptop';
                             elseif (str_contains($brand, 'tv') || str_contains($brand, 'coocaa') || str_contains($lowerName, 'tv')) $cat = 'tv';
-                            elseif (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan') || str_contains($brand, 'jaringan')) {
-                                $map['jaringan'] = ($map['jaringan'] ?? 0) + $qty;
-                                $mapRp['jaringan'] = ($mapRp['jaringan'] ?? 0) + (((float)$item->item_price - (float)$item->item_discount) * $qty);
-                                $cat = null;
-                            } elseif (str_contains($lowerName, 'sim card') || str_contains($lowerName, 'perdana') || str_contains($brand, 'sim card') || str_contains($lowerName, 'icloud') || str_contains($lowerName, 'jasa') || str_contains($lowerName, 'voucher')) {
-                                $map['perdana'] = ($map['perdana'] ?? 0) + $qty;
-                                $mapRp['perdana'] = ($mapRp['perdana'] ?? 0) + (((float)$item->item_price - (float)$item->item_discount) * $qty);
-                                $cat = null;
-                            } elseif ($brand === 'accessories' || str_contains($lowerName, 'accessories')) $cat = 'accessories';
+                            elseif (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan')) $cat = 'jaringan';
+                            elseif (str_contains($lowerName, 'sim card') || str_contains($lowerName, 'perdana') || str_contains($lowerName, 'icloud') || str_contains($lowerName, 'jasa')) $cat = 'perdana';
+                            elseif ($brand === 'accessories' || str_contains($lowerName, 'accessories') || str_contains($brand, 'olike') || str_contains($brand, 'acc')) $cat = 'accessories';
                         }
-
                         if ($cat) {
                             $price = ((float)$item->item_price - (float)$item->item_discount) * $qty;
                             $mapRp[$cat] = ($mapRp[$cat] ?? 0) + $price;
@@ -587,26 +563,22 @@ class AuditController extends Controller
                         }
                     }
 
-                    // 4. Stock Aggregation
                     $appleLuxQuery = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
                         ->whereIn('product_details.distributor_id', $appleLuxIds);
-                    
-                    $applyLocationFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
-                        if ($requestedBranchId) {
-                            $q->whereIn('placement_type', ['branch', 'App\Models\Branch'])->where('placement_id', $requestedBranchId);
-                        } elseif ($requestedOnlineShopId) {
-                            $q->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->where('placement_id', $requestedOnlineShopId);
-                        } else {
+                    $applyStockFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
+                        if ($requestedBranchId) $q->whereIn('placement_type', ['branch', 'App\Models\Branch'])->where('placement_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId) $q->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->where('placement_id', $requestedOnlineShopId);
+                        else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                 if (!empty($branchIds)) $sub->orWhere(fn($qq) => $qq->whereIn('placement_type', ['branch', 'App\Models\Branch'])->whereIn('placement_id', $branchIds));
                                 if (!empty($onlineShopIds)) $sub->orWhere(fn($qq) => $qq->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->whereIn('placement_id', $onlineShopIds));
                             });
                         }
                     };
-                    $applyLocationFilters($appleLuxQuery);
-                    $appleLuxStock = $appleLuxQuery->select('products.name', 'product_details.imei', 'product_details.storage', 'product_details.condition')->get();
+                    $applyStockFilters($appleLuxQuery);
+                    $appleLuxStock = $appleLuxQuery->select('products.name')->get();
                     foreach ($appleLuxStock as $s) {
                         $stockReport['apple_lux']++;
                         $stockDetails['apple_lux'][] = $s->name . " : 1 unit";
@@ -617,12 +589,8 @@ class AuditController extends Controller
                         ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
                         ->leftJoin('users', 'inventories.user_id', '=', 'users.id')
                         ->where('inventories.quantity', '>', 0);
-                    $applyLocationFilters($otherStocksQuery);
-
-                    $otherStocks = $otherStocksQuery->select(
-                        'products.name', 'products.brand', 'inventories.quantity', 'distributors.name as dist_name',
-                        DB::raw('COALESCE(inventories.distributor_id, users.distributor_id) as distributor_id')
-                    )->get();
+                    $applyStockFilters($otherStocksQuery);
+                    $otherStocks = $otherStocksQuery->select('products.name', 'products.brand', 'inventories.quantity', 'distributors.name as dist_name', DB::raw('COALESCE(inventories.distributor_id, users.distributor_id) as distributor_id'))->get();
 
                     $consolidatedStock = [];
                     foreach ($otherStocks as $s) {
@@ -633,7 +601,6 @@ class AuditController extends Controller
                         $distId = (int)$s->distributor_id;
                         $qty = (int)$s->quantity;
                         $cat = null;
-
                         if (in_array($distId, $catDistMap['apply']) || str_contains($distName, 'apply')) $cat = 'apply';
                         elseif (in_array($distId, $catDistMap['arcis']) || str_contains($distName, 'arcis')) $cat = 'arcis';
                         elseif (in_array($distId, $catDistMap['debs']) || str_contains($distName, 'debs')) $cat = 'debs';
@@ -645,7 +612,6 @@ class AuditController extends Controller
                         }
                         elseif (in_array($distId, $catDistMap['laptop']) || str_contains($distName, 'laptopsss')) $cat = 'laptop';
                         elseif (in_array($distId, $catDistMap['tv']) || str_contains($distName, 'tvstore')) $cat = 'tv';
-
                         if (!$cat) {
                             if (str_contains($brand, 'apply') || str_contains($lowerName, 'apply') || str_contains($lowerName, 'adapter') || str_contains($lowerName, 'cable') || str_contains($lowerName, 'tempered')) $cat = 'apply';
                             elseif (str_contains($brand, 'arcis') || str_contains($lowerName, 'arcis')) $cat = 'arcis';
@@ -653,11 +619,10 @@ class AuditController extends Controller
                             elseif (str_contains($brand, 'tv') || str_contains($brand, 'coocaa') || str_contains($lowerName, 'tv')) $cat = 'tv';
                             elseif (str_contains($brand, 'olike') || str_contains($brand, 'acc') || str_contains($lowerName, 'speaker')) $cat = 'apply';
                             elseif (str_contains($lowerName, 'icloud') || str_contains($lowerName, 'jasa')) $cat = 'perdana';
+                            elseif (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan')) $cat = 'jaringan';
                         }
-
                         if ($cat) $consolidatedStock[$cat][$pName] = ($consolidatedStock[$cat][$pName] ?? 0) + $qty;
                     }
-
                     foreach ($consolidatedStock as $catKey => $items) {
                         $stockReport[$catKey] = 0; $stockDetails[$catKey] = [];
                         foreach ($items as $name => $totalQty) {
@@ -665,54 +630,17 @@ class AuditController extends Controller
                             $stockDetails[$catKey][] = $name . " : " . $totalQty . " unit";
                         }
                     }
-
-
                     $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($aStatsQuery);
                     $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
-
-                    // 5. Stock In Summary (Simplified to prevent crash/timeout on large ranges)
-                    $inMap = [
-                        'hp' => 0,
-                        'apple_lux' => 0,
-                        'accessories' => 0,
-                        'apply' => 0,
-                        'laptop' => 0,
-                        'arcis' => 0,
-                        'dokter_pstore' => 0,
-                        'debs' => 0,
-                        'perdana' => 0,
-                        'jaringan' => 0
-                    ];
+                    $inMap = ['hp' => 0, 'apple_lux' => 0, 'accessories' => 0, 'apply' => 0, 'laptop' => 0, 'arcis' => 0, 'dokter_pstore' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0];
                     $inDetails = [];
-
                     return [
-                        'payments' => $pSums,
-                        'payment_total' => $paymentTotal,
-                        'dist_map' => $map,
-                        'dist_map_rp' => $mapRp,
-                        'dist_in_map' => $inMap,
-                        'stock_report' => $stockReport,
-                        'stock_details' => $stockDetails,
-                        'sold_details' => $soldDetails,
-                        'in_details' => $inDetails,
-                        'activities' => $aStatsList,
-                        'debug_dates' => ['start' => $startDate, 'end' => $endDate]
+                        'payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'dist_map_rp' => $mapRp, 'dist_in_map' => $inMap, 'stock_report' => $stockReport, 'stock_details' => $stockDetails, 'sold_details' => $soldDetails, 'in_details' => $inDetails, 'activities' => $aStatsList, 'debug_dates' => ['start' => $startDate, 'end' => $endDate]
                     ];
                 } catch (\Exception $e) {
                     return [
-                        'payments' => [],
-                        'payment_total' => 0,
-                        'dist_map' => [],
-                        'dist_map_rp' => [],
-                        'dist_in_map' => [],
-                        'stock_report' => [],
-                        'sold_details' => [],
-                        'stock_details' => [],
-                        'in_details' => [],
-                        'activities' => [],
-                        'error' => $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(),
-                        'debug_dates' => ['start' => $startDate ?? 'not set', 'end' => $endDate ?? 'not set']
+                        'payments' => [], 'payment_total' => 0, 'dist_map' => [], 'dist_map_rp' => [], 'dist_in_map' => [], 'stock_report' => [], 'sold_details' => [], 'stock_details' => [], 'in_details' => [], 'activities' => [], 'error' => $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine()
                     ];
                 }
             }
