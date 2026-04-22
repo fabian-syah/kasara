@@ -1112,7 +1112,7 @@ async function exportInventory() {
                   </div>
                 </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
-                   {{ item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
+                   {{ item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
                 <td class="text-sm font-bold text-blue-500 text-right">
                   Rp {{ formatNumber(item.selling_price || item.price) }}
@@ -1150,7 +1150,7 @@ async function exportInventory() {
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
                 </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
-                   {{ item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
+                   {{ item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
               </template>
 
