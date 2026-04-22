@@ -644,6 +644,7 @@ class AuditController extends Controller
                     $otherStocksQuery = DB::table('inventories')
                         ->join('products', 'inventories.product_id', '=', 'products.id')
                         ->join('users', 'inventories.user_id', '=', 'users.id')
+                        ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
                         ->where('inventories.quantity', '>', 0);
 
                     $applyLocationFilters($otherStocksQuery);
@@ -651,26 +652,50 @@ class AuditController extends Controller
                     $otherStocks = $otherStocksQuery->select(
                         'products.name',
                         'products.brand',
-                        'inventories.quantity'
+                        'inventories.quantity',
+                        'inventories.distributor_id',
+                        'distributors.name as dist_name'
                     )->get();
 
                     foreach ($otherStocks as $s) {
                         $name = strtolower($s->name);
                         $brand = strtolower($s->brand ?? '');
-                        $dist = strtolower($s->log_dist_name ?? '');
                         $qty = (int) $s->quantity;
                         $pName = $s->name;
+                        $distId = $s->distributor_id;
 
                         $cat = null;
-                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) {
+                        
+                        // USE THE SAME catDistMap logic for consistency
+                        if (in_array($distId, $catDistMap['accessories'])) {
                             $cat = 'accessories';
-                        } elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) {
+                        } elseif (in_array($distId, $catDistMap['apply'])) {
                             $cat = 'apply';
-                        } elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) {
+                        } elseif (in_array($distId, $catDistMap['debs'])) {
                             $cat = 'debs';
-                        } elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) {
+                        } elseif (in_array($distId, $catDistMap['arcis'])) {
                             $cat = 'arcis';
-                        } elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) {
+                        } elseif (in_array($distId, $catDistMap['dokter_pstore'])) {
+                            $cat = 'dokter_pstore';
+                        } elseif (in_array($distId, $catDistMap['laptop'])) {
+                            $cat = 'laptop';
+                        } elseif (in_array($distId, $catDistMap['tv'])) {
+                            $cat = 'tv';
+                        } elseif (in_array($distId, $catDistMap['perdana'])) {
+                            $cat = 'perdana';
+                        }
+                        // Fallbacks for items without distributor_id or legacy mappings
+                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
+                            $cat = 'jaringan';
+                        } elseif (str_contains($brand, 'accessories') || str_contains($name, 'accessories')) {
+                            $cat = 'accessories';
+                        } elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) {
+                            $cat = 'apply';
+                        } elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) {
+                            $cat = 'debs';
+                        } elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) {
+                            $cat = 'arcis';
+                        } elseif (str_contains($name, 'dokter pstore')) {
                             $cat = 'dokter_pstore';
                         } elseif (str_contains($name, 'laptop')) {
                             $cat = 'laptop';

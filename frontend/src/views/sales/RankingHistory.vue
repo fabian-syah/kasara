@@ -283,23 +283,23 @@
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
                             <!-- DYNAMIC CATEGORIES -->
                             <template v-for="cat in [
-                                { key: 'hp', label: 'HP', color: 'bg-blue-500' },
-                                { key: 'apple_lux', label: 'Apple Luxury', color: 'bg-blue-500' },
-                                { key: 'accessories', label: 'Accesories', color: 'border border-gray-400 bg-white' },
-                                { key: 'apply', label: 'Apply', color: 'border border-gray-400 bg-white' },
-                                { key: 'debs', label: 'Debs', color: 'border border-gray-400 bg-white' },
-                                { key: 'arcis', label: 'Arcis', color: 'border border-gray-400 bg-white' },
-                                { key: 'dokter_pstore', label: 'Dokter Pstore', color: 'border border-gray-400 bg-white' },
-                                { key: 'perdana', label: 'Perdana', color: 'border border-gray-400 bg-white' },
-                                { key: 'jaringan', label: 'Jaringan', color: 'border border-gray-400 bg-white' },
-                                { key: 'laptop', label: 'Laptop', color: 'border border-gray-400 bg-white' },
-                                { key: 'tv', label: 'TV', color: 'border border-gray-400 bg-white' }
+                                { key: 'hp', label: 'Penjualan HP', color: 'bg-blue-500' },
+                                { key: 'apple_lux', label: 'Penjualan Apple Luxury', color: 'bg-blue-500' },
+                                { key: 'accessories', label: 'Penjualan Accesories', color: 'border border-gray-400 bg-white' },
+                                { key: 'apply', label: 'Penjualan Apply', color: 'border border-gray-400 bg-white' },
+                                { key: 'debs', label: 'Penjualan Debs', color: 'border border-gray-400 bg-white' },
+                                { key: 'arcis', label: 'Penjualan Arcis', color: 'border border-gray-400 bg-white' },
+                                { key: 'dokter_pstore', label: 'Penjualan Dokter Pstore', color: 'border border-gray-400 bg-white' },
+                                { key: 'perdana', label: 'Penjualan Perdana', color: 'border border-gray-400 bg-white' },
+                                { key: 'jaringan', label: '4G / LTE', color: 'border border-gray-400 bg-white' },
+                                { key: 'laptop', label: 'Penjualan Laptop', color: 'border border-gray-400 bg-white' },
+                                { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' }
                             ]">
                                 <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))" 
                                      class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                     <div class="flex items-center gap-3">
                                         <div :class="['w-2.5 h-2.5 rounded-sm', cat.color]"></div> 
-                                        <span class="capitalize">Penjualan {{ cat.label }}</span>
+                                        <span class="capitalize">{{ cat.label }}</span>
                                     </div>
                                     <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0) }}</span>
                                 </div>
@@ -1546,7 +1546,7 @@ const getBaseReportText = (isForCopy = false) => {
             }
         });
     }
-    text += `\nTotal : ${formatCurrency(summary.payment_total)}\n`;
+    text += `\n*Total : ${formatCurrency(summary.payment_total)}*\n`;
     text += `__________________\n`;
     text += `__________________\n\n`;
 
@@ -1561,22 +1561,22 @@ const getBaseReportText = (isForCopy = false) => {
     };
 
     const categories = [
-        { key: 'hp', label: 'HP', emoji: '🟦' },
-        { key: 'apple_lux', label: 'Apple Luxury', emoji: '🟦' },
-        { key: 'accessories', label: 'accesories', emoji: '⬜️' },
-        { key: 'apply', label: 'apply', emoji: '⬜️' },
-        { key: 'debs', label: 'debs', emoji: '⬜️' },
-        { key: 'arcis', label: 'arcis', emoji: '⬜️' },
-        { key: 'dokter_pstore', label: 'dokter pstore', emoji: '⬜️' },
-        { key: 'perdana', label: 'perdana', emoji: '⬜️' },
-        { key: 'jaringan', label: 'jaringan', emoji: '⬜️' },
-        { key: 'laptop', label: 'laptop', emoji: '⬜️' },
-        { key: 'tv', label: 'tv', emoji: '⬜️' }
+        { key: 'hp', label: 'Penjualan HP', emoji: '🟦' },
+        { key: 'apple_lux', label: 'Penjualan Apple Luxury', emoji: '🟦' },
+        { key: 'accessories', label: 'Penjualan accesories', emoji: '⬜️' },
+        { key: 'apply', label: 'Penjualan apply', emoji: '⬜️' },
+        { key: 'debs', label: 'Penjualan debs', emoji: '⬜️' },
+        { key: 'arcis', label: 'Penjualan arcis', emoji: '⬜️' },
+        { key: 'dokter_pstore', label: 'Penjualan dokter pstore', emoji: '⬜️' },
+        { key: 'perdana', label: 'Penjualan perdana', emoji: '⬜️' },
+        { key: 'jaringan', label: '4G / LTE', emoji: '⬜️' },
+        { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
+        { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' }
     ];
 
     categories.forEach(cat => {
         if (shouldShowCategory(cat.key)) {
-            text += `${cat.emoji} Penjualan ${cat.label} : ${formatCurrency(mapRp[cat.key] || 0)}\n`;
+            text += `${cat.emoji} ${cat.label} : ${formatCurrency(mapRp[cat.key] || 0)}\n`;
         }
     });
 
@@ -1601,10 +1601,13 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Angkat barang  : ${activities.angkat_barang || 0}\n\n`;
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
-    text += `Tv                : ${summary.dist_map?.tv || 0}\n\n`;
-
+    text += `Tv                : ${summary.dist_map?.tv || 0}\n`;
+    
     if (isForCopy) {
-        text += `Laporan keuangan\n\n`;
+        text += `pengunjung: .........\n`;
+        text += `__________________\n`;
+        text += `__________________\n\n`;
+        text += `*Laporan keuangan*\n\n`;
         text += `🔶 total cash ready\n………………\n………………\n\n`;
         text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
         text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
@@ -1613,7 +1616,6 @@ const getBaseReportText = (isForCopy = false) => {
         text += `__________________\n\n`;
     }
 
-    text += `Laporan stok\n`;
     text += `Rincian Unit & Stok\n\n`;
 
     // Apple Luxury Sisa - Only if there is stock
