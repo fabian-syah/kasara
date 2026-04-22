@@ -550,10 +550,10 @@ class AuditController extends Controller
                         
                         if ($isAppleLuxNhp) {
                             $cat = 'apple_lux';
-                        } elseif (in_array($distId, $catDistMap['accessories'])) {
-                            $cat = 'accessories';
                         } elseif (in_array($distId, $catDistMap['apply'])) {
                             $cat = 'apply';
+                        } elseif (in_array($distId, $catDistMap['accessories'])) {
+                            $cat = 'accessories';
                         } elseif (in_array($distId, $catDistMap['debs'])) {
                             $cat = 'debs';
                         } elseif (in_array($distId, $catDistMap['arcis'])) {
@@ -667,10 +667,10 @@ class AuditController extends Controller
                         $cat = null;
                         
                         // USE THE SAME catDistMap logic for consistency
-                        if (in_array($distId, $catDistMap['accessories'])) {
-                            $cat = 'accessories';
-                        } elseif (in_array($distId, $catDistMap['apply'])) {
+                        if (in_array($distId, $catDistMap['apply'])) {
                             $cat = 'apply';
+                        } elseif (in_array($distId, $catDistMap['accessories'])) {
+                            $cat = 'accessories';
                         } elseif (in_array($distId, $catDistMap['debs'])) {
                             $cat = 'debs';
                         } elseif (in_array($distId, $catDistMap['arcis'])) {
