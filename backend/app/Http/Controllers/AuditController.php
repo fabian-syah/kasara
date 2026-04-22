@@ -684,22 +684,6 @@ class AuditController extends Controller
                         } elseif (in_array($distId, $catDistMap['perdana'])) {
                             $cat = 'perdana';
                         }
-                        // Fallbacks for items without distributor_id or legacy mappings
-                        elseif (str_contains($brand, 'accessories') || str_contains($name, 'accessories')) {
-                            $cat = 'accessories';
-                        } elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) {
-                            $cat = 'apply';
-                        } elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) {
-                            $cat = 'debs';
-                        } elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) {
-                            $cat = 'arcis';
-                        } elseif (str_contains($name, 'dokter pstore')) {
-                            $cat = 'dokter_pstore';
-                        } elseif (str_contains($name, 'laptop')) {
-                            $cat = 'laptop';
-                        } elseif (str_contains($name, 'tv')) {
-                            $cat = 'tv';
-                        }
 
                         if ($cat) {
                             $stockReport[$cat] = ($stockReport[$cat] ?? 0) + $qty;
