@@ -210,7 +210,7 @@ class InventoryController extends Controller
 
                 if ($type === 'non-hp') {
                     $item->quantity = $item->total_quantity ?? $item->quantity;
-                    
+
                     // Priority for distributor name:
                     // 1. Existing distributor relationship on the inventory record
                     // 2. Latest log distributor
@@ -220,22 +220,12 @@ class InventoryController extends Controller
                         $distModel = \App\Models\Distributor::find($item->distributor_id);
                         $distName = $distModel ? $distModel->name : null;
                     }
-                    
-                    if (!$distName) {
-                        // Find the LATEST 'in' log for this specific product and location to get the distributor/supplier
-                        $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                            ->where(function($q) use ($item) {
-                                if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
-                                elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
-                                elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
-                            })
-                            ->where('type', 'in')
-                            ->latest()
-                            ->first();
 
-                        $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
+                    if (!$distName) {
+                        $log = $item->latestLog;
+                        $distName = $log && $log->distributor ? $log->distributor->name : ($log->supplier_name ?? null);
                     }
-                    
+
                     if (!$distName && $item->user && $item->user->distributor) {
                         $distName = $item->user->distributor->name;
                     }
@@ -1794,9 +1784,12 @@ class InventoryController extends Controller
         $wIds = (array) ($user->getAccessibleWarehouseIds() ?: []);
         $dIds = (array) ($user->getAccessibleDistributorIds() ?: []);
 
-        if ($user->online_shop_id) $osIds[] = $user->online_shop_id;
-        if ($user->branch_id) $bIds[] = $user->branch_id;
-        if ($user->warehouse_id) $wIds[] = $user->warehouse_id;
+        if ($user->online_shop_id)
+            $osIds[] = $user->online_shop_id;
+        if ($user->branch_id)
+            $bIds[] = $user->branch_id;
+        if ($user->warehouse_id)
+            $wIds[] = $user->warehouse_id;
 
         $osIds = array_unique(array_filter($osIds));
         $bIds = array_unique(array_filter($bIds));
