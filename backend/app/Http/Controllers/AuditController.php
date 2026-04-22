@@ -538,13 +538,44 @@ class AuditController extends Controller
                     }
 
                     // Inventory Stock (Aggregated)
-                    $oStock = DB::table('inventories')->leftJoin('products', 'inventories.product_id', '=', 'products.id')->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')->where('inventories.quantity', '>', 0);
+                    // We join products and try to find the distributor from the latest log if not in the inventory record
+                    $oStock = DB::table('inventories')
+                        ->leftJoin('products', 'inventories.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
+                        ->where('inventories.quantity', '>', 0);
                     $applyStockFilters($oStock);
-                    foreach ($oStock->select('products.name', 'products.brand', 'inventories.quantity', 'distributors.name as dname', 'inventories.distributor_id as did')->get() as $s) {
+                    
+                    $inventoryData = $oStock->select(
+                        'products.name', 
+                        'products.brand', 
+                        'inventories.quantity', 
+                        'inventories.product_id',
+                        'distributors.name as dname', 
+                        'inventories.distributor_id as did'
+                    )->get();
+
+                    foreach ($inventoryData as $s) {
                         $qty = (int) $s->quantity;
                         $name = (string) ($s->name ?: 'Item Tanpa Nama');
                         $dname = strtolower((string) ($s->dname ?? ''));
                         $did = (int) $s->did;
+                        
+                        // Heuristic: If no distributor, look it up from latest IN log
+                        if (!$did) {
+                            $latestInLog = DB::table('inventory_logs')
+                                ->join('distributors', 'inventory_logs.distributor_id', '=', 'distributors.id')
+                                ->where('inventory_logs.product_id', $s->product_id)
+                                ->where('inventory_logs.type', 'in')
+                                ->select('distributors.id', 'distributors.name')
+                                ->latest('inventory_logs.created_at')
+                                ->first();
+                                
+                            if ($latestInLog) {
+                                $did = (int) $latestInLog->id;
+                                $dname = strtolower($latestInLog->name);
+                            }
+                        }
+
                         $cat = null;
 
                         if (in_array($did, $catDistMap['apply']) || str_contains($dname, 'apply'))
