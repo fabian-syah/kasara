@@ -626,15 +626,19 @@ class AuditController extends Controller
                         ->whereIn('product_details.distributor_id', $appleLuxIds);
                     $applyLocationFilters = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId) {
-                            $q->where('placement_type', 'branch')->where('placement_id', $requestedBranchId);
+                            $q->where(function($sq) use ($requestedBranchId) {
+                                $sq->where(fn($qq) => $qq->whereIn('placement_type', ['branch', 'App\Models\Branch'])->where('placement_id', $requestedBranchId));
+                            });
                         } elseif ($requestedOnlineShopId) {
-                            $q->where('placement_type', 'online_shop')->where('placement_id', $requestedOnlineShopId);
+                            $q->where(function($sq) use ($requestedOnlineShopId) {
+                                $sq->where(fn($qq) => $qq->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->where('placement_id', $requestedOnlineShopId));
+                            });
                         } else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                 if (!empty($branchIds))
-                                    $sub->orWhere(fn($qq) => $qq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
+                                    $sub->orWhere(fn($qq) => $qq->whereIn('placement_type', ['branch', 'App\Models\Branch'])->whereIn('placement_id', $branchIds));
                                 if (!empty($onlineShopIds))
-                                    $sub->orWhere(fn($qq) => $qq->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds));
+                                    $sub->orWhere(fn($qq) => $qq->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->whereIn('placement_id', $onlineShopIds));
                             });
                         }
                     };
@@ -653,7 +657,7 @@ class AuditController extends Controller
 
                     // 4. Other Stock Info (Accessories, Apply, etc.)
                     $otherStocksQuery = DB::table('inventories')
-                        ->join('products', 'inventories.product_id', '=', 'products.id')
+                        ->leftJoin('products', 'inventories.product_id', '=', 'products.id')
                         ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
                         ->where('inventories.quantity', '>', 0);
 
