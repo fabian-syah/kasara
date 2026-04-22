@@ -812,6 +812,12 @@ class AuditController extends Controller
                 $qty = $item->quantity;
                 $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
                 
+                $dId = $item->distributor_id;
+                $dName = 'KOSONG';
+                if ($dId) {
+                    $dName = \App\Models\Distributor::find($dId)->name ?? 'KOSONG';
+                }
+                
                 $details[] = [
                     'name' => $item->product?->name ?? 'Item Non-HP',
                     'qty' => $qty,
@@ -823,7 +829,7 @@ class AuditController extends Controller
                     'type' => 'Non-HP',
                     'category' => $item->product?->non_imei_category ?? null,
                     'imei' => '-',
-                    'distributor_name' => $item->distributor->name ?? 'KOSONG'
+                    'distributor_name' => $dName
                 ];
 
                 if ($item->id !== $bundleNonHpId) {
