@@ -247,10 +247,8 @@
                             <p
                                 class="text-[10px] font-black tracking-[0.35em] text-emerald-800/80 dark:text-emerald-500 uppercase mb-4">
                                 STOCK REPORT</p>
-                            <h2
-                                class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
-                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name ||
-                                    'PSTORE TRANSAKSI' }}
+                            <h2 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
                             </h2>
                             <p
                                 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
@@ -271,11 +269,9 @@
                             </div>
                         </div>
 
-                        <div
-                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
+                        <div class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
-                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
-                                }}</span>
+                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0) }}</span>
                         </div>
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
