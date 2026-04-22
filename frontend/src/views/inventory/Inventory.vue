@@ -1270,12 +1270,6 @@ async function exportInventory() {
                     Tersedia</label>
                   <p class="text-text-primary font-bold">{{ selectedItemDetail.quantity }} Pcs</p>
                 </div>
-                <div v-if="activeTab !== 'hp'">
-                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
-                    Modal
-                    (HPP)</label>
-                  <p class="text-lg font-bold text-amber-500">{{ formatCurrency(selectedItemDetail.cost_price) }}</p>
-                </div>
                 <div>
                   <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
                     Jual</label>
