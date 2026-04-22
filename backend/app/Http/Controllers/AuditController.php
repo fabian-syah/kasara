@@ -367,9 +367,22 @@ class AuditController extends Controller
                         'debs' => [], 'arcis' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => []
                     ];
 
-                    $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
+                    $hpItemsQuery = DB::table('stock_out_items')
+                        ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                        ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                        ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($hpItemsQuery);
-                    $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
+                    $hpData = $hpItemsQuery->select(
+                        'products.name', 
+                        'products.brand', 
+                        'product_details.distributor_id', 
+                        'distributors.name as dist_name', 
+                        'stock_outs.id as stock_out_id', 
+                        'stock_out_items.selling_price as item_price',
+                        'stock_out_items.item_discount'
+                    )->get();
 
                     foreach ($hpData as $item) {
                         $pNameNormal = $item->name ?? 'Unknown HP';
@@ -388,51 +401,45 @@ class AuditController extends Controller
 
                         $soldDetails[$cat][$pNameNormal] = ($soldDetails[$cat][$pNameNormal] ?? 0) + 1;
 
-                        $soId = $item->stock_out_id;
-                        $price = 0;
-                        if (!isset($processedStockOuts[$soId])) {
-                            $price = (float)$item->selling_price;
-                            $processedStockOuts[$soId] = true;
-                        }
-
+                        $price = (float)($item->item_price ?? 0) - (float)($item->item_discount ?? 0);
                         if ($isAppleLux) $mapRp['apple_lux'] += $price;
                         else $mapRp['hp'] += $price;
                     }
 
-                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->whereIn('stock_outs.category', $salesCategories);
+                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')
+                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+                        ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
                     
                     $nhpData = $nhpItemsQuery->select(
                         'products.name', 
                         'products.brand', 
                         'stock_out_non_hp_items.quantity',
-                        'stock_outs.id as stock_out_id',
-                        'stock_outs.selling_price'
+                        'stock_out_non_hp_items.selling_price as item_price',
+                        'stock_out_non_hp_items.item_discount',
+                        'stock_outs.id as stock_out_id'
                     )->get();
 
                     foreach ($nhpData as $item) {
-                        $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
+                        $name = strtolower($item->name); 
+                        $brand = strtolower($item->brand ?? '');
                         $qty = (int)$item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
 
-                        $soId = $item->stock_out_id;
-                        $price = 0;
-                        if (!isset($processedStockOuts[$soId])) {
-                            $price = (float)$item->selling_price;
-                            $processedStockOuts[$soId] = true;
-                        }
+                        $price = ((float)($item->item_price ?? 0) - (float)($item->item_discount ?? 0)) * $qty;
 
-                        $cat = 'hp'; // Default safety
+                        $cat = 'hp'; // Default safety for non-HP that look like HP
                         if (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) { $cat = 'accessories'; }
                         elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
                         elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
                         elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
                         elseif (str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
-                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; }
+                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; $cat = null; }
                         elseif (str_contains($name, 'hp')) { $cat = 'hp'; }
                         elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
                         elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
-                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; }
+                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; $cat = null; }
 
                         if ($cat) {
                             $map[$cat] = ($map[$cat] ?? 0) + $qty; 
