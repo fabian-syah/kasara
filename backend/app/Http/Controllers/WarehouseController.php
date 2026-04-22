@@ -10,11 +10,17 @@ class WarehouseController extends Controller
 {
     public function index(Request $request)
     {
-        // EMERGENCY BYPASS: If ignore_scope or all is requested, return everything immediately
+        // DEBUG: Log the request to server error log
+        error_log("Warehouse Request: ignore_scope=" . $request->ignore_scope . ", all=" . $request->all);
+
+        // EMERGENCY BYPASS
         if ($request->ignore_scope || $request->all) {
+            $data = Warehouse::all();
             return response()->json([
                 'success' => true,
-                'data' => Warehouse::all()
+                'debug_count' => count($data),
+                'debug_sql' => 'select all',
+                'data' => $data
             ]);
         }
 
