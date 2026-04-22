@@ -529,9 +529,9 @@ class AuditController extends Controller
                         'arcis' => DB::table('distributors')->where('name', 'ilike', '%Arcis%')->pluck('id')->toArray(),
                         'dokter_pstore' => DB::table('distributors')->where('name', 'ilike', '%Dokter Pstore%')->pluck('id')->toArray(),
                         'accessories' => DB::table('distributors')->where('name', 'ilike', '%Accesories%')->pluck('id')->toArray(),
-                        'perdana' => DB::table('distributors')->where('name', 'ilike', '%Sim Card%')->pluck('id')->toArray(),
+                        'perdana' => DB::table('distributors')->where('name', 'ilike', '%Sim Card%')->orWhere('name', 'ilike', '%Perdana%')->pluck('id')->toArray(),
                         'laptop' => DB::table('distributors')->where('name', 'ilike', '%Laptop%')->pluck('id')->toArray(),
-                        'tv' => DB::table('distributors')->where('name', 'ilike', '%tvstOre%')->pluck('id')->toArray(),
+                        'tv' => DB::table('distributors')->where('name', 'ilike', '%TV%')->orWhere('name', 'ilike', '%tvstOre%')->pluck('id')->toArray(),
                     ];
 
                     foreach ($nhpData as $item) {
@@ -596,8 +596,24 @@ class AuditController extends Controller
                         }
                     }
 
-                    $stockReport = ['apple_lux' => 0];
-                    $stockDetails = ['apple_lux' => []];
+                    $stockReport = [
+                        'apple_lux' => 0,
+                        'accessories' => 0,
+                        'apply' => 0,
+                        'arcis' => 0,
+                        'laptop' => 0,
+                        'tv' => 0,
+                        'perdana' => 0
+                    ];
+                    $stockDetails = [
+                        'apple_lux' => [],
+                        'accessories' => [],
+                        'apply' => [],
+                        'arcis' => [],
+                        'laptop' => [],
+                        'tv' => [],
+                        'perdana' => []
+                    ];
 
                     $appleLuxQuery = DB::table('product_details')
                         ->join('users', 'product_details.user_id', '=', 'users.id')
@@ -654,7 +670,8 @@ class AuditController extends Controller
                         $name = strtolower($s->name);
                         $brand = strtolower($s->brand ?? '');
                         $qty = (int) $s->quantity;
-                        $pName = trim($s->name);
+                        // Normalize whitespace to merge duplicates like "Item Name " and "Item  Name"
+                        $pName = preg_replace('/\s+/', ' ', trim($s->name));
                         $distId = $s->distributor_id;
 
                         $cat = null;
@@ -684,6 +701,8 @@ class AuditController extends Controller
                                 $cat = 'apply';
                             } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
                                 $cat = 'arcis';
+                            } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
+                                $cat = 'jaringan';
                             }
                         }
 

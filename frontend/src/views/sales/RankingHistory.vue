@@ -1620,7 +1620,7 @@ const getBaseReportText = (isForCopy = false) => {
     const iphoneCount = summary.dist_map?.iphone || 0;
     const appleLuxCount = summary.dist_map?.apple_lux || 0;
     const androidCount = summary.dist_map?.android || 0;
-    const totalHP = (summary.dist_map?.hp || 0) + (summary.dist_map?.apple_lux || 0);
+    const totalHP = iphoneCount + appleLuxCount + androidCount;
 
     text += `unit HP keluar\n\n`;
     text += `Iphone           : ${iphoneCount}\n`;
@@ -1671,12 +1671,14 @@ const getBaseReportText = (isForCopy = false) => {
 
     // Other Sales Categories Stocks
     const stockCats = [
-        { key: 'accessories', label: 'accesories' },
+        { key: 'accessories', label: 'accessories' },
         { key: 'apply', label: 'apply' },
         { key: 'debs', label: 'debs' },
         { key: 'arcis', label: 'arcis' },
         { key: 'laptop', label: 'laptop' },
-        { key: 'tv', label: 'tv' }
+        { key: 'tv', label: 'tv' },
+        { key: 'perdana', label: 'Sim Card' },
+        { key: 'jaringan', label: '4G / LTE' }
     ];
 
     stockCats.forEach(cat => {
