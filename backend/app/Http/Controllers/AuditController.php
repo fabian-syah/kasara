@@ -87,10 +87,14 @@ class AuditController extends Controller
                     }
                 } else {
                     $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                        if (!empty($branchIds)) $sub->orWhereIn('branch_id', $branchIds);
-                        if (!empty($onlineShopIds)) $sub->orWhereIn('online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds)) $sub->orWhereIn('warehouse_id', $warehouseIds);
-                        if (!empty($distributorIds)) $sub->orWhereIn('distributor_id', $distributorIds);
+                        if (!empty($branchIds))
+                            $sub->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds))
+                            $sub->orWhereIn('warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds))
+                            $sub->orWhereIn('distributor_id', $distributorIds);
                     });
                 }
             });
@@ -125,10 +129,14 @@ class AuditController extends Controller
                     }
                 } else {
                     $sub->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                        if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                        if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds)) $q->orWhereIn('users.warehouse_id', $warehouseIds);
-                        if (!empty($distributorIds)) $q->orWhereIn('users.distributor_id', $distributorIds);
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds))
+                            $q->orWhereIn('users.warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds))
+                            $q->orWhereIn('users.distributor_id', $distributorIds);
                     });
                 }
             });
@@ -146,13 +154,17 @@ class AuditController extends Controller
         $paymentMethods = PaymentMethod::all()->keyBy('id');
 
         // Define a manual helper because closures inside Octane can be tricky
-        $helper_scopeUser = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+        $helper_scopeUser = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                if ($requestedBranchId) $sub->where('users.branch_id', $requestedBranchId);
-                elseif ($requestedOnlineShopId) $sub->where('users.online_shop_id', $requestedOnlineShopId);
+                if ($requestedBranchId)
+                    $sub->where('users.branch_id', $requestedBranchId);
+                elseif ($requestedOnlineShopId)
+                    $sub->where('users.online_shop_id', $requestedOnlineShopId);
                 else {
-                    if (!empty($branchIds)) $sub->orWhereIn('users.branch_id', $branchIds);
-                    if (!empty($onlineShopIds)) $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    if (!empty($branchIds))
+                        $sub->orWhereIn('users.branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
                 }
             });
         };
@@ -160,14 +172,17 @@ class AuditController extends Controller
         // Use Octane to run independent queries in parallel
         [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
             // 1. Paginated Sales Query
-            function() use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+            function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 return StockOut::with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
                     ->whereIn('category', $salesCategories)
                     ->whereBetween('reporting_date', [$startDate, $endDate])
                     ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
-                        if ($requestedCategory === 'orderan_online' || $requestedCategory === 'shopee') $q->whereIn('category', ['shopee', 'orderan_online']);
-                        elseif ($requestedCategory === 'penjualan_store' || $requestedCategory === 'penjualan_offline') $q->whereIn('category', ['penjualan_store', 'penjualan_offline']);
-                        else $q->where('category', $requestedCategory);
+                        if ($requestedCategory === 'orderan_online' || $requestedCategory === 'shopee')
+                            $q->whereIn('category', ['shopee', 'orderan_online']);
+                        elseif ($requestedCategory === 'penjualan_store' || $requestedCategory === 'penjualan_offline')
+                            $q->whereIn('category', ['penjualan_store', 'penjualan_offline']);
+                        else
+                            $q->where('category', $requestedCategory);
                     })
                     ->when($requestedSearch, function ($q) use ($requestedSearch) {
                         $s = $requestedSearch;
@@ -176,12 +191,16 @@ class AuditController extends Controller
                         });
                     })
                     ->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('online_shop_id', $requestedOnlineShopId);
+                        if ($requestedBranchId)
+                            $q->where('branch_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId)
+                            $q->where('online_shop_id', $requestedOnlineShopId);
                         else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                                if (!empty($branchIds)) $sub->orWhereIn('branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                                if (!empty($branchIds))
+                                    $sub->orWhereIn('branch_id', $branchIds);
+                                if (!empty($onlineShopIds))
+                                    $sub->orWhereIn('online_shop_id', $onlineShopIds);
                             });
                         }
                     })
@@ -191,64 +210,87 @@ class AuditController extends Controller
             // 2. Brand Stats
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $requestedCondition, $requestedProductTypeId, $requestedCapacity, $requestedDistributorId) {
                 $hpQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->when($requestedCondition, fn($q) => $q->where('product_details.condition', $requestedCondition))->when($requestedProductTypeId, fn($q) => $q->where('products.id', $requestedProductTypeId))->when($requestedCapacity, fn($q) => $q->where('product_details.storage', $requestedCapacity))->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId))->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name as distributor_name', DB::raw('count(*) as qty'))->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name as distributor_name', DB::raw('count(*) as qty'))->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')->get();
                 $nhpQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select('products.brand', 'products.name', DB::raw('sum(quantity) as qty'))->groupBy('products.brand', 'products.name')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select('products.brand', 'products.name', DB::raw('sum(quantity) as qty'))->groupBy('products.brand', 'products.name')->get();
                 return ['hp' => $hpQuery, 'nhp' => $nhpQuery];
             },
 
             // 3. CS Sales Stats
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 $baseQuery = DB::table('stock_outs')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    });
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                });
                 $itemStatsQuery = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                 $nhpStatsQuery = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
-                $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) { $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)')); })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', DB::raw("sum(case when stock_outs.category in ('shopee','orderan_online','penjualan_offline','penjualan_store','tukar_unit','tukar_tambah','downgrade','cancel_penjualan') then stock_outs.selling_price when stock_outs.category = 'refund' then -stock_outs.selling_price else 0 end) as grand_total"), DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"))->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
-                return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery) { $items = $itemStatsQuery->get($stat->owner_id); $nhp = $nhpStatsQuery->get($stat->owner_id); $iphone = (int) ($items->iphone_units ?? 0); $android = (int) ($items->android_units ?? 0); $nonHp = (int) ($nhp->non_hp_units ?? 0); return ['owner_id' => $stat->owner_id, 'cs_name' => $stat->cs_name ?? 'Unknown', 'photo' => $stat->photo ?? $stat->photo_inv, 'grand_total' => (float) $stat->grand_total, 'total_angkat_barang' => (int) $stat->total_angkat_barang, 'total_refund' => (int) $stat->total_refund, 'iphone_units' => $iphone, 'android_units' => $android, 'non_hp_units' => $nonHp, 'total_sales' => $iphone + $android + $nonHp]; });
+                $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
+                    $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)')); })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', DB::raw("sum(case when stock_outs.category in ('shopee','orderan_online','penjualan_offline','penjualan_store','tukar_unit','tukar_tambah','downgrade','cancel_penjualan') then stock_outs.selling_price when stock_outs.category = 'refund' then -stock_outs.selling_price else 0 end) as grand_total"), DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"))->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
+                return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery) {
+                    $items = $itemStatsQuery->get($stat->owner_id);
+                    $nhp = $nhpStatsQuery->get($stat->owner_id);
+                    $iphone = (int) ($items->iphone_units ?? 0);
+                    $android = (int) ($items->android_units ?? 0);
+                    $nonHp = (int) ($nhp->non_hp_units ?? 0);
+                    return ['owner_id' => $stat->owner_id, 'cs_name' => $stat->cs_name ?? 'Unknown', 'photo' => $stat->photo ?? $stat->photo_inv, 'grand_total' => (float) $stat->grand_total, 'total_angkat_barang' => (int) $stat->total_angkat_barang, 'total_refund' => (int) $stat->total_refund, 'iphone_units' => $iphone, 'android_units' => $android, 'non_hp_units' => $nonHp, 'total_sales' => $iphone + $android + $nonHp]; });
             },
 
             // 4. Daily History
             function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 $baseQuery = DB::table('stock_outs')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    });
-                
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                });
+
                 $hpStats = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select('reporting_date', DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('reporting_date')->get()->keyBy('reporting_date');
                 $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select('reporting_date', DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('reporting_date')->get()->keyBy('reporting_date');
                 $mainStats = (clone $baseQuery)->select('reporting_date', DB::raw('sum(selling_price) as total_omset'))->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
-                
-                return $mainStats->map(function($stat) use ($hpStats, $nhpStats) {
+
+                return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
                     $hp = $hpStats->get($stat->reporting_date);
                     $nhp = $nhpStats->get($stat->reporting_date);
-                    $iphone = (int)($hp->iphone_units ?? 0);
-                    $android = (int)($hp->android_units ?? 0);
-                    $nonHp = (int)($nhp->non_hp_units ?? 0);
+                    $iphone = (int) ($hp->iphone_units ?? 0);
+                    $android = (int) ($hp->android_units ?? 0);
+                    $nonHp = (int) ($nhp->non_hp_units ?? 0);
                     return [
                         'reporting_date' => $stat->reporting_date,
-                        'total_omset' => (float)$stat->total_omset,
+                        'total_omset' => (float) $stat->total_omset,
                         'iphone_units' => $iphone,
                         'android_units' => $android,
                         'non_hp_units' => $nonHp,
@@ -260,94 +302,120 @@ class AuditController extends Controller
             // 5. Type Stats
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select('products.name', 'products.brand', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select('products.name', 'products.brand', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand')->get();
             },
 
             // 6. Condition Stats
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select('product_details.condition', DB::raw('count(*) as qty'))->groupBy('product_details.condition')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select('product_details.condition', DB::raw('count(*) as qty'))->groupBy('product_details.condition')->get();
             },
 
             // 7. Distributor Stats
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), 'products.brand', 'products.name as product_type', 'product_details.condition', 'product_details.storage', DB::raw('count(*) as qty'))->groupBy('distributor', 'products.brand', 'product_type', 'product_details.condition', 'product_details.storage')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), 'products.brand', 'products.name as product_type', 'product_details.condition', 'product_details.storage', DB::raw('count(*) as qty'))->groupBy('distributor', 'products.brand', 'product_type', 'product_details.condition', 'product_details.storage')->get();
             },
 
             // 8. Products Filter
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select('products.id', 'products.name', 'products.brand')->distinct()->orderBy('products.name')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select('products.id', 'products.name', 'products.brand')->distinct()->orderBy('products.name')->get();
             },
 
             // 9. Distributor Filter
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                 return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('distributors', 'product_details.distributor_id', '=', 'distributors.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        }
-                    })->select('distributors.id', 'distributors.name')->distinct()->orderBy('distributors.name')->get();
+                    if ($requestedBranchId)
+                        $q->where('users.branch_id', $requestedBranchId);
+                    elseif ($requestedOnlineShopId)
+                        $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    else {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    }
+                })->select('distributors.id', 'distributors.name')->distinct()->orderBy('distributors.name')->get();
             },
 
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $paymentMethods) {
                 try {
                     // Use the proven exact scope strategy from Daily History & Brand Stats
-                    $applyLocalScope = function($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                                ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                                    if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                                    elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
-                                    else {
-                                        if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
-                                        if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                                    }
-                                });
+                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                            ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                                if ($requestedBranchId)
+                                    $q->where('users.branch_id', $requestedBranchId);
+                                elseif ($requestedOnlineShopId)
+                                    $q->where('users.online_shop_id', $requestedOnlineShopId);
+                                else {
+                                    if (!empty($branchIds))
+                                        $q->orWhereIn('users.branch_id', $branchIds);
+                                    if (!empty($onlineShopIds))
+                                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                }
+                            });
                     };
 
                     // 1. Total Omset & Payments
                     $pQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($pQuery);
                     $payments = $pQuery->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments')->get();
-                    
-                    $pSums = []; $paymentTotal = 0;
+
+                    $pSums = [];
+                    $paymentTotal = 0;
                     foreach ($payments as $p) {
-                        $amt = (float)$p->selling_price; $paymentTotal += $amt;
+                        $amt = (float) $p->selling_price;
+                        $paymentTotal += $amt;
                         $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'Belum Lunas / Lainnya';
                         $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
                         if (is_array($splits)) {
                             foreach ($splits as $sp) {
                                 $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
-                                $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float)($sp['amount'] ?? 0);
+                                $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float) ($sp['amount'] ?? 0);
                             }
                         } else {
                             $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
@@ -356,15 +424,32 @@ class AuditController extends Controller
 
                     // 2. Unit Mapping
                     $map = [
-                        'apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'debs' => 0, 
-                        'arcis' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 
-                        'iphone' => 0, 'android' => 0, 'laptop' => 0, 'tv' => 0
+                        'apple_lux' => 0,
+                        'hp' => 0,
+                        'accessories' => 0,
+                        'apply' => 0,
+                        'debs' => 0,
+                        'arcis' => 0,
+                        'dokter_pstore' => 0,
+                        'perdana' => 0,
+                        'jaringan' => 0,
+                        'iphone' => 0,
+                        'android' => 0,
+                        'laptop' => 0,
+                        'tv' => 0
                     ];
                     $mapRp = $map;
                     $processedStockOuts = [];
                     $soldDetails = [
-                        'apple_lux' => [], 'hp' => [], 'accessories' => [], 'apply' => [], 
-                        'debs' => [], 'arcis' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => []
+                        'apple_lux' => [],
+                        'hp' => [],
+                        'accessories' => [],
+                        'apply' => [],
+                        'debs' => [],
+                        'arcis' => [],
+                        'dokter_pstore' => [],
+                        'laptop' => [],
+                        'tv' => []
                     ];
 
                     $hpItemsQuery = DB::table('stock_out_items')
@@ -375,11 +460,11 @@ class AuditController extends Controller
                         ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($hpItemsQuery);
                     $hpData = $hpItemsQuery->select(
-                        'products.name', 
-                        'products.brand', 
-                        'product_details.distributor_id', 
-                        'distributors.name as dist_name', 
-                        'stock_outs.id as stock_out_id', 
+                        'products.name',
+                        'products.brand',
+                        'product_details.distributor_id',
+                        'distributors.name as dist_name',
+                        'stock_outs.id as stock_out_id',
                         'stock_out_items.selling_price as item_price',
                         'stock_out_items.item_discount'
                     )->get();
@@ -392,7 +477,7 @@ class AuditController extends Controller
 
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
-                        
+
                         if (str_contains($brand, 'apple') || str_contains($brand, 'iphone')) {
                             $map['iphone']++;
                         } else {
@@ -401,9 +486,11 @@ class AuditController extends Controller
 
                         $soldDetails[$cat][$pNameNormal] = ($soldDetails[$cat][$pNameNormal] ?? 0) + 1;
 
-                        $price = (float)($item->item_price ?? 0) - (float)($item->item_discount ?? 0);
-                        if ($isAppleLux) $mapRp['apple_lux'] += $price;
-                        else $mapRp['hp'] += $price;
+                        $price = (float) ($item->item_price ?? 0) - (float) ($item->item_discount ?? 0);
+                        if ($isAppleLux)
+                            $mapRp['apple_lux'] += $price;
+                        else
+                            $mapRp['hp'] += $price;
                     }
 
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')
@@ -411,10 +498,10 @@ class AuditController extends Controller
                         ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
                         ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
-                    
+
                     $nhpData = $nhpItemsQuery->select(
-                        'products.name', 
-                        'products.brand', 
+                        'products.name',
+                        'products.brand',
                         'stock_out_non_hp_items.quantity',
                         'stock_out_non_hp_items.selling_price as item_price',
                         'stock_out_non_hp_items.item_discount',
@@ -422,27 +509,42 @@ class AuditController extends Controller
                     )->get();
 
                     foreach ($nhpData as $item) {
-                        $name = strtolower($item->name); 
+                        $name = strtolower($item->name);
                         $brand = strtolower($item->brand ?? '');
-                        $qty = (int)$item->quantity;
+                        $qty = (int) $item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
 
-                        $price = ((float)($item->item_price ?? 0) - (float)($item->item_discount ?? 0)) * $qty;
+                        $price = ((float) ($item->item_price ?? 0) - (float) ($item->item_discount ?? 0)) * $qty;
 
                         $cat = 'hp'; // Default safety for non-HP that look like HP
-                        if (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) { $cat = 'accessories'; }
-                        elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
-                        elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
-                        elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
-                        elseif (str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
-                        elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; $cat = null; }
-                        elseif (str_contains($name, 'hp')) { $cat = 'hp'; }
-                        elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
-                        elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
-                        elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; $cat = null; }
+                        if (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) {
+                            $cat = 'accessories';
+                        } elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) {
+                            $cat = 'apply';
+                        } elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) {
+                            $cat = 'debs';
+                        } elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) {
+                            $cat = 'arcis';
+                        } elseif (str_contains($name, 'dokter pstore')) {
+                            $cat = 'dokter_pstore';
+                        } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
+                            $map['jaringan'] += $qty;
+                            $mapRp['jaringan'] += $price;
+                            $cat = null;
+                        } elseif (str_contains($name, 'hp')) {
+                            $cat = 'hp';
+                        } elseif (str_contains($name, 'laptop')) {
+                            $cat = 'laptop';
+                        } elseif (str_contains($name, 'tv')) {
+                            $cat = 'tv';
+                        } elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) {
+                            $map['perdana'] += $qty;
+                            $mapRp['perdana'] += $price;
+                            $cat = null;
+                        }
 
                         if ($cat) {
-                            $map[$cat] = ($map[$cat] ?? 0) + $qty; 
+                            $map[$cat] = ($map[$cat] ?? 0) + $qty;
                             $mapRp[$cat] = ($mapRp[$cat] ?? 0) + $price;
                             $soldDetails[$cat][$pName] = ($soldDetails[$cat][$pName] ?? 0) + $qty;
                         }
@@ -450,25 +552,30 @@ class AuditController extends Controller
 
                     $stockReport = ['apple_lux' => 0];
                     $stockDetails = ['apple_lux' => []];
-                    
+
                     $appleLuxQuery = DB::table('product_details')
                         ->join('users', 'product_details.user_id', '=', 'users.id')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
                         ->whereIn('product_details.distributor_id', [6, 8]);
-                    $applyLocationFilters = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
+                    $applyLocationFilters = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        if ($requestedBranchId)
+                            $q->where('users.branch_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId)
+                            $q->where('users.online_shop_id', $requestedOnlineShopId);
                         else {
-                            if (!empty($branchIds)) $q->where(function($qq) use ($branchIds, $onlineShopIds) {
-                                $qq->whereIn('users.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $qq->orWhereIn('users.online_shop_id', $onlineShopIds);
-                            });
-                            elseif (!empty($onlineShopIds)) $q->whereIn('users.online_shop_id', $onlineShopIds);
+                            if (!empty($branchIds))
+                                $q->where(function ($qq) use ($branchIds, $onlineShopIds) {
+                                    $qq->whereIn('users.branch_id', $branchIds);
+                                    if (!empty($onlineShopIds))
+                                        $qq->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                });
+                            elseif (!empty($onlineShopIds))
+                                $q->whereIn('users.online_shop_id', $onlineShopIds);
                         }
                     };
                     $applyLocationFilters($appleLuxQuery);
-                    
+
                     $appleLuxStock = $appleLuxQuery->select('products.name', 'product_details.imei', 'product_details.storage', 'product_details.condition')->get();
                     foreach ($appleLuxStock as $s) {
                         $stockReport['apple_lux']++;
@@ -485,7 +592,7 @@ class AuditController extends Controller
                         ->join('products', 'inventories.product_id', '=', 'products.id')
                         ->join('users', 'inventories.user_id', '=', 'users.id')
                         ->where('inventories.quantity', '>', 0);
-                    
+
                     $applyLocationFilters($otherStocksQuery);
 
                     $otherStocks = $otherStocksQuery->select(
@@ -498,43 +605,59 @@ class AuditController extends Controller
                         $name = strtolower($s->name);
                         $brand = strtolower($s->brand ?? '');
                         $dist = strtolower($s->log_dist_name ?? '');
-                        $qty = (int)$s->quantity;
+                        $qty = (int) $s->quantity;
                         $pName = $s->name;
 
                         $cat = null;
-                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $cat = 'accessories'; }
-                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
-                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
-                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
-                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
-                        elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
-                        elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) {
+                            $cat = 'accessories';
+                        } elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) {
+                            $cat = 'apply';
+                        } elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) {
+                            $cat = 'debs';
+                        } elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) {
+                            $cat = 'arcis';
+                        } elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) {
+                            $cat = 'dokter_pstore';
+                        } elseif (str_contains($name, 'laptop')) {
+                            $cat = 'laptop';
+                        } elseif (str_contains($name, 'tv')) {
+                            $cat = 'tv';
+                        }
 
                         if ($cat) {
                             $stockReport[$cat] = ($stockReport[$cat] ?? 0) + $qty;
                             $stockDetails[$cat][$pName] = ($stockDetails[$cat][$pName] ?? 0) + $qty;
                         }
                     }
-                    
-                    
+
+
                     $aStatsQuery = DB::table('stock_outs')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($aStatsQuery);
                     $aStatsList = $aStatsQuery->select('stock_outs.category', DB::raw("count(*) as qty"))->groupBy('stock_outs.category')->get()->pluck('qty', 'category');
 
                     // 5. Stock In Summary (Simplified to prevent crash/timeout on large ranges)
                     $inMap = [
-                        'hp' => 0, 'apple_lux' => 0, 'accessories' => 0, 'apply' => 0,
-                        'laptop' => 0, 'arcis' => 0, 'dokter_pstore' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0
+                        'hp' => 0,
+                        'apple_lux' => 0,
+                        'accessories' => 0,
+                        'apply' => 0,
+                        'laptop' => 0,
+                        'arcis' => 0,
+                        'dokter_pstore' => 0,
+                        'debs' => 0,
+                        'perdana' => 0,
+                        'jaringan' => 0
                     ];
                     $inDetails = [];
 
                     return [
-                        'payments' => $pSums, 
-                        'payment_total' => $paymentTotal, 
-                        'dist_map' => $map, 
-                        'dist_map_rp' => $mapRp, 
+                        'payments' => $pSums,
+                        'payment_total' => $paymentTotal,
+                        'dist_map' => $map,
+                        'dist_map_rp' => $mapRp,
                         'dist_in_map' => $inMap,
-                        'stock_report' => $stockReport, 
+                        'stock_report' => $stockReport,
                         'stock_details' => $stockDetails,
                         'sold_details' => $soldDetails,
                         'in_details' => $inDetails,
@@ -543,14 +666,14 @@ class AuditController extends Controller
                     ];
                 } catch (\Exception $e) {
                     return [
-                        'payments' => [], 
-                        'payment_total' => 0, 
-                        'dist_map' => [], 
-                        'dist_map_rp' => [], 
+                        'payments' => [],
+                        'payment_total' => 0,
+                        'dist_map' => [],
+                        'dist_map_rp' => [],
                         'dist_in_map' => [],
-                        'stock_report' => [], 
-                        'sold_details' => [], 
-                        'stock_details' => [], 
+                        'stock_report' => [],
+                        'sold_details' => [],
+                        'stock_details' => [],
                         'in_details' => [],
                         'activities' => [],
                         'error' => $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine(),
@@ -603,7 +726,8 @@ class AuditController extends Controller
                     'type' => 'HP',
                     'imei' => $item->imei ?? '-',
                     'storage' => $item->storage ?? null,
-                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second'))
+                    'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
+                    'distributor_name' => $item->distributor->name ?? 'KOSONG'
                 ];
                 $calculatedTotal += $netPrice;
             }
@@ -623,7 +747,8 @@ class AuditController extends Controller
                     'brand' => $item->product?->brand ?? '-',
                     'type' => 'Non-HP',
                     'category' => $item->product?->non_imei_category ?? null,
-                    'imei' => '-'
+                    'imei' => '-',
+                    'distributor_name' => $item->distributor->name ?? 'KOSONG'
                 ];
                 $calculatedTotal += ($netPrice * $qty);
             }

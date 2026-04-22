@@ -116,6 +116,7 @@
                             <th class="px-6 py-4">Total</th>
                             <th class="px-6 py-4">Akun / Catatan</th>
                             <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4">Distributor</th>
                             <th class="px-6 py-4">Aksi</th>
                         </tr>
                     </thead>
@@ -216,6 +217,11 @@
                                             {{ item.category === 'cancel_penjualan' ? 'Dibatalkan' : item.status }}
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs font-medium text-text-secondary italic">
+                                            {{ detail.distributor_name || 'KOSONG' }}
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex items-center gap-2">
                                             <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
@@ -277,6 +283,11 @@
                                                     ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20'
                                                     : 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'">
                                             {{ item.category === 'cancel_penjualan' ? 'Dibatalkan' : item.status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-xs font-medium text-text-secondary italic">
+                                            {{ item.distributor_name || item.items?.[0]?.distributor_name || 'KOSONG' }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
