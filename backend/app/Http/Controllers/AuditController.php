@@ -373,17 +373,13 @@ class AuditController extends Controller
 
                     foreach ($hpData as $item) {
                         $pNameNormal = $item->name ?? 'Unknown HP';
-                        $pNameLow = strtolower($pNameNormal);
                         $brand = strtolower($item->brand ?? '');
                         $distId = $item->distributor_id;
-                        
-                        // Ultra-Strict: Only Apple Lux if ID is 6 or 8. NO NAME CHECKS.
                         $isAppleLux = ($distId == 6 || $distId == 8);
 
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
                         
-                        // Brand check (handle 'Iphone ™' etc)
                         if (str_contains($brand, 'apple') || str_contains($brand, 'iphone')) {
                             $map['iphone']++;
                         } else {
@@ -410,15 +406,16 @@ class AuditController extends Controller
                         'products.name', 
                         'products.brand', 
                         'stock_out_non_hp_items.quantity',
+                        'stock_out_non_hp_items.distributor_id',
                         'stock_outs.id as stock_out_id',
                         'stock_outs.selling_price'
                     )->get();
 
                     foreach ($nhpData as $item) {
                         $name = strtolower($item->name); $brand = strtolower($item->brand ?? '');
-                        $dist = strtolower($item->log_dist_name ?? '');
                         $qty = (int)$item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
+                        $distId = $item->distributor_id;
 
                         $soId = $item->stock_out_id;
                         $price = 0;
@@ -427,18 +424,18 @@ class AuditController extends Controller
                             $processedStockOuts[$soId] = true;
                         }
 
-                        $cat = null;
-                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc') || str_contains($name, 'acc')) { $cat = 'accessories'; }
-                        elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
-                        elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
-                        elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
-                        elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
+                        $cat = 'hp';
+                        if ($distId == 6 || $distId == 8) { $cat = 'apple_lux'; }
+                        elseif ($distId == 10 || str_contains($name, 'accessories') || str_contains($brand, 'acc') || str_contains($name, 'acc')) { $cat = 'accessories'; }
+                        elseif ($distId == 11 || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
+                        elseif ($distId == 13 || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
+                        elseif ($distId == 14 || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
+                        elseif ($distId == 15 || str_contains($name, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
                         elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; }
                         elseif (str_contains($name, 'hp')) { $cat = 'hp'; }
                         elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
                         elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; }
-                        else { $cat = 'hp'; } // Default to HP for unknown items to avoid Apple Lux dump
 
                         if ($cat) {
                             $map[$cat] = ($map[$cat] ?? 0) + $qty; 
@@ -447,7 +444,6 @@ class AuditController extends Controller
                         }
                     }
 
-                    // 3. Stock Info
                     $stockReport = ['apple_lux' => 0];
                     $stockDetails = ['apple_lux' => []];
                     
