@@ -196,15 +196,10 @@ class InventoryController extends Controller
         if ($perPage == -1)
             $perPage = 999999;
 
-        // Cache based on all parameters, user ID and a GLOBAL VERSION
-        $invVersion = \Illuminate\Support\Facades\Cache::get('inv_version', 0);
-        $cacheKey = 'inv_v4_' . md5(json_encode($request->all()) . '_' . Auth::id() . '_v' . $invVersion);
+        // REMOVED CACHE FOR REAL-TIME UPDATES
+        $items = $query->latest('id')->paginate($perPage);
 
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($query, $perPage, $type, $request) {
-            // Execute query with pagination
-            $items = $query->latest('id')->paginate($perPage);
-
-            $items->getCollection()->transform(function ($item) use ($type, $request) {
+        $items->getCollection()->transform(function ($item) use ($type, $request) {
                 $placement = $item->placement;
                 $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
@@ -263,12 +258,23 @@ class InventoryController extends Controller
                 return $item;
             });
 
+            // If non-hp, we group by resolved name to avoid split rows (e.g. 14+1 Arcis)
+            if ($type === 'non-hp') {
+                $uniqueCollection = $items->getCollection()->groupBy(function ($item) {
+                    return $item->product_id . '_' . $item->placement_type . '_' . $item->placement_id . '_' . $item->latest_distributor;
+                })->map(function ($group) {
+                    $first = $group->first();
+                    $first->quantity = $group->sum('quantity');
+                    return $first;
+                })->values();
+                $items->setCollection($uniqueCollection);
+            }
+
             $res = $items->toArray();
-            $res['total_value'] = $type === 'hp' ? (clone $query)->sum('selling_price') : 0;
+            $res['total_value'] = ($type === 'hp') ? (clone $query)->sum('selling_price') : 0;
 
             return response()->json($res);
-        });
-    }
+        }
 
     public function export(Request $request)
     {
@@ -1048,7 +1054,11 @@ class InventoryController extends Controller
                     if ($pId) {
                         $p = Product::find($pId);
                         if ($p && isset($item['selling_price']) && $item['selling_price'] > 0) {
-                            $p->update(['price' => $item['selling_price']]);
+                            $updatePrices = ['price' => $item['selling_price']];
+                            if (\Schema::hasColumn('products', 'selling_price')) {
+                                $updatePrices['selling_price'] = $item['selling_price'];
+                            }
+                            $p->update($updatePrices);
                         }
                     }
 
@@ -1056,8 +1066,8 @@ class InventoryController extends Controller
                         continue;
 
                     $distributorId = $item['distributor_id'] ?? $request->distributor_id;
-                    $sellingPrice = $item['selling_price'] ?? 0;
-                    $costPrice = $item['cost_price'] ?? $sellingPrice; // Fallback to selling price if HPP is not provided
+                    $sellingPrice = floatval($item['selling_price'] ?? 0);
+                    $costPrice = floatval($item['cost_price'] ?? $sellingPrice); // Default to selling price if HPP is 0/missing
 
                     $inventory = Inventory::firstOrCreate(
                         [
