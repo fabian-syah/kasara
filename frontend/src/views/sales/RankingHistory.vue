@@ -352,43 +352,30 @@
 
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
 
-                        <!-- TOTAL UNIT HP -->
+                        <!-- unit HP keluar -->
+                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            unit HP keluar</h3>
+                        
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
                             <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Iphone</span>
                                 <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone || 0 }}</span>
                             </div>
                             <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <span class="capitalize">Apple Lux</span>
+                                <span class="capitalize">Apple Luxury</span>
                                 <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
                             </div>
                             <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Android</span>
                                 <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.android || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <span class="capitalize">Laptop</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+
+                            <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-8">
+                                <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
+                                <span class="text-2xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <span class="capitalize">Tv</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
-                            </div>
-                        </div>
 
-                        <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
-                            <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
-                            <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
-                        </div>
-
-                        <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
-
-                        <!-- RINCIAN LAINNYA & STOK -->
-                        <h3
-                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
-                            Rincian Unit & Stok</h3>
-
-                        <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
+                            <!-- Transaction Activities -->
                             <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Unit</span>
                                 <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
@@ -409,7 +396,23 @@
                                 <span class="capitalize">Angkat Barang</span>
                                 <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
+
+                            <!-- Non-HP Sales in Unit Section -->
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Laptop</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Tv</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
+                            </div>
                         </div>
+
+                        <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mt-12 mb-8"></div>
+
+                        <!-- RINCIAN UNIT & STOK Title for Stock Section -->
+                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            RINCIAN UNIT & STOK</h3>
 
                         <!-- STOCK SECTIONS (IMAGE STYLE) -->
                         <div class="mt-12 space-y-16 pb-20">
