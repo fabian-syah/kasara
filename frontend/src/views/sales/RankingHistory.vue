@@ -288,70 +288,51 @@
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.hp || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Apple Lux</span>
+                                    <div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan Apple Lux</span>
                                 </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0)
-                                    }}</span>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Accesories</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Accesories</span>
                                 </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0)
-                                    }}</span>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Apply</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Apply</span>
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apply || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Debs</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Debs</span>
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.debs || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Arcis</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Arcis</span>
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.arcis || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Dokter Pstore</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Dokter Pstore</span>
                                 </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0)
-                                    }}</span>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0) }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Perdana</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Perdana</span>
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.perdana || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.jaringan > 0"
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div v-if="salesData?.report_summary?.dist_map_rp?.jaringan > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
-                                        class="capitalize">Penjualan Jaringan</span>
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Jaringan</span>
                                 </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.jaringan || 0) }}</span>
                             </div>
@@ -361,43 +342,31 @@
 
                         <!-- TOTAL UNIT HP -->
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Iphone</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone
-                                    || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Apple Lux</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Android</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.dist_map?.android || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.android || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Laptop</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop
-                                    || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tv</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv ||
-                                    0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
                             </div>
                         </div>
 
-                        <div
-                            class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
+                        <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
-                            <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) +
-                                (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
+                            <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
                         </div>
 
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
@@ -408,35 +377,25 @@
                             Rincian Unit & Stok</h3>
 
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Unit</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Tambah</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Downgrade</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.activities?.downgrade || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.downgrade || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Refund</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.activities?.refund || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.refund || 0 }}</span>
                             </div>
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Angkat Barang</span>
-                                <span class="text-emerald-950 font-black">{{
-                                    salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
                         </div>
 
@@ -465,9 +424,7 @@
                                                 </span>
                                             </div>
                                             <div class="flex flex-col items-end">
-                                                <span
-                                                    class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{
-                                                        item.qty }} UNIT</span>
+                                                <span class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{ item.qty }} UNIT</span>
                                             </div>
                                         </div>
                                     </div>
