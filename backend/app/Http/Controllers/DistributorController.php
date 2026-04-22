@@ -311,9 +311,7 @@ class DistributorController extends Controller
                 $spec[] = $item->storage;
             $specStr = !empty($spec) ? ' ' . implode('/', $spec) : '';
 
-            $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
-
-            $productKey = trim("{$brandName} {$typeName}{$specStr} - {$cond}");
+            $productKey = trim("{$brandName} {$typeName}{$specStr}");
 
             if (!isset($grouped[$locationName]['products'][$productKey])) {
                 $grouped[$locationName]['products'][$productKey] = [
@@ -321,7 +319,6 @@ class DistributorController extends Controller
                     'brand' => $brandName,
                     'type_name' => $typeName,
                     'capacity' => implode('/', $spec),
-                    'condition_label' => $cond,
                     'qty' => 0,
                     'type' => $item->product->type ?? 'hp',
                     'has_imei' => $item->product->has_imei ?? true,
@@ -371,8 +368,7 @@ class DistributorController extends Controller
             $brandName = $item->product->brand ?? 'Unknown';
             $typeName = $item->product->name ?? 'Unknown';
 
-            $cond = 'New'; // Assuming Non-HP are mostly new
-            $productKey = trim("{$brandName} {$typeName} - {$cond}");
+            $productKey = trim("{$brandName} {$typeName}");
 
             if (!isset($grouped[$locationName]['products'][$productKey])) {
                 $grouped[$locationName]['products'][$productKey] = [
@@ -380,7 +376,6 @@ class DistributorController extends Controller
                     'brand' => $brandName,
                     'type_name' => $typeName,
                     'capacity' => null, // Non-HP doesn't usually have capacity
-                    'condition_label' => $cond,
                     'qty' => 0,
                     'type' => $item->product->type ?? 'non-hp',
                     'has_imei' => false,
@@ -482,12 +477,50 @@ class DistributorController extends Controller
             return ($latestA > $latestB) ? -1 : 1;
         });
 
+        // --- TUGAS 1: DAILY SALES SUMMARY WITH DATE FILLING ---
+        $startDate = $request->start_date ? \Carbon\Carbon::parse($request->start_date) : now()->startOfMonth();
+        $endDate = $request->end_date ? \Carbon\Carbon::parse($request->end_date) : now();
+        
+        $dailySummary = [];
+        $currentDate = clone $startDate;
+        
+        // Map sales to dates for easy lookup
+        $hpByDate = collect($salesHpFormatted)->groupBy(function($item) {
+            return \Carbon\Carbon::parse($item['date'])->toDateString();
+        });
+        
+        $nhpByDate = collect($nonHpSalesItems)->flatMap(function($group) {
+            return collect($group['items'])->map(function($sale) use ($group) {
+                $sale['total_sales'] = $sale['qty'] * $sale['price'];
+                return $sale;
+            });
+        })->groupBy(function($item) {
+            return \Carbon\Carbon::parse($item['date'])->toDateString();
+        });
+
+        while ($currentDate <= $endDate) {
+            $dateStr = $currentDate->toDateString();
+            
+            $hpSales = $hpByDate->get($dateStr) ?: collect();
+            $nhpSales = $nhpByDate->get($dateStr) ?: collect();
+            
+            $dailySummary[] = [
+                'date' => $dateStr,
+                'hp_qty' => $hpSales->count(),
+                'non_hp_qty' => $nhpSales->sum('qty'),
+                'omset' => $hpSales->sum('harga_jual') + $nhpSales->sum('total_sales')
+            ];
+            
+            $currentDate->addDay();
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
                 'stock' => $result,
                 'sales_hp' => $salesHpFormatted,
                 'sales_non_hp' => $nonHpSalesItems,
+                'daily_summary' => $dailySummary,
                 'total_omzet' => $totalOmzet
             ]
         ]);

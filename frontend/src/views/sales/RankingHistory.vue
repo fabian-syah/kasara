@@ -203,19 +203,6 @@
                     <p class="text-sm text-text-secondary">Ranking penjualan berdasarkan asal distributor</p>
                 </button>
 
-                <!-- Card: Laporan Penjualan (New) -->
-                <button @click="openSalesReport"
-                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
-                            <FileText :size="24" class="text-primary-500" />
-                        </div>
-                        <ChevronRight :size="20"
-                            class="text-text-secondary group-hover:text-primary-500 transition-colors" />
-                    </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan Penjualan</h3>
-                    <p class="text-sm text-text-secondary">Jenerate laporan teks lengkap untuk dikopi</p>
-                </button>
             </div>
         </template>
 
@@ -1506,15 +1493,15 @@ const getBaseReportText = (isForCopy = false) => {
     text += `______\n\n`;
 
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
-    if ((mapRp.hp || 0) > 0) text += `🟦 Penjualan HP : ${formatCurrency(mapRp.hp || 0)}\n`;
-    if ((mapRp.apple_lux || 0) > 0) text += `🟦 Penjualan apple lux : ${formatCurrency(mapRp.apple_lux || 0)}\n`;
-    if ((mapRp.accessories || 0) > 0) text += `⬜️ Penjualan accesories : ${formatCurrency(mapRp.accessories || 0)}\n`;
-    if ((mapRp.apply || 0) > 0) text += `⬜️ Penjualan apply : ${formatCurrency(mapRp.apply || 0)}\n`;
-    if ((mapRp.debs || 0) > 0) text += `⬜️ Penjualan debs : ${formatCurrency(mapRp.debs || 0)}\n`;
-    if ((mapRp.arcis || 0) > 0) text += `⬜️ Penjualan arcis : ${formatCurrency(mapRp.arcis || 0)}\n`;
-    if ((mapRp.dokter_pstore || 0) > 0) text += `⬜️ Penjualan dokter pstore : ${formatCurrency(mapRp.dokter_pstore || 0)}\n`;
-    if ((mapRp.perdana || 0) > 0) text += `⬜️ Penjualan perdana : ${formatCurrency(mapRp.perdana || 0)}\n`;
-    if ((mapRp.jaringan || 0) > 0) text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
+    text += `🟦 Penjualan HP : ${formatCurrency(mapRp.hp || 0)}\n`;
+    text += `🟦 Penjualan apple lux : ${formatCurrency(mapRp.apple_lux || 0)}\n`;
+    text += `⬜️ Penjualan accesories : ${formatCurrency(mapRp.accessories || 0)}\n`;
+    text += `⬜️ Penjualan apply : ${formatCurrency(mapRp.apply || 0)}\n`;
+    text += `⬜️ Penjualan debs : ${formatCurrency(mapRp.debs || 0)}\n`;
+    text += `⬜️ Penjualan arcis : ${formatCurrency(mapRp.arcis || 0)}\n`;
+    text += `⬜️ Penjualan dokter pstore : ${formatCurrency(mapRp.dokter_pstore || 0)}\n`;
+    text += `⬜️ Penjualan perdana : ${formatCurrency(mapRp.perdana || 0)}\n`;
+    text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
 
     text += `\nLaporan stok\n\n`;
     
@@ -1523,8 +1510,14 @@ const getBaseReportText = (isForCopy = false) => {
 
     // Apple Lux Sisa
     text += `🔷 stok apple lux\n`;
+    // Group Apple Lux by name and storage
+    const appleLuxGrouped = {};
     (stockDetails.apple_lux || []).forEach(item => {
-        text += `- ${item.name} | ${item.storage}GB | ${formatCondition(item.condition)} | IMEI: ${item.imei}\n`;
+        const key = `${item.name} ${item.storage}GB`;
+        appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
+    });
+    Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
+        text += `- ${name} : ${qty}\n`;
     });
     text += `\n`;
 
@@ -1589,11 +1582,7 @@ const getBaseReportText = (isForCopy = false) => {
 const displayReportText = computed(() => getBaseReportText(false));
 const generatedReportText = computed(() => getBaseReportText(true));
 
-const openSalesReport = () => {
-    // Switch view to report instead of opening modal
-    currentView.value = 'report';
-    reportCopied.value = false;
-}
+
 
 const copyReportToClipboard = async () => {
     try {

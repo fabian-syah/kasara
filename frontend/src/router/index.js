@@ -99,8 +99,17 @@ const routes = [
                 meta: {
                     title: 'Monitoring Stok',
                     menu: 'distributor_monitoring',
-                    // Allow both distributor and super_admin via permissions logic
                     permissions: ['distributor.monitoring']
+                }
+            },
+            {
+                path: 'distributor/sales-report',
+                name: 'DistributorSalesReport',
+                component: () => import('../views/distributor/SalesReport.vue'),
+                meta: {
+                    title: 'Laporan Penjualan',
+                    menu: 'distributor_sales_report',
+                    permissions: ['distributor.monitoring', 'transactions.view']
                 }
             },
             {
@@ -579,6 +588,16 @@ const routes = [
                     title: 'Peringkat & Foto',
                     menu: 'sales_ranking',
                     permissions: ['transactions.view']
+                }
+            },
+            {
+                path: 'distributor/sales-report',
+                name: 'DistributorSalesReport',
+                component: () => import('../views/distributor/SalesReport.vue'),
+                meta: {
+                    title: 'Laporan Penjualan',
+                    menu: 'distributor_sales_report',
+                    permissions: ['distributor.monitoring', 'transactions.view']
                 }
             },
             {
