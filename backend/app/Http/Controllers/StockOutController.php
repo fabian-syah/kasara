@@ -321,6 +321,7 @@ class StockOutController extends Controller
 
             // Verify Non-HP items availability and Deduct
             $user = Auth::user();
+            $nonHpDistMap = []; // Temporary storage for distributor inheritance
             if ($request->non_hp_items) {
                 foreach ($request->non_hp_items as $item) {
                     $product = Product::findOrFail($item['product_id']);
@@ -385,6 +386,11 @@ class StockOutController extends Controller
                         $deductAmount = min($inventory->quantity, $remainingToDeduct);
                         $inventory->decrement('quantity', $deductAmount);
                         $remainingToDeduct -= $deductAmount;
+                        
+                        // Capture the distributor from the first deducted batch for this product
+                        if (!isset($nonHpDistMap[$item['product_id']])) {
+                            $nonHpDistMap[$item['product_id']] = $inventory->distributor_id;
+                        }
 
                         // Log Transaction for this specific inventory record
                         InventoryLog::create([
@@ -594,21 +600,8 @@ class StockOutController extends Controller
                 foreach ($request->non_hp_items as $item) {
                     $prod = Product::find($item['product_id']);
                     if ($prod) {
-                        // Cari distributor dari stok fisik yang ada di lokasi user
-                        $inv = \App\Models\Inventory::where('product_id', $item['product_id'])
-                            ->where(function($q) use ($user) {
-                                if ($user->branch_id) {
-                                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->where('placement_id', $user->branch_id));
-                                }
-                                if ($user->warehouse_id) {
-                                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id));
-                                }
-                                if ($user->online_shop_id) {
-                                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id));
-                                }
-                            })->first();
-                        
-                        $distId = $inv?->distributor_id ?? $prod->distributor_id ?? null;
+                        // Use the distributor captured during stock deduction earlier
+                        $distId = $nonHpDistMap[$item['product_id']] ?? $prod->distributor_id ?? null;
 
                         StockOutNonHpItem::create([
                             'stock_out_id' => $stockOut->id,
