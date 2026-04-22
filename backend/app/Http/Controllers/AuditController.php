@@ -531,8 +531,7 @@ class AuditController extends Controller
                         ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
 
-                    $nhpData = $nhpItemsQuery->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                        ->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
+                    $nhpData = $nhpItemsQuery->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
                         ->select(
                             'products.name',
                             'products.brand',
