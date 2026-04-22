@@ -1077,6 +1077,9 @@ async function exportInventory() {
                   </div>
                   <div>
                     <p class="font-medium text-text-primary">{{ item.product?.name }}</p>
+                    <p class="text-[10px] text-text-secondary xl:hidden">
+                      Dist: {{ item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
+                    </p>
                   </div>
                 </div>
               </td>
