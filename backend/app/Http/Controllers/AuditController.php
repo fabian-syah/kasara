@@ -469,11 +469,22 @@ class AuditController extends Controller
                         'stock_out_items.item_discount'
                     )->get();
 
+                    // Pre-map transaction distributors to handle bundles/mixed items inheritance
+                    $trxDistMap = $hpData->filter(fn($i) => !empty($i->distributor_id))
+                        ->groupBy('stock_out_id')
+                        ->map(fn($g) => $g->first()->distributor_id);
+
+                    // Map specific IDs for Apple Luxury for fast check
+                    $appleLuxIds = DB::table('distributors')->where('name', 'ilike', 'Apple Luxury')->pluck('id')->toArray();
+
                     foreach ($hpData as $item) {
                         $pNameNormal = $item->name ?? 'Unknown HP';
                         $brand = strtolower($item->brand ?? '');
-                        $distId = $item->distributor_id;
-                        $isAppleLux = ($distId == 6 || $distId == 8);
+                        
+                        // Inheritance: Use item's distributor, or fallback to any distributor in the same transaction
+                        $distId = $item->distributor_id ?? ($trxDistMap[$item->stock_out_id] ?? null);
+                        
+                        $isAppleLux = in_array($distId, $appleLuxIds);
 
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
@@ -511,16 +522,40 @@ class AuditController extends Controller
                             'distributors.name as dist_name'
                         )->get();
 
+                    // Pre-map other distributor-based categories
+                    $catDistMap = [
+                        'apply' => DB::table('distributors')->where('name', 'ilike', '%Apply%')->pluck('id')->toArray(),
+                        'debs' => DB::table('distributors')->where('name', 'ilike', '%Debs%')->pluck('id')->toArray(),
+                        'arcis' => DB::table('distributors')->where('name', 'ilike', '%Arcis%')->pluck('id')->toArray(),
+                        'dokter_pstore' => DB::table('distributors')->where('name', 'ilike', '%Dokter Pstore%')->pluck('id')->toArray(),
+                        'accessories' => DB::table('distributors')->where('name', 'ilike', '%Accesories%')->pluck('id')->toArray(),
+                        'perdana' => DB::table('distributors')->where('name', 'ilike', '%Sim Card%')->pluck('id')->toArray(),
+                    ];
+
                     foreach ($nhpData as $item) {
                         $name = strtolower($item->name);
                         $brand = strtolower($item->brand ?? '');
                         $qty = (int) $item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
+                        $distId = $item->distributor_id;
 
                         $price = ((float) ($item->item_price ?? 0) - (float) ($item->item_discount ?? 0)) * $qty;
 
-                        $cat = 'hp'; // Default safety for non-HP that look like HP
-                        if (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) {
+                        $cat = 'hp'; // Default safety
+                        
+                        // Check by Distributor ID mapping first (HIGHEST PRIORITY)
+                        if (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
+                        elseif (in_array($distId, $catDistMap['apply'])) $cat = 'apply';
+                        elseif (in_array($distId, $catDistMap['debs'])) $cat = 'debs';
+                        elseif (in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
+                        elseif (in_array($distId, $catDistMap['dokter_pstore'])) $cat = 'dokter_pstore';
+                        elseif (in_array($distId, $catDistMap['perdana'])) {
+                            $map['perdana'] += $qty;
+                            $mapRp['perdana'] += $price;
+                            $cat = null;
+                        }
+                        // Fallback to name/brand matching for old data
+                        elseif (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) {
                             $cat = 'accessories';
                         } elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) {
                             $cat = 'apply';
@@ -560,7 +595,7 @@ class AuditController extends Controller
                         ->join('users', 'product_details.user_id', '=', 'users.id')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
-                        ->whereIn('product_details.distributor_id', [6, 8]);
+                        ->whereIn('product_details.distributor_id', $appleLuxIds);
                     $applyLocationFilters = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -702,6 +737,16 @@ class AuditController extends Controller
                 $mainNonHp = $nonHpItems->first();
                 $bundlePrice = 0;
                 $bundleName = $trx->bundle_description ?: ($mainHp ? ($mainHp->product?->name . ' + BUNDLING') : 'PAKET BUNDLING');
+                
+                // Inheritance Logic: Bundle follows the main item's distributor
+                $bundleDistributor = 'KOSONG';
+                if ($mainHp) {
+                    $dId = $mainHp->pivot->distributor_id ?? $mainHp->distributor_id;
+                    if ($dId) {
+                        $bundleDistributor = \App\Models\Distributor::find($dId)->name ?? 'KOSONG';
+                    }
+                }
+
                 if ($mainHp) {
                     $bundlePrice += ($mainHp->pivot?->selling_price ?? 0) - ($mainHp->pivot?->item_discount ?? 0);
                     $bundleHpId = $mainHp->id;
@@ -710,7 +755,17 @@ class AuditController extends Controller
                     $bundlePrice += ($mainNonHp->selling_price ?? 0) - ($mainNonHp->item_discount ?? 0);
                     $bundleNonHpId = $mainNonHp->id;
                 }
-                $details[] = ['name' => $bundleName, 'qty' => 1, 'price' => $bundlePrice, 'item_discount' => 0, 'distributed_discount' => 0, 'is_fixed' => true, 'type' => 'Bundle', 'imei' => $mainHp ? $mainHp->imei : '-'];
+                $details[] = [
+                    'name' => $bundleName, 
+                    'qty' => 1, 
+                    'price' => $bundlePrice, 
+                    'item_discount' => 0, 
+                    'distributed_discount' => 0, 
+                    'is_fixed' => true, 
+                    'type' => 'Bundle', 
+                    'imei' => $mainHp ? $mainHp->imei : '-',
+                    'distributor_name' => $bundleDistributor // Inherited distributor
+                ];
                 $calculatedTotal += $bundlePrice;
             }
 
