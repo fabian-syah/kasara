@@ -516,9 +516,7 @@ class AuditController extends Controller
 
                         $soldDetails[$cat][$pNameNormal] = ($soldDetails[$cat][$pNameNormal] ?? 0) + 1;
                         $price = (float)($hp->item_price ?? 0) - (float)($hp->item_discount ?? 0);
-                        
-                        if ($isAppleLux) $mapRp['apple_lux'] += $price;
-                        else $mapRp['hp'] += $price;
+                        if ($isAppleLux) $mapRp['apple_lux'] += $price; else $mapRp['hp'] += $price;
                     }
 
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')
@@ -545,15 +543,15 @@ class AuditController extends Controller
                         elseif (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
                         elseif (in_array($distId, $catDistMap['laptop'])) $cat = 'laptop';
                         elseif (in_array($distId, $catDistMap['tv'])) $cat = 'tv';
+                        elseif (in_array($distId, $catDistMap['perdana'])) $cat = 'perdana';
                         if (!$cat) {
                             if (str_contains($brand, 'apply') || str_contains($lowerName, 'apply') || str_contains($lowerName, 'adapter') || str_contains($lowerName, 'cable') || str_contains($lowerName, 'tempered')) $cat = 'apply';
                             elseif (str_contains($brand, 'arcis') || str_contains($lowerName, 'arcis')) $cat = 'arcis';
-                            elseif (str_contains($brand, 'debs') || str_contains($lowerName, 'debs')) $cat = 'debs';
                             elseif (str_contains($brand, 'laptop') || str_contains($lowerName, 'laptop') || str_contains($brand, 'lenovo') || str_contains($brand, 'msi')) $cat = 'laptop';
                             elseif (str_contains($brand, 'tv') || str_contains($brand, 'coocaa') || str_contains($lowerName, 'tv')) $cat = 'tv';
                             elseif (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan')) $cat = 'jaringan';
                             elseif (str_contains($lowerName, 'sim card') || str_contains($lowerName, 'perdana') || str_contains($lowerName, 'icloud') || str_contains($lowerName, 'jasa')) $cat = 'perdana';
-                            elseif ($brand === 'accessories' || str_contains($lowerName, 'accessories') || str_contains($brand, 'olike') || str_contains($brand, 'acc')) $cat = 'accessories';
+                            elseif ($brand === 'accessories' || str_contains($lowerName, 'accessories')) $cat = 'accessories';
                         }
                         if ($cat) {
                             $price = ((float)$item->item_price - (float)$item->item_discount) * $qty;
@@ -568,12 +566,12 @@ class AuditController extends Controller
                         ->where('product_details.status', 'available')
                         ->whereIn('product_details.distributor_id', $appleLuxIds);
                     $applyStockFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
-                        if ($requestedBranchId) $q->whereIn('placement_type', ['branch', 'App\Models\Branch'])->where('placement_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $q->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->where('placement_id', $requestedOnlineShopId);
+                        if ($requestedBranchId) $q->where('placement_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId) $q->where('placement_id', $requestedOnlineShopId);
                         else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                                if (!empty($branchIds)) $sub->orWhere(fn($qq) => $qq->whereIn('placement_type', ['branch', 'App\Models\Branch'])->whereIn('placement_id', $branchIds));
-                                if (!empty($onlineShopIds)) $sub->orWhere(fn($qq) => $qq->whereIn('placement_type', ['online_shop', 'App\Models\OnlineShop'])->whereIn('placement_id', $onlineShopIds));
+                                if (!empty($branchIds)) $sub->orWhereIn('placement_id', $branchIds);
+                                if (!empty($onlineShopIds)) $sub->orWhereIn('placement_id', $onlineShopIds);
                             });
                         }
                     };
@@ -601,23 +599,20 @@ class AuditController extends Controller
                         $distId = (int)$s->distributor_id;
                         $qty = (int)$s->quantity;
                         $cat = null;
-                        if (in_array($distId, $catDistMap['apply']) || str_contains($distName, 'apply')) $cat = 'apply';
-                        elseif (in_array($distId, $catDistMap['arcis']) || str_contains($distName, 'arcis')) $cat = 'arcis';
-                        elseif (in_array($distId, $catDistMap['debs']) || str_contains($distName, 'debs')) $cat = 'debs';
-                        elseif (in_array($distId, $catDistMap['dokter_pstore']) || str_contains($distName, 'dokter pstore')) $cat = 'dokter_pstore';
-                        elseif (in_array($distId, $catDistMap['accessories']) || str_contains($distName, 'accesories')) $cat = 'accessories';
-                        elseif (in_array($distId, $catDistMap['perdana']) || str_contains($distName, 'sim card')) {
+                        if (str_contains($distName, 'apply') || in_array($distId, $catDistMap['apply'])) $cat = 'apply';
+                        elseif (str_contains($distName, 'arcis') || in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
+                        elseif (str_contains($distName, 'laptop') || in_array($distId, $catDistMap['laptop'])) $cat = 'laptop';
+                        elseif (str_contains($distName, 'tv') || in_array($distId, $catDistMap['tv'])) $cat = 'tv';
+                        elseif (str_contains($distName, 'sim card') || in_array($distId, $catDistMap['perdana'])) {
                              if (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan')) $cat = 'jaringan';
                              else $cat = 'perdana';
                         }
-                        elseif (in_array($distId, $catDistMap['laptop']) || str_contains($distName, 'laptopsss')) $cat = 'laptop';
-                        elseif (in_array($distId, $catDistMap['tv']) || str_contains($distName, 'tvstore')) $cat = 'tv';
+                        elseif (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
                         if (!$cat) {
                             if (str_contains($brand, 'apply') || str_contains($lowerName, 'apply') || str_contains($lowerName, 'adapter') || str_contains($lowerName, 'cable') || str_contains($lowerName, 'tempered')) $cat = 'apply';
                             elseif (str_contains($brand, 'arcis') || str_contains($lowerName, 'arcis')) $cat = 'arcis';
                             elseif (str_contains($brand, 'laptop') || str_contains($lowerName, 'laptop') || str_contains($brand, 'lenovo') || str_contains($brand, 'msi')) $cat = 'laptop';
                             elseif (str_contains($brand, 'tv') || str_contains($brand, 'coocaa') || str_contains($lowerName, 'tv')) $cat = 'tv';
-                            elseif (str_contains($brand, 'olike') || str_contains($brand, 'acc') || str_contains($lowerName, 'speaker')) $cat = 'apply';
                             elseif (str_contains($lowerName, 'icloud') || str_contains($lowerName, 'jasa')) $cat = 'perdana';
                             elseif (str_contains($lowerName, '4g') || str_contains($lowerName, 'lte') || str_contains($lowerName, 'jaringan')) $cat = 'jaringan';
                         }
