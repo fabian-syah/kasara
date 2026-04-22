@@ -23,7 +23,7 @@ npm run build
 
 # 5. Jika build sukses, baru pindahkan file
 if [ $? -eq 0 ]; then
-    echo "✅ Build sukses! Memindahkan ke folder server..."
+    echo "✅ Build sukses! Memindahkan ke folder server..."o`
     sudo rm -rf /var/www/stokps/*
     sudo cp -r dist/* /var/www/stokps/
     echo "🎉 Update SELESAI! Web sudah live dengan versi terbaru."

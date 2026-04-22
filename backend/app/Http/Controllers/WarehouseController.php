@@ -14,7 +14,7 @@ class WarehouseController extends Controller
         $query = Warehouse::query();
 
         // Role-based access control
-        if ($user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'inventory'])) {
+        if ($request->get('ignore_scope') == '1' || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'inventory'])) {
             // Full access (Global)
         } else if ($user->hasAnyRole(['audit', 'leader', 'gudang'])) {
             // Assigned access

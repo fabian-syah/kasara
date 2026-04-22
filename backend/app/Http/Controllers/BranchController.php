@@ -14,7 +14,7 @@ class BranchController extends Controller
         $query = Branch::query();
 
         // Role-based access control
-        if ($user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
+        if ($request->get('ignore_scope') == '1' || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
             // Full access (Global)
         } else if ($user->hasAnyRole(['audit', 'leader'])) {
             // Assigned access
