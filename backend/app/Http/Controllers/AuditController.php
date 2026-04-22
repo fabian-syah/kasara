@@ -372,10 +372,13 @@ class AuditController extends Controller
                     $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
 
                     foreach ($hpData as $item) {
-                        $isAppleLux = str_contains(strtolower($item->dist_name ?? ''), 'apple luxury');
+                        $distName = strtolower($item->dist_name ?? '');
+                        // Match specifically 'apple luxury' or 'apple lux'
+                        $isAppleLux = str_contains($distName, 'apple lux') || str_contains($distName, 'apple luxury');
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
-                        if (isset($item->brand) && $item->brand === 'Apple') $map['iphone']++;
+                        $brand = strtolower($item->brand ?? '');
+                        if ($brand === 'apple' || $brand === 'apple lux' || $brand === 'apple luxury') $map['iphone']++;
                         else $map['android']++;
 
                         $pName = $item->name ?? 'Unknown HP';
@@ -443,7 +446,7 @@ class AuditController extends Controller
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
                         ->whereExists(function($q) { 
-                            $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Luxury%'); 
+                            $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Lux%'); 
                         });
                     $applyLocationFilters = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);

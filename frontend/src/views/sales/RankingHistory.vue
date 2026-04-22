@@ -1588,7 +1588,9 @@ const getBaseReportText = (isForCopy = false) => {
     // Group Apple Lux by name and storage
     const appleLuxGrouped = {};
     (stockDetails.apple_lux || []).forEach(item => {
-        const key = `${item.name} ${item.storage}GB`;
+        let storageStr = (item.storage || '').toString().toUpperCase();
+        if (storageStr && !storageStr.includes('GB')) storageStr += ' GB';
+        const key = `${item.name} ${storageStr}`;
         appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
     });
     Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
@@ -1636,11 +1638,16 @@ const getBaseReportText = (isForCopy = false) => {
         text += `AWAL   :\nIN          :\nSISA     :\n`;
     }
 
+    const iphoneCount = summary.dist_map?.iphone || 0;
+    const appleLuxCount = summary.dist_map?.apple_lux || 0;
+    const androidCount = summary.dist_map?.android || 0;
+    const totalHP = iphoneCount + androidCount;
+
     text += `______________\nunit HP keluar\n\n`;
-    text += `Iphone       : ${summary.dist_map?.iphone || 0}\n`;
-    text += `Apple lux   : ${summary.dist_map?.apple_lux || 0}\n`;
-    text += `Android      : ${summary.dist_map?.android || 0}\n`;
-    text += `Total HP     : ${(summary.dist_map?.hp || 0) + (summary.dist_map?.apple_lux || 0)}\n\n`;
+    text += `Iphone       : ${iphoneCount}\n`;
+    text += `Apple lux   : ${appleLuxCount}\n`;
+    text += `Android      : ${androidCount}\n`;
+    text += `Total HP     : ${totalHP}\n\n`;
 
     text += `Tukar unit          : ${activities.tukar_unit || 0}\n`;
     text += `Tukar tambah   : ${activities.tukar_tambah || 0}\n`;
