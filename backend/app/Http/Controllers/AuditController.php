@@ -462,7 +462,7 @@ class AuditController extends Controller
                     $hpData = $hpItemsQuery->select(
                         'products.name',
                         'products.brand',
-                        'product_details.distributor_id',
+                        DB::raw('COALESCE(stock_out_items.distributor_id, product_details.distributor_id) as distributor_id'),
                         'distributors.name as dist_name',
                         'stock_outs.id as stock_out_id',
                         'stock_out_items.selling_price as item_price',
@@ -499,14 +499,17 @@ class AuditController extends Controller
                         ->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($nhpItemsQuery);
 
-                    $nhpData = $nhpItemsQuery->select(
-                        'products.name',
-                        'products.brand',
-                        'stock_out_non_hp_items.quantity',
-                        'stock_out_non_hp_items.selling_price as item_price',
-                        'stock_out_non_hp_items.item_discount',
-                        'stock_outs.id as stock_out_id'
-                    )->get();
+                    $nhpData = $nhpItemsQuery->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
+                        ->select(
+                            'products.name',
+                            'products.brand',
+                            'stock_out_non_hp_items.quantity',
+                            'stock_out_non_hp_items.selling_price as item_price',
+                            'stock_out_non_hp_items.item_discount',
+                            'stock_outs.id as stock_out_id',
+                            'stock_out_non_hp_items.distributor_id',
+                            'distributors.name as dist_name'
+                        )->get();
 
                     foreach ($nhpData as $item) {
                         $name = strtolower($item->name);
@@ -714,6 +717,14 @@ class AuditController extends Controller
             foreach ($hpItems as $item) {
                 if ($item->id === $bundleHpId)
                     continue;
+
+                // Priority: check stored distributor in pivot table
+                $dId = $item->pivot->distributor_id ?? $item->distributor_id;
+                $dName = 'KOSONG';
+                if ($dId) {
+                    $dName = \App\Models\Distributor::find($dId)->name ?? 'KOSONG';
+                }
+
                 $netPrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
                 $details[] = [
                     'name' => $item->product?->name ?? 'Unknown HP',
@@ -727,7 +738,7 @@ class AuditController extends Controller
                     'imei' => $item->imei ?? '-',
                     'storage' => $item->storage ?? null,
                     'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
-                    'distributor_name' => $item->distributor->name ?? 'KOSONG'
+                    'distributor_name' => $dName
                 ];
                 $calculatedTotal += $netPrice;
             }
@@ -736,6 +747,9 @@ class AuditController extends Controller
                 $qty = ($item->id === $bundleNonHpId) ? ($item->quantity - 1) : $item->quantity;
                 if ($qty <= 0)
                     continue;
+
+                $dName = $item->distributor->name ?? 'KOSONG'; // Read from captured distributor
+
                 $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
                 $details[] = [
                     'name' => $item->product?->name ?? 'Item Non-HP',
@@ -748,7 +762,7 @@ class AuditController extends Controller
                     'type' => 'Non-HP',
                     'category' => $item->product?->non_imei_category ?? null,
                     'imei' => '-',
-                    'distributor_name' => $item->distributor->name ?? 'KOSONG'
+                    'distributor_name' => $dName
                 ];
                 $calculatedTotal += ($netPrice * $qty);
             }

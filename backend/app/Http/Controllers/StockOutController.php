@@ -604,6 +604,7 @@ class StockOutController extends Controller
                             'distributed_discount' => $item['distributed_discount'] ?? 0,
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $item['quantity'],
                             'returned_quantity' => 0,
+                            'distributor_id' => $prod->distributor_id ?? null // Capture distributor non-HP
                         ]);
                     }
                 }
@@ -691,6 +692,7 @@ class StockOutController extends Controller
                             'selling_price' => $bNonHp['selling_price'] ?? 0,
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $deductAmount,
                             'returned_quantity' => 0,
+                            'distributor_id' => $inventory->distributor_id, // Capture from inventory source
                         ]);
                     }
                 }
@@ -707,6 +709,7 @@ class StockOutController extends Controller
                     'selling_price' => $hpMeta['selling_price'] ?? $detail->selling_price,
                     'item_discount' => $hpMeta['item_discount'] ?? 0,
                     'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
+                    'distributor_id' => $detail->distributor_id, // Capture HP distributor permanently
                 ]);
 
                 $updateStatus = $newStatus;
