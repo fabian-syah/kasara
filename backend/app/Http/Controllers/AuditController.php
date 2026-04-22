@@ -503,7 +503,7 @@ class AuditController extends Controller
                         ->whereIn('product_details.distributor_id', $appleLuxIds);
                     $applyStockFilters($alStock);
                     foreach ($alStock->select('products.name', DB::raw('count(*) as qty'))->groupBy('products.name')->get() as $s) {
-                        $name = $s->name ?: 'Unknown Apple Lux';
+                        $name = (string)($s->name ?: 'Apple Lux No Name');
                         $qty = (int)$s->qty;
                         $stockReport['apple_lux'] += $qty;
                         $rawStockDetails['apple_lux'][$name] = ($rawStockDetails['apple_lux'][$name] ?? 0) + $qty;
@@ -2134,10 +2134,10 @@ class AuditController extends Controller
             return response()->json(['report' => "Terjadi kesalahan saat memproses data: " . ($data['error'] ?? 'Data tidak ditemukan')]);
         }
 
-        $branchName = 'CABANG TRIAL';
+        $branchName = 'CABANG TRIAL [UPDATED]';
         if ($request->branch_id) {
             $branch = \App\Models\Branch::find($request->branch_id);
-            if ($branch) $branchName = $branch->name;
+            if ($branch) $branchName = $branch->name . ' [UPDATED]';
         }
 
         $date = $request->start_date ? date('d F Y', strtotime($request->start_date)) : date('d F Y');
