@@ -373,16 +373,26 @@ class AuditController extends Controller
 
                     foreach ($hpData as $item) {
                         $distName = strtolower($item->dist_name ?? '');
-                        // Match specifically 'apple luxury' or 'apple lux'
-                        $isAppleLux = str_contains($distName, 'apple lux') || str_contains($distName, 'apple luxury');
+                        $pName = strtolower($item->name ?? '');
+                        $brand = strtolower($item->brand ?? '');
+                        
+                        // Match specifically 'apple luxury' or 'apple lux' in distributor OR product name
+                        $isAppleLux = str_contains($distName, 'apple lux') || 
+                                     str_contains($distName, 'apple luxury') || 
+                                     str_contains($pName, 'apple lux');
+
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
-                        $brand = strtolower($item->brand ?? '');
-                        if ($brand === 'apple' || $brand === 'apple lux' || $brand === 'apple luxury') $map['iphone']++;
-                        else $map['android']++;
+                        
+                        // Brand check (handle 'Iphone ™' etc)
+                        if (str_contains($brand, 'apple') || str_contains($brand, 'iphone')) {
+                            $map['iphone']++;
+                        } else {
+                            $map['android']++;
+                        }
 
-                        $pName = $item->name ?? 'Unknown HP';
-                        $soldDetails[$cat][$pName] = ($soldDetails[$cat][$pName] ?? 0) + 1;
+                        $pNameNormal = $item->name ?? 'Unknown HP';
+                        $soldDetails[$cat][$pNameNormal] = ($soldDetails[$cat][$pNameNormal] ?? 0) + 1;
 
                         $soId = $item->stock_out_id;
                         $price = 0;
@@ -445,8 +455,10 @@ class AuditController extends Controller
                         ->join('users', 'product_details.user_id', '=', 'users.id')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
-                        ->whereExists(function($q) { 
-                            $q->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Lux%'); 
+                        ->where(function($q) {
+                            $q->whereExists(function($sq) { 
+                                $sq->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Lux%'); 
+                            })->orWhere('products.name', 'like', '%Apple Lux%');
                         });
                     $applyLocationFilters = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
