@@ -655,7 +655,7 @@
                                         <th class="px-6 py-4 text-center">Android</th>
                                         <th class="px-6 py-4 text-center">Non-HP</th>
                                     </template>
-                                    <th class="px-6 py-4 text-center">{{ currentView === 'activity' ? 'Total Unit Terjual' : 'Total Penjualan' }}</th>
+                                    <th v-if="currentView === 'sales'" class="px-6 py-4 text-center">Total Penjualan</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">
                                         Tukar/Angkat/Downgrade</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
@@ -976,7 +976,7 @@
                                             <td class="px-6 py-4 text-center text-gray-500 font-bold">{{
                                                 item.non_hp_units || 0 }}</td>
                                         </template>
-                                        <td class="px-6 py-4 text-center font-black text-primary-500">{{
+                                        <td v-if="currentView === 'sales'" class="px-6 py-4 text-center font-black text-primary-500">{{
                                             item.total_sales }}</td>
                                         <td v-if="currentView === 'activity'"
                                             class="px-6 py-4 text-center font-bold text-amber-500">{{
@@ -1048,7 +1048,7 @@
                                 </template>
 
                                 <template v-else-if="currentView === 'activity'">
-                                    <td class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
+                                    <td v-if="currentView === 'sales'" class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
                                     <td class="px-6 py-4 text-center text-amber-500">{{ totals.activity }}</td>
                                     <td class="px-6 py-4 text-center text-red-500">{{ totals.refund }}</td>
                                     <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
