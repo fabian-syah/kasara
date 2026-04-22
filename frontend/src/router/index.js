@@ -581,6 +581,16 @@ const routes = [
                     permissions: ['transactions.view']
                 }
             },
+            {
+                path: 'sales/imei-history',
+                name: 'ImeiHistory',
+                component: () => import('../views/sales/ImeiHistory.vue'),
+                meta: {
+                    title: 'Lacak & History IMEI',
+                    menu: 'imei_history',
+                    permissions: ['audit.view', 'online.scan', 'pos.access', 'products.view']
+                }
+            },
 
             {
                 path: 'system-status',
