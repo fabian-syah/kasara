@@ -58,13 +58,14 @@ class InventoryController extends Controller
                     'user_id',
                     'distributor_id',
                     DB::raw('SUM(quantity) as total_quantity'),
-                    DB::raw('MAX(id) as id') // Needed for ordering
+                    DB::raw('MAX(id) as id'), // Needed for ordering
+                    DB::raw('MAX(distributor_id) as distributor_id')
                 )
                 ->where('quantity', '>', 0)
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'non-hp')->orWhere('has_imei', false);
                 })
-                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id', 'distributor_id');
+                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
         } else {
             $query = ProductDetail::with([
                 'product',
@@ -217,15 +218,24 @@ class InventoryController extends Controller
                     // 3. User distributor fallback
                     $distName = null;
                     if ($item->distributor_id) {
-                        $distModel = \App\Models\Distributor::find($item->distributor_id);
-                        $distName = $distModel ? $distModel->name : null;
+                        $distName = \App\Models\Distributor::find($item->distributor_id)?->name;
                     }
 
                     if (!$distName) {
-                        $log = $item->latestLog;
-                        $distName = $log && $log->distributor ? $log->distributor->name : ($log->supplier_name ?? null);
-                    }
+                        // Find the LATEST 'in' log for this specific product and location to get the distributor/supplier
+                        $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
+                            ->where(function($q) use ($item) {
+                                if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
+                                elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
+                                elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
+                            })
+                            ->where('type', 'in')
+                            ->latest()
+                            ->first();
 
+                        $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
+                    }
+                    
                     if (!$distName && $item->user && $item->user->distributor) {
                         $distName = $item->user->distributor->name;
                     }
