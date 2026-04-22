@@ -280,74 +280,29 @@
                             Rincian Penjualan Distributor</h3>
 
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div
-                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span
-                                        class="capitalize">Penjualan HP</span>
+                            <!-- DYNAMIC CATEGORIES -->
+                            <template v-for="cat in [
+                                { key: 'hp', label: 'HP', color: 'bg-blue-500' },
+                                { key: 'apple_lux', label: 'Apple Luxury', color: 'bg-blue-500' },
+                                { key: 'accessories', label: 'Accesories', color: 'border border-gray-400 bg-white' },
+                                { key: 'apply', label: 'Apply', color: 'border border-gray-400 bg-white' },
+                                { key: 'debs', label: 'Debs', color: 'border border-gray-400 bg-white' },
+                                { key: 'arcis', label: 'Arcis', color: 'border border-gray-400 bg-white' },
+                                { key: 'dokter_pstore', label: 'Dokter Pstore', color: 'border border-gray-400 bg-white' },
+                                { key: 'perdana', label: 'Perdana', color: 'border border-gray-400 bg-white' },
+                                { key: 'jaringan', label: 'Jaringan', color: 'border border-gray-400 bg-white' },
+                                { key: 'laptop', label: 'Laptop', color: 'border border-gray-400 bg-white' },
+                                { key: 'tv', label: 'TV', color: 'border border-gray-400 bg-white' }
+                            ]">
+                                <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))" 
+                                     class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                    <div class="flex items-center gap-3">
+                                        <div :class="['w-2.5 h-2.5 rounded-sm', cat.color]"></div> 
+                                        <span class="capitalize">Penjualan {{ cat.label }}</span>
+                                    </div>
+                                    <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0) }}</span>
                                 </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.hp || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan Apple Lux</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Accesories</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Apply</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apply || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Debs</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.debs || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Arcis</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.arcis || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Dokter Pstore</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Perdana</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.perdana || 0) }}</span>
-                            </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.jaringan > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Jaringan</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.jaringan || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Laptop</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.laptop || 0) }}</span>
-                            </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan TV</span>
-                                </div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.tv || 0) }}</span>
-                            </div>
+                            </template>
                         </div>
 
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
@@ -1565,9 +1520,8 @@ const categoryStocks = computed(() => {
 const getBaseReportText = (isForCopy = false) => {
     if (!salesData.value || !salesData.value.report_summary) return '';
     const summary = salesData.value.report_summary;
-    const map = summary.dist_map || {};
     const mapRp = summary.dist_map_rp || {};
-    const stock = summary.stock_report || {};
+    const stockDetails = summary.stock_details || {};
     const payments = summary.payments || {};
     const activities = summary.activities || {};
 
@@ -1594,17 +1548,35 @@ const getBaseReportText = (isForCopy = false) => {
     text += `__________________\n\n`;
 
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
-    text += `🟦 Penjualan HP : ${formatCurrency(mapRp.hp || 0)}\n`;
-    text += `🟦 Penjualan Apple Luxury : ${formatCurrency(mapRp.apple_lux || 0)}\n`;
-    text += `⬜️ Penjualan accesories : ${formatCurrency(mapRp.accessories || 0)}\n`;
-    text += `⬜️ Penjualan apply : ${formatCurrency(mapRp.apply || 0)}\n`;
-    text += `⬜️ Penjualan debs : ${formatCurrency(mapRp.debs || 0)}\n`;
-    text += `⬜️ Penjualan arcis : ${formatCurrency(mapRp.arcis || 0)}\n`;
-    text += `⬜️ Penjualan dokter pstore : ${formatCurrency(mapRp.dokter_pstore || 0)}\n`;
-    text += `⬜️ Penjualan perdana : ${formatCurrency(mapRp.perdana || 0)}\n`;
-    text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
-    text += `⬜️ Penjualan laptop : ${formatCurrency(mapRp.laptop || 0)}\n`;
-    text += `⬜️ Penjualan tv : ${formatCurrency(mapRp.tv || 0)}\n`;
+    
+    // Helper to decide if we should show a category
+    const shouldShowCategory = (key) => {
+        const revenue = mapRp[key] || 0;
+        const stockItems = stockDetails[key];
+        const hasStock = stockItems && (Array.isArray(stockItems) ? stockItems.length > 0 : Object.keys(stockItems).length > 0);
+        return revenue > 0 || hasStock;
+    };
+
+    const categories = [
+        { key: 'hp', label: 'HP', emoji: '🟦' },
+        { key: 'apple_lux', label: 'Apple Luxury', emoji: '🟦' },
+        { key: 'accessories', label: 'accesories', emoji: '⬜️' },
+        { key: 'apply', label: 'apply', emoji: '⬜️' },
+        { key: 'debs', label: 'debs', emoji: '⬜️' },
+        { key: 'arcis', label: 'arcis', emoji: '⬜️' },
+        { key: 'dokter_pstore', label: 'dokter pstore', emoji: '⬜️' },
+        { key: 'perdana', label: 'perdana', emoji: '⬜️' },
+        { key: 'jaringan', label: 'jaringan', emoji: '⬜️' },
+        { key: 'laptop', label: 'laptop', emoji: '⬜️' },
+        { key: 'tv', label: 'tv', emoji: '⬜️' }
+    ];
+
+    categories.forEach(cat => {
+        if (shouldShowCategory(cat.key)) {
+            text += `${cat.emoji} Penjualan ${cat.label} : ${formatCurrency(mapRp[cat.key] || 0)}\n`;
+        }
+    });
+
     text += `__________________\n`;
     text += `__________________\n`;
 
@@ -1634,16 +1606,12 @@ const getBaseReportText = (isForCopy = false) => {
         text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
         text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
         text += `AWAL   :\nIN          :\nSISA     :\n`;
-        text += `____________\n`;
+        text += `__________________\n`;
+        text += `__________________\n\n`;
     }
 
     text += `Laporan stok\n`;
-
-    // ADDED: Rincian Unit & Stok TITLE before stock sections as requested
     text += `Rincian Unit & Stok\n\n`;
-
-    const stockDetails = summary.stock_details || {};
-    const soldDetails = summary.sold_details || {};
 
     // Apple Luxury Sisa - Only if there is stock
     const appleLuxGrouped = {};
@@ -1662,8 +1630,8 @@ const getBaseReportText = (isForCopy = false) => {
         text += `\n`;
     }
 
-    // Other Sales Categories
-    const categories = [
+    // Other Sales Categories Stocks
+    const stockCats = [
         { key: 'accessories', label: 'accesories' },
         { key: 'apply', label: 'apply' },
         { key: 'debs', label: 'debs' },
@@ -1672,9 +1640,8 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'tv', label: 'tv' }
     ];
 
-    categories.forEach(cat => {
+    stockCats.forEach(cat => {
         const remainingItems = stockDetails[cat.key] || {};
-        // We only care about CURRENT STOCK (remainingItems) for "Laporan Stok" section as per request
         if (Object.keys(remainingItems).length > 0) {
             text += `🔷 stok ${cat.label}\n`;
             Object.entries(remainingItems).forEach(([name, qty]) => {
@@ -1683,6 +1650,10 @@ const getBaseReportText = (isForCopy = false) => {
             text += `\n`;
         }
     });
+
+    if (isForCopy) {
+        text += `pengunjung: .....\n`;
+    }
 
     return text;
 }
