@@ -518,7 +518,7 @@ class AuditController extends Controller
 
                         $soldDetails[$cat][$pNameNormal] = ($soldDetails[$cat][$pNameNormal] ?? 0) + 1;
 
-                        $price = (float) ($item->item_price ?? 0) - (float) ($item->item_discount ?? 0);
+                        $price = (float)($item->item_price ?? 0) - (float)($item->item_discount ?? 0);
                         if ($isAppleLux)
                             $mapRp['apple_lux'] += $price;
                         else
@@ -543,19 +543,6 @@ class AuditController extends Controller
                             'distributors.name as dist_name'
                         )->get();
 
-                    // Pre-map other distributor-based categories
-                    $catDistMap = [
-                        'apply' => DB::table('distributors')->where('name', 'ilike', '%Apply%')->pluck('id')->toArray(),
-                        'debs' => DB::table('distributors')->where('name', 'ilike', '%Debs%')->pluck('id')->toArray(),
-                        'arcis' => DB::table('distributors')->where('name', 'ilike', '%Arcis%')->pluck('id')->toArray(),
-                        'dokter_pstore' => DB::table('distributors')->where('name', 'ilike', '%Dokter Pstore%')->pluck('id')->toArray(),
-                        'accessories' => DB::table('distributors')->where('name', 'ilike', '%Accesories%')->pluck('id')->toArray(),
-                        'perdana' => DB::table('distributors')->where('name', 'ilike', '%Sim Card%')->orWhere('name', 'ilike', '%Perdana%')->pluck('id')->toArray(),
-                        'laptop' => DB::table('distributors')->where('name', 'ilike', '%Laptop%')->pluck('id')->toArray(),
-                        'tv' => DB::table('distributors')->where('name', 'ilike', '%TV%')->orWhere('name', 'ilike', '%tvstOre%')->pluck('id')->toArray(),
-                    ];
-
-                    // Hardcoded Strict Mapping from Tinker Audit
                     $catDistMap = [
                         'apply' => [11],
                         'arcis' => [14],
@@ -568,52 +555,40 @@ class AuditController extends Controller
                     ];
 
                     foreach ($nhpData as $item) {
-                        $name = strtolower($item->name);
+                        $distId = (int)$item->distributor_id;
                         $brand = strtolower($item->brand ?? '');
-                        $qty = (int) $item->quantity;
+                        $name = strtolower($item->name ?? '');
+                        $qty = (int)$item->quantity;
                         $pName = $item->name ?? 'Unknown Item';
-                        $distId = $item->distributor_id;
-
-                        $price = ((float) ($item->item_price ?? 0) - (float) ($item->item_discount ?? 0)) * $qty;
-
                         $cat = null;
-                        
-                        $isAppleLuxNhp = (int)$distId === 6 || in_array((int)$distId, $appleLuxIds);
-                        
-                        if ($isAppleLuxNhp) {
-                            $cat = 'apple_lux';
-                        } elseif (in_array((int)$distId, $catDistMap['apply'])) {
-                            $cat = 'apply';
-                        } elseif (in_array((int)$distId, $catDistMap['accessories'])) {
-                            $cat = 'accessories';
-                        } elseif (in_array((int)$distId, $catDistMap['debs'])) {
-                            $cat = 'debs';
-                        } elseif (in_array((int)$distId, $catDistMap['arcis'])) {
-                            $cat = 'arcis';
-                        } elseif (in_array((int)$distId, $catDistMap['dokter_pstore'])) {
-                            $cat = 'dokter_pstore';
-                        } elseif (in_array((int)$distId, $catDistMap['laptop'])) {
-                            $cat = 'laptop';
-                        } elseif (in_array((int)$distId, $catDistMap['tv'])) {
-                            $cat = 'tv';
-                        } elseif (in_array((int)$distId, [7, 8, 9])) {
-                            $cat = 'hp';
-                        } elseif (in_array((int)$distId, $catDistMap['perdana'])) {
-                            // Split between Perdana and Jaringan based on keywords but keeping ID 18
-                            if (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
-                                $map['jaringan'] += $qty;
-                                $mapRp['jaringan'] += $price;
-                                $cat = null;
-                            } else {
-                                $map['perdana'] += $qty;
-                                $mapRp['perdana'] += $price;
-                                $cat = null;
-                            }
+
+                        // 1. Map by ID
+                        if (in_array($distId, $catDistMap['apply'])) $cat = 'apply';
+                        elseif (in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
+                        elseif (in_array($distId, $catDistMap['debs'])) $cat = 'debs';
+                        elseif (in_array($distId, $catDistMap['dokter_pstore'])) $cat = 'dokter_pstore';
+                        elseif (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
+                        elseif (in_array($distId, $catDistMap['perdana'])) $cat = 'perdana';
+                        elseif (in_array($distId, $catDistMap['laptop'])) $cat = 'laptop';
+                        elseif (in_array($distId, $catDistMap['tv'])) $cat = 'tv';
+
+                        // 2. Aggressive Fallback by Brand / Name
+                        if (!$cat) {
+                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($name, 'tempered')) $cat = 'apply';
+                            elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($name, 'serum') || str_contains($name, 'parfum')) $cat = 'arcis';
+                            elseif (str_contains($brand, 'debs') || str_contains($name, 'debs')) $cat = 'debs';
+                            elseif (str_contains($brand, 'dokter pstore') || str_contains($name, 'dokter pstore') || str_contains($name, 'service')) $cat = 'dokter_pstore';
+                            elseif (str_contains($brand, 'laptop') || str_contains($name, 'laptop')) $cat = 'laptop';
+                            elseif (str_contains($brand, 'tv') || str_contains($name, 'tv') || str_contains($brand, 'tvstore')) $cat = 'tv';
+                            elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($brand, 'jaringan')) $cat = 'jaringan';
+                            elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana') || str_contains($brand, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa') || str_contains($name, 'voucher')) $cat = 'perdana';
+                            elseif ($brand === 'accessories' || str_contains($name, 'accessories')) $cat = 'accessories';
                         }
 
                         if ($cat) {
-                            $map[$cat] = ($map[$cat] ?? 0) + $qty;
-                            $mapRp[$cat] = ($mapRp[$cat] ?? 0) + $price;
+                            $price = ((float)($item->item_price ?? 0) - (float)($item->item_discount ?? 0)) * $qty;
+                            if (isset($mapRp[$cat])) $mapRp[$cat] += $price;
+                            if (isset($map[$cat])) $map[$cat] += $qty;
                             $soldDetails[$cat][$pName] = ($soldDetails[$cat][$pName] ?? 0) + $qty;
                         }
                     }
@@ -704,14 +679,14 @@ class AuditController extends Controller
 
                         // 2. Map by Brand / Name Fallback (If ID is missing/null)
                         if (!$cat) {
-                            if (str_contains($brand, 'apply')) $cat = 'apply';
-                            elseif (str_contains($brand, 'arcis')) $cat = 'arcis';
-                            elseif (str_contains($brand, 'debs')) $cat = 'debs';
-                            elseif (str_contains($brand, 'dokter pstore')) $cat = 'dokter_pstore';
+                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($name, 'tempered')) $cat = 'apply';
+                            elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($name, 'serum') || str_contains($name, 'parfum')) $cat = 'arcis';
+                            elseif (str_contains($brand, 'debs') || str_contains($name, 'debs')) $cat = 'debs';
+                            elseif (str_contains($brand, 'dokter pstore') || str_contains($name, 'dokter pstore') || str_contains($name, 'service')) $cat = 'dokter_pstore';
                             elseif (str_contains($brand, 'laptop') || str_contains($name, 'laptop')) $cat = 'laptop';
                             elseif (str_contains($brand, 'tv') || str_contains($name, 'tv') || str_contains($brand, 'tvstore')) $cat = 'tv';
-                            elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan')) $cat = 'jaringan';
-                            elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana') || str_contains($brand, 'sim card')) $cat = 'perdana';
+                            elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($brand, 'jaringan')) $cat = 'jaringan';
+                            elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana') || str_contains($brand, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa') || str_contains($name, 'voucher')) $cat = 'perdana';
                             elseif ($brand === 'accessories' || str_contains($name, 'accessories')) $cat = 'accessories';
                         }
 
