@@ -1089,6 +1089,7 @@ const storageBaseUrl = computed(() => authStore.storageBaseUrl)
 
 const branches = ref([])
 const onlineShops = ref([])
+const locationType = ref('branch')
 const distributors = ref([])
 const warehouses = ref([])
 const availableLocations = ref([])
