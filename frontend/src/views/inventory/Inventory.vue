@@ -1100,6 +1100,9 @@ async function exportInventory() {
                 </td>
                 <td class="font-mono text-sm">
                   <div class="bg-surface-700/50 px-2 py-1 rounded w-fit text-text-primary">{{ item.imei }}</div>
+                  <p class="text-[9px] text-text-secondary mt-1 ml-1 leading-tight">
+                    {{ item.created_at ? new Date(item.created_at).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '') : '-' }}
+                  </p>
                 </td>
                 <td class="text-sm text-text-secondary hidden md:table-cell">
                   <div v-if="item.placement_name" class="font-medium text-text-primary">
