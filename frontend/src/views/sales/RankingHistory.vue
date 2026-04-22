@@ -1228,6 +1228,11 @@ const sortedData = computed(() => {
         alphaKey = 'reporting_date'
     } else if (currentView.value === 'sales' || currentView.value === 'activity') {
         base = [...(salesData.value.cs_sales || [])]
+        // Filter out zero-activity sales if in activity view
+        if (currentView.value === 'activity') {
+            base = base.filter(item => ((item.total_angkat_barang || 0) + (item.total_refund || 0)) > 0);
+        }
+        
         numKey = currentView.value === 'sales' ? 'total_sales' : 'total_angkat_barang';
         // If activity view, we might want to prioritize (angkat + refund)
         if (currentView.value === 'activity') {
