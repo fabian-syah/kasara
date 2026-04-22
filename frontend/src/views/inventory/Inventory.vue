@@ -1015,7 +1015,7 @@ async function exportInventory() {
                 <th class="hidden lg:table-cell">Kondisi</th>
                 <th>IMEI</th>
                 <th class="hidden md:table-cell">Lokasi</th>
-                <th class="hidden xl:table-cell text-right">Harga Modal</th>
+                <th class="hidden xl:table-cell">Distributor</th>
                 <th class="text-right">Harga Jual</th>
                 <th>Status</th>
               </template>
@@ -1112,8 +1112,8 @@ async function exportInventory() {
                     }}</span>
                   </div>
                 </td>
-                <td class="text-sm font-bold text-amber-500 text-right hidden xl:table-cell">
-                  Rp {{ formatNumber(item.cost_price || 0) }}
+                <td class="text-sm text-text-secondary hidden xl:table-cell">
+                   {{ item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
                 <td class="text-sm font-bold text-blue-500 text-right">
                   Rp {{ formatNumber(item.selling_price || item.price) }}
@@ -1266,7 +1266,7 @@ async function exportInventory() {
                     Tersedia</label>
                   <p class="text-text-primary font-bold">{{ selectedItemDetail.quantity }} Pcs</p>
                 </div>
-                <div>
+                <div v-if="activeTab !== 'hp'">
                   <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
                     Modal
                     (HPP)</label>

@@ -146,10 +146,17 @@ onMounted(() => {
     fetchDistributors();
     fetchProvinces();
 });
+const isOnlyNonHp = computed(() => {
+    return props.selectedItems.length > 0 && props.selectedItems.every(item => item.type === 'non-hp');
+});
 
 watch(() => props.show, (newVal) => {
     if (newVal) {
         fetchInventoryUsers();
+        // Skip user selection if only non-hp items are selected
+        if (isOnlyNonHp.value) {
+            selectedInventoryUser.value = { id: 'system', name: 'System (Non-HP)', roles: [{ name: 'SYSTEM' }] };
+        }
     } else {
         selectedStockOutCategory.value = null;
         selectedInventoryUser.value = null;
@@ -599,7 +606,7 @@ async function submitStockOut(pin = null) {
             <!-- Modal Body -->
             <div class="flex-1 overflow-y-auto p-6 bg-surface-900/50">
                 <!-- STEP 1: SELECT INVENTORY ACCOUNT -->
-                <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
+                <div v-if="!selectedInventoryUser && !isOnlyNonHp" class="animate-in slide-in-from-right">
                     <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                         <UserCheck :size="20" class="text-emerald-500" />
                         Pilih User Inventory
