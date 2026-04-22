@@ -1661,13 +1661,15 @@ const getBaseReportText = (isForCopy = false) => {
         appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
     });
 
+    text += `🔷 stok Apple Luxury\n`;
     if (Object.keys(appleLuxGrouped).length > 0) {
-        text += `🔷 stok Apple Luxury\n`;
         Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
             text += `- ${name} : ${qty} unit\n`;
         });
-        text += `\n`;
+    } else {
+        text += `- (kosong)\n`;
     }
+    text += `\n`;
 
     // Other Sales Categories Stocks
     const stockCats = [
@@ -1683,13 +1685,15 @@ const getBaseReportText = (isForCopy = false) => {
 
     stockCats.forEach(cat => {
         const remainingItems = stockDetails[cat.key] || {};
+        text += `🔷 stok ${cat.label}\n`;
         if (Object.keys(remainingItems).length > 0) {
-            text += `🔷 stok ${cat.label}\n`;
             Object.entries(remainingItems).forEach(([name, qty]) => {
                 text += `- ${name} : ${qty}\n`;
             });
-            text += `\n`;
+        } else {
+            text += `- (kosong)\n`;
         }
+        text += `\n`;
     });
 
     return text;
