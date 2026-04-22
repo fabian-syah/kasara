@@ -13,12 +13,12 @@ class OnlineShopController extends Controller
         if ($request->ignore_scope || $request->all) {
             return response()->json([
                 'success' => true,
-                'data' => OnlineShop::latest()->get()
+                'data' => \App\Models\OnlineShop::latest()->get()
             ]);
         }
 
         $user = $request->user();
-        $query = OnlineShop::query();
+        $query = \App\Models\OnlineShop::query();
 
         // Role-based access control
         if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {

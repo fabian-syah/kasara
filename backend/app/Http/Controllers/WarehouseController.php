@@ -10,11 +10,17 @@ class WarehouseController extends Controller
 {
     public function index(Request $request)
     {
-        // EMERGENCY BYPASS: If ignore_scope or all is requested, return everything immediately
+        // EMERGENCY BYPASS: Use RAW DB query to be 100% sure nothing filters this
         if ($request->ignore_scope || $request->all) {
+            $data = \Illuminate\Support\Facades\DB::table('warehouses')
+                ->select('id', 'name', 'code')
+                ->orderBy('id', 'desc')
+                ->get();
+
             return response()->json([
                 'success' => true,
-                'data' => Warehouse::latest()->get()
+                'debug' => 'FORCE RAW DB',
+                'data' => $data
             ]);
         }
 
