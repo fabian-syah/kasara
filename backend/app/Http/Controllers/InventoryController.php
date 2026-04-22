@@ -222,8 +222,18 @@ class InventoryController extends Controller
                     }
                     
                     if (!$distName) {
-                        $log = $item->latestLog;
-                        $distName = $log && $log->distributor ? $log->distributor->name : ($log->supplier_name ?? null);
+                        // Find the LATEST 'in' log for this specific product and location to get the distributor/supplier
+                        $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
+                            ->where(function($q) use ($item) {
+                                if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
+                                elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
+                                elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
+                            })
+                            ->where('type', 'in')
+                            ->latest()
+                            ->first();
+
+                        $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
                     }
                     
                     if (!$distName && $item->user && $item->user->distributor) {
