@@ -534,6 +534,18 @@ class AuditController extends Controller
                         'tv' => DB::table('distributors')->where('name', 'ilike', '%TV%')->orWhere('name', 'ilike', '%tvstOre%')->pluck('id')->toArray(),
                     ];
 
+                    // Hardcoded Strict Mapping from Tinker Audit
+                    $catDistMap = [
+                        'apply' => [11],
+                        'arcis' => [14],
+                        'debs' => [13],
+                        'dokter_pstore' => [15],
+                        'accessories' => [10],
+                        'perdana' => [18],
+                        'laptop' => [16],
+                        'tv' => [17],
+                    ];
+
                     foreach ($nhpData as $item) {
                         $name = strtolower($item->name);
                         $brand = strtolower($item->brand ?? '');
@@ -545,47 +557,36 @@ class AuditController extends Controller
 
                         $cat = null;
                         
-                        // Check by Distributor ID mapping first (HIGHEST PRIORITY)
-                        $isAppleLuxNhp = in_array($distId, $appleLuxIds);
+                        $isAppleLuxNhp = (int)$distId === 6 || in_array((int)$distId, $appleLuxIds);
                         
                         if ($isAppleLuxNhp) {
                             $cat = 'apple_lux';
-                        } elseif (in_array($distId, $catDistMap['apply'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['apply'])) {
                             $cat = 'apply';
-                        } elseif (in_array($distId, $catDistMap['accessories'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['accessories'])) {
                             $cat = 'accessories';
-                        } elseif (in_array($distId, $catDistMap['debs'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['debs'])) {
                             $cat = 'debs';
-                        } elseif (in_array($distId, $catDistMap['arcis'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['arcis'])) {
                             $cat = 'arcis';
-                        } elseif (in_array($distId, $catDistMap['dokter_pstore'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['dokter_pstore'])) {
                             $cat = 'dokter_pstore';
-                        } elseif (in_array($distId, $catDistMap['laptop'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['laptop'])) {
                             $cat = 'laptop';
-                        } elseif (in_array($distId, $catDistMap['tv'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['tv'])) {
                             $cat = 'tv';
-                        } elseif (in_array($distId, $catDistMap['perdana'])) {
-                            $map['perdana'] += $qty;
-                            $mapRp['perdana'] += $price;
-                            $cat = null;
-                        }
-
-                        // SMART OVERRIDE: If it fell into 'accessories' or is uncategorized, but is known Apply/Arcis brands
-                        if ($cat === 'accessories' || !$cat) {
-                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w') || str_contains($name, 'privacy') || str_contains($brand, 'olike') || str_contains($name, 'speaker')) {
-                                $cat = 'apply';
-                            } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
-                                $cat = 'arcis';
-                            } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
+                        } elseif (in_array((int)$distId, [7, 8, 9])) {
+                            $cat = 'hp';
+                        } elseif (in_array((int)$distId, $catDistMap['perdana'])) {
+                            // Split between Perdana and Jaringan based on keywords but keeping ID 18
+                            if (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
                                 $map['jaringan'] += $qty;
                                 $mapRp['jaringan'] += $price;
                                 $cat = null;
-                            } elseif (str_contains($name, 'tv')) {
-                                $cat = 'tv';
-                            } elseif (str_contains($name, 'laptop')) {
-                                $cat = 'laptop';
-                            } elseif (str_contains($name, 'acc') || str_contains($name, 'accessories')) {
-                                $cat = 'accessories';
+                            } else {
+                                $map['perdana'] += $qty;
+                                $mapRp['perdana'] += $price;
+                                $cat = null;
                             }
                         }
 
@@ -665,6 +666,16 @@ class AuditController extends Controller
                         'inventories.distributor_id',
                         'distributors.name as dist_name'
                     )->get();
+                    $catDistMap = [
+                        'apply' => [11],
+                        'arcis' => [14],
+                        'debs' => [13],
+                        'dokter_pstore' => [15],
+                        'accessories' => [10],
+                        'perdana' => [18],
+                        'laptop' => [16],
+                        'tv' => [17],
+                    ];
 
                     foreach ($otherStocks as $s) {
                         $name = strtolower($s->name);
@@ -676,37 +687,28 @@ class AuditController extends Controller
 
                         $cat = null;
                         
-                        // USE THE SAME catDistMap logic for consistency
-                        if (in_array($distId, $catDistMap['apply'])) {
+                        if ((int)$distId === 6) {
+                            $cat = 'apple_lux';
+                        } elseif (in_array((int)$distId, $catDistMap['apply'])) {
                             $cat = 'apply';
-                        } elseif (in_array($distId, $catDistMap['accessories'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['accessories'])) {
                             $cat = 'accessories';
-                        } elseif (in_array($distId, $catDistMap['debs'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['debs'])) {
                             $cat = 'debs';
-                        } elseif (in_array($distId, $catDistMap['arcis'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['arcis'])) {
                             $cat = 'arcis';
-                        } elseif (in_array($distId, $catDistMap['dokter_pstore'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['dokter_pstore'])) {
                             $cat = 'dokter_pstore';
-                        } elseif (in_array($distId, $catDistMap['laptop'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['laptop'])) {
                             $cat = 'laptop';
-                        } elseif (in_array($distId, $catDistMap['tv'])) {
+                        } elseif (in_array((int)$distId, $catDistMap['tv'])) {
                             $cat = 'tv';
-                        } elseif (in_array($distId, $catDistMap['perdana'])) {
-                            $cat = 'perdana';
-                        }
-
-                        // SMART OVERRIDE: If it fell into 'accessories' or is uncategorized, but is known Apply/Arcis brands
-                        if ($cat === 'accessories' || !$cat) {
-                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w') || str_contains($name, 'privacy') || str_contains($brand, 'olike') || str_contains($name, 'speaker')) {
-                                $cat = 'apply';
-                            } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
-                                $cat = 'arcis';
-                            } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
+                        } elseif (in_array((int)$distId, $catDistMap['perdana'])) {
+                            // Split ID 18 between Sim Card (perdana) and 4G (jaringan)
+                            if (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
                                 $cat = 'jaringan';
-                            } elseif (str_contains($brand, 'lenovo') || str_contains($brand, 'msi') || str_contains($name, 'thinkpad') || str_contains($name, 'modern 14') || str_contains($name, 'laptop')) {
-                                $cat = 'laptop';
-                            } elseif (str_contains($brand, 'coocaa') || str_contains($name, '32s3u') || str_contains($name, 'tv')) {
-                                $cat = 'tv';
+                            } else {
+                                $cat = 'perdana';
                             }
                         }
 
