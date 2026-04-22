@@ -56,6 +56,7 @@ class InventoryController extends Controller
                     'placement_type',
                     'placement_id',
                     'user_id',
+                    'distributor_id',
                     DB::raw('SUM(quantity) as total_quantity'),
                     DB::raw('MAX(id) as id') // Needed for ordering
                 )
@@ -63,7 +64,7 @@ class InventoryController extends Controller
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'non-hp')->orWhere('has_imei', false);
                 })
-                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
+                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id', 'distributor_id');
         } else {
             $query = ProductDetail::with([
                 'product',
@@ -209,13 +210,28 @@ class InventoryController extends Controller
 
                 if ($type === 'non-hp') {
                     $item->quantity = $item->total_quantity ?? $item->quantity;
-                    $log = $item->latestLog;
-                    $item->latest_distributor = $log && $log->distributor ? $log->distributor->name : null;
-                    $item->latest_supplier = $log ? $log->supplier_name : null;
-
-                    if (!$item->latest_distributor && !$item->latest_supplier && $item->user && $item->user->distributor) {
-                        $item->latest_distributor = $item->user->distributor->name;
+                    
+                    // Priority for distributor name:
+                    // 1. Existing distributor relationship on the inventory record
+                    // 2. Latest log distributor
+                    // 3. User distributor fallback
+                    $distName = null;
+                    if ($item->distributor_id) {
+                        $distModel = \App\Models\Distributor::find($item->distributor_id);
+                        $distName = $distModel ? $distModel->name : null;
                     }
+                    
+                    if (!$distName) {
+                        $log = $item->latestLog;
+                        $distName = $log && $log->distributor ? $log->distributor->name : null;
+                    }
+                    
+                    if (!$distName && $item->user && $item->user->distributor) {
+                        $distName = $item->user->distributor->name;
+                    }
+
+                    $item->latest_distributor = $distName ?? '-';
+                    $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
                 }
 
                 if ($request->status === 'service' && $type === 'hp') {

@@ -602,7 +602,7 @@ class StockOutController extends Controller
                                   ->orWhere('online_shop_id', $user->online_shop_id);
                             })->first();
                         
-                        $distId = $inv->distributor_id ?? $prod->distributor_id ?? null;
+                        $distId = $inv?->distributor_id ?? $prod->distributor_id ?? null;
 
                         StockOutNonHpItem::create([
                             'stock_out_id' => $stockOut->id,
