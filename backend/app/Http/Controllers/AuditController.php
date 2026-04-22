@@ -770,10 +770,7 @@ class AuditController extends Controller
             }
 
             foreach ($hpItems as $item) {
-                if ($item->id === $bundleHpId)
-                    continue;
-
-                // Priority: check stored distributor in pivot table
+                // Determine distributor: history first, then current product link
                 $dId = $item->pivot->distributor_id ?? $item->distributor_id;
                 $dName = 'KOSONG';
                 if ($dId) {
@@ -781,10 +778,15 @@ class AuditController extends Controller
                 }
 
                 $netPrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
+                
+                // If it's the main item of the bundle, the price is already shown in the BUNDLE row.
+                // We show this row with 0 price to show the distributor/IMEI detail.
+                $displayPrice = ($item->id === $bundleHpId) ? 0 : $netPrice;
+
                 $details[] = [
                     'name' => $item->product?->name ?? 'Unknown HP',
                     'qty' => 1,
-                    'price' => $netPrice,
+                    'price' => $displayPrice,
                     'item_discount' => 0,
                     'distributed_discount' => 0,
                     'is_fixed' => true,
@@ -795,31 +797,68 @@ class AuditController extends Controller
                     'condition' => $item->condition === 'new' ? 'new' : ($item->condition === 'ex_ibox' ? 'ex_ibox' : ($item->condition ?? 'second')),
                     'distributor_name' => $dName
                 ];
-                $calculatedTotal += $netPrice;
+                
+                if ($item->id !== $bundleHpId) {
+                    $calculatedTotal += $netPrice;
+                }
             }
 
             foreach ($nonHpItems as $item) {
-                $qty = ($item->id === $bundleNonHpId) ? ($item->quantity - 1) : $item->quantity;
-                if ($qty <= 0)
-                    continue;
-
-                $dName = $item->distributor->name ?? 'KOSONG'; // Read from captured distributor
-
-                $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
-                $details[] = [
-                    'name' => $item->product?->name ?? 'Item Non-HP',
-                    'qty' => $qty,
-                    'price' => $netPrice,
-                    'item_discount' => 0,
-                    'distributed_discount' => 0,
-                    'is_fixed' => true,
-                    'brand' => $item->product?->brand ?? '-',
-                    'type' => 'Non-HP',
-                    'category' => $item->product?->non_imei_category ?? null,
-                    'imei' => '-',
-                    'distributor_name' => $dName
-                ];
-                $calculatedTotal += ($netPrice * $qty);
+                // If it's a bundle main non-hp item, we reduce the qty because the bundle row already represents 1 unit.
+                $qty = $item->quantity;
+                $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
+                
+                // For the item that was part of the bundle row, we separate 1 unit as $0 price to show distributor
+                if ($item->id === $bundleNonHpId) {
+                    // 1 unit shown at $0 in this list
+                    $details[] = [
+                        'name' => $item->product?->name ?? 'Item Non-HP',
+                        'qty' => 1,
+                        'price' => 0,
+                        'item_discount' => 0,
+                        'distributed_discount' => 0,
+                        'is_fixed' => true,
+                        'brand' => $item->product?->brand ?? '-',
+                        'type' => 'Non-HP',
+                        'category' => $item->product?->non_imei_category ?? null,
+                        'imei' => '-',
+                        'distributor_name' => $item->distributor->name ?? 'KOSONG'
+                    ];
+                    
+                    // The remaining quantity (if any) shown at normal price
+                    if ($qty > 1) {
+                         $details[] = [
+                            'name' => $item->product?->name ?? 'Item Non-HP',
+                            'qty' => $qty - 1,
+                            'price' => $price,
+                            'item_discount' => 0,
+                            'distributed_discount' => 0,
+                            'is_fixed' => true,
+                            'brand' => $item->product?->brand ?? '-',
+                            'type' => 'Non-HP',
+                            'category' => $item->product?->non_imei_category ?? null,
+                            'imei' => '-',
+                            'distributor_name' => $item->distributor->name ?? 'KOSONG'
+                        ];
+                        $calculatedTotal += ($price * ($qty - 1));
+                    }
+                } else {
+                    // Normal item or other bundle component
+                    $details[] = [
+                        'name' => $item->product?->name ?? 'Item Non-HP',
+                        'qty' => $qty,
+                        'price' => $price,
+                        'item_discount' => 0,
+                        'distributed_discount' => 0,
+                        'is_fixed' => true,
+                        'brand' => $item->product?->brand ?? '-',
+                        'type' => 'Non-HP',
+                        'category' => $item->product?->non_imei_category ?? null,
+                        'imei' => '-',
+                        'distributor_name' => $item->distributor->name ?? 'KOSONG'
+                    ];
+                    $calculatedTotal += ($price * $qty);
+                }
             }
 
             $sourceUser = $trx->inventoryUser ?? $trx->user;
