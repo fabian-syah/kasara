@@ -1056,7 +1056,8 @@ class InventoryController extends Controller
                         continue;
 
                     $distributorId = $item['distributor_id'] ?? $request->distributor_id;
-                    $costPrice = $item['cost_price'] ?? 0;
+                    $sellingPrice = $item['selling_price'] ?? 0;
+                    $costPrice = $item['cost_price'] ?? $sellingPrice; // Fallback to selling price if HPP is not provided
 
                     $inventory = Inventory::firstOrCreate(
                         [
