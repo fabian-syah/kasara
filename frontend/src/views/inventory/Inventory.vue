@@ -1251,10 +1251,19 @@ async function exportInventory() {
                   <p class="text-lg font-bold text-text-primary">{{ selectedItemDetail.product?.brand }} {{
                     selectedItemDetail.product?.name }}</p>
                 </div>
+                <div>
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Distributor</label>
+                  <p class="text-sm font-medium text-text-primary">
+                    {{ selectedItemDetail.distributor?.name || selectedItemDetail.distributor_name || selectedItemDetail.supplier_name || selectedItemDetail.latest_distributor || selectedItemDetail.latest_supplier || '-' }}
+                  </p>
+                </div>
                 <div v-if="selectedItemDetail.imei">
                   <label
                     class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">IMEI</label>
                   <p class="font-mono text-primary-400 font-bold tracking-wider">{{ selectedItemDetail.imei }}</p>
+                  <p class="text-[10px] text-text-secondary mt-1 font-medium">
+                    Masuk: {{ selectedItemDetail.created_at ? new Date(selectedItemDetail.created_at).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-' }}
+                  </p>
                 </div>
                 <div v-if="activeTab === 'non-hp'">
                   <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Stok
