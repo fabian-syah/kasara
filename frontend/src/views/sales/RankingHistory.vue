@@ -249,8 +249,8 @@
                                 STOCK REPORT</p>
                             <h2
                                 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
-                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE
-                                TRANSAKSI' }}
+                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name ||
+                                    'PSTORE TRANSAKSI' }}
                             </h2>
                             <p
                                 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
@@ -471,7 +471,7 @@
                                             <div class="flex flex-col items-end">
                                                 <span
                                                     class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{
-                                                    item.qty }} UNIT</span>
+                                                        item.qty }} UNIT</span>
                                             </div>
                                         </div>
                                     </div>
@@ -528,7 +528,7 @@
                                                 </span>
                                                 <span
                                                     class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{
-                                                    qty }}</span>
+                                                        qty }}</span>
                                             </div>
                                         </div>
                                     </div>
