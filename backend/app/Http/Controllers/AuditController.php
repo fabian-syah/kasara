@@ -372,14 +372,15 @@ class AuditController extends Controller
                     $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
 
                     foreach ($hpData as $item) {
-                        $distName = strtolower($item->dist_name ?? '');
+                        $rawDistName = $item->dist_name;
+                        $distName = strtolower($rawDistName ?? '');
                         $pName = strtolower($item->name ?? '');
                         $brand = strtolower($item->brand ?? '');
                         
-                        // Match specifically 'apple luxury' or 'apple lux' in distributor OR product name
-                        $isAppleLux = str_contains($distName, 'apple lux') || 
-                                     str_contains($distName, 'apple luxury') || 
-                                     str_contains($pName, 'apple lux');
+                        // Strict check: Only Apple Lux if name/dist actually says so
+                        $isAppleLux = (str_contains($distName, 'apple lux') || 
+                                      str_contains($distName, 'apple luxury') || 
+                                      str_contains($pName, 'apple lux'));
 
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
@@ -430,19 +431,20 @@ class AuditController extends Controller
                         }
 
                         $cat = null;
-                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc')) { $cat = 'accessories'; }
+                        if (str_contains($dist, 'pstore accesories') || str_contains($dist, 'pstore accessories') || str_contains($name, 'accessories') || str_contains($brand, 'acc') || str_contains($name, 'acc')) { $cat = 'accessories'; }
                         elseif (str_contains($dist, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'apply')) { $cat = 'apply'; }
                         elseif (str_contains($dist, 'debs') || str_contains($name, 'debs') || str_contains($brand, 'debs')) { $cat = 'debs'; }
                         elseif (str_contains($dist, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'arcis')) { $cat = 'arcis'; }
                         elseif (str_contains($dist, 'dokter pstore') || str_contains($name, 'dokter pstore')) { $cat = 'dokter_pstore'; }
                         elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) { $map['jaringan'] += $qty; $mapRp['jaringan'] += $price; }
+                        elseif (str_contains($name, 'hp')) { $cat = 'hp'; }
                         elseif (str_contains($name, 'laptop')) { $cat = 'laptop'; }
                         elseif (str_contains($name, 'tv')) { $cat = 'tv'; }
                         elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) { $map['perdana'] += $qty; $mapRp['perdana'] += $price; }
 
                         if ($cat) {
-                            $map[$cat] += $qty; 
-                            $mapRp[$cat] += $price;
+                            $map[$cat] = ($map[$cat] ?? 0) + $qty; 
+                            $mapRp[$cat] = ($mapRp[$cat] ?? 0) + $price;
                             $soldDetails[$cat][$pName] = ($soldDetails[$cat][$pName] ?? 0) + $qty;
                         }
                     }
