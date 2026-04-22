@@ -956,9 +956,14 @@ class InventoryController extends Controller
             $supplierName = null;
 
             if (!$distributorId && $request->new_distributor_name) {
-                // Use manual name, do not create distributor record
                 $supplierName = $request->new_distributor_name;
-                $distributorId = null;
+                // Try to find if this name exists in our distributors list
+                $matchingDist = \App\Models\Distributor::where('name', 'ilike', trim($supplierName))->first();
+                if ($matchingDist) {
+                    $distributorId = $matchingDist->id;
+                } else {
+                    $distributorId = null;
+                }
             }
 
             if (!$distributorId && !$supplierName) {

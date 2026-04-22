@@ -389,7 +389,21 @@ class StockOutController extends Controller
                         
                         // Capture the distributor from the first deducted batch for this product
                         if (!isset($nonHpDistMap[$item['product_id']])) {
-                            $nonHpDistMap[$item['product_id']] = $inventory->distributor_id;
+                            $distId = $inventory->distributor_id;
+                            
+                            // If ID is missing, try to find a distributor with a matching name from the latest log
+                            if (!$distId) {
+                                $lastLog = InventoryLog::where('product_id', $item['product_id'])
+                                    ->where('type', 'in')
+                                    ->whereNotNull('distributor_id')
+                                    ->latest()
+                                    ->first();
+                                $distId = $lastLog ? $lastLog->distributor_id : null;
+                            }
+                            
+                            if ($distId) {
+                                $nonHpDistMap[$item['product_id']] = $distId;
+                            }
                         }
 
                         // Log Transaction for this specific inventory record
@@ -401,7 +415,7 @@ class StockOutController extends Controller
                             'description' => "Stock Out ({$request->category})",
                             'reference_id' => 'OUT-' . time() . '-' . $inventory->id,
                             'user_id' => $user->id,
-                            'distributor_id' => $inventory->distributor_id,
+                            'distributor_id' => $distId ?? $inventory->distributor_id,
                             'branch_id' => $user->branch_id ?? null,
                             'warehouse_id' => $user->warehouse_id ?? null,
                             'online_shop_id' => $user->online_shop_id ?? null,
