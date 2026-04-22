@@ -179,6 +179,7 @@ async function fetchInventory() {
 async function fetchBranches() {
     try {
         const response = await branchesApi.list({ ignore_scope: 1, all: 1 });
+        console.log("DEBUG BRANCHES RESPONSE:", response.data);
         branches.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat cabang", e);
@@ -188,6 +189,7 @@ async function fetchBranches() {
 async function fetchWarehouses() {
     try {
         const response = await warehousesApi.list({ ignore_scope: 1, all: 1 });
+        console.log("DEBUG WAREHOUSES RESPONSE:", response.data);
         warehouses.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat gudang", e);
@@ -197,6 +199,7 @@ async function fetchWarehouses() {
 async function fetchOnlineShops() {
     try {
         const response = await onlineShopsApi.list({ ignore_scope: 1, all: 1 });
+        console.log("DEBUG ONLINE SHOPS RESPONSE:", response.data);
         onlineShops.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat online shop", e);
@@ -206,6 +209,7 @@ async function fetchOnlineShops() {
 async function fetchDistributors() {
     try {
         const response = await distributorsApi.list({ ignore_scope: 1, all: 1 });
+        console.log("DEBUG DISTRIBUTORS RESPONSE:", response.data);
         distributors.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat distributor", e);
