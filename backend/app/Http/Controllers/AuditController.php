@@ -618,26 +618,7 @@ class AuditController extends Controller
                         }
                     }
 
-                    $stockReport = [
-                        'apple_lux' => 0,
-                        'accessories' => 0,
-                        'apply' => 0,
-                        'arcis' => 0,
-                        'laptop' => 0,
-                        'tv' => 0,
-                        'perdana' => 0,
-                        'jaringan' => 0
-                    ];
-                    $stockDetails = [
-                        'apple_lux' => [],
-                        'accessories' => [],
-                        'apply' => [],
-                        'arcis' => [],
-                        'laptop' => [],
-                        'tv' => [],
-                        'perdana' => [],
-                        'jaringan' => []
-                    ];
+
 
                     $appleLuxQuery = DB::table('product_details')
                         ->join('users', 'product_details.user_id', '=', 'users.id')
