@@ -274,7 +274,8 @@
                         <div
                             class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
-                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0) }}</span>
+                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
+                            }}</span>
                         </div>
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
@@ -424,7 +425,7 @@
                                             <div class="flex flex-col items-end">
                                                 <span
                                                     class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{
-                                                    item.qty }}
+                                                        item.qty }}
                                                     UNIT</span>
                                             </div>
                                         </div>
@@ -1078,7 +1079,7 @@ import {
     Trophy, ArrowLeft, Calendar, Loader2, Search, RefreshCw,
     Smartphone, Layers, Tag, RotateCcw, ChevronRight, Users,
     Truck, ListFilter, MapPin, Globe, ToggleLeft, ToggleRight,
-    FileText, X, Copy, Check
+    FileText, X, Copy, Check, Database
 } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
@@ -1088,8 +1089,9 @@ const storageBaseUrl = computed(() => authStore.storageBaseUrl)
 
 const branches = ref([])
 const onlineShops = ref([])
-const locationType = ref('branch')
 const distributors = ref([])
+const warehouses = ref([])
+const availableLocations = ref([])
 const productTypes = ref([])
 const capacities = [16, 32, 64, 128, 256, 512, 1024]
 
@@ -1556,7 +1558,7 @@ const getBaseReportText = (isForCopy = false) => {
     if (!salesData.value || !salesData.value.report_summary) return '';
     const summary = salesData.value.report_summary;
     const mapRp = summary.dist_map_rp || {};
-    const stockDetails = summary.stock_details || {};
+    const stockDetails = summary.stock_details || {}; // Ini isinya { apple_lux: { "Iphone 13": 2 }, ... }
     const payments = summary.payments || {};
     const activities = summary.activities || {};
 
@@ -1571,133 +1573,88 @@ const getBaseReportText = (isForCopy = false) => {
     text += `============\n\n`;
 
     text += `PENJUALAN ALL\n\n`;
-    if (summary.payment_total === 0) {
+    if (!summary.payments || Object.keys(summary.payments).length === 0) {
         text += `Belum ada transaksi\n`;
     } else {
         Object.entries(payments).forEach(([method, amount]) => {
-            if (amount > 0) {
+            if (amount !== 0) {
                 text += `${method.toUpperCase()} : ${formatCurrency(amount)}\n`;
             }
         });
     }
+
     text += `\n*Total : ${formatCurrency(summary.payment_total)}*\n`;
     text += `__________________\n`;
     text += `__________________\n\n`;
-
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
 
-    // Helper to decide if we should show a category
-    const shouldShowCategory = (key) => {
-        const revenue = mapRp[key] || 0;
-        const stockItems = stockDetails[key];
-        const hasStock = stockItems && (Array.isArray(stockItems) ? stockItems.length > 0 : Object.keys(stockItems).length > 0);
-        return revenue > 0 || hasStock;
-    };
-
-    const categories = [
+    const categoryConfigs = [
         { key: 'hp', label: 'Penjualan HP', emoji: '🟦' },
         { key: 'apple_lux', label: 'Penjualan Apple Luxury', emoji: '🟦' },
-        { key: 'accessories', label: 'Penjualan accesories', emoji: '⬜️' },
+        { key: 'accessories', label: 'Penjualan accessories', emoji: '⬜️' },
         { key: 'apply', label: 'Penjualan apply', emoji: '⬜️' },
-        { key: 'debs', label: 'Penjualan debs', emoji: '⬜️' },
         { key: 'arcis', label: 'Penjualan arcis', emoji: '⬜️' },
-        { key: 'dokter_pstore', label: 'Penjualan dokter pstore', emoji: '⬜️' },
         { key: 'perdana', label: 'Penjualan perdana', emoji: '⬜️' },
         { key: 'jaringan', label: '4G / LTE', emoji: '⬜️' },
         { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' }
     ];
 
-    categories.forEach(cat => {
-        if (shouldShowCategory(cat.key)) {
-            text += `${cat.emoji} ${cat.label} : ${formatCurrency(mapRp[cat.key] || 0)}\n`;
+    categoryConfigs.forEach(cat => {
+        const val = mapRp[cat.key] || 0;
+        if (val !== 0) {
+            text += `${cat.emoji} ${cat.label} : ${formatCurrency(val)}\n`;
         }
     });
 
-    text += `__________________\n`;
-    text += `__________________\n`;
+    text += `__________________\n__________________\nunit HP keluar\n\n`;
+    text += `Iphone           : ${summary.dist_map?.iphone || 0}\n`;
+    text += `Apple Luxury     : ${summary.dist_map?.apple_lux || 0}\n`;
+    text += `Android          : ${summary.dist_map?.android || 0}\n`;
+    text += `Total HP         : ${(summary.dist_map?.iphone || 0) + (summary.dist_map?.android || 0)}\n\n`;
 
-    const iphoneCount = summary.dist_map?.iphone || 0;
-    const appleLuxCount = summary.dist_map?.apple_lux || 0;
-    const androidCount = summary.dist_map?.android || 0;
-    const totalHP = iphoneCount + androidCount;
-
-    text += `unit HP keluar\n\n`;
-    text += `Iphone           : ${iphoneCount}\n`;
-    text += `Apple Luxury     : ${appleLuxCount}\n`;
-    text += `Android          : ${androidCount}\n`;
-    text += `Total HP         : ${totalHP}\n\n`;
-
-    text += `Tukar unit          : ${activities.tukar_unit || 0}\n`;
-    text += `Tukar tambah   : ${activities.tukar_tambah || 0}\n`;
-    text += `Downgrade       : ${activities.downgrade || 0}\n`;
-    text += `Refund               : ${activities.refund || 0}\n`;
-    text += `Angkat barang  : ${activities.angkat_barang || 0}\n\n`;
+    text += `Tukar unit       : ${activities.tukar_unit || 0}\n`;
+    text += `Tukar tambah     : ${activities.tukar_tambah || 0}\n`;
+    text += `Downgrade        : ${activities.downgrade || 0}\n`;
+    text += `Refund           : ${activities.refund || 0}\n`;
+    text += `Angkat barang    : ${activities.angkat_barang || 0}\n\n`;
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
-    text += `Tv                : ${summary.dist_map?.tv || 0}\n`;
+    text += `Tv            : ${summary.dist_map?.tv || 0}\n`;
+    text += `pengunjung: .........\n`;
+    text += `__________________\n__________________\n\n*Laporan keuangan*\n\n`;
+    text += `🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN     :\nSISA   :\n`;
+    text += `__________________\n__________________\n\nRincian Unit & Stok\n\n`;
 
-    if (isForCopy) {
-        text += `pengunjung: .........\n`;
-        text += `__________________\n`;
-        text += `__________________\n\n`;
-        text += `*Laporan keuangan*\n\n`;
-        text += `🔶 total cash ready\n………………\n………………\n\n`;
-        text += `🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n`;
-        text += `🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\n`;
-        text += `AWAL   :\nIN          :\nSISA     :\n`;
-        text += `__________________\n`;
-        text += `__________________\n\n`;
-    }
-
-    text += `Rincian Unit & Stok\n\n`;
-
-    // Apple Luxury Sisa - Only if there is stock
-    const appleLuxGrouped = {};
-    (stockDetails.apple_lux || []).forEach(item => {
-        let storageStr = (item.storage || '').toString().toUpperCase();
-        if (storageStr && !storageStr.includes('GB')) storageStr += ' GB';
-        const key = `${item.name} ${storageStr}`;
-        appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
-    });
-
-    text += `🔷 stok Apple Luxury\n`;
-    if (Object.keys(appleLuxGrouped).length > 0) {
-        Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
-            text += `- ${name} : ${qty} unit\n`;
-        });
-    } else {
-        text += `- (kosong)\n`;
-    }
-    text += `\n`;
-
-    // Other Sales Categories Stocks
     const stockCats = [
-        { key: 'accessories', label: 'accessories' },
-        { key: 'apply', label: 'apply' },
-        { key: 'debs', label: 'debs' },
-        { key: 'arcis', label: 'arcis' },
-        { key: 'laptop', label: 'laptop' },
-        { key: 'tv', label: 'tv' },
-        { key: 'perdana', label: 'Sim Card' },
-        { key: 'jaringan', label: '4G / LTE' }
+        { key: 'apple_lux', label: 'stok Apple Luxury' },
+        { key: 'accessories', label: 'stok accessories' },
+        { key: 'apply', label: 'stok apply' },
+        { key: 'debs', label: 'stok debs' },
+        { key: 'arcis', label: 'stok arcis' },
+        { key: 'laptop', label: 'stok laptop' },
+        { key: 'tv', label: 'stok tv' },
+        { key: 'perdana', label: 'stok Sim Card' },
+        { key: 'jaringan', label: 'stok 4G / LTE' }
     ];
 
     stockCats.forEach(cat => {
-        const remainingItems = stockDetails[cat.key] || {};
-        text += `🔷 stok ${cat.label}\n`;
-        if (Object.keys(remainingItems).length > 0) {
-            Object.entries(remainingItems).forEach(([name, qty]) => {
-                text += `- ${name} : ${qty}\n`;
-            });
+        text += `🔷 ${cat.label}\n`;
+        const items = stockDetails[cat.key] || {};
+        const entries = Object.entries(items);
+
+        if (entries.length === 0) {
+            text += `- (kosong)\n\n`;
         } else {
-            text += `- (kosong)\n`;
+            entries.forEach(([name, qty]) => {
+                text += `- ${name} : ${qty} unit\n`;
+            });
+            text += `\n`;
         }
-        text += `\n`;
     });
 
     return text;
-}
+};
 
 const displayReportText = computed(() => getBaseReportText(false));
 const generatedReportText = computed(() => getBaseReportText(true));
@@ -1820,17 +1777,39 @@ const handleLocationTypeChange = () => {
 
 const fetchLocations = async () => {
     try {
-        const [bRes, oRes, dRes, pRes] = await Promise.all([
+        const [bRes, oRes, dRes, wRes] = await Promise.all([ // Pastikan wRes ada
             axios.get('/branches'),
             axios.get('/online-shops'),
             axios.get('/distributors'),
-            axios.get('/products?per_page=999')
+            axios.get('/warehouses') // Tambahkan endpoint gudang jika belum
         ]);
+
         branches.value = bRes.data;
         onlineShops.value = oRes.data;
         distributors.value = dRes.data?.data || dRes.data || [];
-        const allProducts = pRes.data?.data || pRes.data || [];
-        productTypes.value = Array.isArray(allProducts) ? allProducts.filter(p => p.type === 'hp') : [];
+
+        const locs = [];
+
+        // Simpan referensi ikon langsung ke objek
+        if (bRes.data) {
+            bRes.data.forEach(b => {
+                locs.push({ key: `branch_${b.id}`, value: b.id, label: b.name, type: 'branch', icon: MapPin });
+            });
+        }
+
+        if (oRes.data) {
+            oRes.data.forEach(s => {
+                locs.push({ key: `shop_${s.id}`, value: s.id, label: s.name, type: 'online_shop', icon: Globe });
+            });
+        }
+
+        // Tambahkan pengecekan null/undefined sebelum looping
+        const warehousesList = wRes?.data?.data || wRes?.data || [];
+        warehousesList.forEach(w => {
+            locs.push({ key: `warehouse_${w.id}`, value: w.id, label: w.name, type: 'warehouse', icon: Database });
+        });
+
+        availableLocations.value = locs;
     } catch (error) {
         console.error('Error fetching locations:', error);
     }
