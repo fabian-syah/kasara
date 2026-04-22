@@ -202,7 +202,20 @@
                     <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Distributor</h3>
                     <p class="text-sm text-text-secondary">Ranking penjualan berdasarkan asal distributor</p>
                 </button>
-
+ 
+                <!-- Card: Laporan Penjualan -->
+                <button @click="openSalesReport"
+                    class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-1">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                            <FileText :size="24" class="text-primary-500" />
+                        </div>
+                        <ChevronRight :size="20"
+                            class="text-text-secondary group-hover:text-primary-500 transition-colors" />
+                    </div>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan Penjualan</h3>
+                    <p class="text-sm text-text-secondary">Jenerate laporan teks lengkap untuk dikopi</p>
+                </button>
             </div>
         </template>
 
@@ -1581,6 +1594,11 @@ const getBaseReportText = (isForCopy = false) => {
 
 const displayReportText = computed(() => getBaseReportText(false));
 const generatedReportText = computed(() => getBaseReportText(true));
+ 
+const openSalesReport = () => {
+    currentView.value = 'report';
+    reportCopied.value = false;
+}
 
 
 
