@@ -274,35 +274,35 @@
                         <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Penjualan Distributor</h3>
                         
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.hp > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan HP</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.hp || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.apple_lux > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan Apple Lux</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.accessories > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Accesories</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.apply > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Apply</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apply || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.debs > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Debs</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.debs || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.arcis > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Arcis</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.arcis || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.dokter_pstore > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Dokter Pstore</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.perdana > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Perdana</span></div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.perdana || 0) }}</span>
                             </div>
