@@ -389,14 +389,14 @@
                                          class="flex flex-col border-b border-emerald-200/30 pb-3 group">
                                         <div class="flex justify-between items-center mb-1">
                                             <div class="flex flex-col">
-                                            <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                {{ item.name }} {{ formatStorage(item.storage) }}
-                                            </span>
-                                            <span class="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest">{{ item.condition }}</span>
+                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                    {{ item.name }}
+                                                </span>
+                                            </div>
+                                            <div class="flex flex-col items-end">
+                                                <span class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{ item.qty }} UNIT</span>
+                                            </div>
                                         </div>
-                                        <div class="flex flex-col items-end">
-                                            <span class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{ item.qty }}</span>
-                                        </div></div>
                                     </div>
                                 </div>
                             </div>
@@ -1419,7 +1419,16 @@ const formatStorage = (storage) => {
 }
 
 const appleLuxItems = computed(() => {
-    return salesData.value?.report_summary?.stock_details?.apple_lux || [];
+    const raw = salesData.value?.report_summary?.stock_details?.apple_lux || [];
+    const grouped = {};
+    raw.forEach(item => {
+        const key = `${item.name} ${formatStorage(item.storage)}`;
+        if (!grouped[key]) {
+            grouped[key] = { name: key, qty: 0 };
+        }
+        grouped[key].qty += 1;
+    });
+    return Object.values(grouped);
 });
 
 const categoryStocks = computed(() => {
@@ -1530,7 +1539,7 @@ const getBaseReportText = (isForCopy = false) => {
         appleLuxGrouped[key] = (appleLuxGrouped[key] || 0) + 1;
     });
     Object.entries(appleLuxGrouped).forEach(([name, qty]) => {
-        text += `- ${name} : ${qty}\n`;
+        text += `- ${name} : ${qty} unit\n`;
     });
     text += `\n`;
 
