@@ -1569,7 +1569,7 @@ const getBaseReportText = (isForCopy = false) => {
 
     text += `Rincian Penjualan berdasarkan distributor\n\n`;
     text += `🟦 Penjualan HP : ${formatCurrency(mapRp.hp || 0)}\n`;
-    text += `🟦 Penjualan apple lux : ${formatCurrency(mapRp.apple_lux || 0)}\n`;
+    text += `🟦 Penjualan Apple Luxury : ${formatCurrency(mapRp.apple_lux || 0)}\n`;
     text += `⬜️ Penjualan accesories : ${formatCurrency(mapRp.accessories || 0)}\n`;
     text += `⬜️ Penjualan apply : ${formatCurrency(mapRp.apply || 0)}\n`;
     text += `⬜️ Penjualan debs : ${formatCurrency(mapRp.debs || 0)}\n`;
@@ -1583,9 +1583,9 @@ const getBaseReportText = (isForCopy = false) => {
     const stockDetails = summary.stock_details || {};
     const soldDetails = summary.sold_details || {};
 
-    // Apple Lux Sisa
-    text += `🔷 stok apple lux\n`;
-    // Group Apple Lux by name and storage
+    // Apple Luxury Sisa
+    text += `🔷 stok Apple Luxury\n`;
+    // Group Apple Luxury by name and storage
     const appleLuxGrouped = {};
     (stockDetails.apple_lux || []).forEach(item => {
         let storageStr = (item.storage || '').toString().toUpperCase();
@@ -1644,10 +1644,10 @@ const getBaseReportText = (isForCopy = false) => {
     const totalHP = iphoneCount + androidCount;
 
     text += `______________\nunit HP keluar\n\n`;
-    text += `Iphone       : ${iphoneCount}\n`;
-    text += `Apple lux   : ${appleLuxCount}\n`;
-    text += `Android      : ${androidCount}\n`;
-    text += `Total HP     : ${totalHP}\n\n`;
+    text += `Iphone           : ${iphoneCount}\n`;
+    text += `Apple Luxury     : ${appleLuxCount}\n`;
+    text += `Android          : ${androidCount}\n`;
+    text += `Total HP         : ${totalHP}\n\n`;
 
     text += `Tukar unit          : ${activities.tukar_unit || 0}\n`;
     text += `Tukar tambah   : ${activities.tukar_tambah || 0}\n`;

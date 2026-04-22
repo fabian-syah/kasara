@@ -448,11 +448,7 @@ class AuditController extends Controller
                         ->join('users', 'product_details.user_id', '=', 'users.id')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
-                        ->where(function($q) {
-                            $q->whereExists(function($sq) { 
-                                $sq->select(DB::raw(1))->from('distributors')->whereColumn('distributors.id', 'product_details.distributor_id')->where('name', 'like', '%Apple Lux%'); 
-                            })->orWhere('products.name', 'like', '%Apple Lux%');
-                        });
+                        ->whereIn('product_details.distributor_id', [6, 8]);
                     $applyLocationFilters = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
                         elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
