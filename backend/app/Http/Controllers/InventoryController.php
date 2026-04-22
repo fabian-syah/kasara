@@ -196,9 +196,9 @@ class InventoryController extends Controller
         if ($perPage == -1)
             $perPage = 999999;
 
-        // HIGH-PERFORMANCE CACHING
-        // Cache based on all parameters and user ID for 60 seconds
-        $cacheKey = 'inv_v3_' . md5(json_encode($request->all()) . '_' . Auth::id());
+        // Cache based on all parameters, user ID and a GLOBAL VERSION
+        $invVersion = \Illuminate\Support\Facades\Cache::get('inv_version', 0);
+        $cacheKey = 'inv_v4_' . md5(json_encode($request->all()) . '_' . Auth::id() . '_v' . $invVersion);
 
         return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($query, $perPage, $type, $request) {
             // Execute query with pagination
@@ -1122,6 +1122,9 @@ class InventoryController extends Controller
                         \Log::error("Event fail: " . $e->getMessage());
                     }
                 }
+                
+                // Bust Inventory Cache
+                \Illuminate\Support\Facades\Cache::increment('inv_version');
 
                 return response()->json(['message' => 'Multiple stock in successful', 'count' => count($results)], 201);
             }
