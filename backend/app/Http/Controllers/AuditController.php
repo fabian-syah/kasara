@@ -440,6 +440,27 @@ class AuditController extends Controller
                     ];
                     $mapRp = $map;
                     $processedStockOuts = [];
+                    $stockReport = [
+                        'apple_lux' => 0,
+                        'accessories' => 0,
+                        'apply' => 0,
+                        'arcis' => 0,
+                        'laptop' => 0,
+                        'tv' => 0,
+                        'perdana' => 0,
+                        'jaringan' => 0
+                    ];
+                    $stockDetails = [
+                        'apple_lux' => [],
+                        'accessories' => [],
+                        'apply' => [],
+                        'arcis' => [],
+                        'laptop' => [],
+                        'tv' => [],
+                        'perdana' => [],
+                        'jaringan' => []
+                    ];
+
                     $soldDetails = [
                         'apple_lux' => [],
                         'hp' => [],
@@ -604,7 +625,8 @@ class AuditController extends Controller
                         'arcis' => 0,
                         'laptop' => 0,
                         'tv' => 0,
-                        'perdana' => 0
+                        'perdana' => 0,
+                        'jaringan' => 0
                     ];
                     $stockDetails = [
                         'apple_lux' => [],
@@ -613,7 +635,8 @@ class AuditController extends Controller
                         'arcis' => [],
                         'laptop' => [],
                         'tv' => [],
-                        'perdana' => []
+                        'perdana' => [],
+                        'jaringan' => []
                     ];
 
                     $appleLuxQuery = DB::table('product_details')
