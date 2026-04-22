@@ -1620,7 +1620,7 @@ const getBaseReportText = (isForCopy = false) => {
     const iphoneCount = summary.dist_map?.iphone || 0;
     const appleLuxCount = summary.dist_map?.apple_lux || 0;
     const androidCount = summary.dist_map?.android || 0;
-    const totalHP = iphoneCount + appleLuxCount + androidCount;
+    const totalHP = iphoneCount + androidCount;
 
     text += `unit HP keluar\n\n`;
     text += `Iphone           : ${iphoneCount}\n`;

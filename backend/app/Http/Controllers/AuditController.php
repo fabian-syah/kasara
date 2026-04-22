@@ -572,7 +572,7 @@ class AuditController extends Controller
 
                         // SMART OVERRIDE: If it fell into 'accessories' or is uncategorized, but is known Apply/Arcis brands
                         if ($cat === 'accessories' || !$cat) {
-                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w')) {
+                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w') || str_contains($name, 'privacy') || str_contains($brand, 'olike') || str_contains($name, 'speaker')) {
                                 $cat = 'apply';
                             } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
                                 $cat = 'arcis';
@@ -697,7 +697,7 @@ class AuditController extends Controller
 
                         // SMART OVERRIDE: If it fell into 'accessories' or is uncategorized, but is known Apply/Arcis brands
                         if ($cat === 'accessories' || !$cat) {
-                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w')) {
+                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w') || str_contains($name, 'privacy') || str_contains($brand, 'olike') || str_contains($name, 'speaker')) {
                                 $cat = 'apply';
                             } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
                                 $cat = 'arcis';
