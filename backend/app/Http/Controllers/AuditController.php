@@ -377,13 +377,8 @@ class AuditController extends Controller
                         $brand = strtolower($item->brand ?? '');
                         $distId = $item->distributor_id;
                         
-                        // Strict ID Matching for Apple Lux (ID 6 & 8 are confirmed Apple variants)
+                        // Ultra-Strict: Only Apple Lux if ID is 6 or 8. NO NAME CHECKS.
                         $isAppleLux = ($distId == 6 || $distId == 8);
-                        
-                        // Fallback: only if name explicitly contains 'apple lux'
-                        if (!$isAppleLux && str_contains($pNameLow, 'apple lux')) {
-                            $isAppleLux = true;
-                        }
 
                         $cat = $isAppleLux ? 'apple_lux' : 'hp';
                         $map[$cat]++;
