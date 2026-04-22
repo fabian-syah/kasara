@@ -703,6 +703,10 @@ class AuditController extends Controller
                                 $cat = 'arcis';
                             } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
                                 $cat = 'jaringan';
+                            } elseif (str_contains($brand, 'lenovo') || str_contains($brand, 'msi') || str_contains($name, 'thinkpad') || str_contains($name, 'modern 14') || str_contains($name, 'laptop')) {
+                                $cat = 'laptop';
+                            } elseif (str_contains($brand, 'coocaa') || str_contains($name, '32s3u') || str_contains($name, 'tv')) {
+                                $cat = 'tv';
                             }
                         }
 
