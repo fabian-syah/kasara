@@ -369,22 +369,19 @@ class AuditController extends Controller
 
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories);
                     $applyLocalScope($hpItemsQuery);
-                    $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
+                    $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'distributors.name as dist_name', 'stock_outs.id as stock_out_id', 'stock_outs.selling_price')->get();
 
                     foreach ($hpData as $item) {
-                        $rawDistName = $item->dist_name;
-                        $distName = strtolower($rawDistName ?? '');
-                        $pName = strtolower($item->name ?? '');
+                        $pNameNormal = $item->name ?? 'Unknown HP';
+                        $pNameLow = strtolower($pNameNormal);
                         $brand = strtolower($item->brand ?? '');
+                        $distId = $item->distributor_id;
                         
-                        // Ultra-Strict: Must have a distributor AND match the name
-                        $isAppleLux = false;
-                        if (!empty($distName)) {
-                            $isAppleLux = (str_contains($distName, 'apple lux') || str_contains($distName, 'apple luxury'));
-                        }
+                        // Strict ID Matching for Apple Lux (ID 6 & 8 are confirmed Apple variants)
+                        $isAppleLux = ($distId == 6 || $distId == 8);
                         
-                        // Optional: Product name check ONLY if distributor is empty or also matches
-                        if (!$isAppleLux && str_contains($pName, 'apple lux')) {
+                        // Fallback: only if name explicitly contains 'apple lux'
+                        if (!$isAppleLux && str_contains($pNameLow, 'apple lux')) {
                             $isAppleLux = true;
                         }
 
@@ -398,7 +395,6 @@ class AuditController extends Controller
                             $map['android']++;
                         }
 
-                        $pNameNormal = $item->name ?? 'Unknown HP';
                         $soldDetails[$cat][$pNameNormal] = ($soldDetails[$cat][$pNameNormal] ?? 0) + 1;
 
                         $soId = $item->stock_out_id;
