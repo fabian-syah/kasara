@@ -593,8 +593,17 @@ class StockOutController extends Controller
             if ($request->non_hp_items) {
                 foreach ($request->non_hp_items as $item) {
                     $prod = Product::find($item['product_id']);
-                    // Pastikan kategori non-hp tercatat
                     if ($prod) {
+                        // Cari distributor dari stok fisik yang ada di lokasi user
+                        $inv = \App\Models\Inventory::where('product_id', $item['product_id'])
+                            ->where(function($q) use ($user) {
+                                $q->where('branch_id', $user->branch_id)
+                                  ->orWhere('warehouse_id', $user->warehouse_id)
+                                  ->orWhere('online_shop_id', $user->online_shop_id);
+                            })->first();
+                        
+                        $distId = $inv->distributor_id ?? $prod->distributor_id ?? null;
+
                         StockOutNonHpItem::create([
                             'stock_out_id' => $stockOut->id,
                             'product_id' => $item['product_id'],
@@ -604,7 +613,7 @@ class StockOutController extends Controller
                             'distributed_discount' => $item['distributed_discount'] ?? 0,
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $item['quantity'],
                             'returned_quantity' => 0,
-                            'distributor_id' => $prod->distributor_id ?? null // Capture distributor non-HP
+                            'distributor_id' => $distId // Captured from inventory
                         ]);
                     }
                 }
