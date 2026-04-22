@@ -483,8 +483,8 @@ class AuditController extends Controller
                     }
 
                     // 3. Stock Aggregation
-                    $stockReport = ['apple_lux' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'laptop' => 0, 'tv' => 0, 'perdana' => 0, 'jaringan' => 0];
-                    $stockDetails = ['apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
+                    $stockReport = ['apple_lux' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'perdana' => 0, 'jaringan' => 0];
+                    $rawStockDetails = ['apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
 
                     $applyStockFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
                         if ($requestedBranchId) $q->where('placement_id', $requestedBranchId);
@@ -497,46 +497,74 @@ class AuditController extends Controller
                         }
                     };
 
-                    $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')->where('product_details.status', 'available')->whereIn('product_details.distributor_id', $appleLuxIds);
+                    // Apple Lux Stock (Aggregated)
+                    $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->where('product_details.status', 'available')
+                        ->whereIn('product_details.distributor_id', $appleLuxIds);
                     $applyStockFilters($alStock);
-                    foreach ($alStock->select('products.name')->get() as $s) {
-                        $stockReport['apple_lux']++; $stockDetails['apple_lux'][] = $s->name . " : 1 unit";
+                    foreach ($alStock->select('products.name', DB::raw('count(*) as qty'))->groupBy('products.name')->get() as $s) {
+                        $name = $s->name ?: 'Unknown Apple Lux';
+                        $qty = (int)$s->qty;
+                        $stockReport['apple_lux'] += $qty;
+                        $rawStockDetails['apple_lux'][$name] = ($rawStockDetails['apple_lux'][$name] ?? 0) + $qty;
                     }
 
+                    // Inventory Stock (Aggregated)
                     $oStock = DB::table('inventories')->leftJoin('products', 'inventories.product_id', '=', 'products.id')->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')->where('inventories.quantity', '>', 0);
                     $applyStockFilters($oStock);
                     foreach ($oStock->select('products.name', 'products.brand', 'inventories.quantity', 'distributors.name as dname', 'inventories.distributor_id as did')->get() as $s) {
                         $qty = (int)$s->quantity;
-                        $name = strtolower((string)$s->name);
-                        $brand = strtolower((string)($s->brand ?? ''));
-                        $did = (int)$s->did;
+                        $name = (string)($s->name ?: 'Item Tanpa Nama');
                         $dname = strtolower((string)($s->dname ?? ''));
+                        $did = (int)$s->did;
                         $cat = null;
 
                         if (in_array($did, $catDistMap['apply']) || str_contains($dname, 'apply')) $cat = 'apply';
                         elseif (in_array($did, $catDistMap['arcis']) || str_contains($dname, 'arcis')) $cat = 'arcis';
+                        elseif (in_array($did, $catDistMap['debs']) || str_contains($dname, 'debs')) $cat = 'debs';
+                        elseif (in_array($did, $catDistMap['dokter_pstore']) || str_contains($dname, 'dokter')) $cat = 'dokter_pstore';
+                        elseif (in_array($did, $catDistMap['accessories']) || str_contains($dname, 'accessories')) $cat = 'accessories';
                         elseif (in_array($did, $catDistMap['laptop']) || str_contains($dname, 'laptop')) $cat = 'laptop';
                         elseif (in_array($did, $catDistMap['tv']) || str_contains($dname, 'tv')) $cat = 'tv';
-                        elseif (in_array($did, $catDistMap['perdana']) || str_contains($dname, 'sim card')) {
-                            if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan')) $cat = 'jaringan';
+                        elseif (in_array($did, $catDistMap['perdana']) || str_contains($dname, 'sim card') || str_contains($name, 'sim card')) {
+                            if (str_contains(strtolower($name), '4g') || str_contains(strtolower($name), 'lte') || str_contains(strtolower($name), 'jaringan')) $cat = 'jaringan';
                             else $cat = 'perdana';
                         }
-
+                        
                         if (!$cat) {
-                            if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan')) $cat = 'jaringan';
-                            elseif (str_contains($name, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa')) $cat = 'perdana';
-                            elseif (str_contains($name, 'laptop')) $cat = 'laptop';
-                            elseif (str_contains($name, 'tv')) $cat = 'tv';
-                            elseif (str_contains($name, 'apply')) $cat = 'apply';
+                            if (str_contains(strtolower($name), '4g') || str_contains(strtolower($name), 'lte') || str_contains(strtolower($name), 'jaringan')) $cat = 'jaringan';
+                            elseif (str_contains(strtolower($name), 'sim card') || str_contains(strtolower($name), 'icloud') || str_contains(strtolower($name), 'jasa')) $cat = 'perdana';
+                            elseif (str_contains(strtolower($name), 'laptop')) $cat = 'laptop';
+                            elseif (str_contains(strtolower($name), 'tv')) $cat = 'tv';
+                            elseif (str_contains(strtolower($name), 'debs')) $cat = 'debs';
+                            elseif (str_contains(strtolower($name), 'arcis')) $cat = 'arcis';
+                            elseif (str_contains(strtolower($name), 'apply')) $cat = 'apply';
                         }
 
                         if ($cat) {
                             $stockReport[$cat] += $qty;
-                            $stockDetails[$cat][] = $s->name . " : $qty unit";
+                            $rawStockDetails[$cat][$name] = ($rawStockDetails[$cat][$name] ?? 0) + $qty;
                         }
                     }
 
-                    return ['payments' => $pSums, 'payment_total' => $paymentTotal, 'dist_map' => $map, 'dist_map_rp' => $mapRp, 'stock_report' => $stockReport, 'stock_details' => $stockDetails, 'sold_details' => $soldDetails, 'activities' => []];
+                    // Convert raw details to strings for the audit() result but keep keys clean
+                    $finalStockDetails = [];
+                    foreach ($rawStockDetails as $key => $items) {
+                        foreach ($items as $name => $qty) {
+                            $finalStockDetails[$key][] = "$name : $qty unit";
+                        }
+                    }
+
+                    return [
+                        'payments' => $pSums,
+                        'payment_total' => $paymentTotal,
+                        'dist_map' => $map,
+                        'dist_map_rp' => $mapRp,
+                        'stock_report' => $stockReport,
+                        'stock_details' => $finalStockDetails, // Array of strings for easy looping
+                        'sold_details' => $soldDetails,
+                        'activities' => []
+                    ];
                 } catch (\Exception $e) { return ['error' => $e->getMessage()]; }
             }
         ]);
@@ -2140,6 +2168,7 @@ class AuditController extends Controller
             'apple_lux' => ['label' => 'Penjualan Apple Luxury', 'icon' => '🟦'],
             'apply' => ['label' => 'Penjualan apply', 'icon' => '⬜️'],
             'arcis' => ['label' => 'Penjualan arcis', 'icon' => '⬜️'],
+            'perdana' => ['label' => 'Penjualan perdana', 'icon' => '⬜️'],
             'jaringan' => ['label' => '4G / LTE', 'icon' => '⬜️'],
             'laptop' => ['label' => 'Penjualan laptop', 'icon' => '⬜️'],
             'tv' => ['label' => 'Penjualan tv', 'icon' => '⬜️'],
@@ -2155,7 +2184,7 @@ class AuditController extends Controller
         $report .= "Iphone           : " . ($dMap['iphone'] ?? 0) . "\n";
         $report .= "Apple Luxury     : " . ($dMap['apple_lux'] ?? 0) . "\n";
         $report .= "Android          : " . ($dMap['android'] ?? 0) . "\n";
-        $report .= "Total HP         : " . (($dMap['iphone'] ?? 0) + ($dMap['android'] ?? 0)) . "\n\n";
+        $report .= "Total HP         : " . (($dMap['iphone'] ?? 0) + ($dMap['android'] ?? 0) + ($dMap['apple_lux'] ?? 0)) . "\n\n";
 
         $report .= "Tukar unit          : 0\nTukar tambah   : 0\nDowngrade       : 0\nRefund               : 0\nAngkat barang  : 0\n\n";
         $report .= "Laptop        : " . ($dMap['laptop'] ?? 0) . "\nTv                : " . ($dMap['tv'] ?? 0) . "\npengunjung: .........\n";
@@ -2169,8 +2198,8 @@ class AuditController extends Controller
             'arcis' => 'stok arcis',
             'laptop' => 'stok laptop',
             'tv' => 'stok tv',
-            'perdana' => 'stok perdana/simcard',
-            'jaringan' => 'stok 4G/LTE'
+            'perdana' => 'stok Sim Card',
+            'jaringan' => 'stok 4G / LTE'
         ];
 
         foreach ($stkMap as $key => $label) {
