@@ -1480,16 +1480,11 @@ const formatStorage = (storage) => {
 }
 
 const appleLuxItems = computed(() => {
-    const raw = salesData.value?.report_summary?.stock_details?.apple_lux || [];
-    const grouped = {};
-    raw.forEach(item => {
-        const key = `${item.name} ${formatStorage(item.storage)}`;
-        if (!grouped[key]) {
-            grouped[key] = { name: key, qty: 0 };
-        }
-        grouped[key].qty += 1;
-    });
-    return Object.values(grouped);
+    const raw = salesData.value?.report_summary?.stock_details?.apple_lux || {};
+    return Object.entries(raw).map(([name, qty]) => ({
+        name: name,
+        qty: qty
+    }));
 });
 
 const categoryStocks = computed(() => {
@@ -1785,30 +1780,34 @@ const fetchLocations = async () => {
             axios.get('/warehouses') // Tambahkan endpoint gudang jika belum
         ]);
 
-        branches.value = bRes.data;
-        onlineShops.value = oRes.data;
+        const branchList = bRes.data?.data || bRes.data || [];
+        const shopList = oRes.data?.data || oRes.data || [];
+        const warehousesList = wRes.data?.data || wRes.data || [];
+
+        branches.value = branchList;
+        onlineShops.value = shopList;
         distributors.value = dRes.data?.data || dRes.data || [];
 
         const locs = [];
 
         // Simpan referensi ikon langsung ke objek
-        if (bRes.data) {
-            bRes.data.forEach(b => {
+        if (Array.isArray(branchList)) {
+            branchList.forEach(b => {
                 locs.push({ key: `branch_${b.id}`, value: b.id, label: b.name, type: 'branch', icon: MapPin });
             });
         }
 
-        if (oRes.data) {
-            oRes.data.forEach(s => {
+        if (Array.isArray(shopList)) {
+            shopList.forEach(s => {
                 locs.push({ key: `shop_${s.id}`, value: s.id, label: s.name, type: 'online_shop', icon: Globe });
             });
         }
 
-        // Tambahkan pengecekan null/undefined sebelum looping
-        const warehousesList = wRes?.data?.data || wRes?.data || [];
-        warehousesList.forEach(w => {
-            locs.push({ key: `warehouse_${w.id}`, value: w.id, label: w.name, type: 'warehouse', icon: Database });
-        });
+        if (Array.isArray(warehousesList)) {
+            warehousesList.forEach(w => {
+                locs.push({ key: `warehouse_${w.id}`, value: w.id, label: w.name, type: 'warehouse', icon: Database });
+            });
+        }
 
         availableLocations.value = locs;
     } catch (error) {
