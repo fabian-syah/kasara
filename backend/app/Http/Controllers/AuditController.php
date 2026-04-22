@@ -197,7 +197,7 @@ class AuditController extends Controller
                             if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
                             if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                         }
-                    })->select('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name as distributor_name', DB::raw('count(*) as count'))->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')->get();
+                    })->select('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name as distributor_name', DB::raw('count(*) as qty'))->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')->get();
                 $nhpQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
                         elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
@@ -205,7 +205,7 @@ class AuditController extends Controller
                             if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
                             if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                         }
-                    })->select('products.brand', 'products.name', DB::raw('sum(quantity) as count'))->groupBy('products.brand', 'products.name')->get();
+                    })->select('products.brand', 'products.name', DB::raw('sum(quantity) as qty'))->groupBy('products.brand', 'products.name')->get();
                 return ['hp' => $hpQuery, 'nhp' => $nhpQuery];
             },
 
@@ -227,14 +227,34 @@ class AuditController extends Controller
 
             // 4. Daily History
             function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                return DB::table('stock_outs')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                $baseQuery = DB::table('stock_outs')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         if ($requestedBranchId) $q->where('users.branch_id', $requestedBranchId);
                         elseif ($requestedOnlineShopId) $q->where('users.online_shop_id', $requestedOnlineShopId);
                         else {
                             if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
                             if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                         }
-                    })->select('reporting_date', DB::raw('sum(selling_price) as total_omset'))->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
+                    });
+                
+                $hpStats = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select('reporting_date', DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('reporting_date')->get()->keyBy('reporting_date');
+                $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select('reporting_date', DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('reporting_date')->get()->keyBy('reporting_date');
+                $mainStats = (clone $baseQuery)->select('reporting_date', DB::raw('sum(selling_price) as total_omset'))->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
+                
+                return $mainStats->map(function($stat) use ($hpStats, $nhpStats) {
+                    $hp = $hpStats->get($stat->reporting_date);
+                    $nhp = $nhpStats->get($stat->reporting_date);
+                    $iphone = (int)($hp->iphone_units ?? 0);
+                    $android = (int)($hp->android_units ?? 0);
+                    $nonHp = (int)($nhp->non_hp_units ?? 0);
+                    return [
+                        'reporting_date' => $stat->reporting_date,
+                        'total_omset' => (float)$stat->total_omset,
+                        'iphone_units' => $iphone,
+                        'android_units' => $android,
+                        'non_hp_units' => $nonHp,
+                        'total_units' => $iphone + $android + $nonHp
+                    ];
+                });
             },
 
             // 5. Type Stats
@@ -246,7 +266,7 @@ class AuditController extends Controller
                             if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
                             if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                         }
-                    })->select('products.name', 'products.brand', DB::raw('count(*) as count'))->groupBy('products.name', 'products.brand')->get();
+                    })->select('products.name', 'products.brand', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand')->get();
             },
 
             // 6. Condition Stats
@@ -258,7 +278,7 @@ class AuditController extends Controller
                             if (!empty($branchIds)) $q->orWhereIn('users.branch_id', $branchIds);
                             if (!empty($onlineShopIds)) $q->orWhereIn('users.online_shop_id', $onlineShopIds);
                         }
-                    })->select('product_details.condition', DB::raw('count(*) as count'))->groupBy('product_details.condition')->get();
+                    })->select('product_details.condition', DB::raw('count(*) as qty'))->groupBy('product_details.condition')->get();
             },
 
             // 7. Distributor Stats

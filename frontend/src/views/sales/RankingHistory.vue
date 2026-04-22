@@ -949,8 +949,7 @@
                                             item.android_units || 0 }}</td>
                                         <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units
                                             || 0 }}</td>
-                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units
-                                        }}</td>
+                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units || 0 }}</td>
                                         <td
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                             {{ formatCurrency(item.total_omset) }}
@@ -1354,21 +1353,21 @@ const brandHierarchy = computed(() => {
             map.set(brand, { brand, qty: 0, tree: new Map() })
         }
         const entry = map.get(brand)
-        entry.qty += item.qty
+        entry.qty += (item.qty || 0)
 
         const dist = item.distributor || '-'
         if (!entry.tree.has(dist)) {
             entry.tree.set(dist, { label: dist, qty: 0, types: new Map() })
         }
         const dNode = entry.tree.get(dist)
-        dNode.qty += item.qty
+        dNode.qty += (item.qty || 0)
 
         const type = item.name
         if (!dNode.types.has(type)) {
             dNode.types.set(type, { label: type, qty: 0, conditions: new Map() })
         }
         const tNode = dNode.types.get(type)
-        tNode.qty += item.qty
+        tNode.qty += (item.qty || 0)
 
         const cond = item.condition || '-'
         const gb = item.storage || '-'
@@ -1381,7 +1380,7 @@ const brandHierarchy = computed(() => {
                 qty: 0
             })
         }
-        tNode.conditions.get(cgKey).qty += item.qty
+        tNode.conditions.get(cgKey).qty += (item.qty || 0)
     })
 
     return Array.from(map.values())
@@ -1409,21 +1408,21 @@ const distributorHierarchy = computed(() => {
             map.set(dist, { distributor: dist, qty: 0, tree: new Map() })
         }
         const entry = map.get(dist)
-        entry.qty += item.qty
+        entry.qty += (item.qty || 0)
 
         const brand = item.brand || '-'
         if (!entry.tree.has(brand)) {
             entry.tree.set(brand, { label: brand, qty: 0, types: new Map() })
         }
         const bNode = entry.tree.get(brand)
-        bNode.qty += item.qty
+        bNode.qty += (item.qty || 0)
 
         const type = item.product_type || '-'
         if (!bNode.types.has(type)) {
             bNode.types.set(type, { label: type, qty: 0, conditions: new Map() })
         }
         const tNode = bNode.types.get(type)
-        tNode.qty += item.qty
+        tNode.qty += (item.qty || 0)
 
         const cond = item.condition || '-'
         const gb = item.storage || '-'
@@ -1436,7 +1435,7 @@ const distributorHierarchy = computed(() => {
                 qty: 0
             })
         }
-        tNode.conditions.get(cgKey).qty += item.qty
+        tNode.conditions.get(cgKey).qty += (item.qty || 0)
     })
 
     return Array.from(map.values())
