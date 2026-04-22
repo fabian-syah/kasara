@@ -1036,6 +1036,13 @@ class InventoryController extends Controller
                         $pId = $prod->id;
                     }
 
+                    if ($pId) {
+                        $p = Product::find($pId);
+                        if ($p && isset($item['selling_price']) && $item['selling_price'] > 0) {
+                            $p->update(['price' => $item['selling_price']]);
+                        }
+                    }
+
                     if (!$pId)
                         continue;
 
