@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 class WarehouseController extends Controller
 {
     public function index(Request $request)
+    // forced update
     {
         // DEBUG: Log the request to server error log
         error_log("Warehouse Request: ignore_scope=" . $request->ignore_scope . ", all=" . $request->all);

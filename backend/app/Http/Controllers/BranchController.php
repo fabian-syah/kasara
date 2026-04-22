@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 class BranchController extends Controller
 {
     public function index(Request $request)
+    // forced update
     {
         // DEBUG & FORCE: Return all branches immediately without any conditions
         return response()->json([
