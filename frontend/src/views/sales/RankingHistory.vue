@@ -202,7 +202,7 @@
                     <h3 class="text-lg font-bold text-text-primary mb-1">Peringkat per Distributor</h3>
                     <p class="text-sm text-text-secondary">Ranking penjualan berdasarkan asal distributor</p>
                 </button>
- 
+
                 <!-- Card: Laporan Penjualan -->
                 <button @click="openSalesReport"
                     class="group bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:-translate-y-1">
@@ -225,16 +225,17 @@
                 <!-- REPORT CARD NEW ERA UI -->
                 <div
                     class="bg-[#eafdf3] dark:bg-surface-900 w-full max-w-4xl rounded-[32px] shadow-[0_20px_60px_-15px_rgba(16,185,129,0.15)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 border border-emerald-100 dark:border-emerald-900/30">
-                    
+
                     <!-- Action Buttons Overlay -->
                     <div class="p-6 md:p-8 flex justify-between items-start relative z-10 w-full">
-                        <button @click="currentView = 'menu'" class="p-3 bg-white/60 dark:bg-surface-800/60 hover:bg-emerald-100 dark:hover:bg-surface-700 text-emerald-800 dark:text-emerald-400 rounded-full transition-all backdrop-blur-md shadow-sm border border-emerald-100/50 dark:border-surface-600/50 hover:scale-105 active:scale-95">
+                        <button @click="currentView = 'menu'"
+                            class="p-3 bg-white/60 dark:bg-surface-800/60 hover:bg-emerald-100 dark:hover:bg-surface-700 text-emerald-800 dark:text-emerald-400 rounded-full transition-all backdrop-blur-md shadow-sm border border-emerald-100/50 dark:border-surface-600/50 hover:scale-105 active:scale-95">
                             <ArrowLeft :size="20" />
                         </button>
-                        
+
                         <button @click="copyReportToClipboard"
                             class="flex items-center gap-2 px-8 py-3 bg-[#0fa968] hover:bg-[#0cd07f] text-white rounded-full font-black tracking-wider text-xs shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 group">
-                            <Copy v-if="!reportCopied" :size="16" class="group-hover:scale-110 transition-transform"/>
+                            <Copy v-if="!reportCopied" :size="16" class="group-hover:scale-110 transition-transform" />
                             <Check v-else :size="16" />
                             {{ reportCopied ? 'TERSALIN!' : 'SALIN LAPORAN' }}
                         </button>
@@ -243,11 +244,16 @@
                     <div class="px-8 md:px-16 pb-16 mt-[-20px]">
                         <!-- Header -->
                         <div class="text-center mb-10">
-                            <p class="text-[10px] font-black tracking-[0.35em] text-emerald-800/80 dark:text-emerald-500 uppercase mb-4">STOCK REPORT</p>
-                            <h2 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
-                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
+                            <p
+                                class="text-[10px] font-black tracking-[0.35em] text-emerald-800/80 dark:text-emerald-500 uppercase mb-4">
+                                STOCK REPORT</p>
+                            <h2
+                                class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
+                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE
+                                TRANSAKSI' }}
                             </h2>
-                            <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
+                            <p
+                                class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
                                 <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
                                 {{ formattedDateDisplay }}
                             </p>
@@ -258,116 +264,183 @@
 
                         <!-- PENJUALAN ALL -->
                         <div class="space-y-4 mb-2">
-                            <div v-for="(amount, method) in (salesData?.report_summary?.payments || {})" :key="method" 
-                                 class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
+                            <div v-for="(amount, method) in (salesData?.report_summary?.payments || {})" :key="method"
+                                class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">{{ method }}</span>
                                 <span>{{ formatCurrency(amount) }}</span>
                             </div>
                         </div>
 
-                        <div class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
+                        <div
+                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
-                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0) }}</span>
+                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
+                                }}</span>
                         </div>
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
-                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Penjualan Distributor</h3>
-                        
+                        <h3
+                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            Rincian Penjualan Distributor</h3>
+
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan HP</span></div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span
+                                        class="capitalize">Penjualan HP</span>
+                                </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.hp || 0) }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span class="capitalize">Penjualan Apple Lux</span></div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0) }}</span>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Apple Lux</span>
+                                </div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apple_lux || 0)
+                                    }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Accesories</span></div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0) }}</span>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Accesories</span>
+                                </div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.accessories || 0)
+                                    }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Apply</span></div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Apply</span>
+                                </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.apply || 0) }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Debs</span></div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Debs</span>
+                                </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.debs || 0) }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Arcis</span></div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Arcis</span>
+                                </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.arcis || 0) }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Dokter Pstore</span></div>
-                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0) }}</span>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Dokter Pstore</span>
+                                </div>
+                                <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.dokter_pstore || 0)
+                                    }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Perdana</span></div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Perdana</span>
+                                </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.perdana || 0) }}</span>
                             </div>
-                            <div v-if="salesData?.report_summary?.dist_map_rp?.jaringan > 0" class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <div class="flex items-center gap-3"><div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span class="capitalize">Penjualan Jaringan</span></div>
+                            <div v-if="salesData?.report_summary?.dist_map_rp?.jaringan > 0"
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-2.5 h-2.5 border border-gray-400 bg-white rounded-sm"></div> <span
+                                        class="capitalize">Penjualan Jaringan</span>
+                                </div>
                                 <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.jaringan || 0) }}</span>
                             </div>
                         </div>
 
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full my-12"></div>
-                    
+
                         <!-- TOTAL UNIT HP -->
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <span class="capitalize">Iphone New / Scd</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone || 0 }}</span>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Iphone</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone
+                                    || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Apple Lux</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
-                                <span class="capitalize">Android New / Scd</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.android || 0 }}</span>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Android</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.android || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Laptop</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop
+                                    || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tv</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv ||
+                                    0 }}</span>
                             </div>
                         </div>
 
-                        <div class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
+                        <div
+                            class="flex justify-between items-center text-xl font-black text-gray-900 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-widest italic">TOTAL HANDPHONE</span>
-                            <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) + (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
+                            <span class="text-3xl">{{ (salesData?.report_summary?.dist_map?.hp || 0) +
+                                (salesData?.report_summary?.dist_map?.apple_lux || 0) }}</span>
                         </div>
-                        
+
                         <div class="h-px bg-emerald-200/70 dark:bg-surface-700/50 w-full mb-8"></div>
 
                         <!-- RINCIAN LAINNYA & STOK -->
-                        <h3 class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">Rincian Unit & Stok</h3>
-                        
+                        <h3
+                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            Rincian Unit & Stok</h3>
+
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Unit</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Tambah</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Downgrade</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.downgrade || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.downgrade || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Refund</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.refund || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.refund || 0 }}</span>
                             </div>
-                            <div class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Angkat Barang</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
                         </div>
 
@@ -378,23 +451,27 @@
                                 <!-- Group Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
-                                    <h4 class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
+                                    <h4
+                                        class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
                                         STOK APPLE LUX
                                     </h4>
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                                    <div v-for="(item, x) in appleLuxItems" :key="x" 
-                                         class="flex flex-col border-b border-emerald-200/30 pb-3 group">
+                                    <div v-for="(item, x) in appleLuxItems" :key="x"
+                                        class="flex flex-col border-b border-emerald-200/30 pb-3 group">
                                         <div class="flex justify-between items-center mb-1">
                                             <div class="flex flex-col">
-                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                <span
+                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
                                                     {{ item.name }}
                                                 </span>
                                             </div>
                                             <div class="flex flex-col items-end">
-                                                <span class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{ item.qty }} UNIT</span>
+                                                <span
+                                                    class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{
+                                                    item.qty }} UNIT</span>
                                             </div>
                                         </div>
                                     </div>
@@ -402,52 +479,64 @@
                             </div>
 
                             <!-- OTHER CATEGORIES (STOCK, SOLD, IN) -->
-                            <div v-for="cat in categoryStocks" :key="cat.label" v-show="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length">
+                            <div v-for="cat in categoryStocks" :key="cat.label"
+                                v-show="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length">
                                 <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
-                                    <h4 class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
+                                    <h4
+                                        class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
                                         {{ cat.label }}
                                     </h4>
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <div v-if="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length" class="space-y-8">
+                                <div v-if="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length"
+                                    class="space-y-8">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
                                         <!-- Combined List (Unified) -->
                                         <div v-if="Object.keys(cat.inItems || {}).length" class="space-y-3">
-                                            <div v-for="(qty, name) in cat.inItems" :key="'in-'+name" 
-                                                 class="flex justify-between items-center border-b border-amber-200/30 pb-3">
-                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                            <div v-for="(qty, name) in cat.inItems" :key="'in-' + name"
+                                                class="flex justify-between items-center border-b border-amber-200/30 pb-3">
+                                                <span
+                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
                                                     {{ name }}
                                                 </span>
-                                                <span class="text-xs font-black text-amber-700 dark:text-amber-400">{{ qty }}</span>
+                                                <span class="text-xs font-black text-amber-700 dark:text-amber-400">{{
+                                                    qty }}</span>
                                             </div>
                                         </div>
 
                                         <div v-if="Object.keys(cat.remainingItems || {}).length" class="space-y-3">
-                                            <div v-for="(qty, name) in cat.remainingItems" :key="'rem-'+name" 
-                                                 class="flex justify-between items-center border-b border-blue-200/30 pb-3">
-                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                            <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
+                                                class="flex justify-between items-center border-b border-blue-200/30 pb-3">
+                                                <span
+                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
                                                     {{ name }}
                                                 </span>
-                                                <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty }}</span>
+                                                <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty
+                                                    }}</span>
                                             </div>
                                         </div>
 
                                         <div v-if="Object.keys(cat.items || {}).length" class="space-y-3">
-                                            <div v-for="(qty, name) in cat.items" :key="'sold-'+name" 
-                                                 class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
-                                                <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
+                                            <div v-for="(qty, name) in cat.items" :key="'sold-' + name"
+                                                class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
+                                                <span
+                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
                                                     {{ name }}
                                                 </span>
-                                                <span class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{ qty }}</span>
+                                                <span
+                                                    class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{
+                                                    qty }}</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div v-else class="text-center">
-                                    <span class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum ada unit {{ cat.label }}</span>
+                                    <span
+                                        class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum
+                                        ada unit {{ cat.label }}</span>
                                 </div>
                             </div>
                         </div>
@@ -501,7 +590,7 @@
                                 class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px] appearance-none">
                                 <option :value="null" class="dark:bg-surface-800">Semua GB</option>
                                 <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb
-                                    }}GB</option>
+                                }}GB</option>
                             </select>
                         </template>
                     </div>
@@ -908,7 +997,7 @@
                                         <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units
                                             || 0 }}</td>
                                         <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units
-                                            }}</td>
+                                        }}</td>
                                         <td
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                             {{ formatCurrency(item.total_omset) }}
@@ -1023,7 +1112,7 @@
             </div>
         </template>
 
-</div>
+    </div>
 </template>
 
 <script setup>
@@ -1439,47 +1528,47 @@ const categoryStocks = computed(() => {
     const stockDetails = summary.stock_details || {};
     const distMap = summary.dist_map || {};
     const distInMap = summary.dist_in_map || {};
-    
+
     return [
-        { 
-            label: 'STOK ACCESSORIES', 
-            count: distMap.accessories || 0, 
-            items: soldDetails.accessories || {}, 
+        {
+            label: 'STOK ACCESSORIES',
+            count: distMap.accessories || 0,
+            items: soldDetails.accessories || {},
             in: distInMap.accessories || 0,
             inItems: inDetails.accessories || {},
             remaining: stockReport.accessories || 0,
             remainingItems: stockDetails.accessories || {},
-            suffix: 'Terjual' 
+            suffix: 'Terjual'
         },
-        { 
-            label: 'STOK APPLY', 
-            count: distMap.apply || 0, 
-            items: soldDetails.apply || {}, 
+        {
+            label: 'STOK APPLY',
+            count: distMap.apply || 0,
+            items: soldDetails.apply || {},
             in: distInMap.apply || 0,
             inItems: inDetails.apply || {},
             remaining: stockReport.apply || 0,
             remainingItems: stockDetails.apply || {},
-            suffix: 'Terjual' 
+            suffix: 'Terjual'
         },
-        { 
-            label: 'STOK LAPTOP', 
-            count: distMap.laptop || 0, 
-            items: soldDetails.laptop || {}, 
+        {
+            label: 'STOK LAPTOP',
+            count: distMap.laptop || 0,
+            items: soldDetails.laptop || {},
             in: distInMap.laptop || 0,
             inItems: inDetails.laptop || {},
             remaining: stockReport.laptop || 0,
             remainingItems: stockDetails.laptop || {},
-            suffix: 'Terjual' 
+            suffix: 'Terjual'
         },
-        { 
-            label: 'STOK ARCIS', 
-            count: distMap.arcis || 0, 
-            items: soldDetails.arcis || {}, 
+        {
+            label: 'STOK ARCIS',
+            count: distMap.arcis || 0,
+            items: soldDetails.arcis || {},
             in: distInMap.arcis || 0,
             inItems: inDetails.arcis || {},
             remaining: stockReport.arcis || 0,
             remainingItems: stockDetails.arcis || {},
-            suffix: 'Terjual' 
+            suffix: 'Terjual'
         }
     ];
 });
@@ -1492,9 +1581,9 @@ const getBaseReportText = (isForCopy = false) => {
     const stock = summary.stock_report || {};
     const payments = summary.payments || {};
     const activities = summary.activities || {};
-    
+
     const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
-    const dateStr = selectedPeriod.value === 'monthly' 
+    const dateStr = selectedPeriod.value === 'monthly'
         ? `${months[selectedMonth.value - 1]} ${selectedYear.value}`
         : formatDateString(filters.value.start_date);
 
@@ -1526,7 +1615,7 @@ const getBaseReportText = (isForCopy = false) => {
     text += `⬜️ Penjualan jaringan : ${formatCurrency(mapRp.jaringan || 0)}\n`;
 
     text += `\nLaporan stok\n\n`;
-    
+
     const stockDetails = summary.stock_details || {};
     const soldDetails = summary.sold_details || {};
 
@@ -1558,7 +1647,7 @@ const getBaseReportText = (isForCopy = false) => {
 
         if (Object.keys(remainingItems).length > 0 || Object.keys(soldItems).length > 0 || Object.keys(inItems).length > 0) {
             text += `🔷 stok ${cat.label}\n`;
-            
+
             Object.entries(inItems).forEach(([name, qty]) => {
                 text += `- ${name} : ${qty}\n`;
             });
@@ -1603,7 +1692,7 @@ const getBaseReportText = (isForCopy = false) => {
 
 const displayReportText = computed(() => getBaseReportText(false));
 const generatedReportText = computed(() => getBaseReportText(true));
- 
+
 const openSalesReport = () => {
     currentView.value = 'report';
     reportCopied.value = false;
