@@ -569,31 +569,18 @@ class AuditController extends Controller
                             $mapRp['perdana'] += $price;
                             $cat = null;
                         }
-                        // Fallback to name/brand matching for old data
-                        elseif (str_contains($brand, 'acc') || str_contains($name, 'acc') || str_contains($name, 'accessories')) {
-                            $cat = 'accessories';
-                        } elseif (str_contains($name, 'apply') || str_contains($brand, 'apply')) {
-                            $cat = 'apply';
-                        } elseif (str_contains($name, 'debs') || str_contains($brand, 'debs')) {
-                            $cat = 'debs';
-                        } elseif (str_contains($name, 'arcis') || str_contains($brand, 'arcis')) {
-                            $cat = 'arcis';
-                        } elseif (str_contains($name, 'dokter pstore')) {
-                            $cat = 'dokter_pstore';
-                        } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
-                            $map['jaringan'] += $qty;
-                            $mapRp['jaringan'] += $price;
-                            $cat = null;
-                        } elseif (str_contains($name, 'hp')) {
-                            $cat = 'hp';
-                        } elseif (str_contains($name, 'laptop')) {
-                            $cat = 'laptop';
-                        } elseif (str_contains($name, 'tv')) {
-                            $cat = 'tv';
-                        } elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana')) {
-                            $map['perdana'] += $qty;
-                            $mapRp['perdana'] += $price;
-                            $cat = null;
+
+                        // SMART OVERRIDE: If it fell into 'accessories' or is uncategorized, but is known Apply/Arcis brands
+                        if ($cat === 'accessories' || !$cat) {
+                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w')) {
+                                $cat = 'apply';
+                            } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
+                                $cat = 'arcis';
+                            } elseif (str_contains($brand, 'jasa') || str_contains($name, 'jasa') || str_contains($name, '4g') || str_contains($name, 'jaringan')) {
+                                $map['jaringan'] += $qty;
+                                $mapRp['jaringan'] += $price;
+                                $cat = null;
+                            }
                         }
 
                         if ($cat) {
@@ -683,6 +670,15 @@ class AuditController extends Controller
                             $cat = 'tv';
                         } elseif (in_array($distId, $catDistMap['perdana'])) {
                             $cat = 'perdana';
+                        }
+
+                        // SMART OVERRIDE: If it fell into 'accessories' or is uncategorized, but is known Apply/Arcis brands
+                        if ($cat === 'accessories' || !$cat) {
+                            if (str_contains($brand, 'apply') || str_contains($name, 'apply') || str_contains($brand, 'urbanprime') || str_contains($name, 'urbanprime') || str_contains($name, 'pd20w') || str_contains($name, 'gx-xc30w')) {
+                                $cat = 'apply';
+                            } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis') || str_contains($brand, 'body serum') || str_contains($brand, 'parfum')) {
+                                $cat = 'arcis';
+                            }
                         }
 
                         if ($cat) {
