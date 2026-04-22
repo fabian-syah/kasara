@@ -544,12 +544,21 @@ class AuditController extends Controller
                         $cat = 'hp'; // Default safety
                         
                         // Check by Distributor ID mapping first (HIGHEST PRIORITY)
-                        if (in_array($distId, $catDistMap['accessories'])) $cat = 'accessories';
-                        elseif (in_array($distId, $catDistMap['apply'])) $cat = 'apply';
-                        elseif (in_array($distId, $catDistMap['debs'])) $cat = 'debs';
-                        elseif (in_array($distId, $catDistMap['arcis'])) $cat = 'arcis';
-                        elseif (in_array($distId, $catDistMap['dokter_pstore'])) $cat = 'dokter_pstore';
-                        elseif (in_array($distId, $catDistMap['perdana'])) {
+                        $isAppleLuxNhp = in_array($distId, $appleLuxIds);
+                        
+                        if ($isAppleLuxNhp) {
+                            $cat = 'apple_lux';
+                        } elseif (in_array($distId, $catDistMap['accessories'])) {
+                            $cat = 'accessories';
+                        } elseif (in_array($distId, $catDistMap['apply'])) {
+                            $cat = 'apply';
+                        } elseif (in_array($distId, $catDistMap['debs'])) {
+                            $cat = 'debs';
+                        } elseif (in_array($distId, $catDistMap['arcis'])) {
+                            $cat = 'arcis';
+                        } elseif (in_array($distId, $catDistMap['dokter_pstore'])) {
+                            $cat = 'dokter_pstore';
+                        } elseif (in_array($distId, $catDistMap['perdana'])) {
                             $map['perdana'] += $qty;
                             $mapRp['perdana'] += $price;
                             $cat = null;

@@ -597,9 +597,15 @@ class StockOutController extends Controller
                         // Cari distributor dari stok fisik yang ada di lokasi user
                         $inv = \App\Models\Inventory::where('product_id', $item['product_id'])
                             ->where(function($q) use ($user) {
-                                $q->where('branch_id', $user->branch_id)
-                                  ->orWhere('warehouse_id', $user->warehouse_id)
-                                  ->orWhere('online_shop_id', $user->online_shop_id);
+                                if ($user->branch_id) {
+                                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->where('placement_id', $user->branch_id));
+                                }
+                                if ($user->warehouse_id) {
+                                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id));
+                                }
+                                if ($user->online_shop_id) {
+                                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id));
+                                }
                             })->first();
                         
                         $distId = $inv?->distributor_id ?? $prod->distributor_id ?? null;
