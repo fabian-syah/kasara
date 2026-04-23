@@ -815,6 +815,12 @@ class AuditController extends Controller
                                 $cat = 'hp';
                             elseif (str_contains($lname, 'perdana') || str_contains($lname, 'sim card'))
                                 $cat = 'perdana';
+                            elseif (str_contains($lname, 'laptop') || str_contains($lname, 'thinkpad') || str_contains($lname, 'msi') || str_contains($lname, 'lenovo') || str_contains($lname, 'macbook'))
+                                $cat = 'laptop';
+                            elseif (str_contains($lname, 'tv') || str_contains($lname, 'coocaa') || str_contains($lname, 'televisi') || str_contains($lname, 'monitor'))
+                                $cat = 'tv';
+                            elseif (str_contains($lname, 'tempered glass') || str_contains($lname, 'case') || str_contains($lname, 'adapter') || str_contains($lname, 'cable') || str_contains($lname, 'speaker'))
+                                $cat = 'accessories';
                             else
                                 $cat = 'others';
                         }

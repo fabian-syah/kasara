@@ -400,33 +400,34 @@
 
                         <!-- STOCK SECTIONS (IMAGE STYLE) -->
                         <div class="mt-12 space-y-16 pb-20">
-                            <!-- APPLE LUXURY (SINGLE SECTION) -->
-                            <div :class="{ 'opacity-50': !appleLuxItems.length }">
-                                <!-- Group Header -->
+                            <!-- DYNAMIC STOCK SECTIONS (HP, APPLY, ARCIS, etc.) -->
+                            <div v-for="cat in categoryStocks" :key="cat.label"
+                                v-show="Object.keys(cat.remainingItems).length">
+                                <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                     <h4
                                         class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
-                                        STOK APPLE LUX
+                                        {{ cat.label }}
                                     </h4>
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                                    <div v-for="(item, x) in appleLuxItems" :key="x"
+                                    <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
                                         class="flex flex-col border-b border-emerald-200/30 pb-3 group">
                                         <div class="flex justify-between items-center mb-1">
                                             <div class="flex flex-col">
                                                 <span
                                                     class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                    {{ item.name }}
+                                                    {{ name }}
                                                 </span>
                                             </div>
                                             <div class="flex flex-col items-end">
                                                 <span
-                                                    class="text-xs font-black text-emerald-800 dark:text-emerald-400">{{
-                                                        item.qty }}
-                                                    UNIT</span>
+                                                    class="text-xs font-black text-emerald-800 dark:text-emerald-400">
+                                                    {{ qty }} UNIT
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -1443,6 +1444,13 @@ const categoryStocks = computed(() => {
             remainingItems: stockDetails.hp || {},
         },
         {
+            label: 'STOK APPLE LUX',
+            in: distInMap.apple_lux || 0,
+            inItems: inDetails.apple_lux || {},
+            remaining: stockReport.apple_lux || 0,
+            remainingItems: stockDetails.apple_lux || {},
+        },
+        {
             label: 'STOK ACCESSORIES',
             in: distInMap.accessories || 0,
             inItems: inDetails.accessories || {},
@@ -1497,6 +1505,13 @@ const categoryStocks = computed(() => {
             inItems: inDetails.jaringan || {},
             remaining: stockReport.jaringan || 0,
             remainingItems: stockDetails.jaringan || {},
+        },
+        {
+            label: 'STOK LAIN-LAIN',
+            in: distInMap.others || 0,
+            inItems: inDetails.others || {},
+            remaining: stockReport.others || 0,
+            remainingItems: stockDetails.others || {},
         }
     ];
 });
