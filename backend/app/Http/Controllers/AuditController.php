@@ -18,6 +18,7 @@ use App\Models\Inventory;
 use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Octane\Facades\Octane;
 use Illuminate\Support\Collection;
 
