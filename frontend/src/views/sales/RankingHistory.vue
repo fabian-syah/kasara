@@ -1462,14 +1462,6 @@ const categoryStocks = computed(() => {
 
     return [
         {
-            label: 'STOK HP',
-            items: soldDetails.hp || {},
-            in: distInMap.hp || 0,
-            inItems: inDetails.hp || {},
-            remaining: stockReport.hp || 0,
-            remainingItems: stockDetails.hp || {},
-        },
-        {
             label: 'STOK APPLE LUX',
             items: soldDetails.apple_lux || {},
             in: distInMap.apple_lux || 0,
@@ -1478,7 +1470,7 @@ const categoryStocks = computed(() => {
             remainingItems: stockDetails.apple_lux || {},
         },
         {
-            label: 'STOK ACCESSORIES',
+            label: 'STOK ACC',
             items: soldDetails.accessories || {},
             in: distInMap.accessories || 0,
             inItems: inDetails.accessories || {},
@@ -1510,7 +1502,15 @@ const categoryStocks = computed(() => {
             remainingItems: stockDetails.debs || {},
         },
         {
-            label: 'STOK LAPTOP',
+            label: 'STOK DOKTER PSTORE',
+            items: soldDetails.dokter_pstore || {},
+            in: distInMap.dokter_pstore || 0,
+            inItems: inDetails.dokter_pstore || {},
+            remaining: stockReport.dokter_pstore || 0,
+            remainingItems: stockDetails.dokter_pstore || {},
+        },
+        {
+            label: 'STOK LAPTOPS',
             items: soldDetails.laptop || {},
             in: distInMap.laptop || 0,
             inItems: inDetails.laptop || {},
@@ -1518,7 +1518,7 @@ const categoryStocks = computed(() => {
             remainingItems: stockDetails.laptop || {},
         },
         {
-            label: 'STOK TV',
+            label: 'STOK TVSTORE',
             items: soldDetails.tv || {},
             in: distInMap.tv || 0,
             inItems: inDetails.tv || {},
@@ -1534,7 +1534,7 @@ const categoryStocks = computed(() => {
             remainingItems: stockDetails.perdana || {},
         },
         {
-            label: 'STOK JARINGAN',
+            label: 'STOK 4G / LTE',
             items: soldDetails.jaringan || {},
             in: distInMap.jaringan || 0,
             inItems: inDetails.jaringan || {},
@@ -1627,17 +1627,17 @@ const getBaseReportText = (isForCopy = false) => {
     text += `__________________\n__________________\n\nRincian Unit & Stok\n\n`;
 
     const stockCats = [
-        { key: 'hp', label: 'stok HP' },
-        { key: 'apple_lux', label: 'stok Apple Luxury' },
-        { key: 'accessories', label: 'stok accessories' },
-        { key: 'apply', label: 'stok apply' },
-        { key: 'debs', label: 'stok debs' },
-        { key: 'arcis', label: 'stok arcis' },
-        { key: 'laptop', label: 'stok laptop' },
-        { key: 'tv', label: 'stok tv' },
-        { key: 'perdana', label: 'stok Sim Card' },
-        { key: 'others', label: 'stok lain-lain' },
-        { key: 'jaringan', label: 'stok 4G / LTE' }
+        { key: 'apple_lux', label: 'STOK Apple Luxury' },
+        { key: 'accessories', label: 'STOK ACC' },
+        { key: 'apply', label: 'STOK APPLY' },
+        { key: 'debs', label: 'STOK DEBS' },
+        { key: 'arcis', label: 'STOK ARCIS' },
+        { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
+        { key: 'laptop', label: 'STOK LAPTOPS' },
+        { key: 'tv', label: 'STOK TVSTORE' },
+        { key: 'perdana', label: 'STOK Sim Card' },
+        { key: 'others', label: 'STOK LAIN-LAIN' },
+        { key: 'jaringan', label: 'STOK 4G / LTE' }
     ];
 
     stockCats.forEach(cat => {
