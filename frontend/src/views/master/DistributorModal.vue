@@ -29,8 +29,16 @@ const brands = ref([]);
 const fetchBrands = async () => {
     try {
         const response = await brandsApi.list();
-        // The API returns { success: true, data: [...] }
-        brands.value = Array.isArray(response.data.data) ? response.data.data : (Array.isArray(response.data) ? response.data : []);
+        const data = Array.isArray(response.data.data) ? response.data.data : (Array.isArray(response.data) ? response.data : []);
+        brands.value = data;
+        
+        // Auto-fill form if brands are loaded after the form is initialized
+        const isNewItem = !props.item;
+        const isExistingWithoutRestrictions = props.item && (!props.item.allowed_brands || props.item.allowed_brands.length === 0);
+        
+        if ((isNewItem || isExistingWithoutRestrictions) && form.value.allowed_brands.length === 0) {
+            form.value.allowed_brands = data.map(b => b.id);
+        }
     } catch (error) {
         console.error("Failed to fetch brands:", error);
         brands.value = [];
@@ -42,12 +50,16 @@ watch(() => props.show, (newVal) => {
 });
 
 watch(() => props.item, (newVal) => {
-    const defaultBrandIds = Array.isArray(brands.value) ? brands.value.map(b => b.id) : [];
+    // If we already have brands loaded, use them for defaults
+    const defaultBrandIds = brands.value.length > 0 ? brands.value.map(b => b.id) : [];
+    
     if (newVal) {
         form.value = { 
             ...newVal, 
             is_active: !!newVal.is_active,
-            allowed_brands: (newVal.allowed_brands && Array.isArray(newVal.allowed_brands)) ? newVal.allowed_brands : defaultBrandIds
+            allowed_brands: (newVal.allowed_brands && Array.isArray(newVal.allowed_brands) && newVal.allowed_brands.length > 0) 
+                ? newVal.allowed_brands.map(id => Number(id)) 
+                : defaultBrandIds
         };
     } else {
         form.value = {
@@ -63,12 +75,20 @@ watch(() => props.item, (newVal) => {
     }
 }, { immediate: true });
 
-// Auto-fill brands for NEW distributors once brands data arrives
+// Fallback watcher in case brands list changes or arrives later
 watch(brands, (newBrands) => {
-    if (!props.item && form.value.allowed_brands.length === 0 && newBrands.length > 0) {
-        form.value.allowed_brands = newBrands.map(b => b.id);
+    if (newBrands.length > 0) {
+        const hasNoAllowedBrands = !form.value.allowed_brands || form.value.allowed_brands.length === 0;
+        if (hasNoAllowedBrands) {
+            const isNewItem = !props.item;
+            const isExistingWithoutRestrictions = props.item && (!props.item.allowed_brands || props.item.allowed_brands.length === 0);
+            
+            if (isNewItem || isExistingWithoutRestrictions) {
+                form.value.allowed_brands = newBrands.map(b => b.id);
+            }
+        }
     }
-});
+}, { deep: true });
 
 const isAllBrandsSelected = computed(() => {
     return brands.value.length > 0 && form.value.allowed_brands.length === brands.value.length;
