@@ -43,8 +43,8 @@ class AuditController extends Controller
             ]);
         }
 
-        $startDate = $request->start_date ?? now()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? now()->endOfMonth()->toDateString();
+        $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
+        $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
 
         // No more clipping logic here to prevent data loss on monthly reports.
         // Frontend will handle valid date ranges.
@@ -421,7 +421,7 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        $query->join('users', 'stock_outs.user_id', '=', 'users.id')
+                        $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang'])
                             ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                             ->where(function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
@@ -566,20 +566,20 @@ class AuditController extends Controller
                     $applyStockFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
                         if ($requestedBranchId) {
                             $q->where('placement_id', $requestedBranchId)
-                              ->where('placement_type', 'branch');
+                              ->whereRaw('LOWER(placement_type) = ?', ['branch']);
                         } elseif ($requestedOnlineShopId) {
                             $q->where('placement_id', $requestedOnlineShopId)
-                              ->where('placement_type', 'online_shop');
+                              ->whereRaw('LOWER(placement_type) = ?', ['online_shop']);
                         } else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                 if (!empty($branchIds)) {
                                     $sub->orWhere(function($ss) use ($branchIds) {
-                                        $ss->whereIn('placement_id', $branchIds)->where('placement_type', 'branch');
+                                        $ss->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) = ?', ['branch']);
                                     });
                                 }
                                 if (!empty($onlineShopIds)) {
                                     $sub->orWhere(function($ss) use ($onlineShopIds) {
-                                        $ss->whereIn('placement_id', $onlineShopIds)->where('placement_type', 'online_shop');
+                                        $ss->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) = ?', ['online_shop']);
                                     });
                                 }
                                 if (empty($branchIds) && empty($onlineShopIds)) $sub->whereRaw('1=1');
