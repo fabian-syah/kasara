@@ -636,8 +636,10 @@ class AuditController extends Controller
                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
                     $soldDetails = [];
 
-                    $getCategoryByItem = function ($did) {
+                    $getCategoryByItem = function ($did, $brand = null, $category = null) {
                         $did = (int) $did;
+                        
+                        // 1. Strict ID Mapping (Priority)
                         if ($did === 6) return 'apple_lux';
                         if (in_array($did, [7, 8, 9])) return 'hp';
                         if ($did === 10) return 'accessories';
@@ -649,15 +651,32 @@ class AuditController extends Controller
                         if ($did === 17) return 'tv';
                         if ($did === 18) return 'perdana';
                         if ($did === 19) return 'jaringan';
+
+                        // 2. Fallback only if ID is missing (0 or null)
+                        if ($did <= 0) {
+                            $b = strtolower($brand ?? '');
+                            $c = strtolower($category ?? '');
+                            
+                            // Laptop Fallbacks
+                            if (str_contains($b, 'lenovo') || str_contains($b, 'msi') || str_contains($b, 'acer') || str_contains($b, 'thinkpad') || str_contains($b, 'asus') || $c === 'laptop') return 'laptop';
+                            // TV Fallbacks
+                            if (str_contains($b, 'coocaa') || str_contains($b, 'samsung tv') || str_contains($c, 'tv')) return 'tv';
+                            // Other Fallbacks
+                            if ($b === 'arcis') return 'arcis';
+                            if ($b === 'debs') return 'debs';
+                            if ($b === 'apply') return 'apply';
+                            if ($c === 'accessories' || $c === 'acc' || $c === 'aksesoris' || $b === 'olike' || $b === 'robot' || $b === 'vivan') return 'accessories';
+                            if ($c === 'perdana' || $c === 'sim card' || $b === 'sim card') return 'perdana';
+                        }
+
                         return 'others';
                     };
 
                     // 1. HP transactions from stock_out_items
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id');
                     $applyLocalScope($hpItemsQuery);
-                    foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
-                        $did = (int) $hp->distributor_id;
-                        $cat = $getCategoryByItem($did);
+                    foreach ($hpItemsQuery->select('products.name', 'products.brand', 'products.category', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
+                        $cat = $getCategoryByItem($hp->distributor_id, $hp->brand, $hp->category);
 
                         $map[$cat]++;
                         
@@ -678,10 +697,9 @@ class AuditController extends Controller
                     // Non-IMEI transactions
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id');
                     $applyLocalScope($nhpItemsQuery);
-                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
+                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'products.category', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
                         $qty = (int) $item->quantity;
-                        $did = (int) $item->distributor_id;
-                        $cat = $getCategoryByItem($did);
+                        $cat = $getCategoryByItem($item->distributor_id, $item->brand, $item->category);
 
                         if ($cat === 'perdana') $map['perdana'] += $qty;
                         if ($cat === 'jaringan') $map['jaringan'] += $qty;
@@ -737,8 +755,8 @@ class AuditController extends Controller
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     
                     $applyStockScope($alStock);
-                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
-                        $cat = $getCategoryByItem($s->distributor_id);
+                    foreach ($alStock->select('products.name', 'products.brand', 'products.category', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand', 'products.category', 'product_details.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category);
                         $cleanName = trim($s->name);
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                         $stockReport[$cat] += $s->qty;
@@ -747,8 +765,8 @@ class AuditController extends Controller
                     // Non-IMEI Stock
                     $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->where('inventories.quantity', '>', 0)->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
-                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
-                        $cat = $getCategoryByItem($s->distributor_id);
+                    foreach ($oStock->select('products.name', 'products.brand', 'products.category', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category);
                         $cleanName = trim($s->name);
                         $qty = (int) $s->quantity;
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
@@ -787,9 +805,9 @@ class AuditController extends Controller
 
                     $nhpInQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
                     $applyInScope($nhpInQuery);
-                    foreach ($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
+                    foreach ($nhpInQuery->select('products.name', 'products.brand', 'products.category', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
                         $qty = (int) $s->quantity;
-                        $cat = $getCategoryByItem($s->distributor_id);
+                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category);
                         $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
                         $distInMap[$cat] += $qty;
                     }
