@@ -383,7 +383,7 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $paymentMethods) {
+            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
                         $query->join('users', 'stock_outs.user_id', '=', 'users.id')
@@ -467,22 +467,27 @@ class AuditController extends Controller
                         $qty = (int) $item->quantity;
                         $cat = null;
 
-                        if (in_array($distId, $catDistMap['apply']))
+                        $dist = $distId ? $distributors->get($distId) : null;
+                        $dname = $dist ? strtolower($dist->name) : '';
+
+                        if (in_array($distId, $catDistMap['apply']) || str_contains($dname, 'apply'))
                             $cat = 'apply';
-                        elseif (in_array($distId, $catDistMap['arcis']))
+                        elseif (in_array($distId, $catDistMap['arcis']) || str_contains($dname, 'arcis'))
                             $cat = 'arcis';
-                        elseif (in_array($distId, $catDistMap['laptop']))
+                        elseif (in_array($distId, $catDistMap['laptop']) || str_contains($dname, 'laptop'))
                             $cat = 'laptop';
-                        elseif (in_array($distId, $catDistMap['tv']))
+                        elseif (in_array($distId, $catDistMap['tv']) || str_contains($dname, 'tv'))
                             $cat = 'tv';
-                        elseif (in_array($distId, $catDistMap['perdana']))
+                        elseif (in_array($distId, $catDistMap['perdana']) || str_contains($dname, 'sim card'))
                             $cat = 'perdana';
-                        elseif (in_array($distId, $catDistMap['accessories']))
+                        elseif (in_array($distId, $catDistMap['accessories']) || str_contains($dname, 'accessories'))
                             $cat = 'accessories';
-                        elseif (in_array($distId, $catDistMap['debs']))
+                        elseif (in_array($distId, $catDistMap['debs']) || str_contains($dname, 'debs'))
                             $cat = 'debs';
-                        elseif (in_array($distId, $catDistMap['dokter_pstore']))
+                        elseif (in_array($distId, $catDistMap['dokter_pstore']) || str_contains($dname, 'dokter'))
                             $cat = 'dokter_pstore';
+                        elseif (str_contains($dname, 'apple') || str_contains($dname, 'merakyat'))
+                            $cat = 'hp'; // Or 'apple_lux'
 
                         if (!$cat) {
                             if (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable'))
@@ -495,8 +500,10 @@ class AuditController extends Controller
                                 $cat = 'jaringan';
                             elseif (str_contains($name, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa'))
                                 $cat = 'perdana';
-                            elseif (str_contains($brand, 'arcis'))
+                            elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis'))
                                 $cat = 'arcis';
+                            elseif (str_contains($name, 'hp') || str_contains($name, 'iphone') || str_contains($name, 'apple'))
+                                $cat = 'hp';
                         }
 
                         if ($cat) {
