@@ -496,10 +496,14 @@ class AuditController extends Controller
                     $applyLocalScope($hpItemsQuery);
                     foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
                         $did = (int)$hp->distributor_id;
-                        $cat = ($did === 6) ? 'apple_lux' : 'hp';
+                        $lname = strtolower($hp->name);
+                        $cat = 'hp';
+                        if ($did === 6 || str_contains($lname, 'luxury')) {
+                            $cat = 'apple_lux';
+                        }
                         
                         $map[$cat]++;
-                        if ($did === 8 || str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->name), 'iphone')) {
+                        if ($did === 8 || str_contains(strtolower($hp->brand), 'apple') || str_contains($lname, 'iphone') || $cat === 'apple_lux') {
                             $map['iphone']++;
                         } elseif ($did === 7 || $did === 9 || str_contains(strtolower($hp->brand), 'android')) {
                             $map['android']++;
