@@ -1638,14 +1638,28 @@ const getBaseReportText = (isForCopy = false) => {
 
     stockCats.forEach(cat => {
         text += `🔷 ${cat.label}\n`;
-        const items = stockDetails[cat.key] || {};
-        const entries = Object.entries(items);
+        const soldItems = summary.sold_details?.[cat.key] || {};
+        const remainingItems = summary.stock_details?.[cat.key] || {};
+        
+        // Merge keys from both sold and remaining to show a full list
+        const allItemNames = [...new Set([...Object.keys(soldItems), ...Object.keys(remainingItems)])];
 
-        if (entries.length === 0) {
+        if (allItemNames.length === 0) {
             text += `- (kosong)\n\n`;
         } else {
-            entries.forEach(([name, qty]) => {
-                text += `- ${name} : ${qty} unit\n`;
+            allItemNames.forEach(name => {
+                const sold = soldItems[name] || 0;
+                const remain = remainingItems[name] || 0;
+                
+                // Jika ada penjualan di periode ini, tampilkan penjualannya
+                if (sold > 0) {
+                    text += `- ${name} : ${sold} unit\n`;
+                }
+                
+                // Tampilkan sisa stok jika barangnya memang ada (opsional, tapi bagus untuk kontrol)
+                if (remain > 0 && !name.toLowerCase().includes('penjualan')) {
+                    text += `- SISA ${name} : ${remain} unit\n`;
+                }
             });
             text += `\n`;
         }
