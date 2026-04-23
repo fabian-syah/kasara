@@ -471,8 +471,7 @@ class AuditController extends Controller
                     $paymentTotal = 0;
                     foreach ($payments as $p) {
                         $amt = (float) $p->selling_price;
-                        if ($p->category === 'refund')
-                            $amt = -$amt;
+                        if ($p->category === 'refund') $amt = -$amt;
                         $paymentTotal += $amt;
                         $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
 
@@ -487,242 +486,113 @@ class AuditController extends Controller
                         }
                     }
 
-                    // 2. HP & NHP Categorization
+                    // 2. HP & NHP Categorization (Transactions)
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0];
                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0];
                     $soldDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
 
-                    // HP items
+                    // IMEI transactions
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id');
                     $applyLocalScope($hpItemsQuery);
-                    $hpData = $hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_outs.id as stock_out_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_out_items.distributed_discount')->get();
-
-                    foreach ($hpData as $hp) {
-                        $distId = (int) $hp->distributor_id;
-                        $dist = $distId ? $distributors->get($distId) : null;
-                        $dName = $dist ? strtolower($dist->name) : '';
+                    foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
+                        $did = (int)$hp->distributor_id;
+                        $cat = ($did === 6) ? 'apple_lux' : (($did === 8 || $did === 7 || $did === 9) ? 'hp' : 'hp');
                         
-                        // ID-based logic
-                        $cat = 'hp';
-                        if ($distId === 6 || str_contains($dName, 'luxury')) {
-                            $cat = 'apple_lux';
-                        } elseif ($distId === 8 || $distId === 7 || $distId === 9 || str_contains($dName, 'merakyat') || str_contains($dName, 'ps store') || str_contains($dName, 'android')) {
-                            $cat = 'hp';
-                        }
-
                         $map[$cat]++;
-                        
-                        // Force iPhone/Android count based on Distributor IDs
-                        if ($distId === 8 || str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->brand), 'iphone') || str_contains(strtolower($hp->name), 'iphone')) {
+                        if ($did === 8 || str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->name), 'iphone')) {
                             $map['iphone']++;
-                        } elseif ($distId === 7 || $distId === 9 || str_contains(strtolower($hp->brand), 'android') || str_contains(strtolower($hp->name), 'android')) {
+                        } elseif ($did === 7 || $did === 9 || str_contains(strtolower($hp->brand), 'android')) {
                             $map['android']++;
                         } else {
-                            $map['android']++; // Default for HP categories if unclear
+                            $map['iphone']++; // Default Pstore
                         }
 
-                        $price = (float) $hp->item_price - (float) $hp->item_discount - (float) ($hp->distributed_discount ?? 0);
+                        $price = (float)$hp->item_price - (float)$hp->item_discount;
                         $mapRp[$cat] += $price;
                         $soldDetails[$cat][$hp->name] = ($soldDetails[$cat][$hp->name] ?? 0) + 1;
                     }
 
-                    // NHP items
+                    // Non-IMEI transactions
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id');
                     $applyLocalScope($nhpItemsQuery);
-                    $nhpData = $nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.item_discount', 'stock_out_non_hp_items.distributor_id')->get();
+                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
+                        $qty = (int)$item->quantity;
+                        $did = (int)$item->distributor_id;
+                        $name = strtolower($item->name);
 
-                    foreach ($nhpData as $item) {
-                        $name = strtolower($item->name ?? '');
-                        $brand = strtolower($item->brand ?? '');
-                        $distId = (int) $item->distributor_id;
-                        $dist = $distId ? $distributors->get($distId) : null;
-                        $dname = $dist ? strtolower($dist->name) : '';
-                        $qty = (int) $item->quantity;
                         $cat = null;
-
-                        // 1. Priority ID-based Categorization
-                        if ($distId === 19) $cat = 'jaringan';
-                        elseif ($distId === 18) $cat = 'perdana';
-                        elseif ($distId === 11) $cat = 'apply';
-                        elseif ($distId === 14) $cat = 'arcis';
-                        elseif ($distId === 13) $cat = 'debs';
-                        elseif ($distId === 15) $cat = 'dokter_pstore';
-                        elseif ($distId === 16) $cat = 'laptop';
-                        elseif ($distId === 17) $cat = 'tv';
-                        elseif ($distId === 10) $cat = 'accessories';
-                        elseif ($distId === 6) $cat = 'apple_lux';
-                        elseif ($distId === 8 || $distId === 7 || $distId === 9) {
+                        if ($did === 19) $cat = 'jaringan';
+                        elseif ($did === 18) $cat = 'perdana';
+                        elseif ($did === 11) $cat = 'apply';
+                        elseif ($did === 14) $cat = 'arcis';
+                        elseif ($did === 13) $cat = 'debs';
+                        elseif ($did === 10) $cat = 'accessories';
+                        elseif ($did === 6) $cat = 'apple_lux';
+                        elseif ($did === 8 || $did === 7 || $did === 9) {
                             $cat = 'hp';
-                            // Count as unit HP even if non-IMEI
-                            if ($distId === 8) $map['iphone'] += $qty;
+                            if ($did === 8) $map['iphone'] += $qty;
                             else $map['android'] += $qty;
                         }
 
-                        // 2. Robust Name-based Fallback
                         if (!$cat) {
-                            if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($dname, 'network')) {
-                                $cat = 'jaringan';
-                            } elseif (str_contains($name, 'perdana') || str_contains($name, 'sim card') || str_contains($dname, 'sim card') || str_contains($name, 'jasa') || str_contains($name, 'service') || str_contains($name, 'icloud')) {
-                                $cat = 'perdana';
-                            } elseif (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($dname, 'apply')) {
-                                $cat = 'apply';
-                            } elseif (str_contains($name, 'arcis') || str_contains($dname, 'arcis')) {
-                                $cat = 'arcis';
-                            } elseif (str_contains($name, 'debs') || str_contains($dname, 'debs')) {
-                                $cat = 'debs';
-                            } elseif (str_contains($name, 'dokter') || str_contains($dname, 'dokter')) {
-                                $cat = 'dokter_pstore';
-                            } elseif (str_contains($name, 'laptop') || str_contains($dname, 'laptop')) {
-                                $cat = 'laptop';
-                            } elseif (str_contains($name, 'tv') || str_contains($dname, 'tv')) {
-                                $cat = 'tv';
-                            } elseif (str_contains($name, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store')) {
+                            if (str_contains($name, 'arcis')) $cat = 'arcis';
+                            elseif (str_contains($name, 'debs')) $cat = 'debs';
+                            elseif (str_contains($name, 'iphone') || str_contains($name, 'hp')) {
                                 $cat = 'hp';
-                                // Default generically named "HP" to iPhone at PSTORE to avoid undercounting
-                                if (str_contains($name, 'android') || str_contains($brand, 'android')) {
-                                    $map['android'] += $qty;
-                                } else {
-                                    $map['iphone'] += $qty;
-                                }
-                            } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
-                                $cat = 'apple_lux';
-                            } else {
-                                $cat = 'accessories';
-                            }
+                                $map['iphone'] += $qty;
+                            } else $cat = 'accessories';
                         }
 
                         $map[$cat] += $qty;
-                        $price = (float) $item->item_price - (float) ($item->item_discount ?? 0);
-                        $mapRp[$cat] += $price * $qty;
+                        $mapRp[$cat] += (float)$item->item_price * $qty;
                         $soldDetails[$cat][$item->name] = ($soldDetails[$cat][$item->name] ?? 0) + $qty;
                     }
 
-                    // 3. Stock Aggregation
-                    $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'perdana' => 0, 'jaringan' => 0];
-                    $rawStockDetails = ['apple_lux' => [], 'hp' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
+                    // 3. Current Stock (ALL TIME)
+                    $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0];
+                    $rawStockDetails = [];
 
-                    $applyStockFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
-                        if ($requestedBranchId) {
-                            $q->where('placement_id', $requestedBranchId)
-                              ->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
-                        } elseif ($requestedOnlineShopId) {
-                            $q->where('placement_id', $requestedOnlineShopId)
-                              ->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
-                        } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                                if (!empty($branchIds)) {
-                                    $sub->orWhere(function($ss) use ($branchIds) {
-                                        $ss->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
-                                    });
-                                }
-                                if (!empty($onlineShopIds)) {
-                                    $sub->orWhere(function($ss) use ($onlineShopIds) {
-                                        $ss->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
-                                    });
-                                }
-                                if (empty($branchIds) && empty($onlineShopIds)) $sub->whereRaw('1=1');
-                            });
-                        }
+                    $applyStockScope = function($q) use ($branchIds, $onlineShopIds) {
+                        $q->where(function($sub) use ($branchIds, $onlineShopIds) {
+                            if (!empty($branchIds)) $sub->orWhereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
+                            if (!empty($onlineShopIds)) $sub->orWhereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
+                            if (empty($branchIds) && empty($onlineShopIds)) $sub->whereRaw('1=1');
+                        });
                     };
 
-                    // Apple Lux Stock (Aggregated)
-                    $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')
-                        ->where('product_details.status', 'available')
-                        ->whereIn('product_details.distributor_id', [6]);
-                    $applyStockFilters($alStock);
-                    foreach ($alStock->select('products.name', DB::raw('count(*) as qty'))->groupBy('products.name')->get() as $s) {
-                        $name = (string) ($s->name ?: 'Apple Lux No Name');
-                        $qty = (int) $s->qty;
-                        $stockReport['apple_lux'] += $qty;
-                        $rawStockDetails['apple_lux'][$name] = ($rawStockDetails['apple_lux'][$name] ?? 0) + $qty;
+                    // IMEI Stock
+                    $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')->where('product_details.status', 'available');
+                    $applyStockScope($alStock);
+                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
+                        $did = (int)$s->distributor_id;
+                        $cat = ($did === 6) ? 'apple_lux' : (($did === 8 || $did === 7 || $did === 9) ? 'hp' : 'apple_lux');
+                        $rawStockDetails[$cat][$s->name] = ($rawStockDetails[$cat][$s->name] ?? 0) + $s->qty;
+                        $stockReport[$cat] += $s->qty;
                     }
 
-                    // Inventory Stock (Aggregated)
-                    $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id');
-                    $applyStockFilters($oStock);
-                    
-                    $inventoryData = $oStock->select(
-                        'products.name', 
-                        'products.brand', 
-                        'inventories.quantity', 
-                        'inventories.product_id',
-                        'distributors.name as dname', 
-                        'inventories.distributor_id as did'
-                    )->get();
-
-                    foreach ($inventoryData as $s) {
-                        $qty = (int) $s->quantity;
-                        $name = (string) ($s->name ?: 'Item Tanpa Nama');
-                        $dname = strtolower((string) ($s->dname ?? ''));
-                        $distId = (int) $s->did;
-                        
-                        // Heuristic: If no distributor, look it up from latest IN log
-                        if (!$distId) {
-                            $latestInLog = DB::table('inventory_logs')
-                                ->join('distributors', 'inventory_logs.distributor_id', '=', 'distributors.id')
-                                ->where('inventory_logs.product_id', $s->product_id)
-                                ->where('inventory_logs.type', 'in')
-                                ->select('distributors.id', 'distributors.name')
-                                ->latest('inventory_logs.created_at')
-                                ->first();
-                                
-                            if ($latestInLog) {
-                                $distId = (int) $latestInLog->id;
-                                $dname = strtolower($latestInLog->name);
-                            }
-                        }
-
+                    // Non-IMEI Stock
+                    $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->where('inventories.quantity', '>', 0);
+                    $applyStockScope($oStock);
+                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
+                        $qty = (int)$s->quantity;
+                        $did = (int)$s->distributor_id;
                         $cat = null;
-
-                        // 1. Priority ID-based Categorization
-                        if ($distId === 19) $cat = 'jaringan';
-                        elseif ($distId === 18) $cat = 'perdana';
-                        elseif ($distId === 11) $cat = 'apply';
-                        elseif ($distId === 14) $cat = 'arcis';
-                        elseif ($distId === 13) $cat = 'debs';
-                        elseif ($distId === 15) $cat = 'dokter_pstore';
-                        elseif ($distId === 16) $cat = 'laptop';
-                        elseif ($distId === 17) $cat = 'tv';
-                        elseif ($distId === 10) $cat = 'accessories';
-                        elseif ($distId === 6) $cat = 'apple_lux';
-                        elseif ($distId === 8 || $distId === 7 || $distId === 9) $cat = 'hp';
-
-                        // 2. Unified Categorization Fallback (Name Pattern Match)
+                        if ($did === 14) $cat = 'arcis';
+                        elseif ($did === 13) $cat = 'debs';
+                        elseif ($did === 11) $cat = 'apply';
+                        elseif ($did === 10) $cat = 'accessories';
+                        elseif ($did === 18) $cat = 'perdana';
+                        elseif ($did === 19) $cat = 'jaringan';
+                        
                         if (!$cat) {
-                            $lname = strtolower($name);
-                            if (str_contains($lname, '4g') || str_contains($lname, 'lte') || str_contains($lname, 'jaringan') || str_contains($dname, 'network')) {
-                                $cat = 'jaringan';
-                            } elseif (str_contains($lname, 'perdana') || str_contains($lname, 'sim card') || str_contains($dname, 'sim card') || str_contains($lname, 'jasa') || str_contains($lname, 'service') || str_contains($lname, 'icloud')) {
-                                $cat = 'perdana';
-                            } elseif (str_contains($lname, 'apply') || str_contains($lname, 'adapter') || str_contains($lname, 'cable') || str_contains($dname, 'apply')) {
-                                $cat = 'apply';
-                            } elseif (str_contains($lname, 'arcis') || str_contains($dname, 'arcis')) {
-                                $cat = 'arcis';
-                            } elseif (str_contains($lname, 'debs') || str_contains($dname, 'debs')) {
-                                $cat = 'debs';
-                            } elseif (str_contains($lname, 'dokter') || str_contains($dname, 'dokter')) {
-                                $cat = 'dokter_pstore';
-                            } elseif (str_contains($lname, 'laptop') || str_contains($dname, 'laptop')) {
-                                $cat = 'laptop';
-                            } elseif (str_contains($lname, 'tv') || str_contains($dname, 'tv')) {
-                                $cat = 'tv';
-                            } elseif (str_contains($dname, 'luxury') || str_contains($lname, 'apple lux')) {
-                                $cat = 'apple_lux';
-                            } elseif (str_contains($lname, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store') || str_contains($dname, 'apple')) {
-                                $cat = 'hp';
-                            } else {
-                                $cat = 'accessories';
-                            }
+                            $lname = strtolower($s->name);
+                            if (str_contains($lname, 'arcis')) $cat = 'arcis';
+                            elseif (str_contains($lname, 'debs')) $cat = 'debs';
+                            else $cat = 'accessories';
                         }
-
-                        if ($cat) {
-                            $stockReport[$cat] += $qty;
-                            $rawStockDetails[$cat][$name] = ($rawStockDetails[$cat][$name] ?? 0) + $qty;
-                        }
+                        $rawStockDetails[$cat][$s->name] = ($rawStockDetails[$cat][$s->name] ?? 0) + $qty;
+                        $stockReport[$cat] += $qty;
                     }
-
-                    // Convert raw details to strings for the audit() result but keep keys clean
-    
 
                     return [
                         'payments' => $pSums,
@@ -730,7 +600,7 @@ class AuditController extends Controller
                         'dist_map' => $map,
                         'dist_map_rp' => $mapRp,
                         'stock_report' => $stockReport,
-                        'stock_details' => $rawStockDetails, // Tetap kirim objek { "Nama": qty }
+                        'stock_details' => $rawStockDetails,
                         'sold_details' => $soldDetails,
                         'activities' => [
                             'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
