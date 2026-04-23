@@ -557,7 +557,7 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
-                        // Use exact logic from working sales summary
+                        // Logical day shift (05:00 AM)
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                         
@@ -574,7 +574,10 @@ class AuditController extends Controller
                                       $sub->select(DB::raw(1))
                                           ->from('users')
                                           ->whereRaw('users.id::text = stock_outs.user_id::text')
-                                          ->where('users.branch_id', $requestedBranchId);
+                                          ->where(function($qq) use ($requestedBranchId) {
+                                              $qq->where('users.branch_id', $requestedBranchId)
+                                                 ->orWhere('users.online_shop_id', $requestedBranchId);
+                                          });
                                   });
                             });
                         }
@@ -592,7 +595,7 @@ class AuditController extends Controller
                     // 1. Total Omset & Payments
                     $pQuery = DB::table('stock_outs');
                     $applyLocalScope($pQuery);
-                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE'])
+                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
                         ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
 
                     $pSums = [];
