@@ -558,51 +558,30 @@ class AuditController extends Controller
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos'])
                             ->whereDate('stock_outs.reporting_date', '>=', $startDate)
                             ->whereDate('stock_outs.reporting_date', '<=', $endDate)
                             ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                                 if ($requestedBranchId) {
-                                    $q->where(function ($qq) use ($requestedBranchId) {
-                                        $qq->where('stock_outs.branch_id', $requestedBranchId)
-                                            ->orWhere('users.branch_id', $requestedBranchId);
-                                    });
+                                    $q->where('stock_outs.branch_id', $requestedBranchId)
+                                        ->orWhere('users.branch_id', $requestedBranchId);
                                 } elseif ($requestedOnlineShopId) {
-                                    $q->where(function ($qq) use ($requestedOnlineShopId) {
-                                        $qq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                                            ->orWhere('users.online_shop_id', $requestedOnlineShopId);
-                                    });
+                                    $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                        ->orWhere('users.online_shop_id', $requestedOnlineShopId);
                                 } elseif ($requestedWarehouseId) {
-                                    $q->where(function ($qq) use ($requestedWarehouseId) {
-                                        $qq->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                                            ->orWhere('users.warehouse_id', $requestedWarehouseId);
-                                    });
+                                    $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                                        ->orWhere('users.warehouse_id', $requestedWarehouseId);
                                 } elseif ($requestedDistributorId) {
-                                    $q->where(function ($qq) use ($requestedDistributorId) {
-                                        $qq->where('stock_outs.distributor_id', $requestedDistributorId)
-                                            ->orWhere('users.distributor_id', $requestedDistributorId);
-                                    });
+                                    $q->where('stock_outs.distributor_id', $requestedDistributorId)
+                                        ->orWhere('users.distributor_id', $requestedDistributorId);
                                 } else {
-                                    $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                        if (!empty($branchIds)) {
-                                            $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                                ->orWhereIn('users.branch_id', $branchIds);
-                                        }
-                                        if (!empty($onlineShopIds)) {
-                                            $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                                ->orWhereIn('users.online_shop_id', $onlineShopIds);
-                                        }
-                                        if (!empty($warehouseIds)) {
-                                            $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
-                                                ->orWhereIn('users.warehouse_id', $warehouseIds);
-                                        }
-                                        if (!empty($distributorIds)) {
-                                            $sub->orWhereIn('stock_outs.distributor_id', $distributorIds)
-                                                ->orWhereIn('users.distributor_id', $distributorIds);
-                                        }
-                                        if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
-                                            $sub->whereRaw('1=1');
-                                    });
+                                    if (!empty($branchIds)) {
+                                        $q->orWhereIn('stock_outs.branch_id', $branchIds)
+                                            ->orWhereIn('users.branch_id', $branchIds);
+                                    }
+                                    if (!empty($onlineShopIds)) {
+                                        $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                            ->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                    }
                                 }
                             });
                     };
@@ -610,7 +589,8 @@ class AuditController extends Controller
                     // 1. Total Omset & Payments
                     $pQuery = DB::table('stock_outs');
                     $applyLocalScope($pQuery);
-                    $payments = $pQuery->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category')->get();
+                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS'])
+                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category')->get();
 
                     $pSums = [];
                     $paymentTotal = 0;
@@ -668,20 +648,29 @@ class AuditController extends Controller
                     };
 
                     // 1. HP transactions from stock_out_items
-                    $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id');
+                    $hpItemsQuery = DB::table('stock_out_items')
+                        ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                        ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                        ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS']);
                     $applyLocalScope($hpItemsQuery);
+                    
                     foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
                         $cat = $getCategoryByItem($hp->distributor_id);
                         $addUnitToMap($map, $hp->brand, $cat);
                         
                         $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
                         $mapRp[$cat] += $price;
-                        $soldDetails[$cat][$hp->name] = ($soldDetails[$cat][$hp->name] ?? 0) + 1;
+                        $soldDetails[$cat][$hp->name ?? 'Unknown item'] = ($soldDetails[$cat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
                     }
 
-                    // Non-IMEI transactions
-                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id');
+                    // 2. Non-IMEI transactions
+                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')
+                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+                        ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS']);
                     $applyLocalScope($nhpItemsQuery);
+                    
                     foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
                         $qty = (int) $item->quantity;
                         $cat = $getCategoryByItem($item->distributor_id);
@@ -698,7 +687,7 @@ class AuditController extends Controller
 
                         $map[$cat] += $qty;
                         $mapRp[$cat] += (float) $item->item_price * $qty;
-                        $soldDetails[$cat][$item->name] = ($soldDetails[$cat][$item->name] ?? 0) + $qty;
+                        $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
                     }
 
                     // 3. Current Stock (ALL TIME)
