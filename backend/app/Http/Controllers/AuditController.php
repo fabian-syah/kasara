@@ -752,10 +752,10 @@ class AuditController extends Controller
                     // IMEI Stock
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
-                        ->where('product_details.status', 'available') // Current stock
+                        // We remove the 'available' status filter to show ALL-TIME cumulative entries
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     
-                    // We intentionally don't apply reporting_date filter for current stock
+                    // We intentionally don't apply reporting_date filter for cumulative stock
                     $applyStockScope($alStock);
                     foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                         $did = (int) $s->distributor_id;
@@ -768,7 +768,7 @@ class AuditController extends Controller
                     // Non-IMEI Stock
                     $oStock = DB::table('inventories')
                         ->join('products', 'inventories.product_id', '=', 'products.id')
-                        ->where('inventories.quantity', '>', 0)
+                        // We remove the quantity > 0 filter to show ALL-TIME cumulative entries
                         ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
                     foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
