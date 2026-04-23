@@ -633,6 +633,7 @@ class StockOutController extends Controller
             }
 
             // Handle bundled items (if any)
+            $bundleHpPrices = [];
             if ($request->items) {
                 // If the items are passed as a bundle structure, we need to extract the product_detail_ids
                 $allBundleItemIds = [];
@@ -643,6 +644,10 @@ class StockOutController extends Controller
                         foreach ($item['bundle_items'] as $bItem) {
                             if (isset($bItem['imei']) && $bItem['imei']) {
                                 $allBundleItemIds[] = $bItem['id'];
+                                // TRACK OVERRIDDEN PRICES FOR BUNDLE ITEMS
+                                if (isset($bItem['price'])) {
+                                    $bundleHpPrices[$bItem['id']] = floatval($bItem['price']);
+                                }
                             } else {
                                 $allBundleNonHp[] = [
                                     'product_id' => $bItem['product_id'],
@@ -726,9 +731,12 @@ class StockOutController extends Controller
             foreach ($productDetails as $detail) {
                 /** @var \App\Models\ProductDetail $detail */
                 $hpMeta = $request->hp_items_meta[$detail->id] ?? null;
+                
+                // Priority: hp_items_meta (explicit) > bundleHpPrices (from bundle items) > $detail->selling_price
+                $finalSellingPrice = $hpMeta['selling_price'] ?? ($bundleHpPrices[$detail->id] ?? $detail->selling_price);
 
                 $stockOut->items()->attach($detail->id, [
-                    'selling_price' => $hpMeta['selling_price'] ?? $detail->selling_price,
+                    'selling_price' => $finalSellingPrice,
                     'item_discount' => $hpMeta['item_discount'] ?? 0,
                     'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
                     'distributor_id' => $detail->distributor_id, // Capture HP distributor permanently
