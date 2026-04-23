@@ -307,6 +307,32 @@ class StockOutController extends Controller
         DB::beginTransaction();
 
         try {
+            $user = Auth::user();
+            if (!$user) {
+                throw new \Exception('User tidak terautentikasi.');
+            }
+
+            \Log::info("DEBUG STOCK-OUT: Starting for user " . $user->id, [
+                'category' => $request->category,
+                'has_product_detail_ids' => !empty($request->product_detail_ids),
+                'has_non_hp_items' => !empty($request->non_hp_items)
+            ]);
+
+            // Resolve Location for Reporting Date
+            $userLocation = null;
+            try {
+                $userLocation = $user->branch ?: ($user->onlineShop ?: null);
+            } catch (\Throwable $e) {
+                \Log::error("DEBUG STOCK-OUT: Failed to resolve user location: " . $e->getMessage());
+            }
+
+            $reportingDate = StockOut::calculateReportingDate(
+                $request->category,
+                $userLocation
+            );
+
+            \Log::info("DEBUG STOCK-OUT: Reporting date resolved: " . $reportingDate);
+
             // Verify HP items availability
             $productDetails = collect();
             if ($request->product_detail_ids) {
@@ -513,12 +539,6 @@ class StockOutController extends Controller
 
             $destinationType = $request->destination_type;
             $destinationId = $request->destination_id;
-
-            // Calculate Reporting Date based on business logic
-            $reportingDate = StockOut::calculateReportingDate(
-                $request->category,
-                $user->branch ?: ($user->onlineShop ?: null)
-            );
 
             // Membuat record stock out
             $stockOut = StockOut::create([
@@ -781,15 +801,29 @@ class StockOutController extends Controller
             // Bust Inventory Cache
             \Illuminate\Support\Facades\Cache::increment('inv_version');
 
+            \Log::info("DEBUG STOCK-OUT: Success! Receipt ID: " . $stockOut->receipt_id);
+
             return response()->json([
                 'message' => 'Stock out successful',
                 'id' => $stockOut->id,
                 'receipt_id' => $stockOut->receipt_id,
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
-            return response()->json(['message' => $e->getMessage()], 422);
+            \Log::error("DEBUG STOCK-OUT CRASH: " . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mencatat stock out: ' . $e->getMessage(),
+                'debug_info' => [
+                    'line' => $e->getLine(),
+                    'file' => basename($e->getFile())
+                ]
+            ], 500);
         }
     }
 
