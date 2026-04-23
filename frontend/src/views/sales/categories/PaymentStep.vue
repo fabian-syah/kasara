@@ -254,10 +254,18 @@ async function processPayment(pin = null) {
                 item.bundle_items.forEach(bi => {
                     if (bi.imei) {
                         formData.append('product_detail_ids[]', bi.id);
+                        // FIX: Send metadata for bundle items too!
+                        formData.append(`hp_items_meta[${bi.id}][selling_price]`, Number(bi.price || 0));
+                        formData.append(`hp_items_meta[${bi.id}][item_discount]`, Number(bi.discount || 0));
+                        // For bundle items, distributed_discount of the parent is already reflected in bi.price usually, 
+                        // but we send 0 to avoid double-discounting if the server expects it.
+                        formData.append(`hp_items_meta[${bi.id}][distributed_discount]`, 0);
                     } else {
                         formData.append(`non_hp_items[${nonHpIndex}][product_id]`, bi.product_id || bi.id);
                         formData.append(`non_hp_items[${nonHpIndex}][quantity]`, bi.quantity || 1);
                         formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, Number(bi.price || 0));
+                        formData.append(`non_hp_items[${nonHpIndex}][item_discount]`, Number(bi.discount || 0));
+                        formData.append(`non_hp_items[${nonHpIndex}][distributed_discount]`, 0);
                         nonHpIndex++;
                     }
                 });
