@@ -25,7 +25,7 @@ class StockOutController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product', 'nonHpDetails.product', 'paymentMethod']);
+        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product.brandRelation', 'nonHpDetails.product.brandRelation', 'paymentMethod']);
 
         if ($request->category) {
             $query->byCategory($request->category);
@@ -126,6 +126,7 @@ class StockOutController extends Controller
                         $itemConverted[] = [
                             'product_id' => $detail->product_id,
                             'product_name' => $detail->product->name ?? 'Unknown',
+                            'product_brand' => $detail->product->brand ?? $detail->product->brandRelation->name ?? '-',
                             'product_sku' => $detail->product->sku ?? '-',
                             'quantity' => $detail->quantity,
                             'selling_price' => $detail->selling_price,
@@ -141,6 +142,7 @@ class StockOutController extends Controller
                         if (!isset($nonHpItem['product_name'])) {
                             $prod = $products[$nonHpItem['product_id']] ?? null;
                             $nonHpItem['product_name'] = $prod->name ?? 'Unknown';
+                            $nonHpItem['product_brand'] = $prod->brand ?? $prod->brandRelation->name ?? '-';
                             $nonHpItem['product_sku'] = $prod->sku ?? '-';
                         }
                     }
@@ -847,7 +849,7 @@ class StockOutController extends Controller
     public function shopeeHistory(Request $request)
     {
         $user = Auth::user();
-        $query = StockOut::with(['items.product', 'user', 'inventoryUser', 'nonHpDetails.product'])
+        $query = StockOut::with(['items.product.brandRelation', 'user', 'inventoryUser', 'nonHpDetails.product.brandRelation'])
             ->whereIn('category', ['shopee', 'orderan_online', 'cancel_penjualan']);
 
         // LOCATION FILTER (ISOLATION)
@@ -931,6 +933,7 @@ class StockOutController extends Controller
                     $itemConverted[] = [
                         'product_id' => $detail->product_id,
                         'product_name' => $detail->product->name ?? 'Unknown',
+                        'product_brand' => $detail->product->brand ?? $detail->product->brandRelation->name ?? '-',
                         'product_sku' => $detail->product->sku ?? '-',
                         'quantity' => $detail->quantity,
                         'selling_price' => $detail->selling_price,
@@ -957,6 +960,7 @@ class StockOutController extends Controller
                     foreach ($item->non_hp_items as $nonHpItem) {
                         $prod = $products[$nonHpItem['product_id']] ?? null;
                         $nonHpItem['product_name'] = $prod ? $prod->name : 'Unknown Product';
+                        $nonHpItem['product_brand'] = $prod ? ($prod->brand ?? $prod->brandRelation->name ?? '-') : '-';
                         $nonHpItem['product_sku'] = $prod ? $prod->sku : '-';
                         $enrichedItems[] = $nonHpItem;
                     }

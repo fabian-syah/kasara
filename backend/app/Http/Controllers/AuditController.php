@@ -1308,7 +1308,7 @@ class AuditController extends Controller
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan'];
 
-        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
+        $dailySalesQuery = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -1342,7 +1342,7 @@ class AuditController extends Controller
                     'qty' => 1,
                     'price' => $price,
                     'is_fixed' => true,
-                    'brand' => $item->product->brand ?? '-',
+                    'brand' => $item->product->brand ?? $item->product->brandRelation->name ?? '-',
                     'type' => 'HP',
                     'imei' => $item->imei ?? '-',
                     'storage' => $item->storage ?? null,
@@ -1366,7 +1366,7 @@ class AuditController extends Controller
                         'qty' => $qty,
                         'price' => $price,
                         'is_fixed' => true,
-                        'brand' => $product->brand ?? '-',
+                        'brand' => $product->brand ?? $product->brandRelation->name ?? '-',
                         'type' => 'Non-HP',
                         'raw_cost_price' => (float) ($product->cost_price ?? 0)
                     ];
@@ -1381,7 +1381,7 @@ class AuditController extends Controller
                         'qty' => $nhp->quantity,
                         'price' => $basePrice,
                         'is_fixed' => true,
-                        'brand' => $nhp->product->brand ?? '-',
+                        'brand' => $nhp->product->brand ?? $nhp->product->brandRelation->name ?? '-',
                         'type' => 'Non-HP',
                         'raw_cost_price' => (float) ($nhp->product->cost_price ?? 0)
                     ];
@@ -2095,7 +2095,7 @@ class AuditController extends Controller
             'hilang',
         ];
 
-        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
             ->whereIn('category', $categories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -2207,7 +2207,7 @@ class AuditController extends Controller
                 'receipt_id' => $trx->receipt_id,
                 'category' => $trx->category,
                 'type' => $hpItemsCount > 0 ? 'HP' : 'Non-HP',
-                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
+                'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? $i->product->brandRelation->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? $i->product->brandRelation->name ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'qty' => $hpItemsCount + $nonHpItemsCount,

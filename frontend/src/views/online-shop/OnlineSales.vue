@@ -88,7 +88,7 @@ const groupedSales = computed(() => {
                 let price = parseCurrency(detailFromJSON?.selling_price || item.selling_price || 0);
 
                 items.push({
-                    brand: item.product?.brand || '-',
+                    brand: item.product?.brand || item.product?.brand_relation?.name || '-',
                     type: item.product?.name || '-',
                     kapasitas: item.storage || '-',
                     identifier: item.imei,
@@ -104,7 +104,7 @@ const groupedSales = computed(() => {
                 let price = parseCurrency(item.selling_price || 0);
 
                 items.push({
-                    brand: '-',
+                    brand: item.product_brand || '-',
                     type: item.product_name || '-',
                     kapasitas: '-',
                     identifier: `${item.quantity} Pcs`,
