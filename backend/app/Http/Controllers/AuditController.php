@@ -732,6 +732,17 @@ class AuditController extends Controller
             }
             $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
+            $detailedSplitPayments = [];
+            if ($trx->splitPayments) {
+                foreach ($trx->splitPayments as $sp) {
+                    $pm = $paymentMethods->get($sp->payment_method_id);
+                    $detailedSplitPayments[] = [
+                        'method_name' => $pm?->name ?? 'Unknown',
+                        'amount' => (float)$sp->amount
+                    ];
+                }
+            }
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at?->toDateTimeString() ?? '-',
@@ -742,9 +753,14 @@ class AuditController extends Controller
                 'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
                 'qty' => $trx->is_bundle ? 1 : count($details),
                 'items' => $details,
-                'grand_total' => $trx->selling_price,
+                'grand_total' => (float)$trx->selling_price,
+                'selling_price' => (float)$trx->selling_price,
+                'total_discount' => (float)$trx->total_discount,
+                'original_price' => (float)($trx->selling_price + $trx->total_discount),
                 'is_bundle' => (bool)$trx->is_bundle,
-                'payment_method_name' => $finalPaymentMethods
+                'payment_method_name' => $finalPaymentMethods,
+                'split_payments_data' => $detailedSplitPayments,
+                'notes' => $trx->notes
             ];
         });
 
