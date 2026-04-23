@@ -53,6 +53,17 @@ class AuditController extends Controller
         $requestedOnlineShopId = $request->online_shop_id;
         $requestedDistributorId = $request->distributor_id;
         $requestedWarehouseId = $request->warehouse_id;
+
+        // Fallback: If ID is not numeric, it might be a name
+        if ($requestedBranchId && !is_numeric($requestedBranchId)) {
+            $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
+            if ($foundBranch) $requestedBranchId = $foundBranch->id;
+        }
+        if ($requestedOnlineShopId && !is_numeric($requestedOnlineShopId)) {
+            $foundOs = OnlineShop::where('name', 'ilike', '%' . $requestedOnlineShopId . '%')->first();
+            if ($foundOs) $requestedOnlineShopId = $foundOs->id;
+        }
+
         $requestedCategory = $request->category;
         $requestedSearch = $request->search;
         $requestedCondition = $request->condition;
@@ -549,7 +560,7 @@ class AuditController extends Controller
                             } else {
                                 $map['android'] += $qty;
                             }
-                        } elseif (str_contains($dname, 'luxury')) {
+                        } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
                             $cat = 'apple_lux';
                         }
 
@@ -560,26 +571,26 @@ class AuditController extends Controller
                     }
 
                     // 3. Stock Aggregation
-                    $stockReport = ['apple_lux' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'perdana' => 0, 'jaringan' => 0];
-                    $rawStockDetails = ['apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
+                    $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'perdana' => 0, 'jaringan' => 0];
+                    $rawStockDetails = ['apple_lux' => [], 'hp' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
 
                     $applyStockFilters = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $branchIds, $onlineShopIds) {
                         if ($requestedBranchId) {
                             $q->where('placement_id', $requestedBranchId)
-                              ->whereRaw('LOWER(placement_type) = ?', ['branch']);
+                              ->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
                         } elseif ($requestedOnlineShopId) {
                             $q->where('placement_id', $requestedOnlineShopId)
-                              ->whereRaw('LOWER(placement_type) = ?', ['online_shop']);
+                              ->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
                         } else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                 if (!empty($branchIds)) {
                                     $sub->orWhere(function($ss) use ($branchIds) {
-                                        $ss->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) = ?', ['branch']);
+                                        $ss->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
                                     });
                                 }
                                 if (!empty($onlineShopIds)) {
                                     $sub->orWhere(function($ss) use ($onlineShopIds) {
-                                        $ss->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) = ?', ['online_shop']);
+                                        $ss->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
                                     });
                                 }
                                 if (empty($branchIds) && empty($onlineShopIds)) $sub->whereRaw('1=1');
@@ -657,10 +668,10 @@ class AuditController extends Controller
                             $cat = 'laptop';
                         } elseif (str_contains($name, 'tv') || str_contains($dname, 'tv')) {
                             $cat = 'tv';
-                        } elseif (str_contains($dname, 'luxury')) {
-                            $cat = 'apple_lux';
-                        } elseif (str_contains($dname, 'merakyat') || str_contains($dname, 'ps store') || str_contains($dname, 'apple')) {
+                        } elseif (str_contains($name, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store')) {
                             $cat = 'hp';
+                        } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
+                            $cat = 'apple_lux';
                         } else {
                             $cat = 'accessories'; // default fallback
                         }
