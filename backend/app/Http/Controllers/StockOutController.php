@@ -125,9 +125,9 @@ class StockOutController extends Controller
                     foreach ($item->nonHpDetails as $detail) {
                         $itemConverted[] = [
                             'product_id' => $detail->product_id,
-                            'product_name' => $detail->product->name ?? 'Unknown',
-                            'product_brand' => $detail->product->brand ?? $detail->product->brandRelation->name ?? '-',
-                            'product_sku' => $detail->product->sku ?? '-',
+                            'product_name' => $detail->product?->name ?? 'Unknown',
+                            'product_brand' => $detail->product?->brand ?? $detail->product?->brandRelation?->name ?? '-',
+                            'product_sku' => $detail->product?->sku ?? '-',
                             'quantity' => $detail->quantity,
                             'selling_price' => $detail->selling_price,
                         ];
@@ -141,9 +141,9 @@ class StockOutController extends Controller
                     foreach ($enrichedItems as &$nonHpItem) {
                         if (!isset($nonHpItem['product_name'])) {
                             $prod = $products[$nonHpItem['product_id']] ?? null;
-                            $nonHpItem['product_name'] = $prod->name ?? 'Unknown';
-                            $nonHpItem['product_brand'] = $prod->brand ?? $prod->brandRelation->name ?? '-';
-                            $nonHpItem['product_sku'] = $prod->sku ?? '-';
+                            $nonHpItem['product_name'] = $prod?->name ?? 'Unknown';
+                            $nonHpItem['product_brand'] = $prod?->brand ?? $prod?->brandRelation?->name ?? '-';
+                            $nonHpItem['product_sku'] = $prod?->sku ?? '-';
                         }
                     }
                     $item->non_hp_items = $enrichedItems;
@@ -932,9 +932,9 @@ class StockOutController extends Controller
                 foreach ($item->nonHpDetails as $detail) {
                     $itemConverted[] = [
                         'product_id' => $detail->product_id,
-                        'product_name' => $detail->product->name ?? 'Unknown',
-                        'product_brand' => $detail->product->brand ?? $detail->product->brandRelation->name ?? '-',
-                        'product_sku' => $detail->product->sku ?? '-',
+                        'product_name' => $detail->product?->name ?? 'Unknown',
+                        'product_brand' => $detail->product?->brand ?? $detail->product?->brandRelation?->name ?? '-',
+                        'product_sku' => $detail->product?->sku ?? '-',
                         'quantity' => $detail->quantity,
                         'selling_price' => $detail->selling_price,
                     ];
@@ -959,9 +959,9 @@ class StockOutController extends Controller
                     $enrichedItems = [];
                     foreach ($item->non_hp_items as $nonHpItem) {
                         $prod = $products[$nonHpItem['product_id']] ?? null;
-                        $nonHpItem['product_name'] = $prod ? $prod->name : 'Unknown Product';
-                        $nonHpItem['product_brand'] = $prod ? ($prod->brand ?? $prod->brandRelation->name ?? '-') : '-';
-                        $nonHpItem['product_sku'] = $prod ? $prod->sku : '-';
+                        $nonHpItem['product_name'] = $prod?->name ?? 'Unknown Product';
+                        $nonHpItem['product_brand'] = $prod?->brand ?? $prod?->brandRelation?->name ?? '-';
+                        $nonHpItem['product_sku'] = $prod?->sku ?? '-';
                         $enrichedItems[] = $nonHpItem;
                     }
                     $item->non_hp_items = $enrichedItems;
