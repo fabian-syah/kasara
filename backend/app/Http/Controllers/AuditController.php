@@ -556,6 +556,7 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
+                    $debug = [];
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
                         // Logical day shift (05:00 AM)
                         $startTS = $startDate . ' 05:00:00';
@@ -812,11 +813,20 @@ class AuditController extends Controller
                         $distInMap[$cat] += $qty;
                     }
 
+                    $debug = [
+                        'requested_branch_id' => $requestedBranchId,
+                        'total_payments_found' => count($pSums),
+                        'total_hp_items' => $hpItemsQuery->count(),
+                        'total_nhp_items' => $nhpItemsQuery->count(),
+                        'branch_ids_scope' => $branchIds,
+                        'online_shop_ids_scope' => $onlineShopIds,
+                    ];
+
                     return [
+                        'total_omset' => $paymentTotal,
                         'payments' => $pSums,
-                        'payment_total' => $paymentTotal,
-                        'dist_map' => $map,
-                        'dist_map_rp' => $mapRp,
+                        'hp_units' => $map,
+                        'hp_amounts' => $mapRp,
                         'stock_report' => $stockReport,
                         'stock_details' => $rawStockDetails,
                         'sold_details' => $soldDetails,
