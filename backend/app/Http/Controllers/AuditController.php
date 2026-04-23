@@ -557,7 +557,10 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+                        $query->leftJoin('users', function($join) {
+                            $join->on('stock_outs.user_id', '=', 'users.id')
+                                 ->whereRaw('stock_outs.user_id ~ \'^[0-9]+$\'');
+                        })
                             ->whereDate('stock_outs.reporting_date', '>=', $startDate)
                             ->whereDate('stock_outs.reporting_date', '<=', $endDate)
                             ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
