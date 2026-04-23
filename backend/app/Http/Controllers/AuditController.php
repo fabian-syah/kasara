@@ -478,8 +478,8 @@ class AuditController extends Controller
 
                     // 2. HP & NHP Categorization
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0];
-                    $mapRp = $map;
-                    $soldDetails = [];
+                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0];
+                    $soldDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
                     $appleLuxIds = DB::table('distributors')->where('name', 'ilike', '%Apple Luxury%')->pluck('id')->toArray();
 
                     // HP items
@@ -527,10 +527,10 @@ class AuditController extends Controller
                         $qty = (int) $item->quantity;
                         $cat = null;
 
-                        // 1. High-priority product name patterns (prevents miscategorization by distributor)
-                        if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan')) {
+                        // 1. High-priority product name patterns
+                        if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($dname, 'network')) {
                             $cat = 'jaringan';
-                        } elseif (str_contains($name, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa') || str_contains($name, 'perdana')) {
+                        } elseif (str_contains($name, 'sim card') || str_contains($name, 'perdana') || str_contains($name, 'jasa') || str_contains($name, 'service') || str_contains($name, 'icloud')) {
                             $cat = 'perdana';
                         } elseif (str_contains($name, 'laptop')) {
                             $cat = 'laptop';
@@ -669,17 +669,18 @@ class AuditController extends Controller
                             $cat = 'apple_lux';
                         elseif (str_contains($dname, 'merakyat') || str_contains($dname, 'ps store') || str_contains($dname, 'apple'))
                             $cat = 'hp';
-                        elseif (in_array($did, $catDistMap['perdana']) || str_contains($dname, 'sim card') || str_contains($name, 'sim card')) {
-                            if (str_contains(strtolower($name), '4g') || str_contains(strtolower($name), 'lte') || str_contains(strtolower($name), 'jaringan'))
+                        elseif (in_array($did, $catDistMap['perdana']) || str_contains($dname, 'sim card') || str_contains($dname, 'network') || str_contains(strtolower($name), 'sim card')) {
+                            if (str_contains(strtolower($name), '4g') || str_contains(strtolower($name), 'lte') || str_contains(strtolower($name), 'jaringan') || str_contains($dname, 'network'))
                                 $cat = 'jaringan';
                             else
                                 $cat = 'perdana';
                         }
 
                         if (!$cat) {
-                            if (str_contains(strtolower($name), '4g') || str_contains(strtolower($name), 'lte') || str_contains(strtolower($name), 'jaringan'))
+                            $lowName = strtolower($name);
+                            if (str_contains($lowName, '4g') || str_contains($lowName, 'lte') || str_contains($lowName, 'jaringan') || str_contains($dname, 'network'))
                                 $cat = 'jaringan';
-                            elseif (str_contains(strtolower($name), 'sim card') || str_contains(strtolower($name), 'icloud') || str_contains(strtolower($name), 'jasa'))
+                            elseif (str_contains($lowName, 'sim card') || str_contains($lowName, 'perdana') || str_contains($lowName, 'jasa') || str_contains($lowName, 'icloud') || str_contains($lowName, 'service'))
                                 $cat = 'perdana';
                             elseif (str_contains(strtolower($name), 'laptop'))
                                 $cat = 'laptop';

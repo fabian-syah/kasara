@@ -266,7 +266,8 @@ class InventoryController extends Controller
             // If non-hp, we group by resolved name to avoid split rows (e.g. 14+1 Arcis)
             if ($type === 'non-hp') {
                 $uniqueCollection = $items->getCollection()->groupBy(function ($item) {
-                    return $item->product_id . '_' . $item->placement_type . '_' . $item->placement_id . '_' . $item->latest_distributor;
+                    // Group by product and placement AND distributor ID to prevent merging different distributor stock
+                    return $item->product_id . '_' . $item->placement_type . '_' . $item->placement_id . '_' . ($item->distributor_id ?? '0') . '_' . $item->latest_distributor;
                 })->map(function ($group) {
                     $first = $group->first();
                     $first->quantity = $group->sum('quantity');
