@@ -491,7 +491,6 @@ class AuditController extends Controller
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0];
                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0];
                     $soldDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => []];
-                    $appleLuxIds = DB::table('distributors')->where('name', 'ilike', '%Apple Luxury%')->pluck('id')->toArray();
 
                     // HP items
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id');
@@ -503,16 +502,16 @@ class AuditController extends Controller
                         $dist = $distId ? $distributors->get($distId) : null;
                         $dName = $dist ? strtolower($dist->name) : '';
                         
-                        $isAppleLux = in_array($distId, $appleLuxIds) || str_contains($dName, 'luxury');
-                        $cat = $isAppleLux ? 'apple_lux' : 'hp';
-                        
-                        // Catching "Merakyat" or "PStore" distributors as HP units
-                        if (!$isAppleLux && (str_contains($dName, 'merakyat') || str_contains($dName, 'ps store'))) {
+                        // ID-based logic
+                        $cat = 'hp';
+                        if ($distId === 6 || str_contains($dName, 'luxury')) {
+                            $cat = 'apple_lux';
+                        } elseif ($distId === 8 || $distId === 7 || $distId === 9 || str_contains($dName, 'merakyat') || str_contains($dName, 'ps store') || str_contains($dName, 'android')) {
                             $cat = 'hp';
                         }
 
                         $map[$cat]++;
-                        if (str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->brand), 'iphone'))
+                        if (str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->brand), 'iphone') || str_contains(strtolower($hp->name), 'iphone'))
                             $map['iphone']++;
                         else
                             $map['android']++;
@@ -534,34 +533,51 @@ class AuditController extends Controller
                         $dist = $distId ? $distributors->get($distId) : null;
                         $dname = $dist ? strtolower($dist->name) : '';
                         $qty = (int) $item->quantity;
-                        $cat = 'accessories';
+                        $cat = null;
 
-                        // 1. Unified Categorization Pattern (Name Match)
-                        if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($dname, 'network')) {
-                            $cat = 'jaringan';
-                        } elseif (str_contains($name, 'perdana') || str_contains($name, 'sim card') || str_contains($dname, 'sim card') || str_contains($name, 'jasa') || str_contains($name, 'service') || str_contains($name, 'icloud')) {
-                            $cat = 'perdana';
-                        } elseif (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($dname, 'apply')) {
-                            $cat = 'apply';
-                        } elseif (str_contains($name, 'arcis') || str_contains($dname, 'arcis')) {
-                            $cat = 'arcis';
-                        } elseif (str_contains($name, 'debs') || str_contains($dname, 'debs')) {
-                            $cat = 'debs';
-                        } elseif (str_contains($name, 'dokter') || str_contains($dname, 'dokter')) {
-                            $cat = 'dokter_pstore';
-                        } elseif (str_contains($name, 'laptop') || str_contains($dname, 'laptop')) {
-                            $cat = 'laptop';
-                        } elseif (str_contains($name, 'tv') || str_contains($dname, 'tv')) {
-                            $cat = 'tv';
-                        } elseif (str_contains($name, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store')) {
-                            $cat = 'hp';
-                            if (str_contains($name, 'iphone') || str_contains($brand, 'apple') || str_contains($dname, 'apple')) {
-                                $map['iphone'] += $qty;
+                        // 1. Priority ID-based Categorization
+                        if ($distId === 19) $cat = 'jaringan';
+                        elseif ($distId === 18) $cat = 'perdana';
+                        elseif ($distId === 11) $cat = 'apply';
+                        elseif ($distId === 14) $cat = 'arcis';
+                        elseif ($distId === 13) $cat = 'debs';
+                        elseif ($distId === 15) $cat = 'dokter_pstore';
+                        elseif ($distId === 16) $cat = 'laptop';
+                        elseif ($distId === 17) $cat = 'tv';
+                        elseif ($distId === 10) $cat = 'accessories';
+                        elseif ($distId === 6) $cat = 'apple_lux';
+                        elseif ($distId === 8 || $distId === 7 || $distId === 9) $cat = 'hp';
+
+                        // 2. Robust Name-based Fallback
+                        if (!$cat) {
+                            if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($dname, 'network')) {
+                                $cat = 'jaringan';
+                            } elseif (str_contains($name, 'perdana') || str_contains($name, 'sim card') || str_contains($dname, 'sim card') || str_contains($name, 'jasa') || str_contains($name, 'service') || str_contains($name, 'icloud')) {
+                                $cat = 'perdana';
+                            } elseif (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($dname, 'apply')) {
+                                $cat = 'apply';
+                            } elseif (str_contains($name, 'arcis') || str_contains($dname, 'arcis')) {
+                                $cat = 'arcis';
+                            } elseif (str_contains($name, 'debs') || str_contains($dname, 'debs')) {
+                                $cat = 'debs';
+                            } elseif (str_contains($name, 'dokter') || str_contains($dname, 'dokter')) {
+                                $cat = 'dokter_pstore';
+                            } elseif (str_contains($name, 'laptop') || str_contains($dname, 'laptop')) {
+                                $cat = 'laptop';
+                            } elseif (str_contains($name, 'tv') || str_contains($dname, 'tv')) {
+                                $cat = 'tv';
+                            } elseif (str_contains($name, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store')) {
+                                $cat = 'hp';
+                                if (str_contains($name, 'iphone') || str_contains($brand, 'apple') || str_contains($dname, 'apple')) {
+                                    $map['iphone'] += $qty;
+                                } else {
+                                    $map['android'] += $qty;
+                                }
+                            } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
+                                $cat = 'apple_lux';
                             } else {
-                                $map['android'] += $qty;
+                                $cat = 'accessories';
                             }
-                        } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
-                            $cat = 'apple_lux';
                         }
 
                         $map[$cat] += $qty;
@@ -601,7 +617,7 @@ class AuditController extends Controller
                     // Apple Lux Stock (Aggregated)
                     $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
-                        ->whereIn('product_details.distributor_id', $appleLuxIds);
+                        ->whereIn('product_details.distributor_id', [6]);
                     $applyStockFilters($alStock);
                     foreach ($alStock->select('products.name', DB::raw('count(*) as qty'))->groupBy('products.name')->get() as $s) {
                         $name = (string) ($s->name ?: 'Apple Lux No Name');
@@ -611,11 +627,7 @@ class AuditController extends Controller
                     }
 
                     // Inventory Stock (Aggregated)
-                    // We join products and try to find the distributor from the latest log if not in the inventory record
-                    $oStock = DB::table('inventories')
-                        ->leftJoin('products', 'inventories.product_id', '=', 'products.id')
-                        ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
-                        ->where('inventories.quantity', '>', 0);
+                    $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id');
                     $applyStockFilters($oStock);
                     
                     $inventoryData = $oStock->select(
@@ -631,10 +643,10 @@ class AuditController extends Controller
                         $qty = (int) $s->quantity;
                         $name = (string) ($s->name ?: 'Item Tanpa Nama');
                         $dname = strtolower((string) ($s->dname ?? ''));
-                        $did = (int) $s->did;
+                        $distId = (int) $s->did;
                         
                         // Heuristic: If no distributor, look it up from latest IN log
-                        if (!$did) {
+                        if (!$distId) {
                             $latestInLog = DB::table('inventory_logs')
                                 ->join('distributors', 'inventory_logs.distributor_id', '=', 'distributors.id')
                                 ->where('inventory_logs.product_id', $s->product_id)
@@ -644,36 +656,52 @@ class AuditController extends Controller
                                 ->first();
                                 
                             if ($latestInLog) {
-                                $did = (int) $latestInLog->id;
+                                $distId = (int) $latestInLog->id;
                                 $dname = strtolower($latestInLog->name);
                             }
                         }
 
                         $cat = null;
 
-                        // 1. Unified Categorization Pattern (Name/Distributor Match)
-                        if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan') || str_contains($dname, 'network')) {
-                            $cat = 'jaringan';
-                        } elseif (str_contains($name, 'perdana') || str_contains($name, 'sim card') || str_contains($dname, 'sim card') || str_contains($name, 'jasa') || str_contains($name, 'service') || str_contains($name, 'icloud')) {
-                            $cat = 'perdana';
-                        } elseif (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable') || str_contains($dname, 'apply')) {
-                            $cat = 'apply';
-                        } elseif (str_contains($name, 'arcis') || str_contains($dname, 'arcis')) {
-                            $cat = 'arcis';
-                        } elseif (str_contains($name, 'debs') || str_contains($dname, 'debs')) {
-                            $cat = 'debs';
-                        } elseif (str_contains($name, 'dokter') || str_contains($dname, 'dokter')) {
-                            $cat = 'dokter_pstore';
-                        } elseif (str_contains($name, 'laptop') || str_contains($dname, 'laptop')) {
-                            $cat = 'laptop';
-                        } elseif (str_contains($name, 'tv') || str_contains($dname, 'tv')) {
-                            $cat = 'tv';
-                        } elseif (str_contains($name, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store')) {
-                            $cat = 'hp';
-                        } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
-                            $cat = 'apple_lux';
-                        } else {
-                            $cat = 'accessories'; // default fallback
+                        // 1. Priority ID-based Categorization
+                        if ($distId === 19) $cat = 'jaringan';
+                        elseif ($distId === 18) $cat = 'perdana';
+                        elseif ($distId === 11) $cat = 'apply';
+                        elseif ($distId === 14) $cat = 'arcis';
+                        elseif ($distId === 13) $cat = 'debs';
+                        elseif ($distId === 15) $cat = 'dokter_pstore';
+                        elseif ($distId === 16) $cat = 'laptop';
+                        elseif ($distId === 17) $cat = 'tv';
+                        elseif ($distId === 10) $cat = 'accessories';
+                        elseif ($distId === 6) $cat = 'apple_lux';
+                        elseif ($distId === 8 || $distId === 7 || $distId === 9) $cat = 'hp';
+
+                        // 2. Unified Categorization Fallback (Name Pattern Match)
+                        if (!$cat) {
+                            $lname = strtolower($name);
+                            if (str_contains($lname, '4g') || str_contains($lname, 'lte') || str_contains($lname, 'jaringan') || str_contains($dname, 'network')) {
+                                $cat = 'jaringan';
+                            } elseif (str_contains($lname, 'perdana') || str_contains($lname, 'sim card') || str_contains($dname, 'sim card') || str_contains($lname, 'jasa') || str_contains($lname, 'service') || str_contains($lname, 'icloud')) {
+                                $cat = 'perdana';
+                            } elseif (str_contains($lname, 'apply') || str_contains($lname, 'adapter') || str_contains($lname, 'cable') || str_contains($dname, 'apply')) {
+                                $cat = 'apply';
+                            } elseif (str_contains($lname, 'arcis') || str_contains($dname, 'arcis')) {
+                                $cat = 'arcis';
+                            } elseif (str_contains($lname, 'debs') || str_contains($dname, 'debs')) {
+                                $cat = 'debs';
+                            } elseif (str_contains($lname, 'dokter') || str_contains($dname, 'dokter')) {
+                                $cat = 'dokter_pstore';
+                            } elseif (str_contains($lname, 'laptop') || str_contains($dname, 'laptop')) {
+                                $cat = 'laptop';
+                            } elseif (str_contains($lname, 'tv') || str_contains($dname, 'tv')) {
+                                $cat = 'tv';
+                            } elseif (str_contains($dname, 'luxury') || str_contains($lname, 'apple lux')) {
+                                $cat = 'apple_lux';
+                            } elseif (str_contains($lname, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store') || str_contains($dname, 'apple')) {
+                                $cat = 'hp';
+                            } else {
+                                $cat = 'accessories';
+                            }
                         }
 
                         if ($cat) {
