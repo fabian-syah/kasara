@@ -754,13 +754,14 @@ class AuditController extends Controller
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available') // Current stock
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
-
+                    
                     // We intentionally don't apply reporting_date filter for current stock
                     $applyStockScope($alStock);
                     foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                         $did = (int) $s->distributor_id;
                         $cat = ($did === 6) ? 'apple_lux' : 'hp';
-                        $rawStockDetails[$cat][$s->name] = ($rawStockDetails[$cat][$s->name] ?? 0) + $s->qty;
+                        $cleanName = trim($s->name);
+                        $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                         $stockReport[$cat] += $s->qty;
                     }
 
@@ -814,7 +815,8 @@ class AuditController extends Controller
                             else
                                 $cat = 'others';
                         }
-                        $rawStockDetails[$cat][$s->name] = ($rawStockDetails[$cat][$s->name] ?? 0) + $qty;
+                        $cleanName = trim($s->name);
+                        $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
                         $stockReport[$cat] += $qty;
                     }
 
