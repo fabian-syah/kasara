@@ -54,6 +54,10 @@ class AuditController extends Controller
         $requestedDistributorId = $request->distributor_id;
         $requestedWarehouseId = $request->warehouse_id;
 
+        // Stock all-time logic
+        $stockStartDate = '2000-01-01';
+        $stockEndDate = now()->toDateString();
+
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
             $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
@@ -550,7 +554,7 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
+            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
@@ -724,8 +728,10 @@ class AuditController extends Controller
                     // IMEI Stock
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
-                        ->where('product_details.status', 'available')
+                        ->where('product_details.status', 'available') // Current stock
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
+                    
+                    // We intentionally don't apply reporting_date filter for current stock
                     $applyStockScope($alStock);
                     foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                         $did = (int)$s->distributor_id;
@@ -2638,8 +2644,8 @@ class AuditController extends Controller
             if (empty($items)) {
                 $report .= "- (kosong)\n\n";
             } else {
-                foreach ($items as $txt) {
-                    $report .= "- " . $txt . "\n";
+                foreach ($items as $name => $qty) {
+                    $report .= "- $name : $qty unit\n";
                 }
                 $report .= "\n";
             }
