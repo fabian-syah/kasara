@@ -518,52 +518,59 @@ class AuditController extends Controller
 
                     $catDistMap = ['apply' => [11], 'arcis' => [14], 'debs' => [13], 'dokter_pstore' => [15], 'accessories' => [10], 'perdana' => [18], 'laptop' => [16], 'tv' => [17]];
                     foreach ($nhpData as $item) {
-                        $distId = (int) $item->distributor_id;
+                        // Categorization logic
+                        $name = strtolower($item->name ?? ''); // Already lowercased above but ensuring consistency
                         $brand = strtolower($item->brand ?? '');
-                        $name = strtolower($item->name ?? '');
+                        $distId = (int) $item->distributor_id;
+                        $dist = $distId ? $distributors->get($distId) : null;
+                        $dname = $dist ? strtolower($dist->name) : '';
                         $qty = (int) $item->quantity;
                         $cat = null;
 
-                        $dist = $distId ? $distributors->get($distId) : null;
-                        $dname = $dist ? strtolower($dist->name) : '';
-
-                        if (in_array($distId, $catDistMap['apply']) || str_contains($dname, 'apply'))
-                            $cat = 'apply';
-                        elseif (in_array($distId, $catDistMap['arcis']) || str_contains($dname, 'arcis'))
-                            $cat = 'arcis';
-                        elseif (in_array($distId, $catDistMap['laptop']) || str_contains($dname, 'laptop'))
-                            $cat = 'laptop';
-                        elseif (in_array($distId, $catDistMap['tv']) || str_contains($dname, 'tv'))
-                            $cat = 'tv';
-                        elseif (in_array($distId, $catDistMap['perdana']) || str_contains($dname, 'sim card'))
+                        // 1. High-priority product name patterns (prevents miscategorization by distributor)
+                        if (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan')) {
+                            $cat = 'jaringan';
+                        } elseif (str_contains($name, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa') || str_contains($name, 'perdana')) {
                             $cat = 'perdana';
-                        elseif (in_array($distId, $catDistMap['accessories']) || str_contains($dname, 'accessories'))
-                            $cat = 'accessories';
-                        elseif (in_array($distId, $catDistMap['debs']) || str_contains($dname, 'debs'))
-                            $cat = 'debs';
-                        elseif (in_array($distId, $catDistMap['dokter_pstore']) || str_contains($dname, 'dokter'))
-                            $cat = 'dokter_pstore';
-                        elseif (str_contains($dname, 'luxury'))
-                            $cat = 'apple_lux';
-                        elseif (str_contains($dname, 'merakyat') || str_contains($dname, 'ps store'))
-                            $cat = 'hp';
+                        } elseif (str_contains($name, 'laptop')) {
+                            $cat = 'laptop';
+                        } elseif (str_contains($name, 'tv')) {
+                            $cat = 'tv';
+                        } elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis')) {
+                            $cat = 'arcis';
+                        } elseif (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable')) {
+                            $cat = 'apply';
+                        }
 
+                        // 2. Fallback to Distributor-based categorization
                         if (!$cat) {
-                            if (str_contains($name, 'apply') || str_contains($name, 'adapter') || str_contains($name, 'cable'))
+                            if (in_array($distId, $catDistMap['apply']) || str_contains($dname, 'apply'))
                                 $cat = 'apply';
-                            elseif (str_contains($name, 'tv'))
-                                $cat = 'tv';
-                            elseif (str_contains($name, 'laptop'))
-                                $cat = 'laptop';
-                            elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan'))
-                                $cat = 'jaringan';
-                            elseif (str_contains($name, 'sim card') || str_contains($name, 'icloud') || str_contains($name, 'jasa'))
-                                $cat = 'perdana';
-                            elseif (str_contains($brand, 'arcis') || str_contains($name, 'arcis'))
+                            elseif (in_array($distId, $catDistMap['arcis']) || str_contains($dname, 'arcis'))
                                 $cat = 'arcis';
-                            elseif (str_contains($name, 'hp') || str_contains($name, 'iphone') || str_contains($name, 'apple'))
+                            elseif (in_array($distId, $catDistMap['laptop']) || str_contains($dname, 'laptop'))
+                                $cat = 'laptop';
+                            elseif (in_array($distId, $catDistMap['tv']) || str_contains($dname, 'tv'))
+                                $cat = 'tv';
+                            elseif (in_array($distId, $catDistMap['perdana']) || str_contains($dname, 'sim card'))
+                                $cat = 'perdana';
+                            elseif (in_array($distId, $catDistMap['accessories']) || str_contains($dname, 'accessories'))
+                                $cat = 'accessories';
+                            elseif (in_array($distId, $catDistMap['debs']) || str_contains($dname, 'debs'))
+                                $cat = 'debs';
+                            elseif (in_array($distId, $catDistMap['dokter_pstore']) || str_contains($dname, 'dokter'))
+                                $cat = 'dokter_pstore';
+                            elseif (str_contains($dname, 'luxury'))
+                                $cat = 'apple_lux';
+                            elseif (str_contains($dname, 'merakyat') || str_contains($dname, 'ps store'))
                                 $cat = 'hp';
                         }
+
+                        // last resort name fallback if still no cat
+                         if (!$cat) {
+                             if (str_contains($name, 'hp') || str_contains($name, 'iphone') || str_contains($name, 'apple'))
+                                 $cat = 'hp';
+                         }
 
                         if ($cat) {
                             $map[$cat] += $qty;
