@@ -433,55 +433,7 @@
                                 </div>
                             </div>
 
-                            <!-- OTHER CATEGORIES (STOCK, IN) -->
-                            <div v-for="cat in categoryStocks" :key="cat.label"
-                                v-show="Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length">
-                                <!-- Category Header -->
-                                <div class="flex items-center gap-4 mb-8">
-                                    <div class="h-px bg-emerald-200/60 flex-1"></div>
-                                    <h4
-                                        class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
-                                        {{ cat.label }}
-                                    </h4>
-                                    <div class="h-px bg-emerald-200/60 flex-1"></div>
-                                </div>
 
-                                <div v-if="Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length"
-                                    class="space-y-8">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                                        <!-- Stock In Items -->
-                                        <div v-if="Object.keys(cat.inItems || {}).length" class="space-y-3">
-                                            <div v-for="(qty, name) in cat.inItems" :key="'in-' + name"
-                                                class="flex justify-between items-center border-b border-amber-200/30 pb-3">
-                                                <span
-                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                    {{ name }}
-                                                </span>
-                                                <span class="text-xs font-black text-amber-700 dark:text-amber-400">{{
-                                                    qty }}</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Remaining Stock Items -->
-                                        <div v-if="Object.keys(cat.remainingItems || {}).length" class="space-y-3">
-                                            <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
-                                                class="flex justify-between items-center border-b border-blue-200/30 pb-3">
-                                                <span
-                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                    {{ name }}
-                                                </span>
-                                                <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty
-                                                    }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="text-center">
-                                    <span
-                                        class="text-[10px] font-bold text-emerald-800/20 uppercase tracking-widest italic">Belum
-                                        ada unit {{ cat.label }}</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
