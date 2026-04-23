@@ -556,44 +556,25 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        $query->leftJoin('users', function($join) {
-                            $join->on('stock_outs.user_id', '=', 'users.id')
-                                 ->whereRaw('stock_outs.user_id ~ \'^[0-9]+$\'');
-                        })
-                            ->whereDate('stock_outs.reporting_date', '>=', $startDate)
-                            ->whereDate('stock_outs.reporting_date', '<=', $endDate)
-                            ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                                if ($requestedBranchId) {
-                                    $q->where('stock_outs.branch_id', $requestedBranchId)
-                                        ->orWhere('users.branch_id', $requestedBranchId);
-                                } elseif ($requestedOnlineShopId) {
-                                    $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                                        ->orWhere('users.online_shop_id', $requestedOnlineShopId);
-                                } elseif ($requestedWarehouseId) {
-                                    $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                                        ->orWhere('users.warehouse_id', $requestedWarehouseId);
-                                } elseif ($requestedDistributorId) {
-                                    $q->where('stock_outs.distributor_id', $requestedDistributorId)
-                                        ->orWhere('users.distributor_id', $requestedDistributorId);
-                                } else {
-                                    if (!empty($branchIds)) {
-                                        $q->orWhereIn('stock_outs.branch_id', $branchIds)
-                                            ->orWhereIn('users.branch_id', $branchIds);
-                                    }
-                                    if (!empty($onlineShopIds)) {
-                                        $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                            ->orWhereIn('users.online_shop_id', $onlineShopIds);
-                                    }
-                                }
-                            });
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
+                        $query->whereDate('stock_outs.reporting_date', '>=', $startDate)
+                              ->whereDate('stock_outs.reporting_date', '<=', $endDate);
+                        if ($requestedBranchId) $query->where('stock_outs.branch_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId) $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        elseif ($requestedWarehouseId) $query->where('stock_outs.warehouse_id', $requestedWarehouseId);
                     };
+
+                    $applyStockScope = function ($query) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                        if ($requestedBranchId) $query->where('product_details.branch_id', $requestedBranchId);
+                        elseif ($requestedOnlineShopId) $query->where('product_details.online_shop_id', $requestedOnlineShopId);
+                        elseif ($requestedWarehouseId) $query->where('product_details.warehouse_id', $requestedWarehouseId);
+                    }; 
 
                     // 1. Total Omset & Payments
                     $pQuery = DB::table('stock_outs');
                     $applyLocalScope($pQuery);
                     $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS'])
-                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category')->get();
+                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
 
                     $pSums = [];
                     $paymentTotal = 0;
