@@ -829,8 +829,8 @@ class AuditController extends Controller
                     return [
                         'total_omset' => $paymentTotal,
                         'payments' => $pSums,
-                        'hp_units' => $map,
-                        'hp_amounts' => $mapRp,
+                        'dist_map' => $map,
+                        'dist_map_rp' => $mapRp,
                         'stock_report' => $stockReport,
                         'stock_details' => $rawStockDetails,
                         'sold_details' => $soldDetails,
