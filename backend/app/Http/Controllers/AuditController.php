@@ -612,47 +612,21 @@ class AuditController extends Controller
                                     $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $distributorIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']));
                                 
                                 if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
-                                    $sub->whereRaw('1=1');
+                                if (!empty($branchIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
+                                if (!empty($onlineShopIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
+                                if (!empty($warehouseIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $warehouseIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']));
+                                if (!empty($distributorIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $distributorIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']));
+                                if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) $sub->whereRaw('1=1');
                             });
                         }
                     }; 
-                    // 1. Total Omset & Payments - Aggressive capturing
-                    $paymentTotal = 0;
-                    $pSums = [];
 
-                    $baseSalesQuery = DB::table('stock_outs');
-                    $applyLocalScope($baseSalesQuery);
-                    $sales = $baseSalesQuery->whereNotIn('stock_outs.category', ['hilang', 'rusak', 'retur_distributor', 'stok_opname', 'HILANG', 'RUSAK', 'RETUR', 'transfer_stok', 'mutasi'])
-                        ->select('id', 'selling_price', 'payment_method_id', 'split_payments', 'category')
-                        ->get();
-
-                    foreach ($sales as $s) {
-                        // Grab prices from items if header is suspicious/zero
-                        $itemPrice = DB::table('stock_out_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price - COALESCE(item_discount, 0)'));
-                        $nhpPrice = DB::table('stock_out_non_hp_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price * quantity'));
-                        
-                        $amt = (float) ($itemPrice + $nhpPrice);
-                        if ($amt <= 0) $amt = (float) $s->selling_price; // Fallback to header
-
-                        if ($s->category === 'refund') $amt = -$amt;
-                        $paymentTotal += $amt;
-
-                        $methodName = $s->payment_method_id ? ($paymentMethods->get($s->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
-                        $splits = $s->split_payments ? (is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments) : null;
-
-                        if (is_array($splits)) {
-                            foreach ($splits as $sp) {
-                                $mName = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null))?->name ?? 'Lainnya';
-                                $pSums[$mName] = ($pSums[$mName] ?? 0) + (float) ($sp['amount'] ?? 0);
-                            }
-                        } else {
-                            $pSums[$methodName] = ($pSums[$methodName] ?? 0) + $amt;
-                        }
-                    }
-
-                    $debug['total_payments_found'] = $sales->count();
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                    $soldDetails = [];
+                    $pSums = [];
+                    $paymentTotal = 0;
+
                     $getCategoryByItem = function ($did) {
                         $did = (int) $did;
                         if ($did === 6) return 'apple_lux';
@@ -669,165 +643,102 @@ class AuditController extends Controller
                         return 'others';
                     };
 
-                    $addUnitToMap = function(&$map, $brand, $category) {
-                        $brand = strtolower($brand ?? '');
-                        if ($category === 'apple_lux') {
-                            $map['apple_lux']++;
-                        } elseif ($brand === 'apple' || str_contains($brand, 'iphone')) {
-                            $map['iphone']++;
-                        } elseif ($brand && $brand != 'none' && $brand != '-') {
-                            $map['android']++;
-                        }
-                        
-                        if (isset($map[$category])) {
-                            $map[$category]++;
-                        }
-                    };
+                    $baseSalesQuery = DB::table('stock_outs');
+                    $applyLocalScope($baseSalesQuery);
+                    $salesHeaderItems = $baseSalesQuery->whereNotIn('stock_outs.category', ['hilang', 'rusak', 'retur_distributor', 'stok_opname', 'HILANG', 'RUSAK', 'RETUR', 'transfer_stok', 'mutasi'])
+                        ->select('id', 'selling_price', 'payment_method_id', 'split_payments', 'category')
+                        ->get();
 
-                    // 1. HP transactions from stock_out_items
-                    $hpItemsQuery = DB::table('stock_out_items')
-                        ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-                        ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-                        ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                        ->whereNotIn('stock_outs.category', ['hilang', 'rusak', 'retur_distributor', 'stok_opname', 'HILANG', 'RUSAK', 'RETUR', 'transfer_stok', 'mutasi']);
-                    $applyLocalScope($hpItemsQuery);
-                    
-                    foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
-                        $cat = $getCategoryByItem($hp->distributor_id);
-                        $addUnitToMap($map, $hp->brand, $cat);
-                        
-                        $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
-                        $mapRp[$cat] += $price;
-                        $soldDetails[$cat][$hp->name ?? 'Unknown item'] = ($soldDetails[$cat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
+                    foreach ($salesHeaderItems as $s) {
+                        $itemPrice = DB::table('stock_out_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price - COALESCE(item_discount, 0)'));
+                        $nhpPrice = DB::table('stock_out_non_hp_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price * quantity'));
+                        $amt = (float)($itemPrice + $nhpPrice);
+                        if ($amt <= 0) $amt = (float) $s->selling_price;
+
+                        if ($s->category === 'refund') $amt = -$amt;
+                        $paymentTotal += $amt;
+
+                        $methodName = $s->payment_method_id ? ($paymentMethods->get($s->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+                        $splits = $s->split_payments ? (is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments) : null;
+                        if (is_array($splits)) {
+                            foreach ($splits as $sp) {
+                                $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
+                                $mName = $paymentMethods->get($pmId)?->name ?? 'Lainnya';
+                                $pSums[$mName] = ($pSums[$mName] ?? 0) + (float)($sp['amount'] ?? 0);
+                            }
+                        } else {
+                            $pSums[$methodName] = ($pSums[$methodName] ?? 0) + $amt;
+                        }
+
+                        foreach (DB::table('stock_out_items')->where('stock_out_id', $s->id)
+                            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                            ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
+                            ->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price', 'stock_out_items.item_discount')->get() as $hp) {
+                            $cat = $getCategoryByItem($hp->distributor_id);
+                            $price = (float)$hp->selling_price - (float)($hp->item_discount ?? 0);
+                            if ($s->category === 'refund') $price = -$price;
+                            
+                            $mapRp[$cat] += $price;
+                            $map[$cat]++;
+                            
+                            $brand = strtolower($hp->brand ?? '');
+                            if ($cat === 'apple_lux') $map['apple_lux']++;
+                            elseif ($brand === 'apple' || str_contains($brand, 'iphone')) $map['iphone']++;
+                            elseif ($brand && $brand != '-' && $brand != 'none') $map['android']++;
+
+                            $soldDetails[$cat][$hp->name] = ($soldDetails[$cat][$hp->name] ?? 0) + 1;
+                        }
+
+                        foreach (DB::table('stock_out_non_hp_items')->where('stock_out_id', $s->id)
+                            ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                            ->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
+                            $cat = $getCategoryByItem($item->distributor_id);
+                            $qty = (int)$item->quantity;
+                            $price = (float)$item->selling_price * $qty;
+                            if ($s->category === 'refund') $price = -$price;
+
+                            $mapRp[$cat] += $price;
+                            $map[$cat] += $qty;
+
+                            if ($cat === 'perdana') $map['perdana'] += $qty;
+                            if ($cat === 'jaringan') $map['jaringan'] += $qty;
+
+                            $soldDetails[$cat][$item->name] = ($soldDetails[$cat][$item->name] ?? 0) + $qty;
+                        }
                     }
 
-                    // 2. Non-IMEI transactions
-                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')
-                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-                        ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                        ->whereNotIn('stock_outs.category', ['hilang', 'rusak', 'retur_distributor', 'stok_opname', 'HILANG', 'RUSAK', 'RETUR', 'transfer_stok', 'mutasi']);
-                    $applyLocalScope($nhpItemsQuery);
-                    
-                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
-                        $qty = (int) $item->quantity;
-                        $cat = $getCategoryByItem($item->distributor_id);
-
-                        if ($cat === 'perdana') $map['perdana'] += $qty;
-                        if ($cat === 'jaringan') $map['jaringan'] += $qty;
-
-                        // Breakdown for non-IMEI HP if any
-                        if ($cat === 'hp' || $cat === 'apple_lux') {
-                            $brand = strtolower($item->brand ?? '');
-                            if ($brand === 'apple' || str_contains($brand, 'iphone')) $map['iphone'] += $qty;
-                            else $map['android'] += $qty;
-                        }
-
-                        $map[$cat] += $qty;
-                        $mapRp[$cat] += (float) $item->item_price * $qty;
-                        $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
-                    }
-
-                    // 3. Current Stock (ALL TIME)
-                    $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
+                    $stockReport = array_combine(array_keys($map), array_fill(0, count($map), 0));
                     $rawStockDetails = [];
 
-                    // Redundant definition removed.
-
-
-
-                    // IMEI Stock - current available stock
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
-                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
                         ->where('product_details.status', 'ready')
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
-                    
                     $applyStockScope($alStock);
-                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
-                        $cat = $getCategoryByItem($s->distributor_id);
-                        $cleanName = trim($s->name);
-                        $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
-                        $stockReport[$cat] += $s->qty;
+                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $st) {
+                        $cat = $getCategoryByItem($st->distributor_id);
+                        $rawStockDetails[$cat][trim($st->name)] = ($rawStockDetails[$cat][trim($st->name)] ?? 0) + $st->qty;
+                        $stockReport[$cat] += $st->qty;
                     }
 
-                    // Use a slightly more optimized approach for NHP stock to find distributors
                     $oStock = DB::table('inventories')
                         ->join('products', 'inventories.product_id', '=', 'products.id')
                         ->where('inventories.quantity', '>', 0)
                         ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
-                    
-                    $oStockItems = $oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id', 'inventories.product_id', 'inventories.placement_type', 'inventories.placement_id')->get();
-                    
-                    foreach ($oStockItems as $s) {
-                        $did = $s->distributor_id;
-                        if (!$did) {
-                            // Only perform lookup if needed
-                            $log = DB::table('inventory_logs')
-                                ->where('product_id', $s->product_id)
-                                ->where('type', 'in')
-                                ->where(function($q) use ($s) {
-                                    if ($s->placement_type === 'branch') $q->where('branch_id', $s->placement_id);
-                                    elseif ($s->placement_type === 'warehouse') $q->where('warehouse_id', $s->placement_id);
-                                    elseif ($s->placement_type === 'online_shop') $q->where('online_shop_id', $s->placement_id);
-                                })
-                                ->orderBy('id', 'desc')
-                                ->first();
-                            $did = $log ? $log->distributor_id : null;
-                        }
-
-                        $cat = $getCategoryByItem($did);
-                        $cleanName = trim($s->name);
-                        $qty = (int) $s->quantity;
-                        $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
-                        $stockReport[$cat] += $qty;
+                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $st) {
+                        $cat = $getCategoryByItem($st->distributor_id);
+                        $rawStockDetails[$cat][trim($st->name)] = ($rawStockDetails[$cat][trim($st->name)] ?? 0) + $st->quantity;
+                        $stockReport[$cat] += $st->quantity;
                     }
 
-                    // 4. Stock In (Period)
-                    $inDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
-                    $distInMap = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                    $inDetails = []; $distInMap = [];
 
-                    $applyInScope = function ($q) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                        $q->where('stock_outs.status', 'received')
-                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                            ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                                if ($requestedBranchId) {
-                                    $sub->where('stock_outs.destination_id', $requestedBranchId)->where('stock_outs.destination_type', 'branch');
-                                } elseif ($requestedOnlineShopId) {
-                                    $sub->where('stock_outs.destination_id', $requestedOnlineShopId)->where('stock_outs.destination_type', 'online_shop');
-                                } else {
-                                    if (!empty($branchIds))
-                                        $sub->orWhere(fn($sq) => $sq->whereIn('stock_outs.destination_id', $branchIds)->where('stock_outs.destination_type', 'branch'));
-                                    if (!empty($onlineShopIds))
-                                        $sub->orWhere(fn($sq) => $sq->whereIn('stock_outs.destination_id', $onlineShopIds)->where('stock_outs.destination_type', 'online_shop'));
-                                }
-                            });
-                    };
-
-                    $hpInQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
-                    $applyInScope($hpInQuery);
-                    foreach ($hpInQuery->select('products.name', 'product_details.distributor_id')->get() as $hp) {
-                        $did = (int) $hp->distributor_id;
-                        $cat = $getCategoryByItem($did);
-                        $inDetails[$cat][$hp->name] = ($inDetails[$cat][$hp->name] ?? 0) + 1;
-                        $distInMap[$cat]++;
-                    }
-
-                    $nhpInQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
-                    $applyInScope($nhpInQuery);
-                    foreach ($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
-                        $qty = (int) $s->quantity;
-                        $cat = $getCategoryByItem($s->distributor_id);
-                        $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
-                        $distInMap[$cat] += $qty;
-                    }
                     $debug = [
-                        'requested_branch_id' => $request->branch_id ?? 'N/A',
-                        'requested_online_shop_id' => $request->online_shop_id ?? 'N/A',
-                        'resolved_target_id' => $targetBranchId ?? 'N/A',
-                        'total_payments_found' => $sales->count(),
+                        'resolved_id' => $targetBranchId ?? 'N/A',
+                        'raw_p' => $salesHeaderItems->count(),
                         'raw_u' => ($map['hp'] ?? 0) + ($map['accessories'] ?? 0) + ($map['others'] ?? 0),
-                        'branch_ids_scope' => $branchIds,
+                        'payment_total_calc' => $paymentTotal,
                     ];
 
                     $actQuery = DB::table('stock_outs');
@@ -841,9 +752,6 @@ class AuditController extends Controller
                         'stock_report' => $stockReport,
                         'stock_details' => $rawStockDetails,
                         'sold_details' => $soldDetails,
-                        'in_details' => $inDetails,
-                        'dist_in_map' => $distInMap,
-                        'debug' => $debug,
                         'activities' => [
                             'tukar_unit' => (clone $actQuery)->where('category', 'tukar_unit')->count(),
                             'tukar_tambah' => (clone $actQuery)->where('category', 'tukar_tambah')->count(),
@@ -851,14 +759,13 @@ class AuditController extends Controller
                             'refund' => (clone $actQuery)->where('category', 'refund')->count(),
                             'angkat_barang' => (clone $actQuery)->where('category', 'angkat_barang')->count(),
                         ],
+                        'debug' => $debug
                     ];
                 } catch (\Exception $e) {
-                    return [
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ];
+                    return ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()];
                 }
-            }
+            },
+
         ]);
 
 
