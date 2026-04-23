@@ -651,24 +651,29 @@ class AuditController extends Controller
                         return 'others';
                     };
 
+                    $addUnitToMap = function(&$map, $brand, $category) {
+                        $brand = strtolower($brand ?? '');
+                        if ($category === 'apple_lux') {
+                            $map['apple_lux']++;
+                        } elseif ($brand === 'apple' || str_contains($brand, 'iphone')) {
+                            $map['iphone']++;
+                        } elseif ($brand && $brand != 'none' && $brand != '-') {
+                            $map['android']++;
+                        }
+                        
+                        if (isset($map[$category])) {
+                            $map[$category]++;
+                        }
+                    };
+
                     // 1. HP transactions from stock_out_items
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id');
                     $applyLocalScope($hpItemsQuery);
                     foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
                         $cat = $getCategoryByItem($hp->distributor_id);
-
-                        $map[$cat]++;
+                        $addUnitToMap($map, $hp->brand, $cat);
                         
-                        // Internal HP breakdown
-                        if ($cat === 'apple_lux' || $did === 8 || str_contains(strtolower($hp->brand ?? ''), 'apple')) {
-                            $map['iphone']++;
-                        } elseif ($did === 7 || $did === 9 || str_contains(strtolower($hp->brand ?? ''), 'android')) {
-                            $map['android']++;
-                        } else {
-                            $map['iphone']++;
-                        }
-
-                        $price = (float) $hp->item_price - (float) $hp->item_discount;
+                        $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
                         $mapRp[$cat] += $price;
                         $soldDetails[$cat][$hp->name] = ($soldDetails[$cat][$hp->name] ?? 0) + 1;
                     }
