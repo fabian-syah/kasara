@@ -689,8 +689,9 @@ class AuditController extends Controller
                         if ($cat === 'jaringan') $map['jaringan'] += $qty;
 
                         // Breakdown for non-IMEI HP if any
-                        if ($cat === 'hp') {
-                            if ($did === 8) $map['iphone'] += $qty;
+                        if ($cat === 'hp' || $cat === 'apple_lux') {
+                            $brand = strtolower($item->brand ?? '');
+                            if ($brand === 'apple' || str_contains($brand, 'iphone')) $map['iphone'] += $qty;
                             else $map['android'] += $qty;
                         }
 
