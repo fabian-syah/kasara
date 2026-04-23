@@ -672,51 +672,43 @@ class AuditController extends Controller
 
         $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors) {
             $details = [];
-            $calculatedTotal = 0;
             
-            // If it's a bundle, the user wants it collapsed with total price.
-            if ($trx->is_bundle) {
-                $itemNames = [];
-                foreach ($trx->items as $item) $itemNames[] = $item->product?->name ?? 'Unknown HP';
-                foreach ($trx->nonHpDetails as $item) $itemNames[] = $item->product?->name ?? 'Item Non-HP';
-                
-                $distNames = [];
-                foreach ($trx->items as $item) {
-                    $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
-                    $dist = $dId ? $distributors->get($dId) : null;
-                    $distNames[] = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
-                }
-                foreach ($trx->nonHpDetails as $item) {
-                    $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
-                    $distNames[] = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
-                }
+            foreach ($trx->items as $item) {
+                $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
+                $dist = $dId ? $distributors->get($dId) : null;
+                $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
+                $netPrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0) - ($item->pivot?->distributed_discount ?? 0);
 
                 $details[] = [
-                    'name' => '📦 BUNDLING: ' . implode(', ', array_unique($itemNames)),
-                    'qty' => 1,
-                    'price' => (float) $trx->selling_price,
-                    'brand' => 'Bundling',
-                    'type' => 'Bundle',
-                    'imei' => $trx->items->pluck('imei')->filter()->implode(', ') ?: '-',
-                    'distributor_name' => implode(', ', array_unique($distNames)) ?: 'Bundling'
+                    'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP'), 
+                    'qty' => 1, 
+                    'price' => $netPrice, 
+                    'brand' => $item->product?->brand ?? '-', 
+                    'type' => 'HP', 
+                    'is_hp' => true,
+                    'imei' => $item->imei ?? '-', 
+                    'distributor_name' => $dName,
+                    'ram' => $item->storage, // The modal expects ram/storage
+                    'storage' => $item->storage,
+                    'condition' => $item->condition
                 ];
-            } else {
-                foreach ($trx->items as $item) {
-                    $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
-                    $dist = $dId ? $distributors->get($dId) : null;
-                    $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
-                    $netPrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0) - ($item->pivot?->distributed_discount ?? 0);
-                    $details[] = ['name' => $item->product?->name ?? 'Unknown HP', 'qty' => 1, 'price' => $netPrice, 'brand' => $item->product?->brand ?? '-', 'type' => 'HP', 'imei' => $item->imei ?? '-', 'distributor_name' => $dName];
-                    $calculatedTotal += $netPrice;
-                }
-                foreach ($trx->nonHpDetails as $item) {
-                    $qty = $item->quantity;
-                    $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0) - ($item->distributed_discount ?? 0);
-                    $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
-                    $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
-                    $details[] = ['name' => $item->product?->name ?? 'Item Non-HP', 'qty' => $qty, 'price' => $price, 'brand' => $item->product?->brand ?? '-', 'type' => 'Non-HP', 'distributor_name' => $dName];
-                    $calculatedTotal += ($price * $qty);
-                }
+            }
+            foreach ($trx->nonHpDetails as $item) {
+                $qty = $item->quantity;
+                $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0) - ($item->distributed_discount ?? 0);
+                $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
+                $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
+                
+                $details[] = [
+                    'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Item Non-HP'), 
+                    'qty' => $qty, 
+                    'price' => $price, 
+                    'brand' => $item->product?->brand ?? '-', 
+                    'type' => 'Item', 
+                    'is_hp' => false,
+                    'imei' => '-', 
+                    'distributor_name' => $dName
+                ];
             }
             
             $paymentMethodNames = [];
