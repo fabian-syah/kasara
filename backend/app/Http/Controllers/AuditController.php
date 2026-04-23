@@ -641,14 +641,25 @@ class AuditController extends Controller
                     $applyLocalScope($hpItemsQuery);
                     foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
                         $did = (int) $hp->distributor_id;
-                        $lname = strtolower($hp->name);
-                        $cat = 'hp';
-                        if ($did === 6 || str_contains($lname, 'luxury')) {
-                            $cat = 'apple_lux';
-                        }
+                        
+                        // Strict mapping from user
+                        $cat = 'others';
+                        if ($did === 6) $cat = 'apple_lux';
+                        elseif (in_array($did, [7, 8, 9])) $cat = 'hp';
+                        elseif ($did === 10) $cat = 'accessories';
+                        elseif ($did === 11) $cat = 'apply';
+                        elseif ($did === 13) $cat = 'debs';
+                        elseif ($did === 14) $cat = 'arcis';
+                        elseif ($did === 15) $cat = 'dokter_pstore';
+                        elseif ($did === 16) $cat = 'laptop';
+                        elseif ($did === 17) $cat = 'tv';
+                        elseif ($did === 18) $cat = 'perdana';
+                        elseif ($did === 19) $cat = 'jaringan';
 
                         $map[$cat]++;
-                        if ($did === 8 || str_contains(strtolower($hp->brand), 'apple') || str_contains($lname, 'iphone') || $cat === 'apple_lux') {
+                        
+                        // Internal HP breakdown
+                        if ($cat === 'apple_lux' || $did === 8 || str_contains(strtolower($hp->brand), 'apple')) {
                             $map['iphone']++;
                         } elseif ($did === 7 || $did === 9 || str_contains(strtolower($hp->brand), 'android')) {
                             $map['android']++;
@@ -667,55 +678,31 @@ class AuditController extends Controller
                     foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
                         $qty = (int) $item->quantity;
                         $did = (int) $item->distributor_id;
-                        $name = strtolower($item->name);
 
-                        $cat = null;
-                        if ($did === 19)
-                            $cat = 'jaringan';
-                        elseif ($did === 18)
+                        // Strict mapping from user
+                        $cat = 'others';
+                        if ($did === 6) $cat = 'apple_lux';
+                        elseif (in_array($did, [7, 8, 9])) $cat = 'hp';
+                        elseif ($did === 10) $cat = 'accessories';
+                        elseif ($did === 11) $cat = 'apply';
+                        elseif ($did === 13) $cat = 'debs';
+                        elseif ($did === 14) $cat = 'arcis';
+                        elseif ($did === 15) $cat = 'dokter_pstore';
+                        elseif ($did === 16) $cat = 'laptop';
+                        elseif ($did === 17) $cat = 'tv';
+                        elseif ($did === 18) {
                             $cat = 'perdana';
-                        elseif ($did === 11)
-                            $cat = 'apply';
-                        elseif ($did === 14)
-                            $cat = 'arcis';
-                        elseif ($did === 13)
-                            $cat = 'debs';
-                        elseif ($did === 10)
-                            $cat = 'accessories';
-                        elseif ($did === 15)
-                            $cat = 'dokter_pstore';
-                        elseif ($did === 16)
-                            $cat = 'laptop';
-                        elseif ($did === 17)
-                            $cat = 'tv';
-                        elseif ($did === 6)
-                            $cat = 'apple_lux';
-                        elseif ($did === 8 || $did === 7 || $did === 9) {
-                            $cat = 'hp';
-                            if ($did === 8)
-                                $map['iphone'] += $qty;
-                            else
-                                $map['android'] += $qty;
+                            $map['perdana'] += $qty; // Ensure count is updated
+                        }
+                        elseif ($did === 19) {
+                            $cat = 'jaringan';
+                            $map['jaringan'] += $qty; // Ensure count is updated
                         }
 
-                        if (!$cat) {
-                            if (str_contains($name, 'arcis'))
-                                $cat = 'arcis';
-                            elseif (str_contains($name, 'debs'))
-                                $cat = 'debs';
-                            elseif (str_contains($name, 'apply'))
-                                $cat = 'apply';
-                            elseif (str_contains($name, 'luxury') || str_contains($name, 'apple lux'))
-                                $cat = 'apple_lux';
-                            elseif (str_contains($name, 'iphone') || str_contains($name, 'hp')) {
-                                $cat = 'hp';
-                                $map['iphone'] += $qty;
-                            } elseif (str_contains($name, '4g') || str_contains($name, 'lte') || str_contains($name, 'jaringan'))
-                                $cat = 'jaringan';
-                            elseif (str_contains($name, 'perdana') || str_contains($name, 'sim card'))
-                                $cat = 'perdana';
-                            else
-                                $cat = 'others';
+                        // Breakdown for non-IMEI HP if any (unlikely but safe)
+                        if ($cat === 'hp') {
+                            if ($did === 8) $map['iphone'] += $qty;
+                            else $map['android'] += $qty;
                         }
 
                         $map[$cat] += $qty;
@@ -753,6 +740,22 @@ class AuditController extends Controller
                         });
                     };
 
+                    $getCategoryById = function ($did) {
+                        $did = (int) $did;
+                        if ($did === 6) return 'apple_lux';
+                        if (in_array($did, [7, 8, 9])) return 'hp';
+                        if ($did === 10) return 'accessories';
+                        if ($did === 11) return 'apply';
+                        if ($did === 13) return 'debs';
+                        if ($did === 14) return 'arcis';
+                        if ($did === 15) return 'dokter_pstore';
+                        if ($did === 16) return 'laptop';
+                        if ($did === 17) return 'tv';
+                        if ($did === 18) return 'perdana';
+                        if ($did === 19) return 'jaringan';
+                        return 'others';
+                    };
+
                     // IMEI Stock - current available stock (no date filter = all-time, but status=available = real-time shelf stock)
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -761,8 +764,7 @@ class AuditController extends Controller
                     
                     $applyStockScope($alStock);
                     foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
-                        $did = (int) $s->distributor_id;
-                        $cat = ($did === 6) ? 'apple_lux' : 'hp';
+                        $cat = $getCategoryById($s->distributor_id);
                         $cleanName = trim($s->name);
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                         $stockReport[$cat] += $s->qty;
@@ -775,56 +777,9 @@ class AuditController extends Controller
                         ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
                     foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
-                        $qty = (int) $s->quantity;
-                        $did = (int) $s->distributor_id;
-                        $cat = null;
-                        if ($did === 14)
-                            $cat = 'arcis';
-                        elseif ($did === 13)
-                            $cat = 'debs';
-                        elseif ($did === 11)
-                            $cat = 'apply';
-                        elseif ($did === 10)
-                            $cat = 'accessories';
-                        elseif ($did === 18)
-                            $cat = 'perdana';
-                        elseif ($did === 19)
-                            $cat = 'jaringan';
-                        elseif ($did === 15)
-                            $cat = 'dokter_pstore';
-                        elseif ($did === 6)
-                            $cat = 'apple_lux';
-                        elseif ($did === 16)
-                            $cat = 'laptop';
-                        elseif ($did === 17)
-                            $cat = 'tv';
-                        elseif ($did === 8 || $did === 7 || $did === 9)
-                            $cat = 'hp';
-
-                        if (!$cat) {
-                            $lname = strtolower($s->name);
-                            if (str_contains($lname, 'arcis'))
-                                $cat = 'arcis';
-                            elseif (str_contains($lname, 'debs'))
-                                $cat = 'debs';
-                            elseif (str_contains($lname, 'apply'))
-                                $cat = 'apply';
-                            elseif (str_contains($lname, 'apple lux') || str_contains($lname, 'luxury'))
-                                $cat = 'apple_lux';
-                            elseif (str_contains($lname, 'hp') || str_contains($lname, 'iphone'))
-                                $cat = 'hp';
-                            elseif (str_contains($lname, 'perdana') || str_contains($lname, 'sim card'))
-                                $cat = 'perdana';
-                            elseif (str_contains($lname, 'laptop') || str_contains($lname, 'thinkpad') || str_contains($lname, 'msi') || str_contains($lname, 'lenovo') || str_contains($lname, 'macbook'))
-                                $cat = 'laptop';
-                            elseif (str_contains($lname, 'tv') || str_contains($lname, 'coocaa') || str_contains($lname, 'televisi') || str_contains($lname, 'monitor'))
-                                $cat = 'tv';
-                            elseif (str_contains($lname, 'tempered glass') || str_contains($lname, 'case') || str_contains($lname, 'adapter') || str_contains($lname, 'cable') || str_contains($lname, 'speaker'))
-                                $cat = 'accessories';
-                            else
-                                $cat = 'others';
-                        }
+                        $cat = $getCategoryById($s->distributor_id);
                         $cleanName = trim($s->name);
+                        $qty = (int) $s->quantity;
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
                         $stockReport[$cat] += $qty;
                     }
