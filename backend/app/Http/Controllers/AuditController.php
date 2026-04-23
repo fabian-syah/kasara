@@ -631,15 +631,12 @@ class AuditController extends Controller
                         }
                     }
 
-                    // 2. HP & NHP Categorization (Transactions)
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
+                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
                     $soldDetails = [];
 
                     $getCategoryByItem = function ($did) {
                         $did = (int) $did;
-                        
-                        // STRICT ID MAPPING ONLY
                         if ($did === 6) return 'apple_lux';
                         if (in_array($did, [7, 8, 9])) return 'hp';
                         if ($did === 10) return 'accessories';
@@ -651,7 +648,6 @@ class AuditController extends Controller
                         if ($did === 17) return 'tv';
                         if ($did === 18) return 'perdana';
                         if ($did === 19) return 'jaringan';
-
                         return 'others';
                     };
 
@@ -745,17 +741,19 @@ class AuditController extends Controller
                         $stockReport[$cat] += $s->qty;
                     }
 
-                    // For NHP Stock, we use a smarter lookup to find the distributor if inventories.distributor_id is null
+                    // Use a slightly more optimized approach for NHP stock to find distributors
                     $oStock = DB::table('inventories')
                         ->join('products', 'inventories.product_id', '=', 'products.id')
                         ->where('inventories.quantity', '>', 0)
                         ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
                     
-                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id', 'inventories.product_id', 'inventories.placement_type', 'inventories.placement_id')->get() as $s) {
+                    $oStockItems = $oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id', 'inventories.product_id', 'inventories.placement_type', 'inventories.placement_id')->get();
+                    
+                    foreach ($oStockItems as $s) {
                         $did = $s->distributor_id;
                         if (!$did) {
-                            // Lookup latest In Log as fallback (same as InventoryController)
+                            // Only perform lookup if needed
                             $log = DB::table('inventory_logs')
                                 ->where('product_id', $s->product_id)
                                 ->where('type', 'in')
@@ -764,7 +762,7 @@ class AuditController extends Controller
                                     elseif ($s->placement_type === 'warehouse') $q->where('warehouse_id', $s->placement_id);
                                     elseif ($s->placement_type === 'online_shop') $q->where('online_shop_id', $s->placement_id);
                                 })
-                                ->latest()
+                                ->orderBy('id', 'desc')
                                 ->first();
                             $did = $log ? $log->distributor_id : null;
                         }
@@ -801,7 +799,7 @@ class AuditController extends Controller
                     $applyInScope($hpInQuery);
                     foreach ($hpInQuery->select('products.name', 'product_details.distributor_id')->get() as $hp) {
                         $did = (int) $hp->distributor_id;
-                        $cat = ($did === 6) ? 'apple_lux' : 'hp';
+                        $cat = $getCategoryByItem($did);
                         $inDetails[$cat][$hp->name] = ($inDetails[$cat][$hp->name] ?? 0) + 1;
                         $distInMap[$cat]++;
                     }
