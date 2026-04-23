@@ -174,7 +174,7 @@ class AuditController extends Controller
         [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
             // 1. Paginated Sales Query
             function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                return StockOut::with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'auditAnswers', 'paymentMethod'])
+                return StockOut::with(['items.product', 'nonHpDetails.product', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod', 'splitPayments'])
                     ->whereIn('category', $salesCategories)
                     ->whereBetween('reporting_date', [$startDate, $endDate])
                     ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
@@ -719,7 +719,33 @@ class AuditController extends Controller
                 }
             }
             
-            return ['id' => $trx->id, 'date' => $trx->created_at?->toDateTimeString() ?? '-', 'order_no' => $trx->receipt_id, 'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-', 'category' => $trx->category, 'qty' => $trx->is_bundle ? 1 : count($details), 'items' => $details, 'grand_total' => $trx->selling_price, 'is_bundle' => (bool)$trx->is_bundle];
+            $paymentMethodNames = [];
+            if ($trx->payment_method_id) {
+                $pm = $paymentMethods->get($trx->payment_method_id);
+                if ($pm) $paymentMethodNames[] = $pm->name;
+            }
+            if ($trx->splitPayments) {
+                foreach ($trx->splitPayments as $sp) {
+                    $pm = $paymentMethods->get($sp->payment_method_id);
+                    if ($pm) $paymentMethodNames[] = $pm->name;
+                }
+            }
+            $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
+
+            return [
+                'id' => $trx->id,
+                'date' => $trx->created_at?->toDateTimeString() ?? '-',
+                'order_no' => $trx->receipt_id,
+                'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
+                'customer_phone' => $trx->customer_wa ?? '-',
+                'category' => $trx->category,
+                'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
+                'qty' => $trx->is_bundle ? 1 : count($details),
+                'items' => $details,
+                'grand_total' => $trx->selling_price,
+                'is_bundle' => (bool)$trx->is_bundle,
+                'payment_method_name' => $finalPaymentMethods
+            ];
         });
 
         $formattedBrandSales = collect($brandSalesRaw['hp'])->map(fn($i) => [...(array) $i, 'is_hp' => true])->concat(collect($brandSalesRaw['nhp'])->map(fn($i) => [...(array) $i, 'condition' => '-', 'storage' => '-', 'distributor' => '-', 'is_hp' => false]))->toArray();
