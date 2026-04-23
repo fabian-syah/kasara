@@ -153,10 +153,7 @@ const isOnlyNonHp = computed(() => {
 watch(() => props.show, (newVal) => {
     if (newVal) {
         fetchInventoryUsers();
-        // Skip user selection if only non-hp items are selected
-        if (isOnlyNonHp.value) {
-            selectedInventoryUser.value = { id: 'system', name: 'System (Non-HP)', roles: [{ name: 'SYSTEM' }] };
-        }
+        // Removed shortcut that skipped user selection for non-hp items
     } else {
         selectedStockOutCategory.value = null;
         selectedInventoryUser.value = null;
@@ -556,7 +553,8 @@ async function submitStockOut(pin = null) {
         });
 
         console.log("[DEBUG MODAL] SUCCESS:", response.data);
-        toast.success(`Stok berhasil dikeluarkan! ID: ${response.data.data.receipt_id}`);
+        const receiptId = response.data.receipt_id || response.data.data?.receipt_id;
+        toast.success(`Stok berhasil dikeluarkan! ID: ${receiptId || 'Done'}`);
         emit('success');
     } catch (e) {
         console.error("[DEBUG MODAL] Error:", e);
@@ -606,7 +604,7 @@ async function submitStockOut(pin = null) {
             <!-- Modal Body -->
             <div class="flex-1 overflow-y-auto p-6 bg-surface-900/50">
                 <!-- STEP 1: SELECT INVENTORY ACCOUNT -->
-                <div v-if="!selectedInventoryUser && !isOnlyNonHp" class="animate-in slide-in-from-right">
+                <div v-if="!selectedInventoryUser" class="animate-in slide-in-from-right">
                     <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                         <UserCheck :size="20" class="text-emerald-500" />
                         Pilih User Inventory
@@ -664,12 +662,12 @@ async function submitStockOut(pin = null) {
                         <div class="flex items-center gap-3">
                             <div
                                 class="w-10 h-10 rounded-full bg-surface-900 flex items-center justify-center overflow-hidden border border-surface-700">
-                                <img v-if="selectedInventoryUser.photo_inventory"
+                                <img v-if="selectedInventoryUser?.photo_inventory"
                                     :src="`${storageUrl}/storage/${selectedInventoryUser.photo_inventory}`"
                                     class="w-full h-full object-cover" />
                                 <User v-else :size="16" class="text-text-secondary" />
                             </div>
-                            <div>
+                            <div v-if="selectedInventoryUser">
                                 <p class="text-xs text-text-secondary uppercase">Akun Inventory</p>
                                 <p class="font-bold text-text-primary text-sm">{{ selectedInventoryUser.full_name ||
                                     selectedInventoryUser.name }}</p>
