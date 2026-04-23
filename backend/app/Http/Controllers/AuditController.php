@@ -839,11 +839,11 @@ class AuditController extends Controller
                         'in_details' => $inDetails,
                         'dist_in_map' => $distInMap,
                         'activities' => [
-                            'tukar_unit' => 0,
-                            'tukar_tambah' => 0,
-                            'downgrade' => 0,
-                            'refund' => 0,
-                            'angkat_barang' => 0,
+                            'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
+                            'tukar_tambah' => $pQuery->clone()->where('category', 'tukar_tambah')->count(),
+                            'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
+                            'refund' => $pQuery->clone()->where('category', 'refund')->count(),
+                            'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
                         ],
                         'debug' => $debug
                     ];
