@@ -559,9 +559,30 @@ class AuditController extends Controller
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
                         $query->whereDate('stock_outs.reporting_date', '>=', $startDate)
                               ->whereDate('stock_outs.reporting_date', '<=', $endDate);
-                        if ($requestedBranchId) $query->where('stock_outs.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
-                        elseif ($requestedWarehouseId) $query->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        
+                        if ($requestedBranchId) {
+                            $query->where(function($q) use ($requestedBranchId) {
+                                $q->where('stock_outs.branch_id', $requestedBranchId)
+                                  ->orWhereExists(function($sub) use ($requestedBranchId) {
+                                      $sub->select(DB::raw(1))
+                                          ->from('users')
+                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
+                                          ->where('users.branch_id', $requestedBranchId);
+                                  });
+                            });
+                        } elseif ($requestedOnlineShopId) {
+                            $query->where(function($q) use ($requestedOnlineShopId) {
+                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                  ->orWhereExists(function($sub) use ($requestedOnlineShopId) {
+                                      $sub->select(DB::raw(1))
+                                          ->from('users')
+                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
+                                          ->where('users.online_shop_id', $requestedOnlineShopId);
+                                  });
+                            });
+                        } elseif ($requestedWarehouseId) {
+                            $query->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        }
                     };
 
                     $applyStockScope = function ($query) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
