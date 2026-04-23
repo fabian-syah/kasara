@@ -586,6 +586,8 @@ class AuditController extends Controller
                                           ->where('users.branch_id', $requestedBranchId);
                                   });
                             });
+                        } elseif ($requestedOnlineShopId) {
+                            $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
                         }
                     };
 
@@ -595,6 +597,8 @@ class AuditController extends Controller
                                 $q->where('product_details.branch_id', $requestedBranchId)
                                   ->orWhere('product_details.online_shop_id', $requestedBranchId);
                             });
+                        } elseif ($requestedOnlineShopId) {
+                            $query->where('product_details.online_shop_id', $requestedOnlineShopId);
                         }
                     }; 
 
@@ -603,7 +607,6 @@ class AuditController extends Controller
                     $applyLocalScope($pQuery);
                     $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
                         ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
-
                     $pSums = [];
                     $paymentTotal = 0;
                     foreach ($payments as $p) {
@@ -821,6 +824,7 @@ class AuditController extends Controller
 
                     $debug = [
                         'requested_branch_id' => $request->branch_id ?? 'N/A',
+                        'requested_online_shop_id' => $request->online_shop_id ?? 'N/A',
                         'total_payments_found' => count($payments),
                         'raw_u' => ($map['hp'] ?? 0) + ($map['accessories'] ?? 0) + ($map['others'] ?? 0),
                         'branch_ids_scope' => $branchIds,
