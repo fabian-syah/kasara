@@ -616,31 +616,47 @@ class AuditController extends Controller
                             });
                         }
                     }; 
-                    // 1. Total Omset & Payments
-                    $pQuery = DB::table('stock_outs');
-                    $applyLocalScope($pQuery);
-                    $payments = $pQuery->whereNotIn('stock_outs.category', ['hilang', 'rusak', 'retur_distributor', 'stok_opname', 'HILANG', 'RUSAK', 'RETUR', 'transfer_stok', 'mutasi'])
-                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
-                    $pSums = [];
+                    // 1. Total Omset & Payments via items for accuracy
                     $paymentTotal = 0;
-                    foreach ($payments as $p) {
-                        $amt = (float) $p->selling_price;
-                        if ($p->category === 'refund')
-                            $amt = -$amt;
-                        $paymentTotal += $amt;
-                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+                    $pSums = [];
 
-                        $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
-                        if (is_array($splits)) {
-                            foreach ($splits as $sp) {
-                                $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
-                                $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float) ($sp['amount'] ?? 0);
+                    $baseSalesQuery = DB::table('stock_outs');
+                    $applyLocalScope($baseSalesQuery);
+                    $saleIds = $baseSalesQuery->whereNotIn('stock_outs.category', ['hilang', 'rusak', 'retur_distributor', 'stok_opname', 'HILANG', 'RUSAK', 'RETUR', 'transfer_stok', 'mutasi'])
+                        ->pluck('id')->toArray();
+
+                    if (!empty($saleIds)) {
+                        $allSales = DB::table('stock_outs')
+                            ->whereIn('id', $saleIds)
+                            ->select('id', 'selling_price', 'payment_method_id', 'split_payments', 'category')
+                            ->get();
+
+                        foreach ($allSales as $s) {
+                            // Sum from HP items and Non-HP items
+                            $itemPrice = DB::table('stock_out_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price - COALESCE(item_discount, 0)'));
+                            $nhpPrice = DB::table('stock_out_non_hp_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price * quantity'));
+                            
+                            $amt = (float) ($itemPrice + $nhpPrice);
+                            if ($amt <= 0) $amt = (float) $s->selling_price; // Fallback to header
+
+                            if ($s->category === 'refund') $amt = -$amt;
+                            $paymentTotal += $amt;
+
+                            $methodName = $s->payment_method_id ? ($paymentMethods->get($s->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+                            $splits = $s->split_payments ? (is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments) : null;
+
+                            if (is_array($splits)) {
+                                foreach ($splits as $sp) {
+                                    $m = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
+                                    $pSums[$m?->name ?? 'Lainnya'] = ($pSums[$m?->name ?? 'Lainnya'] ?? 0) + (float) ($sp['amount'] ?? 0);
+                                }
+                            } else {
+                                $pSums[$methodName] = ($pSums[$methodName] ?? 0) + $amt;
                             }
-                        } else {
-                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
                         }
                     }
 
+                    $debug['total_payments_found'] = count($saleIds);
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
                     $getCategoryByItem = function ($did) {
