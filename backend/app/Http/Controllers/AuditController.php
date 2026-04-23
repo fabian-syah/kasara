@@ -558,6 +558,13 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
                     $debug = [];
+                    $rawStockDetails = [];
+                    $remainingDetails = [];
+                    $soldDetails = [];
+                    $stockReport = array_fill_keys(['apple_lux', 'hp', 'accessories', 'apply', 'arcis', 'debs', 'dokter_pstore', 'laptop', 'tv', 'perdana', 'jaringan', 'others'], 0);
+                    $distInMap = array_fill_keys(['apple_lux', 'hp', 'accessories', 'apply', 'arcis', 'debs', 'perdana', 'jaringan', 'laptop', 'tv', 'others'], 0);
+                    $inDetails = array_fill_keys(['hp', 'apple_lux', 'accessories', 'apply', 'arcis', 'debs', 'dokter_pstore', 'laptop', 'tv', 'perdana', 'jaringan', 'others'], []);
+                    
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
                         // Logical day shift (05:00 AM)
                         $startTS = $startDate . ' 05:00:00';
@@ -619,8 +626,6 @@ class AuditController extends Controller
 
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-                    $soldDetails = [];
-
                     $getCategoryByItem = function ($did) {
                         $did = (int) $did;
                         if ($did === 6) return 'apple_lux';
@@ -814,13 +819,6 @@ class AuditController extends Controller
                         $distInMap[$cat] += $qty;
                     }
 
-                    $rawStockDetails = [];
-                    $remainingDetails = [];
-                    $soldDetails = [];
-                    $stockReport = array_fill_keys(['apple_lux', 'hp', 'accessories', 'apply', 'arcis', 'debs', 'dokter_pstore', 'laptop', 'tv', 'perdana', 'jaringan', 'others'], 0);
-                    $distInMap = array_fill_keys(['apple_lux', 'hp', 'accessories', 'apply', 'arcis', 'debs', 'perdana', 'jaringan', 'laptop', 'tv', 'others'], 0);
-                    $inDetails = array_fill_keys(['hp', 'apple_lux', 'accessories', 'apply', 'arcis', 'debs', 'dokter_pstore', 'laptop', 'tv', 'perdana', 'jaringan', 'others'], []);
-                    
                     $debug = [
                         'requested_branch_id' => $requestedBranchId,
                         'total_payments_found' => count($payments),
