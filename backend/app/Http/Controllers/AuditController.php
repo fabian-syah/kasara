@@ -676,7 +676,8 @@ class AuditController extends Controller
             foreach ($trx->items as $item) {
                 $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
                 $dist = $dId ? $distributors->get($dId) : null;
-                $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
+                $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
+                
                 // Use the selling_price as typed by the user. Do not subtract distributed_discount here 
                 // because it's handled as a separate 'TOTAL DISKON' row in the receipt/summary.
                 $basePrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
@@ -700,7 +701,7 @@ class AuditController extends Controller
                 // Same here, use basic price minus per-item discount only.
                 $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
                 $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
-                $dName = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
+                $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
                 
                 $details[] = [
                     'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Item Non-HP'), 
