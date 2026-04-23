@@ -275,7 +275,7 @@
                             class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
                             <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
-                            }}</span>
+                                }}</span>
                         </div>
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
@@ -305,7 +305,7 @@
                                         <span class="capitalize">{{ cat.label }}</span>
                                     </div>
                                     <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </template>
                         </div>
@@ -470,7 +470,7 @@
                                                     {{ name }}
                                                 </span>
                                                 <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty
-                                                }}</span>
+                                                    }}</span>
                                             </div>
                                         </div>
 
@@ -545,7 +545,7 @@
                                 class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px] appearance-none">
                                 <option :value="null" class="dark:bg-surface-800">Semua GB</option>
                                 <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb
-                                    }}GB</option>
+                                }}GB</option>
                             </select>
                         </template>
                     </div>
