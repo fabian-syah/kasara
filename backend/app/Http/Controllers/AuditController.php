@@ -578,10 +578,11 @@ class AuditController extends Controller
                                 $cat = 'tv';
                             } elseif (str_contains($name, 'hp') || str_contains($dname, 'merakyat') || str_contains($dname, 'ps store')) {
                                 $cat = 'hp';
-                                if (str_contains($name, 'iphone') || str_contains($brand, 'apple') || str_contains($dname, 'apple')) {
-                                    $map['iphone'] += $qty;
-                                } else {
+                                // Default generically named "HP" to iPhone at PSTORE to avoid undercounting
+                                if (str_contains($name, 'android') || str_contains($brand, 'android')) {
                                     $map['android'] += $qty;
+                                } else {
+                                    $map['iphone'] += $qty;
                                 }
                             } elseif (str_contains($dname, 'luxury') || str_contains($name, 'apple lux')) {
                                 $cat = 'apple_lux';
