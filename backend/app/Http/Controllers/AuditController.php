@@ -512,15 +512,13 @@ class AuditController extends Controller
 
                         $map[$cat]++;
                         
-                        // Force iPhone/Android count based on Distributor IDs if name/brand is unclear
+                        // Force iPhone/Android count based on Distributor IDs
                         if ($distId === 8 || str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->brand), 'iphone') || str_contains(strtolower($hp->name), 'iphone')) {
                             $map['iphone']++;
                         } elseif ($distId === 7 || $distId === 9 || str_contains(strtolower($hp->brand), 'android') || str_contains(strtolower($hp->name), 'android')) {
                             $map['android']++;
                         } else {
-                            // Fallback to check name for generic items
-                            if (str_contains(strtolower($hp->brand), 'apple') || str_contains(strtolower($hp->name), 'iphone')) $map['iphone']++;
-                            elseif (str_contains(strtolower($hp->brand), 'android') || str_contains(strtolower($hp->name), 'android')) $map['android']++;
+                            $map['android']++; // Default for HP categories if unclear
                         }
 
                         $price = (float) $hp->item_price - (float) $hp->item_discount - (float) ($hp->distributed_discount ?? 0);
