@@ -22,7 +22,11 @@ trait VerifiesPin
         
         // Target can be a specific inventory account or the current user
         $targetUserId = $inventoryUserId ?: $request->inventory_user_id ?: $user->id;
-        $targetUser = User::find($targetUserId);
+        
+        $targetUser = null;
+        if (is_numeric($targetUserId)) {
+            $targetUser = User::find($targetUserId);
+        }
 
         // Only verify PIN if pin_enabled is explicitly turned on
         if ($targetUser && $targetUser->pin_enabled) {

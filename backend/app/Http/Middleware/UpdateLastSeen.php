@@ -22,8 +22,8 @@ class UpdateLastSeen
             $user->last_seen = now();
             $user->save();
 
-            // 2. Update sub-account if inventory_user_id is present
-            if ($request->has('inventory_user_id')) {
+            // 2. Update sub-account if inventory_user_id is present and numeric
+            if ($request->has('inventory_user_id') && is_numeric($request->inventory_user_id)) {
                 $subAccount = \App\Models\User::find($request->inventory_user_id);
                 if ($subAccount) {
                     $subAccount->timestamps = false;

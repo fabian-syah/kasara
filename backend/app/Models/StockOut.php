@@ -18,7 +18,8 @@ class StockOut extends Model
             if (!$model->reporting_date) {
                 $location = null;
                 // Try to get location from inventory_user_id or user_id
-                $user = User::find($model->inventory_user_id ?? $model->user_id);
+                $targetId = $model->inventory_user_id ?? $model->user_id;
+                $user = is_numeric($targetId) ? User::find($targetId) : null;
                 if ($user) {
                     if ($user->branch_id) {
                         $location = $user->branch;

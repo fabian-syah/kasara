@@ -155,6 +155,11 @@ class StockOutController extends Controller
     // Create stock out
     public function store(Request $request)
     {
+        // Sanitize inventory_user_id from frontend (e.g. 'system' for non-hp)
+        if ($request->inventory_user_id === 'system') {
+            $request->merge(['inventory_user_id' => null]);
+        }
+
         // Base validation
         $rules = [
             'category' => [
@@ -1335,6 +1340,9 @@ class StockOutController extends Controller
     // Confirm Incoming Transfer
     public function confirm(Request $request, $id)
     {
+        if ($request->inventory_user_id === 'system') {
+            $request->merge(['inventory_user_id' => null]);
+        }
         $request->validate([
             'items' => 'nullable|array', // List of Accepted Item IDs (HP)
             'items_rejection' => 'nullable|array', // { itemId: note }
@@ -1853,6 +1861,9 @@ class StockOutController extends Controller
      */
     public function cancel(Request $request, $id)
     {
+        if ($request->inventory_user_id === 'system') {
+            $request->merge(['inventory_user_id' => null]);
+        }
         $request->validate([
             'reason' => 'nullable|string|max:500',
             'inventory_user_id' => 'required|exists:users,id',
