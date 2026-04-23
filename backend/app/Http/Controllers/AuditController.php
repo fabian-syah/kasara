@@ -828,9 +828,11 @@ class AuditController extends Controller
                             'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
                             'refund' => $pQuery->clone()->where('category', 'refund')->count(),
                             'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
-                        ]
+                        ],
+                        'debug' => $debug
                     ];
                 } catch (\Exception $e) {
+                    Log::error('Audit report error: ' . $e->getMessage());
                     return ['error' => $e->getMessage()];
                 }
             }
@@ -2597,10 +2599,13 @@ class AuditController extends Controller
             }
         }
 
-        $report .= "__________________\n__________________\nunit HP keluar\n\n";
+                $report .= "__________________\n__________________\nunit HP keluar\n\n";
         $report .= "Iphone           : " . ($dMap['iphone'] ?? 0) . "\n";
         $report .= "Apple Luxury     : " . ($dMap['apple_lux'] ?? 0) . "\n";
         $report .= "Android          : " . ($dMap['android'] ?? 0) . "\n";
+        $report .= "Total HP         : " . ($dMap['hp'] ?? 0) . "\n\n";
+        $report .= "Tukar unit       : " . ($dMap['tukar_unit'] ?? 0) . "\n";
+        $report .= "Tukar tambah     : " . ($dMap['tukar_tambah'] ?? 0) . "\n";
         $report .= "Total HP         : " . (($dMap['iphone'] ?? 0) + ($dMap['android'] ?? 0) + ($dMap['apple_lux'] ?? 0)) . "\n\n";
 
         $report .= "Tukar unit          : 0\nTukar tambah   : 0\nDowngrade       : 0\nRefund               : 0\nAngkat barang  : 0\n\n";

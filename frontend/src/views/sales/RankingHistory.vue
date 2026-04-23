@@ -1605,6 +1605,14 @@ const getBaseReportText = (isForCopy = false) => {
         }
     });
 
+    if (isForCopy) {
+        text += `\n__________________\n__________________\n\n`;
+        text += `*DEBUG INFO (REPORT TO DEV)*\n`;
+        text += `Branch ID: ${summary.debug?.requested_branch_id || 'N/A'}\n`;
+        text += `Raw P: ${summary.debug?.total_payments_found || 0}\n`;
+        text += `Raw U: ${(summary.debug?.total_hp_items || 0) + (summary.debug?.total_nhp_items || 0)}\n\n`;
+    }
+
     text += `__________________\n__________________\nunit HP keluar\n\n`;
     text += `Iphone           : ${summary.dist_map?.iphone || 0}\n`;
     text += `Apple Luxury     : ${summary.dist_map?.apple_lux || 0}\n`;
