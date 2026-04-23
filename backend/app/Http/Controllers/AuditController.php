@@ -174,7 +174,7 @@ class AuditController extends Controller
         [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
             // 1. Paginated Sales Query
             function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                return StockOut::with(['items.product', 'nonHpDetails.product', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod', 'splitPayments'])
+                return StockOut::with(['items.product', 'nonHpDetails.product', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod'])
                     ->whereIn('category', $salesCategories)
                     ->whereBetween('reporting_date', [$startDate, $endDate])
                     ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
@@ -724,24 +724,21 @@ class AuditController extends Controller
                 $pm = $paymentMethods->get($trx->payment_method_id);
                 if ($pm) $paymentMethodNames[] = $pm->name;
             }
-            if ($trx->splitPayments) {
-                foreach ($trx->splitPayments as $sp) {
-                    $pm = $paymentMethods->get($sp->payment_method_id);
-                    if ($pm) $paymentMethodNames[] = $pm->name;
+            if ($trx->split_payments) {
+                $splits = is_array($trx->split_payments) ? $trx->split_payments : json_decode($trx->split_payments, true);
+                if (is_array($splits)) {
+                    foreach ($splits as $sp) {
+                        $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
+                        if ($pmId) {
+                            $pm = $paymentMethods->get($pmId);
+                            if ($pm) $paymentMethodNames[] = $pm->name;
+                        }
+                    }
                 }
             }
             $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
-            $detailedSplitPayments = [];
-            if ($trx->splitPayments) {
-                foreach ($trx->splitPayments as $sp) {
-                    $pm = $paymentMethods->get($sp->payment_method_id);
-                    $detailedSplitPayments[] = [
-                        'method_name' => $pm?->name ?? 'Unknown',
-                        'amount' => (float)$sp->amount
-                    ];
-                }
-            }
+            $detailedSplitPayments = $trx->split_payments_data ?? [];
 
             return [
                 'id' => $trx->id,
