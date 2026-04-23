@@ -168,15 +168,20 @@ class AuditController extends Controller
         // Define a manual helper because closures inside Octane can be tricky
         $helper_scopeUser = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
-                if ($requestedBranchId)
+                if ($requestedBranchId) {
                     $sub->where('users.branch_id', $requestedBranchId);
-                elseif ($requestedOnlineShopId)
+                } elseif ($requestedOnlineShopId) {
                     $sub->where('users.online_shop_id', $requestedOnlineShopId);
-                else {
+                } else {
                     if (!empty($branchIds))
                         $sub->orWhereIn('users.branch_id', $branchIds);
                     if (!empty($onlineShopIds))
                         $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    
+                    // If restricted but no access
+                    if (empty($branchIds) && empty($onlineShopIds)) {
+                        $sub->whereRaw('1=0');
+                    }
                 }
             });
         };
@@ -563,26 +568,43 @@ class AuditController extends Controller
                     $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
                     $rawStockDetails = [];
 
-                    $applyStockScope = function($q) use ($branchIds, $onlineShopIds) {
-                        $q->where(function($sub) use ($branchIds, $onlineShopIds) {
-                            if (!empty($branchIds)) $sub->orWhereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
-                            if (!empty($onlineShopIds)) $sub->orWhereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
-                            if (empty($branchIds) && empty($onlineShopIds)) $sub->whereRaw('1=1');
+                    $applyStockScope = function($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                        $q->where(function($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                            if ($requestedBranchId) {
+                                $sub->where('placement_id', $requestedBranchId)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
+                            } elseif ($requestedOnlineShopId) {
+                                $sub->where('placement_id', $requestedOnlineShopId)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
+                            } elseif ($requestedWarehouseId) {
+                                $sub->where('placement_id', $requestedWarehouseId)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']);
+                            } elseif ($requestedDistributorId) {
+                                $sub->where('placement_id', $requestedDistributorId)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']);
+                            } else {
+                                if (!empty($branchIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
+                                if (!empty($onlineShopIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
+                                
+                                if (empty($branchIds) && empty($onlineShopIds)) $sub->whereRaw('1=1');
+                            }
                         });
                     };
 
                     // IMEI Stock
-                    $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')->where('product_details.status', 'available');
+                    $alStock = DB::table('product_details')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->where('product_details.status', 'available')
+                        ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     $applyStockScope($alStock);
                     foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                         $did = (int)$s->distributor_id;
-                        $cat = ($did === 6) ? 'apple_lux' : (($did === 8 || $did === 7 || $did === 9) ? 'hp' : 'hp');
+                        $cat = ($did === 6) ? 'apple_lux' : 'hp';
                         $rawStockDetails[$cat][$s->name] = ($rawStockDetails[$cat][$s->name] ?? 0) + $s->qty;
                         $stockReport[$cat] += $s->qty;
                     }
 
                     // Non-IMEI Stock
-                    $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->where('inventories.quantity', '>', 0);
+                    $oStock = DB::table('inventories')
+                        ->join('products', 'inventories.product_id', '=', 'products.id')
+                        ->where('inventories.quantity', '>', 0)
+                        ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
                     foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
                         $qty = (int)$s->quantity;
@@ -596,6 +618,8 @@ class AuditController extends Controller
                         elseif ($did === 19) $cat = 'jaringan';
                         elseif ($did === 15) $cat = 'dokter_pstore';
                         elseif ($did === 6) $cat = 'apple_lux';
+                        elseif ($did === 16) $cat = 'laptop';
+                        elseif ($did === 17) $cat = 'tv';
                         elseif ($did === 8 || $did === 7 || $did === 9) $cat = 'hp';
                         
                         if (!$cat) {
@@ -612,6 +636,63 @@ class AuditController extends Controller
                         $stockReport[$cat] += $qty;
                     }
 
+                    // 4. Stock In (Period)
+                    $inDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
+                    $distInMap = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+
+                    $applyInScope = function($q) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        $q->where('stock_outs.status', 'received')
+                          ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                          ->where(function($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                                if ($requestedBranchId) {
+                                    $sub->where('stock_outs.destination_id', $requestedBranchId)->where('stock_outs.destination_type', 'branch');
+                                } elseif ($requestedOnlineShopId) {
+                                    $sub->where('stock_outs.destination_id', $requestedOnlineShopId)->where('stock_outs.destination_type', 'online_shop');
+                                } else {
+                                    if (!empty($branchIds)) $sub->orWhere(fn($sq) => $sq->whereIn('stock_outs.destination_id', $branchIds)->where('stock_outs.destination_type', 'branch'));
+                                    if (!empty($onlineShopIds)) $sub->orWhere(fn($sq) => $sq->whereIn('stock_outs.destination_id', $onlineShopIds)->where('stock_outs.destination_type', 'online_shop'));
+                                }
+                          });
+                    };
+
+                    $hpInQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
+                    $applyInScope($hpInQuery);
+                    foreach($hpInQuery->select('products.name', 'product_details.distributor_id')->get() as $hp) {
+                        $did = (int)$hp->distributor_id;
+                        $cat = ($did === 6) ? 'apple_lux' : 'hp';
+                        $inDetails[$cat][$hp->name] = ($inDetails[$cat][$hp->name] ?? 0) + 1;
+                        $distInMap[$cat]++;
+                    }
+
+                    $nhpInQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
+                    $applyInScope($nhpInQuery);
+                    foreach($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
+                        $qty = (int)$s->quantity;
+                        $did = (int)$s->distributor_id;
+                        $name = strtolower($s->name);
+                        $cat = null;
+                        if ($did === 14) $cat = 'arcis';
+                        elseif ($did === 13) $cat = 'debs';
+                        elseif ($did === 11) $cat = 'apply';
+                        elseif ($did === 10) $cat = 'accessories';
+                        elseif ($did === 18) $cat = 'perdana';
+                        elseif ($did === 19) $cat = 'jaringan';
+                        elseif ($did === 15) $cat = 'dokter_pstore';
+                        elseif ($did === 6) $cat = 'apple_lux';
+                        elseif ($did === 16) $cat = 'laptop';
+                        elseif ($did === 17) $cat = 'tv';
+                        elseif ($did === 8 || $did === 7 || $did === 9) $cat = 'hp';
+
+                        if (!$cat) {
+                            if (str_contains($name, 'arcis')) $cat = 'arcis';
+                            elseif (str_contains($name, 'debs')) $cat = 'debs';
+                            elseif (str_contains($name, 'apply')) $cat = 'apply';
+                            else $cat = 'others';
+                        }
+                        $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
+                        $distInMap[$cat] += $qty;
+                    }
+
                     return [
                         'payments' => $pSums,
                         'payment_total' => $paymentTotal,
@@ -620,6 +701,8 @@ class AuditController extends Controller
                         'stock_report' => $stockReport,
                         'stock_details' => $rawStockDetails,
                         'sold_details' => $soldDetails,
+                        'in_details' => $inDetails,
+                        'dist_in_map' => $distInMap,
                         'activities' => [
                             'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
                             'tukar_tambah' => $pQuery->clone()->where('category', 'tukar_tambah')->count(),

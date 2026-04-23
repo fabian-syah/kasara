@@ -1484,7 +1484,7 @@ const appleLuxItems = computed(() => {
     return Object.entries(raw).map(([name, qty]) => ({
         name: name,
         qty: qty
-    }));
+    })).sort((a, b) => b.qty - a.qty);
 });
 
 const categoryStocks = computed(() => {
@@ -1497,6 +1497,16 @@ const categoryStocks = computed(() => {
     const distInMap = summary.dist_in_map || {};
 
     return [
+        {
+            label: 'STOK HP',
+            count: distMap.hp || 0,
+            items: soldDetails.hp || {},
+            in: distInMap.hp || 0,
+            inItems: inDetails.hp || {},
+            remaining: stockReport.hp || 0,
+            remainingItems: stockDetails.hp || {},
+            suffix: 'Terjual'
+        },
         {
             label: 'STOK ACCESSORIES',
             count: distMap.accessories || 0,
@@ -1528,6 +1538,16 @@ const categoryStocks = computed(() => {
             suffix: 'Terjual'
         },
         {
+            label: 'STOK DEBS',
+            count: distMap.debs || 0,
+            items: soldDetails.debs || {},
+            in: distInMap.debs || 0,
+            inItems: inDetails.debs || {},
+            remaining: stockReport.debs || 0,
+            remainingItems: stockDetails.debs || {},
+            suffix: 'Terjual'
+        },
+        {
             label: 'STOK LAPTOP',
             count: distMap.laptop || 0,
             items: soldDetails.laptop || {},
@@ -1545,6 +1565,26 @@ const categoryStocks = computed(() => {
             inItems: inDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
+            suffix: 'Terjual'
+        },
+        {
+            label: 'STOK PERDANA',
+            count: distMap.perdana || 0,
+            items: soldDetails.perdana || {},
+            in: distInMap.perdana || 0,
+            inItems: inDetails.perdana || {},
+            remaining: stockReport.perdana || 0,
+            remainingItems: stockDetails.perdana || {},
+            suffix: 'Terjual'
+        },
+        {
+            label: 'STOK JARINGAN',
+            count: distMap.jaringan || 0,
+            items: soldDetails.jaringan || {},
+            in: distInMap.jaringan || 0,
+            inItems: inDetails.jaringan || {},
+            remaining: stockReport.jaringan || 0,
+            remainingItems: stockDetails.jaringan || {},
             suffix: 'Terjual'
         }
     ];
@@ -1625,6 +1665,7 @@ const getBaseReportText = (isForCopy = false) => {
     text += `__________________\n__________________\n\nRincian Unit & Stok\n\n`;
 
     const stockCats = [
+        { key: 'hp', label: 'stok HP' },
         { key: 'apple_lux', label: 'stok Apple Luxury' },
         { key: 'accessories', label: 'stok accessories' },
         { key: 'apply', label: 'stok apply' },
