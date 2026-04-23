@@ -558,8 +558,9 @@ class AuditController extends Controller
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         $query->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang'])
-                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos'])
+                            ->whereDate('stock_outs.reporting_date', '>=', $startDate)
+                            ->whereDate('stock_outs.reporting_date', '<=', $endDate)
                             ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                                 if ($requestedBranchId) {
                                     $q->where(function ($qq) use ($requestedBranchId) {
