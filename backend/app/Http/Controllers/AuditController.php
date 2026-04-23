@@ -727,8 +727,8 @@ class AuditController extends Controller
                     $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
                     $rawStockDetails = [];
 
-                    $applyStockScope = function ($q) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        $q->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                    $applyStockScope = function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                        $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
                                 $sub->where('placement_id', $requestedBranchId)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
                             } elseif ($requestedOnlineShopId) {
@@ -742,20 +742,23 @@ class AuditController extends Controller
                                     $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
                                 if (!empty($onlineShopIds))
                                     $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
+                                if (!empty($warehouseIds))
+                                    $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $warehouseIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']));
+                                if (!empty($distributorIds))
+                                    $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $distributorIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']));
 
-                                if (empty($branchIds) && empty($onlineShopIds))
+                                if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
                                     $sub->whereRaw('1=1');
                             }
                         });
                     };
 
-                    // IMEI Stock
+                    // IMEI Stock - current available stock (no date filter = all-time, but status=available = real-time shelf stock)
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
-                        // We remove the 'available' status filter to show ALL-TIME cumulative entries
+                        ->where('product_details.status', 'available')
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     
-                    // We intentionally don't apply reporting_date filter for cumulative stock
                     $applyStockScope($alStock);
                     foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                         $did = (int) $s->distributor_id;
@@ -765,10 +768,10 @@ class AuditController extends Controller
                         $stockReport[$cat] += $s->qty;
                     }
 
-                    // Non-IMEI Stock
+                    // Non-IMEI Stock - current stock with quantity > 0 (no date filter = all-time)
                     $oStock = DB::table('inventories')
                         ->join('products', 'inventories.product_id', '=', 'products.id')
-                        // We remove the quantity > 0 filter to show ALL-TIME cumulative entries
+                        ->where('inventories.quantity', '>', 0)
                         ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
                     foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
