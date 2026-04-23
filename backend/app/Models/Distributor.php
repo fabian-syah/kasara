@@ -17,9 +17,11 @@ class Distributor extends Model
         'email',
         'address',
         'is_active',
+        'allowed_brands',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'allowed_brands' => 'array',
     ];
 }

@@ -124,14 +124,22 @@ const addNonHpItem = () => {
 
 // updateNonHpItemPrice removed in favor of v-money sync syntax
 
-// Only show brands that have matching types for the selected itemType
+// Only show brands that have matching types for the selected itemType AND are allowed by the selected distributor
 const filteredBrands = computed(() => {
-    const brandIds = new Set(
+    const brandIdsFromTypes = new Set(
         allowedTypes.value
             .filter(t => itemType.value === 'hp' ? isImeiCategory(t.category) : !isImeiCategory(t.category))
             .map(t => t.brand_id)
     );
-    return brands.value.filter(b => brandIds.has(b.id));
+
+    const dist = distributors.value.find(d => d.id === selectedDistributor.value);
+    const restrictedBrandIds = dist?.allowed_brands;
+
+    return brands.value.filter(b => {
+        const hasTypes = brandIdsFromTypes.has(b.id);
+        const isAllowedByDist = !restrictedBrandIds || restrictedBrandIds.length === 0 || restrictedBrandIds.includes(b.id);
+        return hasTypes && isAllowedByDist;
+    });
 });
 
 const getNonHpCategory = (item) => {
@@ -145,6 +153,25 @@ const removeNonHpItem = (index) => {
         nonHpItems.value.splice(index, 1);
     }
 };
+
+// Automatically clear invalid brand selections when distributor changes
+watch(selectedDistributor, () => {
+    const validBrandIds = new Set(filteredBrands.value.map(b => b.id));
+    
+    nonHpItems.value.forEach(item => {
+        if (item.brand_id && !validBrandIds.has(item.brand_id)) {
+            item.brand_id = null;
+            item.type_name = "";
+        }
+    });
+
+    hpItems.value.forEach(item => {
+        if (item.brand_id && !validBrandIds.has(item.brand_id)) {
+            item.brand_id = null;
+            item.type_name = "";
+        }
+    });
+});
 
 const handleBrandChangeNonHp = (index) => {
     const item = nonHpItems.value[index];

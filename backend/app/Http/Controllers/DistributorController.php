@@ -57,6 +57,7 @@ class DistributorController extends Controller
             'phone' => 'nullable|string',
             'email' => 'nullable|email',
             'address' => 'nullable|string',
+            'allowed_brands' => 'nullable|array',
         ]);
 
         $distributor = Distributor::create($validated);
@@ -82,6 +83,7 @@ class DistributorController extends Controller
             'email' => 'nullable|email',
             'address' => 'nullable|string',
             'is_active' => 'boolean',
+            'allowed_brands' => 'nullable|array',
         ]);
 
         $distributor->update($validated);

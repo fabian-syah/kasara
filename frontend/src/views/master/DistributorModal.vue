@@ -1,9 +1,9 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { X, Save, Truck, User, Phone, Mail, MapPin } from 'lucide-vue-next';
-import { distributors as api } from '../../api/axios';
+import { distributors as api, brands as brandsApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { useEscapeKey } from '../../composables/useEscapeKey';
+import { Tag, Check } from 'lucide-vue-next';
 
 const props = defineProps({
     show: Boolean,
@@ -21,12 +21,31 @@ const form = ref({
     phone: '',
     email: '',
     address: '',
-    is_active: true
+    is_active: true,
+    allowed_brands: []
+});
+
+const brands = ref([]);
+const fetchBrands = async () => {
+    try {
+        const response = await brandsApi.list();
+        brands.value = response.data || [];
+    } catch (error) {
+        console.error("Failed to fetch brands:", error);
+    }
+};
+
+watch(() => props.show, (newVal) => {
+    if (newVal) fetchBrands();
 });
 
 watch(() => props.item, (newVal) => {
     if (newVal) {
-        form.value = { ...newVal, is_active: !!newVal.is_active };
+        form.value = { 
+            ...newVal, 
+            is_active: !!newVal.is_active,
+            allowed_brands: newVal.allowed_brands || brands.value.map(b => b.id)
+        };
     } else {
         form.value = {
             name: '',
@@ -35,10 +54,32 @@ watch(() => props.item, (newVal) => {
             phone: '',
             email: '',
             address: '',
-            is_active: true
+            is_active: true,
+            allowed_brands: brands.value.map(b => b.id)
         };
     }
 }, { immediate: true });
+
+const isAllBrandsSelected = computed(() => {
+    return brands.value.length > 0 && form.value.allowed_brands.length === brands.value.length;
+});
+
+const toggleAllBrands = () => {
+    if (isAllBrandsSelected.value) {
+        form.value.allowed_brands = [];
+    } else {
+        form.value.allowed_brands = brands.value.map(b => b.id);
+    }
+};
+
+const toggleBrand = (id) => {
+    const index = form.value.allowed_brands.indexOf(id);
+    if (index > -1) {
+        form.value.allowed_brands.splice(index, 1);
+    } else {
+        form.value.allowed_brands.push(id);
+    }
+};
 
 const save = async () => {
     if (!form.value.name) return toast.error("Nama wajib diisi");
@@ -119,8 +160,43 @@ useEscapeKey(() => {
 
                 <div>
                     <label class="label">Alamat</label>
-                    <textarea v-model="form.address" class="input w-full" rows="3"
+                    <textarea v-model="form.address" class="input w-full" rows="2"
                         placeholder="Alamat lengkap..."></textarea>
+                </div>
+
+                <!-- Brand Restrictions -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <label class="label !mb-0 flex items-center gap-2">
+                            <Tag :size="16" class="text-primary-400" />
+                            Merek yang Tersedia
+                        </label>
+                        <button @click="toggleAllBrands" type="button" class="text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-surface-700 hover:bg-surface-600 transition-colors text-text-secondary">
+                            {{ isAllBrandsSelected ? 'Unselect All' : 'Select All' }}
+                        </button>
+                    </div>
+                    
+                    <div class="bg-surface-900/50 border border-surface-700/50 rounded-xl p-3 max-h-40 overflow-y-auto custom-scrollbar">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            <div v-for="brand in brands" :key="brand.id" 
+                                @click="toggleBrand(brand.id)"
+                                class="flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all border group"
+                                :class="form.allowed_brands.includes(brand.id) 
+                                    ? 'bg-primary-500/10 border-primary-500/30 text-white' 
+                                    : 'bg-surface-800 border-surface-700 text-text-secondary hover:border-surface-600'">
+                                <div class="w-4 h-4 rounded-md border flex items-center justify-center transition-colors shrink-0"
+                                    :class="form.allowed_brands.includes(brand.id)
+                                        ? 'bg-primary-500 border-primary-500'
+                                        : 'border-surface-600 group-hover:border-surface-500'">
+                                    <Check v-if="form.allowed_brands.includes(brand.id)" :size="12" class="text-white" />
+                                </div>
+                                <span class="text-xs font-medium truncate">{{ brand.name }}</span>
+                            </div>
+                        </div>
+                        <div v-if="brands.length === 0" class="text-center py-4 text-xs text-surface-500 italic">
+                            Belum ada data merek...
+                        </div>
+                    </div>
                 </div>
             </div>
 
