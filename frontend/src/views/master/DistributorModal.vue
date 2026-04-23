@@ -29,9 +29,11 @@ const brands = ref([]);
 const fetchBrands = async () => {
     try {
         const response = await brandsApi.list();
-        brands.value = response.data || [];
+        // The API returns { success: true, data: [...] }
+        brands.value = Array.isArray(response.data.data) ? response.data.data : (Array.isArray(response.data) ? response.data : []);
     } catch (error) {
         console.error("Failed to fetch brands:", error);
+        brands.value = [];
     }
 };
 
@@ -40,11 +42,12 @@ watch(() => props.show, (newVal) => {
 });
 
 watch(() => props.item, (newVal) => {
+    const defaultBrandIds = Array.isArray(brands.value) ? brands.value.map(b => b.id) : [];
     if (newVal) {
         form.value = { 
             ...newVal, 
             is_active: !!newVal.is_active,
-            allowed_brands: newVal.allowed_brands || brands.value.map(b => b.id)
+            allowed_brands: (newVal.allowed_brands && Array.isArray(newVal.allowed_brands)) ? newVal.allowed_brands : defaultBrandIds
         };
     } else {
         form.value = {
@@ -55,10 +58,17 @@ watch(() => props.item, (newVal) => {
             email: '',
             address: '',
             is_active: true,
-            allowed_brands: brands.value.map(b => b.id)
+            allowed_brands: defaultBrandIds
         };
     }
 }, { immediate: true });
+
+// Auto-fill brands for NEW distributors once brands data arrives
+watch(brands, (newBrands) => {
+    if (!props.item && form.value.allowed_brands.length === 0 && newBrands.length > 0) {
+        form.value.allowed_brands = newBrands.map(b => b.id);
+    }
+});
 
 const isAllBrandsSelected = computed(() => {
     return brands.value.length > 0 && form.value.allowed_brands.length === brands.value.length;
