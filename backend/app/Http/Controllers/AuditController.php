@@ -553,7 +553,12 @@ class AuditController extends Controller
                         elseif ($distId === 17) $cat = 'tv';
                         elseif ($distId === 10) $cat = 'accessories';
                         elseif ($distId === 6) $cat = 'apple_lux';
-                        elseif ($distId === 8 || $distId === 7 || $distId === 9) $cat = 'hp';
+                        elseif ($distId === 8 || $distId === 7 || $distId === 9) {
+                            $cat = 'hp';
+                            // Count as unit HP even if non-IMEI
+                            if ($distId === 8) $map['iphone'] += $qty;
+                            else $map['android'] += $qty;
+                        }
 
                         // 2. Robust Name-based Fallback
                         if (!$cat) {
