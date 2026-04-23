@@ -1633,6 +1633,7 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'laptop', label: 'stok laptop' },
         { key: 'tv', label: 'stok tv' },
         { key: 'perdana', label: 'stok Sim Card' },
+        { key: 'others', label: 'stok lain-lain' },
         { key: 'jaringan', label: 'stok 4G / LTE' }
     ];
 
