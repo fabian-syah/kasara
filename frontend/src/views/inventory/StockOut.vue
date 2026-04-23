@@ -648,47 +648,26 @@ async function fetchInventoryUsers() {
 }
 
 function handleStartSubmit() {
-    console.log("[DEBUG PIN] handleStartSubmit called");
-    window.alert("DEBUG: Tombol Konfirmasi Ditekan!");
-
-    if (!canSubmit.value) {
-        console.warn("[DEBUG PIN] canSubmit is false, aborting");
-        window.alert("DEBUG: canSubmit is false");
-        return;
-    }
+    if (!canSubmit.value) return;
 
     const selectedId = form.value.inventory_user_id;
     const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
 
-    console.log("[DEBUG PIN] Selected User ID:", selectedId);
-    console.log("[DEBUG PIN] Found Target Account:", target);
-
-    if (target) {
-        console.log("[DEBUG PIN] Target PIN Status - pin_enabled:", target.pin_enabled, "transaction_pin_exists:", target.transaction_pin_exists, "has_pin:", target.has_pin);
-    }
-
-    // Robust check for PIN enabled
     if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists)) {
-        console.info("[DEBUG PIN] UI: Showing PinModal for", target.name);
-        window.alert("DEBUG: Membuka modal PIN untuk " + target.name);
         accountNeedingPin.value = target;
         showPinModal.value = true;
     } else {
-        console.info("[DEBUG PIN] UI: No PIN required, proceeding to direct submit");
-        window.alert("DEBUG: Tidak butuh PIN, langsung submit");
         submitStockOut();
     }
 }
 
 function onPinVerified(pin) {
-    console.log("[DEBUG PIN] PIN verified event received");
     form.value.transaction_pin = pin;
     showPinModal.value = false;
     submitStockOut();
 }
 
 async function submitStockOut() {
-    console.log("[DEBUG PIN] submitStockOut execution started");
     if (!canSubmit.value) return;
 
     isSubmitting.value = true;
@@ -696,26 +675,16 @@ async function submitStockOut() {
         const formData = new FormData();
         formData.append('category', selectedCategory.value);
 
-        // Product IDs
         selectedItems.value.forEach(item => {
             formData.append('product_detail_ids[]', item.id);
         });
 
-        // Form fields
         Object.keys(form.value).forEach(key => {
             if (key !== 'proof_image' && form.value[key] !== null && form.value[key] !== '') {
                 formData.append(key, form.value[key]);
             }
         });
 
-        console.log("[DEBUG PIN] Sending POST to /stock-outs with Category:", selectedCategory.value);
-        if (form.value.transaction_pin) {
-            console.log("[DEBUG PIN] Transaction PIN is present in payload (hidden for security)");
-        } else {
-            console.warn("[DEBUG PIN] Transaction PIN is MISSING from payload");
-        }
-
-        // Non-HP Items
         selectedNonHpItems.value.forEach((item, index) => {
             formData.append(`non_hp_items[${index}][product_id]`, item.product_id);
             formData.append(`non_hp_items[${index}][quantity]`, item.quantity);
@@ -724,7 +693,6 @@ async function submitStockOut() {
             }
         });
 
-        // File upload for retur
         if (selectedCategory.value === 'retur' && proofImageFile.value) {
             formData.append('proof_image', proofImageFile.value);
         }
@@ -733,12 +701,13 @@ async function submitStockOut() {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-        console.log("[DEBUG PIN] Submit SUCCESS:", response.data);
-        toast.success(`Stok berhasil dikeluarkan! ID: ${response.data.data.receipt_id}`);
+        const receiptId = response.data.receipt_id || response.data.data?.receipt_id || 'OK';
+        toast.success(`Stok berhasil dikeluarkan! Nota: ${receiptId}`);
 
         selectedItems.value = [];
         closeForm();
         router.push('/inventory');
+
 
     } catch (e) {
         console.error("[DEBUG PIN] Caught Exception in submitStockOut:", e);
