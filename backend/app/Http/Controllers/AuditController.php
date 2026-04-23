@@ -820,14 +820,14 @@ class AuditController extends Controller
                     }
 
                     $debug = [
-                        'requested_branch_id' => $requestedBranchId,
+                        'requested_branch_id' => $request->branch_id ?? 'N/A',
                         'total_payments_found' => count($payments),
+                        'raw_u' => ($map['hp'] ?? 0) + ($map['accessories'] ?? 0) + ($map['others'] ?? 0),
                         'branch_ids_scope' => $branchIds,
-                        'online_shop_ids_scope' => $onlineShopIds,
                     ];
 
                     return [
-                        'total_omset' => $paymentTotal,
+                        'payment_total' => $paymentTotal,
                         'payments' => $pSums,
                         'dist_map' => $map,
                         'dist_map_rp' => $mapRp,
