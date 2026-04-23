@@ -574,10 +574,7 @@ class AuditController extends Controller
                                       $sub->select(DB::raw(1))
                                           ->from('users')
                                           ->whereRaw('users.id::text = stock_outs.user_id::text')
-                                          ->where(function($qq) use ($requestedBranchId) {
-                                              $qq->where('users.branch_id', $requestedBranchId)
-                                                 ->orWhere('users.online_shop_id', $requestedBranchId);
-                                          });
+                                          ->where('users.branch_id', $requestedBranchId);
                                   });
                             });
                         }
@@ -658,7 +655,7 @@ class AuditController extends Controller
                         ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                         ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                         ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS']);
+                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
                     $applyLocalScope($hpItemsQuery);
                     
                     foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
@@ -674,7 +671,7 @@ class AuditController extends Controller
                     $nhpItemsQuery = DB::table('stock_out_non_hp_items')
                         ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
                         ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS']);
+                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
                     $applyLocalScope($nhpItemsQuery);
                     
                     foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
