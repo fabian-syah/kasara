@@ -557,13 +557,15 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
-                        // Use created_at for the logical day (05:00 AM shift)
+                        // Hybrid shift-safe filter (05:00 AM)
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                         
-                        $query->where('stock_outs.created_at', '>=', $startTS)
-                              ->where('stock_outs.created_at', '<=', $endTS);
-                        
+                        $query->where(function($q) use ($startDate, $startTS, $endTS) {
+                            $q->whereDate('stock_outs.reporting_date', $startDate)
+                              ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                        });
+
                         if ($requestedBranchId) {
                             $query->where(function($q) use ($requestedBranchId) {
                                 $q->where('stock_outs.branch_id', $requestedBranchId)
@@ -575,17 +577,7 @@ class AuditController extends Controller
                                   });
                             });
                         } elseif ($requestedOnlineShopId) {
-                            $query->where(function($q) use ($requestedOnlineShopId) {
-                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                                  ->orWhereExists(function($sub) use ($requestedOnlineShopId) {
-                                      $sub->select(DB::raw(1))
-                                          ->from('users')
-                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
-                                          ->where('users.online_shop_id', $requestedOnlineShopId);
-                                  });
-                            });
-                        } elseif ($requestedWarehouseId) {
-                            $query->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                            $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
                         }
                     };
 
@@ -735,7 +727,7 @@ class AuditController extends Controller
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
-                        ->where('product_details.status', 'available')
+                        ->where('product_details.status', 'ready')
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     
                     $applyStockScope($alStock);
