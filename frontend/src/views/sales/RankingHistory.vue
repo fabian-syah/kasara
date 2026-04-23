@@ -433,9 +433,9 @@
                                 </div>
                             </div>
 
-                            <!-- OTHER CATEGORIES (STOCK, SOLD, IN) -->
+                            <!-- OTHER CATEGORIES (STOCK, IN) -->
                             <div v-for="cat in categoryStocks" :key="cat.label"
-                                v-show="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length">
+                                v-show="Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length">
                                 <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-8">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
@@ -446,10 +446,10 @@
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <div v-if="Object.keys(cat.items).length || Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length"
+                                <div v-if="Object.keys(cat.remainingItems).length || Object.keys(cat.inItems).length"
                                     class="space-y-8">
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-                                        <!-- Combined List (Unified) -->
+                                        <!-- Stock In Items -->
                                         <div v-if="Object.keys(cat.inItems || {}).length" class="space-y-3">
                                             <div v-for="(qty, name) in cat.inItems" :key="'in-' + name"
                                                 class="flex justify-between items-center border-b border-amber-200/30 pb-3">
@@ -462,6 +462,7 @@
                                             </div>
                                         </div>
 
+                                        <!-- Remaining Stock Items -->
                                         <div v-if="Object.keys(cat.remainingItems || {}).length" class="space-y-3">
                                             <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
                                                 class="flex justify-between items-center border-b border-blue-200/30 pb-3">
@@ -471,19 +472,6 @@
                                                 </span>
                                                 <span class="text-xs font-black text-blue-700 dark:text-blue-400">{{ qty
                                                     }}</span>
-                                            </div>
-                                        </div>
-
-                                        <div v-if="Object.keys(cat.items || {}).length" class="space-y-3">
-                                            <div v-for="(qty, name) in cat.items" :key="'sold-' + name"
-                                                class="flex justify-between items-center border-b border-emerald-200/30 pb-3">
-                                                <span
-                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">
-                                                    {{ name }}
-                                                </span>
-                                                <span
-                                                    class="text-xs font-black text-emerald-700 dark:text-emerald-400">{{
-                                                        qty }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1489,103 +1477,74 @@ const appleLuxItems = computed(() => {
 
 const categoryStocks = computed(() => {
     const summary = salesData.value?.report_summary || {};
-    const soldDetails = summary.sold_details || {};
     const inDetails = summary.in_details || {};
     const stockReport = summary.stock_report || {};
     const stockDetails = summary.stock_details || {};
-    const distMap = summary.dist_map || {};
     const distInMap = summary.dist_in_map || {};
 
     return [
         {
             label: 'STOK HP',
-            count: distMap.hp || 0,
-            items: soldDetails.hp || {},
             in: distInMap.hp || 0,
             inItems: inDetails.hp || {},
             remaining: stockReport.hp || 0,
             remainingItems: stockDetails.hp || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK ACCESSORIES',
-            count: distMap.accessories || 0,
-            items: soldDetails.accessories || {},
             in: distInMap.accessories || 0,
             inItems: inDetails.accessories || {},
             remaining: stockReport.accessories || 0,
             remainingItems: stockDetails.accessories || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK APPLY',
-            count: distMap.apply || 0,
-            items: soldDetails.apply || {},
             in: distInMap.apply || 0,
             inItems: inDetails.apply || {},
             remaining: stockReport.apply || 0,
             remainingItems: stockDetails.apply || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK ARCIS',
-            count: distMap.arcis || 0,
-            items: soldDetails.arcis || {},
             in: distInMap.arcis || 0,
             inItems: inDetails.arcis || {},
             remaining: stockReport.arcis || 0,
             remainingItems: stockDetails.arcis || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK DEBS',
-            count: distMap.debs || 0,
-            items: soldDetails.debs || {},
             in: distInMap.debs || 0,
             inItems: inDetails.debs || {},
             remaining: stockReport.debs || 0,
             remainingItems: stockDetails.debs || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK LAPTOP',
-            count: distMap.laptop || 0,
-            items: soldDetails.laptop || {},
             in: distInMap.laptop || 0,
             inItems: inDetails.laptop || {},
             remaining: stockReport.laptop || 0,
             remainingItems: stockDetails.laptop || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK TV',
-            count: distMap.tv || 0,
-            items: soldDetails.tv || {},
             in: distInMap.tv || 0,
             inItems: inDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK PERDANA',
-            count: distMap.perdana || 0,
-            items: soldDetails.perdana || {},
             in: distInMap.perdana || 0,
             inItems: inDetails.perdana || {},
             remaining: stockReport.perdana || 0,
             remainingItems: stockDetails.perdana || {},
-            suffix: 'Terjual'
         },
         {
             label: 'STOK JARINGAN',
-            count: distMap.jaringan || 0,
-            items: soldDetails.jaringan || {},
             in: distInMap.jaringan || 0,
             inItems: inDetails.jaringan || {},
             remaining: stockReport.jaringan || 0,
             remainingItems: stockDetails.jaringan || {},
-            suffix: 'Terjual'
         }
     ];
 });
