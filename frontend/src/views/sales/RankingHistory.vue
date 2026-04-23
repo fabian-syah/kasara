@@ -1560,7 +1560,10 @@ const getBaseReportText = (isForCopy = false) => {
     const payments = summary.payments || {};
     const activities = summary.activities || {};
 
-    const storeName = authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
+    const selectedBranch = branches.value.find(b => b.id === filters.value.branch_id);
+    const selectedShop = onlineShops.value.find(s => s.id === filters.value.online_shop_id);
+    
+    const storeName = selectedBranch?.name || selectedShop?.name || authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
     const dateStr = selectedPeriod.value === 'monthly'
         ? `${months[selectedMonth.value - 1]} ${selectedYear.value}`
         : formatDateString(filters.value.start_date);
