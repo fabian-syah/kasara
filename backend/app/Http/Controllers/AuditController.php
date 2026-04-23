@@ -680,6 +680,17 @@ class AuditController extends Controller
                 foreach ($trx->items as $item) $itemNames[] = $item->product?->name ?? 'Unknown HP';
                 foreach ($trx->nonHpDetails as $item) $itemNames[] = $item->product?->name ?? 'Item Non-HP';
                 
+                $distNames = [];
+                foreach ($trx->items as $item) {
+                    $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
+                    $dist = $dId ? $distributors->get($dId) : null;
+                    $distNames[] = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
+                }
+                foreach ($trx->nonHpDetails as $item) {
+                    $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
+                    $distNames[] = $dist ? ($dist->name ?? 'KOSONG') : 'KOSONG';
+                }
+
                 $details[] = [
                     'name' => '📦 BUNDLING: ' . implode(', ', array_unique($itemNames)),
                     'qty' => 1,
@@ -687,7 +698,7 @@ class AuditController extends Controller
                     'brand' => 'Bundling',
                     'type' => 'Bundle',
                     'imei' => $trx->items->pluck('imei')->filter()->implode(', ') ?: '-',
-                    'distributor_name' => $trx->items->first()?->distributor_name ?? $trx->nonHpDetails->first()?->distributor_name ?? 'Bundling'
+                    'distributor_name' => implode(', ', array_unique($distNames)) ?: 'Bundling'
                 ];
             } else {
                 foreach ($trx->items as $item) {
