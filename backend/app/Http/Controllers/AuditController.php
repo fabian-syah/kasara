@@ -569,28 +569,33 @@ class AuditController extends Controller
                         if ($requestedBranchId) {
                             $query->where(function($q) use ($requestedBranchId) {
                                 $q->where('stock_outs.branch_id', $requestedBranchId)
+                                  ->orWhere('stock_outs.online_shop_id', $requestedBranchId)
                                   ->orWhereExists(function($sub) use ($requestedBranchId) {
                                       $sub->select(DB::raw(1))
                                           ->from('users')
                                           ->whereRaw('users.id::text = stock_outs.user_id::text')
-                                          ->where('users.branch_id', $requestedBranchId);
+                                          ->where(function($qq) use ($requestedBranchId) {
+                                              $qq->where('users.branch_id', $requestedBranchId)
+                                                 ->orWhere('users.online_shop_id', $requestedBranchId);
+                                          });
                                   });
                             });
-                        } elseif ($requestedOnlineShopId) {
-                            $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
                         }
                     };
 
                     $applyStockScope = function ($query) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
-                        if ($requestedBranchId) $query->where('product_details.branch_id', $requestedBranchId);
-                        elseif ($requestedOnlineShopId) $query->where('product_details.online_shop_id', $requestedOnlineShopId);
-                        elseif ($requestedWarehouseId) $query->where('product_details.warehouse_id', $requestedWarehouseId);
+                        if ($requestedBranchId) {
+                            $query->where(function($q) use ($requestedBranchId) {
+                                $q->where('product_details.branch_id', $requestedBranchId)
+                                  ->orWhere('product_details.online_shop_id', $requestedBranchId);
+                            });
+                        }
                     }; 
 
                     // 1. Total Omset & Payments
                     $pQuery = DB::table('stock_outs');
                     $applyLocalScope($pQuery);
-                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS'])
+                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos'])
                         ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
 
                     $pSums = [];
