@@ -573,35 +573,35 @@ class AuditController extends Controller
                         elseif (count($onlineShopIds) === 1) $targetBranchId = $onlineShopIds[0];
                     }
 
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $targetBranchId, $branchIds, $onlineShopIds) {
+                    $applyLocalScope = function ($q) use ($startDate, $endDate, $targetBranchId, $branchIds, $onlineShopIds) {
                         // Logical day shift (05:00 AM)
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                         
-                        $query->where(function($q) use ($startDate, $startTS, $endTS) {
-                            $q->whereDate('stock_outs.reporting_date', $startDate)
+                        $q->where(function($sub) use ($startDate, $startTS, $endTS) {
+                            $sub->whereDate('stock_outs.reporting_date', $startDate)
                               ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         });
 
                         if ($targetBranchId) {
-                            $query->where(function($q) use ($targetBranchId) {
-                                $q->where('stock_outs.branch_id', $targetBranchId)
+                            $q->where(function($sub) use ($targetBranchId) {
+                                $sub->where('stock_outs.branch_id', $targetBranchId)
                                   ->orWhere('stock_outs.online_shop_id', $targetBranchId);
                             });
                         }
                     };
 
-                    $applyStockScope = function ($query) use ($targetBranchId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                    $applyStockScope = function ($q) use ($targetBranchId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                         if ($targetBranchId) {
-                            $query->where(function($q) use ($targetBranchId) {
-                                $q->where('placement_id', $targetBranchId)
+                            $q->where(function($sub) use ($targetBranchId) {
+                                $sub->where('placement_id', $targetBranchId)
                                   ->whereRaw('LOWER(placement_type) LIKE ?', ['%' . (str_contains(strtolower($targetBranchId), 'shop') || str_contains(strtolower($targetBranchId), 'online') ? 'online_shop' : 'branch') . '%']);
-                            })->orWhere(function($q) use ($targetBranchId) {
-                                $q->where('placement_id', $targetBranchId)
+                            })->orWhere(function($sub) use ($targetBranchId) {
+                                $sub->where('placement_id', $targetBranchId)
                                   ->whereIn('placement_type', ['branch', 'online_shop', 'warehouse', 'distributor', 'Branch', 'OnlineShop', 'Warehouse', 'Distributor']);
                             });
                         } else {
-                            $query->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                                 if (!empty($branchIds))
                                     $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
                                 if (!empty($onlineShopIds))
@@ -821,15 +821,17 @@ class AuditController extends Controller
                         $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
                         $distInMap[$cat] += $qty;
                     }
-
                     $debug = [
                         'requested_branch_id' => $request->branch_id ?? 'N/A',
                         'requested_online_shop_id' => $request->online_shop_id ?? 'N/A',
                         'resolved_target_id' => $targetBranchId ?? 'N/A',
-                        'total_payments_found' => count($payments),
+                        'total_payments_found' => $sales->count(),
                         'raw_u' => ($map['hp'] ?? 0) + ($map['accessories'] ?? 0) + ($map['others'] ?? 0),
                         'branch_ids_scope' => $branchIds,
                     ];
+
+                    $actQuery = DB::table('stock_outs');
+                    $applyLocalScope($actQuery);
 
                     return [
                         'payment_total' => $paymentTotal,
@@ -841,18 +843,20 @@ class AuditController extends Controller
                         'sold_details' => $soldDetails,
                         'in_details' => $inDetails,
                         'dist_in_map' => $distInMap,
+                        'debug' => $debug,
                         'activities' => [
-                            'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
-                            'tukar_tambah' => $pQuery->clone()->where('category', 'tukar_tambah')->count(),
-                            'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
-                            'refund' => $pQuery->clone()->where('category', 'refund')->count(),
-                            'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
+                            'tukar_unit' => (clone $actQuery)->where('category', 'tukar_unit')->count(),
+                            'tukar_tambah' => (clone $actQuery)->where('category', 'tukar_tambah')->count(),
+                            'downgrade' => (clone $actQuery)->where('category', 'downgrade')->count(),
+                            'refund' => (clone $actQuery)->where('category', 'refund')->count(),
+                            'angkat_barang' => (clone $actQuery)->where('category', 'angkat_barang')->count(),
                         ],
-                        'debug' => $debug
                     ];
                 } catch (\Exception $e) {
-                    Log::error('Audit report error: ' . $e->getMessage());
-                    return ['error' => $e->getMessage()];
+                    return [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ];
                 }
             }
         ]);
