@@ -557,12 +557,12 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
-                        // Implement shift-safe date range (05:00 AM logic)
+                        // Use created_at for the logical day (05:00 AM shift)
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                         
-                        $query->where('stock_outs.reporting_date', '>=', $startTS)
-                              ->where('stock_outs.reporting_date', '<=', $endTS);
+                        $query->where('stock_outs.created_at', '>=', $startTS)
+                              ->where('stock_outs.created_at', '<=', $endTS);
                         
                         if ($requestedBranchId) {
                             $query->where(function($q) use ($requestedBranchId) {
