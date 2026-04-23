@@ -18,7 +18,6 @@ use App\Models\Inventory;
 use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Laravel\Octane\Facades\Octane;
 use Illuminate\Support\Collection;
 
@@ -47,10 +46,17 @@ class AuditController extends Controller
         $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
         $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
 
+        // No more clipping logic here to prevent data loss on monthly reports.
+        // Frontend will handle valid date ranges.
+
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
         $requestedDistributorId = $request->distributor_id;
         $requestedWarehouseId = $request->warehouse_id;
+
+        // Stock all-time logic
+        $stockStartDate = '2000-01-01';
+        $stockEndDate = now()->toDateString();
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -76,17 +82,129 @@ class AuditController extends Controller
         $requestedProductTypeId = $request->product_type_id;
         $requestedCapacity = $request->capacity;
 
+        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                if ($requestedBranchId) {
+                    if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                        $q->where('branch_id', $requestedBranchId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } elseif ($requestedOnlineShopId) {
+                    if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
+                        $q->where('online_shop_id', $requestedOnlineShopId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } elseif ($requestedWarehouseId) {
+                    if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
+                        $q->where('warehouse_id', $requestedWarehouseId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } elseif ($requestedDistributorId) {
+                    if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
+                        $q->where('distributor_id', $requestedDistributorId);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } else {
+                    $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        if (!empty($branchIds))
+                            $sub->orWhereIn('branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds))
+                            $sub->orWhereIn('warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds))
+                            $sub->orWhereIn('distributor_id', $distributorIds);
+                    });
+                }
+            });
+        };
+
+        // Scoper for DB::table queries that have 'users' join already
+        $dbScope = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $query->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                if ($requestedBranchId) {
+                    if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
+                        $sub->where('users.branch_id', $requestedBranchId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } elseif ($requestedOnlineShopId) {
+                    if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
+                        $sub->where('users.online_shop_id', $requestedOnlineShopId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } elseif ($requestedWarehouseId) {
+                    if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
+                        $sub->where('users.warehouse_id', $requestedWarehouseId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } elseif ($requestedDistributorId) {
+                    if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
+                        $sub->where('users.distributor_id', $requestedDistributorId);
+                    } else {
+                        $sub->whereRaw('1=0');
+                    }
+                } else {
+                    $sub->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        if (!empty($branchIds))
+                            $q->orWhereIn('users.branch_id', $branchIds);
+                        if (!empty($onlineShopIds))
+                            $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds))
+                            $q->orWhereIn('users.warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds))
+                            $q->orWhereIn('users.distributor_id', $distributorIds);
+                    });
+                }
+            });
+        };
+
         $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan'];
         $activityCategories = ['refund', 'angkat_barang'];
         $salesCategories = array_merge($successCategories, $activityCategories);
 
-        // Pre-fetch meta data
+        // Optimization: Pre-fetch meta data to avoid N+1 in loops
         $branches = Branch::all()->keyBy('id');
         $onlineShops = OnlineShop::all()->keyBy('id');
         $warehouses = Warehouse::all()->keyBy('id');
         $questions = Question::all()->groupBy('category');
         $paymentMethods = PaymentMethod::all()->keyBy('id');
         $distributors = Distributor::all()->keyBy('id');
+
+        // Define a manual helper because closures inside Octane can be tricky
+        $helper_scopeUser = function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                if ($requestedBranchId) {
+                    $sub->where('users.branch_id', $requestedBranchId);
+                } elseif ($requestedOnlineShopId) {
+                    $sub->where('users.online_shop_id', $requestedOnlineShopId);
+                } elseif ($requestedWarehouseId) {
+                    $sub->where('users.warehouse_id', $requestedWarehouseId);
+                } elseif ($requestedDistributorId) {
+                    $sub->where('users.distributor_id', $requestedDistributorId);
+                } else {
+                    if (!empty($branchIds))
+                        $sub->orWhereIn('users.branch_id', $branchIds);
+                    if (!empty($onlineShopIds))
+                        $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    if (!empty($warehouseIds))
+                        $sub->orWhereIn('users.warehouse_id', $warehouseIds);
+                    if (!empty($distributorIds))
+                        $sub->orWhereIn('users.distributor_id', $distributorIds);
+
+                    // If restricted but no access
+                    if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) {
+                        $sub->whereRaw('1=0');
+                    }
+                }
+            });
+        };
 
         // Use Octane to run independent queries in parallel
         [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
@@ -435,9 +553,72 @@ class AuditController extends Controller
                 })->select('distributors.id', 'distributors.name')->distinct()->orderBy('distributors.name')->get();
             },
 
-            // 10. Unified Report Summary - FIXED VERSION
-            function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
+            // 10. Unified Report Summary
+            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
+                        // Logical day shift (05:00 AM)
+                        $startTS = $startDate . ' 05:00:00';
+                        $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
+                        
+                        $query->where(function($q) use ($startDate, $startTS, $endTS) {
+                            $q->whereDate('stock_outs.reporting_date', $startDate)
+                              ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                        });
+
+                        if ($requestedBranchId) {
+                            $query->where(function($q) use ($requestedBranchId) {
+                                $q->where('stock_outs.branch_id', $requestedBranchId)
+                                  ->orWhere('stock_outs.online_shop_id', $requestedBranchId)
+                                  ->orWhereExists(function($sub) use ($requestedBranchId) {
+                                      $sub->select(DB::raw(1))
+                                          ->from('users')
+                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
+                                          ->where('users.branch_id', $requestedBranchId);
+                                  });
+                            });
+                        }
+                    };
+
+                    $applyStockScope = function ($query) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                        if ($requestedBranchId) {
+                            $query->where(function($q) use ($requestedBranchId) {
+                                $q->where('product_details.branch_id', $requestedBranchId)
+                                  ->orWhere('product_details.online_shop_id', $requestedBranchId);
+                            });
+                        }
+                    }; 
+
+                    // 1. Total Omset & Payments
+                    $pQuery = DB::table('stock_outs');
+                    $applyLocalScope($pQuery);
+                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
+
+                    $pSums = [];
+                    $paymentTotal = 0;
+                    foreach ($payments as $p) {
+                        $amt = (float) $p->selling_price;
+                        if ($p->category === 'refund')
+                            $amt = -$amt;
+                        $paymentTotal += $amt;
+                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+
+                        $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
+                        if (is_array($splits)) {
+                            foreach ($splits as $sp) {
+                                $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
+                                $pSums[$method?->name ?? 'Lainnya'] = ($pSums[$method?->name ?? 'Lainnya'] ?? 0) + (float) ($sp['amount'] ?? 0);
+                            }
+                        } else {
+                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
+                        }
+                    }
+
+                    $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
+                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                    $soldDetails = [];
+
                     $getCategoryByItem = function ($did) {
                         $did = (int) $did;
                         if ($did === 6) return 'apple_lux';
@@ -454,188 +635,245 @@ class AuditController extends Controller
                         return 'others';
                     };
 
-                    $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-                    $soldDetails = [];
-                    $pSums = [];
-                    $paymentTotal = 0;
-
-                    $baseSalesQuery = DB::table('stock_outs')
-                        ->whereIn('category', $salesCategories)
-                        ->whereBetween('reporting_date', [$startDate, $endDate]);
-
-                    if ($requestedBranchId) {
-                        $baseSalesQuery->where(function($q) use ($requestedBranchId) {
-                            $q->where('branch_id', $requestedBranchId)
-                              ->orWhere('online_shop_id', $requestedBranchId);
-                        });
-                    } elseif ($requestedOnlineShopId) {
-                        $baseSalesQuery->where('online_shop_id', $requestedOnlineShopId);
-                    } elseif ($requestedWarehouseId) {
-                        $baseSalesQuery->where('warehouse_id', $requestedWarehouseId);
-                    } elseif ($requestedDistributorId) {
-                        $baseSalesQuery->where('distributor_id', $requestedDistributorId);
-                    } else {
-                        $baseSalesQuery->where(function($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                            if (!empty($branchIds)) $q->orWhereIn('branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->orWhereIn('distributor_id', $distributorIds);
-                        });
-                    }
-
-                    $salesHeaderItems = $baseSalesQuery->get();
-
-                    foreach ($salesHeaderItems as $s) {
-                        $itemPrice = DB::table('stock_out_items')->where('stock_out_id', $s->id)->sum(DB::raw('(selling_price - COALESCE(item_discount, 0))'));
-                        $nhpPrice = DB::table('stock_out_non_hp_items')->where('stock_out_id', $s->id)->sum(DB::raw('selling_price * quantity'));
-                        $amt = (float)($itemPrice + $nhpPrice);
-                        if ($amt <= 0 && $s->selling_price > 0) $amt = (float) $s->selling_price;
-                        if ($s->category === 'refund') $amt = -$amt;
+                    $addUnitToMap = function(&$map, $brand, $category) {
+                        $brand = strtolower($brand ?? '');
+                        if ($category === 'apple_lux') {
+                            $map['apple_lux']++;
+                        } elseif ($brand === 'apple' || str_contains($brand, 'iphone')) {
+                            $map['iphone']++;
+                        } elseif ($brand && $brand != 'none' && $brand != '-') {
+                            $map['android']++;
+                        }
                         
-                        $paymentTotal += $amt;
-
-                        $methodName = $s->payment_method_id ? ($paymentMethods->get($s->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
-                        $splits = $s->split_payments ? (is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments) : null;
-                        
-                        if (is_array($splits) && !empty($splits)) {
-                            foreach ($splits as $sp) {
-                                $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
-                                $mName = $paymentMethods->get($pmId)?->name ?? 'Lainnya';
-                                $pSums[$mName] = ($pSums[$mName] ?? 0) + (float)($sp['amount'] ?? 0);
-                            }
-                        } else {
-                            $pSums[$methodName] = ($pSums[$methodName] ?? 0) + $amt;
-                        }
-
-                        foreach (DB::table('stock_out_items')->where('stock_out_id', $s->id)
-                            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-                            ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                            ->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price', 'stock_out_items.item_discount')->get() as $hp) {
-                            $cat = $getCategoryByItem($hp->distributor_id);
-                            $price = (float)$hp->selling_price - (float)($hp->item_discount ?? 0);
-                            if ($s->category === 'refund') $price = -$price;
-                            
-                            $mapRp[$cat] = ($mapRp[$cat] ?? 0) + $price;
-                            $map[$cat] = ($map[$cat] ?? 0) + 1;
-                            
-                            $brand = strtolower($hp->brand ?? '');
-                            if ($cat === 'apple_lux') $map['apple_lux']++;
-                            elseif ($brand === 'apple' || str_contains($brand, 'iphone')) $map['iphone']++;
-                            elseif ($brand && $brand !== '-' && $brand !== 'none') $map['android']++;
-
-                            $soldDetails[$cat][$hp->name] = ($soldDetails[$cat][$hp->name] ?? 0) + 1;
-                        }
-
-                        foreach (DB::table('stock_out_non_hp_items')->where('stock_out_id', $s->id)
-                            ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                            ->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
-                            $cat = $getCategoryByItem($item->distributor_id);
-                            $qty = (int)$item->quantity;
-                            $price = (float)$item->selling_price * $qty;
-                            if ($s->category === 'refund') $price = -$price;
-
-                            $mapRp[$cat] = ($mapRp[$cat] ?? 0) + $price;
-                            $map[$cat] = ($map[$cat] ?? 0) + $qty;
-                            $soldDetails[$cat][$item->name] = ($soldDetails[$cat][$item->name] ?? 0) + $qty;
-                        }
-                    }
-
-                    $rawStockDetails = [];
-                    $stockReport = array_fill_keys(['apple_lux', 'hp', 'accessories', 'apply', 'arcis', 'debs', 'dokter_pstore', 'laptop', 'tv', 'perdana', 'jaringan', 'others'], 0);
-                    $targetBranchId = $requestedBranchId ?: ($requestedOnlineShopId ?: null);
-                    if (!$targetBranchId && count($branchIds) === 1) $targetBranchId = $branchIds[0];
-                    elseif (!$targetBranchId && count($onlineShopIds) === 1) $targetBranchId = $onlineShopIds[0];
-
-                    $applyStockScope = function ($q) use ($targetBranchId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                        if ($targetBranchId) {
-                            $q->where('placement_id', $targetBranchId)->whereIn('placement_type', ['branch', 'online_shop', 'warehouse', 'distributor']);
-                        } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                if (!empty($branchIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $branchIds)->where('placement_type', 'branch'));
-                                if (!empty($onlineShopIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $onlineShopIds)->where('placement_type', 'online_shop'));
-                                if (!empty($warehouseIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $warehouseIds)->where('placement_type', 'warehouse'));
-                                if (!empty($distributorIds)) $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $distributorIds)->where('placement_type', 'distributor'));
-                            });
+                        if (isset($map[$category])) {
+                            $map[$category]++;
                         }
                     };
 
-                    $alStock = DB::table('product_details')->join('products', 'product_details.product_id', '=', 'products.id')->where('product_details.status', 'ready');
+                    // 1. HP transactions from stock_out_items
+                    $hpItemsQuery = DB::table('stock_out_items')
+                        ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                        ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                        ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
+                    $applyLocalScope($hpItemsQuery);
+                    
+                    foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
+                        $cat = $getCategoryByItem($hp->distributor_id);
+                        $addUnitToMap($map, $hp->brand, $cat);
+                        
+                        $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
+                        $mapRp[$cat] += $price;
+                        $soldDetails[$cat][$hp->name ?? 'Unknown item'] = ($soldDetails[$cat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
+                    }
+
+                    // 2. Non-IMEI transactions
+                    $nhpItemsQuery = DB::table('stock_out_non_hp_items')
+                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+                        ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                        ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
+                    $applyLocalScope($nhpItemsQuery);
+                    
+                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
+                        $qty = (int) $item->quantity;
+                        $cat = $getCategoryByItem($item->distributor_id);
+
+                        if ($cat === 'perdana') $map['perdana'] += $qty;
+                        if ($cat === 'jaringan') $map['jaringan'] += $qty;
+
+                        // Breakdown for non-IMEI HP if any
+                        if ($cat === 'hp' || $cat === 'apple_lux') {
+                            $brand = strtolower($item->brand ?? '');
+                            if ($brand === 'apple' || str_contains($brand, 'iphone')) $map['iphone'] += $qty;
+                            else $map['android'] += $qty;
+                        }
+
+                        $map[$cat] += $qty;
+                        $mapRp[$cat] += (float) $item->item_price * $qty;
+                        $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
+                    }
+
+                    // 3. Current Stock (ALL TIME)
+                    $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
+                    $rawStockDetails = [];
+
+                    $applyStockScope = function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                        $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                            if ($requestedBranchId) {
+                                $sub->where('placement_id', $requestedBranchId)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
+                            } elseif ($requestedOnlineShopId) {
+                                $sub->where('placement_id', $requestedOnlineShopId)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
+                            } elseif ($requestedWarehouseId) {
+                                $sub->where('placement_id', $requestedWarehouseId)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']);
+                            } elseif ($requestedDistributorId) {
+                                $sub->where('placement_id', $requestedDistributorId)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']);
+                            } else {
+                                if (!empty($branchIds))
+                                    $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
+                                if (!empty($onlineShopIds))
+                                    $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
+                                if (!empty($warehouseIds))
+                                    $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $warehouseIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']));
+                                if (!empty($distributorIds))
+                                    $sub->orWhere(fn($sq) => $sq->whereIn('placement_id', $distributorIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']));
+
+                                if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
+                                    $sub->whereRaw('1=1');
+                            }
+                        });
+                    };
+
+
+
+                    // IMEI Stock - current available stock
+                    $alStock = DB::table('product_details')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                        ->where('product_details.status', 'ready')
+                        ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
+                    
                     $applyStockScope($alStock);
-                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $st) {
-                        $cat = $getCategoryByItem($st->distributor_id);
-                        $rawStockDetails[$cat][trim($st->name)] = ($rawStockDetails[$cat][trim($st->name)] ?? 0) + $st->qty;
-                        $stockReport[$cat] += $st->qty;
+                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id);
+                        $cleanName = trim($s->name);
+                        $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
+                        $stockReport[$cat] += $s->qty;
                     }
 
-                    $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->where('inventories.quantity', '>', 0);
+                    // Use a slightly more optimized approach for NHP stock to find distributors
+                    $oStock = DB::table('inventories')
+                        ->join('products', 'inventories.product_id', '=', 'products.id')
+                        ->where('inventories.quantity', '>', 0)
+                        ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
-                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $st) {
-                        $cat = $getCategoryByItem($st->distributor_id);
-                        $rawStockDetails[$cat][trim($st->name)] = ($rawStockDetails[$cat][trim($st->name)] ?? 0) + $st->quantity;
-                        $stockReport[$cat] += $st->quantity;
+                    
+                    $oStockItems = $oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id', 'inventories.product_id', 'inventories.placement_type', 'inventories.placement_id')->get();
+                    
+                    foreach ($oStockItems as $s) {
+                        $did = $s->distributor_id;
+                        if (!$did) {
+                            // Only perform lookup if needed
+                            $log = DB::table('inventory_logs')
+                                ->where('product_id', $s->product_id)
+                                ->where('type', 'in')
+                                ->where(function($q) use ($s) {
+                                    if ($s->placement_type === 'branch') $q->where('branch_id', $s->placement_id);
+                                    elseif ($s->placement_type === 'warehouse') $q->where('warehouse_id', $s->placement_id);
+                                    elseif ($s->placement_type === 'online_shop') $q->where('online_shop_id', $s->placement_id);
+                                })
+                                ->orderBy('id', 'desc')
+                                ->first();
+                            $did = $log ? $log->distributor_id : null;
+                        }
+
+                        $cat = $getCategoryByItem($did);
+                        $cleanName = trim($s->name);
+                        $qty = (int) $s->quantity;
+                        $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
+                        $stockReport[$cat] += $qty;
                     }
 
-                    $actQuery = DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate]);
-                    if ($requestedBranchId) $actQuery->where(function($q) use ($requestedBranchId) { $q->where('branch_id', $requestedBranchId)->orWhere('online_shop_id', $requestedBranchId); });
-                    elseif ($requestedOnlineShopId) $actQuery->where('online_shop_id', $requestedOnlineShopId);
+                    // 4. Stock In (Period)
+                    $inDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
+                    $distInMap = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+
+                    $applyInScope = function ($q) use ($startDate, $endDate, $branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                        $q->where('stock_outs.status', 'received')
+                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                            ->where(function ($sub) use ($branchIds, $onlineShopIds, $requestedBranchId, $requestedOnlineShopId) {
+                                if ($requestedBranchId) {
+                                    $sub->where('stock_outs.destination_id', $requestedBranchId)->where('stock_outs.destination_type', 'branch');
+                                } elseif ($requestedOnlineShopId) {
+                                    $sub->where('stock_outs.destination_id', $requestedOnlineShopId)->where('stock_outs.destination_type', 'online_shop');
+                                } else {
+                                    if (!empty($branchIds))
+                                        $sub->orWhere(fn($sq) => $sq->whereIn('stock_outs.destination_id', $branchIds)->where('stock_outs.destination_type', 'branch'));
+                                    if (!empty($onlineShopIds))
+                                        $sub->orWhere(fn($sq) => $sq->whereIn('stock_outs.destination_id', $onlineShopIds)->where('stock_outs.destination_type', 'online_shop'));
+                                }
+                            });
+                    };
+
+                    $hpInQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
+                    $applyInScope($hpInQuery);
+                    foreach ($hpInQuery->select('products.name', 'product_details.distributor_id')->get() as $hp) {
+                        $did = (int) $hp->distributor_id;
+                        $cat = $getCategoryByItem($did);
+                        $inDetails[$cat][$hp->name] = ($inDetails[$cat][$hp->name] ?? 0) + 1;
+                        $distInMap[$cat]++;
+                    }
+
+                    $nhpInQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
+                    $applyInScope($nhpInQuery);
+                    foreach ($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
+                        $qty = (int) $s->quantity;
+                        $cat = $getCategoryByItem($s->distributor_id);
+                        $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
+                        $distInMap[$cat] += $qty;
+                    }
 
                     return [
-                        'payment_total' => $paymentTotal,
                         'payments' => $pSums,
+                        'payment_total' => $paymentTotal,
                         'dist_map' => $map,
                         'dist_map_rp' => $mapRp,
                         'stock_report' => $stockReport,
                         'stock_details' => $rawStockDetails,
                         'sold_details' => $soldDetails,
+                        'in_details' => $inDetails,
+                        'dist_in_map' => $distInMap,
                         'activities' => [
-                            'tukar_unit' => (clone $actQuery)->where('category', 'tukar_unit')->count(),
-                            'tukar_tambah' => (clone $actQuery)->where('category', 'tukar_tambah')->count(),
-                            'downgrade' => (clone $actQuery)->where('category', 'downgrade')->count(),
-                            'refund' => (clone $actQuery)->where('category', 'refund')->count(),
-                            'angkat_barang' => (clone $actQuery)->where('category', 'angkat_barang')->count(),
-                        ],
-                        'debug' => [
-                            'requested_branch_id' => $requestedBranchId ?? 'N/A',
-                            'requested_online_shop_id' => $requestedOnlineShopId ?? 'N/A',
-                            'resolved_target_id' => $targetBranchId ?? 'N/A',
-                            'total_payments_found' => $salesHeaderItems->count(),
-                            'total_hp_items' => ($map['hp'] ?? 0) + ($map['apple_lux'] ?? 0),
-                            'total_nhp_items' => ($map['accessories'] ?? 0) + ($map['others'] ?? 0),
-                            'payment_total_calc' => $paymentTotal
+                            'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
+                            'tukar_tambah' => $pQuery->clone()->where('category', 'tukar_tambah')->count(),
+                            'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
+                            'refund' => $pQuery->clone()->where('category', 'refund')->count(),
+                            'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
                         ]
                     ];
                 } catch (\Exception $e) {
-                    return ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()];
+                    return ['error' => $e->getMessage()];
                 }
-            },
+            }
         ]);
+
 
         $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors) {
             $details = [];
+
             foreach ($trx->items as $item) {
                 $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
                 $dist = $dId ? $distributors->get($dId) : null;
                 $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
+
+                // Use the selling_price as typed by the user. Do not subtract distributed_discount here 
+                // because it's handled as a separate 'TOTAL DISKON' row in the receipt/summary.
+                $basePrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
+
                 $details[] = [
                     'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP'),
                     'qty' => 1,
-                    'price' => ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0),
+                    'price' => $basePrice,
                     'brand' => $item->product?->brand ?? '-',
                     'type' => 'HP',
                     'is_hp' => true,
                     'imei' => $item->imei ?? '-',
                     'distributor_name' => $dName,
+                    'ram' => $item->storage, // The modal expects ram/storage
+                    'storage' => $item->storage,
                     'condition' => $item->condition
                 ];
             }
             foreach ($trx->nonHpDetails as $item) {
+                $qty = $item->quantity;
+                // Same here, use basic price minus per-item discount only.
+                $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
                 $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
                 $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
+
                 $details[] = [
                     'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Item Non-HP'),
-                    'qty' => $item->quantity,
-                    'price' => ($item->selling_price ?? 0) - ($item->item_discount ?? 0),
+                    'qty' => $qty,
+                    'price' => $price,
                     'brand' => $item->product?->brand ?? '-',
                     'type' => 'Item',
                     'is_hp' => false,
@@ -643,18 +881,30 @@ class AuditController extends Controller
                     'distributor_name' => $dName
                 ];
             }
+
             $paymentMethodNames = [];
-            if ($trx->payment_method_id) { $pm = $paymentMethods->get($trx->payment_method_id); if ($pm) $paymentMethodNames[] = $pm->name; }
+            if ($trx->payment_method_id) {
+                $pm = $paymentMethods->get($trx->payment_method_id);
+                if ($pm)
+                    $paymentMethodNames[] = $pm->name;
+            }
             if ($trx->split_payments) {
                 $splits = is_array($trx->split_payments) ? $trx->split_payments : json_decode($trx->split_payments, true);
                 if (is_array($splits)) {
                     foreach ($splits as $sp) {
                         $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
-                        $pm = $paymentMethods->get($pmId);
-                        if ($pm) $paymentMethodNames[] = $pm->name;
+                        if ($pmId) {
+                            $pm = $paymentMethods->get($pmId);
+                            if ($pm)
+                                $paymentMethodNames[] = $pm->name;
+                        }
                     }
                 }
             }
+            $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
+
+            $detailedSplitPayments = $trx->split_payments_data ?? [];
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at?->toDateTimeString() ?? '-',
@@ -666,7 +916,12 @@ class AuditController extends Controller
                 'qty' => $trx->is_bundle ? 1 : count($details),
                 'items' => $details,
                 'grand_total' => (float) $trx->selling_price,
-                'payment_method_name' => implode(', ', array_unique($paymentMethodNames)) ?: '-',
+                'selling_price' => (float) $trx->selling_price,
+                'total_discount' => (float) $trx->total_discount,
+                'original_price' => (float) ($trx->selling_price + $trx->total_discount),
+                'is_bundle' => (bool) $trx->is_bundle,
+                'payment_method_name' => $finalPaymentMethods,
+                'split_payments_data' => $detailedSplitPayments,
                 'notes' => $trx->notes
             ];
         });
@@ -2342,13 +2597,10 @@ class AuditController extends Controller
             }
         }
 
-                $report .= "__________________\n__________________\nunit HP keluar\n\n";
+        $report .= "__________________\n__________________\nunit HP keluar\n\n";
         $report .= "Iphone           : " . ($dMap['iphone'] ?? 0) . "\n";
         $report .= "Apple Luxury     : " . ($dMap['apple_lux'] ?? 0) . "\n";
         $report .= "Android          : " . ($dMap['android'] ?? 0) . "\n";
-        $report .= "Total HP         : " . ($dMap['hp'] ?? 0) . "\n\n";
-        $report .= "Tukar unit       : " . ($dMap['tukar_unit'] ?? 0) . "\n";
-        $report .= "Tukar tambah     : " . ($dMap['tukar_tambah'] ?? 0) . "\n";
         $report .= "Total HP         : " . (($dMap['iphone'] ?? 0) + ($dMap['android'] ?? 0) + ($dMap['apple_lux'] ?? 0)) . "\n\n";
 
         $report .= "Tukar unit          : 0\nTukar tambah   : 0\nDowngrade       : 0\nRefund               : 0\nAngkat barang  : 0\n\n";
