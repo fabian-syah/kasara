@@ -633,35 +633,38 @@ class AuditController extends Controller
 
                     // 2. HP & NHP Categorization (Transactions)
                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                    $soldDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
+                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'dokter_pstore' => 0, 'others' => 0];
+                    $soldDetails = [];
 
-                    // IMEI transactions
+                    $getCategoryByItem = function ($did) {
+                        $did = (int) $did;
+                        if ($did === 6) return 'apple_lux';
+                        if (in_array($did, [7, 8, 9])) return 'hp';
+                        if ($did === 10) return 'accessories';
+                        if ($did === 11) return 'apply';
+                        if ($did === 13) return 'debs';
+                        if ($did === 14) return 'arcis';
+                        if ($did === 15) return 'dokter_pstore';
+                        if ($did === 16) return 'laptop';
+                        if ($did === 17) return 'tv';
+                        if ($did === 18) return 'perdana';
+                        if ($did === 19) return 'jaringan';
+                        return 'others';
+                    };
+
+                    // 1. HP transactions from stock_out_items
                     $hpItemsQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id');
                     $applyLocalScope($hpItemsQuery);
                     foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
                         $did = (int) $hp->distributor_id;
-                        
-                        // Strict mapping from user
-                        $cat = 'others';
-                        if ($did === 6) $cat = 'apple_lux';
-                        elseif (in_array($did, [7, 8, 9])) $cat = 'hp';
-                        elseif ($did === 10) $cat = 'accessories';
-                        elseif ($did === 11) $cat = 'apply';
-                        elseif ($did === 13) $cat = 'debs';
-                        elseif ($did === 14) $cat = 'arcis';
-                        elseif ($did === 15) $cat = 'dokter_pstore';
-                        elseif ($did === 16) $cat = 'laptop';
-                        elseif ($did === 17) $cat = 'tv';
-                        elseif ($did === 18) $cat = 'perdana';
-                        elseif ($did === 19) $cat = 'jaringan';
+                        $cat = $getCategoryByItem($did);
 
                         $map[$cat]++;
                         
                         // Internal HP breakdown
-                        if ($cat === 'apple_lux' || $did === 8 || str_contains(strtolower($hp->brand), 'apple')) {
+                        if ($cat === 'apple_lux' || $did === 8 || str_contains(strtolower($hp->brand ?? ''), 'apple')) {
                             $map['iphone']++;
-                        } elseif ($did === 7 || $did === 9 || str_contains(strtolower($hp->brand), 'android')) {
+                        } elseif ($did === 7 || $did === 9 || str_contains(strtolower($hp->brand ?? ''), 'android')) {
                             $map['android']++;
                         } else {
                             $map['iphone']++;
@@ -678,28 +681,12 @@ class AuditController extends Controller
                     foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
                         $qty = (int) $item->quantity;
                         $did = (int) $item->distributor_id;
+                        $cat = $getCategoryByItem($did);
 
-                        // Strict mapping from user
-                        $cat = 'others';
-                        if ($did === 6) $cat = 'apple_lux';
-                        elseif (in_array($did, [7, 8, 9])) $cat = 'hp';
-                        elseif ($did === 10) $cat = 'accessories';
-                        elseif ($did === 11) $cat = 'apply';
-                        elseif ($did === 13) $cat = 'debs';
-                        elseif ($did === 14) $cat = 'arcis';
-                        elseif ($did === 15) $cat = 'dokter_pstore';
-                        elseif ($did === 16) $cat = 'laptop';
-                        elseif ($did === 17) $cat = 'tv';
-                        elseif ($did === 18) {
-                            $cat = 'perdana';
-                            $map['perdana'] += $qty; // Ensure count is updated
-                        }
-                        elseif ($did === 19) {
-                            $cat = 'jaringan';
-                            $map['jaringan'] += $qty; // Ensure count is updated
-                        }
+                        if ($cat === 'perdana') $map['perdana'] += $qty;
+                        if ($cat === 'jaringan') $map['jaringan'] += $qty;
 
-                        // Breakdown for non-IMEI HP if any (unlikely but safe)
+                        // Breakdown for non-IMEI HP if any
                         if ($cat === 'hp') {
                             if ($did === 8) $map['iphone'] += $qty;
                             else $map['android'] += $qty;
@@ -740,37 +727,7 @@ class AuditController extends Controller
                         });
                     };
 
-                    $getCategoryByItem = function ($did, $brand, $category, $distName = '') {
-                        $did = (int) $did;
-                        $dn = strtolower($distName ?? '');
-                        
-                        // 1. Priority: Strict Distributor ID or Name
-                        if ($did === 10 || str_contains($dn, 'accesories')) return 'accessories';
-                        if ($did === 11 || str_contains($dn, 'apply')) return 'apply';
-                        if ($did === 13 || str_contains($dn, 'debs')) return 'debs';
-                        if ($did === 14 || str_contains($dn, 'arcis')) return 'arcis';
-                        if ($did === 15 || str_contains($dn, 'dokter pstore')) return 'dokter_pstore';
-                        if ($did === 16 || str_contains($dn, 'laptop')) return 'laptop';
-                        if ($did === 17 || str_contains($dn, 'tvstore')) return 'tv';
-                        if ($did === 18 || str_contains($dn, 'sim card')) return 'perdana';
-                        if ($did === 19 || str_contains($dn, 'network')) return 'jaringan';
-                        if ($did === 6 || str_contains($dn, 'luxury')) return 'apple_lux';
-                        if (in_array($did, [7, 8, 9]) || str_contains($dn, 'android') || str_contains($dn, 'merakyat')) return 'hp';
 
-                        // 2. Priority: Brand/Category Fallback
-                        $b = strtolower($brand ?? '');
-                        $c = strtolower($category ?? '');
-                        if ($b === 'arcis') return 'arcis';
-                        if ($b === 'debs') return 'debs';
-                        if ($b === 'apply') return 'apply';
-                        if ($c === 'accessories' || $c === 'acc' || str_contains($c, 'aksesoris')) return 'accessories';
-                        if ($c === 'laptop' || str_contains($c, 'laptop') || $b === 'lenovo' || $b === 'msi' || $b === 'acer') return 'laptop';
-                        if ($c === 'tv' || $b === 'coocaa') return 'tv';
-                        if ($c === 'perdana' || $c === 'sim card' || $b === 'sim card') return 'perdana';
-                        if ($c === 'jaringan' || $b === 'network') return 'jaringan';
-
-                        return 'others';
-                    };
 
                     // IMEI Stock - current available stock
                     $alStock = DB::table('product_details')
@@ -780,22 +737,18 @@ class AuditController extends Controller
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     
                     $applyStockScope($alStock);
-                    foreach ($alStock->select('products.name', 'products.brand', 'products.category', 'product_details.distributor_id', 'distributors.name as dist_name', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand', 'products.category', 'product_details.distributor_id', 'distributors.name')->get() as $s) {
-                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category, $s->dist_name);
+                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id);
                         $cleanName = trim($s->name);
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                         $stockReport[$cat] += $s->qty;
                     }
 
                     // Non-IMEI Stock
-                    $oStock = DB::table('inventories')
-                        ->join('products', 'inventories.product_id', '=', 'products.id')
-                        ->leftJoin('distributors', 'inventories.distributor_id', '=', 'distributors.id')
-                        ->where('inventories.quantity', '>', 0)
-                        ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
+                    $oStock = DB::table('inventories')->join('products', 'inventories.product_id', '=', 'products.id')->where('inventories.quantity', '>', 0)->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
-                    foreach ($oStock->select('products.name', 'products.brand', 'products.category', 'inventories.quantity', 'inventories.distributor_id', 'distributors.name as dist_name')->get() as $s) {
-                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category, $s->dist_name);
+                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id);
                         $cleanName = trim($s->name);
                         $qty = (int) $s->quantity;
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
@@ -832,15 +785,11 @@ class AuditController extends Controller
                         $distInMap[$cat]++;
                     }
 
-                    $nhpInQuery = DB::table('stock_out_non_hp_items')
-                        ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-                        ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                        ->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
-                        ->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
+                    $nhpInQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
                     $applyInScope($nhpInQuery);
-                    foreach ($nhpInQuery->select('products.name', 'products.brand', 'products.category', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id', 'distributors.name as dist_name')->get() as $s) {
+                    foreach ($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
                         $qty = (int) $s->quantity;
-                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category, $s->dist_name);
+                        $cat = $getCategoryByItem($s->distributor_id);
                         $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
                         $distInMap[$cat] += $qty;
                     }
