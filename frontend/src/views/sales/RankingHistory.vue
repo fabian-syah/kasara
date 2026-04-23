@@ -402,9 +402,9 @@
                         <div class="mt-12 space-y-16 pb-20">
                             <!-- DYNAMIC STOCK SECTIONS (HP, APPLY, ARCIS, etc.) -->
                             <div v-for="cat in categoryStocks" :key="cat.label"
-                                v-show="Object.keys(cat.remainingItems).length">
+                                v-show="Object.keys(cat.remainingItems).length || Object.keys(cat.items).length || Object.keys(cat.inItems).length">
                                 <!-- Category Header -->
-                                <div class="flex items-center gap-4 mb-8">
+                                <div class="flex items-center gap-4 mb-4">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                     <h4
                                         class="text-[11px] font-black tracking-[0.4em] text-emerald-800/80 dark:text-emerald-500 uppercase whitespace-nowrap">
@@ -413,21 +413,45 @@
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                                    <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
-                                        class="flex flex-col border-b border-emerald-200/30 pb-3 group">
-                                        <div class="flex justify-between items-center mb-1">
-                                            <div class="flex flex-col">
-                                                <span
-                                                    class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
-                                                    {{ name }}
-                                                </span>
+                                <div class="space-y-6 mb-12">
+                                    <!-- SOLD SECTION -->
+                                    <div v-if="Object.keys(cat.items).length" class="space-y-2">
+                                        <h5 class="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest pl-1">Terjual :</h5>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 pl-2">
+                                            <div v-for="(qty, name) in cat.items" :key="'sold-' + name"
+                                                class="flex justify-between items-center border-b border-emerald-100/50 pb-1">
+                                                <span class="text-[11px] text-gray-700 dark:text-gray-300 uppercase font-medium">{{ name }}</span>
+                                                <span class="text-[11px] font-bold text-emerald-700">{{ qty }} UNIT</span>
                                             </div>
-                                            <div class="flex flex-col items-end">
-                                                <span
-                                                    class="text-xs font-black text-emerald-800 dark:text-emerald-400">
-                                                    {{ qty }} UNIT
-                                                </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- IN SECTION (OPTIONAL) -->
+                                    <div v-if="Object.keys(cat.inItems).length" class="space-y-2">
+                                        <h5 class="text-[10px] font-bold text-amber-600/60 uppercase tracking-widest pl-1">Unit Masuk :</h5>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 pl-2">
+                                            <div v-for="(qty, name) in cat.inItems" :key="'in-' + name"
+                                                class="flex justify-between items-center border-b border-amber-100/50 pb-1">
+                                                <span class="text-[11px] text-gray-700 dark:text-gray-300 uppercase font-medium">{{ name }}</span>
+                                                <span class="text-[11px] font-bold text-amber-700">{{ qty }} UNIT</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- STOCK SECTION -->
+                                    <div v-if="Object.keys(cat.remainingItems).length" class="space-y-2">
+                                        <h5 class="text-[10px] font-bold text-blue-600/60 uppercase tracking-widest pl-1">Stok Tersedia :</h5>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 pl-2">
+                                            <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
+                                                class="flex flex-col border-b border-blue-200/30 pb-2 group">
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                        {{ name }}
+                                                    </span>
+                                                    <span class="text-xs font-black text-blue-800 dark:text-blue-400">
+                                                        {{ qty }} UNIT
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1430,6 +1454,7 @@ const appleLuxItems = computed(() => {
 
 const categoryStocks = computed(() => {
     const summary = salesData.value?.report_summary || {};
+    const soldDetails = summary.sold_details || {};
     const inDetails = summary.in_details || {};
     const stockReport = summary.stock_report || {};
     const stockDetails = summary.stock_details || {};
@@ -1438,6 +1463,7 @@ const categoryStocks = computed(() => {
     return [
         {
             label: 'STOK HP',
+            items: soldDetails.hp || {},
             in: distInMap.hp || 0,
             inItems: inDetails.hp || {},
             remaining: stockReport.hp || 0,
@@ -1445,6 +1471,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK APPLE LUX',
+            items: soldDetails.apple_lux || {},
             in: distInMap.apple_lux || 0,
             inItems: inDetails.apple_lux || {},
             remaining: stockReport.apple_lux || 0,
@@ -1452,6 +1479,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK ACCESSORIES',
+            items: soldDetails.accessories || {},
             in: distInMap.accessories || 0,
             inItems: inDetails.accessories || {},
             remaining: stockReport.accessories || 0,
@@ -1459,6 +1487,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK APPLY',
+            items: soldDetails.apply || {},
             in: distInMap.apply || 0,
             inItems: inDetails.apply || {},
             remaining: stockReport.apply || 0,
@@ -1466,6 +1495,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK ARCIS',
+            items: soldDetails.arcis || {},
             in: distInMap.arcis || 0,
             inItems: inDetails.arcis || {},
             remaining: stockReport.arcis || 0,
@@ -1473,6 +1503,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK DEBS',
+            items: soldDetails.debs || {},
             in: distInMap.debs || 0,
             inItems: inDetails.debs || {},
             remaining: stockReport.debs || 0,
@@ -1480,6 +1511,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK LAPTOP',
+            items: soldDetails.laptop || {},
             in: distInMap.laptop || 0,
             inItems: inDetails.laptop || {},
             remaining: stockReport.laptop || 0,
@@ -1487,6 +1519,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK TV',
+            items: soldDetails.tv || {},
             in: distInMap.tv || 0,
             inItems: inDetails.tv || {},
             remaining: stockReport.tv || 0,
@@ -1494,6 +1527,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK PERDANA',
+            items: soldDetails.perdana || {},
             in: distInMap.perdana || 0,
             inItems: inDetails.perdana || {},
             remaining: stockReport.perdana || 0,
@@ -1501,6 +1535,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK JARINGAN',
+            items: soldDetails.jaringan || {},
             in: distInMap.jaringan || 0,
             inItems: inDetails.jaringan || {},
             remaining: stockReport.jaringan || 0,
@@ -1508,6 +1543,7 @@ const categoryStocks = computed(() => {
         },
         {
             label: 'STOK LAIN-LAIN',
+            items: soldDetails.others || {},
             in: distInMap.others || 0,
             inItems: inDetails.others || {},
             remaining: stockReport.others || 0,

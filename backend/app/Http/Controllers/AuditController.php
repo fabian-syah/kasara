@@ -740,8 +740,9 @@ class AuditController extends Controller
                         });
                     };
 
-                    $getCategoryById = function ($did) {
+                    $getCategoryByItem = function ($did, $brand, $category) {
                         $did = (int) $did;
+                        // 1. Priority: Strict Distributor ID
                         if ($did === 6) return 'apple_lux';
                         if (in_array($did, [7, 8, 9])) return 'hp';
                         if ($did === 10) return 'accessories';
@@ -753,31 +754,44 @@ class AuditController extends Controller
                         if ($did === 17) return 'tv';
                         if ($did === 18) return 'perdana';
                         if ($did === 19) return 'jaringan';
+
+                        // 2. Priority: Brand/Category Fallback
+                        $b = strtolower($brand ?? '');
+                        $c = strtolower($category ?? '');
+                        if ($b === 'arcis') return 'arcis';
+                        if ($b === 'debs') return 'debs';
+                        if ($b === 'apply') return 'apply';
+                        if ($c === 'accessories' || $c === 'acc') return 'accessories';
+                        if ($c === 'laptop') return 'laptop';
+                        if ($c === 'tv') return 'tv';
+                        if ($c === 'perdana' || $c === 'sim card' || $b === 'sim card') return 'perdana';
+                        if ($c === 'jaringan' || $b === 'network') return 'jaringan';
+
                         return 'others';
                     };
 
-                    // IMEI Stock - current available stock (no date filter = all-time, but status=available = real-time shelf stock)
+                    // IMEI Stock - current available stock
                     $alStock = DB::table('product_details')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->where('product_details.status', 'available')
                         ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     
                     $applyStockScope($alStock);
-                    foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
-                        $cat = $getCategoryById($s->distributor_id);
+                    foreach ($alStock->select('products.name', 'products.brand', 'products.category', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand', 'products.category', 'product_details.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category);
                         $cleanName = trim($s->name);
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                         $stockReport[$cat] += $s->qty;
                     }
 
-                    // Non-IMEI Stock - current stock with quantity > 0 (no date filter = all-time)
+                    // Non-IMEI Stock
                     $oStock = DB::table('inventories')
                         ->join('products', 'inventories.product_id', '=', 'products.id')
                         ->where('inventories.quantity', '>', 0)
                         ->when($requestedDistributorId, fn($q) => $q->where('inventories.distributor_id', $requestedDistributorId));
                     $applyStockScope($oStock);
-                    foreach ($oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
-                        $cat = $getCategoryById($s->distributor_id);
+                    foreach ($oStock->select('products.name', 'products.brand', 'products.category', 'inventories.quantity', 'inventories.distributor_id')->get() as $s) {
+                        $cat = $getCategoryByItem($s->distributor_id, $s->brand, $s->category);
                         $cleanName = trim($s->name);
                         $qty = (int) $s->quantity;
                         $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
