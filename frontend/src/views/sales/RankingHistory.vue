@@ -1642,17 +1642,32 @@ const getBaseReportText = (isForCopy = false) => {
 
     stockCats.forEach(cat => {
         text += `🔷 ${cat.label}\n`;
-        const items = stockDetails[cat.key] || {};
-        const entries = Object.entries(items);
-
-        if (entries.length === 0) {
-            text += `- (kosong)\n\n`;
+        
+        // 1. Stok Tersedia
+        text += `Stok Tersedia :\n`;
+        const sItems = stockDetails[cat.key] || {};
+        const sEntries = Object.entries(sItems);
+        if (sEntries.length === 0) {
+            text += `- (kosong)\n`;
         } else {
-            entries.forEach(([name, qty]) => {
+            sEntries.forEach(([name, qty]) => {
                 text += `- ${name} : ${qty} unit\n`;
             });
-            text += `\n`;
         }
+
+        // 2. Terjual
+        text += `Terjual :\n`;
+        const soldItems = summary.sold_details?.[cat.key] || {};
+        const soldEntries = Object.entries(soldItems);
+        if (soldEntries.length === 0) {
+            text += `- (kosong)\n`;
+        } else {
+            soldEntries.forEach(([name, qty]) => {
+                text += `- ${name} : ${qty} unit\n`;
+            });
+        }
+        
+        text += `\n`;
     });
 
     return text;
