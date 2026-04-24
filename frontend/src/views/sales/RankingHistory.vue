@@ -1340,14 +1340,6 @@ const categoryStocks = computed(() => {
             inItems: inDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
-        },
-        {
-            label: 'STOK 4G / LTE',
-            items: soldDetails.jaringan || {},
-            in: distInMap.jaringan || 0,
-            inItems: inDetails.jaringan || {},
-            remaining: stockReport.jaringan || 0,
-            remainingItems: stockDetails.jaringan || {},
         }
     ];
 });
@@ -1444,8 +1436,7 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'arcis', label: 'STOK ARCIS' },
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
-        { key: 'tv', label: 'STOK TVSTORE' },
-        { key: 'jaringan', label: 'STOK 4G / LTE' }
+        { key: 'tv', label: 'STOK TVSTORE' }
     ];
 
     stockCats.forEach(cat => {
