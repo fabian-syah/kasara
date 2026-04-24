@@ -735,158 +735,140 @@ class ReportController extends Controller
 
     public function getStockHistory(Request $request)
     {
-        $user = $request->user();
-        $targetDate = $request->query('date') ? \Carbon\Carbon::parse($request->query('date')) : now();
-        
-        // Restriction: Only last 7 days
-        if ($targetDate->diffInDays(now()) > 7 && !$user->hasRole('super_admin')) {
-            return response()->json(['error' => 'Hanya dapat melihat history 7 hari terakhir'], 403);
-        }
+        try {
+            $user = $request->user();
+            $branchId = $request->query('branch_id');
+            $onlineShopId = $request->query('online_shop_id');
+            $date = $request->query('date', now()->toDateString());
+            $mode = $request->query('mode', 'daily');
 
-        $logicalDate = $targetDate->hour < 5 ? $targetDate->copy()->subDay() : $targetDate;
-        
-        $mode = $request->query('mode', 'daily');
-        if ($mode === 'monthly') {
-            $resetTime = $targetDate->copy()->startOfMonth()->setTime(5, 0, 0);
-        } else {
-            $resetTime = $targetDate->copy()->setTime(5, 0, 0);
-        }
-        
-        $branchId = $request->query('branch_id');
-        $onlineShopId = $request->query('online_shop_id');
-        
-        $isRestricted = !$user->hasRole(['super_admin', 'analist', 'audit']);
-        $accessibleBranchIds = $user->getAccessibleBranchIds();
-        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
-
-        if ($isRestricted) {
-            if ($branchId && !in_array($branchId, $accessibleBranchIds)) $branchId = 'FORBIDDEN';
-            if ($onlineShopId && !in_array($onlineShopId, $accessibleOnlineShopIds)) $onlineShopId = 'FORBIDDEN';
+            $targetDate = $date ? \Carbon\Carbon::parse($date) : now();
             
-            if (!$branchId && !$onlineShopId) {
-                $filterBranchIds = $accessibleBranchIds;
-                $filterOnlineShopIds = $accessibleOnlineShopIds;
+            // Limit for non-super admins
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist', 'audit'];
+            if ($targetDate->diffInDays(now()) > 7 && !$user->hasRole($unrestrictedRoles)) {
+                return response()->json(['error' => 'Anda hanya bisa melihat history stok 7 hari terakhir.'], 403);
+            }
+
+            if ($mode === 'monthly') {
+                $resetTime = $targetDate->copy()->startOfMonth()->setTime(5, 0, 0);
             } else {
-                $filterBranchIds = $branchId === 'FORBIDDEN' ? [] : ($branchId ? [$branchId] : []);
-                $filterOnlineShopIds = $onlineShopId === 'FORBIDDEN' ? [] : ($onlineShopId ? [$onlineShopId] : []);
+                $resetTime = $targetDate->copy()->setTime(5, 0, 0);
             }
-        } else {
-            $filterBranchIds = $branchId ? [$branchId] : [];
-            $filterOnlineShopIds = $onlineShopId ? [$onlineShopId] : [];
-        }
 
-        // 1. Get Current Stock (HP & Non-HP merged logic)
-        $results = [];
+            $results = []; // Key: product_id:ram:storage:condition
+            $targetDateStr = $targetDate->toDateString();
 
-        // HP Current
-        $hpQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-            ->selectRaw('
-                products.id as product_id,
-                products.brand,
-                products.name as product_name,
-                product_details.ram,
-                product_details.storage,
-                product_details.condition,
-                COUNT(*) as qty
-            ')
-            ->where('product_details.status', 'available')
-            ->whereNull('products.deleted_at')
-            ->groupBy('products.id', 'products.brand', 'products.name', 'product_details.ram', 'product_details.storage', 'product_details.condition');
+            $isRestricted = !$user->hasRole($unrestrictedRoles);
+            $accessibleBranchIds = $user->getAccessibleBranchIds();
+            $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
 
-        if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
-        if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+            $filterBranchIds = $branchId ? [$branchId] : ($isRestricted ? $accessibleBranchIds : []);
+            $filterOnlineShopIds = $onlineShopId ? [$onlineShopId] : ($isRestricted ? $accessibleOnlineShopIds : []);
 
-        foreach($hpQuery->get() as $s) {
-            $key = "{$s->product_id}:{$s->ram}:{$s->storage}:{$s->condition}";
-            $results[$key] = [
-                'name' => "{$s->brand} {$s->product_name} {$s->ram}/{$s->storage}",
-                'condition' => $s->condition,
-                'initial' => $s->qty, 
-                'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
-                'sold' => 0,
-                'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0,
-                'final' => $s->qty
-            ];
-        }
+            // 1. Current Stock for HP (IMEI based)
+            // Note: History stock reporting in this system is optimized for HP.
+            $hpQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+                ->selectRaw('
+                    products.id as product_id,
+                    products.brand,
+                    products.name as product_name,
+                    product_details.ram,
+                    product_details.storage,
+                    product_details.condition,
+                    COUNT(*) as qty
+                ')
+                ->where('product_details.status', 'available')
+                ->whereNull('products.deleted_at')
+                ->groupBy('products.id', 'products.brand', 'products.name', 'product_details.ram', 'product_details.storage', 'product_details.condition');
 
-        // 2. Incoming Mutations (InventoryLogs)
-        // We look for 'type' = 'in' logs. For units, they usually have a reference_id to product_details
-        $inLogs = InventoryLog::where('created_at', '>=', $resetTime)
-            ->where('type', 'in');
-        
-        if (!empty($filterBranchIds)) $inLogs->whereIn('branch_id', $filterBranchIds);
-        if (!empty($filterOnlineShopIds)) $inLogs->whereIn('online_shop_id', $filterOnlineShopIds);
-        
-        foreach($inLogs->get() as $log) {
-            // Try to find the spec if this is a Unit
-            $pd = ProductDetail::find($log->reference_id);
-            if (!$pd || $pd->product_id != $log->product_id) {
-                // If not found or mismatch, skip spec-level tracking for this generic log
-                continue; 
-            }
-            
-            $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
-            
-            if (!isset($results[$key])) {
+            if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
+            if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+
+            foreach($hpQuery->get() as $s) {
+                $key = "{$s->product_id}:{$s->ram}:{$s->storage}:{$s->condition}";
                 $results[$key] = [
-                    'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage}",
-                    'condition' => $pd->condition,
-                    'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
-                    'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
+                    'name' => "{$s->brand} {$s->product_name} {$s->ram}/{$s->storage} (" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                    'initial' => $s->qty, 
+                    'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                    'sold' => 0,
+                    'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0,
+                    'final' => $s->qty
                 ];
             }
-            
-            $results[$key]['in']++;
-            $results[$key]['initial']--; 
-            
-            $desc = strtoupper($log->description ?? '');
-            if (str_contains($desc, 'TT')) $results[$key]['in_tt']++;
-            elseif (str_contains($desc, 'TU')) $results[$key]['in_tu']++;
-            elseif (str_contains($desc, 'DW')) $results[$key]['in_dw']++;
-            elseif (str_contains($desc, 'RF')) $results[$key]['in_rf']++;
-            elseif (str_contains($desc, 'AB')) $results[$key]['in_ab']++;
-        }
 
-        // 3. Outgoing Mutations (StockOut)
-        // StockOut doesn't have product_id directly, it uses the stock_out_items Pivot
-        $outQuery = StockOut::with(['items.product'])
-            ->where('created_at', '>=', $resetTime)
-            ->where('status', '!=', 'cancelled');
-
-        if (!empty($filterBranchIds)) $outQuery->whereIn('branch_id', $filterBranchIds);
-        if (!empty($filterOnlineShopIds)) $outQuery->whereIn('online_shop_id', $filterOnlineShopIds);
-        
-        foreach($outQuery->get() as $out) {
-            foreach($out->items as $pd) {
+            // 2. Incoming Mutations (InventoryLogs)
+            $inLogs = InventoryLog::where('created_at', '>=', $resetTime)
+                ->where('type', 'in');
+            
+            if (!empty($filterBranchIds)) $inLogs->whereIn('branch_id', $filterBranchIds);
+            if (!empty($filterOnlineShopIds)) $inLogs->whereIn('online_shop_id', $filterOnlineShopIds);
+            
+            foreach($inLogs->get() as $log) {
+                $pd = ProductDetail::find($log->reference_id);
+                if (!$pd || $pd->product_id != $log->product_id) continue;
+                
                 $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
-
                 if (!isset($results[$key])) {
                     $results[$key] = [
-                        'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage}",
-                        'condition' => $pd->condition,
+                        'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage} (" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                         'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
                         'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
                     ];
                 }
-
-                $cat = $out->category;
-                $results[$key]['initial']++;
                 
-                if (in_array($cat, ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'])) {
-                    $results[$key]['sold']++;
-                } else {
-                    $results[$key]['out']++;
-                    if (str_contains(strtoupper($cat), 'TT')) $results[$key]['out_tt']++;
-                    elseif (str_contains(strtoupper($cat), 'TU')) $results[$key]['out_tu']++;
-                    elseif (str_contains(strtoupper($cat), 'DW')) $results[$key]['out_dw']++;
+                $results[$key]['in']++;
+                $results[$key]['initial']--; 
+                
+                $desc = strtoupper($log->description ?? '');
+                if (str_contains($desc, 'TT')) $results[$key]['in_tt']++;
+                elseif (str_contains($desc, 'TU')) $results[$key]['in_tu']++;
+                elseif (str_contains($desc, 'DW')) $results[$key]['in_dw']++;
+                elseif (str_contains($desc, 'RF')) $results[$key]['in_rf']++;
+                elseif (str_contains($desc, 'AB')) $results[$key]['in_ab']++;
+            }
+
+            // 3. Outgoing Mutations (StockOut)
+            $outQuery = StockOut::with(['items.product'])
+                ->where('created_at', '>=', $resetTime)
+                ->where('status', '!=', 'cancelled');
+
+            if (!empty($filterBranchIds)) $outQuery->whereIn('branch_id', $filterBranchIds);
+            if (!empty($filterOnlineShopIds)) $outQuery->whereIn('online_shop_id', $filterOnlineShopIds);
+            
+            foreach($outQuery->get() as $out) {
+                foreach($out->items as $pd) {
+                    $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
+                    if (!isset($results[$key])) {
+                        $results[$key] = [
+                            'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage} (" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                            'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                            'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
+                        ];
+                    }
+
+                    $cat = $out->category;
+                    $results[$key]['initial']++;
+                    
+                    if (in_array($cat, ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'])) {
+                        $results[$key]['sold']++;
+                    } else {
+                        $results[$key]['out']++;
+                        if (str_contains(strtoupper($cat), 'TT')) $results[$key]['out_tt']++;
+                        elseif (str_contains(strtoupper($cat), 'TU')) $results[$key]['out_tu']++;
+                        elseif (str_contains(strtoupper($cat), 'DW')) $results[$key]['out_dw']++;
+                    }
                 }
             }
-        }
 
-        return response()->json([
-            'reset_time' => $resetTime->format('H:i d/m/Y'),
-            'data' => array_values($results)
-        ]);
+            return response()->json([
+                'reset_time' => $resetTime->format('H:i d/m/Y'),
+                'data' => array_values($results)
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Stock History Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Server Error: ' . $e->getMessage()], 500);
+        }
     }
 
     public function exportSales(Request $request)
