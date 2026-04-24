@@ -1615,6 +1615,9 @@ const getBaseReportText = (isForCopy = false) => {
         text += `Online Shop ID: ${summary.debug?.requested_online_shop_id || 'N/A'}\n`;
         text += `Resolved ID: ${summary.debug?.resolved_target_id || 'N/A'}\n`;
         text += `Unrestricted: ${summary.debug?.is_unrestricted ? 'YES' : 'NO'}\n`;
+        if (summary.debug?.error) {
+            text += `ERROR: ${summary.debug.error}\n`;
+        }
         text += `Raw P: ${summary.debug?.total_payments_found || 0}\n`;
         text += `Raw U: ${(summary.debug?.total_hp_items || 0) + (summary.debug?.total_nhp_items || 0)}\n\n`;
     }

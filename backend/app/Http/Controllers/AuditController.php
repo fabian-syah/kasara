@@ -58,7 +58,7 @@ class AuditController extends Controller
         $stockStartDate = '2000-01-01';
         $stockEndDate = now()->toDateString();
 
-        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin']);
+        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'audit', 'analist', 'leader']);
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -574,32 +574,31 @@ class AuditController extends Controller
                                 });
                             };
 
-                            if ($requestedBranchId) $scoper($q, 'branch_id', $requestedBranchId);
-                            elseif ($requestedOnlineShopId) $scoper($q, 'online_shop_id', $requestedOnlineShopId);
-                            elseif ($requestedWarehouseId) $scoper($q, 'warehouse_id', $requestedWarehouseId);
-                            elseif ($requestedDistributorId) $scoper($q, 'distributor_id', $requestedDistributorId);
-                            elseif ($isUnrestricted) {
-                                // Skip further location filtering for superadmins in 'All' view
+                            if ($requestedBranchId) {
+                                $scoper($q, 'branch_id', $requestedBranchId);
+                            } elseif ($requestedOnlineShopId) {
+                                $scoper($q, 'online_shop_id', $requestedOnlineShopId);
+                            } elseif ($requestedWarehouseId) {
+                                $scoper($q, 'warehouse_id', $requestedWarehouseId);
+                            } elseif ($requestedDistributorId) {
+                                $scoper($q, 'distributor_id', $requestedDistributorId);
+                            } elseif ($isUnrestricted) {
+                                // Superadmins/Auditors see everything by default in 'All' view
                                 return;
                             } else {
                                 $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    $hasAny = false;
                                     if (!empty($branchIds)) {
                                         $sub->orWhereIn('stock_outs.branch_id', $branchIds)
                                             ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.branch_id', $branchIds));
+                                        $hasAny = true;
                                     }
                                     if (!empty($onlineShopIds)) {
                                         $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
                                             ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.online_shop_id', $onlineShopIds));
+                                        $hasAny = true;
                                     }
-                                    if (!empty($warehouseIds)) {
-                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
-                                            ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.warehouse_id', $warehouseIds));
-                                    }
-                                    if (!empty($distributorIds)) {
-                                        $sub->orWhereIn('stock_outs.distributor_id', $distributorIds)
-                                            ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.distributor_id', $distributorIds));
-                                    }
-                                    if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) {
+                                    if (!$hasAny) {
                                         $sub->whereRaw('1=0');
                                     }
                                 });
@@ -868,8 +867,15 @@ class AuditController extends Controller
                             'is_unrestricted' => $isUnrestricted
                         ]
                     ];
-                } catch (\Exception $e) {
-                    return ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()];
+                } catch (\Throwable $e) {
+                    return [
+                        'payment_total' => 0, 
+                        'debug' => [
+                            'error' => $e->getMessage(),
+                            'resolved_target_id' => 'ERROR',
+                            'is_unrestricted' => $isUnrestricted ?? false
+                        ]
+                    ];
                 }
             }
         ]);
