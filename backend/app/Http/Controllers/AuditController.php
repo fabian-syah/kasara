@@ -29,7 +29,8 @@ class AuditController extends Controller
      */
     public function sales(Request $request)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
         $branchIds = $user->getAccessibleBranchIds();
         $onlineShopIds = $user->getAccessibleOnlineShopIds();
         $warehouseIds = $user->getAccessibleWarehouseIds();
@@ -691,34 +692,45 @@ class AuditController extends Controller
                     };
  
 
-                    // 1. Total Omset & Payments
+                    // 1. Total Omset & Payments (Memory-efficient aggregation)
                     $pQuery = DB::table('stock_outs');
                     $applyLocalScope($pQuery);
-                    $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
-                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.id')->get();
+                    $paymentStats = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        ->select(
+                            'payment_method_id',
+                            DB::raw("sum(case when category = 'refund' then -selling_price else selling_price end) as total_amount"),
+                            DB::raw("count(*) as total_count")
+                        )
+                        ->whereNull('split_payments')
+                        ->groupBy('payment_method_id')
+                        ->get();
 
                     $pSums = [];
                     $paymentTotal = 0;
-                    foreach ($payments as $p) {
-                        $amt = (float) $p->selling_price;
-                        if ($p->category === 'refund') $amt = -$amt;
-                        
-                        $mName = $p->payment_method_id ? ($paymentMethods->get($p->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
-                        $splits = $p->split_payments ? (is_string($p->split_payments) ? json_decode($p->split_payments, true) : $p->split_payments) : null;
-                        
-                        if (is_array($splits) && !empty($splits)) {
-                            foreach ($splits as $sp) {
-                                $splitAmt = (float) ($sp['amount'] ?? 0);
-                                if ($p->category === 'refund') $splitAmt = -$splitAmt;
-                                
-                                $method = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
-                                $methodName = $method?->name ?? 'Lainnya';
-                                $pSums[$methodName] = ($pSums[$methodName] ?? 0) + $splitAmt;
-                                $paymentTotal += $splitAmt;
+                    foreach ($paymentStats as $ps) {
+                        $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+                        $pSums[$mName] = ($pSums[$mName] ?? 0) + (float)$ps->total_amount;
+                        $paymentTotal += (float)$ps->total_amount;
+                    }
+
+                    // Handle splits separately across the small set of split transactions (usually few)
+                    $splitQuery = DB::table('stock_outs');
+                    $applyLocalScope($splitQuery);
+                    $splits = $splitQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        ->whereNotNull('split_payments')
+                        ->select('split_payments', 'category')->get();
+
+                    foreach ($splits as $s) {
+                        $sData = is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments;
+                        if (is_array($sData)) {
+                            foreach ($sData as $sp) {
+                                $amt = (float)($sp['amount'] ?? 0);
+                                if ($s->category === 'refund') $amt = -$amt;
+                                $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
+                                $mName = $pm?->name ?? 'Lainnya';
+                                $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
+                                $paymentTotal += $amt;
                             }
-                        } else {
-                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
-                            $paymentTotal += $amt;
                         }
                     }
 
@@ -833,21 +845,6 @@ class AuditController extends Controller
                     
                     foreach ($oStockItems as $s) {
                         $did = $s->distributor_id;
-                        if (!$did) {
-                            // Only perform lookup if needed
-                            $log = DB::table('inventory_logs')
-                                ->where('product_id', $s->product_id)
-                                ->where('type', 'in')
-                                ->where(function($q) use ($s) {
-                                    if ($s->placement_type === 'branch') $q->where('branch_id', $s->placement_id);
-                                    elseif ($s->placement_type === 'warehouse') $q->where('warehouse_id', $s->placement_id);
-                                    elseif ($s->placement_type === 'online_shop') $q->where('online_shop_id', $s->placement_id);
-                                })
-                                ->orderBy('id', 'desc')
-                                ->first();
-                            $did = $log ? $log->distributor_id : null;
-                        }
-
                         $cat = $getCategoryByItem($did);
                         $cleanName = trim($s->name);
                         $qty = (int) $s->quantity;
@@ -903,7 +900,7 @@ class AuditController extends Controller
                             'requested_branch_id' => $requestedBranchId,
                             'requested_online_shop_id' => $requestedOnlineShopId,
                             'resolved_target_id' => $requestedBranchId ? (string)$requestedBranchId : ($requestedOnlineShopId ? (string)$requestedOnlineShopId : 'ALL'),
-                            'total_payments_found' => count($payments),
+                            'total_payments_found' => $paymentTotal,
                             'total_hp_items' => $totalHpItems,
                             'total_nhp_items' => $totalNhpItems,
                             'date_range' => [$startDate, $endDate],
@@ -1017,17 +1014,27 @@ class AuditController extends Controller
 
         $formattedBrandSales = collect($brandSalesRaw['hp'])->map(fn($i) => [...(array) $i, 'is_hp' => true])->concat(collect($brandSalesRaw['nhp'])->map(fn($i) => [...(array) $i, 'condition' => '-', 'storage' => '-', 'distributor' => '-', 'is_hp' => false]))->toArray();
 
-        return response()->json([
-            'daily_sales' => ['data' => $dailySales, 'current_page' => $paginatedSales->currentPage(), 'last_page' => $paginatedSales->lastPage(), 'total' => $paginatedSales->total()],
-            'brand_sales' => $formattedBrandSales,
-            'type_sales' => $typeStatsRaw,
-            'condition_sales' => $conditionStatsRaw,
-            'distributor_sales' => $distributorStatsRaw,
-            'cs_sales' => $csSalesRaw,
-            'daily_history' => $dailyHistoryRaw,
-            'report_summary' => $reportSummary,
-            'filter_options' => ['products' => $soldProducts, 'distributors' => $soldDistributors]
-        ]);
+            return response()->json([
+                'daily_sales' => ['data' => $dailySales, 'current_page' => $paginatedSales->currentPage(), 'last_page' => $paginatedSales->lastPage(), 'total' => $paginatedSales->total()],
+                'brand_sales' => $formattedBrandSales,
+                'type_sales' => $typeStatsRaw,
+                'condition_sales' => $conditionStatsRaw,
+                'distributor_sales' => $distributorStatsRaw,
+                'cs_sales' => $csSalesRaw,
+                'daily_history' => $dailyHistoryRaw,
+                'report_summary' => $reportSummary,
+                'filter_options' => ['products' => $soldProducts, 'distributors' => $soldDistributors]
+            ]);
+        } catch (\Throwable $e) {
+            error_log("Global Sales Error: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
+            return response()->json([
+                'error' => 'Internal Server Error',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
+            ], 500);
+        }
     }
 
     public function inventory(Request $request)
