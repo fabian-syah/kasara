@@ -13,6 +13,8 @@ use App\Models\StockOutNonHpItem;
 use App\Models\InventoryLog;
 use App\Models\ExportLog;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ReportController extends Controller
 {
@@ -889,38 +891,85 @@ class ReportController extends Controller
 
     public function exportSales(Request $request)
     {
-        return response()->json(['debug' => 'Controller reached'], 200);
         try {
             $user = $request->user();
             $branchId = $request->query('branch_id');
             $onlineShopId = $request->query('online_shop_id');
-            $date = $request->query('date');
+            $date = $request->query('date', now()->toDateString());
             $mode = $request->query('mode', 'daily');
             
-            $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.xlsx';
+            // Get data using existing SalesExport logic but flattened here
+            $query = StockOut::with(['items.product', 'user', 'branch', 'onlineShop', 'paymentMethod']);
+            
+            // Filters
+            if ($branchId) $query->where('branch_id', $branchId);
+            if ($onlineShopId) $query->where('online_shop_id', $onlineShopId);
+            
+            if ($mode === 'monthly') {
+                $query->whereMonth('reporting_date', date('m', strtotime($date)))
+                      ->whereYear('reporting_date', date('Y', strtotime($date)));
+            } else {
+                $query->where('reporting_date', $date);
+            }
+            
+            // Scoping
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
+            if (!$user->hasRole($unrestrictedRoles)) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $shopIds = $user->getAccessibleOnlineShopIds();
+                $query->where(function($q) use ($branchIds, $shopIds) {
+                    $q->whereIn('branch_id', $branchIds)
+                      ->orWhereIn('online_shop_id', $shopIds);
+                });
+            }
+            
+            $sales = $query->latest()->get();
+            $rows = [];
+            foreach ($sales as $so) {
+                foreach ($so->items as $item) {
+                    $rows[] = [
+                        $so->created_at->format('d/m/Y H:i'),
+                        $so->receipt_id ?? '-',
+                        $so->branch->name ?? ($so->onlineShop->name ?? '-'),
+                        str_replace('_', ' ', strtoupper($so->category)),
+                        ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? ''),
+                        "'" . ($item->imei ?? '-'),
+                        $so->final_price ?? ($so->selling_price ?? 0),
+                        $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                        strtoupper($so->status),
+                        $so->customer_name ?? '-',
+                        "'" . ($so->customer_wa ?? '-')
+                    ];
+                }
+            }
+
+            $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.csv';
             
             // Log export
             ExportLog::create([
                 'user_id' => $user->id,
                 'report_name' => 'Laporan Penjualan',
                 'filename' => $filename,
-                'params' => [
-                    'branch_id' => $branchId,
-                    'online_shop_id' => $onlineShopId,
-                    'date' => $date,
-                    'mode' => $mode
-                ]
+                'params' => ['branch_id' => $branchId, 'online_shop_id' => $onlineShopId, 'date' => $date, 'mode' => $mode]
             ]);
 
-            return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\SalesExport($branchId, $onlineShopId, $date, $mode, $user), 
-                $filename
-            );
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Export Sales Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            $callback = function () use ($rows) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+                fputcsv($file, ['Waktu', 'No Nota', 'Lokasi', 'Kategori', 'Produk', 'IMEI', 'Harga', 'Pembayaran', 'Status', 'Pelanggan', 'WhatsApp']);
+                foreach ($rows as $row) {
+                    fputcsv($file, $row);
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
-            return response()->json(['error' => 'Gagal membuat laporan: ' . $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            Log::error('Export Sales Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Gagal: ' . $e->getMessage()], 500);
         }
     }
 
@@ -928,12 +977,11 @@ class ReportController extends Controller
     {
         try {
             $user = $request->user();
-            $branchId = $request->query('branch_id');
-            $onlineShopId = $request->query('online_shop_id');
-            $date = $request->query('date');
-            $mode = $request->query('mode', 'daily');
+            $response = $this->getStockHistory($request);
+            $data = json_decode($response->getContent(), true);
+            $items = $data['data'] ?? [];
             
-            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
+            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.csv';
 
             // Log export
             ExportLog::create([
@@ -941,22 +989,36 @@ class ReportController extends Controller
                 'report_name' => 'Laporan Barang Keluar Masuk',
                 'filename' => $filename,
                 'params' => [
-                    'branch_id' => $branchId,
-                    'online_shop_id' => $onlineShopId,
-                    'date' => $date,
-                    'mode' => $mode
+                    'branch_id' => $request->query('branch_id'),
+                    'online_shop_id' => $request->query('online_shop_id'),
+                    'date' => $request->query('date'),
+                    'mode' => $request->query('mode')
                 ]
             ]);
 
-            return \Maatwebsite\Excel\Facades\Excel::download(
-                new \App\Exports\StockMutationExport($branchId, $onlineShopId, $date, $mode, $user), 
-                $filename
-            );
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Export Stock Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            $callback = function () use ($items) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
+                fputcsv($file, [
+                    'Nama Produk', 'Awal', 'Total In', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
+                    'Terjual', 'Total Out', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Akhir'
+                ]);
+                foreach ($items as $row) {
+                    fputcsv($file, [
+                        $row['name'], $row['initial'], $row['in'], $row['in_tt'], $row['in_tu'], $row['in_dw'], $row['in_rf'], $row['in_ab'],
+                        $row['sold'], $row['out'], $row['out_tt'], $row['out_tu'], $row['out_dw'], $row['final']
+                    ]);
+                }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
-            return response()->json(['error' => 'Gagal membuat laporan: ' . $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            Log::error('Export Stock Error: ' . $e->getMessage());
+            return response()->json(['error' => 'Gagal: ' . $e->getMessage()], 500);
         }
     }
 

@@ -40,7 +40,7 @@ class StockMutationExport implements FromCollection, WithHeadings, WithMapping, 
     {
         // Re-use logic from ReportController to get the same data
         $reportController = new \App\Http\Controllers\ReportController();
-        $request = new \Illuminate\Http\Request([
+        $request = \Illuminate\Http\Request::create('/reports/stock-history', 'GET', [
             'branch_id' => $this->branchId,
             'online_shop_id' => $this->onlineShopId,
             'date' => $this->date->format('Y-m-d'),

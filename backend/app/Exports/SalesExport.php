@@ -101,7 +101,7 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
                     'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? ''),
                     'imei' => $item->imei ?? '-',
-                    'price' => $item->pivot->selling_price ?? 0,
+                    'price' => $so->final_price ?? ($so->selling_price ?? 0),
                     'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
                     'status' => strtoupper($so->status)
                 ];
