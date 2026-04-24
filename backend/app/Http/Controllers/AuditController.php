@@ -58,6 +58,8 @@ class AuditController extends Controller
         $stockStartDate = '2000-01-01';
         $stockEndDate = now()->toDateString();
 
+        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management']);
+
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
             $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
@@ -554,9 +556,9 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
+            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted) {
                 try {
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted) {
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                         
@@ -565,7 +567,7 @@ class AuditController extends Controller
                               ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         });
 
-                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted) {
                             $scoper = function($qq, $col, $val) {
                                 $qq->where(function($sq) use ($col, $val) {
                                     $sq->where("stock_outs.$col", $val)
@@ -582,7 +584,10 @@ class AuditController extends Controller
                             elseif ($requestedOnlineShopId) $scoper($q, 'online_shop_id', $requestedOnlineShopId);
                             elseif ($requestedWarehouseId) $scoper($q, 'warehouse_id', $requestedWarehouseId);
                             elseif ($requestedDistributorId) $scoper($q, 'distributor_id', $requestedDistributorId);
-                            else {
+                            elseif ($isUnrestricted) {
+                                // Skip further location filtering for superadmins in 'All' view
+                                return;
+                            } else {
                                 $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                                     if (!empty($branchIds)) {
                                         $sub->orWhereIn('stock_outs.branch_id', $branchIds)
@@ -608,8 +613,8 @@ class AuditController extends Controller
                         });
                     };
 
-                    $applyStockScope = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
-                        $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
+                    $applyStockScope = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
+                        $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
                             if ($requestedBranchId) {
                                 $sub->where('placement_id', $requestedBranchId)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
                                 $sub->orWhere('branch_id', $requestedBranchId);
@@ -622,6 +627,8 @@ class AuditController extends Controller
                             } elseif ($requestedDistributorId) {
                                 $sub->where('placement_id', $requestedDistributorId)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']);
                                 $sub->orWhere('distributor_id', $requestedDistributorId);
+                            } elseif ($isUnrestricted) {
+                                return;
                             } else {
                                 if (!empty($branchIds)) $sub->orWhereIn('branch_id', $branchIds)->orWhere(fn($iq) => $iq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
                                 if (!empty($onlineShopIds)) $sub->orWhereIn('online_shop_id', $onlineShopIds)->orWhere(fn($iq) => $iq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
@@ -629,18 +636,19 @@ class AuditController extends Controller
                         });
                     }; 
 
-                    $applyInScope = function ($q) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
+                    $applyInScope = function ($q) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                         $q->where(function($qq) use ($startDate, $endDate, $startTS, $endTS) {
                             $qq->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         });
-                        $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
+                        $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
                             if ($requestedBranchId) $sub->where('stock_outs.branch_id', $requestedBranchId);
                             elseif ($requestedOnlineShopId) $sub->where('stock_outs.online_shop_id', $requestedOnlineShopId);
                             elseif ($requestedWarehouseId) $sub->where('stock_outs.warehouse_id', $requestedWarehouseId);
                             elseif ($requestedDistributorId) $sub->where('stock_outs.distributor_id', $requestedDistributorId);
+                            elseif ($isUnrestricted) return;
                             else {
                                 if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
                                 if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
