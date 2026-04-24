@@ -430,7 +430,7 @@
 
                                 <div class="space-y-6 mb-12">
                                     <!-- STOCK SECTION -->
-                                    <div v-if="Object.keys(cat.remainingItems).length" class="space-y-2">
+                                    <div v-if="cat.remainingItems && Object.keys(cat.remainingItems).length" class="space-y-2">
                                         <h5 class="text-[10px] font-bold text-blue-600/60 uppercase tracking-widest pl-1">Stok Tersedia :</h5>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 pl-2">
                                             <div v-for="(qty, name) in cat.remainingItems" :key="'rem-' + name"
@@ -448,25 +448,13 @@
                                     </div>
 
                                     <!-- SOLD SECTION -->
-                                    <div v-if="Object.keys(cat.items).length" class="space-y-2">
+                                    <div v-if="cat.items && Object.keys(cat.items).length" class="space-y-2">
                                         <h5 class="text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest pl-1">Terjual :</h5>
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 pl-2">
                                             <div v-for="(qty, name) in cat.items" :key="'sold-' + name"
                                                 class="flex justify-between items-center border-b border-emerald-100/50 pb-1">
                                                 <span class="text-[11px] text-gray-700 dark:text-gray-300 uppercase font-medium">{{ name }}</span>
                                                 <span class="text-[11px] font-bold text-emerald-700">{{ qty }} UNIT</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- IN SECTION (OPTIONAL) -->
-                                    <div v-if="Object.keys(cat.inItems).length" class="space-y-2">
-                                        <h5 class="text-[10px] font-bold text-amber-600/60 uppercase tracking-widest pl-1">Unit Masuk :</h5>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 pl-2">
-                                            <div v-for="(qty, name) in cat.inItems" :key="'in-' + name"
-                                                class="flex justify-between items-center border-b border-amber-100/50 pb-1">
-                                                <span class="text-[11px] text-gray-700 dark:text-gray-300 uppercase font-medium">{{ name }}</span>
-                                                <span class="text-[11px] font-bold text-amber-700">{{ qty }} UNIT</span>
                                             </div>
                                         </div>
                                     </div>
