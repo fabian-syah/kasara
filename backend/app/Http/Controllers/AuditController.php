@@ -583,7 +583,27 @@ class AuditController extends Controller
                             } elseif ($requestedDistributorId) {
                                 $scoper($q, 'distributor_id', $requestedDistributorId);
                             } elseif ($isUnrestricted) {
-                                // Superadmins/Auditors see everything by default in 'All' view
+                                // Superadmins see everything. 
+                                // Analist sees everything EXCEPT trial/internal names.
+                                if (auth()->user()->hasRole(['analist', 'analis'])) {
+                                    $q->whereNotExists(function($sub) {
+                                        $sub->select(DB::raw(1))
+                                            ->from('branches')
+                                            ->whereRaw('branches.id = stock_outs.branch_id')
+                                            ->where(function($b) {
+                                                $b->where('name', 'ilike', '%trial%')
+                                                  ->orWhere('name', 'ilike', '%testing%')
+                                                  ->orWhere('name', 'ilike', '%anu%')
+                                                  ->orWhere('name', 'ilike', '%huft%');
+                                            });
+                                    })
+                                    ->whereNotExists(function($sub) {
+                                        $sub->select(DB::raw(1))
+                                            ->from('online_shops')
+                                            ->whereRaw('online_shops.id = stock_outs.online_shop_id')
+                                            ->where('name', 'ilike', '%ANU%');
+                                    });
+                                }
                                 return;
                             } else {
                                 $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
