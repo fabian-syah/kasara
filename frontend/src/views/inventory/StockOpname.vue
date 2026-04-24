@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import {
     ArrowLeft, RefreshCw, Search, Smartphone, Package, BarChart3, Box,
     Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive, ListFilter,
-    Sparkles, Printer, Copy
+    Sparkles, Printer, Copy, FileSpreadsheet, History, Download, Clock
 } from 'lucide-vue-next';
 import { inventory as inventoryApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -944,7 +944,74 @@ const conditionColor = (cond) => {
     return colors[cond] || 'text-gray-400 bg-gray-400/10 border-gray-400/20';
 };
 
-onMounted(() => { fetchAllInventory(); });
+// ===== HISTORY STOK & EXPORT =====
+const historyLoading = ref(false);
+const historyData = ref([]);
+const resetTime = ref('');
+const downloadLogs = ref([]);
+
+const fetchStockHistory = async () => {
+    historyLoading.value = true;
+    try {
+        const params = {
+            branch_id: selectedBranchId.value,
+            online_shop_id: selectedOnlineShopId.value
+        };
+        const res = await axios.get('/reports/stock-history', { params });
+        historyData.value = res.data.data;
+        resetTime.value = res.data.reset_time;
+    } catch (err) {
+        toast.error('Gagal memuat history stok');
+    } finally {
+        historyLoading.value = false;
+    }
+};
+
+const fetchDownloadLogs = async () => {
+    try {
+        const res = await axios.get('/reports/download-history');
+        downloadLogs.value = res.data;
+    } catch (err) {
+        console.error('Error fetching logs:', err);
+    }
+};
+
+const downloadExcel = async (type) => {
+    const toastId = toast.loading(`Sedang menyiapkan ${type === 'sales' ? 'Laporan Penjualan' : 'Laporan Barang Keluar Masuk'}...`);
+    try {
+        const endpoint = type === 'sales' ? '/reports/export-sales' : '/reports/export-stock-movement';
+        const params = {
+            branch_id: selectedBranchId.value,
+            online_shop_id: selectedOnlineShopId.value
+        };
+        
+        const response = await axios.get(endpoint, { 
+            params,
+            responseType: 'blob'
+        });
+        
+        const now = new Date();
+        const timestamp = `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()}_${now.getHours()}-${now.getMinutes()}`;
+        const filename = type === 'sales' ? `LAPORAN_PENJUALAN_${timestamp}.xlsx` : `LAPORAN_MUTASI_STOK_${timestamp}.xlsx`;
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        
+        toast.update(toastId, { type: 'success', render: 'Laporan berhasil didownload!' });
+        fetchDownloadLogs(); 
+    } catch (err) {
+        toast.update(toastId, { type: 'error', render: 'Gagal mendownload laporan.' });
+    }
+};
+
+onMounted(() => { 
+    fetchAllInventory(); 
+    fetchDownloadLogs();
+});
 </script>
 
 <template>
@@ -1153,6 +1220,23 @@ onMounted(() => { fetchAllInventory(); });
                                 class="text-[10px] px-2 py-1 rounded-lg bg-surface-900 text-text-secondary font-medium border border-surface-700">
                                 {{ c.category }}: {{ c.available }}
                             </span>
+                        </div>
+                    </button>
+
+                    <!-- History Stok -->
+                    <button @click="navigateTo('history'); fetchStockHistory();"
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-emerald-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:translate-y-[-2px]">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
+                                <History :size="24" class="text-emerald-400" />
+                             </div>
+                            <ChevronRight :size="20"
+                                class="text-text-secondary group-hover:text-emerald-400 transition-colors" />
+                        </div>
+                        <h3 class="text-lg font-bold text-text-primary mb-1">History Stok</h3>
+                        <p class="text-sm text-text-secondary">Track barang masuk & keluar (Reset 05:00 AM)</p>
+                        <div class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
+                             <Clock :size="12" /> <span class="font-bold uppercase tracking-wider">Reset Otomatis Jam 5 Pagi</span>
                         </div>
                     </button>
 
@@ -2301,6 +2385,156 @@ onMounted(() => { fetchAllInventory(); });
                 <div class="flex justify-center gap-4 pb-20 print:hidden">
                     <button @click="goBack()"
                         class="flex items-center gap-3 px-8 py-4 bg-surface-700 hover:bg-surface-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]">
+                        <ArrowLeft :size="20" /> Kembali
+                    </button>
+                </div>
+            </div>
+        </template>
+        <!-- ==================== HISTORY STOK VIEW ==================== -->
+        <template v-else-if="currentView === 'history'">
+            <div class="space-y-6 pb-20">
+                <!-- Export Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-6 flex flex-col justify-between">
+                         <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-emerald-500/10 rounded-lg">
+                                    <FileSpreadsheet class="text-emerald-400" :size="20" />
+                                </div>
+                                <h4 class="font-bold text-white">Laporan Penjualan</h4>
+                            </div>
+                            <p class="text-xs text-text-secondary mb-6">Download data penjualan harian dalam format Excel.</p>
+                         </div>
+                         <button @click="downloadExcel('sales')"
+                            class="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/10">
+                            <Download :size="18" /> DOWNLOAD EXCEL
+                         </button>
+                    </div>
+
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-6 flex flex-col justify-between">
+                         <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="p-2 bg-blue-500/10 rounded-lg">
+                                    <Package class="text-blue-400" :size="20" />
+                                </div>
+                                <h4 class="font-bold text-white">Laporan Barang Keluar Masuk</h4>
+                            </div>
+                            <p class="text-xs text-text-secondary mb-6">Download mutasi stok harian (In/Out) dalam format Excel.</p>
+                         </div>
+                         <button @click="downloadExcel('mutation')"
+                            class="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/10">
+                            <Download :size="18" /> DOWNLOAD EXCEL
+                         </button>
+                    </div>
+                </div>
+
+                <!-- History Table (Placeholder) -->
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                    <div class="p-6 border-b border-surface-700 flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-white">Mutasi Stok Hari Ini</h3>
+                            <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-emerald-400">Jam Reset: {{ resetTime }}</span></p>
+                        </div>
+                        <button @click="fetchStockHistory()" class="p-2 hover:bg-surface-700 rounded-lg transition-colors text-text-secondary">
+                            <RefreshCw :size="18" :class="{'animate-spin': historyLoading}" />
+                        </button>
+                    </div>
+                    <div class="p-12 text-center" v-if="historyLoading">
+                        <RefreshCw class="animate-spin text-primary-500 mx-auto mb-3" :size="32" />
+                        <p class="text-text-secondary text-sm">Menghitung mutasi stok...</p>
+                    </div>
+                    <div v-else-if="historyData.length === 0" class="p-12 text-center text-text-secondary">
+                         Tidak ada mutasi stok ditemukan sejak jam 05:00 pagi.
+                    </div>
+                    <div v-else class="overflow-x-auto">
+                         <table class="w-full text-sm text-left">
+                            <thead class="bg-surface-900/50 text-text-secondary uppercase text-[10px] font-bold">
+                                <tr>
+                                    <th class="px-6 py-4">Produk</th>
+                                    <th class="px-6 py-4 text-center">Awal</th>
+                                    <th class="px-6 py-4 text-center">In</th>
+                                    <th class="px-6 py-4 text-center text-emerald-400">Sold</th>
+                                    <th class="px-6 py-4 text-center">Out</th>
+                                    <th class="px-6 py-4 text-center">Akhir</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-700/50">
+                                <template v-for="item in historyData" :key="item.name">
+                                    <tr class="hover:bg-surface-700/20 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="font-bold text-white">{{ item.name }}</div>
+                                            <div class="text-[10px] text-text-secondary mt-0.5">
+                                                <span class="px-1.5 py-0.5 rounded bg-surface-900 border border-surface-700 font-black uppercase tracking-tighter" :class="conditionColor(item.condition)">{{ item.condition }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center font-bold text-text-secondary tabular-nums">{{ item.initial }}</td>
+                                        <td class="px-6 py-4 text-center tabular-nums">
+                                            <div class="font-bold text-white">{{ item.in }}</div>
+                                            <div v-if="item.in > 0" class="text-[8px] text-text-secondary flex gap-1 justify-center mt-1">
+                                                <span v-if="item.in_tt > 0" title="TT">TT:{{item.in_tt}}</span>
+                                                <span v-if="item.in_tu > 0" title="TU">TU:{{item.in_tu}}</span>
+                                                <span v-if="item.in_dw > 0" title="DW">DW:{{item.in_dw}}</span>
+                                                <span v-if="item.in_rf > 0" title="RF">RF:{{item.in_rf}}</span>
+                                                <span v-if="item.in_ab > 0" title="AB">AB:{{item.in_ab}}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center font-black text-emerald-400 tabular-nums text-lg">{{ item.sold }}</td>
+                                        <td class="px-6 py-4 text-center tabular-nums">
+                                            <div class="font-bold text-white">{{ item.out }}</div>
+                                            <div v-if="item.out > 0" class="text-[8px] text-text-secondary flex gap-1 justify-center mt-1">
+                                                <span v-if="item.out_tt > 0" title="TT">TT:{{item.out_tt}}</span>
+                                                <span v-if="item.out_tu > 0" title="TU">TU:{{item.out_tu}}</span>
+                                                <span v-if="item.out_dw > 0" title="DW">DW:{{item.out_dw}}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center font-black text-primary-500 tabular-nums text-lg">{{ item.final }}</td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                         </table>
+                    </div>
+                </div>
+
+                <!-- Download Logs -->
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                    <div class="p-6 border-b border-surface-700 flex items-center gap-3">
+                         <History class="text-primary-400" :size="20" />
+                         <h3 class="font-bold text-white">History Download</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                         <table class="w-full text-sm text-left">
+                            <thead class="bg-surface-900/50 text-text-secondary uppercase text-[10px] font-bold">
+                                <tr>
+                                    <th class="px-6 py-4">Waktu</th>
+                                    <th class="px-6 py-4">User</th>
+                                    <th class="px-6 py-4">Laporan</th>
+                                    <th class="px-6 py-4">Filename</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-surface-700/50">
+                                <tr v-for="log in downloadLogs" :key="log.id" class="hover:bg-surface-700/20 transition-colors">
+                                    <td class="px-6 py-4 text-xs tabular-nums text-text-secondary">
+                                        {{ new Date(log.downloaded_at).toLocaleString('id-ID') }}
+                                    </td>
+                                    <td class="px-6 py-4 font-medium text-white">{{ log.user?.name || 'System' }}</td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-2 py-0.5 rounded-lg bg-surface-900 border border-surface-700 text-[10px] font-bold text-primary-400">
+                                            {{ log.report_name }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 font-mono text-[10px] text-text-secondary">{{ log.filename }}</td>
+                                </tr>
+                                <tr v-if="downloadLogs.length === 0">
+                                    <td colspan="4" class="px-6 py-8 text-center text-text-secondary italic">Belum ada riwayat download.</td>
+                                </tr>
+                            </tbody>
+                         </table>
+                    </div>
+                </div>
+
+                <div class="flex justify-center pt-6">
+                    <button @click="goBack()"
+                        class="flex items-center gap-3 px-8 py-4 bg-surface-700 hover:bg-surface-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl">
                         <ArrowLeft :size="20" /> Kembali
                     </button>
                 </div>

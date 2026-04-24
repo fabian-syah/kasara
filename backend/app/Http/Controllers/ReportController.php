@@ -728,4 +728,198 @@ class ReportController extends Controller
             'online_shops' => \App\Models\OnlineShop::orderBy('name')->get(['id', 'name'])
         ]);
     }
+
+    public function getStockHistory(Request $request)
+    {
+        $user = $request->user();
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $resetTime = $logicalNow->copy()->setTime(5, 0, 0);
+        
+        $branchId = $request->query('branch_id');
+        $onlineShopId = $request->query('online_shop_id');
+        
+        $isRestricted = !$user->hasRole(['super_admin', 'analist', 'audit']);
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+
+        if ($isRestricted) {
+            if ($branchId && !in_array($branchId, $accessibleBranchIds)) $branchId = 'FORBIDDEN';
+            if ($onlineShopId && !in_array($onlineShopId, $accessibleOnlineShopIds)) $onlineShopId = 'FORBIDDEN';
+            
+            if (!$branchId && !$onlineShopId) {
+                $filterBranchIds = $accessibleBranchIds;
+                $filterOnlineShopIds = $accessibleOnlineShopIds;
+            } else {
+                $filterBranchIds = $branchId === 'FORBIDDEN' ? [] : ($branchId ? [$branchId] : []);
+                $filterOnlineShopIds = $onlineShopId === 'FORBIDDEN' ? [] : ($onlineShopId ? [$onlineShopId] : []);
+            }
+        } else {
+            $filterBranchIds = $branchId ? [$branchId] : [];
+            $filterOnlineShopIds = $onlineShopId ? [$onlineShopId] : [];
+        }
+
+        // 1. Get Current Stock (HP & Non-HP merged logic)
+        $results = [];
+
+        // HP Current
+        $hpQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+            ->selectRaw('
+                products.id as product_id,
+                products.brand,
+                products.name as product_name,
+                product_details.ram,
+                product_details.storage,
+                product_details.condition,
+                COUNT(*) as qty
+            ')
+            ->where('product_details.status', 'available')
+            ->whereNull('products.deleted_at')
+            ->groupBy('products.id', 'products.brand', 'products.name', 'product_details.ram', 'product_details.storage', 'product_details.condition');
+
+        if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
+        if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+
+        $hpStocks = $hpQuery->get();
+        foreach($hpStocks as $s) {
+            $key = "{$s->product_id}:{$s->ram}:{$s->storage}:{$s->condition}";
+            $results[$key] = [
+                'name' => "{$s->brand} {$s->product_name} {$s->ram}/{$s->storage}",
+                'condition' => $s->condition,
+                'initial' => $s->qty, // Start with Final, will subtract In and add Out
+                'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                'sold' => 0,
+                'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0,
+                'final' => $s->qty
+            ];
+        }
+
+        // 2. Incoming Mutations (InventoryLogs)
+        $inLogs = \App\Models\InventoryLog::with(['productDetail'])
+            ->where('created_at', '>=', $resetTime)
+            ->where('type', 'in');
+        
+        if (!empty($filterBranchIds)) $inLogs->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
+        if (!empty($filterOnlineShopIds)) $inLogs->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
+        
+        foreach($inLogs->get() as $log) {
+            if (!$log->productDetail) continue;
+            $pd = $log->productDetail;
+            $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
+            
+            if (!isset($results[$key])) {
+                $results[$key] = [
+                    'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage}",
+                    'condition' => $pd->condition,
+                    'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                    'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
+                ];
+            }
+            
+            $results[$key]['in']++;
+            $results[$key]['initial']--; // Subtract from Final to get Home
+            
+            $desc = strtoupper($log->description ?? '');
+            if (str_contains($desc, 'TT')) $results[$key]['in_tt']++;
+            elseif (str_contains($desc, 'TU')) $results[$key]['in_tu']++;
+            elseif (str_contains($desc, 'DW')) $results[$key]['in_dw']++;
+            elseif (str_contains($desc, 'RF')) $results[$key]['in_rf']++;
+            elseif (str_contains($desc, 'AB')) $results[$key]['in_ab']++;
+        }
+
+        // 3. Outgoing Mutations (StockOut)
+        $outLogs = \App\Models\StockOut::with(['productDetail'])
+            ->where('created_at', '>=', $resetTime)
+            ->where('status', '!=', 'cancelled');
+
+        if (!empty($filterBranchIds)) $outLogs->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
+        if (!empty($filterOnlineShopIds)) $outLogs->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
+        
+        foreach($outLogs->get() as $out) {
+            $pd = $out->productDetail;
+            if (!$pd) continue;
+            $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
+
+            if (!isset($results[$key])) {
+                $results[$key] = [
+                    'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage}",
+                    'condition' => $pd->condition,
+                    'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                    'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
+                ];
+            }
+
+            $cat = $out->category;
+            $results[$key]['initial']++; // Add back to find Initial
+            
+            if (in_array($cat, ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'])) {
+                $results[$key]['sold']++;
+            } else {
+                $results[$key]['out']++;
+                if (str_contains(strtoupper($cat), 'TT')) $results[$key]['out_tt']++;
+                elseif (str_contains(strtoupper($cat), 'TU')) $results[$key]['out_tu']++;
+                elseif (str_contains(strtoupper($cat), 'DW')) $results[$key]['out_dw']++;
+            }
+        }
+
+        return response()->json([
+            'reset_time' => $resetTime->format('H:i d/m/Y'),
+            'data' => array_values($results)
+        ]);
+    }
+
+    public function exportSales(Request $request)
+    {
+        $user = $request->user();
+        $branchId = $request->query('branch_id');
+        $onlineShopId = $request->query('online_shop_id');
+        
+        $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.xlsx';
+        
+        // Log export
+        \App\Models\ExportLog::create([
+            'user_id' => $user->id,
+            'report_name' => 'Laporan Penjualan',
+            'filename' => $filename,
+            'params' => [
+                'branch_id' => $branchId,
+                'online_shop_id' => $onlineShopId
+            ]
+        ]);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\SalesExport($branchId, $onlineShopId), 
+            $filename
+        );
+    }
+
+    public function exportStockMovement(Request $request)
+    {
+        $user = $request->user();
+        $branchId = $request->query('branch_id');
+        $onlineShopId = $request->query('online_shop_id');
+        
+        $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
+
+        // Log export
+        \App\Models\ExportLog::create([
+            'user_id' => $user->id,
+            'report_name' => 'Laporan Barang Keluar Masuk',
+            'filename' => $filename,
+            'params' => [
+                'branch_id' => $branchId,
+                'online_shop_id' => $onlineShopId
+            ]
+        ]);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\StockMutationExport($branchId, $onlineShopId), 
+            $filename
+        );
+    }
+
+    public function getDownloadHistory(Request $request)
+    {
+        $history = \App\Models\ExportLog::with('user')->latest()->take(50)->get();
+        return response()->json($history);
+    }
 }
