@@ -20,13 +20,15 @@ class StockMutationExport implements FromCollection, WithHeadings, WithMapping, 
     protected $onlineShopId;
     protected $date;
     protected $mode;
+    protected $user;
 
-    public function __construct($branchId = null, $onlineShopId = null, $date = null, $mode = 'daily')
+    public function __construct($branchId = null, $onlineShopId = null, $date = null, $mode = 'daily', $user = null)
     {
         $this->branchId = $branchId;
         $this->onlineShopId = $onlineShopId;
         $this->date = $date ? \Carbon\Carbon::parse($date) : now();
         $this->mode = $mode;
+        $this->user = $user;
     }
 
     public function title(): string
@@ -44,6 +46,10 @@ class StockMutationExport implements FromCollection, WithHeadings, WithMapping, 
             'date' => $this->date->format('Y-m-d'),
             'mode' => $this->mode
         ]);
+        
+        if ($this->user) {
+            $request->setUserResolver(fn() => $this->user);
+        }
         
         $response = $reportController->getStockHistory($request);
         $data = json_decode($response->getContent(), true)['data'] ?? [];

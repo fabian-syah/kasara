@@ -892,6 +892,8 @@ class ReportController extends Controller
         $user = $request->user();
         $branchId = $request->query('branch_id');
         $onlineShopId = $request->query('online_shop_id');
+        $date = $request->query('date');
+        $mode = $request->query('mode', 'daily');
         
         $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.xlsx';
         
@@ -902,12 +904,14 @@ class ReportController extends Controller
             'filename' => $filename,
             'params' => [
                 'branch_id' => $branchId,
-                'online_shop_id' => $onlineShopId
+                'online_shop_id' => $onlineShopId,
+                'date' => $date,
+                'mode' => $mode
             ]
         ]);
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\SalesExport($branchId, $onlineShopId), 
+            new \App\Exports\SalesExport($branchId, $onlineShopId, $date, $mode, $user), 
             $filename
         );
     }
@@ -917,6 +921,8 @@ class ReportController extends Controller
         $user = $request->user();
         $branchId = $request->query('branch_id');
         $onlineShopId = $request->query('online_shop_id');
+        $date = $request->query('date');
+        $mode = $request->query('mode', 'daily');
         
         $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
@@ -927,12 +933,14 @@ class ReportController extends Controller
             'filename' => $filename,
             'params' => [
                 'branch_id' => $branchId,
-                'online_shop_id' => $onlineShopId
+                'online_shop_id' => $onlineShopId,
+                'date' => $date,
+                'mode' => $mode
             ]
         ]);
 
         return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\StockMutationExport($branchId, $onlineShopId), 
+            new \App\Exports\StockMutationExport($branchId, $onlineShopId, $date, $mode, $user), 
             $filename
         );
     }

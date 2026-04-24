@@ -14,13 +14,15 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
     protected $onlineShopId;
     protected $date;
     protected $mode;
+    protected $user;
 
-    public function __construct($branchId = null, $onlineShopId = null, $date = null, $mode = 'daily')
+    public function __construct($branchId = null, $onlineShopId = null, $date = null, $mode = 'daily', $user = null)
     {
         $this->branchId = $branchId;
         $this->onlineShopId = $onlineShopId;
         $this->date = $date ? \Carbon\Carbon::parse($date) : now();
         $this->mode = $mode;
+        $this->user = $user;
     }
 
     public function title(): string
@@ -36,14 +38,43 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $resetTime = $this->date->copy()->setTime(5, 0, 0);
         }
 
-        $query = \App\Models\StockOut::with(['product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
-            ->where('created_at', '>=', $resetTime);
+        $query = \App\Models\StockOut::with(['items.product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
+            ->where('created_at', '>=', $resetTime)
+            ->where('status', '!=', 'cancelled')
+            ->whereIn('category', ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling']);
 
-        if ($this->branchId) {
-            $query->where('placement_type', 'branch')->where('placement_id', $this->branchId);
-        }
-        if ($this->onlineShopId) {
-            $query->where('placement_type', 'online_shop')->where('placement_id', $this->onlineShopId);
+        // Application level scoping
+        if ($this->user && !$this->user->hasRole('super_admin')) {
+            $accessibleBranchIds = $this->user->getAccessibleBranchIds();
+            $accessibleOnlineShopIds = $this->user->getAccessibleOnlineShopIds();
+            
+            if ($this->branchId) {
+                if (in_array($this->branchId, $accessibleBranchIds)) {
+                     $query->where('branch_id', $this->branchId);
+                } else {
+                     $query->where('id', 0); // Forbidden
+                }
+            } elseif ($this->onlineShopId) {
+                if (in_array($this->onlineShopId, $accessibleOnlineShopIds)) {
+                     $query->where('online_shop_id', $this->onlineShopId);
+                } else {
+                     $query->where('id', 0); // Forbidden
+                }
+            } else {
+                // All Accessible
+                $query->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                    $q->whereIn('branch_id', $accessibleBranchIds)
+                      ->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                });
+            }
+        } else {
+            // Admin or unauthenticated (shouldn't happen)
+            if ($this->branchId) {
+                $query->where('branch_id', $this->branchId);
+            }
+            if ($this->onlineShopId) {
+                $query->where('online_shop_id', $this->onlineShopId);
+            }
         }
 
         // Exclude test data
@@ -54,7 +85,30 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
               ->where('name', 'not like', '%huft%');
         });
 
-        return $query->latest()->get();
+        $stockOuts = $query->latest()->get();
+        $rows = [];
+
+        foreach ($stockOuts as $so) {
+            $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
+            
+            foreach ($so->items as $item) {
+                $rows[] = [
+                    'waktu' => $so->created_at->format('d/m/Y H:i'),
+                    'lokasi' => $location,
+                    'user' => $so->user->name ?? '-',
+                    'customer' => $so->customer_name ?? '-',
+                    'whatsapp' => $so->customer_wa ?? '-',
+                    'category' => str_replace('_', ' ', strtoupper($so->category)),
+                    'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? ''),
+                    'imei' => $item->imei ?? '-',
+                    'price' => $item->pivot->selling_price ?? 0,
+                    'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                    'status' => strtoupper($so->status)
+                ];
+            }
+        }
+
+        return collect($rows);
     }
 
     public function headings(): array
@@ -76,22 +130,18 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
 
     public function map($row): array
     {
-        $location = $row->placement_type === 'branch' 
-            ? ($row->branch->name ?? '-') 
-            : ($row->onlineShop->name ?? '-');
-
         return [
-            $row->created_at->format('d/m/Y H:i'),
-            $location,
-            $row->user->name ?? '-',
-            $row->customer_name ?? '-',
-            $row->customer_whatsapp ?? '-',
-            str_replace('_', ' ', strtoupper($row->category)),
-            $row->product->name ?? ($row->product_name ?? '-'),
-            $row->imei ?? ($row->imei_original ?? '-'),
-            $row->final_price ?? $row->price,
-            $row->paymentMethod->name ?? '-',
-            strtoupper($row->status)
+            $row['waktu'],
+            $row['lokasi'],
+            $row['user'],
+            $row['customer'],
+            $row['whatsapp'],
+            $row['category'],
+            $row['product'],
+            $row['imei'],
+            $row['price'],
+            $row['payment'],
+            $row['status']
         ];
     }
 }
