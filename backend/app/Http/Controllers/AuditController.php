@@ -677,9 +677,11 @@ class AuditController extends Controller
                         }
                     }
 
-                    $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                    $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-                    $soldDetails = [];
+                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
+                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                     $soldDetails = [];
+                     $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                     $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
 
                     $getCategoryByItem = function ($did) {
                         $did = (int) $did;
@@ -865,12 +867,14 @@ class AuditController extends Controller
                         ]
                     ];
                 } catch (\Throwable $e) {
+                    $roles = auth()->user()?->roles()->pluck('name')->toArray() ?? [];
                     return [
                         'payment_total' => 0, 
                         'debug' => [
-                            'error' => $e->getMessage(),
+                            'error' => $e->getMessage() . ' | ROLES: ' . implode(',', $roles),
                             'resolved_target_id' => 'ERROR',
-                            'is_unrestricted' => $isUnrestricted ?? false
+                            'is_unrestricted' => $isUnrestricted ?? false,
+                            'current_roles' => $roles
                         ]
                     ];
                 }
