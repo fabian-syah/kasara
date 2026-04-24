@@ -889,60 +889,74 @@ class ReportController extends Controller
 
     public function exportSales(Request $request)
     {
-        $user = $request->user();
-        $branchId = $request->query('branch_id');
-        $onlineShopId = $request->query('online_shop_id');
-        $date = $request->query('date');
-        $mode = $request->query('mode', 'daily');
-        
-        $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.xlsx';
-        
-        // Log export
-        ExportLog::create([
-            'user_id' => $user->id,
-            'report_name' => 'Laporan Penjualan',
-            'filename' => $filename,
-            'params' => [
-                'branch_id' => $branchId,
-                'online_shop_id' => $onlineShopId,
-                'date' => $date,
-                'mode' => $mode
-            ]
-        ]);
+        try {
+            $user = $request->user();
+            $branchId = $request->query('branch_id');
+            $onlineShopId = $request->query('online_shop_id');
+            $date = $request->query('date');
+            $mode = $request->query('mode', 'daily');
+            
+            $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.xlsx';
+            
+            // Log export
+            ExportLog::create([
+                'user_id' => $user->id,
+                'report_name' => 'Laporan Penjualan',
+                'filename' => $filename,
+                'params' => [
+                    'branch_id' => $branchId,
+                    'online_shop_id' => $onlineShopId,
+                    'date' => $date,
+                    'mode' => $mode
+                ]
+            ]);
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\SalesExport($branchId, $onlineShopId, $date, $mode, $user), 
-            $filename
-        );
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\SalesExport($branchId, $onlineShopId, $date, $mode, $user), 
+                $filename
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Export Sales Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Gagal membuat laporan: ' . $e->getMessage()], 500);
+        }
     }
 
     public function exportStockMovement(Request $request)
     {
-        $user = $request->user();
-        $branchId = $request->query('branch_id');
-        $onlineShopId = $request->query('online_shop_id');
-        $date = $request->query('date');
-        $mode = $request->query('mode', 'daily');
-        
-        $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
+        try {
+            $user = $request->user();
+            $branchId = $request->query('branch_id');
+            $onlineShopId = $request->query('online_shop_id');
+            $date = $request->query('date');
+            $mode = $request->query('mode', 'daily');
+            
+            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
-        // Log export
-        ExportLog::create([
-            'user_id' => $user->id,
-            'report_name' => 'Laporan Barang Keluar Masuk',
-            'filename' => $filename,
-            'params' => [
-                'branch_id' => $branchId,
-                'online_shop_id' => $onlineShopId,
-                'date' => $date,
-                'mode' => $mode
-            ]
-        ]);
+            // Log export
+            ExportLog::create([
+                'user_id' => $user->id,
+                'report_name' => 'Laporan Barang Keluar Masuk',
+                'filename' => $filename,
+                'params' => [
+                    'branch_id' => $branchId,
+                    'online_shop_id' => $onlineShopId,
+                    'date' => $date,
+                    'mode' => $mode
+                ]
+            ]);
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\StockMutationExport($branchId, $onlineShopId, $date, $mode, $user), 
-            $filename
-        );
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\StockMutationExport($branchId, $onlineShopId, $date, $mode, $user), 
+                $filename
+            );
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Export Stock Error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => 'Gagal membuat laporan: ' . $e->getMessage()], 500);
+        }
     }
 
     public function getDownloadHistory(Request $request)
