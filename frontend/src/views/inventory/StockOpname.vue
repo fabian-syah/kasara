@@ -949,19 +949,33 @@ const historyLoading = ref(false);
 const historyData = ref([]);
 const resetTime = ref('');
 const downloadLogs = ref([]);
+const historyDate = ref(new Date().toISOString().split('T')[0]);
+const historyMode = ref('daily');
+
+const fetchDownloadHistory = async () => {
+    try {
+        const res = await axios.get('/reports/download-history');
+        downloadLogs.value = res.data;
+    } catch (error) {
+        console.error('Failed to fetch download history:', error);
+    }
+};
 
 const fetchStockHistory = async () => {
     historyLoading.value = true;
     try {
-        const params = {
-            branch_id: selectedBranchId.value,
-            online_shop_id: selectedOnlineShopId.value
-        };
-        const res = await axios.get('/reports/stock-history', { params });
+        const res = await axios.get('/reports/stock-history', {
+            params: {
+                branch_id: selectedBranchId.value,
+                online_shop_id: selectedOnlineShopId.value,
+                date: historyDate.value,
+                mode: historyMode.value
+            }
+        });
         historyData.value = res.data.data;
         resetTime.value = res.data.reset_time;
     } catch (err) {
-        toast.error('Gagal memuat history stok');
+        toast.error(err.response?.data?.error || 'Gagal memuat history stok');
     } finally {
         historyLoading.value = false;
     }
@@ -976,13 +990,24 @@ const fetchDownloadLogs = async () => {
     }
 };
 
+const maxDate = new Date().toISOString().split('T')[0];
+const minDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+watch([selectedLocationKey, historyDate, historyMode], () => {
+    if (currentView.value === 'history') {
+        fetchStockHistory();
+    }
+});
+
 const downloadExcel = async (type) => {
     const toastId = toast.loading(`Sedang menyiapkan ${type === 'sales' ? 'Laporan Penjualan' : 'Laporan Barang Keluar Masuk'}...`);
     try {
         const endpoint = type === 'sales' ? '/reports/export-sales' : '/reports/export-stock-movement';
         const params = {
             branch_id: selectedBranchId.value,
-            online_shop_id: selectedOnlineShopId.value
+            online_shop_id: selectedOnlineShopId.value,
+            date: historyDate.value,
+            mode: historyMode.value
         };
         
         const response = await axios.get(endpoint, { 
@@ -990,8 +1015,7 @@ const downloadExcel = async (type) => {
             responseType: 'blob'
         });
         
-        const now = new Date();
-        const timestamp = `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()}_${now.getHours()}-${now.getMinutes()}`;
+        const timestamp = historyDate.value + '_' + new Date().getHours() + '-' + new Date().getMinutes();
         const filename = type === 'sales' ? `LAPORAN_PENJUALAN_${timestamp}.xlsx` : `LAPORAN_MUTASI_STOK_${timestamp}.xlsx`;
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -2393,6 +2417,22 @@ onMounted(() => {
         <!-- ==================== HISTORY STOK VIEW ==================== -->
         <template v-else-if="currentView === 'history'">
             <div class="space-y-6 pb-20">
+                <!-- Filters -->
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-text-secondary uppercase">Periode:</span>
+                        <select v-model="historyMode" class="bg-surface-900 border-surface-700 rounded-lg text-xs font-bold text-white py-1.5 px-3">
+                            <option value="daily">Harian</option>
+                            <option value="monthly">Bulanan</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-bold text-text-secondary uppercase">Tanggal:</span>
+                        <input type="date" v-model="historyDate" :min="minDate" :max="maxDate"
+                            class="bg-surface-900 border-surface-700 rounded-lg text-xs font-bold text-white py-1.5 px-3 [color-scheme:dark]" />
+                    </div>
+                </div>
+
                 <!-- Export Actions -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-6 flex flex-col justify-between">

@@ -12,15 +12,15 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
 {
     protected $branchId;
     protected $onlineShopId;
-    protected $resetTime;
+    protected $date;
+    protected $mode;
 
-    public function __construct($branchId = null, $onlineShopId = null)
+    public function __construct($branchId = null, $onlineShopId = null, $date = null, $mode = 'daily')
     {
         $this->branchId = $branchId;
         $this->onlineShopId = $onlineShopId;
-        
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $this->resetTime = $logicalNow->copy()->setTime(5, 0, 0);
+        $this->date = $date ? \Carbon\Carbon::parse($date) : now();
+        $this->mode = $mode;
     }
 
     public function title(): string
@@ -30,8 +30,14 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
 
     public function collection()
     {
+        if ($this->mode === 'monthly') {
+            $resetTime = $this->date->copy()->startOfMonth()->setTime(5, 0, 0);
+        } else {
+            $resetTime = $this->date->copy()->setTime(5, 0, 0);
+        }
+
         $query = \App\Models\StockOut::with(['product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
-            ->where('created_at', '>=', $this->resetTime);
+            ->where('created_at', '>=', $resetTime);
 
         if ($this->branchId) {
             $query->where('placement_type', 'branch')->where('placement_id', $this->branchId);

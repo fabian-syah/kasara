@@ -734,8 +734,21 @@ class ReportController extends Controller
     public function getStockHistory(Request $request)
     {
         $user = $request->user();
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $resetTime = $logicalNow->copy()->setTime(5, 0, 0);
+        $targetDate = $request->query('date') ? \Carbon\Carbon::parse($request->query('date')) : now();
+        
+        // Restriction: Only last 7 days
+        if ($targetDate->diffInDays(now()) > 7 && !$user->hasRole('super_admin')) {
+            return response()->json(['error' => 'Hanya dapat melihat history 7 hari terakhir'], 403);
+        }
+
+        $logicalDate = $targetDate->hour < 5 ? $targetDate->copy()->subDay() : $targetDate;
+        
+        $mode = $request->query('mode', 'daily');
+        if ($mode === 'monthly') {
+            $resetTime = $targetDate->copy()->startOfMonth()->setTime(5, 0, 0);
+        } else {
+            $resetTime = $targetDate->copy()->setTime(5, 0, 0);
+        }
         
         $branchId = $request->query('branch_id');
         $onlineShopId = $request->query('online_shop_id');
