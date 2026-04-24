@@ -1000,7 +1000,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
 });
 
 const downloadExcel = async (type) => {
-    const toastId = toast.loading(`Sedang menyiapkan ${type === 'sales' ? 'Laporan Penjualan' : 'Laporan Barang Keluar Masuk'}...`);
+    toast.info(`Sedang menyiapkan ${type === 'sales' ? 'Laporan Penjualan' : 'Laporan Barang Keluar Masuk'}...`);
     try {
         const endpoint = type === 'sales' ? '/reports/export-sales' : '/reports/export-stock-movement';
         const params = {
@@ -1025,10 +1025,10 @@ const downloadExcel = async (type) => {
         document.body.appendChild(link);
         link.click();
         
-        toast.update(toastId, { type: 'success', render: 'Laporan berhasil didownload!' });
+        toast.success('Laporan berhasil didownload!');
         fetchDownloadLogs(); 
     } catch (err) {
-        toast.update(toastId, { type: 'error', render: 'Gagal mendownload laporan.' });
+        toast.error('Gagal mendownload laporan.');
     }
 };
 
