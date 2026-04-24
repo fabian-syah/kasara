@@ -812,8 +812,8 @@ class ReportController extends Controller
         $inLogs = InventoryLog::where('created_at', '>=', $resetTime)
             ->where('type', 'in');
         
-        if (!empty($filterBranchIds)) $inLogs->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
-        if (!empty($filterOnlineShopIds)) $inLogs->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
+        if (!empty($filterBranchIds)) $inLogs->whereIn('branch_id', $filterBranchIds);
+        if (!empty($filterOnlineShopIds)) $inLogs->whereIn('online_shop_id', $filterOnlineShopIds);
         
         foreach($inLogs->get() as $log) {
             // Try to find the spec if this is a Unit
@@ -851,8 +851,8 @@ class ReportController extends Controller
             ->where('created_at', '>=', $resetTime)
             ->where('status', '!=', 'cancelled');
 
-        if (!empty($filterBranchIds)) $outQuery->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
-        if (!empty($filterOnlineShopIds)) $outQuery->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
+        if (!empty($filterBranchIds)) $outQuery->whereIn('branch_id', $filterBranchIds);
+        if (!empty($filterOnlineShopIds)) $outQuery->whereIn('online_shop_id', $filterOnlineShopIds);
         
         foreach($outQuery->get() as $out) {
             foreach($out->items as $pd) {

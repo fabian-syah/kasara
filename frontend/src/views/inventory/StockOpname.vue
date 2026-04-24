@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import {
     ArrowLeft, RefreshCw, Search, Smartphone, Package, BarChart3, Box,
     Layers, Tag, Truck, ChevronRight, ToggleLeft, ToggleRight, HardDrive, ListFilter,
-    Sparkles, Printer, Copy, FileSpreadsheet, History, Download, Clock
+    Sparkles, Printer, Copy, FileSpreadsheet, History, Download, Clock, Calendar
 } from 'lucide-vue-next';
 import { inventory as inventoryApi } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -2417,19 +2417,46 @@ onMounted(() => {
         <!-- ==================== HISTORY STOK VIEW ==================== -->
         <template v-else-if="currentView === 'history'">
             <div class="space-y-6 pb-20">
-                <!-- Filters -->
-                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 flex flex-wrap items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-text-secondary uppercase">Periode:</span>
-                        <select v-model="historyMode" class="bg-surface-900 border-surface-700 rounded-lg text-xs font-bold text-white py-1.5 px-3">
-                            <option value="daily">Harian</option>
-                            <option value="monthly">Bulanan</option>
-                        </select>
+                <!-- Modern Modern Filters -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-800 p-6 rounded-3xl border border-surface-700 shadow-xl shadow-black/20">
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+                        <!-- Mode Selector -->
+                        <div class="flex flex-col gap-2">
+                             <label class="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Periode Laporan</label>
+                             <div class="flex p-1 bg-surface-900 rounded-xl border border-surface-700">
+                                 <button @click="historyMode = 'daily'" 
+                                    class="px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                    :class="historyMode === 'daily' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-white'">
+                                    Harian
+                                 </button>
+                                 <button @click="historyMode = 'monthly'" 
+                                    class="px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                                    :class="historyMode === 'monthly' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-white'">
+                                    Bulanan
+                                 </button>
+                             </div>
+                        </div>
+
+                        <!-- Date Picker -->
+                        <div class="flex flex-col gap-2 min-w-[200px]">
+                             <label class="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Pilih Tanggal</label>
+                             <div class="relative group">
+                                 <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400 group-focus-within:text-primary-300 transition-colors" :size="16" />
+                                 <input type="date" v-model="historyDate" :min="minDate" :max="maxDate"
+                                    class="w-full pl-10 pr-4 py-2.5 bg-surface-900 border border-surface-700 rounded-xl text-sm font-bold text-white focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all [color-scheme:dark]" />
+                             </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-bold text-text-secondary uppercase">Tanggal:</span>
-                        <input type="date" v-model="historyDate" :min="minDate" :max="maxDate"
-                            class="bg-surface-900 border-surface-700 rounded-lg text-xs font-bold text-white py-1.5 px-3 [color-scheme:dark]" />
+
+                    <div class="flex items-center gap-3 self-end lg:self-center">
+                         <div class="text-right hidden sm:block">
+                             <div class="text-[10px] font-black uppercase tracking-widest text-text-secondary">Data Terakhir</div>
+                             <div class="text-xs font-bold text-emerald-400">{{ resetTime }}</div>
+                         </div>
+                         <button @click="fetchStockHistory()" 
+                            class="p-3 bg-surface-700 hover:bg-surface-600 rounded-xl text-white transition-all shadow-lg active:scale-95">
+                            <RefreshCw :size="18" :class="{'animate-spin': historyLoading}" />
+                         </button>
                     </div>
                 </div>
 
