@@ -1342,22 +1342,6 @@ const categoryStocks = computed(() => {
             remainingItems: stockDetails.tv || {},
         },
         {
-            label: 'STOK PERDANA',
-            items: soldDetails.perdana || {},
-            in: distInMap.perdana || 0,
-            inItems: inDetails.perdana || {},
-            remaining: stockReport.perdana || 0,
-            remainingItems: stockDetails.perdana || {},
-        },
-        {
-            label: 'STOK 4G / LTE',
-            items: soldDetails.jaringan || {},
-            in: distInMap.jaringan || 0,
-            inItems: inDetails.jaringan || {},
-            remaining: stockReport.jaringan || 0,
-            remainingItems: stockDetails.jaringan || {},
-        },
-        {
             label: 'STOK LAIN-LAIN',
             items: soldDetails.others || {},
             in: distInMap.others || 0,
@@ -1446,8 +1430,6 @@ const getBaseReportText = (isForCopy = false) => {
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv            : ${summary.dist_map?.tv || 0}\n`;
-    text += `4G / LTE      : ${summary.dist_map?.jaringan || 0}\n`;
-    text += `Sim Card      : ${summary.dist_map?.perdana || 0}\n`;
     text += `pengunjung: .........\n`;
     text += `__________________\n__________________\n\n*Laporan keuangan*\n\n`;
     text += `🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN     :\nSISA   :\n`;
@@ -1462,9 +1444,7 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
         { key: 'tv', label: 'STOK TVSTORE' },
-        { key: 'perdana', label: 'STOK Sim Card' },
-        { key: 'others', label: 'STOK LAIN-LAIN' },
-        { key: 'jaringan', label: 'STOK 4G / LTE' }
+        { key: 'others', label: 'STOK LAIN-LAIN' }
     ];
 
     stockCats.forEach(cat => {

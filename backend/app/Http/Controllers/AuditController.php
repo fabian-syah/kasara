@@ -740,11 +740,11 @@ class AuditController extends Controller
                         }
                     }
 
-                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                     $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
+                     $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
                      $soldDetails = [];
-                     $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-                     $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
+                     $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                     $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'others' => []];
 
                     $getCategoryByItem = function ($did) use ($distributors) {
                         $did = (int) $did;
@@ -763,8 +763,6 @@ class AuditController extends Controller
                             if (str_contains($name, 'pstore') || str_contains($name, 'dokter')) return 'dokter_pstore';
                             if (str_contains($name, 'laptop')) return 'laptop';
                             if (str_contains($name, 'tv')) return 'tv';
-                            if (str_contains($name, 'perdana') || str_contains($name, 'sim card')) return 'perdana';
-                            if (str_contains($name, 'jaringan') || str_contains($name, 'network')) return 'jaringan';
                             if (str_contains($name, 'hp') || str_contains($name, 'handphone')) return 'hp';
                         }
 
@@ -778,8 +776,6 @@ class AuditController extends Controller
                         if ($did === 15) return 'dokter_pstore';
                         if ($did === 16) return 'laptop';
                         if ($did === 17) return 'tv';
-                        if ($did === 18) return 'perdana';
-                        if ($did === 19) return 'jaringan';
 
                         return 'others';
                     };
@@ -844,9 +840,6 @@ class AuditController extends Controller
 
                         $qty = (int) $item->quantity;
                         $cat = $getCategoryByItem($did);
-
-                        if ($cat === 'perdana') $map['perdana'] += $qty;
-                        if ($cat === 'jaringan') $map['jaringan'] += $qty;
 
                         // Breakdown for non-IMEI HP if any
                         if ($cat === 'hp' || $cat === 'apple_lux') {
@@ -914,8 +907,8 @@ class AuditController extends Controller
                     }
 
                     // 4. Stock In (Period)
-                    $inDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
-                    $distInMap = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                    $inDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'others' => []];
+                    $distInMap = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
 
                     $hpInQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     $applyInScope($hpInQuery);
