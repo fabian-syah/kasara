@@ -344,10 +344,7 @@ class AuditController extends Controller
                                 ->orWhere('users.warehouse_id', $requestedWarehouseId);
                         });
                     } elseif ($requestedDistributorId) {
-                        $q->where(function ($qq) use ($requestedDistributorId) {
-                            $qq->where('stock_outs.distributor_id', $requestedDistributorId)
-                                ->orWhere('users.distributor_id', $requestedDistributorId);
-                        });
+                        $q->where('users.distributor_id', $requestedDistributorId);
                     } else {
                         $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                             if (!empty($branchIds)) {
@@ -363,8 +360,7 @@ class AuditController extends Controller
                                     ->orWhereIn('users.warehouse_id', $warehouseIds);
                             }
                             if (!empty($distributorIds)) {
-                                $sub->orWhereIn('stock_outs.distributor_id', $distributorIds)
-                                    ->orWhereIn('users.distributor_id', $distributorIds);
+                                $sub->orWhereIn('users.distributor_id', $distributorIds);
                             }
                         });
                     }
@@ -414,10 +410,7 @@ class AuditController extends Controller
                                 ->orWhere('users.warehouse_id', $requestedWarehouseId);
                         });
                     } elseif ($requestedDistributorId) {
-                        $q->where(function ($qq) use ($requestedDistributorId) {
-                            $qq->where('stock_outs.distributor_id', $requestedDistributorId)
-                                ->orWhere('users.distributor_id', $requestedDistributorId);
-                        });
+                        $q->where('users.distributor_id', $requestedDistributorId);
                     } else {
                         $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                             if (!empty($branchIds)) {
@@ -433,8 +426,7 @@ class AuditController extends Controller
                                     ->orWhereIn('users.warehouse_id', $warehouseIds);
                             }
                             if (!empty($distributorIds)) {
-                                $sub->orWhereIn('stock_outs.distributor_id', $distributorIds)
-                                    ->orWhereIn('users.distributor_id', $distributorIds);
+                                $sub->orWhereIn('users.distributor_id', $distributorIds);
                             }
                         });
                     }
@@ -607,7 +599,12 @@ class AuditController extends Controller
                             } elseif ($requestedWarehouseId) {
                                 $scoper($q, 'warehouse_id', $requestedWarehouseId);
                             } elseif ($requestedDistributorId) {
-                                $scoper($q, 'distributor_id', $requestedDistributorId);
+                                $q->whereExists(function($sub) use ($requestedDistributorId) {
+                                    $sub->select(DB::raw(1))
+                                        ->from('users')
+                                        ->whereRaw('users.id = stock_outs.user_id')
+                                        ->where('users.distributor_id', $requestedDistributorId);
+                                });
                             } elseif ($isUnrestricted) {
                                 // Superadmins see everything. 
                                 // Analist sees everything EXCEPT trial/internal names.
@@ -682,11 +679,20 @@ class AuditController extends Controller
                             if ($requestedBranchId) $sub->where('stock_outs.branch_id', $requestedBranchId);
                             elseif ($requestedOnlineShopId) $sub->where('stock_outs.online_shop_id', $requestedOnlineShopId);
                             elseif ($requestedWarehouseId) $sub->where('stock_outs.warehouse_id', $requestedWarehouseId);
-                            elseif ($requestedDistributorId) $sub->where('stock_outs.distributor_id', $requestedDistributorId);
+                            elseif ($requestedDistributorId) {
+                                $sub->whereExists(function($ss) use ($requestedDistributorId) {
+                                    $ss->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.distributor_id', $requestedDistributorId);
+                                });
+                            }
                             elseif ($isUnrestricted) return;
                             else {
                                 if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
                                 if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                                if (!empty($distributorIds)) {
+                                    $sub->orWhereExists(function($ss) use ($distributorIds) {
+                                        $ss->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.distributor_id', $distributorIds);
+                                    });
+                                }
                             }
                         });
                     };
