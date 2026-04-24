@@ -10,12 +10,6 @@ class WarehouseController extends Controller
 {
     public function index(Request $request)
     {
-        // FORCED ALL DATA: Same logic that worked for BranchController
-        return response()->json([
-            'success' => true,
-            'debug_message' => 'FORCED ALL WAREHOUSES',
-            'data' => Warehouse::latest()->get()
-        ]);
 
         // DEBUG: Log the request to server error log
         error_log("Warehouse Request: ignore_scope=" . $request->ignore_scope . ", all=" . $request->all);

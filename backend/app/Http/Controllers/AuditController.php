@@ -58,7 +58,7 @@ class AuditController extends Controller
         $stockStartDate = '2000-01-01';
         $stockEndDate = now()->toDateString();
 
-        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'audit', 'analist', 'leader', 'developer', 'pimpinan_pusat']);
+        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'leader', 'developer', 'pimpinan_pusat']);
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {

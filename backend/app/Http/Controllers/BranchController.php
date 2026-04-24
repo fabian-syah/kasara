@@ -11,12 +11,6 @@ class BranchController extends Controller
     public function index(Request $request)
     // forced update
     {
-        // DEBUG & FORCE: Return all branches immediately without any conditions
-        return response()->json([
-            'success' => true,
-            'debug_message' => 'FORCED ALL DATA',
-            'data' => Branch::with('paymentMethods')->latest()->get()
-        ]);
 
         $user = $request->user();
         $query = Branch::query();
