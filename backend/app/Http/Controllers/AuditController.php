@@ -759,12 +759,12 @@ class AuditController extends Controller
                             if (str_contains($name, 'apply')) return 'apply';
                             if (str_contains($name, 'arcis')) return 'arcis';
                             if (str_contains($name, 'debs')) return 'debs';
+                            if (str_contains($name, 'acc') || str_contains($name, 'accessory')) return 'accessories';
                             if (str_contains($name, 'pstore') || str_contains($name, 'dokter')) return 'dokter_pstore';
                             if (str_contains($name, 'laptop')) return 'laptop';
                             if (str_contains($name, 'tv')) return 'tv';
                             if (str_contains($name, 'perdana') || str_contains($name, 'sim card')) return 'perdana';
                             if (str_contains($name, 'jaringan') || str_contains($name, 'network')) return 'jaringan';
-                            if (str_contains($name, 'acc') || str_contains($name, 'accessory')) return 'accessories';
                             if (str_contains($name, 'hp') || str_contains($name, 'handphone')) return 'hp';
                         }
 
@@ -824,9 +824,26 @@ class AuditController extends Controller
                         ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
                     $applyLocalScope($nhpItemsQuery);
                     
-                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id')->get() as $item) {
+                    foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id', 'stock_out_non_hp_items.product_id', 'stock_outs.branch_id', 'stock_outs.warehouse_id', 'stock_outs.online_shop_id')->get() as $item) {
+                        $did = $item->distributor_id;
+                        
+                        // Fallback for transactions
+                        if (!$did) {
+                            $lastLog = DB::table('inventory_logs')
+                                ->where('product_id', $item->product_id)
+                                ->where('type', 'in')
+                                ->where(function($q) use ($item) {
+                                    if ($item->branch_id) $q->where('branch_id', $item->branch_id);
+                                    elseif ($item->warehouse_id) $q->where('warehouse_id', $item->warehouse_id);
+                                    elseif ($item->online_shop_id) $q->where('online_shop_id', $item->online_shop_id);
+                                })
+                                ->latest()
+                                ->first();
+                            $did = $lastLog->distributor_id ?? null;
+                        }
+
                         $qty = (int) $item->quantity;
-                        $cat = $getCategoryByItem($item->distributor_id);
+                        $cat = $getCategoryByItem($did);
 
                         if ($cat === 'perdana') $map['perdana'] += $qty;
                         if ($cat === 'jaringan') $map['jaringan'] += $qty;
@@ -873,6 +890,22 @@ class AuditController extends Controller
                     
                     foreach ($oStockItems as $s) {
                         $did = $s->distributor_id;
+                        
+                        // Fallback to logs if distributor_id is missing in inventories table
+                        if (!$did) {
+                            $lastLog = DB::table('inventory_logs')
+                                ->where('product_id', $s->product_id)
+                                ->where('type', 'in')
+                                ->where(function($q) use ($s) {
+                                    if ($s->placement_type === 'branch') $q->where('branch_id', $s->placement_id);
+                                    elseif ($s->placement_type === 'warehouse') $q->where('warehouse_id', $s->placement_id);
+                                    elseif ($s->placement_type === 'online_shop') $q->where('online_shop_id', $s->placement_id);
+                                })
+                                ->latest()
+                                ->first();
+                            $did = $lastLog->distributor_id ?? null;
+                        }
+
                         $cat = $getCategoryByItem($did);
                         $cleanName = trim($s->name);
                         $qty = (int) $s->quantity;
@@ -883,8 +916,6 @@ class AuditController extends Controller
                     // 4. Stock In (Period)
                     $inDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
                     $distInMap = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-
-
 
                     $hpInQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
                     $applyInScope($hpInQuery);
@@ -897,9 +928,26 @@ class AuditController extends Controller
 
                     $nhpInQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->when($requestedDistributorId, fn($q) => $q->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
                     $applyInScope($nhpInQuery);
-                    foreach ($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id')->get() as $s) {
+                    foreach ($nhpInQuery->select('products.name', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.distributor_id', 'stock_out_non_hp_items.product_id', 'stock_outs.branch_id', 'stock_outs.warehouse_id', 'stock_outs.online_shop_id')->get() as $s) {
+                        $did = $s->distributor_id;
+                        
+                        // Fallback for sales too
+                        if (!$did) {
+                            $lastLog = DB::table('inventory_logs')
+                                ->where('product_id', $s->product_id)
+                                ->where('type', 'in')
+                                ->where(function($q) use ($s) {
+                                    if ($s->branch_id) $q->where('branch_id', $s->branch_id);
+                                    elseif ($s->warehouse_id) $q->where('warehouse_id', $s->warehouse_id);
+                                    elseif ($s->online_shop_id) $q->where('online_shop_id', $s->online_shop_id);
+                                })
+                                ->latest()
+                                ->first();
+                            $did = $lastLog->distributor_id ?? null;
+                        }
+
                         $qty = (int) $s->quantity;
-                        $cat = $getCategoryByItem($s->distributor_id);
+                        $cat = $getCategoryByItem($did);
                         $inDetails[$cat][$s->name] = ($inDetails[$cat][$s->name] ?? 0) + $qty;
                         $distInMap[$cat] += $qty;
                     }
