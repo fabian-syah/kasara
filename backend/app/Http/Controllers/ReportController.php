@@ -10,6 +10,8 @@ use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\StockOut;
 use App\Models\StockOutNonHpItem;
+use App\Models\InventoryLog;
+use App\Models\ExportLog;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
@@ -779,13 +781,12 @@ class ReportController extends Controller
         if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
         if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
 
-        $hpStocks = $hpQuery->get();
-        foreach($hpStocks as $s) {
+        foreach($hpQuery->get() as $s) {
             $key = "{$s->product_id}:{$s->ram}:{$s->storage}:{$s->condition}";
             $results[$key] = [
                 'name' => "{$s->brand} {$s->product_name} {$s->ram}/{$s->storage}",
                 'condition' => $s->condition,
-                'initial' => $s->qty, // Start with Final, will subtract In and add Out
+                'initial' => $s->qty, 
                 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
                 'sold' => 0,
                 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0,
@@ -794,16 +795,21 @@ class ReportController extends Controller
         }
 
         // 2. Incoming Mutations (InventoryLogs)
-        $inLogs = \App\Models\InventoryLog::with(['productDetail'])
-            ->where('created_at', '>=', $resetTime)
+        // We look for 'type' = 'in' logs. For units, they usually have a reference_id to product_details
+        $inLogs = InventoryLog::where('created_at', '>=', $resetTime)
             ->where('type', 'in');
         
         if (!empty($filterBranchIds)) $inLogs->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
         if (!empty($filterOnlineShopIds)) $inLogs->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
         
         foreach($inLogs->get() as $log) {
-            if (!$log->productDetail) continue;
-            $pd = $log->productDetail;
+            // Try to find the spec if this is a Unit
+            $pd = ProductDetail::find($log->reference_id);
+            if (!$pd || $pd->product_id != $log->product_id) {
+                // If not found or mismatch, skip spec-level tracking for this generic log
+                continue; 
+            }
+            
             $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
             
             if (!isset($results[$key])) {
@@ -816,7 +822,7 @@ class ReportController extends Controller
             }
             
             $results[$key]['in']++;
-            $results[$key]['initial']--; // Subtract from Final to get Home
+            $results[$key]['initial']--; 
             
             $desc = strtoupper($log->description ?? '');
             if (str_contains($desc, 'TT')) $results[$key]['in_tt']++;
@@ -827,37 +833,38 @@ class ReportController extends Controller
         }
 
         // 3. Outgoing Mutations (StockOut)
-        $outLogs = \App\Models\StockOut::with(['productDetail'])
+        // StockOut doesn't have product_id directly, it uses the stock_out_items Pivot
+        $outQuery = StockOut::with(['items.product'])
             ->where('created_at', '>=', $resetTime)
             ->where('status', '!=', 'cancelled');
 
-        if (!empty($filterBranchIds)) $outLogs->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
-        if (!empty($filterOnlineShopIds)) $outLogs->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
+        if (!empty($filterBranchIds)) $outQuery->whereIn('placement_id', $filterBranchIds)->where('placement_type', 'branch');
+        if (!empty($filterOnlineShopIds)) $outQuery->whereIn('placement_id', $filterOnlineShopIds)->where('placement_type', 'online_shop');
         
-        foreach($outLogs->get() as $out) {
-            $pd = $out->productDetail;
-            if (!$pd) continue;
-            $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
+        foreach($outQuery->get() as $out) {
+            foreach($out->items as $pd) {
+                $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
 
-            if (!isset($results[$key])) {
-                $results[$key] = [
-                    'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage}",
-                    'condition' => $pd->condition,
-                    'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
-                    'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
-                ];
-            }
+                if (!isset($results[$key])) {
+                    $results[$key] = [
+                        'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage}",
+                        'condition' => $pd->condition,
+                        'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                        'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
+                    ];
+                }
 
-            $cat = $out->category;
-            $results[$key]['initial']++; // Add back to find Initial
-            
-            if (in_array($cat, ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'])) {
-                $results[$key]['sold']++;
-            } else {
-                $results[$key]['out']++;
-                if (str_contains(strtoupper($cat), 'TT')) $results[$key]['out_tt']++;
-                elseif (str_contains(strtoupper($cat), 'TU')) $results[$key]['out_tu']++;
-                elseif (str_contains(strtoupper($cat), 'DW')) $results[$key]['out_dw']++;
+                $cat = $out->category;
+                $results[$key]['initial']++;
+                
+                if (in_array($cat, ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'])) {
+                    $results[$key]['sold']++;
+                } else {
+                    $results[$key]['out']++;
+                    if (str_contains(strtoupper($cat), 'TT')) $results[$key]['out_tt']++;
+                    elseif (str_contains(strtoupper($cat), 'TU')) $results[$key]['out_tu']++;
+                    elseif (str_contains(strtoupper($cat), 'DW')) $results[$key]['out_dw']++;
+                }
             }
         }
 
@@ -876,7 +883,7 @@ class ReportController extends Controller
         $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.xlsx';
         
         // Log export
-        \App\Models\ExportLog::create([
+        ExportLog::create([
             'user_id' => $user->id,
             'report_name' => 'Laporan Penjualan',
             'filename' => $filename,
@@ -901,7 +908,7 @@ class ReportController extends Controller
         $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
         // Log export
-        \App\Models\ExportLog::create([
+        ExportLog::create([
             'user_id' => $user->id,
             'report_name' => 'Laporan Barang Keluar Masuk',
             'filename' => $filename,
@@ -919,7 +926,7 @@ class ReportController extends Controller
 
     public function getDownloadHistory(Request $request)
     {
-        $history = \App\Models\ExportLog::with('user')->latest()->take(50)->get();
+        $history = ExportLog::with('user')->latest()->take(50)->get();
         return response()->json($history);
     }
 }
