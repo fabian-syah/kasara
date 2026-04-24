@@ -43,20 +43,29 @@ class AuditController extends Controller
             ]);
         }
 
-        // Hide trial branches for analist role across all components
+        $paymentMethods = PaymentMethod::all()->keyBy('id');
+        $distributors = Distributor::all()->keyBy('id');
+
+        // Hide trial branches for analist role across all components (In-memory filtering for speed and safety)
         if ($user->hasAnyRole(['analist', 'analis'])) {
-            if (!empty($branchIds)) {
-                $branchIds = Branch::whereIn('id', $branchIds)
-                    ->where('name', 'not ilike', '%trial%')
-                    ->where('name', 'not ilike', '%testing%')
-                    ->where('name', 'not ilike', '%anu%')
-                    ->where('name', 'not ilike', '%huft%')
-                    ->pluck('id')->toArray();
-            }
-            if (!empty($onlineShopIds)) {
-                $onlineShopIds = OnlineShop::whereIn('id', $onlineShopIds)
-                    ->where('name', 'not ilike', '%ANU%')
-                    ->pluck('id')->toArray();
+            try {
+                if (!empty($branchIds)) {
+                    $hiddenBranchIds = Branch::where(function($q) {
+                        $q->where('name', 'ilike', '%trial%')
+                          ->orWhere('name', 'ilike', '%testing%')
+                          ->orWhere('name', 'ilike', '%anu%')
+                          ->orWhere('name', 'ilike', '%huft%');
+                    })->pluck('id')->toArray();
+                    
+                    $branchIds = array_values(array_diff($branchIds, $hiddenBranchIds));
+                }
+                
+                if (!empty($onlineShopIds)) {
+                    $hiddenShopIds = OnlineShop::where('name', 'ilike', '%ANU%')->pluck('id')->toArray();
+                    $onlineShopIds = array_values(array_diff($onlineShopIds, $hiddenShopIds));
+                }
+            } catch (\Throwable $e) {
+                error_log("Analist filter error: " . $e->getMessage());
             }
         }
 
