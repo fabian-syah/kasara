@@ -805,6 +805,8 @@ class ReportController extends Controller
             if (!empty($filterOnlineShopIds)) $inLogs->whereIn('online_shop_id', $filterOnlineShopIds);
             
             foreach($inLogs->get() as $log) {
+                if (!$log->reference_id || !is_numeric($log->reference_id)) continue;
+                
                 $pd = ProductDetail::find($log->reference_id);
                 if (!$pd || $pd->product_id != $log->product_id) continue;
                 
