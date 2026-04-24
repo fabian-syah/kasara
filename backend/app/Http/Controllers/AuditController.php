@@ -43,6 +43,23 @@ class AuditController extends Controller
             ]);
         }
 
+        // Hide trial branches for analist role across all components
+        if ($user->hasAnyRole(['analist', 'analis'])) {
+            if (!empty($branchIds)) {
+                $branchIds = Branch::whereIn('id', $branchIds)
+                    ->where('name', 'not ilike', '%trial%')
+                    ->where('name', 'not ilike', '%testing%')
+                    ->where('name', 'not ilike', '%anu%')
+                    ->where('name', 'not ilike', '%huft%')
+                    ->pluck('id')->toArray();
+            }
+            if (!empty($onlineShopIds)) {
+                $onlineShopIds = OnlineShop::whereIn('id', $onlineShopIds)
+                    ->where('name', 'not ilike', '%ANU%')
+                    ->pluck('id')->toArray();
+            }
+        }
+
         $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
         $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
 

@@ -118,11 +118,11 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'branch')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasRole(['super_admin', 'owner'])) {
+        if ($this->hasRole(['super_admin', 'owner', 'analist', 'analis'])) {
             return \App\Models\Branch::pluck('id')->toArray();
         }
 
-        if ($this->hasRole(['audit', 'analist'])) {
+        if ($this->hasRole(['audit'])) {
             return $assignedIds;
         }
 
@@ -139,11 +139,11 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'online_shop')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasRole(['super_admin', 'owner'])) {
+        if ($this->hasRole(['super_admin', 'owner', 'analist', 'analis'])) {
             return \App\Models\OnlineShop::pluck('id')->toArray();
         }
 
-        if ($this->hasRole(['audit', 'analist'])) {
+        if ($this->hasRole(['audit'])) {
             return $assignedIds;
         }
 
@@ -160,11 +160,11 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'warehouse')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasRole(['super_admin', 'owner'])) {
+        if ($this->hasRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
             return \App\Models\Warehouse::pluck('id')->toArray();
         }
 
-        if ($this->hasRole(['audit', 'analist', 'admin_produk'])) {
+        if ($this->hasRole(['audit'])) {
             return $assignedIds;
         }
 
@@ -181,11 +181,11 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'distributor')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasRole(['super_admin', 'owner'])) {
+        if ($this->hasRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
             return \App\Models\Distributor::pluck('id')->toArray();
         }
 
-        if ($this->hasRole(['audit', 'analist', 'admin_produk'])) {
+        if ($this->hasRole(['audit'])) {
             return $assignedIds;
         }
 

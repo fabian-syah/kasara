@@ -221,7 +221,7 @@
 
         <!-- ==================== REPORT VIEW (NEW ERA) ==================== -->
         <template v-else-if="currentView === 'report'" :key="'view-report'">
-Suggest edits
+
             <div v-if="loading" :key="'report-loading'" class="flex flex-col items-center justify-center py-40 w-full">
                 <Loader2 class="animate-spin text-primary-500 mb-4" :size="48" />
                 <p class="text-text-secondary text-sm font-black uppercase tracking-[0.2em]">Mengumpulkan Laporan...</p>
@@ -928,7 +928,7 @@ const selectedYear = ref(currentYear);
 
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return !['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'].some(r => role.includes(r));
+    return !['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'].some(r => role.includes(r));
 });
 
 const availableMonths = computed(() => {
