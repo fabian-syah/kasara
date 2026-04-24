@@ -1016,7 +1016,7 @@ const downloadExcel = async (type) => {
         });
         
         const timestamp = historyDate.value + '_' + new Date().getHours() + '-' + new Date().getMinutes();
-        const filename = type === 'sales' ? `LAPORAN_PENJUALAN_${timestamp}.xlsx` : `LAPORAN_MUTASI_STOK_${timestamp}.xlsx`;
+        const filename = type === 'sales' ? `LAPORAN_PENJUALAN_${timestamp}.csv` : `LAPORAN_MUTASI_STOK_${timestamp}.csv`;
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');

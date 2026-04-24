@@ -938,6 +938,7 @@ class ReportController extends Controller
             ]);
 
             $callback = function () use ($rows) {
+                if (ob_get_level() > 0) ob_end_clean();
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
                 fputcsv($file, ['Waktu', 'No Nota', 'Lokasi', 'Kategori', 'Produk', 'IMEI', 'Harga', 'Pembayaran', 'Status', 'Pelanggan', 'WhatsApp']);
@@ -981,6 +982,7 @@ class ReportController extends Controller
             ]);
 
             $callback = function () use ($items) {
+                if (ob_get_level() > 0) ob_end_clean();
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
                 fputcsv($file, [
