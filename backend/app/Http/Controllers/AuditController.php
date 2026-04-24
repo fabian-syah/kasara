@@ -427,8 +427,10 @@ class AuditController extends Controller
                         $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType) {
                             // If location_type is provided, restrict to that type even if ID is null
                             if ($requestedLocationType === 'branch') {
-                                $sub->whereNotNull('stock_outs.branch_id');
+                                // For physical branches, show everything that is NOT online
+                                $sub->whereNull('stock_outs.online_shop_id');
                             } elseif ($requestedLocationType === 'online') {
+                                // For online shops, strictly show online transactions
                                 $sub->whereNotNull('stock_outs.online_shop_id');
                             }
 
@@ -627,12 +629,14 @@ class AuditController extends Controller
                             } elseif ($isUnrestricted) {
                                 // If location_type is provided, restrict to that type even if ID is null
                                 if ($requestedLocationType === 'branch') {
-                                    $q->whereNotNull('stock_outs.branch_id');
+                                    // For physical branches, show everything that is NOT online
+                                    $q->whereNull('stock_outs.online_shop_id');
                                 } elseif ($requestedLocationType === 'online') {
+                                    // For online shops, strictly show online transactions
                                     $q->whereNotNull('stock_outs.online_shop_id');
                                 }
 
-                                // Superadmins see everything within that type. 
+                                // Superadmins see everything within that filtered type. 
                                 // Analist sees everything EXCEPT trial/internal names.
                                 if ($isAnalist) {
                                     $q->whereNotExists(function($sub) {
