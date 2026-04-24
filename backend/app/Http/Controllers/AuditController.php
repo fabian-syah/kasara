@@ -556,12 +556,12 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted) {
+            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted, $user) {
                 try {
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted) {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $user) {
                         $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
 
-                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted) {
+                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $user) {
                             $scoper = function($qq, $col, $val) {
                                 $qq->where(function($sq) use ($col, $val) {
                                     $sq->where("stock_outs.$col", $val)
@@ -585,7 +585,7 @@ class AuditController extends Controller
                             } elseif ($isUnrestricted) {
                                 // Superadmins see everything. 
                                 // Analist sees everything EXCEPT trial/internal names.
-                                if (auth()->user()->hasRole(['analist', 'analis'])) {
+                                if ($user->hasAnyRole(['analist', 'analis'])) {
                                     $q->whereNotExists(function($sub) {
                                         $sub->select(DB::raw(1))
                                             ->from('branches')
