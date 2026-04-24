@@ -746,8 +746,29 @@ class AuditController extends Controller
                      $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'perdana' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
                      $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'perdana' => [], 'jaringan' => [], 'others' => []];
 
-                    $getCategoryByItem = function ($did) {
+                    $getCategoryByItem = function ($did) use ($distributors) {
                         $did = (int) $did;
+                        if (!$did) return 'others';
+                        
+                        $d = $distributors->get($did);
+                        if ($d) {
+                            $name = strtolower($d->name ?? '');
+
+                            // Name-based mapping (robust against ID changes)
+                            if (str_contains($name, 'apple lux')) return 'apple_lux';
+                            if (str_contains($name, 'apply')) return 'apply';
+                            if (str_contains($name, 'arcis')) return 'arcis';
+                            if (str_contains($name, 'debs')) return 'debs';
+                            if (str_contains($name, 'pstore') || str_contains($name, 'dokter')) return 'dokter_pstore';
+                            if (str_contains($name, 'laptop')) return 'laptop';
+                            if (str_contains($name, 'tv')) return 'tv';
+                            if (str_contains($name, 'perdana') || str_contains($name, 'sim card')) return 'perdana';
+                            if (str_contains($name, 'jaringan') || str_contains($name, 'network')) return 'jaringan';
+                            if (str_contains($name, 'acc') || str_contains($name, 'accessory')) return 'accessories';
+                            if (str_contains($name, 'hp') || str_contains($name, 'handphone')) return 'hp';
+                        }
+
+                        // ID-based fallback for existing mappings
                         if ($did === 6) return 'apple_lux';
                         if (in_array($did, [7, 8, 9])) return 'hp';
                         if ($did === 10) return 'accessories';
@@ -759,6 +780,7 @@ class AuditController extends Controller
                         if ($did === 17) return 'tv';
                         if ($did === 18) return 'perdana';
                         if ($did === 19) return 'jaringan';
+
                         return 'others';
                     };
 
