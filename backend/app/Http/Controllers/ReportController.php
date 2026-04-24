@@ -889,6 +889,7 @@ class ReportController extends Controller
 
     public function exportSales(Request $request)
     {
+        return response()->json(['debug' => 'Controller reached'], 200);
         try {
             $user = $request->user();
             $branchId = $request->query('branch_id');
