@@ -417,7 +417,7 @@
                         <div class="mt-12 space-y-16 pb-20">
                             <!-- DYNAMIC STOCK SECTIONS (HP, APPLY, ARCIS, etc.) -->
                             <div v-for="cat in categoryStocks" :key="cat.label"
-                                v-show="Object.keys(cat.remainingItems).length || Object.keys(cat.items).length || Object.keys(cat.inItems).length">
+                                v-show="(cat.remainingItems && Object.keys(cat.remainingItems).length) || (cat.items && Object.keys(cat.items).length)">
                                 <!-- Category Header -->
                                 <div class="flex items-center gap-4 mb-4">
                                     <div class="h-px bg-emerald-200/60 flex-1"></div>
