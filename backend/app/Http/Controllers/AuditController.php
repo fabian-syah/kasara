@@ -428,10 +428,24 @@ class AuditController extends Controller
                                 // If location_type is provided, restrict to that type even if ID is null
                                 if ($requestedLocationType === 'branch') {
                                     // For physical branches, show everything that is NOT online
-                                    $sub->whereNull('stock_outs.online_shop_id');
+                                    $sub->whereNull('stock_outs.online_shop_id')
+                                        ->whereNotExists(function($sq) {
+                                            $sq->select(DB::raw(1))
+                                               ->from('users')
+                                               ->whereRaw('users.id = stock_outs.user_id')
+                                               ->whereNotNull('users.online_shop_id');
+                                        });
                                 } elseif ($requestedLocationType === 'online') {
-                                    // For online shops, strictly show online transactions
-                                    $sub->whereNotNull('stock_outs.online_shop_id');
+                                    // For online shops, strictly show online transactions (record or user)
+                                    $sub->where(function($sq) {
+                                        $sq->whereNotNull('stock_outs.online_shop_id')
+                                           ->orWhereExists(function($ssq) {
+                                               $ssq->select(DB::raw(1))
+                                                   ->from('users')
+                                                   ->whereRaw('users.id = stock_outs.user_id')
+                                                   ->whereNotNull('users.online_shop_id');
+                                           });
+                                    });
                                 }
 
                                 if (!empty($branchIds)) {
@@ -629,11 +643,25 @@ class AuditController extends Controller
                                 } elseif ($isUnrestricted) {
                                     // If location_type is provided, restrict to that type even if ID is null
                                     if ($requestedLocationType === 'branch') {
-                                        // For physical branches, show everything that is NOT online
-                                        $q->whereNull('stock_outs.online_shop_id');
+                                        // For physical branches, show everything where online_shop_id is missing on record AND user
+                                        $q->whereNull('stock_outs.online_shop_id')
+                                          ->whereNotExists(function($sq) {
+                                              $sq->select(DB::raw(1))
+                                                 ->from('users')
+                                                 ->whereRaw('users.id = stock_outs.user_id')
+                                                 ->whereNotNull('users.online_shop_id');
+                                          });
                                     } elseif ($requestedLocationType === 'online') {
-                                        // For online shops, strictly show online transactions
-                                        $q->whereNotNull('stock_outs.online_shop_id');
+                                        // For online shops, show transactions where online_shop_id is present on record OR user
+                                        $q->where(function($sq) {
+                                            $sq->whereNotNull('stock_outs.online_shop_id')
+                                               ->orWhereExists(function($ssq) {
+                                                   $ssq->select(DB::raw(1))
+                                                       ->from('users')
+                                                       ->whereRaw('users.id = stock_outs.user_id')
+                                                       ->whereNotNull('users.online_shop_id');
+                                               });
+                                        });
                                     }
 
                                     // Superadmins see everything within that filtered type. 
