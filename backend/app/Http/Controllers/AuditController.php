@@ -116,7 +116,7 @@ class AuditController extends Controller
                 $onlineShopIds = [];
                 $warehouseIds = [];
                 $distributorIds = [];
-            } elseif ($requestedLocationType === 'toko_online') {
+            } elseif ($requestedLocationType === 'online') {
                 $branchIds = [];
                 $warehouseIds = [];
                 $distributorIds = [];
