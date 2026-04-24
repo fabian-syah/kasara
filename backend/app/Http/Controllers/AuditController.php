@@ -58,7 +58,7 @@ class AuditController extends Controller
         $stockStartDate = '2000-01-01';
         $stockEndDate = now()->toDateString();
 
-        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'leader', 'developer', 'pimpinan_pusat']);
+        $isUnrestricted = $user->hasAnyRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'analis', 'leader', 'developer', 'pimpinan_pusat']);
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -167,7 +167,7 @@ class AuditController extends Controller
             });
         };
 
-        $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan'];
+        $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'];
         $activityCategories = ['refund', 'angkat_barang'];
         $salesCategories = array_merge($successCategories, $activityCategories);
 
@@ -883,11 +883,11 @@ class AuditController extends Controller
                             'total_nhp_items' => $totalNhpItems,
                             'date_range' => [$startDate, $endDate],
                             'is_unrestricted' => $isUnrestricted,
-                            'current_roles' => auth()->user()?->roles()->pluck('name')->toArray()
+                            'current_roles' => $user?->roles()->pluck('name')->toArray()
                         ]
                     ];
                 } catch (\Throwable $e) {
-                    $roles = auth()->user()?->roles()->pluck('name')->toArray() ?? [];
+                    $roles = $user?->roles()->pluck('name')->toArray() ?? [];
                     return [
                         'payment_total' => 0, 
                         'debug' => [

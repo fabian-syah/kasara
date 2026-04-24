@@ -221,7 +221,21 @@
 
         <!-- ==================== REPORT VIEW (NEW ERA) ==================== -->
         <template v-else-if="currentView === 'report'">
-            <div class="flex justify-center pb-12 w-full px-4 sm:px-6">
+            <div v-if="loading" class="flex flex-col items-center justify-center py-40 w-full">
+                <Loader2 class="animate-spin text-primary-500 mb-4" :size="48" />
+                <p class="text-text-secondary text-sm font-black uppercase tracking-[0.2em]">Mengumpulkan Laporan...</p>
+            </div>
+            
+            <div v-else-if="!salesData?.report_summary" class="flex flex-col items-center justify-center py-40 w-full">
+                <div class="p-6 bg-red-500/10 rounded-full mb-6">
+                    <FileX :size="48" class="text-red-500" />
+                </div>
+                <h3 class="text-xl font-black text-text-primary mb-2">LAPORAN TIDAK DITEMUKAN</h3>
+                <p class="text-text-secondary text-sm mb-6">Gagal memproses ringkasan laporan untuk lokasi ini.</p>
+                <button @click="currentView = 'menu'" class="px-6 py-2 bg-surface-800 text-text-primary rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-surface-700 transition-all">Kembali ke Menu</button>
+            </div>
+
+            <div v-else class="flex justify-center pb-12 w-full px-4 sm:px-6">
                 <!-- REPORT CARD NEW ERA UI -->
                 <div
                     class="bg-[#eafdf3] dark:bg-surface-900 w-full max-w-4xl rounded-[32px] shadow-[0_20px_60px_-15px_rgba(16,185,129,0.15)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 border border-emerald-100 dark:border-emerald-900/30">

@@ -18,7 +18,7 @@ class BranchController extends Controller
         // Role-based access control
         if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
             // Full access (Global)
-            if ($user->hasRole(['analist', 'analis'])) {
+            if ($user->hasAnyRole(['analist', 'analis'])) {
                 $query->where(function($q) {
                     $hidden = ['trial', 'testing', 'anu', 'huft'];
                     foreach ($hidden as $name) {

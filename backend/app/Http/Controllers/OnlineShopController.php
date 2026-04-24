@@ -19,7 +19,7 @@ class OnlineShopController extends Controller
         // Role-based access control
         if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
             // Full access (Global)
-            if ($user->hasRole(['analist', 'analis'])) {
+            if ($user->hasAnyRole(['analist', 'analis'])) {
                 $query->where('name', 'not ilike', '%ANU%');
             }
         } else if ($user->hasAnyRole(['audit', 'leader', 'toko_online'])) {
