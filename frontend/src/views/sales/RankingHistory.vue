@@ -1610,19 +1610,6 @@ const getBaseReportText = (isForCopy = false) => {
 
     if (isForCopy) {
         text += `\n__________________\n__________________\n\n`;
-        text += `*DEBUG INFO (REPORT TO DEV)*\n`;
-        text += `Branch ID: ${summary.debug?.requested_branch_id || 'N/A'}\n`;
-        text += `Online Shop ID: ${summary.debug?.requested_online_shop_id || 'N/A'}\n`;
-        text += `Resolved ID: ${summary.debug?.resolved_target_id || 'N/A'}\n`;
-        text += `Unrestricted: ${summary.debug?.is_unrestricted ? 'YES' : 'NO'}\n`;
-        if (summary.debug?.error) {
-            text += `ERROR: ${summary.debug.error}\n`;
-        }
-        if (summary.debug?.current_roles) {
-            text += `Roles: ${summary.debug.current_roles.join(', ')}\n`;
-        }
-        text += `Raw P: ${summary.debug?.total_payments_found || 0}\n`;
-        text += `Raw U: ${(summary.debug?.total_hp_items || 0) + (summary.debug?.total_nhp_items || 0)}\n\n`;
     }
 
     text += `__________________\n__________________\nunit HP keluar\n\n`;
