@@ -98,7 +98,7 @@
         </div>
 
         <!-- ==================== MENU LANDING ==================== -->
-        <template v-if="currentView === 'menu'">
+        <template v-if="currentView === 'menu'" :key="'view-menu'">
             <div v-if="loading" class="flex flex-col items-center justify-center py-20">
                 <Loader2 class="animate-spin text-primary-500 mb-4" :size="40" />
                 <p class="text-text-secondary text-sm font-medium">Memuat data peringkat...</p>
@@ -220,13 +220,14 @@
         </template>
 
         <!-- ==================== REPORT VIEW (NEW ERA) ==================== -->
-        <template v-else-if="currentView === 'report'">
-            <div v-if="loading" class="flex flex-col items-center justify-center py-40 w-full">
+        <template v-else-if="currentView === 'report'" :key="'view-report'">
+Suggest edits
+            <div v-if="loading" :key="'report-loading'" class="flex flex-col items-center justify-center py-40 w-full">
                 <Loader2 class="animate-spin text-primary-500 mb-4" :size="48" />
                 <p class="text-text-secondary text-sm font-black uppercase tracking-[0.2em]">Mengumpulkan Laporan...</p>
             </div>
             
-            <div v-else-if="!salesData?.report_summary" class="flex flex-col items-center justify-center py-40 w-full">
+            <div v-else-if="!salesData?.report_summary" :key="'report-empty'" class="flex flex-col items-center justify-center py-40 w-full">
                 <div class="p-6 bg-red-500/10 rounded-full mb-6">
                     <FileX :size="48" class="text-red-500" />
                 </div>
@@ -235,7 +236,7 @@
                 <button @click="currentView = 'menu'" class="px-6 py-2 bg-surface-800 text-text-primary rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-surface-700 transition-all">Kembali ke Menu</button>
             </div>
 
-            <div v-else class="flex justify-center pb-12 w-full px-4 sm:px-6">
+            <div v-else :key="'report-content'" class="flex justify-center pb-12 w-full px-4 sm:px-6">
                 <!-- REPORT CARD NEW ERA UI -->
                 <div
                     class="bg-[#eafdf3] dark:bg-surface-900 w-full max-w-4xl rounded-[32px] shadow-[0_20px_60px_-15px_rgba(16,185,129,0.15)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 border border-emerald-100 dark:border-emerald-900/30">
@@ -311,7 +312,7 @@
                                 { key: 'jaringan', label: '4G / LTE', color: 'border border-gray-400 bg-white' },
                                 { key: 'laptop', label: 'Penjualan Laptop', color: 'border border-gray-400 bg-white' },
                                 { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' }
-                            ]">
+                            ]" :key="'report-cat-' + cat.key">
                                 <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))"
                                     class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                     <div class="flex items-center gap-3">
@@ -481,7 +482,8 @@
 
 
         <!-- ==================== SUB-VIEWS (RANKINGS) ==================== -->
-        <template v-else>
+        <template v-else :key="'view-sub-' + currentView">
+Suggest edits
             <!-- Sub-view Header (Search & Sort) -->
             <div
                 class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4 space-y-4">
@@ -660,7 +662,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700 text-sm">
                             <template v-if="currentView === 'brand'">
-                                <template v-for="(row, idx) in filteredBrandHierarchy" :key="row.brand">
+                                <template v-for="(row, idx) in filteredBrandHierarchy" :key="'brand-row-' + row.brand">
                                     <tr class="hover:bg-gray-50/50 dark:hover:bg-surface-700/30 transition-colors"
                                         :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': showBrandType || showBrandCondition || showBrandGb }">
                                         <td class="px-6 py-4">
@@ -675,7 +677,8 @@
                                         <td class="px-6 py-4 text-center font-black text-purple-500">{{ row.qty }}</td>
                                     </tr>
                                     <!-- Brand Breakdown: Distributor -->
-                                    <template v-if="showBrandDistributor" v-for="d in row.tree" :key="d.label">
+                                    <template v-if="showBrandDistributor" v-for="d in row.tree" :key="'dist-' + row.brand + '-' + d.label">
+Suggest edits
                                         <tr class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                             <td class="px-6 py-2"></td>
                                             <td
@@ -687,7 +690,8 @@
                                             <td class="px-6 py-2"></td>
                                         </tr>
                                         <!-- Nested Type under Distributor -->
-                                        <template v-if="showBrandType" v-for="t in d.types" :key="t.label">
+                                        <template v-if="showBrandType" v-for="t in d.types" :key="'type-' + row.brand + '-' + d.label + '-' + t.label">
+Suggest edits
                                             <tr class="bg-gray-50/30 dark:bg-surface-900/30">
                                                 <td class="px-6 py-2"></td>
                                                 <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">— {{
@@ -729,8 +733,9 @@
 
                                     <!-- If Distributor is Hidden but Type is Shown -->
                                     <template v-if="!showBrandDistributor && showBrandType">
-                                        <template v-for="d in row.tree">
-                                            <template v-for="t in d.types" :key="t.label">
+                                        <template v-for="(d, dIdx) in row.tree" :key="'dist-hidden-' + row.brand + '-' + dIdx">
+                                            <template v-for="t in d.types" :key="'type-dist-hidden-' + row.brand + '-' + t.label">
+Suggest edits
                                                 <tr class="bg-gray-50/30 dark:bg-surface-900/30">
                                                     <td class="px-6 py-2"></td>
                                                     <td class="px-6 py-2 text-xs font-bold text-text-primary pl-10">— {{
@@ -774,10 +779,11 @@
                                     <!-- If both Dist & Type are hidden but Detail (Cond/GB) is shown -->
                                     <template
                                         v-if="!showBrandDistributor && !showBrandType && (showBrandCondition || showBrandGb)">
-                                        <template v-for="d in row.tree">
-                                            <template v-for="t in d.types">
+                                        <template v-for="(d, dIdx) in row.tree" :key="'dist-both-hidden-' + row.brand + '-' + dIdx">
+                                            <template v-for="(t, tIdx) in d.types" :key="'type-both-hidden-' + row.brand + '-' + dIdx + '-' + tIdx">
                                                 <template v-for="(c, cIdx) in t.conditions"
-                                                    :key="row.brand + '-' + cIdx">
+                                                    :key="'cond-both-hidden-' + row.brand + '-' + dIdx + '-' + tIdx + '-' + cIdx">
+Suggest edits
                                                     <tr class="bg-white/30 dark:bg-surface-800/20">
                                                         <td class="px-6 py-1.5"></td>
                                                         <td class="px-6 py-1.5"></td>
@@ -806,7 +812,7 @@
                                 </template>
                             </template>
                             <template v-else-if="currentView === 'distributor'">
-                                <template v-for="(row, idx) in distributorHierarchy" :key="row.distributor">
+                                <template v-for="(row, idx) in distributorHierarchy" :key="'dist-row-' + (row.distributor || idx)">
                                     <tr class="hover:bg-gray-50 dark:hover:bg-surface-700/50 transition-colors group">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center w-8 h-8 rounded-lg font-black text-sm"
@@ -828,7 +834,7 @@
                                         <td class="px-6 py-4"></td>
                                     </tr>
                                     <!-- Nested Brands under Distributor -->
-                                    <template v-if="showBrandType" v-for="b in row.tree" :key="b.label">
+                                    <template v-if="showBrandType" v-for="b in row.tree" :key="'dist-brand-' + row.distributor + '-' + b.label">
                                         <tr class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                             <td class="px-6 py-2"></td>
                                             <td
@@ -839,7 +845,7 @@
                                                 b.qty }}</td>
                                             <td class="px-6 py-2"></td>
                                         </tr>
-                                        <template v-for="t in b.types">
+                                        <template v-for="(t, tIdx) in b.types" :key="'dist-row-type-' + row.distributor + '-' + b.label + '-' + tIdx">
                                             <tr class="bg-gray-50/30 dark:bg-surface-900/30">
                                                 <td class="px-6 py-2"></td>
                                                 <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">{{
@@ -879,9 +885,9 @@
                                     </template>
                                     <!-- If Brand is hidden but Detail is shown -->
                                     <template v-if="!showBrandType && (showBrandCondition || showBrandGb)">
-                                        <template v-for="b in row.tree">
-                                            <template v-for="t in b.types">
-                                                <template v-for="(c, cIdx) in t.conditions">
+                                        <template v-for="(b, bIdx) in row.tree" :key="'dist-brand-hidden-' + row.distributor + '-' + bIdx">
+                                            <template v-for="(t, tIdx) in b.types" :key="'dist-type-hidden-' + row.distributor + '-' + bIdx + '-' + tIdx">
+                                                <template v-for="(c, cIdx) in t.conditions" :key="'dist-cond-hidden-' + row.distributor + '-' + bIdx + '-' + tIdx + '-' + cIdx">
                                                     <tr class="bg-white/30 dark:bg-surface-800/20">
                                                         <td class="px-6 py-1.5"></td>
                                                         <td class="px-6 py-1.5"></td>
@@ -910,7 +916,7 @@
                                 </template>
                             </template>
                             <template v-else>
-                                <tr v-for="(item, idx) in sortedData" :key="idx"
+                                <tr v-for="(item, idx) in sortedData" :key="'generic-row-' + currentView + '-' + (item.id || item.reporting_date || item.cs_name || idx)"
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors">
                                     <td class="px-6 py-4">
                                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
