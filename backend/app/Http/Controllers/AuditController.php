@@ -892,9 +892,10 @@ class AuditController extends Controller
                                 ->where('product_id', $s->product_id)
                                 ->where('type', 'in')
                                 ->where(function($q) use ($s) {
-                                    if ($s->placement_type === 'branch') $q->where('branch_id', $s->placement_id);
-                                    elseif ($s->placement_type === 'warehouse') $q->where('warehouse_id', $s->placement_id);
-                                    elseif ($s->placement_type === 'online_shop') $q->where('online_shop_id', $s->placement_id);
+                                    $pt = strtolower($s->placement_type ?? '');
+                                    if (str_contains($pt, 'branch')) $q->where('branch_id', $s->placement_id);
+                                    elseif (str_contains($pt, 'warehouse')) $q->where('warehouse_id', $s->placement_id);
+                                    elseif (str_contains($pt, 'online_shop')) $q->where('online_shop_id', $s->placement_id);
                                 })
                                 ->latest()
                                 ->first();
