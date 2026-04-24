@@ -1348,14 +1348,6 @@ const categoryStocks = computed(() => {
             inItems: inDetails.jaringan || {},
             remaining: stockReport.jaringan || 0,
             remainingItems: stockDetails.jaringan || {},
-        },
-        {
-            label: 'STOK LAIN-LAIN',
-            items: soldDetails.others || {},
-            in: distInMap.others || 0,
-            inItems: inDetails.others || {},
-            remaining: stockReport.others || 0,
-            remainingItems: stockDetails.others || {},
         }
     ];
 });
@@ -1453,7 +1445,6 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
         { key: 'tv', label: 'STOK TVSTORE' },
-        { key: 'others', label: 'STOK LAIN-LAIN' },
         { key: 'jaringan', label: 'STOK 4G / LTE' }
     ];
 
