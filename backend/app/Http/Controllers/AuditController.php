@@ -58,7 +58,7 @@ class AuditController extends Controller
         $stockStartDate = '2000-01-01';
         $stockEndDate = now()->toDateString();
 
-        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'audit', 'analist', 'leader']);
+        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'audit', 'analist', 'leader', 'developer', 'pimpinan_pusat']);
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -610,21 +610,17 @@ class AuditController extends Controller
                         $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
                             if ($requestedBranchId) {
                                 $sub->where('placement_id', $requestedBranchId)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
-                                $sub->orWhere('branch_id', $requestedBranchId);
                             } elseif ($requestedOnlineShopId) {
                                 $sub->where('placement_id', $requestedOnlineShopId)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']);
-                                $sub->orWhere('online_shop_id', $requestedOnlineShopId);
                             } elseif ($requestedWarehouseId) {
                                 $sub->where('placement_id', $requestedWarehouseId)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']);
-                                $sub->orWhere('warehouse_id', $requestedWarehouseId);
                             } elseif ($requestedDistributorId) {
                                 $sub->where('placement_id', $requestedDistributorId)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']);
-                                $sub->orWhere('distributor_id', $requestedDistributorId);
                             } elseif ($isUnrestricted) {
                                 return;
                             } else {
-                                if (!empty($branchIds)) $sub->orWhereIn('branch_id', $branchIds)->orWhere(fn($iq) => $iq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('online_shop_id', $onlineShopIds)->orWhere(fn($iq) => $iq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
+                                if (!empty($branchIds)) $sub->orWhere(fn($iq) => $iq->whereIn('placement_id', $branchIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']));
+                                if (!empty($onlineShopIds)) $sub->orWhere(fn($iq) => $iq->whereIn('placement_id', $onlineShopIds)->whereRaw('LOWER(placement_type) LIKE ?', ['%online_shop%']));
                             }
                         });
                     }; 
@@ -864,7 +860,8 @@ class AuditController extends Controller
                             'total_hp_items' => $totalHpItems,
                             'total_nhp_items' => $totalNhpItems,
                             'date_range' => [$startDate, $endDate],
-                            'is_unrestricted' => $isUnrestricted
+                            'is_unrestricted' => $isUnrestricted,
+                            'current_roles' => auth()->user()?->roles()->pluck('name')->toArray()
                         ]
                     ];
                 } catch (\Throwable $e) {

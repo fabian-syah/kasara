@@ -1618,6 +1618,9 @@ const getBaseReportText = (isForCopy = false) => {
         if (summary.debug?.error) {
             text += `ERROR: ${summary.debug.error}\n`;
         }
+        if (summary.debug?.current_roles) {
+            text += `Roles: ${summary.debug.current_roles.join(', ')}\n`;
+        }
         text += `Raw P: ${summary.debug?.total_payments_found || 0}\n`;
         text += `Raw U: ${(summary.debug?.total_hp_items || 0) + (summary.debug?.total_nhp_items || 0)}\n\n`;
     }
