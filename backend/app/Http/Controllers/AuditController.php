@@ -249,7 +249,7 @@ class AuditController extends Controller
             // Use Octane to run independent queries in parallel
             [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
                 // 1. Paginated Sales Query
-                function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return StockOut::with(['items.product', 'nonHpDetails.product', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod'])
                         ->whereIn('category', $salesCategories)
                         ->whereBetween('reporting_date', [$startDate, $endDate])
@@ -293,7 +293,7 @@ class AuditController extends Controller
                 },
 
                 // 2. Brand Stats
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedCondition, $requestedProductTypeId, $requestedCapacity) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedCondition, $requestedProductTypeId, $requestedCapacity, $isAnalist) {
                     $hpQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->when($requestedCondition, fn($q) => $q->where('product_details.condition', $requestedCondition))->when($requestedProductTypeId, fn($q) => $q->where('products.id', $requestedProductTypeId))->when($requestedCapacity, fn($q) => $q->where('product_details.storage', $requestedCapacity))->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId))->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -338,8 +338,8 @@ class AuditController extends Controller
                 },
 
                 // 3. CS Sales Stats
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
+                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                         if ($requestedBranchId) {
                             $q->where(function ($qq) use ($requestedBranchId) {
                                 $qq->where('stock_outs.branch_id', $requestedBranchId)
@@ -358,7 +358,7 @@ class AuditController extends Controller
                         } elseif ($requestedDistributorId) {
                             $q->where('users.distributor_id', $requestedDistributorId);
                         } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isAnalist) {
                                 if (!empty($branchIds)) {
                                     $sub->orWhereIn('stock_outs.branch_id', $branchIds)
                                         ->orWhereIn('users.branch_id', $branchIds);
@@ -373,6 +373,43 @@ class AuditController extends Controller
                                 }
                                 if (!empty($distributorIds)) {
                                     $sub->orWhereIn('users.distributor_id', $distributorIds);
+                                }
+
+                                // Hard exclusion for Analist (Trial/ANU)
+                                if ($isAnalist) {
+                                    $sub->whereNotExists(function($sq) {
+                                        $sq->select(DB::raw(1))
+                                           ->from('branches')
+                                           ->where(function($bq) {
+                                               $bq->whereRaw('branches.id = stock_outs.branch_id')
+                                                  ->orWhereExists(function($usq) {
+                                                      $usq->select(DB::raw(1))
+                                                          ->from('users')
+                                                          ->whereRaw('users.id = stock_outs.user_id')
+                                                          ->whereRaw('users.branch_id = branches.id');
+                                                  });
+                                           })
+                                           ->where(function($nq) {
+                                               $nq->where('name', 'ilike', '%trial%')
+                                                  ->orWhere('name', 'ilike', '%testing%')
+                                                  ->orWhere('name', 'ilike', '%anu%')
+                                                  ->orWhere('name', 'ilike', '%huft%');
+                                           });
+                                    })
+                                    ->whereNotExists(function($sq) {
+                                        $sq->select(DB::raw(1))
+                                           ->from('online_shops')
+                                           ->where(function($oq) {
+                                               $oq->whereRaw('online_shops.id = stock_outs.online_shop_id')
+                                                  ->orWhereExists(function($usq) {
+                                                      $usq->select(DB::raw(1))
+                                                          ->from('users')
+                                                          ->whereRaw('users.id = stock_outs.user_id')
+                                                          ->whereRaw('users.online_shop_id = online_shops.id');
+                                                  });
+                                           })
+                                           ->where('name', 'ilike', '%ANU%');
+                                    });
                                 }
                             });
                         }
@@ -526,7 +563,7 @@ class AuditController extends Controller
                 },
 
                 // 5. Type Stats
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -550,7 +587,7 @@ class AuditController extends Controller
                 },
 
                 // 6. Condition Stats
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -574,7 +611,7 @@ class AuditController extends Controller
                 },
 
                 // 7. Distributor Stats
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -598,7 +635,7 @@ class AuditController extends Controller
                 },
 
                 // 8. Products Filter
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
@@ -622,7 +659,7 @@ class AuditController extends Controller
                 },
 
                 // 9. Distributor Filter
-                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('distributors', 'product_details.distributor_id', '=', 'distributors.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId)
                             $q->where('users.branch_id', $requestedBranchId);
