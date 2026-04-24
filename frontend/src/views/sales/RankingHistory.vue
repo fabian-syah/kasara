@@ -1538,6 +1538,7 @@ const fetchData = async () => {
             end_date: filters.value.end_date,
             branch_id: filters.value.branch_id,
             online_shop_id: filters.value.online_shop_id,
+            location_type: locationType.value, // Added location type
             distributor_id: filters.value.distributor_id,
             condition: filters.value.condition,
             capacity: filters.value.capacity,

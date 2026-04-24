@@ -77,6 +77,7 @@ class AuditController extends Controller
         $requestedOnlineShopId = $request->online_shop_id;
         $requestedDistributorId = $request->distributor_id;
         $requestedWarehouseId = $request->warehouse_id;
+        $requestedLocationType = $request->location_type; // Capture location type (branch/online)
 
         // Stock all-time logic
         $stockStartDate = '2000-01-01';
@@ -109,6 +110,17 @@ class AuditController extends Controller
         $requestedCondition = $request->condition;
         $requestedProductTypeId = $request->product_type_id;
         $requestedCapacity = $request->capacity;
+
+        // Apply global partitioning based on location type
+        if ($requestedLocationType === 'branch') {
+            $onlineShopIds = [];
+            $warehouseIds = [];
+            $distributorIds = [];
+        } elseif ($requestedLocationType === 'online') {
+            $branchIds = [];
+            $warehouseIds = [];
+            $distributorIds = [];
+        }
 
         $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
             $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
@@ -392,8 +404,8 @@ class AuditController extends Controller
             },
 
             // 4. Daily History
-            function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
                         $q->where(function ($qq) use ($requestedBranchId) {
                             $qq->where('stock_outs.branch_id', $requestedBranchId)
@@ -412,7 +424,14 @@ class AuditController extends Controller
                     } elseif ($requestedDistributorId) {
                         $q->where('users.distributor_id', $requestedDistributorId);
                     } else {
-                        $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType) {
+                            // If location_type is provided, restrict to that type even if ID is null
+                            if ($requestedLocationType === 'branch') {
+                                $sub->whereNotNull('stock_outs.branch_id');
+                            } elseif ($requestedLocationType === 'online') {
+                                $sub->whereNotNull('stock_outs.online_shop_id');
+                            }
+
                             if (!empty($branchIds)) {
                                 $sub->orWhereIn('stock_outs.branch_id', $branchIds)
                                     ->orWhereIn('users.branch_id', $branchIds);
@@ -574,12 +593,12 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $currentRoles) {
+            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $currentRoles) {
                 try {
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
                         $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
 
-                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
+                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
                             $scoper = function($qq, $col, $val) {
                                 $qq->where(function($sq) use ($col, $val) {
                                     $sq->where("stock_outs.$col", $val)
@@ -606,7 +625,14 @@ class AuditController extends Controller
                                         ->where('users.distributor_id', $requestedDistributorId);
                                 });
                             } elseif ($isUnrestricted) {
-                                // Superadmins see everything. 
+                                // If location_type is provided, restrict to that type even if ID is null
+                                if ($requestedLocationType === 'branch') {
+                                    $q->whereNotNull('stock_outs.branch_id');
+                                } elseif ($requestedLocationType === 'online') {
+                                    $q->whereNotNull('stock_outs.online_shop_id');
+                                }
+
+                                // Superadmins see everything within that type. 
                                 // Analist sees everything EXCEPT trial/internal names.
                                 if ($isAnalist) {
                                     $q->whereNotExists(function($sub) {
@@ -952,7 +978,9 @@ class AuditController extends Controller
                     ];
                 }
             }
-        ]);
+        ]);;
+
+
 
 
         $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors) {
