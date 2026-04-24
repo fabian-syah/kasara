@@ -43,9 +43,6 @@ class AuditController extends Controller
             ]);
         }
 
-        $paymentMethods = PaymentMethod::all()->keyBy('id');
-        $distributors = Distributor::all()->keyBy('id');
-
         // Hide trial branches for analist role across all components (In-memory filtering for speed and safety)
         if ($user->hasAnyRole(['analist', 'analis'])) {
             try {
@@ -85,6 +82,8 @@ class AuditController extends Controller
         $stockEndDate = now()->toDateString();
 
         $isUnrestricted = $user->hasAnyRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'analis', 'leader', 'developer', 'pimpinan_pusat']);
+        $isAnalist = $user->hasAnyRole(['analist', 'analis']);
+        $currentRoles = $user->roles()->pluck('name')->toArray();
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -582,12 +581,12 @@ class AuditController extends Controller
             },
 
             // 10. Unified Report Summary
-            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted, $user) {
+            function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $currentRoles) {
                 try {
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $user) {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
                         $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
 
-                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $user) {
+                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
                             $scoper = function($qq, $col, $val) {
                                 $qq->where(function($sq) use ($col, $val) {
                                     $sq->where("stock_outs.$col", $val)
@@ -611,7 +610,7 @@ class AuditController extends Controller
                             } elseif ($isUnrestricted) {
                                 // Superadmins see everything. 
                                 // Analist sees everything EXCEPT trial/internal names.
-                                if ($user->hasAnyRole(['analist', 'analis'])) {
+                                if ($isAnalist) {
                                     $q->whereNotExists(function($sub) {
                                         $sub->select(DB::raw(1))
                                             ->from('branches')
@@ -909,18 +908,17 @@ class AuditController extends Controller
                             'total_nhp_items' => $totalNhpItems,
                             'date_range' => [$startDate, $endDate],
                             'is_unrestricted' => $isUnrestricted,
-                            'current_roles' => $user?->roles()->pluck('name')->toArray()
+                            'current_roles' => $currentRoles
                         ]
                     ];
                 } catch (\Throwable $e) {
-                    $roles = $user?->roles()->pluck('name')->toArray() ?? [];
                     return [
                         'payment_total' => 0, 
                         'debug' => [
-                            'error' => $e->getMessage() . ' | ROLES: ' . implode(',', $roles),
+                            'error' => $e->getMessage() . ' | ROLES: ' . implode(',', $currentRoles),
                             'resolved_target_id' => 'ERROR',
                             'is_unrestricted' => $isUnrestricted ?? false,
-                            'current_roles' => $roles
+                            'current_roles' => $currentRoles
                         ]
                     ];
                 }
