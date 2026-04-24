@@ -404,8 +404,8 @@ class AuditController extends Controller
                 },
 
                 // 4. Daily History
-                function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
+                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                         if ($requestedBranchId) {
                             $q->where(function ($qq) use ($requestedBranchId) {
                                 $qq->where('stock_outs.branch_id', $requestedBranchId)
@@ -424,7 +424,7 @@ class AuditController extends Controller
                         } elseif ($requestedDistributorId) {
                             $q->where('users.distributor_id', $requestedDistributorId);
                         } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType) {
+                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $isAnalist) {
                                 // If location_type is provided, restrict to that type even if ID is null
                                 if ($requestedLocationType === 'branch') {
                                     // For physical branches, show everything that is NOT online
@@ -455,6 +455,43 @@ class AuditController extends Controller
                                 if (!empty($onlineShopIds)) {
                                     $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
                                         ->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                }
+
+                                // Hard exclusion for Analist (Trial/ANU)
+                                if ($isAnalist) {
+                                    $sub->whereNotExists(function($sq) {
+                                        $sq->select(DB::raw(1))
+                                           ->from('branches')
+                                           ->where(function($bq) {
+                                               $bq->whereRaw('branches.id = stock_outs.branch_id')
+                                                  ->orWhereExists(function($usq) {
+                                                      $usq->select(DB::raw(1))
+                                                          ->from('users')
+                                                          ->whereRaw('users.id = stock_outs.user_id')
+                                                          ->whereRaw('users.branch_id = branches.id');
+                                                  });
+                                           })
+                                           ->where(function($nq) {
+                                               $nq->where('name', 'ilike', '%trial%')
+                                                  ->orWhere('name', 'ilike', '%testing%')
+                                                  ->orWhere('name', 'ilike', '%anu%')
+                                                  ->orWhere('name', 'ilike', '%huft%');
+                                           });
+                                    })
+                                    ->whereNotExists(function($sq) {
+                                        $sq->select(DB::raw(1))
+                                           ->from('online_shops')
+                                           ->where(function($oq) {
+                                               $oq->whereRaw('online_shops.id = stock_outs.online_shop_id')
+                                                  ->orWhereExists(function($usq) {
+                                                      $usq->select(DB::raw(1))
+                                                          ->from('users')
+                                                          ->whereRaw('users.id = stock_outs.user_id')
+                                                          ->whereRaw('users.online_shop_id = online_shops.id');
+                                                  });
+                                           })
+                                           ->where('name', 'ilike', '%ANU%');
+                                    });
                                 }
                                 if (!empty($warehouseIds)) {
                                     $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
@@ -670,7 +707,15 @@ class AuditController extends Controller
                                         $q->whereNotExists(function ($sub) {
                                             $sub->select(DB::raw(1))
                                                 ->from('branches')
-                                                ->whereRaw('branches.id = stock_outs.branch_id')
+                                                ->where(function($bq) {
+                                                    $bq->whereRaw('branches.id = stock_outs.branch_id')
+                                                       ->orWhereExists(function($usq) {
+                                                           $usq->select(DB::raw(1))
+                                                               ->from('users')
+                                                               ->whereRaw('users.id = stock_outs.user_id')
+                                                               ->whereRaw('users.branch_id = branches.id');
+                                                       });
+                                                })
                                                 ->where(function ($b) {
                                                     $b->where('name', 'ilike', '%trial%')
                                                         ->orWhere('name', 'ilike', '%testing%')
@@ -681,7 +726,15 @@ class AuditController extends Controller
                                             ->whereNotExists(function ($sub) {
                                                 $sub->select(DB::raw(1))
                                                     ->from('online_shops')
-                                                    ->whereRaw('online_shops.id = stock_outs.online_shop_id')
+                                                    ->where(function($oq) {
+                                                        $oq->whereRaw('online_shops.id = stock_outs.online_shop_id')
+                                                           ->orWhereExists(function($usq) {
+                                                               $usq->select(DB::raw(1))
+                                                                   ->from('users')
+                                                                   ->whereRaw('users.id = stock_outs.user_id')
+                                                                   ->whereRaw('users.online_shop_id = online_shops.id');
+                                                           });
+                                                    })
                                                     ->where('name', 'ilike', '%ANU%');
                                             });
                                     }
