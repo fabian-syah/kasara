@@ -58,7 +58,7 @@ class AuditController extends Controller
         $stockStartDate = '2000-01-01';
         $stockEndDate = now()->toDateString();
 
-        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management']);
+        $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin']);
 
         // Fallback: If ID is not numeric, it might be a name
         if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -559,13 +559,7 @@ class AuditController extends Controller
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors, $isUnrestricted) {
                 try {
                     $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted) {
-                        $startTS = $startDate . ' 05:00:00';
-                        $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
-                        
-                        $query->where(function($q) use ($startDate, $endDate, $startTS, $endTS) {
-                            $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                              ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
-                        });
+                        $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
 
                         $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted) {
                             $scoper = function($qq, $col, $val) {
@@ -866,11 +860,12 @@ class AuditController extends Controller
                         'debug' => [
                             'requested_branch_id' => $requestedBranchId,
                             'requested_online_shop_id' => $requestedOnlineShopId,
-                            'resolved_target_id' => $requestedBranchId ?? $requestedOnlineShopId ?? 'ALL',
+                            'resolved_target_id' => $requestedBranchId ? (string)$requestedBranchId : ($requestedOnlineShopId ? (string)$requestedOnlineShopId : 'ALL'),
                             'total_payments_found' => count($payments),
                             'total_hp_items' => $totalHpItems,
                             'total_nhp_items' => $totalNhpItems,
-                            'date_range' => [$startDate . ' 05:00:00', date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59']
+                            'date_range' => [$startDate, $endDate],
+                            'is_unrestricted' => $isUnrestricted
                         ]
                     ];
                 } catch (\Exception $e) {
