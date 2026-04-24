@@ -1619,10 +1619,14 @@ const getBaseReportText = (isForCopy = false) => {
     }
 
     text += `__________________\n__________________\nunit HP keluar\n\n`;
-    text += `Iphone           : ${summary.dist_map?.iphone || 0}\n`;
-    text += `Apple Luxury     : ${summary.dist_map?.apple_lux || 0}\n`;
-    text += `Android          : ${summary.dist_map?.android || 0}\n`;
-    text += `Total HP         : ${(summary.dist_map?.iphone || 0) + (summary.dist_map?.android || 0)}\n\n`;
+    const iphone = summary.dist_map?.iphone || 0;
+    const appleLux = summary.dist_map?.apple_lux || 0;
+    const android = summary.dist_map?.android || 0;
+
+    text += `Iphone           : ${iphone}\n`;
+    text += `Apple Luxury     : ${appleLux}\n`;
+    text += `Android          : ${android}\n`;
+    text += `Total HP         : ${iphone + android + appleLux}\n\n`;
 
     text += `Tukar unit       : ${activities.tukar_unit || 0}\n`;
     text += `Tukar tambah     : ${activities.tukar_tambah || 0}\n`;

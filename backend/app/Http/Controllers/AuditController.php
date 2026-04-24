@@ -556,7 +556,7 @@ class AuditController extends Controller
             // 10. Unified Report Summary
             function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $paymentMethods, $distributors) {
                 try {
-                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds) {
+                    $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                         // Logical day shift (05:00 AM)
                         $startTS = $startDate . ' 05:00:00';
                         $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
@@ -566,26 +566,64 @@ class AuditController extends Controller
                               ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         });
 
-                        if ($requestedBranchId) {
-                            $query->where(function($q) use ($requestedBranchId) {
+                        $query->where(function($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                            if ($requestedBranchId) {
                                 $q->where('stock_outs.branch_id', $requestedBranchId)
-                                  ->orWhere('stock_outs.online_shop_id', $requestedBranchId)
                                   ->orWhereExists(function($sub) use ($requestedBranchId) {
                                       $sub->select(DB::raw(1))
                                           ->from('users')
                                           ->whereRaw('users.id::text = stock_outs.user_id::text')
                                           ->where('users.branch_id', $requestedBranchId);
                                   });
-                            });
-                        }
+                            } elseif ($requestedOnlineShopId) {
+                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                  ->orWhereExists(function($sub) use ($requestedOnlineShopId) {
+                                      $sub->select(DB::raw(1))
+                                          ->from('users')
+                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
+                                          ->where('users.online_shop_id', $requestedOnlineShopId);
+                                  });
+                            } elseif ($requestedWarehouseId) {
+                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                                  ->orWhereExists(function($sub) use ($requestedWarehouseId) {
+                                      $sub->select(DB::raw(1))
+                                          ->from('users')
+                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
+                                          ->where('users.warehouse_id', $requestedWarehouseId);
+                                  });
+                            } elseif ($requestedDistributorId) {
+                                $q->where('stock_outs.distributor_id', $requestedDistributorId)
+                                  ->orWhereExists(function($sub) use ($requestedDistributorId) {
+                                      $sub->select(DB::raw(1))
+                                          ->from('users')
+                                          ->whereRaw('users.id::text = stock_outs.user_id::text')
+                                          ->where('users.distributor_id', $requestedDistributorId);
+                                  });
+                            } else {
+                                // Scoping for restricted users
+                                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    if (!empty($branchIds))
+                                        $sub->orWhereIn('stock_outs.branch_id', $branchIds)->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id::text = stock_outs.user_id::text')->whereIn('users.branch_id', $branchIds));
+                                    if (!empty($onlineShopIds))
+                                        $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id::text = stock_outs.user_id::text')->whereIn('users.online_shop_id', $onlineShopIds));
+                                    if (!empty($warehouseIds))
+                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id::text = stock_outs.user_id::text')->whereIn('users.warehouse_id', $warehouseIds));
+                                    if (!empty($distributorIds))
+                                        $sub->orWhereIn('stock_outs.distributor_id', $distributorIds)->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id::text = stock_outs.user_id::text')->whereIn('users.distributor_id', $distributorIds));
+                                });
+                            }
+                        });
                     };
 
-                    $applyStockScope = function ($query) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId) {
+                    $applyStockScope = function ($query) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                         if ($requestedBranchId) {
-                            $query->where(function($q) use ($requestedBranchId) {
-                                $q->where('product_details.branch_id', $requestedBranchId)
-                                  ->orWhere('product_details.online_shop_id', $requestedBranchId);
-                            });
+                            $query->where('product_details.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $query->where('product_details.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $query->where('product_details.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $query->where('product_details.distributor_id', $requestedDistributorId);
                         }
                     }; 
 
@@ -593,7 +631,7 @@ class AuditController extends Controller
                     $pQuery = DB::table('stock_outs');
                     $applyLocalScope($pQuery);
                     $payments = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
-                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.user_id')->get();
+                        ->select('stock_outs.selling_price', 'stock_outs.payment_method_id', 'stock_outs.split_payments', 'stock_outs.category', 'stock_outs.id')->get();
 
                     $pSums = [];
                     $paymentTotal = 0;
@@ -812,6 +850,9 @@ class AuditController extends Controller
                         $distInMap[$cat] += $qty;
                     }
 
+                    $totalHpItems = $hpItemsQuery->count();
+                    $totalNhpItems = $nhpItemsQuery->sum('stock_out_non_hp_items.quantity');
+
                     return [
                         'payments' => $pSums,
                         'payment_total' => $paymentTotal,
@@ -828,10 +869,19 @@ class AuditController extends Controller
                             'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
                             'refund' => $pQuery->clone()->where('category', 'refund')->count(),
                             'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
+                        ],
+                        'debug' => [
+                            'requested_branch_id' => $requestedBranchId,
+                            'requested_online_shop_id' => $requestedOnlineShopId,
+                            'resolved_target_id' => $requestedBranchId ?? $requestedOnlineShopId ?? 'ALL',
+                            'total_payments_found' => count($payments),
+                            'total_hp_items' => $totalHpItems,
+                            'total_nhp_items' => $totalNhpItems,
+                            'date_range' => [$startDate . ' 05:00:00', date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59']
                         ]
                     ];
                 } catch (\Exception $e) {
-                    return ['error' => $e->getMessage()];
+                    return ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()];
                 }
             }
         ]);
