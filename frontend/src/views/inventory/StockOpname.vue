@@ -2447,47 +2447,58 @@ onMounted(() => {
                          Tidak ada mutasi stok ditemukan sejak jam 05:00 pagi.
                     </div>
                     <div v-else class="overflow-x-auto">
-                         <table class="w-full text-sm text-left">
-                            <thead class="bg-surface-900/50 text-text-secondary uppercase text-[10px] font-bold">
+                        <table class="w-full text-xs text-left border-collapse">
+                            <thead class="bg-surface-900/80 text-text-secondary uppercase font-bold sticky top-0 z-10">
                                 <tr>
-                                    <th class="px-6 py-4">Produk</th>
-                                    <th class="px-6 py-4 text-center">Awal</th>
-                                    <th class="px-6 py-4 text-center">In</th>
-                                    <th class="px-6 py-4 text-center text-emerald-400">Sold</th>
-                                    <th class="px-6 py-4 text-center">Out</th>
-                                    <th class="px-6 py-4 text-center">Akhir</th>
+                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 min-w-[200px]">Produk</th>
+                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 text-center bg-surface-900">Awal</th>
+                                    <!-- IN GROUP -->
+                                    <th colspan="6" class="px-4 py-2 border border-surface-700 text-center bg-emerald-500/5 text-emerald-400">Barang Masuk</th>
+                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 text-center bg-sky-500/10 text-sky-400">Sold</th>
+                                    <!-- OUT GROUP -->
+                                    <th colspan="4" class="px-4 py-2 border border-surface-700 text-center bg-rose-500/5 text-rose-400">Barang Keluar</th>
+                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 text-center bg-primary-500/20 text-primary-400">Akhir</th>
+                                </tr>
+                                <tr class="bg-surface-900/50">
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px]">Total</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">TT</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">TU</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">DW</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">RF</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">AB</th>
+                                    
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px]">Total</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500/70">TT</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500/70">TU</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500/70">DW</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-700/50">
                                 <template v-for="item in historyData" :key="item.name">
                                     <tr class="hover:bg-surface-700/20 transition-colors">
-                                        <td class="px-6 py-4">
-                                            <div class="font-bold text-white">{{ item.name }}</div>
-                                            <div class="text-[10px] text-text-secondary mt-0.5">
-                                                <span class="px-1.5 py-0.5 rounded bg-surface-900 border border-surface-700 font-black uppercase tracking-tighter" :class="conditionColor(item.condition)">{{ item.condition }}</span>
-                                            </div>
+                                        <td class="px-4 py-3 border border-surface-700/30">
+                                            <div class="font-bold text-white mb-1">{{ item.name }}</div>
+                                            <span class="px-1.5 py-0.5 rounded bg-surface-900 border border-surface-700 text-[9px] font-black uppercase tracking-tighter" :class="conditionColor(item.condition)">{{ item.condition }}</span>
                                         </td>
-                                        <td class="px-6 py-4 text-center font-bold text-text-secondary tabular-nums">{{ item.initial }}</td>
-                                        <td class="px-6 py-4 text-center tabular-nums">
-                                            <div class="font-bold text-white">{{ item.in }}</div>
-                                            <div v-if="item.in > 0" class="text-[8px] text-text-secondary flex gap-1 justify-center mt-1">
-                                                <span v-if="item.in_tt > 0" title="TT">TT:{{item.in_tt}}</span>
-                                                <span v-if="item.in_tu > 0" title="TU">TU:{{item.in_tu}}</span>
-                                                <span v-if="item.in_dw > 0" title="DW">DW:{{item.in_dw}}</span>
-                                                <span v-if="item.in_rf > 0" title="RF">RF:{{item.in_rf}}</span>
-                                                <span v-if="item.in_ab > 0" title="AB">AB:{{item.in_ab}}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-center font-black text-emerald-400 tabular-nums text-lg">{{ item.sold }}</td>
-                                        <td class="px-6 py-4 text-center tabular-nums">
-                                            <div class="font-bold text-white">{{ item.out }}</div>
-                                            <div v-if="item.out > 0" class="text-[8px] text-text-secondary flex gap-1 justify-center mt-1">
-                                                <span v-if="item.out_tt > 0" title="TT">TT:{{item.out_tt}}</span>
-                                                <span v-if="item.out_tu > 0" title="TU">TU:{{item.out_tu}}</span>
-                                                <span v-if="item.out_dw > 0" title="DW">DW:{{item.out_dw}}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 text-center font-black text-primary-500 tabular-nums text-lg">{{ item.final }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-bold text-text-secondary tabular-nums">{{ item.initial }}</td>
+                                        
+                                        <!-- IN COLS -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-white tabular-nums">{{ item.in }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_tt > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_tt }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_tu > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_tu }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_dw > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_dw }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_rf > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_rf }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_ab > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_ab }}</td>
+                                        
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-sky-400 tabular-nums text-sm bg-sky-500/5">{{ item.sold }}</td>
+                                        
+                                        <!-- OUT COLS -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-white tabular-nums">{{ item.out }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.out_tt > 0 ? 'text-rose-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_tt }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.out_tu > 0 ? 'text-rose-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_tu }}</td>
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.out_dw > 0 ? 'text-rose-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_dw }}</td>
+                                        
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-primary-500 tabular-nums text-sm bg-primary-500/5">{{ item.final }}</td>
                                     </tr>
                                 </template>
                             </tbody>
