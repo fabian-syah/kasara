@@ -1427,10 +1427,51 @@ class StockOutController extends Controller
                         'placement_type' => $destPlacementType,
                         'placement_id' => $destPlacementId
                     ]);
+
+                    // CREATE INVENTORY LOG AS "IN" FOR THE DESTINATION
+                    InventoryLog::create([
+                        'product_id' => $item->product_id,
+                        'user_id' => $confirmingUserId,
+                        'branch_id' => ($destPlacementType == 'branch') ? $destPlacementId : null,
+                        'warehouse_id' => ($destPlacementType == 'warehouse') ? $destPlacementId : null,
+                        'online_shop_id' => ($destPlacementType == 'online_shop') ? $destPlacementId : null,
+                        'distributor_id' => ($destPlacementType == 'distributor') ? $destPlacementId : null,
+                        'type' => 'in',
+                        'quantity' => 1,
+                        'balance_after' => 1,
+                        'description' => "Pindah Cabang Masuk (Resi: {$stockOut->receipt_id}) (" . ($item->imei ?? $item->p_code) . ")",
+                        'reference_id' => (string)$item->id,
+                    ]);
+                    
+                    \Log::info("DEBUG: PHP Log created for accepted HP #{$item->id} in Resi {$stockOut->receipt_id}");
                 } else {
-                    // Rejected: Set to 'transfer' status (OTW back)
-                    // Note: 'returning' is not in the DB enum constraint on some systems, using 'transfer' is safer.
-                    $item->update(['status' => 'transfer']);
+                    // Rejected: Set back to 'available' at SENDER's location
+                    $sender = $stockOut->user;
+                    $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id ?? $sender->distributor_id;
+                    $senderType = $sender->branch_id ? 'branch' : ($sender->warehouse_id ? 'warehouse' : ($sender->online_shop_id ? 'online_shop' : 'distributor'));
+                    
+                    $item->update([
+                        'status' => 'available',
+                        'placement_type' => $senderType,
+                        'placement_id' => $senderLocationId,
+                        'user_id' => $sender->id
+                    ]);
+
+                    // Create log for Return to Sender
+                    InventoryLog::create([
+                        'product_id' => $item->product_id,
+                        'user_id' => $sender->id,
+                        'branch_id' => $sender->branch_id ?? null,
+                        'warehouse_id' => $sender->warehouse_id ?? null,
+                        'online_shop_id' => $sender->online_shop_id ?? null,
+                        'distributor_id' => $sender->distributor_id ?? null,
+                        'type' => 'in', 
+                        'quantity' => 1,
+                        'description' => "Transfer Ditolak/Retur (Resi: {$stockOut->receipt_id}) (" . ($item->imei ?? $item->p_code) . ")",
+                        'reference_id' => (string)$item->id,
+                    ]);
+                    
+                    \Log::info("DEBUG: PHP Log created for rejected HP #{$item->id} in Resi {$stockOut->receipt_id}");
                 }
             }
 

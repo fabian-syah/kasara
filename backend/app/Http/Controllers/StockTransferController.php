@@ -10,6 +10,7 @@ use App\Models\InventoryLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Traits\VerifiesPin;
 
 class StockTransferController extends Controller
@@ -95,14 +96,25 @@ class StockTransferController extends Controller
 
         DB::beginTransaction();
         try {
+            // Refresh relation to be sure
+            $stockOut->load(['items', 'nonHpItems']);
+            
             $acceptedImeiIds = $request->accepted_items ?? [];
             $nonHpQuantities = $request->non_hp_quantities ?? [];
+
+            Log::info("DEBUG TRANSFER: Confirming #{$stockOut->receipt_id}", [
+                'hp_items_count' => $stockOut->items->count(),
+                'accepted_ids' => $acceptedImeiIds,
+                'user_id' => $user->id
+            ]);
 
             // 1. Process HP Items
             foreach ($stockOut->items as $item) {
                 if (in_array($item->id, $acceptedImeiIds)) {
                     // ACCEPTED
                     $item->status = 'available';
+
+                    Log::info("DEBUG TRANSFER: Accepting HP item {$item->id}");
 
                     // CREATE INVENTORY LOG AS "IN" FOR THE DESTINATION BRANCH
                     // This ensures the mutation appears on the confirmation date, not the shipping date.
@@ -116,11 +128,12 @@ class StockTransferController extends Controller
                         'quantity' => 1,
                         'balance_after' => 1, // Optional for HP
                         'description' => "Pindah Cabang Masuk dari #{$stockOut->receipt_id} (" . ($item->imei ?? $item->p_code) . ")",
-                        'reference_id' => $item->id, // Store ProductDetail ID as reference
+                        'reference_id' => (string)$item->id, // Store ProductDetail ID as reference
                     ]);
                 } else {
                     // REJECTED / RETURNED
                     $item->status = 'available';
+                    Log::info("DEBUG TRANSFER: Rejecting HP item {$item->id}");
                     // Return to SENDER
                     $sender = $stockOut->user;
                     if ($sender->branch_id) {
@@ -144,7 +157,7 @@ class StockTransferController extends Controller
                         'type' => 'in', // Returned back
                         'quantity' => 1,
                         'description' => "Transfer Ditolak/Retur dari #{$stockOut->receipt_id} (" . ($item->imei ?? $item->p_code) . ")",
-                        'reference_id' => $item->id,
+                        'reference_id' => (string)$item->id,
                     ]);
                 }
                 $item->save();
