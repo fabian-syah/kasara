@@ -827,13 +827,22 @@ class ReportController extends Controller
                 $s = trim($storage ?? '');
                 $c = trim($condition ?? 'second');
                 
+                // Remove weird unicode spaces and standard spaces into a single space
+                $b = trim(preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $b));
+                $n = trim(preg_replace('/[\x00-\x1F\x7F-\xFF]/', '', $n));
+                $s = trim(preg_replace('/[\xA0\s]+/', ' ', $s));
+                
                 $dispName = "{$b} {$n}";
+                // Standardize multiple spaces and remove any ™ symbols that might differ
+                $dispName = trim(preg_replace('/\s+/', ' ', str_replace('™', '', $dispName)));
+                
                 if ($s) $dispName .= " ({$s})";
                 $dispName .= " (" . ($c === 'new' ? 'Baru' : ($c === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
                 
                 return [
                     'display' => $dispName,
-                    'key' => md5(strtolower(preg_replace('/\s+/', ' ', $dispName))) // Ignore multiple spaces
+                    // Bulletproof key: only letters and numbers
+                    'key' => md5(preg_replace('/[^a-z0-9]/', '', strtolower($dispName)))
                 ];
             };
 
