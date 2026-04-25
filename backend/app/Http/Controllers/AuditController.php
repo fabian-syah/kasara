@@ -1045,7 +1045,7 @@ class AuditController extends Controller
                         $alStock = DB::table('product_details')
                             ->join('products', 'product_details.product_id', '=', 'products.id')
                             ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
-                            ->where('product_details.status', 'ready')
+                            ->where('product_details.status', 'available')
                             ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
 
                         $applyStockScope($alStock);
