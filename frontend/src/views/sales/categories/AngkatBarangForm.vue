@@ -56,39 +56,32 @@ const tradeInPhotos = ref({
 const filteredBrands = computed(() => {
     if (!tradeInForm.value.distributor_id) return props.brands;
     
-    // Create a map of Type ID -> Brand ID for efficiency
-    const typeToBrand = {};
-    props.productTypes.forEach(t => {
-        typeToBrand[t.id] = t.brand_id;
-    });
-
-    // Get brand IDs that have prices for this distributor
-    const brandIdsWithPrice = new Set(
-        props.productPrices
-            .filter(p => p.distributor_id === tradeInForm.value.distributor_id)
-            .map(p => typeToBrand[p.product_type_id])
-            .filter(id => id)
-    );
+    const selectedDist = props.distributors.find(d => d.id === tradeInForm.value.distributor_id);
+    if (!selectedDist || !selectedDist.allowed_brands) return props.brands;
     
-    return props.brands.filter(b => brandIdsWithPrice.has(b.id));
+    let allowedIds = [];
+    try {
+        allowedIds = typeof selectedDist.allowed_brands === 'string' 
+            ? JSON.parse(selectedDist.allowed_brands) 
+            : selectedDist.allowed_brands;
+    } catch (e) {
+        return props.brands;
+    }
+    
+    if (!Array.isArray(allowedIds)) return props.brands;
+    
+    // Map to numbers for consistent comparison
+    const numericIds = allowedIds.map(id => Number(id));
+    
+    return props.brands.filter(b => numericIds.includes(Number(b.id)));
 });
 
 const filteredTradeInTypes = computed(() => {
     if (!tradeInForm.value.brand_id) return [];
     
-    let types = props.productTypes.filter(t => t.brand_id === tradeInForm.value.brand_id);
-    
-    // If distributor selected, only show types that have price entries for that distributor
-    if (tradeInForm.value.distributor_id) {
-        const typeIdsWithPrice = new Set(
-            props.productPrices
-                .filter(p => p.distributor_id === tradeInForm.value.distributor_id)
-                .map(p => p.product_type_id)
-        );
-        types = types.filter(t => typeIdsWithPrice.has(t.id));
-    }
-    
-    return types;
+    // Simply show all types for the selected brand
+    // This is more flexible as per "Stock In" behavior
+    return props.productTypes.filter(t => t.brand_id === tradeInForm.value.brand_id);
 });
 
 const selectedTradeInType = computed(() => {
