@@ -134,7 +134,7 @@ class TradeInController extends Controller
                             'type' => 'in',
                             'quantity' => 1,
                             'reference_id' => 'Trade-In: ' . $receiptId,
-                            'description' => 'Trade-In HP: ' . $productType->name . ' (' . $imei . ')',
+                            'description' => 'ANGKAT BARANG HP: ' . $productType->name . ' (' . $imei . ')',
                             'supplier_name' => 'Trade-In',
                             'notes' => $request->notes,
                         ]);
@@ -228,7 +228,7 @@ class TradeInController extends Controller
                         'type' => 'in',
                         'quantity' => $quantity,
                         'reference_id' => 'Trade-In: ' . $receiptId,
-                        'description' => 'Trade-In Non-HP: ' . $productType->name,
+                        'description' => 'ANGKAT BARANG Non-HP: ' . $productType->name,
                         'supplier_name' => 'Trade-In',
                         'notes' => $request->notes,
                     ]);
