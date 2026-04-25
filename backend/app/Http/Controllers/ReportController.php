@@ -777,10 +777,8 @@ class ReportController extends Controller
 
             $results = [];
             
-            $results = [];
-            
-            // 2. Start from ACTUAL REAL-TIME stock (Available only)
-            $currentStockQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+            // 2. Get CURRENT REAL-TIME STOCK (as the reference "All Time" balance)
+            $currentStock = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                 ->select(
                     'products.id as product_id',
                     'products.brand',
@@ -791,10 +789,10 @@ class ReportController extends Controller
                 )
                 ->where('product_details.status', 'available');
 
-            if (!empty($filterBranchIds)) $currentStockQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
-            if (!empty($filterOnlineShopIds)) $currentStockQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+            if (!empty($filterBranchIds)) $currentStock->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
+            if (!empty($filterOnlineShopIds)) $currentStock->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
 
-            $currentStockQuery->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
+            $currentStock->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
 
             $defaultRow = [
                 'initial' => 0, 
@@ -808,66 +806,17 @@ class ReportController extends Controller
                 'final' => 0
             ];
 
-            foreach($currentStockQuery->get() as $s) {
+            foreach($currentStock->get() as $s) {
                 $key = "{$s->product_id}:{$s->storage}:{$s->condition}";
                 $results[$key] = array_merge($defaultRow, [
                     'name' => "{$s->brand} {$s->product_name} " . ($s->storage ? "({$s->storage}) " : "") . "(" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
-                    'final' => $s->qty // This will be adjusted back to target date shortly
+                    'initial' => $s->qty, 
+                    'final' => $s->qty
                 ]);
             }
 
-            // 3. REVERSE LOGIC: Undo every mutation from NOW back to $endTime
-            // This gives us the "Final" stock for the viewed day.
-            
-            // Incoming logs between $endTime and NOW
-            $futureLogs = \App\Models\InventoryLog::where('created_at', '>=', $endTime)
-                ->where('type', 'in')
-                ->whereRaw("reference_id ~ '^[0-9]+$'");
-            if (!empty($filterBranchIds)) $futureLogs->whereIn('branch_id', $filterBranchIds);
-            if (!empty($filterOnlineShopIds)) $futureLogs->whereIn('online_shop_id', $filterOnlineShopIds);
-
-            foreach($futureLogs->get() as $log) {
-                $pd = ProductDetail::find($log->reference_id);
-                if (!$pd) continue;
-                $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
-                if (isset($results[$key])) $results[$key]['final']--;
-            }
-
-            // Outgoing between $endTime and NOW
-            $futureOuts = StockOut::with(['items.product'])
-                ->where('created_at', '>=', $endTime)
-                ->where('status', '!=', 'cancelled');
-            if (!empty($filterBranchIds)) {
-                $futureOuts->where(function($q) use ($filterBranchIds) {
-                    $q->whereIn('branch_id', $filterBranchIds)->orWhereNull('branch_id');
-                });
-            }
-            if (!empty($filterOnlineShopIds)) {
-                $futureOuts->where(function($q) use ($filterOnlineShopIds) {
-                    $q->whereIn('online_shop_id', $filterOnlineShopIds)->orWhereNull('online_shop_id');
-                });
-            }
-
-            foreach($futureOuts->get() as $out) {
-                foreach($out->items as $pd) {
-                    $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
-                    if (!isset($results[$key])) {
-                        $results[$key] = array_merge($defaultRow, [
-                            'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
-                        ]);
-                    }
-                    $results[$key]['final']++;
-                }
-            }
-
-            // At this point, $results[key]['final'] is exactly what the stock was at $endTime.
-            // Now calculate 'initial' by using mutations within the target day.
-            foreach($results as $k => $v) {
-                $results[$k]['initial'] = $v['final'];
-            }
-
-            // 4. Mutations during the target day (Backtrack to $resetTime)
-            // Incoming during day
+            // 3. Get Mutations for the selected date window (Reset 05:00 AM)
+            // Incoming Logs during day
             $dayLogs = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('type', 'in')
@@ -885,7 +834,6 @@ class ReportController extends Controller
                     ]);
                 }
                 $results[$key]['in']++;
-                $results[$key]['initial']--;
             }
 
             // Outgoing during day
@@ -917,8 +865,6 @@ class ReportController extends Controller
                     }
                     
                     $cat = $out->category;
-                    $results[$key]['initial']++;
-                    
                     if (in_array($cat, $soldCategories)) $results[$key]['sold']++;
                     elseif ($cat === 'pindah_cabang') $results[$key]['out_pindah']++;
                     elseif ($cat === 'kesalahan_input') $results[$key]['out_kesalahan']++;
