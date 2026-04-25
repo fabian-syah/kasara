@@ -1138,8 +1138,8 @@ class ReportController extends Controller
             $response = $this->getStockHistory($request);
             $data = json_decode($response->getContent(), true);
             
-            $hpItems = $data['data']['hp'] ?? [];
-            $nonHpItems = $data['data']['non_hp'] ?? [];
+            $hpItems = data_get($data, 'data.hp', []);
+            $nonHpItems = data_get($data, 'data.non_hp', []);
             
             // Filter by type if requested
             $type = $request->query('type');
@@ -1154,10 +1154,8 @@ class ReportController extends Controller
                 $titleSuffix = 'SEMUA BARANG';
             }
             
-            // Sort A-Z
-            usort($items, function($a, $b) {
-                return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
-            });
+            // Sort A-Z safely
+            $items = collect($items)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->toArray();
             
             $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
