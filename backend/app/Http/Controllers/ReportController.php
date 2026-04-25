@@ -872,7 +872,7 @@ class ReportController extends Controller
             
             if (!empty($filterBranchIds)) {
                 $dayOuts->where(function($q) use ($filterBranchIds) {
-                    $q->whereIn('branch_id', $filterBranchIds)->orWhere('destination_id', $filterBranchIds)->orWhereNull('branch_id');
+                    $q->whereIn('branch_id', $filterBranchIds)->orWhere('destination_id', $filterBranchIds);
                 });
             } elseif (!empty($filterOnlineShopIds)) {
                 $dayOuts->whereIn('online_shop_id', $filterOnlineShopIds);
