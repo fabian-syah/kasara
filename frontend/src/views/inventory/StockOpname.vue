@@ -992,7 +992,7 @@ const fetchDownloadLogs = async () => {
 };
 
 const maxDate = new Date().toISOString().split('T')[0];
-const minDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+const minDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
 const formattedDate = computed(() => {
     if (!historyDate.value) return '';
@@ -2469,17 +2469,16 @@ onMounted(() => {
                             </div>
 
                             <!-- Date Navigator -->
-                            <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                            <!-- Date Navigator (Daily Mode) -->
+                            <div v-if="historyMode === 'daily'" class="flex flex-col gap-1.5 flex-1 min-w-0">
                                 <label class="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary/70 ml-1">Navigasi Tanggal</label>
                                 <div class="flex items-center gap-2">
-                                    <!-- Prev Day -->
                                     <button @click="navigateDate(-1)" 
                                         :disabled="historyDate <= minDate"
                                         class="p-2.5 rounded-xl bg-surface-900 border border-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                                     </button>
 
-                                    <!-- Date Display + Hidden Input -->
                                     <div class="relative flex-1 min-w-0 group cursor-pointer" @click="$refs.dateInput.showPicker?.() || $refs.dateInput.focus()">
                                         <div class="flex items-center gap-3 px-4 py-2.5 bg-surface-900 border border-surface-700 rounded-xl group-hover:border-primary-500/40 transition-all duration-200">
                                             <Calendar class="text-primary-500 shrink-0 group-hover:text-primary-400 transition-colors" :size="16" />
@@ -2490,17 +2489,36 @@ onMounted(() => {
                                             class="absolute inset-0 opacity-0 cursor-pointer" />
                                     </div>
 
-                                    <!-- Next Day -->
                                     <button @click="navigateDate(1)" 
                                         :disabled="historyDate >= maxDate"
                                         class="p-2.5 rounded-xl bg-surface-900 border border-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                                     </button>
 
-                                    <!-- Today Button -->
                                     <button v-if="!isToday" @click="goToToday()"
                                         class="px-3 py-2.5 rounded-xl bg-primary-500/10 border border-primary-500/20 text-primary-600 text-xs font-bold hover:bg-primary-500/20 hover:border-primary-500/40 transition-all duration-200 active:scale-95 whitespace-nowrap">
                                         Hari Ini
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Month Navigator (Monthly Mode) -->
+                            <div v-else class="flex flex-col gap-1.5 flex-1 min-w-0">
+                                <label class="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary/70 ml-1">Pilih Bulan (Audit 2 Bulan Terakhir)</label>
+                                <div class="flex items-center gap-3">
+                                    <button @click="historyDate = new Date().toISOString().split('T')[0]; fetchStockHistory();" 
+                                        class="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-sm uppercase tracking-wider"
+                                        :class="new Date(historyDate).getMonth() === new Date().getMonth() 
+                                            ? 'bg-primary-500 border-primary-400 text-white shadow-xl shadow-primary-500/20' 
+                                            : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white hover:bg-surface-800'">
+                                        <Calendar :size="18" /> Bulan Ini
+                                    </button>
+                                    <button @click="historyDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0]; fetchStockHistory();" 
+                                        class="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-sm uppercase tracking-wider"
+                                        :class="new Date(historyDate).getMonth() === (new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1)
+                                            ? 'bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-500/20' 
+                                            : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white hover:bg-surface-800'">
+                                        <History :size="18" /> Bulan Kemarin
                                     </button>
                                 </div>
                             </div>
