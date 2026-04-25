@@ -856,6 +856,7 @@ class ReportController extends Controller
                         'name' => $norm['display'],
                         'type' => $s->type ?? ($s->has_imei ? 'hp' : 'non-hp'),
                         'has_imei' => $s->has_imei,
+                        'debug_key_1' => $groupKey
                     ]);
                 }
                 $results[$groupKey]['final'] += $s->qty;
@@ -882,6 +883,7 @@ class ReportController extends Controller
                         'name' => $norm['display'],
                         'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
                         'has_imei' => $pd->product->has_imei,
+                        'debug_key_2' => $groupKey
                     ]);
                 }
                 
@@ -919,6 +921,7 @@ class ReportController extends Controller
                             'name' => $norm['display'],
                             'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
                             'has_imei' => $pd->product->has_imei,
+                            'debug_key_3' => $groupKey
                         ]);
                     }
                     
@@ -944,6 +947,7 @@ class ReportController extends Controller
                             'name' => $norm['display'],
                             'type' => $nhi->product->type ?? 'non-hp',
                             'has_imei' => false,
+                            'debug_key_4' => $groupKey
                         ]);
                     }
                     $qty = $nhi->quantity;

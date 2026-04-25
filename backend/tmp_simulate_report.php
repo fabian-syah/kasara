@@ -9,18 +9,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\ReportController;
 
-// 1. Ambil user salestrial sesuai request
-$user = User::where('username', 'salestrial')->first();
-if (!$user) {
-    // Kalau username gak ketemu, coba pake ID cabang ke-69
-    $user = User::where('branch_id', 69)->first();
-}
-
+$user = User::where('username', 'salestrial')->first() ?? User::where('branch_id', 69)->first();
 if (!$user) die("User salestrial (Cabang 69) nggak ketemu nih kak!\n");
 
-echo "MENSIMULASIKAN REPORT SEBAGAI USER: " . $user->username . " (Branch ID: " . $user->branch_id . ")\n\n";
-
-// 2. Bikin instance Request palsu
+// Bikin instance Request palsu
 $request = Request::create('/api/reports/stock-history', 'GET', [
     'date' => date('Y-m-d'),
     'branch_id' => 69 
@@ -35,7 +27,6 @@ try {
 
     if (isset($data['data']['hp'])) {
         $hp = $data['data']['hp'];
-        echo "Total Item HP di Cabang Ini: " . count($hp) . "\n\n";
 
         // Cari yang namanya ngandung 14 Pro Max
         $found = [];
@@ -45,11 +36,16 @@ try {
             }
         }
 
-        echo "--- KETEMU " . count($found) . " BARIS '14 Pro Max' ---\n";
+        echo "--- \nKETEMU " . count($found) . " BARIS '14 Pro Max'\n";
         foreach ($found as $idx => $f) {
             echo "[" . ($idx + 1) . "] Nama: " . $f['name'] . "\n";
             echo "    Initial: {$f['initial']} | In Total: {$f['in_total']} | Out Total: {$f['out_total']} | Final: {$f['final']}\n";
-            echo "    Type: {$f['type']} | Has IMEI: " . ($f['has_imei'] ? 'true' : 'false') . "\n";
+            
+            $db1 = $f['debug_key_1'] ?? '-';
+            $db2 = $f['debug_key_2'] ?? '-';
+            $db3 = $f['debug_key_3'] ?? '-';
+            $db4 = $f['debug_key_4'] ?? '-';
+            echo "    Debug Keys: 1={$db1} | 2={$db2} | 3={$db3} | 4={$db4}\n";
             echo "----------------------------------------\n";
         }
         
