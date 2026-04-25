@@ -1006,9 +1006,12 @@ const isToday = computed(() => {
 });
 
 const navigateDate = (offset) => {
-    const d = new Date(historyDate.value + 'T00:00:00');
+    const d = new Date(historyDate.value + 'T12:00:00');
     d.setDate(d.getDate() + offset);
-    const newDate = d.toISOString().split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const newDate = `${year}-${month}-${day}`;
     if (newDate >= minDate && newDate <= maxDate) {
         historyDate.value = newDate;
     }
