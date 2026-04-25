@@ -20,90 +20,60 @@ class SimpleXLSXGen {
     }
 
     public function __toString() {
-        ob_start();
-        echo '<?xml version="1.0"?>' . "\n";
-        echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
-        echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
-        echo 'xmlns:o="urn:schemas-microsoft-com:office:office" ';
-        echo 'xmlns:x="urn:schemas-microsoft-com:office:excel" ';
-        echo 'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" ';
-        echo 'xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+        $data = $this->rows;
+        $title = $this->sheetName ?? 'Laporan';
         
-        echo '<Styles>
-            <Style ss:ID="Default" ss:Name="Normal">
-                <Alignment ss:Vertical="Bottom"/>
-                <Borders/>
-                <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
-                <Interior/>
-                <NumberFormat/>
-                <Protection/>
-            </Style>
-            <Style ss:ID="sHeader">
-                <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-                <Borders>
-                    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
-                    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
-                    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
-                    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
-                </Borders>
-                <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
-                <Interior ss:Color="#2C3E50" ss:Pattern="Solid"/>
-            </Style>
-            <Style ss:ID="sTitle">
-                <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-                <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="14" ss:Color="#000000" ss:Bold="1"/>
-            </Style>
-            <Style ss:ID="sIn">
-                <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-                <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders>
-                <Interior ss:Color="#D1FAE5" ss:Pattern="Solid"/>
-            </Style>
-            <Style ss:ID="sOut">
-                <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-                <Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/></Borders>
-                <Interior ss:Color="#FEF2F2" ss:Pattern="Solid"/>
-            </Style>
-            <Style ss:ID="sTotal">
-                <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-                <Font ss:Bold="1" ss:Color="#1D4ED8"/>
-                <Interior ss:Color="#EFF6FF" ss:Pattern="Solid"/>
-            </Style>
-        </Styles>' . "\n";
-
-        echo '<Worksheet ss:Name="' . htmlspecialchars($this->sheetName ?? 'Sheet1') . '">' . "\n";
-        echo '<Table>' . "\n";
+        $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+        $html .= '<head><meta charset="utf-8"/><style>
+            .title { font-size: 16pt; font-weight: bold; text-align: center; height: 40px; }
+            .header { background-color: #2C3E50; color: #FFFFFF; font-weight: bold; text-align: center; border: 0.5pt solid #000000; }
+            .cell { border: 0.5pt solid #cccccc; text-align: center; }
+            .pname { text-align: left; border: 0.5pt solid #cccccc; }
+            .in-cell { background-color: #D1FAE5; border: 0.5pt solid #cccccc; text-align: center; }
+            .out-cell { background-color: #FEF2F2; border: 0.5pt solid #cccccc; text-align: center; }
+            .total-cell { background-color: #EFF6FF; border: 0.5pt solid #cccccc; font-weight: bold; text-align: center; color: #1D4ED8; }
+        </style></head><body>';
         
-        echo '<Column ss:Width="250"/>' . "\n";
-        for ($i=0; $i<16; $i++) echo '<Column ss:Width="80"/>' . "\n";
-
-        foreach ($this->rows as $rIdx => $row) {
-            echo '<Row ';
-            if ($rIdx === 0) echo 'ss:Height="25"';
-            echo '>' . "\n";
-            
+        $html .= '<table>';
+        foreach ($data as $rIdx => $row) {
+            $html .= '<tr>';
             foreach ($row as $cIdx => $val) {
-                $style = 'Default';
-                if ($rIdx === 0) $style = 'sTitle';
-                elseif ($rIdx === 1) $style = 'sHeader';
-                elseif ($rIdx > 1) {
-                    if ($cIdx >= 3 && $cIdx <= 8) $style = 'sIn';
-                    elseif ($cIdx >= 9 && $cIdx <= 15) $style = 'sOut';
-                    elseif ($cIdx === 16) $style = 'sTotal';
+                $class = 'cell';
+                $colspan = 1;
+                
+                if ($rIdx === 0) {
+                    $class = 'title';
+                    $colspan = 17;
+                } elseif ($rIdx === 1) {
+                    $class = 'header';
+                } else {
+                    if ($cIdx === 0) $class = 'pname';
+                    elseif ($cIdx >= 3 && $cIdx <= 8) $class = 'in-cell';
+                    elseif ($cIdx >= 9 && $cIdx <= 15) $class = 'out-cell';
+                    elseif ($cIdx === 16) $class = 'total-cell';
                 }
-
-                echo '<Cell ss:StyleID="' . $style . '">';
-                $type = (is_numeric($val) && strlen($val) < 12) ? 'Number' : 'String';
-                echo '<Data ss:Type="' . $type . '">' . htmlspecialchars($val ?? '') . '</Data>';
-                echo '</Cell>' . "\n";
+                
+                $html .= '<td class="' . $class . '"' . ($colspan > 1 ? ' colspan="' . $colspan . '"' : '') . '>';
+                $html .= htmlspecialchars($val ?? '');
+                $html .= '</td>';
+                
+                if ($colspan > 1) break;
             }
-            echo '</Row>' . "\n";
+            $html .= '</tr>';
         }
+        $html .= '</table></body></html>';
+
+        $boundary = '------=_NextPart_01C9EB77.632D2830';
+        $mhtml = "MIME-Version: 1.0\n";
+        $mhtml .= "Content-Type: multipart/related; boundary=\"$boundary\"\n\n";
+        $mhtml .= "--$boundary\n";
+        $mhtml .= "Content-Location: file:///C:/excel.htm\n";
+        $html .= "Content-Transfer-Encoding: base64\n";
+        $html .= "Content-Type: text/html; charset=\"utf-8\"\n\n";
+        $mhtml .= base64_encode($html) . "\n\n";
+        $mhtml .= "--$boundary--\n";
         
-        echo '</Table>' . "\n";
-        echo '</Worksheet>' . "\n";
-        echo '</Workbook>' . "\n";
-        
-        return ob_get_clean();
+        return $mhtml;
     }
 
     public function downloadAs($filename) {
