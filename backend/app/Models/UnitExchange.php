@@ -19,6 +19,7 @@ class UnitExchange extends Model
         'incoming_imei',
         'incoming_storage',
         'incoming_condition',
+        'distributor_id',
         'incoming_cost_price',
         'outgoing_product_detail_id',
         'reason',
@@ -32,6 +33,11 @@ class UnitExchange extends Model
     public function incomingProductType()
     {
         return $this->belongsTo(ProductType::class, 'incoming_product_type_id');
+    }
+
+    public function distributor()
+    {
+        return $this->belongsTo(Distributor::class);
     }
 
     public function outgoingProductDetail()

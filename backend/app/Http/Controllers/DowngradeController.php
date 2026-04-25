@@ -25,6 +25,7 @@ class DowngradeController extends Controller
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:50',
+            'distributor_id' => 'nullable|exists:distributors,id',
             'incoming_source' => 'required|in:ex_pstore,luar_pstore',
 
             // Incoming (Barang Masuk)
@@ -89,6 +90,7 @@ class DowngradeController extends Controller
                     'photo_unit' => $photoPathUnit ?? 'noimage.png',
                     'photo_customer' => $photoPathCustomer,
                     'user_id' => $user->id,
+                    'distributor_id' => $request->distributor_id,
                     'branch_id' => $user->branch_id,
                 ]);
 
@@ -121,6 +123,7 @@ class DowngradeController extends Controller
                     'cost_price' => $request->incoming_cost_price,
                     'selling_price' => $incomingProductType->price ?? 0,
                     'supplier_name' => 'Downgrade: ' . $request->customer_name,
+                    'distributor_id' => $request->distributor_id,
                     'downgrade_id' => $downgrade->id,
                     'notes' => 'Masuk dari Downgrade: ' . $receiptId,
                 ]);
@@ -166,6 +169,7 @@ class DowngradeController extends Controller
                     'reference_id' => 'DG IN: ' . $receiptId,
                     'description' => 'Downgrade (Masuk): ' . $incomingProductType->name,
                     'supplier_name' => 'Customer: ' . $request->customer_name,
+                    'distributor_id' => $request->distributor_id,
                 ]);
 
                 InventoryLog::create([

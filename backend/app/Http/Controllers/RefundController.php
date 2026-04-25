@@ -23,6 +23,7 @@ class RefundController extends Controller
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:50',
+            'distributor_id' => 'nullable|exists:distributors,id',
             'brand_id' => 'required|exists:brands,id',
             'product_type_id' => 'required|exists:product_types,id',
             'imei' => 'nullable|string|max:25',
@@ -89,6 +90,7 @@ class RefundController extends Controller
                     'photo_unit' => $photoLog['unit'] ?? null,
                     'photo_customer' => $photoLog['customer'] ?? null,
                     'user_id' => $user->id,
+                    'distributor_id' => $request->distributor_id,
                     'branch_id' => $user->branch_id,
                 ]);
 
@@ -111,6 +113,7 @@ class RefundController extends Controller
                         'cost_price' => $request->refund_price,
                         'selling_price' => $productType->price ?? 0,
                         'supplier_name' => 'Refund: ' . $request->customer_name,
+                        'distributor_id' => $request->distributor_id,
                         'refund_id' => $refund->id,
                         'notes' => $request->notes,
                     ]);
@@ -140,6 +143,7 @@ class RefundController extends Controller
                     'reference_id' => 'Refund: ' . $receiptId,
                     'description' => 'Refund Barang: ' . $productType->name . ($request->imei ? ' (' . $request->imei . ')' : ''),
                     'supplier_name' => 'Refund Customer',
+                    'distributor_id' => $request->distributor_id,
                     'notes' => $request->notes,
                 ]);
 

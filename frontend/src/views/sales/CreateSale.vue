@@ -475,22 +475,22 @@ watch(transactionCategory, () => {
 
                 <RefundForm v-else-if="transactionCategory === 'refund'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
-                    :selectedAccountObject="selectedAccountObject"
+                    :distributors="distributors" :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <TukarUnitForm v-else-if="transactionCategory === 'tukar_unit'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
-                    :selectedAccountObject="selectedAccountObject"
+                    :distributors="distributors" :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <TukarTambahForm v-else-if="transactionCategory === 'tukar_tambah'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
-                    :selectedAccountObject="selectedAccountObject"
+                    :distributors="distributors" :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <DowngradeForm v-else-if="transactionCategory === 'downgrade'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
-                    :selectedAccountObject="selectedAccountObject"
+                    :distributors="distributors" :selectedAccountObject="selectedAccountObject"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
             </div>
 

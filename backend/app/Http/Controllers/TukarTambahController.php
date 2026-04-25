@@ -25,6 +25,7 @@ class TukarTambahController extends Controller
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:50',
+            'distributor_id' => 'nullable|exists:distributors,id',
             'incoming_source' => 'required|in:ex_pstore,luar_pstore',
 
             // Incoming (Barang Masuk)
@@ -88,6 +89,7 @@ class TukarTambahController extends Controller
                     'photo_unit' => $photoPathUnit,
                     'photo_customer' => $photoPathCustomer,
                     'user_id' => $user->id,
+                    'distributor_id' => $request->distributor_id,
                     'branch_id' => $user->branch_id,
                 ]);
 
@@ -120,6 +122,7 @@ class TukarTambahController extends Controller
                     'cost_price' => $request->incoming_cost_price,
                     'selling_price' => $incomingProductType->price ?? 0,
                     'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                    'distributor_id' => $request->distributor_id,
                     'tukar_tambah_id' => $tukarTambah->id,
                     'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
                 ]);
@@ -166,6 +169,7 @@ class TukarTambahController extends Controller
                     'reference_id' => 'TT IN: ' . $receiptId,
                     'description' => 'Tukar Tambah (Masuk): ' . $incomingProductType->name,
                     'supplier_name' => 'Customer: ' . $request->customer_name,
+                    'distributor_id' => $request->distributor_id,
                 ]);
 
                 InventoryLog::create([

@@ -14,6 +14,7 @@ class Refund extends Model
         'receipt_id',
         'customer_name',
         'customer_phone',
+        'distributor_id',
         'product_type_id',
         'imei',
         'storage',
@@ -31,6 +32,11 @@ class Refund extends Model
     public function productType()
     {
         return $this->belongsTo(ProductType::class);
+    }
+
+    public function distributor()
+    {
+        return $this->belongsTo(Distributor::class);
     }
 
     public function user()

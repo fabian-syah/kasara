@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
-import { formatCurrency, parseCurrency } from "../../../utils/formatters";
+import { formatCurrency } from "../../../utils/formatters";
 import {
     Plus,
     Loader2,
@@ -14,6 +14,7 @@ const props = defineProps({
     brands: Array,
     productTypes: Array,
     productPrices: Array,
+    distributors: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
     selectedAccountObject: Object
@@ -29,6 +30,7 @@ const isSubmitting = ref(false);
 const refundForm = ref({
     customer_name: "",
     customer_phone: "",
+    distributor_id: null,
     brand_id: null,
     product_type_id: null,
     storage: "",
@@ -47,7 +49,19 @@ const refundPhotos = ref({
     customerPreview: null
 });
 
+
 // Computeds
+const filteredBrands = computed(() => {
+    if (!refundForm.value.distributor_id) return props.brands;
+    const dist = props.distributors.find(d => d.id === refundForm.value.distributor_id);
+    if (!dist || !dist.allowed_brands) return props.brands;
+    try {
+        const allowed = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        return props.brands.filter(b => allowed.includes(b.name));
+    } catch {
+        return props.brands;
+    }
+});
 const filteredRefundTypes = computed(() => {
     if (!refundForm.value.brand_id) return [];
     return props.productTypes.filter(t => t.brand_id === refundForm.value.brand_id);
@@ -78,6 +92,11 @@ const filteredRefundStorages = computed(() => {
 });
 
 // Watchers
+watch(() => refundForm.value.distributor_id, () => {
+    refundForm.value.brand_id = null;
+    refundForm.value.product_type_id = null;
+});
+
 watch(() => refundForm.value.brand_id, () => {
     refundForm.value.product_type_id = null;
     refundForm.value.storage = "";
@@ -88,6 +107,13 @@ watch(() => refundForm.value.product_type_id, () => {
     refundForm.value.storage = "";
     refundForm.value.condition = "";
 });
+
+watch(() => isImeiRefund.value, (newVal) => {
+    if (!newVal) {
+        refundForm.value.storage = "Non-HP";
+        refundForm.value.condition = "new";
+    }
+}, { immediate: true });
 
 // Helpers
 function formatNumber(n) {
@@ -106,10 +132,6 @@ function parseNumber(s) {
     return parseInt(finalClean) || 0;
 }
 
-const displayRefundPrice = computed({
-    get: () => refundForm.value.refund_price ? refundForm.value.refund_price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '',
-    set: (v) => refundForm.value.refund_price = parseCurrency(v)
-});
 
 const handleRefundPhotoUpload = (type, e) => {
     const file = e.target.files[0];
@@ -152,6 +174,7 @@ async function submitRefund(pin = null) {
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', refundForm.value.customer_name);
     formData.append('customer_phone', refundForm.value.customer_phone);
+    if (refundForm.value.distributor_id) formData.append('distributor_id', refundForm.value.distributor_id);
     formData.append('brand_id', refundForm.value.brand_id);
     formData.append('product_type_id', refundForm.value.product_type_id);
     formData.append('storage', refundForm.value.storage);
@@ -200,6 +223,7 @@ async function submitRefund(pin = null) {
         refundForm.value = {
             customer_name: "",
             customer_phone: "",
+            distributor_id: null,
             brand_id: null,
             product_type_id: null,
             storage: "",
@@ -264,6 +288,14 @@ async function submitRefund(pin = null) {
                     <h4
                         class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
                         Spesifikasi Unit</h4>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Pilih Distributor <span class="text-red-500">*</span></label>
+                        <select v-model="refundForm.distributor_id"
+                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-primary-600">
+                            <option :value="null">-- Pilih Distributor --</option>
+                            <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-1 xs:grid-cols-2 gap-4">
                         <div>
                             <label
@@ -272,7 +304,7 @@ async function submitRefund(pin = null) {
                             <select v-model="refundForm.brand_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null" disabled>Pilih Brand</option>
-                                <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}
+                                <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}
                                 </option>
                             </select>
                         </div>
@@ -290,7 +322,7 @@ async function submitRefund(pin = null) {
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div v-if="isImeiRefund" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas
@@ -301,7 +333,6 @@ async function submitRefund(pin = null) {
                                 <option value="" disabled>Pilih Kapasitas</option>
                                 <option v-for="s in filteredRefundStorages" :key="s" :value="s">{{ s }}
                                 </option>
-                                <option v-if="!isImeiRefund" value="Non-HP">Non-HP</option>
                             </select>
                         </div>
                         <div class="mt-4 sm:mt-0">
@@ -339,7 +370,7 @@ async function submitRefund(pin = null) {
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                            <input v-model="displayRefundPrice" v-money type="text"
+                            <input v-money:refund_price="refundForm" type="text"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
                         <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Harga ini

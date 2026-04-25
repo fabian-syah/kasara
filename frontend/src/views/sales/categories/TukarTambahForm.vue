@@ -17,6 +17,7 @@ const props = defineProps({
     brands: Array,
     productTypes: Array,
     productPrices: Array,
+    distributors: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
     selectedAccountObject: Object
@@ -34,6 +35,7 @@ const tukarTambahForm = ref({
     customer_name: "",
     customer_phone: "",
     incoming_source: "luar_pstore",
+    distributor_id: null,
     incoming_brand_id: null,
     incoming_product_type_id: null,
     incoming_storage: "",
@@ -54,7 +56,20 @@ const tukarTambahPhotos = ref({
     customerPreview: null
 });
 
+
 // Computeds
+const filteredBrands = computed(() => {
+    if (!tukarTambahForm.value.distributor_id) return props.brands;
+    const dist = props.distributors.find(d => d.id === tukarTambahForm.value.distributor_id);
+    if (!dist || !dist.allowed_brands) return props.brands;
+    try {
+        const allowed = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        return props.brands.filter(b => allowed.includes(b.name));
+    } catch {
+        return props.brands;
+    }
+});
+
 const filteredTukarTambahTypes = computed(() => {
     if (!tukarTambahForm.value.incoming_brand_id) return [];
     return props.productTypes.filter(t => t.brand_id === tukarTambahForm.value.incoming_brand_id);
@@ -94,6 +109,11 @@ const tukarTambahPriceDiff = computed(() => {
 });
 
 // Watchers
+watch(() => tukarTambahForm.value.distributor_id, () => {
+    tukarTambahForm.value.incoming_brand_id = null;
+    tukarTambahForm.value.incoming_product_type_id = null;
+});
+
 watch(() => tukarTambahForm.value.incoming_brand_id, () => {
     tukarTambahForm.value.incoming_product_type_id = null;
     tukarTambahForm.value.incoming_storage = "";
@@ -103,8 +123,16 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
     tukarTambahForm.value.incoming_storage = "";
     if (!isImeiTukarTambah.value && tukarTambahForm.value.incoming_product_type_id) {
         tukarTambahForm.value.incoming_storage = "Non-HP";
+        tukarTambahForm.value.incoming_condition = "second";
     }
 });
+
+watch(() => isImeiTukarTambah.value, (newVal) => {
+    if (!newVal) {
+        tukarTambahForm.value.incoming_storage = "Non-HP";
+        tukarTambahForm.value.incoming_condition = "second";
+    }
+}, { immediate: true });
 
 watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
     if (newId) {
@@ -187,6 +215,7 @@ async function submitTukarTambah(pin = null) {
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', tukarTambahForm.value.customer_name);
     formData.append('customer_phone', tukarTambahForm.value.customer_phone);
+    if (tukarTambahForm.value.distributor_id) formData.append('distributor_id', tukarTambahForm.value.distributor_id);
     formData.append('incoming_source', tukarTambahForm.value.incoming_source);
     formData.append('incoming_product_type_id', tukarTambahForm.value.incoming_product_type_id);
     formData.append('incoming_storage', tukarTambahForm.value.incoming_storage);
@@ -240,6 +269,7 @@ async function submitTukarTambah(pin = null) {
         tukarTambahForm.value = {
             customer_name: "",
             customer_phone: "",
+            distributor_id: null,
             incoming_source: "luar_pstore",
             incoming_brand_id: null,
             incoming_product_type_id: null,
@@ -319,6 +349,14 @@ async function submitTukarTambah(pin = null) {
                             <option value="ex_pstore">Ex PStore</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH DISTRIBUTOR <span class="text-red-500">*</span></label>
+                        <select v-model="tukarTambahForm.distributor_id"
+                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-primary-600">
+                            <option :value="null">-- PILIH DISTRIBUTOR --</option>
+                            <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label
@@ -327,7 +365,7 @@ async function submitTukarTambah(pin = null) {
                             <select v-model="tukarTambahForm.incoming_brand_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null" disabled>Pilih Brand</option>
-                                <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                         </div>
                         <div>
@@ -343,7 +381,7 @@ async function submitTukarTambah(pin = null) {
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div v-if="isImeiTukarTambah" class="grid grid-cols-2 gap-4">
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">STORAGE
@@ -354,7 +392,6 @@ async function submitTukarTambah(pin = null) {
                                 <option value="" disabled>Pilih Storage</option>
                                 <option v-for="s in filteredTukarTambahStorages" :key="s" :value="s">{{ s }}
                                 </option>
-                                <option v-if="!isImeiTukarTambah" value="Non-HP">Non-HP</option>
                             </select>
                         </div>
                         <div>

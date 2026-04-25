@@ -17,6 +17,7 @@ const props = defineProps({
     brands: Array,
     productTypes: Array,
     productPrices: Array,
+    distributors: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
     selectedAccountObject: Object
@@ -32,6 +33,7 @@ const downgradeForm = ref({
     customer_name: "",
     customer_phone: "",
     incoming_source: "luar_pstore",
+    distributor_id: null,
     incoming_brand_id: null,
     incoming_product_type_id: null,
     incoming_storage: "",
@@ -52,7 +54,20 @@ const downgradePhotos = ref({
     customerPreview: null
 });
 
+
 // Computeds
+const filteredBrands = computed(() => {
+    if (!downgradeForm.value.distributor_id) return props.brands;
+    const dist = props.distributors.find(d => d.id === downgradeForm.value.distributor_id);
+    if (!dist || !dist.allowed_brands) return props.brands;
+    try {
+        const allowed = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        return props.brands.filter(b => allowed.includes(b.name));
+    } catch {
+        return props.brands;
+    }
+});
+
 const filteredDowngradeTypes = computed(() => {
     if (!downgradeForm.value.incoming_brand_id) return [];
     return props.productTypes.filter(t => t.brand_id === downgradeForm.value.incoming_brand_id);
@@ -92,6 +107,11 @@ const downgradePriceDiff = computed(() => {
 });
 
 // Watchers
+watch(() => downgradeForm.value.distributor_id, () => {
+    downgradeForm.value.incoming_brand_id = null;
+    downgradeForm.value.incoming_product_type_id = null;
+});
+
 watch(() => downgradeForm.value.incoming_brand_id, () => {
     downgradeForm.value.incoming_product_type_id = null;
     downgradeForm.value.incoming_storage = "";
@@ -101,8 +121,16 @@ watch(() => downgradeForm.value.incoming_product_type_id, () => {
     downgradeForm.value.incoming_storage = "";
     if (!isImeiDowngrade.value && downgradeForm.value.incoming_product_type_id) {
         downgradeForm.value.incoming_storage = "Non-HP";
+        downgradeForm.value.incoming_condition = "second";
     }
 });
+
+watch(() => isImeiDowngrade.value, (newVal) => {
+    if (!newVal) {
+        downgradeForm.value.incoming_storage = "Non-HP";
+        downgradeForm.value.incoming_condition = "second";
+    }
+}, { immediate: true });
 
 watch(() => downgradeForm.value.outgoing_product_detail_id, (newId) => {
     if (newId) {
@@ -184,6 +212,7 @@ async function submitDowngrade(pin = null) {
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', downgradeForm.value.customer_name);
     formData.append('customer_phone', downgradeForm.value.customer_phone);
+    if (downgradeForm.value.distributor_id) formData.append('distributor_id', downgradeForm.value.distributor_id);
     formData.append('incoming_source', downgradeForm.value.incoming_source);
     formData.append('incoming_product_type_id', downgradeForm.value.incoming_product_type_id);
     formData.append('incoming_storage', downgradeForm.value.incoming_storage);
@@ -239,6 +268,7 @@ async function submitDowngrade(pin = null) {
         downgradeForm.value = {
             customer_name: "",
             customer_phone: "",
+            distributor_id: null,
             incoming_source: "luar_pstore",
             incoming_brand_id: null,
             incoming_product_type_id: null,
@@ -316,6 +346,14 @@ async function submitDowngrade(pin = null) {
                             <option value="luar_pstore">Luar PSTORE</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH DISTRIBUTOR <span class="text-red-500">*</span></label>
+                        <select v-model="downgradeForm.distributor_id"
+                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-primary-600">
+                            <option :value="null">-- PILIH DISTRIBUTOR --</option>
+                            <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label
@@ -325,7 +363,7 @@ async function submitDowngrade(pin = null) {
                             <select v-model="downgradeForm.incoming_brand_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null" disabled>Pilih Brand</option>
-                                <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                         </div>
                         <div>
@@ -342,7 +380,7 @@ async function submitDowngrade(pin = null) {
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div v-if="isImeiDowngrade" class="grid grid-cols-2 gap-4">
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
@@ -354,7 +392,6 @@ async function submitDowngrade(pin = null) {
                                 <option value="" disabled>Pilih Storage</option>
                                 <option v-for="s in filteredDowngradeStorages" :key="s" :value="s">{{ s }}
                                 </option>
-                                <option v-if="!isImeiDowngrade" value="Non-HP">Non-HP</option>
                             </select>
                         </div>
                         <div>
