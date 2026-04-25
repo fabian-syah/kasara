@@ -988,10 +988,24 @@ class ReportController extends Controller
                 $row['final'] = $row['initial'] + $row['in_total'] - $row['out_total'];
             }
 
+            $hpData = [];
+            $nonHpData = [];
+            
+            foreach ($results as $row) {
+                if (($row['type'] ?? 'hp') === 'hp') {
+                    $hpData[] = $row;
+                } else {
+                    $nonHpData[] = $row;
+                }
+            }
+
             return response()->json([
                 'status' => 'success',
                 'reset_time_label' => $resetTime->format('H:i d/m/Y'),
-                'data' => array_values($results)
+                'data' => [
+                    'hp' => $hpData,
+                    'non_hp' => $nonHpData
+                ]
             ]);
         } catch (\Exception $e) {
             Log::error('Stock History Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);

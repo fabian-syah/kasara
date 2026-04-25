@@ -946,7 +946,7 @@ const conditionColor = (cond) => {
 
 // ===== HISTORY STOK & EXPORT =====
 const historyLoading = ref(false);
-const historyData = ref([]);
+const historyData = ref({ hp: [], non_hp: [] });
 const resetTime = ref('');
 const downloadLogs = ref([]);
 const historyDate = ref(new Date().toISOString().split('T')[0]);
@@ -972,8 +972,8 @@ const fetchStockHistory = async () => {
                 mode: historyMode.value
             }
         });
-        historyData.value = res.data.data;
-        resetTime.value = res.data.reset_time;
+        historyData.value = res.data.data || { hp: [], non_hp: [] };
+        resetTime.value = res.data.reset_time_label || res.data.reset_time;
     } catch (err) {
         toast.error(err.response?.data?.error || 'Gagal memuat history stok');
     } finally {
@@ -2575,54 +2575,51 @@ onMounted(() => {
                         <RefreshCw class="animate-spin text-primary-500 mx-auto mb-3" :size="32" />
                         <p class="text-text-secondary text-sm">Menghitung mutasi stok...</p>
                     </div>
-                    <div v-else-if="historyData.length === 0" class="p-12 text-center text-text-secondary">
-                         Belum ada data inventory.
+                    <div v-else-if="(!historyData.hp || historyData.hp.length === 0) && (!historyData.non_hp || historyData.non_hp.length === 0)" class="p-12 text-center text-text-secondary">
+                         Belum ada data inventory untuk tanggal ini.
                     </div>
                     <div v-else class="overflow-x-auto">
-                        <table class="w-full text-[10px] text-left border-collapse">
-                            <thead class="text-text-secondary uppercase font-bold sticky top-0 z-10 text-center">
-                                <!-- Row 1: Header Groups -->
-                                <tr>
-                                    <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[180px] bg-surface-900 text-left">Produk</th>
-                                    <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-surface-900 w-12">Awal</th>
-                                    <!-- MASUK GROUP -->
-                                    <th colspan="7" class="px-2 py-2 border border-surface-700 bg-emerald-500/10 text-emerald-600">Barang Masuk</th>
-                                    <!-- KELUAR GROUP -->
-                                    <th colspan="10" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
-                                    <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-primary-500/10 text-primary-600 font-black w-12">Akhir</th>
-                                </tr>
-                                <!-- Row 2: Sub Headers -->
-                                <tr class="bg-surface-900/60 text-[9px]">
-                                    <!-- Masuk Sub -->
-                                    <th class="px-1 py-2 border border-surface-700 text-emerald-600/70">Total</th>
-                                    <th class="px-1 py-2 border border-surface-700">Manual</th>
-                                    <th class="px-1 py-2 border border-surface-700">TT</th>
-                                    <th class="px-1 py-2 border border-surface-700">TU</th>
-                                    <th class="px-1 py-2 border border-surface-700">DW</th>
-                                    <th class="px-1 py-2 border border-surface-700">RF</th>
-                                    <th class="px-1 py-2 border border-surface-700">AB</th>
-                                    <!-- Keluar Sub -->
-                                    <th class="px-1 py-2 border border-surface-700 text-rose-600/70">Total</th>
-                                    <th class="px-1 py-2 border border-surface-700">Sold</th>
-                                    <th class="px-1 py-2 border border-surface-700">TT</th>
-                                    <th class="px-1 py-2 border border-surface-700">TU</th>
-                                    <th class="px-1 py-2 border border-surface-700">DW</th>
-                                    <th class="px-1 py-2 border border-surface-700">Pindah</th>
-                                    <th class="px-1 py-2 border border-surface-700">Salah</th>
-                                    <th class="px-1 py-2 border border-surface-700">Keluar</th>
-                                    <th class="px-1 py-2 border border-surface-700">Hilang</th>
-                                    <th class="px-1 py-2 border border-surface-700">Retur</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-surface-700/50">
-                                <template v-for="item in historyData" :key="item.name">
-                                    <tr class="hover:bg-surface-700/20 transition-colors text-center tabular-nums">
+                        <!-- SECTION 1: UNIT HANDPHONE -->
+                        <div v-if="historyData.hp && historyData.hp.length > 0">
+                            <div class="px-6 py-3 bg-surface-900/50 border-y border-surface-700 flex items-center gap-2">
+                                <Smartphone class="text-primary-500" :size="16" />
+                                <span class="text-xs font-black text-text-primary uppercase tracking-widest">HANYA UNIT HP (IMEI)</span>
+                            </div>
+                            <table class="w-full text-[10px] text-left border-collapse mb-8">
+                                <thead class="text-text-secondary uppercase font-bold sticky top-0 z-10 text-center">
+                                    <tr>
+                                        <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[180px] bg-surface-900 text-left">Produk</th>
+                                        <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-surface-900 w-12">Awal</th>
+                                        <th colspan="7" class="px-2 py-2 border border-surface-700 bg-emerald-500/10 text-emerald-600">Barang Masuk</th>
+                                        <th colspan="10" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
+                                        <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-primary-500/10 text-primary-600 font-black w-12">Akhir</th>
+                                    </tr>
+                                    <tr class="bg-surface-900/60 text-[9px]">
+                                        <th class="px-1 py-2 border border-surface-700 text-emerald-600/70">Total</th>
+                                        <th class="px-1 py-2 border border-surface-700">Manual</th>
+                                        <th class="px-1 py-2 border border-surface-700">TT</th>
+                                        <th class="px-1 py-2 border border-surface-700">TU</th>
+                                        <th class="px-1 py-2 border border-surface-700">DW</th>
+                                        <th class="px-1 py-2 border border-surface-700">RF</th>
+                                        <th class="px-1 py-2 border border-surface-700">AB</th>
+                                        <th class="px-1 py-2 border border-surface-700 text-rose-600/70">Total</th>
+                                        <th class="px-1 py-2 border border-surface-700">Sold</th>
+                                        <th class="px-1 py-2 border border-surface-700">TT</th>
+                                        <th class="px-1 py-2 border border-surface-700">TU</th>
+                                        <th class="px-1 py-2 border border-surface-700">DW</th>
+                                        <th class="px-1 py-2 border border-surface-700">Pindah</th>
+                                        <th class="px-1 py-2 border border-surface-700">Salah</th>
+                                        <th class="px-1 py-2 border border-surface-700">Keluar</th>
+                                        <th class="px-1 py-2 border border-surface-700">Hilang</th>
+                                        <th class="px-1 py-2 border border-surface-700">Retur</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-surface-700/50">
+                                    <tr v-for="item in historyData.hp" :key="item.name" class="hover:bg-surface-700/20 transition-colors text-center tabular-nums">
                                         <td class="px-4 py-2.5 border border-surface-700/30 text-left font-bold text-text-primary text-[10px]">
                                             {{ item.name }}
                                         </td>
                                         <td class="px-1 py-2.5 border border-surface-700/30 font-bold text-text-secondary">{{ item.initial }}</td>
-                                        
-                                        <!-- Masuk Cells -->
                                         <td class="px-1 py-2.5 border border-surface-700/30 bg-emerald-500/5 font-black text-emerald-600">{{ item.in_total }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_manual > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_manual }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_tt > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_tt }}</td>
@@ -2630,8 +2627,6 @@ onMounted(() => {
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_dw > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_dw }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_rf > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_rf }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_ab > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_ab }}</td>
-
-                                        <!-- Keluar Cells -->
                                         <td class="px-1 py-2.5 border border-surface-700/30 bg-rose-500/5 font-black text-rose-600">{{ item.out_total }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_sold > 0 ? 'text-sky-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_sold }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_tt > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_tt }}</td>
@@ -2642,12 +2637,75 @@ onMounted(() => {
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_keluar > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_keluar }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_hilang > 0 ? 'text-red-500 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_hilang }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_retur > 0 ? 'text-purple-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_retur }}</td>
-
                                         <td class="px-1 py-2.5 border border-surface-700/30 font-black text-primary-600 bg-primary-500/5">{{ item.final }}</td>
                                     </tr>
-                                </template>
-                            </tbody>
-                         </table>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- SECTION 2: AKSESORIS & LAINNYA -->
+                        <div v-if="historyData.non_hp && historyData.non_hp.length > 0">
+                            <div class="px-6 py-3 bg-surface-900/50 border-y border-surface-700 flex items-center gap-2">
+                                <Box class="text-orange-500" :size="16" />
+                                <span class="text-xs font-black text-text-primary uppercase tracking-widest">AKSESORIS & NON-IMEI</span>
+                            </div>
+                            <table class="w-full text-[10px] text-left border-collapse">
+                                <thead class="text-text-secondary uppercase font-bold sticky top-0 z-10 text-center">
+                                    <tr>
+                                        <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[180px] bg-surface-900 text-left">Nama Barang</th>
+                                        <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-surface-900 w-12">Awal</th>
+                                        <th colspan="7" class="px-2 py-2 border border-surface-700 bg-emerald-500/10 text-emerald-600">Barang Masuk</th>
+                                        <th colspan="10" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
+                                        <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-primary-500/10 text-primary-600 font-black w-12">Akhir</th>
+                                    </tr>
+                                    <tr class="bg-surface-900/60 text-[9px]">
+                                        <th class="px-1 py-2 border border-surface-700 text-emerald-600/70">Total</th>
+                                        <th class="px-1 py-2 border border-surface-700">Manual</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">TT</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">TU</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">DW</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">RF</th>
+                                        <th class="px-1 py-2 border border-surface-700">AB</th>
+                                        <th class="px-1 py-2 border border-surface-700 text-rose-600/70">Total</th>
+                                        <th class="px-1 py-2 border border-surface-700">Sold</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">TT</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">TU</th>
+                                        <th class="px-2 py-2 border border-surface-700 opacity-20">DW</th>
+                                        <th class="px-1 py-2 border border-surface-700">Pindah</th>
+                                        <th class="px-1 py-2 border border-surface-700">Salah</th>
+                                        <th class="px-1 py-2 border border-surface-700">Keluar</th>
+                                        <th class="px-1 py-2 border border-surface-700">Hilang</th>
+                                        <th class="px-1 py-2 border border-surface-700">Retur</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-surface-700/50">
+                                    <tr v-for="item in historyData.non_hp" :key="item.name" class="hover:bg-surface-700/20 transition-colors text-center tabular-nums">
+                                        <td class="px-4 py-2.5 border border-surface-700/30 text-left font-bold text-text-primary text-[10px]">
+                                            {{ item.name }}
+                                        </td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 font-bold text-text-secondary">{{ item.initial }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 bg-emerald-500/5 font-black text-emerald-600">{{ item.in_total }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_manual > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_manual }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.in_ab > 0 ? 'text-emerald-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.in_ab }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 bg-rose-500/5 font-black text-rose-600">{{ item.out_total }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_sold > 0 ? 'text-sky-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_sold }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_pindah > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_pindah }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_kesalahan > 0 ? 'text-orange-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_kesalahan }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_keluar > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_keluar }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_hilang > 0 ? 'text-red-500 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_hilang }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_retur > 0 ? 'text-purple-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_retur }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30 font-black text-primary-600 bg-primary-500/5">{{ item.final }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
