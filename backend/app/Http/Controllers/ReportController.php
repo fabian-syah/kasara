@@ -149,8 +149,6 @@ class ReportController extends Controller
                     COUNT(CASE WHEN product_details.condition = 'ex_ibox' THEN 1 END) as ex_ibox_count
                 ")
                 ->groupBy('products.name', 'products.brand', 'product_details.ram', 'product_details.storage')
-                ->orderBy('products.brand')
-                ->orderBy('products.name')
                 ->get();
 
             $formattedHp = $hpStats->map(function ($item) {
@@ -193,8 +191,6 @@ class ReportController extends Controller
                     SUM(inventories.quantity) as total_qty
                 ')
                 ->groupBy('products.name', 'products.brand')
-                ->orderBy('products.brand')
-                ->orderBy('products.name')
                 ->get();
 
             $formattedNonHp = $nonHpStats->map(function ($item) {
@@ -211,7 +207,7 @@ class ReportController extends Controller
             });
         }
 
-        // Sort A-Z strictly alphabetical and naturally (11 before 12, case-insensitive)
+        // Sort A-Z strictly alphabetical and naturally (G before I, 11 before 12, case-insensitive)
         $hpSorted = collect($formattedHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
         $nonHpSorted = collect($formattedNonHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
