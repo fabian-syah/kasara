@@ -881,7 +881,19 @@ class ReportController extends Controller
             }
 
             foreach($dayOuts->get() as $out) {
+                // An item is incoming if its category is in incoming list
+                // OR if it's a transfer where the CURRENT branch is the DESTINATION
                 $isIncoming = in_array($out->category, $incomingAuditCategories);
+                
+                if (!$isIncoming && $out->category === 'pindah_cabang') {
+                    if (!empty($filterBranchIds) && in_array($out->destination_id, $filterBranchIds)) {
+                        $isIncoming = true;
+                    } elseif (!empty($filterOnlineShopIds) && $out->destination_type === 'online_shop' && in_array($out->destination_id, $filterOnlineShopIds)) {
+                        $isIncoming = true;
+                    } elseif (!empty($filterWarehouseIds) && $out->destination_type === 'warehouse' && in_array($out->destination_id, $filterWarehouseIds)) {
+                        $isIncoming = true;
+                    }
+                }
 
                 foreach($out->items as $pd) {
                     // Filter out non-physical products (Services, Revenue Categories)
@@ -937,6 +949,7 @@ class ReportController extends Controller
                     } else {
                         $results[$key]['out_total'] += $qty;
                         if (in_array($out->category, $soldCategories)) $results[$key]['out_sold'] += $qty;
+                        elseif ($out->category === 'pindah_cabang') $results[$key]['out_pindah'] += $qty;
                         else $results[$key]['out_keluar'] += $qty;
                     }
                 }
