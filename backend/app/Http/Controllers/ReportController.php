@@ -838,25 +838,28 @@ class ReportController extends Controller
                     ]);
                 }
                 
-                $results[$key]['in_total']++;
+                $qty = ($log->quantity ?? 1);
+                $results[$key]['in_total'] += $qty;
                 $desc = strtoupper($log->description ?? '');
                 
-                if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT') || str_contains($desc, 'TRADE-IN') || str_contains($desc, 'TRADE IN')) $results[$key]['in_tt']++;
-                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU') || str_contains($desc, 'UNIT EXCHANGE') || str_contains($desc, 'EXCHANGE') || str_contains($desc, ' UE')) $results[$key]['in_tu']++;
-                elseif (str_contains($desc, 'DOWNGRADE') || str_contains($desc, ' DW') || str_contains($desc, ' DG')) $results[$key]['in_dw']++;
-                elseif (str_contains($desc, 'REFUND') || str_contains($desc, ' RF')) $results[$key]['in_rf']++;
-                elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB') || str_contains($desc, 'AUDIT')) $results[$key]['in_ab']++;
-                else $results[$key]['in_manual']++;
+                if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT') || str_contains($desc, 'TRADE-IN') || str_contains($desc, 'TRADE IN')) $results[$key]['in_tt'] += $qty;
+                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU') || str_contains($desc, 'UNIT EXCHANGE') || str_contains($desc, 'EXCHANGE') || str_contains($desc, ' UE')) $results[$key]['in_tu'] += $qty;
+                elseif (str_contains($desc, 'DOWNGRADE') || str_contains($desc, ' DW') || str_contains($desc, ' DG')) $results[$key]['in_dw'] += $qty;
+                elseif (str_contains($desc, 'REFUND') || str_contains($desc, ' RF')) $results[$key]['in_rf'] += $qty;
+                elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB') || str_contains($desc, 'AUDIT')) $results[$key]['in_ab'] += $qty;
+                else $results[$key]['in_manual'] += $qty;
             }
 
             // Outgoing during day
             $soldCategories = ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'];
             $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris'];
+            $incomingAuditCategories = ['barang_masuk', 'pembelian', 'cancel_penjualan', 'retur_customer'];
 
-            $dayOuts = StockOut::with(['items.product'])
+            $dayOuts = StockOut::with(['items.product', 'nonHpItems.product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('status', '!=', 'cancelled');
+            
             if (!empty($filterBranchIds)) {
                 $dayOuts->where(function($q) use ($filterBranchIds) {
                     $q->whereIn('branch_id', $filterBranchIds)->orWhereNull('branch_id');
@@ -869,6 +872,9 @@ class ReportController extends Controller
             }
 
             foreach($dayOuts->get() as $out) {
+                // Skip audit records that are actually incoming items
+                if (in_array($out->category, $incomingAuditCategories)) continue;
+
                 foreach($out->items as $pd) {
                     $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                     if (!isset($results[$key])) {
@@ -890,6 +896,20 @@ class ReportController extends Controller
                     elseif (in_array($cat, ['retur', 'refund'])) $results[$key]['out_retur']++;
                     elseif (in_array($cat, $keluarCategories) || $cat === 'keluar' || $cat === 'angkat_barang') $results[$key]['out_keluar']++;
                     else $results[$key]['out_keluar']++;
+                }
+
+                // Handle Non-HP
+                foreach($out->nonHpItems as $nhi) {
+                    $key = "{$nhi->product_id}::";
+                    if (!isset($results[$key])) {
+                        $results[$key] = array_merge($defaultRow, [
+                            'name' => ($nhi->product->brand ?? '') . ' ' . ($nhi->product->name ?? ''),
+                        ]);
+                    }
+                    $qty = $nhi->quantity;
+                    $results[$key]['out_total'] += $qty;
+                    if (in_array($out->category, $soldCategories)) $results[$key]['out_sold'] += $qty;
+                    else $results[$key]['out_keluar'] += $qty;
                 }
             }
 
