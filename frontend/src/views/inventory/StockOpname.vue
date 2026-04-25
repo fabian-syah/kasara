@@ -2708,14 +2708,13 @@ select option {
     padding: 10px;
 }
 
-/* History filter bar glassmorphism */
+/* History filter bar */
 .history-filter-bar {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
-    border: 1px solid rgba(71, 85, 105, 0.4);
+    background: var(--surface-800, #1e293b);
+    border: 1px solid var(--surface-700, #334155);
     border-radius: 1.25rem;
     padding: 1.5rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
-    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
     position: relative;
     overflow: hidden;
 }
