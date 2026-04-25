@@ -782,6 +782,7 @@ class ReportController extends Controller
             $logKeys = \App\Models\InventoryLog::where('inventory_logs.created_at', '>=', $resetTime)
                 ->where('inventory_logs.created_at', '<', $endTime)
                 ->whereNotNull('inventory_logs.reference_id')
+                ->whereRaw("inventory_logs.reference_id ~ '^[0-9]+$'")
                 ->where('inventory_logs.type', 'in');
             
             $outKeys = StockOut::where('stock_outs.created_at', '>=', $resetTime)
@@ -843,12 +844,14 @@ class ReportController extends Controller
             $logs = \App\Models\InventoryLog::with(['product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
-                ->whereNotNull('reference_id');
+                ->whereNotNull('reference_id')
+                ->whereRaw("reference_id ~ '^[0-9]+$'");
             
             if (!empty($filterBranchIds)) $logs->whereIn('branch_id', $filterBranchIds);
             if (!empty($filterOnlineShopIds)) $logs->whereIn('online_shop_id', $filterOnlineShopIds);
 
             foreach($logs->get() as $log) {
+                if (!is_numeric($log->reference_id)) continue;
                 $pd = ProductDetail::find($log->reference_id);
                 if (!$pd || $pd->product_id != $log->product_id) continue;
                 
