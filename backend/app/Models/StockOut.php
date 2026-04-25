@@ -15,22 +15,33 @@ class StockOut extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            if (!$model->reporting_date) {
+            if (!$model->reporting_date || !$model->branch_id) {
                 $location = null;
-                // Try to get location from inventory_user_id or user_id
-                $targetId = $model->inventory_user_id ?? $model->user_id;
-                $user = is_numeric($targetId) ? User::find($targetId) : null;
+                
+                // First attempt: use inventory_user_id (the sub-account/petugas)
+                $user = $model->inventory_user_id ? User::find($model->inventory_user_id) : null;
+                
+                // Fallback: if sub-account has no location, use the main account (user_id)
+                if (!$user || (!$user->branch_id && !$user->online_shop_id && !$user->warehouse_id)) {
+                    $user = User::find($model->user_id);
+                }
+
                 if ($user) {
                     if ($user->branch_id) {
                         $location = $user->branch;
-                        $model->branch_id = $user->branch_id;
+                        $model->branch_id = $model->branch_id ?? $user->branch_id;
                     } elseif ($user->online_shop_id) {
                         $location = $user->onlineShop;
-                        $model->online_shop_id = $user->online_shop_id;
+                        $model->online_shop_id = $model->online_shop_id ?? $user->online_shop_id;
+                    } elseif ($user->warehouse_id) {
+                        $location = $user->warehouse;
+                        $model->warehouse_id = $model->warehouse_id ?? $user->warehouse_id;
                     }
                 }
                 
-                $model->reporting_date = static::calculateReportingDate($model->category, $location);
+                if (!$model->reporting_date) {
+                    $model->reporting_date = static::calculateReportingDate($model->category, $location);
+                }
             }
         });
     }
