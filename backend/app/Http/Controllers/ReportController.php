@@ -1002,25 +1002,53 @@ class ReportController extends Controller
                 else $netMutationsSinceReset[$k]--;
             }
 
+            // 4c. Fetch Total Cumulative In (All Time) for each product/location
+            // Sum all Logs (in) AND all StockOuts (incoming category or transfer to this)
+            $cumulativeIn = [];
+            
+            // From Logs
+            $allTimeInLogs = \App\Models\InventoryLog::where('type', 'in');
+            if (!empty($filterBranchIds)) $allTimeInLogs->whereIn('branch_id', $filterBranchIds);
+            elseif (!empty($filterOnlineShopIds)) $allTimeInLogs->whereIn('online_shop_id', $filterOnlineShopIds);
+            elseif (!empty($filterWarehouseIds)) $allTimeInLogs->whereIn('warehouse_id', $filterWarehouseIds);
+            
+            foreach ($allTimeInLogs->get() as $log) {
+                $pd = is_numeric($log->reference_id) ? ProductDetail::find($log->reference_id) : null;
+                if (!$pd) continue;
+                $k = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
+                $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + ($log->quantity ?? 1);
+            }
+            
+            // From Incoming Mutations
+            $allTimeIncoming = StockOut::with('items')
+                ->whereIn('category', $incomingAuditCategories)
+                ->orWhere(function($q) use ($filterBranchIds, $filterOnlineShopIds, $filterWarehouseIds) {
+                    $q->where('category', 'pindah_cabang');
+                    if (!empty($filterBranchIds)) $q->whereIn('destination_id', $filterBranchIds);
+                    elseif (!empty($filterOnlineShopIds)) $q->where('destination_type', 'online_shop')->whereIn('destination_id', $filterOnlineShopIds);
+                    elseif (!empty($filterWarehouseIds)) $q->where('destination_type', 'warehouse')->whereIn('destination_id', $filterWarehouseIds);
+                });
+            
+            foreach ($allTimeIncoming->get() as $out) {
+                foreach ($out->items as $pd) {
+                    $k = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
+                    $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + 1;
+                }
+            }
+
             foreach ($results as $key => &$row) {
                 $currentQty = $realtimeStocks[$key]->qty ?? 0;
-                $netSinceReset = $netMutationsSinceReset[$key] ?? 0;
+                $totalEver = $cumulativeIn[$key] ?? 0;
                 
-                // Balance at the START of the selected day (at $resetTime)
-                $row['initial'] = $currentQty - $netSinceReset;
+                // All-Time Summary Mode:
+                $row['initial'] = $totalEver; // Total ever handled
+                $row['final'] = $currentQty; // Current balance
                 
-                // Balance at the END of the selected day (at $endTime)
-                // If viewing "Today", Final is just current balance.
-                // If viewing "Yesterday", Final = Initial + (Mutations on that day)
                 $pName = strtolower($row['name']);
-                
-                // CRITICAL: Filter out non-inventory products
                 if (str_contains($pName, 'omset') || str_contains($pName, 'virtual') || str_contains($pName, 'penjualan ')) {
                     unset($results[$key]);
                     continue;
                 }
-                
-                $row['final'] = $row['initial'] + $row['in_total'] - $row['out_total'];
             }
 
             $hpData = [];
