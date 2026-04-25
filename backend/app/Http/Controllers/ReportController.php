@@ -1002,11 +1002,11 @@ class ReportController extends Controller
                 else $netMutationsSinceReset[$k]--;
             }
 
-            // 4c. Fetch Total Cumulative In (All Time) for each product/location
-            // Sum all Logs (in) AND all StockOuts (incoming category or transfer to this)
+            // 4c. Fetch Total Cumulative In & Out (All Time) for each product/location
             $cumulativeIn = [];
+            $cumulativeOut = [];
             
-            // From Logs
+            // From Inventory Logs (Stock In Manual)
             $allTimeInLogs = \App\Models\InventoryLog::where('type', 'in');
             if (!empty($filterBranchIds)) $allTimeInLogs->whereIn('branch_id', $filterBranchIds);
             elseif (!empty($filterOnlineShopIds)) $allTimeInLogs->whereIn('online_shop_id', $filterOnlineShopIds);
@@ -1019,30 +1019,45 @@ class ReportController extends Controller
                 $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + ($log->quantity ?? 1);
             }
             
-            // From Incoming Mutations
-            $allTimeIncoming = StockOut::with('items')
-                ->whereIn('category', $incomingAuditCategories)
-                ->orWhere(function($q) use ($filterBranchIds, $filterOnlineShopIds, $filterWarehouseIds) {
-                    $q->where('category', 'pindah_cabang');
-                    if (!empty($filterBranchIds)) $q->whereIn('destination_id', $filterBranchIds);
-                    elseif (!empty($filterOnlineShopIds)) $q->where('destination_type', 'online_shop')->whereIn('destination_id', $filterOnlineShopIds);
-                    elseif (!empty($filterWarehouseIds)) $q->where('destination_type', 'warehouse')->whereIn('destination_id', $filterWarehouseIds);
+            // From All Mutual Movements (StockOut Table)
+            $allTimeMutations = StockOut::with('items')
+                ->where(function($q) use ($filterBranchIds, $filterOnlineShopIds, $filterWarehouseIds) {
+                    // It involves our location as ORIGIN
+                    if (!empty($filterBranchIds)) $q->whereIn('branch_id', $filterBranchIds);
+                    elseif (!empty($filterOnlineShopIds)) $q->whereIn('online_shop_id', $filterOnlineShopIds);
+                    elseif (!empty($filterWarehouseIds)) $q->whereIn('warehouse_id', $filterWarehouseIds);
+                    
+                    // OR it involves our location as DESTINATION
+                    $q->orWhere(function($sq) use ($filterBranchIds, $filterOnlineShopIds, $filterWarehouseIds) {
+                        if (!empty($filterBranchIds)) $sq->whereIn('destination_id', $filterBranchIds);
+                        elseif (!empty($filterOnlineShopIds)) $sq->where('destination_type', 'online_shop')->whereIn('destination_id', $filterOnlineShopIds);
+                        elseif (!empty($filterWarehouseIds)) $sq->where('destination_type', 'warehouse')->whereIn('destination_id', $filterWarehouseIds);
+                    });
                 });
             
-            foreach ($allTimeIncoming->get() as $out) {
+            foreach ($allTimeMutations->get() as $out) {
+                // Determine if this specific nota is IN or OUT for the current location
+                $isTargetIncoming = in_array($out->category, $incomingAuditCategories);
+                if (!$isTargetIncoming && $out->category === 'pindah_cabang') {
+                    if (!empty($filterBranchIds) && in_array($out->destination_id, $filterBranchIds)) $isTargetIncoming = true;
+                    elseif (!empty($filterOnlineShopIds) && $out->destination_type === 'online_shop' && in_array($out->destination_id, $filterOnlineShopIds)) $isTargetIncoming = true;
+                    elseif (!empty($filterWarehouseIds) && $out->destination_type === 'warehouse' && in_array($out->destination_id, $filterWarehouseIds)) $isTargetIncoming = true;
+                }
+
                 foreach ($out->items as $pd) {
                     $k = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
-                    $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + 1;
+                    if ($isTargetIncoming) {
+                        $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + 1;
+                    } else {
+                        $cumulativeOut[$k] = ($cumulativeOut[$k] ?? 0) + 1;
+                    }
                 }
             }
 
             foreach ($results as $key => &$row) {
-                $currentQty = $realtimeStocks[$key]->qty ?? 0;
-                $totalEver = $cumulativeIn[$key] ?? 0;
-                
                 // All-Time Summary Mode:
-                $row['initial'] = $totalEver; // Total ever handled
-                $row['final'] = $currentQty; // Current balance
+                $row['initial'] = $cumulativeIn[$key] ?? 0; // Total ever masuk
+                $row['final'] = $cumulativeOut[$key] ?? 0;   // Total ever keluar
                 
                 $pName = strtolower($row['name']);
                 if (str_contains($pName, 'omset') || str_contains($pName, 'virtual') || str_contains($pName, 'penjualan ')) {
