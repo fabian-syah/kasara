@@ -60,8 +60,10 @@ const filteredBrands = computed(() => {
     const dist = props.distributors.find(d => d.id === unitExchangeForm.value.distributor_id);
     if (!dist || !dist.allowed_brands) return props.brands;
     try {
-        const allowed = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
-        return props.brands.filter(b => allowed.includes(b.name));
+        const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        if (!Array.isArray(allowedIds)) return props.brands;
+        const numericIds = allowedIds.map(id => Number(id));
+        return props.brands.filter(b => numericIds.includes(Number(b.id)));
     } catch {
         return props.brands;
     }
