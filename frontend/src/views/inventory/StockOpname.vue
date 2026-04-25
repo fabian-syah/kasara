@@ -2450,15 +2450,15 @@ onMounted(() => {
                             <!-- Mode Selector (Harian/Bulanan) -->
                             <div class="flex flex-col gap-1.5">
                                  <label class="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary/70 ml-1">Periode</label>
-                                 <div class="flex p-1 bg-surface-900/80 rounded-xl border border-surface-700/50 backdrop-blur-sm">
+                                 <div class="flex p-1 bg-surface-900 rounded-xl border border-surface-700">
                                      <button @click="historyMode = 'daily'" 
                                         class="px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
-                                        :class="historyMode === 'daily' ? 'bg-gradient-to-r from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/25' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                                        :class="historyMode === 'daily' ? 'bg-gradient-to-r from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/25' : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'">
                                         📅 Harian
                                      </button>
                                      <button @click="historyMode = 'monthly'" 
                                         class="px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
-                                        :class="historyMode === 'monthly' ? 'bg-gradient-to-r from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/25' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                                        :class="historyMode === 'monthly' ? 'bg-gradient-to-r from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/25' : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'">
                                         📊 Bulanan
                                      </button>
                                  </div>
@@ -2471,31 +2471,31 @@ onMounted(() => {
                                     <!-- Prev Day -->
                                     <button @click="navigateDate(-1)" 
                                         :disabled="historyDate <= minDate"
-                                        class="p-2.5 rounded-xl bg-surface-900/80 border border-surface-700/50 text-text-secondary hover:text-white hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-sm">
+                                        class="p-2.5 rounded-xl bg-surface-900 border border-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                                     </button>
 
                                     <!-- Date Display + Hidden Input -->
                                     <div class="relative flex-1 min-w-0 group cursor-pointer" @click="$refs.dateInput.showPicker?.() || $refs.dateInput.focus()">
-                                        <div class="flex items-center gap-3 px-4 py-2.5 bg-surface-900/80 border border-surface-700/50 rounded-xl group-hover:border-primary-500/40 transition-all duration-200 backdrop-blur-sm">
-                                            <Calendar class="text-primary-400 shrink-0 group-hover:text-primary-300 transition-colors" :size="16" />
-                                            <span class="text-sm font-bold text-white truncate">{{ formattedDate }}</span>
-                                            <span v-if="isToday" class="ml-auto px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-wider shrink-0">Hari Ini</span>
+                                        <div class="flex items-center gap-3 px-4 py-2.5 bg-surface-900 border border-surface-700 rounded-xl group-hover:border-primary-500/40 transition-all duration-200">
+                                            <Calendar class="text-primary-500 shrink-0 group-hover:text-primary-400 transition-colors" :size="16" />
+                                            <span class="text-sm font-bold text-text-primary truncate">{{ formattedDate }}</span>
+                                            <span v-if="isToday" class="ml-auto px-2 py-0.5 rounded-md bg-primary-500/15 border border-primary-500/20 text-[9px] font-black text-primary-600 uppercase tracking-wider shrink-0">Hari Ini</span>
                                         </div>
                                         <input ref="dateInput" type="date" v-model="historyDate" :min="minDate" :max="maxDate"
-                                            class="absolute inset-0 opacity-0 cursor-pointer [color-scheme:dark]" />
+                                            class="absolute inset-0 opacity-0 cursor-pointer" />
                                     </div>
 
                                     <!-- Next Day -->
                                     <button @click="navigateDate(1)" 
                                         :disabled="historyDate >= maxDate"
-                                        class="p-2.5 rounded-xl bg-surface-900/80 border border-surface-700/50 text-text-secondary hover:text-white hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-sm">
+                                        class="p-2.5 rounded-xl bg-surface-900 border border-surface-700 text-text-secondary hover:text-text-primary hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                                     </button>
 
                                     <!-- Today Button -->
                                     <button v-if="!isToday" @click="goToToday()"
-                                        class="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200 active:scale-95 whitespace-nowrap">
+                                        class="px-3 py-2.5 rounded-xl bg-primary-500/10 border border-primary-500/20 text-primary-600 text-xs font-bold hover:bg-primary-500/20 hover:border-primary-500/40 transition-all duration-200 active:scale-95 whitespace-nowrap">
                                         Hari Ini
                                     </button>
                                 </div>
@@ -2503,17 +2503,17 @@ onMounted(() => {
                         </div>
 
                         <!-- Row 2: Reset Info + Refresh -->
-                        <div class="flex items-center justify-between gap-4 pt-1 border-t border-surface-700/30">
+                        <div class="flex items-center justify-between gap-4 pt-3 border-t border-surface-700/50">
                             <div class="flex items-center gap-3">
-                                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-900/60 border border-surface-700/30">
-                                    <Clock class="text-emerald-400" :size="13" />
+                                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-900 border border-surface-700/50">
+                                    <Clock class="text-primary-500" :size="13" />
                                     <span class="text-[10px] font-bold text-text-secondary">Reset:</span>
-                                    <span class="text-[10px] font-black text-emerald-400 tabular-nums">{{ resetTime || '05:00' }}</span>
+                                    <span class="text-[10px] font-black text-primary-600 tabular-nums">{{ resetTime || '05:00' }}</span>
                                 </div>
                                 <span class="text-[10px] text-text-secondary/50 hidden sm:inline">Mutasi dihitung sejak jam 05:00 pagi</span>
                             </div>
                             <button @click="fetchStockHistory()" 
-                                class="flex items-center gap-2 px-4 py-2 bg-surface-700/60 hover:bg-surface-600 rounded-xl text-white text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 border border-surface-600/50 hover:border-primary-500/30">
+                                class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 rounded-xl text-text-primary text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 border border-surface-600/50 hover:border-primary-500/30">
                                 <RefreshCw :size="14" :class="{'animate-spin': historyLoading}" />
                                 <span class="hidden sm:inline">Refresh</span>
                             </button>
@@ -2710,11 +2710,11 @@ select option {
 
 /* History filter bar */
 .history-filter-bar {
-    background: var(--surface-800, #1e293b);
-    border: 1px solid var(--surface-700, #334155);
+    background: var(--color-surface-800);
+    border: 1px solid var(--color-surface-700);
     border-radius: 1.25rem;
     padding: 1.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     position: relative;
     overflow: hidden;
 }
@@ -2725,7 +2725,7 @@ select option {
     top: 0;
     left: 0;
     right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--color-primary-400), transparent);
 }
 </style>
