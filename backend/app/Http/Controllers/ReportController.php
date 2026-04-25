@@ -1135,7 +1135,7 @@ class ReportController extends Controller
             $nonHpItems = $data['data']['non_hp'] ?? [];
             $items = array_merge($hpItems, $nonHpItems);
             
-            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
+            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xls';
 
             // Log export
             ExportLog::create([
@@ -1183,12 +1183,6 @@ class ReportController extends Controller
 
             SimpleXLSXGen::fromArray($xlsxData)->downloadAs($filename);
             exit;
-        } catch (\Exception $e) {
-
-            return response()->stream($callback, 200, [
-                'Content-Type' => 'application/vnd.ms-excel',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ]);
         } catch (\Exception $e) {
             Log::error('Export Stock Error: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal: ' . $e->getMessage()], 500);
