@@ -791,11 +791,17 @@ class ReportController extends Controller
 
             if (!empty($filterBranchIds)) {
                 $logKeys->whereIn('inventory_logs.branch_id', $filterBranchIds);
-                $outKeys->whereIn('stock_outs.branch_id', $filterBranchIds);
+                $outKeys->where(function($q) use ($filterBranchIds) {
+                    $q->whereIn('stock_outs.branch_id', $filterBranchIds)
+                      ->orWhereNull('stock_outs.branch_id');
+                });
             }
             if (!empty($filterOnlineShopIds)) {
                 $logKeys->whereIn('inventory_logs.online_shop_id', $filterOnlineShopIds);
-                $outKeys->whereIn('stock_outs.online_shop_id', $filterOnlineShopIds);
+                $outKeys->where(function($q) use ($filterOnlineShopIds) {
+                    $q->whereIn('stock_outs.online_shop_id', $filterOnlineShopIds)
+                      ->orWhereNull('stock_outs.online_shop_id');
+                });
             }
 
             $activeProductIds = array_unique(array_merge(
@@ -882,8 +888,18 @@ class ReportController extends Controller
                 ->where('created_at', '<', $endTime)
                 ->where('status', '!=', 'cancelled');
             
-            if (!empty($filterBranchIds)) $outQuery->whereIn('branch_id', $filterBranchIds);
-            if (!empty($filterOnlineShopIds)) $outQuery->whereIn('online_shop_id', $filterOnlineShopIds);
+            if (!empty($filterBranchIds)) {
+                $outQuery->where(function($q) use ($filterBranchIds) {
+                    $q->whereIn('branch_id', $filterBranchIds)
+                      ->orWhereNull('branch_id');
+                });
+            }
+            if (!empty($filterOnlineShopIds)) {
+                $outQuery->where(function($q) use ($filterOnlineShopIds) {
+                    $q->whereIn('online_shop_id', $filterOnlineShopIds)
+                      ->orWhereNull('online_shop_id');
+                });
+            }
             
             foreach($outQuery->get() as $out) {
                 foreach($out->items as $pd) {
