@@ -107,7 +107,7 @@ class TradeInController extends Controller
                             'branch_id' => $user->branch_id,
                         ]);
 
-                        ProductDetail::create([
+                        $pd = ProductDetail::create([
                             'product_id' => $product->id,
                             'user_id' => $user->id,
                             'imei' => $imei,
@@ -133,7 +133,8 @@ class TradeInController extends Controller
                             'user_id' => $user->id,
                             'type' => 'in',
                             'quantity' => 1,
-                            'reference_id' => 'Trade-In: ' . $receiptId,
+                            'reference_id' => $pd->id,
+                            'balance_after' => 1, 
                             'description' => 'ANGKAT BARANG HP: ' . $productType->name . ' (' . $imei . ')',
                             'supplier_name' => 'Trade-In',
                             'notes' => $request->notes,
@@ -156,7 +157,7 @@ class TradeInController extends Controller
                             'selling_price' => 0, // Manual transactions usually don't count towards regular sales omset unless set
                             'transaction_pin' => $request->transaction_pin,
                             'payment_method_id' => $request->payment_method_id,
-                        ])->items()->attach($tradeIn->id, ['selling_price' => 0]);
+                        ])->items()->attach($pd->id, ['selling_price' => 0]);
                     }
                 } else {
                     // Non-HP or fallback quantity based
