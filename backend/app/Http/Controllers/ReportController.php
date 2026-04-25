@@ -777,8 +777,10 @@ class ReportController extends Controller
 
             $results = [];
             
-            // 2. Get ALL current stock (all-time inventory for this location)
-            $hpQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
+            $results = [];
+            
+            // 2. Start from ACTUAL REAL-TIME stock (Available only)
+            $currentStockQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                 ->select(
                     'products.id as product_id',
                     'products.brand',
@@ -789,10 +791,10 @@ class ReportController extends Controller
                 )
                 ->where('product_details.status', 'available');
 
-            if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
-            if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+            if (!empty($filterBranchIds)) $currentStockQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
+            if (!empty($filterOnlineShopIds)) $currentStockQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
 
-            $hpQuery->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
+            $currentStockQuery->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
 
             $defaultRow = [
                 'initial' => 0, 
@@ -806,65 +808,106 @@ class ReportController extends Controller
                 'final' => 0
             ];
 
-            foreach($hpQuery->get() as $s) {
+            foreach($currentStockQuery->get() as $s) {
                 $key = "{$s->product_id}:{$s->storage}:{$s->condition}";
                 $results[$key] = array_merge($defaultRow, [
                     'name' => "{$s->brand} {$s->product_name} " . ($s->storage ? "({$s->storage}) " : "") . "(" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
-                    'initial' => $s->qty, 
-                    'final' => $s->qty
+                    'final' => $s->qty // This will be adjusted back to target date shortly
                 ]);
             }
 
-            // 3. Backtrack mutations - Incoming (InventoryLogs type=in within window)
-            $logs = \App\Models\InventoryLog::with(['product'])
-                ->where('created_at', '>=', $resetTime)
-                ->where('created_at', '<', $endTime)
-                ->whereNotNull('reference_id')
-                ->whereRaw("reference_id ~ '^[0-9]+$'")
-                ->where('type', 'in');
+            // 3. REVERSE LOGIC: Undo every mutation from NOW back to $endTime
+            // This gives us the "Final" stock for the viewed day.
             
-            if (!empty($filterBranchIds)) $logs->whereIn('branch_id', $filterBranchIds);
-            if (!empty($filterOnlineShopIds)) $logs->whereIn('online_shop_id', $filterOnlineShopIds);
+            // Incoming logs between $endTime and NOW
+            $futureLogs = \App\Models\InventoryLog::where('created_at', '>=', $endTime)
+                ->where('type', 'in')
+                ->whereRaw("reference_id ~ '^[0-9]+$'");
+            if (!empty($filterBranchIds)) $futureLogs->whereIn('branch_id', $filterBranchIds);
+            if (!empty($filterOnlineShopIds)) $futureLogs->whereIn('online_shop_id', $filterOnlineShopIds);
 
-            foreach($logs->get() as $log) {
-                if (!is_numeric($log->reference_id)) continue;
+            foreach($futureLogs->get() as $log) {
                 $pd = ProductDetail::find($log->reference_id);
-                if (!$pd || $pd->product_id != $log->product_id) continue;
-                
+                if (!$pd) continue;
+                $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
+                if (isset($results[$key])) $results[$key]['final']--;
+            }
+
+            // Outgoing between $endTime and NOW
+            $futureOuts = StockOut::with(['items.product'])
+                ->where('created_at', '>=', $endTime)
+                ->where('status', '!=', 'cancelled');
+            if (!empty($filterBranchIds)) {
+                $futureOuts->where(function($q) use ($filterBranchIds) {
+                    $q->whereIn('branch_id', $filterBranchIds)->orWhereNull('branch_id');
+                });
+            }
+            if (!empty($filterOnlineShopIds)) {
+                $futureOuts->where(function($q) use ($filterOnlineShopIds) {
+                    $q->whereIn('online_shop_id', $filterOnlineShopIds)->orWhereNull('online_shop_id');
+                });
+            }
+
+            foreach($futureOuts->get() as $out) {
+                foreach($out->items as $pd) {
+                    $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
+                    if (!isset($results[$key])) {
+                        $results[$key] = array_merge($defaultRow, [
+                            'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                        ]);
+                    }
+                    $results[$key]['final']++;
+                }
+            }
+
+            // At this point, $results[key]['final'] is exactly what the stock was at $endTime.
+            // Now calculate 'initial' by using mutations within the target day.
+            foreach($results as $k => $v) {
+                $results[$k]['initial'] = $v['final'];
+            }
+
+            // 4. Mutations during the target day (Backtrack to $resetTime)
+            // Incoming during day
+            $dayLogs = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
+                ->where('created_at', '<', $endTime)
+                ->where('type', 'in')
+                ->whereRaw("reference_id ~ '^[0-9]+$'");
+            if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
+            if (!empty($filterOnlineShopIds)) $dayLogs->whereIn('online_shop_id', $filterOnlineShopIds);
+
+            foreach($dayLogs->get() as $log) {
+                $pd = ProductDetail::find($log->reference_id);
+                if (!$pd) continue;
                 $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                 if (!isset($results[$key])) {
                     $results[$key] = array_merge($defaultRow, [
                         'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                     ]);
                 }
-
                 $results[$key]['in']++;
                 $results[$key]['initial']--;
             }
 
-            // 4. Backtrack mutations - Outgoing (StockOut within window)
+            // Outgoing during day
             $soldCategories = ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'];
             $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris', 'angkat_barang'];
 
-            $outQuery = StockOut::with(['items.product'])
+            $dayOuts = StockOut::with(['items.product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('status', '!=', 'cancelled');
-            
             if (!empty($filterBranchIds)) {
-                $outQuery->where(function($q) use ($filterBranchIds) {
-                    $q->whereIn('branch_id', $filterBranchIds)
-                      ->orWhereNull('branch_id');
+                $dayOuts->where(function($q) use ($filterBranchIds) {
+                    $q->whereIn('branch_id', $filterBranchIds)->orWhereNull('branch_id');
                 });
             }
             if (!empty($filterOnlineShopIds)) {
-                $outQuery->where(function($q) use ($filterOnlineShopIds) {
-                    $q->whereIn('online_shop_id', $filterOnlineShopIds)
-                      ->orWhereNull('online_shop_id');
+                $dayOuts->where(function($q) use ($filterOnlineShopIds) {
+                    $q->whereIn('online_shop_id', $filterOnlineShopIds)->orWhereNull('online_shop_id');
                 });
             }
-            
-            foreach($outQuery->get() as $out) {
+
+            foreach($dayOuts->get() as $out) {
                 foreach($out->items as $pd) {
                     $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                     if (!isset($results[$key])) {
@@ -876,22 +919,13 @@ class ReportController extends Controller
                     $cat = $out->category;
                     $results[$key]['initial']++;
                     
-                    if (in_array($cat, $soldCategories)) {
-                        $results[$key]['sold']++;
-                    } elseif ($cat === 'pindah_cabang') {
-                        $results[$key]['out_pindah']++;
-                    } elseif ($cat === 'kesalahan_input') {
-                        $results[$key]['out_kesalahan']++;
-                    } elseif (in_array($cat, $keluarCategories)) {
-                        $results[$key]['out_keluar']++;
-                    } elseif ($cat === 'hilang') {
-                        $results[$key]['out_hilang']++;
-                    } elseif (in_array($cat, ['retur', 'refund', 'tukar_tambah', 'tukar_unit', 'downgrade'])) {
-                        $results[$key]['out_retur']++;
-                    } else {
-                        // Fallback: cancel_penjualan, barang_masuk, etc
-                        $results[$key]['out_keluar']++;
-                    }
+                    if (in_array($cat, $soldCategories)) $results[$key]['sold']++;
+                    elseif ($cat === 'pindah_cabang') $results[$key]['out_pindah']++;
+                    elseif ($cat === 'kesalahan_input') $results[$key]['out_kesalahan']++;
+                    elseif (in_array($cat, $keluarCategories)) $results[$key]['out_keluar']++;
+                    elseif ($cat === 'hilang') $results[$key]['out_hilang']++;
+                    elseif (in_array($cat, ['retur', 'refund', 'tukar_tambah', 'tukar_unit', 'downgrade'])) $results[$key]['out_retur']++;
+                    else $results[$key]['out_keluar']++;
                 }
             }
 
