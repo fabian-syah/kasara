@@ -846,7 +846,7 @@ class ReportController extends Controller
                 ];
             };
 
-            // 2. Initial Data from Current Stock
+            // 2. Initial Data from Current Stock (HP)
             foreach($currentStock->get() as $s) {
                 $norm = $normalize($s->brand, $s->product_name, $s->storage, $s->condition);
                 $groupKey = $norm['key'];
@@ -856,6 +856,37 @@ class ReportController extends Controller
                         'name' => $norm['display'],
                         'type' => $s->type ?? ($s->has_imei ? 'hp' : 'non-hp'),
                         'has_imei' => $s->has_imei,
+                    ]);
+                }
+                $results[$groupKey]['final'] += $s->qty;
+            }
+
+            // 2b. Initial Data from Current Stock (NON HP)
+            $currentNonHpStock = \App\Models\Inventory::join('products', 'inventories.product_id', '=', 'products.id')
+                ->select(
+                    'products.id as product_id',
+                    'products.brand',
+                    'products.name as product_name',
+                    'products.type',
+                    \DB::raw('SUM(inventories.quantity) as qty')
+                );
+
+            if (!empty($filterBranchIds)) $currentNonHpStock->whereIn('inventories.placement_id', $filterBranchIds)->where('inventories.placement_type', 'branch');
+            elseif (!empty($filterOnlineShopIds)) $currentNonHpStock->whereIn('inventories.placement_id', $filterOnlineShopIds)->where('inventories.placement_type', 'online_shop');
+            elseif (!empty($filterWarehouseIds)) $currentNonHpStock->whereIn('inventories.placement_id', $filterWarehouseIds)->where('inventories.placement_type', 'warehouse');
+
+            $currentNonHpStock->groupBy('products.id', 'products.brand', 'products.name', 'products.type');
+
+            foreach($currentNonHpStock->get() as $s) {
+                // Non-HP implicitly passes null for storage and condition
+                $norm = $normalize($s->brand, $s->product_name, null, null);
+                $groupKey = $norm['key'];
+
+                if (!isset($results[$groupKey])) {
+                    $results[$groupKey] = array_merge($defaultRow, [
+                        'name' => $norm['display'],
+                        'type' => $s->type ?? 'non-hp',
+                        'has_imei' => false,
                     ]);
                 }
                 $results[$groupKey]['final'] += $s->qty;
