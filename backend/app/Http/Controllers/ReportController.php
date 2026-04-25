@@ -782,9 +782,7 @@ class ReportController extends Controller
             $logKeys = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->whereNotNull('reference_id')
-                ->where(function($q) {
-                    $q->whereIn('action_type', ['stock_in', 'restock', 'Adjustment (Update)', 'Adjustment (Add)', 'audit_in', 'transfer_in']);
-                });
+                ->where('type', 'in');
             
             $outKeys = StockOut::where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
@@ -862,13 +860,14 @@ class ReportController extends Controller
                     ];
                 }
 
-                if (in_array($log->action_type, ['stock_in', 'restock', 'Adjustment (Add)', 'audit_in', 'transfer_in'])) {
+                if ($log->type == 'in') {
                     $results[$key]['in']++;
                     $results[$key]['initial']--;
                     
-                    if ($log->action_type == 'restock') $results[$key]['in_tu']++;
-                    elseif ($log->action_type == 'audit_in') $results[$key]['in_ab']++;
-                    elseif ($log->action_type == 'transfer_in') $results[$key]['in_tt']++;
+                    $desc = strtoupper($log->description ?? '');
+                    if (str_contains($desc, 'RESTOCK') || str_contains($desc, 'TU')) $results[$key]['in_tu']++;
+                    elseif (str_contains($desc, 'AUDIT') || str_contains($desc, 'AB')) $results[$key]['in_ab']++;
+                    elseif (str_contains($desc, 'TRANSFER') || str_contains($desc, 'TT')) $results[$key]['in_tt']++;
                     else $results[$key]['in_dw']++;
                 }
             }
