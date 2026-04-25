@@ -19,12 +19,8 @@ class SimpleXLSXGen {
         return $inst;
     }
 
-    public function downloadAs($filename) {
-        // Use .xls extension for SpreadsheetML to trigger Excel opening
-        header('Content-Type: application/vnd.ms-excel');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
+    public function __toString() {
+        ob_start();
         echo '<?xml version="1.0"?>' . "\n";
         echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
         echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ';
@@ -69,16 +65,15 @@ class SimpleXLSXGen {
             </Style>
             <Style ss:ID="sTotal">
                 <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-                <Font ss:Bold="1"/>
+                <Font ss:Bold="1" ss:Color="#1D4ED8"/>
                 <Interior ss:Color="#EFF6FF" ss:Pattern="Solid"/>
             </Style>
         </Styles>' . "\n";
 
-        echo '<Worksheet ss:Name="' . htmlspecialchars($this->sheetName) . '">' . "\n";
+        echo '<Worksheet ss:Name="' . htmlspecialchars($this->sheetName ?? 'Sheet1') . '">' . "\n";
         echo '<Table>' . "\n";
         
-        // Adjust column widths
-        echo '<Column ss:Width="250"/>' . "\n"; // Name
+        echo '<Column ss:Width="250"/>' . "\n";
         for ($i=0; $i<16; $i++) echo '<Column ss:Width="80"/>' . "\n";
 
         foreach ($this->rows as $rIdx => $row) {
@@ -98,7 +93,7 @@ class SimpleXLSXGen {
 
                 echo '<Cell ss:StyleID="' . $style . '">';
                 $type = (is_numeric($val) && strlen($val) < 12) ? 'Number' : 'String';
-                echo '<Data ss:Type="' . $type . '">' . htmlspecialchars($val) . '</Data>';
+                echo '<Data ss:Type="' . $type . '">' . htmlspecialchars($val ?? '') . '</Data>';
                 echo '</Cell>' . "\n";
             }
             echo '</Row>' . "\n";
@@ -107,5 +102,14 @@ class SimpleXLSXGen {
         echo '</Table>' . "\n";
         echo '</Worksheet>' . "\n";
         echo '</Workbook>' . "\n";
+        
+        return ob_get_clean();
+    }
+
+    public function downloadAs($filename) {
+        header('Content-Type: application/vnd.ms-excel');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        echo $this->__toString();
     }
 }
