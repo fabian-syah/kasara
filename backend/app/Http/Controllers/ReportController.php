@@ -819,7 +819,18 @@ class ReportController extends Controller
             if (!empty($filterOnlineShopIds)) $dayLogs->whereIn('online_shop_id', $filterOnlineShopIds);
 
             foreach($dayLogs->get() as $log) {
-                $pd = ProductDetail::find($log->reference_id);
+                // Try finding the specific product detail
+                $pd = null;
+                if (is_numeric($log->reference_id)) {
+                    $pd = ProductDetail::find($log->reference_id);
+                }
+                
+                // If not found by ID (e.g. description has imei in parens), try finding by imei
+                if (!$pd && $log->description && preg_match('/\((.*?)\)/', $log->description, $matches)) {
+                    $imei = $matches[1];
+                    $pd = ProductDetail::where('imei', $imei)->first();
+                }
+
                 if (!$pd) continue;
                 $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                 if (!isset($results[$key])) {
