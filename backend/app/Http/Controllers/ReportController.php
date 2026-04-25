@@ -813,8 +813,7 @@ class ReportController extends Controller
             // 3. Get Mutations for the selected date window (Reset 05:00 AM)
             $dayLogs = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
-                ->where('type', 'in')
-                ->whereRaw("reference_id ~ '^[0-9]+$'");
+                ->where('type', 'in');
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
             if (!empty($filterOnlineShopIds)) $dayLogs->whereIn('online_shop_id', $filterOnlineShopIds);
 
@@ -827,7 +826,7 @@ class ReportController extends Controller
                 
                 // If not found by ID (e.g. description has imei in parens), try finding by imei
                 if (!$pd && $log->description && preg_match('/\((.*?)\)/', $log->description, $matches)) {
-                    $imei = $matches[1];
+                    $imei = trim($matches[1]);
                     $pd = ProductDetail::where('imei', $imei)->first();
                 }
 
