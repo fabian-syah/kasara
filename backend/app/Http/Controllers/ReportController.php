@@ -209,16 +209,18 @@ class ReportController extends Controller
                     'total' => (int) $item->total_qty
                 ];
             });
-
-            $report = $report->concat($formattedNonHp);
         }
 
-        $items = $report->toArray();
-        usort($items, function($a, $b) {
-            return strcmp($a['name'], $b['name']);
-        });
+        // Sort A-Z for both categories
+        $hpSorted = collect($formattedHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+        $nonHpSorted = collect($formattedNonHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
-        return response()->json($items);
+        return response()->json([
+            'data' => [
+                'hp' => $hpSorted,
+                'non_hp' => $nonHpSorted,
+            ]
+        ]);
     }
     public function getSalesReport(Request $request)
     {
