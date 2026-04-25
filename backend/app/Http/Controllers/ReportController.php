@@ -213,7 +213,12 @@ class ReportController extends Controller
             $report = $report->concat($formattedNonHp);
         }
 
-        return response()->json($report->values());
+        $items = $report->toArray();
+        usort($items, function($a, $b) {
+            return strcmp($a['name'], $b['name']);
+        });
+
+        return response()->json($items);
     }
     public function getSalesReport(Request $request)
     {
@@ -1134,6 +1139,11 @@ class ReportController extends Controller
             $hpItems = $data['data']['hp'] ?? [];
             $nonHpItems = $data['data']['non_hp'] ?? [];
             $items = array_merge($hpItems, $nonHpItems);
+            
+            // Sort A-Z
+            usort($items, function($a, $b) {
+                return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
+            });
             
             $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
