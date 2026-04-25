@@ -2598,7 +2598,7 @@ onMounted(() => {
                                         <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[180px] bg-surface-900 text-left">Produk</th>
                                         <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-surface-900 w-12">Awal</th>
                                         <th colspan="7" class="px-2 py-2 border border-surface-700 bg-emerald-500/10 text-emerald-600">Barang Masuk</th>
-                                        <th colspan="10" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
+                                        <th colspan="7" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
                                         <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-primary-500/10 text-primary-600 font-black w-12">Akhir</th>
                                     </tr>
                                     <tr class="bg-surface-900/60 text-[9px]">
@@ -2614,10 +2614,7 @@ onMounted(() => {
                                         <th class="px-1 py-2 border border-surface-700">TT</th>
                                         <th class="px-1 py-2 border border-surface-700">TU</th>
                                         <th class="px-1 py-2 border border-surface-700">DW</th>
-                                        <th class="px-1 py-2 border border-surface-700">Pindah</th>
-                                        <th class="px-1 py-2 border border-surface-700">Salah</th>
-                                        <th class="px-1 py-2 border border-surface-700">Keluar</th>
-                                        <th class="px-1 py-2 border border-surface-700">Hilang</th>
+                                        <th class="px-1 py-2 border border-surface-700">Lainnya</th>
                                         <th class="px-1 py-2 border border-surface-700">Retur</th>
                                     </tr>
                                 </thead>
@@ -2639,10 +2636,9 @@ onMounted(() => {
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_tt > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_tt }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_tu > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_tu }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_dw > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_dw }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_pindah > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_pindah }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_kesalahan > 0 ? 'text-orange-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_kesalahan }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_keluar > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_keluar }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_hilang > 0 ? 'text-red-500 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_hilang }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="(item.out_pindah + item.out_kesalahan + item.out_keluar + item.out_hilang) > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">
+                                            {{ item.out_pindah + (item.out_kesalahan || 0) + (item.out_keluar || 0) + (item.out_hilang || 0) }}
+                                        </td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_retur > 0 ? 'text-purple-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_retur }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30 font-black text-primary-600 bg-primary-500/5">{{ item.final }}</td>
                                     </tr>
@@ -2665,7 +2661,7 @@ onMounted(() => {
                                         <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[180px] bg-surface-900 text-left">Nama Barang</th>
                                         <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-surface-900 w-12">Awal</th>
                                         <th colspan="7" class="px-2 py-2 border border-surface-700 bg-emerald-500/10 text-emerald-600">Barang Masuk</th>
-                                        <th colspan="10" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
+                                        <th colspan="7" class="px-2 py-2 border border-surface-700 bg-rose-500/10 text-rose-600">Barang Keluar</th>
                                         <th rowspan="2" class="px-2 py-3 border border-surface-700 bg-primary-500/10 text-primary-600 font-black w-12">Akhir</th>
                                     </tr>
                                     <tr class="bg-surface-900/60 text-[9px]">
@@ -2681,10 +2677,7 @@ onMounted(() => {
                                         <th class="px-2 py-2 border border-surface-700 opacity-20">TT</th>
                                         <th class="px-2 py-2 border border-surface-700 opacity-20">TU</th>
                                         <th class="px-2 py-2 border border-surface-700 opacity-20">DW</th>
-                                        <th class="px-1 py-2 border border-surface-700">Pindah</th>
-                                        <th class="px-1 py-2 border border-surface-700">Salah</th>
-                                        <th class="px-1 py-2 border border-surface-700">Keluar</th>
-                                        <th class="px-1 py-2 border border-surface-700">Hilang</th>
+                                        <th class="px-1 py-2 border border-surface-700">Lainnya</th>
                                         <th class="px-1 py-2 border border-surface-700">Retur</th>
                                     </tr>
                                 </thead>
@@ -2706,10 +2699,9 @@ onMounted(() => {
                                         <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30 opacity-10">-</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_pindah > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_pindah }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_kesalahan > 0 ? 'text-orange-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_kesalahan }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_keluar > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_keluar }}</td>
-                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_hilang > 0 ? 'text-red-500 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_hilang }}</td>
+                                        <td class="px-1 py-2.5 border border-surface-700/30" :class="(item.out_pindah + item.out_kesalahan + item.out_keluar + item.out_hilang) > 0 ? 'text-rose-600 font-bold' : 'opacity-20 text-text-secondary'">
+                                            {{ item.out_pindah + (item.out_kesalahan || 0) + (item.out_keluar || 0) + (item.out_hilang || 0) }}
+                                        </td>
                                         <td class="px-1 py-2.5 border border-surface-700/30" :class="item.out_retur > 0 ? 'text-purple-600 font-bold' : 'opacity-20 text-text-secondary'">{{ item.out_retur }}</td>
                                         <td class="px-1 py-2.5 border border-surface-700/30 font-black text-primary-600 bg-primary-500/5">{{ item.final }}</td>
                                     </tr>
