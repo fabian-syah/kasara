@@ -1138,7 +1138,19 @@ class ReportController extends Controller
             
             $hpItems = $data['data']['hp'] ?? [];
             $nonHpItems = $data['data']['non_hp'] ?? [];
-            $items = array_merge($hpItems, $nonHpItems);
+            
+            // Filter by type if requested
+            $type = $request->query('type');
+            if ($type === 'hp') {
+                $items = $hpItems;
+                $titleSuffix = 'UNIT HP (IMEI)';
+            } elseif ($type === 'non_hp') {
+                $items = $nonHpItems;
+                $titleSuffix = 'NON-HP (AKSESORIS)';
+            } else {
+                $items = array_merge($hpItems, $nonHpItems);
+                $titleSuffix = 'SEMUA BARANG';
+            }
             
             // Sort A-Z
             usort($items, function($a, $b) {
@@ -1156,12 +1168,13 @@ class ReportController extends Controller
                     'branch_id' => $request->query('branch_id'),
                     'online_shop_id' => $request->query('online_shop_id'),
                     'date' => $request->query('date'),
-                    'mode' => $request->query('mode')
+                    'mode' => $request->query('mode'),
+                    'type' => $type
                 ]
             ]);
 
             $xlsxData = [
-                ['LAPORAN MUTASI STOK (' . ($request->query('mode') === 'monthly' ? 'Bulanan' : 'Harian') . ')'],
+                ['LAPORAN MUTASI STOK ' . $titleSuffix . ' (' . ($request->query('mode') === 'monthly' ? 'Bulanan' : 'Harian') . ')'],
                 [
                     'Nama Produk', 'Awal (All-Time)', 'Masuk (Total)', 'Manual', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
                     'Keluar (Total)', 'Terjual', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Lainnya', 'Retur', 'Sisa (All-Time)'

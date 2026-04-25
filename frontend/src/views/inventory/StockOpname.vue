@@ -1062,7 +1062,8 @@ const downloadExcel = async (type) => {
             branch_id: selectedBranchId.value,
             online_shop_id: selectedOnlineShopId.value,
             date: historyDate.value,
-            mode: historyMode.value
+            mode: historyMode.value,
+            type: activeTab.value
         };
         
         const response = await axios.get(endpoint, { 
