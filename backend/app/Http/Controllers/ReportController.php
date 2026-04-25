@@ -773,9 +773,15 @@ class ReportController extends Controller
                 $targetDate = \Carbon\Carbon::parse($date);
             }
 
-            // Calculation window: Selected Date 05:00 -> Next Day 05:00
-            $resetTime = $targetDate->copy()->setTime(5, 0, 0);
-            $endTime = $resetTime->copy()->addDay();
+            $mode = $request->query('mode', 'daily'); // daily or monthly
+
+            if ($mode === 'monthly') {
+                $resetTime = $targetDate->copy()->startOfMonth()->setTime(5, 0, 0);
+                $endTime = $resetTime->copy()->addMonth();
+            } else {
+                $resetTime = $targetDate->copy()->setTime(5, 0, 0);
+                $endTime = $resetTime->copy()->addDay();
+            }
 
             $results = [];
             
