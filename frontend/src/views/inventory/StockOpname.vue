@@ -1061,7 +1061,7 @@ const downloadExcel = async (type) => {
         });
         
         const timestamp = historyDate.value + '_' + new Date().getHours() + '-' + new Date().getMinutes();
-        const filename = type === 'sales' ? `LAPORAN_PENJUALAN_${timestamp}.csv` : `LAPORAN_MUTASI_STOK_${timestamp}.csv`;
+        const filename = type === 'sales' ? `LAPORAN_PENJUALAN_${timestamp}.xlsx` : `LAPORAN_MUTASI_STOK_${timestamp}.xlsx`;
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
@@ -2569,14 +2569,11 @@ onMounted(() => {
                             <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-primary-600 font-bold">Jam Reset: {{ resetTime }}</span></p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button @click="downloadExcel('sales')" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-600/30 rounded-lg text-emerald-500 text-[10px] font-bold transition-all active:scale-95">
-                                <FileSpreadsheet :size="12" /> EXPORT PENJUALAN
-                            </button>
-                            <button @click="downloadExcel('mutation')" class="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 rounded-lg text-blue-400 text-[10px] font-bold transition-all active:scale-95">
-                                <Download :size="12" /> EXPORT MUTASI
+                            <button @click="downloadExcel('mutation')" class="flex items-center gap-3 px-5 py-2 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 rounded-xl text-blue-400 text-xs font-black transition-all active:scale-95">
+                                <Download :size="14" /> DOWNLOAD EXCEL (MUTASI)
                             </button>
                             <div class="w-px h-6 bg-surface-700 mx-1"></div>
-                            <button @click="fetchStockHistory()" class="flex items-center gap-2 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-text-primary text-[10px] font-bold transition-all border border-surface-600/50">
+                            <button @click="fetchStockHistory()" class="flex items-center gap-2 px-3 py-2 bg-surface-700 hover:bg-surface-600 rounded-xl text-text-primary text-[10px] font-bold transition-all border border-surface-600/50">
                                 <RefreshCw :size="12" :class="{'animate-spin': historyLoading}" />
                                 <span>REFRESH</span>
                             </button>
