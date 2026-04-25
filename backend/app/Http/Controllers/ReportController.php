@@ -1123,100 +1123,18 @@ class ReportController extends Controller
         }
     }
 
-    public function exportSales(Request $request)
-    {
-        try {
-            $user = $request->user();
-            $branchId = $request->query('branch_id');
-            $onlineShopId = $request->query('online_shop_id');
-            $date = $request->query('date', now()->toDateString());
-            $mode = $request->query('mode', 'daily');
-            
-            // Get data using existing SalesExport logic but flattened here
-            $query = StockOut::with(['items.product', 'user', 'branch', 'onlineShop', 'paymentMethod']);
-            
-            // Filters
-            if ($branchId) $query->where('branch_id', $branchId);
-            if ($onlineShopId) $query->where('online_shop_id', $onlineShopId);
-            
-            if ($mode === 'monthly') {
-                $query->whereMonth('reporting_date', date('m', strtotime($date)))
-                      ->whereYear('reporting_date', date('Y', strtotime($date)));
-            } else {
-                $query->where('reporting_date', $date);
-            }
-            
-            // Scoping
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
-            if (!$user->hasRole($unrestrictedRoles)) {
-                $branchIds = $user->getAccessibleBranchIds();
-                $shopIds = $user->getAccessibleOnlineShopIds();
-                $query->where(function($q) use ($branchIds, $shopIds) {
-                    $q->whereIn('branch_id', $branchIds)
-                      ->orWhereIn('online_shop_id', $shopIds);
-                });
-            }
-            
-            $sales = $query->latest()->get();
-            $rows = [];
-            foreach ($sales as $so) {
-                foreach ($so->items as $item) {
-                    $rows[] = [
-                        $so->created_at->format('d/m/Y H:i'),
-                        $so->receipt_id ?? '-',
-                        $so->branch->name ?? ($so->onlineShop->name ?? '-'),
-                        str_replace('_', ' ', strtoupper($so->category)),
-                        ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? ''),
-                        "'" . ($item->imei ?? '-'),
-                        $so->final_price ?? ($so->selling_price ?? 0),
-                        $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
-                        strtoupper($so->status),
-                        $so->customer_name ?? '-',
-                        "'" . ($so->customer_wa ?? '-')
-                    ];
-                }
-            }
-
-            $filename = 'LAPORAN_PENJUALAN_' . now()->format('d-m-Y_H-i') . '.csv';
-            
-            // Log export
-            ExportLog::create([
-                'user_id' => $user->id,
-                'report_name' => 'Laporan Penjualan',
-                'filename' => $filename,
-                'params' => ['branch_id' => $branchId, 'online_shop_id' => $onlineShopId, 'date' => $date, 'mode' => $mode]
-            ]);
-
-            $callback = function () use ($rows) {
-                if (ob_get_level() > 0) ob_end_clean();
-                $file = fopen('php://output', 'w');
-                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-                fputcsv($file, ['Waktu', 'No Nota', 'Lokasi', 'Kategori', 'Produk', 'IMEI', 'Harga', 'Pembayaran', 'Status', 'Pelanggan', 'WhatsApp']);
-                foreach ($rows as $row) {
-                    fputcsv($file, $row);
-                }
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, [
-                'Content-Type' => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Export Sales Error: ' . $e->getMessage());
-            return response()->json(['error' => 'Gagal: ' . $e->getMessage()], 500);
-        }
-    }
-
     public function exportStockMovement(Request $request)
     {
         try {
             $user = $request->user();
             $response = $this->getStockHistory($request);
             $data = json_decode($response->getContent(), true);
-            $items = $data['data'] ?? [];
             
-            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.csv';
+            $hpItems = $data['data']['hp'] ?? [];
+            $nonHpItems = $data['data']['non_hp'] ?? [];
+            $items = array_merge($hpItems, $nonHpItems);
+            
+            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xls';
 
             // Log export
             ExportLog::create([
@@ -1233,39 +1151,55 @@ class ReportController extends Controller
 
             $callback = function () use ($items) {
                 if (ob_get_level() > 0) ob_end_clean();
-                $file = fopen('php://output', 'w');
-                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-                fputcsv($file, [
-                    'Nama Produk', 'Awal (All-Time)', 'Masuk (Total)', 'Manual', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
-                    'Keluar (Total)', 'Terjual', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Lainnya', 'Retur', 'Sisa (All-Time)'
-                ]);
+                
+                echo '<table border="1">';
+                echo '<tr>';
+                echo '<th style="background-color: #f3f4f6;">Nama Produk</th>';
+                echo '<th style="background-color: #f3f4f6;">Awal (All-Time)</th>';
+                echo '<th style="background-color: #f3f4f6;">Masuk (Total)</th>';
+                echo '<th style="background-color: #d1fae5;">Manual</th>';
+                echo '<th style="background-color: #d1fae5;">TT (In)</th>';
+                echo '<th style="background-color: #d1fae5;">TU (In)</th>';
+                echo '<th style="background-color: #d1fae5;">DW (In)</th>';
+                echo '<th style="background-color: #d1fae5;">RF (In)</th>';
+                echo '<th style="background-color: #d1fae5;">AB (In)</th>';
+                echo '<th style="background-color: #fef2f2;">Keluar (Total)</th>';
+                echo '<th style="background-color: #fef2f2;">Terjual</th>';
+                echo '<th style="background-color: #fef2f2;">TT (Out)</th>';
+                echo '<th style="background-color: #fef2f2;">TU (Out)</th>';
+                echo '<th style="background-color: #fef2f2;">DW (Out)</th>';
+                echo '<th style="background-color: #fef2f2;">Lainnya</th>';
+                echo '<th style="background-color: #fef2f2;">Retur</th>';
+                echo '<th style="background-color: #eff6ff;">Sisa (All-Time)</th>';
+                echo '</tr>';
+
                 foreach ($items as $row) {
                     $lainnya = ($row['out_pindah'] ?? 0) + ($row['out_kesalahan'] ?? 0) + ($row['out_keluar'] ?? 0) + ($row['out_hilang'] ?? 0);
-                    fputcsv($file, [
-                        $row['name'], 
-                        $row['initial'], 
-                        $row['in_total'], 
-                        $row['in_manual'], 
-                        $row['in_tt'], 
-                        $row['in_tu'], 
-                        $row['in_dw'], 
-                        $row['in_rf'], 
-                        $row['in_ab'],
-                        $row['out_total'],
-                        $row['out_sold'],
-                        $row['out_tt'],
-                        $row['out_tu'],
-                        $row['out_dw'],
-                        $lainnya,
-                        $row['out_retur'] ?? 0,
-                        $row['final']
-                    ]);
+                    echo '<tr>';
+                    echo '<td>' . ($row['name'] ?? '-') . '</td>';
+                    echo '<td align="center">' . ($row['initial'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_total'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_manual'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_tt'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_tu'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_dw'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_rf'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['in_ab'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['out_total'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['out_sold'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['out_tt'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['out_tu'] ?? 0) . '</td>';
+                    echo '<td align="center">' . ($row['out_dw'] ?? 0) . '</td>';
+                    echo '<td align="center">' . $lainnya . '</td>';
+                    echo '<td align="center">' . ($row['out_retur'] ?? 0) . '</td>';
+                    echo '<td align="center" style="font-weight: bold;">' . ($row['final'] ?? 0) . '</td>';
+                    echo '</tr>';
                 }
-                fclose($file);
+                echo '</table>';
             };
 
             return response()->stream($callback, 200, [
-                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Type' => 'application/vnd.ms-excel',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Exception $e) {
