@@ -153,8 +153,7 @@ class ReportController extends Controller
                 ->get();
 
             $formattedHp = $hpStats->map(function ($item) {
-                $specWithRam = $item->ram ? "{$item->ram}/{$item->storage}" : $item->storage;
-                $displayName = $item->storage ? "{$item->product_name} ({$specWithRam})" : $item->product_name;
+                $displayName = $item->storage ? "{$item->product_name} ({$item->storage})" : $item->product_name;
 
                 return [
                     'id' => md5($displayName . $item->brand_name . 'hp'),
@@ -786,9 +785,9 @@ class ReportController extends Controller
             if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
 
             foreach($hpQuery->get() as $s) {
-                $key = "{$s->product_id}:{$s->ram}:{$s->storage}:{$s->condition}";
+                $key = "{$s->product_id}:{$s->storage}:{$s->condition}";
                 $results[$key] = [
-                    'name' => "{$s->brand} {$s->product_name} {$s->ram}/{$s->storage} (" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                    'name' => "{$s->brand} {$s->product_name} " . ($s->storage ? "({$s->storage}) " : "") . "(" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                     'initial' => $s->qty, 
                     'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
                     'sold' => 0,
@@ -810,10 +809,10 @@ class ReportController extends Controller
                 $pd = ProductDetail::find($log->reference_id);
                 if (!$pd || $pd->product_id != $log->product_id) continue;
                 
-                $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
+                $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                 if (!isset($results[$key])) {
                     $results[$key] = [
-                        'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage} (" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                        'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                         'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
                         'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
                     ];
@@ -840,10 +839,10 @@ class ReportController extends Controller
             
             foreach($outQuery->get() as $out) {
                 foreach($out->items as $pd) {
-                    $key = "{$pd->product_id}:{$pd->ram}:{$pd->storage}:{$pd->condition}";
+                    $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                     if (!isset($results[$key])) {
                         $results[$key] = [
-                            'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " {$pd->ram}/{$pd->storage} (" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                            'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                             'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
                             'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
                         ];
