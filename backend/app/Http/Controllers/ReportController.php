@@ -796,13 +796,8 @@ class ReportController extends Controller
 
             $defaultRow = [
                 'initial' => 0, 
-                'in' => 0,
-                'sold' => 0,
-                'out_pindah' => 0,
-                'out_kesalahan' => 0,
-                'out_keluar' => 0,
-                'out_hilang' => 0,
-                'out_retur' => 0,
+                'in_total' => 0, 'in_manual' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
+                'out_total' => 0, 'out_sold' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'out_pindah' => 0, 'out_kesalahan' => 0, 'out_keluar' => 0, 'out_hilang' => 0, 'out_retur' => 0,
                 'final' => 0
             ];
 
@@ -816,7 +811,6 @@ class ReportController extends Controller
             }
 
             // 3. Get Mutations for the selected date window (Reset 05:00 AM)
-            // Incoming Logs during day
             $dayLogs = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('type', 'in')
@@ -833,12 +827,21 @@ class ReportController extends Controller
                         'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                     ]);
                 }
-                $results[$key]['in']++;
+                
+                $results[$key]['in_total']++;
+                $desc = strtoupper($log->description ?? '');
+                
+                if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT')) $results[$key]['in_tt']++;
+                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU')) $results[$key]['in_tu']++;
+                elseif (str_contains($desc, 'DOWNGRADE') || str_contains($desc, ' DW')) $results[$key]['in_dw']++;
+                elseif (str_contains($desc, 'REFUND') || str_contains($desc, ' RF')) $results[$key]['in_rf']++;
+                elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB') || str_contains($desc, 'AUDIT')) $results[$key]['in_ab']++;
+                else $results[$key]['in_manual']++;
             }
 
             // Outgoing during day
             $soldCategories = ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'];
-            $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris', 'angkat_barang'];
+            $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris'];
 
             $dayOuts = StockOut::with(['items.product'])
                 ->where('created_at', '>=', $resetTime)
@@ -865,12 +868,17 @@ class ReportController extends Controller
                     }
                     
                     $cat = $out->category;
-                    if (in_array($cat, $soldCategories)) $results[$key]['sold']++;
+                    $results[$key]['out_total']++;
+                    
+                    if (in_array($cat, $soldCategories)) $results[$key]['out_sold']++;
+                    elseif ($cat === 'tukar_tambah') $results[$key]['out_tt']++;
+                    elseif ($cat === 'tukar_unit') $results[$key]['out_tu']++;
+                    elseif ($cat === 'downgrade') $results[$key]['out_dw']++;
                     elseif ($cat === 'pindah_cabang') $results[$key]['out_pindah']++;
                     elseif ($cat === 'kesalahan_input') $results[$key]['out_kesalahan']++;
-                    elseif (in_array($cat, $keluarCategories)) $results[$key]['out_keluar']++;
                     elseif ($cat === 'hilang') $results[$key]['out_hilang']++;
-                    elseif (in_array($cat, ['retur', 'refund', 'tukar_tambah', 'tukar_unit', 'downgrade'])) $results[$key]['out_retur']++;
+                    elseif (in_array($cat, ['retur', 'refund'])) $results[$key]['out_retur']++;
+                    elseif (in_array($cat, $keluarCategories) || $cat === 'keluar' || $cat === 'angkat_barang') $results[$key]['out_keluar']++;
                     else $results[$key]['out_keluar']++;
                 }
             }
