@@ -820,50 +820,49 @@ class ReportController extends Controller
                 'final' => 0
             ];
 
+            // 2. Initial Data from Current Stock
             foreach($currentStock->get() as $s) {
                 $storage = trim($s->storage ?? '');
                 $condition = trim($s->condition ?? 'second');
                 $brand = trim($s->brand ?? '');
                 $pName = trim($s->product_name ?? '');
                 
-                $key = "{$s->product_id}:{$storage}:{$condition}";
                 $displayName = "{$brand} {$pName}" . ($storage ? " ({$storage})" : "") . " (" . ($condition === 'new' ? 'Baru' : ($condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
+                
+                // Group by Display Name to avoid double rows from duplicate products/ids
+                $groupKey = md5(strtolower($displayName)); 
 
-                $results[$key] = array_merge($defaultRow, [
-                    'name' => $displayName,
-                    'type' => $s->type ?? ($s->has_imei ? 'hp' : 'non-hp'),
-                    'has_imei' => $s->has_imei,
-                    'final' => $s->qty
-                ]);
+                if (!isset($results[$groupKey])) {
+                    $results[$groupKey] = array_merge($defaultRow, [
+                        'name' => $displayName,
+                        'type' => $s->type ?? ($s->has_imei ? 'hp' : 'non-hp'),
+                        'has_imei' => $s->has_imei,
+                    ]);
+                }
+                $results[$groupKey]['final'] += $s->qty;
             }
 
-            // 3. Get Mutations for the selected date window (Reset 05:00 AM)
+            // 3. Mutations (In)
             $dayLogs = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('type', 'in');
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
             elseif (!empty($filterOnlineShopIds)) $dayLogs->where('online_shop_id', $filterOnlineShopIds[0]);
-            elseif (!empty($filterWarehouseIds)) $dayLogs->where('warehouse_id', $filterWarehouseIds[0]);
-
+            
             foreach($dayLogs->get() as $log) {
-                if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:') || str_contains($log->description, 'Nota:'))) continue;
-
-                $pd = is_numeric($log->reference_id) ? ProductDetail::find($log->reference_id) : null;
-                if (!$pd && $log->description && preg_match('/\((.*?)\)/', $log->description, $matches)) {
-                    $pd = ProductDetail::where('imei', trim($matches[1]))->first();
-                }
-
+                if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:'))) continue;
+                $pd = is_numeric($log->reference_id) ? ProductDetail::with('product')->find($log->reference_id) : null;
                 if (!$pd) continue;
+
                 $storage = trim($pd->storage ?? '');
                 $condition = trim($pd->condition ?? 'second');
-                $key = "{$pd->product_id}:{$storage}:{$condition}";
+                $brand = trim($pd->product->brand ?? '');
+                $pName = trim($pd->product->name ?? '');
+                $displayName = "{$brand} {$pName}" . ($storage ? " ({$storage})" : "") . " (" . ($condition === 'new' ? 'Baru' : ($condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
+                $groupKey = md5(strtolower($displayName));
 
-                if (!isset($results[$key])) {
-                    $brand = trim($pd->product->brand ?? '');
-                    $pName = trim($pd->product->name ?? '');
-                    $displayName = "{$brand} {$pName}" . ($storage ? " ({$storage})" : "") . " (" . ($condition === 'new' ? 'Baru' : ($condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
-                    
-                    $results[$key] = array_merge($defaultRow, [
+                if (!isset($results[$groupKey])) {
+                    $results[$groupKey] = array_merge($defaultRow, [
                         'name' => $displayName,
                         'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
                         'has_imei' => $pd->product->has_imei,
@@ -871,18 +870,15 @@ class ReportController extends Controller
                 }
                 
                 $qty = ($log->quantity ?? 1);
-                $results[$key]['in_total'] += $qty;
+                $results[$groupKey]['in_total'] += $qty;
                 $desc = strtoupper($log->description ?? '');
-                
-                if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT') || str_contains($desc, 'TRADE-IN')) $results[$key]['in_tt'] += $qty;
-                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU') || str_contains($desc, 'EXCHANGE')) $results[$key]['in_tu'] += $qty;
-                elseif (str_contains($desc, 'DOWNGRADE') || str_contains($desc, ' DW')) $results[$key]['in_dw'] += $qty;
-                elseif (str_contains($desc, 'REFUND') || str_contains($desc, ' RF')) $results[$key]['in_rf'] += $qty;
-                elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB') || str_contains($desc, 'AUDIT')) $results[$key]['in_ab'] += $qty;
-                else $results[$key]['in_manual'] += $qty;
+                if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT')) $results[$groupKey]['in_tt'] += $qty;
+                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU')) $results[$groupKey]['in_tu'] += $qty;
+                elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB')) $results[$groupKey]['in_ab'] += $qty;
+                else $results[$groupKey]['in_manual'] += $qty;
             }
 
-            // Outgoing
+            // 4. Mutations (Out and AB)
             $dayOuts = StockOut::with(['items.product', 'nonHpItems.product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
@@ -892,30 +888,21 @@ class ReportController extends Controller
                 $dayOuts->where(function($q) use ($filterBranchIds) {
                     $q->whereIn('branch_id', $filterBranchIds)->orWhere('destination_id', $filterBranchIds);
                 });
-            } elseif (!empty($filterOnlineShopIds)) $dayOuts->whereIn('online_shop_id', $filterOnlineShopIds);
-            elseif (!empty($filterWarehouseIds)) $dayOuts->whereIn('warehouse_id', $filterWarehouseIds);
+            }
 
             foreach($dayOuts->get() as $out) {
-                $isIncoming = in_array($out->category, $incomingAuditCategories);
-                if (!$isIncoming && $out->category === 'pindah_cabang') {
-                    if (!empty($filterBranchIds) && in_array($out->destination_id, $filterBranchIds)) $isIncoming = true;
-                    elseif (!empty($filterOnlineShopIds) && $out->destination_type === 'online_shop' && in_array($out->destination_id, $filterOnlineShopIds)) $isIncoming = true;
-                }
-
+                // Determine if category is actually an addition (AB)
+                $isAB = $out->category === 'angkat_barang';
+                $isIncoming = in_array($out->category, $incomingAuditCategories) || $isAB;
+                
                 foreach($out->items as $pd) {
-                    $pNameFull = strtolower($pd->product->name ?? '');
-                    if (str_contains($pNameFull, 'omset') || str_contains($pNameFull, 'jasa')) continue;
-
                     $storage = trim($pd->storage ?? '');
                     $condition = trim($pd->condition ?? 'second');
-                    $key = "{$pd->product_id}:{$storage}:{$condition}";
+                    $displayName = ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . ($storage ? " ({$storage})" : "") . " (" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
+                    $groupKey = md5(strtolower($displayName));
 
-                    if (!isset($results[$key])) {
-                        $brand = trim($pd->product->brand ?? '');
-                        $pName = trim($pd->product->name ?? '');
-                        $displayName = "{$brand} {$pName}" . ($storage ? " ({$storage})" : "") . " (" . ($condition === 'new' ? 'Baru' : ($condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
-                        
-                        $results[$key] = array_merge($defaultRow, [
+                    if (!isset($results[$groupKey])) {
+                        $results[$groupKey] = array_merge($defaultRow, [
                             'name' => $displayName,
                             'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
                             'has_imei' => $pd->product->has_imei,
@@ -923,19 +910,15 @@ class ReportController extends Controller
                     }
                     
                     if ($isIncoming) {
-                        $results[$key]['in_total']++;
-                        $results[$key]['in_manual']++;
+                        $results[$groupKey]['in_total']++;
+                        if ($isAB) $results[$groupKey]['in_ab']++;
+                        else $results[$groupKey]['in_manual']++;
                     } else {
-                        $results[$key]['out_total']++;
+                        $results[$groupKey]['out_total']++;
                         $cat = $out->category;
-                        if (in_array($cat, $soldCategories)) $results[$key]['out_sold']++;
-                        elseif ($cat === 'tukar_tambah') $results[$key]['out_tt']++;
-                        elseif ($cat === 'tukar_unit') $results[$key]['out_tu']++;
-                        elseif ($cat === 'downgrade') $results[$key]['out_dw']++;
-                        elseif ($cat === 'pindah_cabang') $results[$key]['out_pindah']++;
-                        elseif ($cat === 'kesalahan_input') $results[$key]['out_kesalahan']++;
-                        elseif ($cat === 'retur' || $cat === 'refund') $results[$key]['out_retur']++;
-                        else $results[$key]['out_keluar']++;
+                        if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold']++;
+                        elseif ($cat === 'retur' || $cat === 'refund') $results[$groupKey]['out_retur']++;
+                        else $results[$groupKey]['out_keluar']++;
                     }
                 }
 
@@ -943,68 +926,31 @@ class ReportController extends Controller
                     $pNameFull = strtolower($nhi->product->name ?? '');
                     if (str_contains($pNameFull, 'omset') || str_contains($pNameFull, 'jasa')) continue;
 
-                    $key = "{$nhi->product_id}::";
-                    if (!isset($results[$key])) {
-                        $brand = trim($nhi->product->brand ?? '');
-                        $pName = trim($nhi->product->name ?? '');
-                        $results[$key] = array_merge($defaultRow, [
-                            'name' => "{$brand} {$pName}",
+                    $displayName = ($nhi->product->brand ?? '') . ' ' . ($nhi->product->name ?? '');
+                    $groupKey = md5(strtolower($displayName));
+
+                    if (!isset($results[$groupKey])) {
+                        $results[$groupKey] = array_merge($defaultRow, [
+                            'name' => $displayName,
                             'type' => $nhi->product->type ?? 'non-hp',
                             'has_imei' => false,
                         ]);
                     }
                     $qty = $nhi->quantity;
                     if ($isIncoming) {
-                        $results[$key]['in_total'] += $qty;
-                        $results[$key]['in_manual'] += $qty;
+                        $results[$groupKey]['in_total'] += $qty;
+                        $results[$groupKey]['in_manual'] += $qty;
                     } else {
-                        $results[$key]['out_total'] += $qty;
-                        if (in_array($out->category, $soldCategories)) $results[$key]['out_sold'] += $qty;
-                        elseif ($out->category === 'pindah_cabang') $results[$key]['out_pindah'] += $qty;
-                        else $results[$key]['out_keluar'] += $qty;
+                        $results[$groupKey]['out_total'] += $qty;
+                        if (in_array($out->category, $soldCategories)) $results[$groupKey]['out_sold'] += $qty;
+                        else $results[$groupKey]['out_keluar'] += $qty;
                     }
                 }
             }
 
-            // 4. Calculate Final and Initial Balances
-            // Awal = Total Cumulative All-Time In
-            // Akhir = Current Realtime Stock
-            
-            // 4a. Get Cumulative All-Time In (Normalized keys)
-            $cumulativeIn = [];
-            
-            // From Inventory Logs (Type IN)
-            $allTimeInLogs = \App\Models\InventoryLog::where('type', 'in');
-            if (!empty($filterBranchIds)) $allTimeInLogs->whereIn('branch_id', $filterBranchIds);
-            elseif (!empty($filterOnlineShopIds)) $allTimeInLogs->whereIn('online_shop_id', $filterOnlineShopIds);
-            elseif (!empty($filterWarehouseIds)) $allTimeInLogs->whereIn('warehouse_id', $filterWarehouseIds);
-            
-            foreach ($allTimeInLogs->get() as $log) {
-                if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:') || str_contains($log->description, 'Nota:'))) continue;
-                $pd = is_numeric($log->reference_id) ? ProductDetail::find($log->reference_id) : null;
-                if (!$pd) continue;
-                $k = "{$pd->product_id}:" . trim($pd->storage ?? '') . ":" . trim($pd->condition ?? 'second');
-                $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + ($log->quantity ?? 1);
-            }
-            
-            // From All Incoming StockOuts
-            $allTimeInStockOuts = StockOut::with('items')
-                ->whereIn('category', $incomingAuditCategories);
-            if (!empty($filterBranchIds)) $allTimeInStockOuts->whereIn('branch_id', $filterBranchIds);
-            elseif (!empty($filterOnlineShopIds)) $allTimeInStockOuts->whereIn('online_shop_id', $filterOnlineShopIds);
-            elseif (!empty($filterWarehouseIds)) $allTimeInStockOuts->whereIn('warehouse_id', $filterWarehouseIds);
-            
-            foreach ($allTimeInStockOuts->get() as $out) {
-                foreach ($out->items as $pd) {
-                    $k = "{$pd->product_id}:" . trim($pd->storage ?? '') . ":" . trim($pd->condition ?? 'second');
-                    $cumulativeIn[$k] = ($cumulativeIn[$k] ?? 0) + 1;
-                }
-            }
-
-            // 4b. Assign Initial and Final
-            foreach ($results as $key => &$row) {
-                $row['initial'] = $cumulativeIn[$key] ?? 0;
-                // Final is already set from currentStock query in step 2 (if available)
+            // 5. Final Calculation: Initial = Final - In + Out
+            foreach ($results as &$row) {
+                $row['initial'] = $row['final'] - $row['in_total'] + $row['out_total'];
             }
 
             $hpData = [];
