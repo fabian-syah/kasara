@@ -820,21 +820,31 @@ class ReportController extends Controller
                 'final' => 0
             ];
 
+            // Helper function for consistent naming and grouping
+            $normalize = function($brand, $name, $storage, $condition) {
+                $b = trim($brand ?? '');
+                $n = trim($name ?? '');
+                $s = trim($storage ?? '');
+                $c = trim($condition ?? 'second');
+                
+                $dispName = "{$b} {$n}";
+                if ($s) $dispName .= " ({$s})";
+                $dispName .= " (" . ($c === 'new' ? 'Baru' : ($c === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
+                
+                return [
+                    'display' => $dispName,
+                    'key' => md5(strtolower(preg_replace('/\s+/', ' ', $dispName))) // Ignore multiple spaces
+                ];
+            };
+
             // 2. Initial Data from Current Stock
             foreach($currentStock->get() as $s) {
-                $storage = trim($s->storage ?? '');
-                $condition = trim($s->condition ?? 'second');
-                $brand = trim($s->brand ?? '');
-                $pName = trim($s->product_name ?? '');
-                
-                $displayName = "{$brand} {$pName}" . ($storage ? " ({$storage})" : "") . " (" . ($condition === 'new' ? 'Baru' : ($condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
-                
-                // Group by Display Name to avoid double rows from duplicate products/ids
-                $groupKey = md5(strtolower($displayName)); 
+                $norm = $normalize($s->brand, $s->product_name, $s->storage, $s->condition);
+                $groupKey = $norm['key'];
 
                 if (!isset($results[$groupKey])) {
                     $results[$groupKey] = array_merge($defaultRow, [
-                        'name' => $displayName,
+                        'name' => $norm['display'],
                         'type' => $s->type ?? ($s->has_imei ? 'hp' : 'non-hp'),
                         'has_imei' => $s->has_imei,
                     ]);
@@ -842,28 +852,25 @@ class ReportController extends Controller
                 $results[$groupKey]['final'] += $s->qty;
             }
 
-            // 3. Mutations (In)
-            $dayLogs = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
+            // 3. Mutations (In - InventoryLog)
+            $dayLogs = \App\Models\InventoryLog::with('productDetail.product')
+                ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('type', 'in');
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
             elseif (!empty($filterOnlineShopIds)) $dayLogs->where('online_shop_id', $filterOnlineShopIds[0]);
-            
+
             foreach($dayLogs->get() as $log) {
                 if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:'))) continue;
-                $pd = is_numeric($log->reference_id) ? ProductDetail::with('product')->find($log->reference_id) : null;
+                $pd = $log->productDetail;
                 if (!$pd) continue;
 
-                $storage = trim($pd->storage ?? '');
-                $condition = trim($pd->condition ?? 'second');
-                $brand = trim($pd->product->brand ?? '');
-                $pName = trim($pd->product->name ?? '');
-                $displayName = "{$brand} {$pName}" . ($storage ? " ({$storage})" : "") . " (" . ($condition === 'new' ? 'Baru' : ($condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
-                $groupKey = md5(strtolower($displayName));
+                $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition);
+                $groupKey = $norm['key'];
 
                 if (!isset($results[$groupKey])) {
                     $results[$groupKey] = array_merge($defaultRow, [
-                        'name' => $displayName,
+                        'name' => $norm['display'],
                         'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
                         'has_imei' => $pd->product->has_imei,
                     ]);
@@ -878,7 +885,7 @@ class ReportController extends Controller
                 else $results[$groupKey]['in_manual'] += $qty;
             }
 
-            // 4. Mutations (Out and AB)
+            // 4. Mutations (Out and Incoming StockOuts)
             $dayOuts = StockOut::with(['items.product', 'nonHpItems.product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
@@ -891,19 +898,16 @@ class ReportController extends Controller
             }
 
             foreach($dayOuts->get() as $out) {
-                // Determine if category is actually an addition (AB)
                 $isAB = $out->category === 'angkat_barang';
                 $isIncoming = in_array($out->category, $incomingAuditCategories) || $isAB;
                 
                 foreach($out->items as $pd) {
-                    $storage = trim($pd->storage ?? '');
-                    $condition = trim($pd->condition ?? 'second');
-                    $displayName = ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . ($storage ? " ({$storage})" : "") . " (" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
-                    $groupKey = md5(strtolower($displayName));
+                    $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition);
+                    $groupKey = $norm['key'];
 
                     if (!isset($results[$groupKey])) {
                         $results[$groupKey] = array_merge($defaultRow, [
-                            'name' => $displayName,
+                            'name' => $norm['display'],
                             'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
                             'has_imei' => $pd->product->has_imei,
                         ]);
@@ -923,15 +927,12 @@ class ReportController extends Controller
                 }
 
                 foreach($out->nonHpItems as $nhi) {
-                    $pNameFull = strtolower($nhi->product->name ?? '');
-                    if (str_contains($pNameFull, 'omset') || str_contains($pNameFull, 'jasa')) continue;
-
-                    $displayName = ($nhi->product->brand ?? '') . ' ' . ($nhi->product->name ?? '');
-                    $groupKey = md5(strtolower($displayName));
+                    $norm = $normalize($nhi->product->brand ?? '', $nhi->product->name ?? '', null, null);
+                    $groupKey = $norm['key'];
 
                     if (!isset($results[$groupKey])) {
                         $results[$groupKey] = array_merge($defaultRow, [
-                            'name' => $displayName,
+                            'name' => $norm['display'],
                             'type' => $nhi->product->type ?? 'non-hp',
                             'has_imei' => false,
                         ]);
