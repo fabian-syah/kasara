@@ -12,6 +12,7 @@ use App\Models\StockOut;
 use App\Models\StockOutNonHpItem;
 use App\Models\InventoryLog;
 use App\Models\ExportLog;
+use App\Utils\SimpleXLSXGen;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -1134,7 +1135,7 @@ class ReportController extends Controller
             $nonHpItems = $data['data']['non_hp'] ?? [];
             $items = array_merge($hpItems, $nonHpItems);
             
-            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xls';
+            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
             // Log export
             ExportLog::create([
@@ -1149,58 +1150,40 @@ class ReportController extends Controller
                 ]
             ]);
 
-            $callback = function () use ($items) {
-                if (ob_get_level() > 0) ob_end_clean();
-                
-                echo '<head><meta charset="utf-8"></head>';
-                echo '<table border="1">';
-                echo '<tr>';
-                echo '<th colspan="17" style="font-size: 16pt; font-weight: bold; background-color: #2c3e50; color: #ffffff;">LAPORAN MUTASI STOK</th>';
-                echo '</tr>';
-                echo '<tr>';
-                echo '<th style="background-color: #f3f4f6;">Nama Produk</th>';
-                echo '<th style="background-color: #f3f4f6;">Awal (All-Time)</th>';
-                echo '<th style="background-color: #f3f4f6;">Masuk (Total)</th>';
-                echo '<th style="background-color: #d1fae5;">Manual</th>';
-                echo '<th style="background-color: #d1fae5;">TT (In)</th>';
-                echo '<th style="background-color: #d1fae5;">TU (In)</th>';
-                echo '<th style="background-color: #d1fae5;">DW (In)</th>';
-                echo '<th style="background-color: #d1fae5;">RF (In)</th>';
-                echo '<th style="background-color: #d1fae5;">AB (In)</th>';
-                echo '<th style="background-color: #fef2f2;">Keluar (Total)</th>';
-                echo '<th style="background-color: #fef2f2;">Terjual</th>';
-                echo '<th style="background-color: #fef2f2;">TT (Out)</th>';
-                echo '<th style="background-color: #fef2f2;">TU (Out)</th>';
-                echo '<th style="background-color: #fef2f2;">DW (Out)</th>';
-                echo '<th style="background-color: #fef2f2;">Lainnya</th>';
-                echo '<th style="background-color: #fef2f2;">Retur</th>';
-                echo '<th style="background-color: #eff6ff;">Sisa (All-Time)</th>';
-                echo '</tr>';
+            $xlsxData = [
+                ['LAPORAN MUTASI STOK (' . ($request->query('mode') === 'monthly' ? 'Bulanan' : 'Harian') . ')'],
+                [
+                    'Nama Produk', 'Awal (All-Time)', 'Masuk (Total)', 'Manual', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
+                    'Keluar (Total)', 'Terjual', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Lainnya', 'Retur', 'Sisa (All-Time)'
+                ]
+            ];
 
-                foreach ($items as $row) {
-                    $lainnya = ($row['out_pindah'] ?? 0) + ($row['out_kesalahan'] ?? 0) + ($row['out_keluar'] ?? 0) + ($row['out_hilang'] ?? 0);
-                    echo '<tr>';
-                    echo '<td>' . ($row['name'] ?? '-') . '</td>';
-                    echo '<td align="center">' . ($row['initial'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_total'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_manual'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_tt'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_tu'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_dw'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_rf'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['in_ab'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['out_total'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['out_sold'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['out_tt'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['out_tu'] ?? 0) . '</td>';
-                    echo '<td align="center">' . ($row['out_dw'] ?? 0) . '</td>';
-                    echo '<td align="center">' . $lainnya . '</td>';
-                    echo '<td align="center">' . ($row['out_retur'] ?? 0) . '</td>';
-                    echo '<td align="center" style="font-weight: bold; background-color: #eff6ff;">' . ($row['final'] ?? 0) . '</td>';
-                    echo '</tr>';
-                }
-                echo '</table>';
-            };
+            foreach ($items as $row) {
+                $lainnya = ($row['out_pindah'] ?? 0) + ($row['out_kesalahan'] ?? 0) + ($row['out_keluar'] ?? 0) + ($row['out_hilang'] ?? 0);
+                $xlsxData[] = [
+                    $row['name'] ?? '-', 
+                    $row['initial'] ?? 0, 
+                    $row['in_total'] ?? 0, 
+                    $row['in_manual'] ?? 0, 
+                    $row['in_tt'] ?? 0, 
+                    $row['in_tu'] ?? 0, 
+                    $row['in_dw'] ?? 0, 
+                    $row['in_rf'] ?? 0, 
+                    $row['in_ab'] ?? 0,
+                    $row['out_total'] ?? 0,
+                    $row['out_sold'] ?? 0,
+                    $row['out_tt'] ?? 0,
+                    $row['out_tu'] ?? 0,
+                    $row['out_dw'] ?? 0,
+                    $lainnya,
+                    $row['out_retur'] ?? 0,
+                    $row['final'] ?? 0
+                ];
+            }
+
+            SimpleXLSXGen::fromArray($xlsxData)->downloadAs($filename);
+            exit;
+        } catch (\Exception $e) {
 
             return response()->stream($callback, 200, [
                 'Content-Type' => 'application/vnd.ms-excel',
