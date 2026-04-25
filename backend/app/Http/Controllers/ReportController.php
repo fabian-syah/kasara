@@ -211,9 +211,14 @@ class ReportController extends Controller
             });
         }
 
-        // Sort A-Z for both categories
-        $hpSorted = collect($formattedHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
-        $nonHpSorted = collect($formattedNonHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+        // Sort A-Z safely for both categories
+        $hpSorted = collect($formattedHp)->sortBy(function($item) {
+            return strtolower($item['name'] ?? '');
+        })->values();
+        
+        $nonHpSorted = collect($formattedNonHp)->sortBy(function($item) {
+            return strtolower($item['name'] ?? '');
+        })->values();
 
         return response()->json([
             'data' => [
@@ -1138,6 +1143,10 @@ class ReportController extends Controller
             $response = $this->getStockHistory($request);
             $data = json_decode($response->getContent(), true);
             
+            if (!$data || !isset($data['data'])) {
+                 return response()->json(['error' => 'Data tidak ditemukan atau error di server.'], 500);
+            }
+
             $hpItems = data_get($data, 'data.hp', []);
             $nonHpItems = data_get($data, 'data.non_hp', []);
             
@@ -1154,8 +1163,10 @@ class ReportController extends Controller
                 $titleSuffix = 'SEMUA BARANG';
             }
             
-            // Sort A-Z safely
-            $items = collect($items)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->toArray();
+            // Sort A-Z safely with fallback
+            $items = collect($items)->sortBy(function($item) {
+                return strtolower($item['name'] ?? '');
+            })->values()->toArray();
             
             $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
