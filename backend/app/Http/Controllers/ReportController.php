@@ -893,8 +893,68 @@ class ReportController extends Controller
                 }
             }
 
+            // 4. Calculate Final and Initial Balances based on Mutations
+            // Goal: Awal + Masuk - Keluar = Akhir
+            
+            // To be accurate, we need to know the state at ResetTime (Start of selected range)
+            // Balance(Reset) = CurrentStock - (All Ins from Reset until NOW) + (All Outs from Reset until NOW)
+            
+            // 4a. Get Current Realtime Stock for all products in results
+            $warehouseId = $request->query('warehouse_id');
+            $pIds = array_unique(array_map(fn($k) => (int)explode(':', $k)[0], array_keys($results)));
+            $realtimeStocks = ProductDetail::whereIn('product_id', $pIds)
+                ->where('status', 'available')
+                ->where(function ($q) use ($branchId, $onlineShopId, $warehouseId) {
+                    if ($branchId) $q->where('placement_id', $branchId)->where('placement_type', 'branch');
+                    elseif ($onlineShopId) $q->where('placement_id', $onlineShopId)->where('placement_type', 'online_shop');
+                    elseif ($warehouseId) $q->where('placement_id', $warehouseId)->where('placement_type', 'warehouse');
+                })
+                ->selectRaw('product_id, storage, condition, count(*) as qty')
+                ->groupBy('product_id', 'storage', 'condition')
+                ->get()
+                ->keyBy(fn($s) => "{$s->product_id}:{$s->storage}:{$s->condition}");
+
+            // 4b. Get All Mutations from ResetTime until NOW (to calculate Initial Balance)
+            $allLogsSinceReset = \App\Models\InventoryLog::where('created_at', '>=', $resetTime);
+            if (!empty($filterBranchIds)) $allLogsSinceReset->whereIn('branch_id', $filterBranchIds);
+            if (!empty($filterOnlineShopIds)) $allLogsSinceReset->whereIn('online_shop_id', $filterOnlineShopIds);
+            
+            $netMutationsSinceReset = []; // key -> net change
+            foreach ($allLogsSinceReset->get() as $log) {
+                $pd = null;
+                if (is_numeric($log->reference_id)) {
+                    $pd = ProductDetail::find($log->reference_id);
+                }
+                if (!$pd && $log->description && preg_match('/\((.*?)\)/', $log->description, $matches)) {
+                    $pd = ProductDetail::where('imei', trim($matches[1]))->first();
+                }
+                if (!$pd) continue;
+                
+                $k = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
+                if (!isset($netMutationsSinceReset[$k])) $netMutationsSinceReset[$k] = 0;
+                
+                // In adds to current stock, so to get initial we subtract it
+                // Out removes from current stock, so to get initial we add it back
+                if ($log->type === 'in') $netMutationsSinceReset[$k]++;
+                else $netMutationsSinceReset[$k]--;
+            }
+
+            foreach ($results as $key => &$row) {
+                $currentQty = $realtimeStocks[$key]->qty ?? 0;
+                $netSinceReset = $netMutationsSinceReset[$key] ?? 0;
+                
+                // Balance at the START of the selected day (at $resetTime)
+                $row['initial'] = $currentQty - $netSinceReset;
+                
+                // Balance at the END of the selected day (at $endTime)
+                // If viewing "Today", Final is just current balance.
+                // If viewing "Yesterday", Final = Initial + (Mutations on that day)
+                $row['final'] = $row['initial'] + $row['in_total'] - $row['out_total'];
+            }
+
             return response()->json([
-                'reset_time' => $resetTime->format('H:i d/m/Y'),
+                'status' => 'success',
+                'reset_time_label' => $resetTime->format('H:i d/m/Y'),
                 'data' => array_values($results)
             ]);
         } catch (\Exception $e) {

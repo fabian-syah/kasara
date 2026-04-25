@@ -941,7 +941,7 @@ class InventoryController extends Controller
 
             // For HP
             'imeis' => 'required_if:type,hp|array',
-            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:20', 'regex:/^[0-9]+$/'],
+            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:40', 'regex:/^[a-zA-Z0-9]+$/'],
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
             'storage' => 'nullable|string',
@@ -1552,7 +1552,7 @@ class InventoryController extends Controller
         $detail = ProductDetail::findOrFail($id);
 
         $request->validate([
-            'imei' => 'required|string|max:20|regex:/^[a-zA-Z0-9]+$/|unique:product_details,imei,' . $id,
+            'imei' => 'required|string|max:40|regex:/^[a-zA-Z0-9]+$/|unique:product_details,imei,' . $id,
             'storage' => 'nullable|string',
             'cost_price' => 'required|numeric',
             'selling_price' => 'numeric',
