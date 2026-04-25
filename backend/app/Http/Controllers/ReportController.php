@@ -744,10 +744,10 @@ class ReportController extends Controller
 
             $targetDate = $date ? \Carbon\Carbon::parse($date) : now();
             
-            // Limit for non-super admins
+            // Limit access for regular staff (2 months audit window)
             $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist', 'audit'];
-            if ($targetDate->diffInDays(now()) > 7 && !$user->hasRole($unrestrictedRoles)) {
-                return response()->json(['error' => 'Anda hanya bisa melihat history stok 7 hari terakhir.'], 403);
+            if ($targetDate->diffInDays(now()) > 60 && !$user->hasRole($unrestrictedRoles)) {
+                return response()->json(['error' => 'Anda hanya bisa melihat history stok 60 hari terakhir.'], 403);
             }
 
             if ($mode === 'monthly') {

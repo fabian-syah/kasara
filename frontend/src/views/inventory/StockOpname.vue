@@ -1019,7 +1019,23 @@ const navigateDate = (offset) => {
 };
 
 const goToToday = () => {
-    historyDate.value = new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    historyDate.value = `${year}-${month}-${day}`;
+};
+
+const setHistoryMonth = (isCurrent) => {
+    const d = new Date();
+    if (!isCurrent) {
+        d.setDate(1);
+        d.setMonth(d.getMonth() - 1);
+    }
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    historyDate.value = `${year}-${month}-${day}`;
 };
 
 watch([selectedLocationKey, historyDate, historyMode], () => {
@@ -2506,14 +2522,14 @@ onMounted(() => {
                             <div v-else class="flex flex-col gap-1.5 flex-1 min-w-0">
                                 <label class="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary/70 ml-1">Pilih Bulan (Audit 2 Bulan Terakhir)</label>
                                 <div class="flex items-center gap-3">
-                                    <button @click="historyDate = new Date().toISOString().split('T')[0]; fetchStockHistory();" 
+                                    <button @click="setHistoryMonth(true)" 
                                         class="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-sm uppercase tracking-wider"
                                         :class="new Date(historyDate).getMonth() === new Date().getMonth() 
                                             ? 'bg-primary-500 border-primary-400 text-white shadow-xl shadow-primary-500/20' 
                                             : 'bg-surface-900 border-surface-700 text-text-secondary hover:text-white hover:bg-surface-800'">
                                         <Calendar :size="18" /> Bulan Ini
                                     </button>
-                                    <button @click="historyDate = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().split('T')[0]; fetchStockHistory();" 
+                                    <button @click="setHistoryMonth(false)" 
                                         class="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border transition-all duration-300 font-black text-sm uppercase tracking-wider"
                                         :class="new Date(historyDate).getMonth() === (new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1)
                                             ? 'bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-500/20' 
