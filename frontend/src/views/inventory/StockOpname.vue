@@ -2575,17 +2575,23 @@ onMounted(() => {
                         <RefreshCw class="animate-spin text-primary-500 mx-auto mb-3" :size="32" />
                         <p class="text-text-secondary text-sm">Menghitung mutasi stok...</p>
                     </div>
-                    <div v-else-if="(!historyData.hp || historyData.hp.length === 0) && (!historyData.non_hp || historyData.non_hp.length === 0)" class="p-12 text-center text-text-secondary">
-                         Belum ada data inventory untuk tanggal ini.
+                    <div v-else-if="itemMode === 'hp' && (!historyData.hp || historyData.hp.length === 0)" class="p-12 text-center text-text-secondary italic">
+                         Belum ada mutasi stok Handphone untuk tanggal ini.
+                    </div>
+                    <div v-else-if="itemMode === 'non-hp' && (!historyData.non_hp || historyData.non_hp.length === 0)" class="p-12 text-center text-text-secondary italic">
+                         Belum ada mutasi stok Aksesoris untuk tanggal ini.
                     </div>
                     <div v-else class="overflow-x-auto">
-                        <!-- SECTION 1: UNIT HANDPHONE -->
-                        <div v-if="historyData.hp && historyData.hp.length > 0">
-                            <div class="px-6 py-3 bg-surface-900/50 border-y border-surface-700 flex items-center gap-2">
-                                <Smartphone class="text-primary-500" :size="16" />
-                                <span class="text-xs font-black text-text-primary uppercase tracking-widest">HANYA UNIT HP (IMEI)</span>
+                        <!-- SECTION 1: UNIT HANDPHONE (Only show in HP Mode) -->
+                        <div v-if="itemMode === 'hp' && historyData.hp && historyData.hp.length > 0">
+                            <div class="px-6 py-3 bg-surface-900/50 border-y border-surface-700 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <Smartphone class="text-primary-500" :size="16" />
+                                    <span class="text-xs font-black text-text-primary uppercase tracking-widest">LAPORAN MUTASI UNIT HP</span>
+                                </div>
+                                <span class="text-[9px] px-2 py-0.5 rounded bg-primary-500/10 text-primary-500 font-bold">IMEI BASED</span>
                             </div>
-                            <table class="w-full text-[10px] text-left border-collapse mb-8">
+                            <table class="w-full text-[10px] text-left border-collapse">
                                 <thead class="text-text-secondary uppercase font-bold sticky top-0 z-10 text-center">
                                     <tr>
                                         <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[180px] bg-surface-900 text-left">Produk</th>
@@ -2643,11 +2649,14 @@ onMounted(() => {
                             </table>
                         </div>
 
-                        <!-- SECTION 2: AKSESORIS & LAINNYA -->
-                        <div v-if="historyData.non_hp && historyData.non_hp.length > 0">
-                            <div class="px-6 py-3 bg-surface-900/50 border-y border-surface-700 flex items-center gap-2">
-                                <Box class="text-orange-500" :size="16" />
-                                <span class="text-xs font-black text-text-primary uppercase tracking-widest">AKSESORIS & NON-IMEI</span>
+                        <!-- SECTION 2: AKSESORIS & LAINNYA (Only show in Non-HP Mode) -->
+                        <div v-if="itemMode === 'non-hp' && historyData.non_hp && historyData.non_hp.length > 0">
+                            <div class="px-6 py-3 bg-surface-900/50 border-y border-surface-700 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <Box class="text-orange-500" :size="16" />
+                                    <span class="text-xs font-black text-text-primary uppercase tracking-widest">LAPORAN MUTASI AKSESORIS</span>
+                                </div>
+                                <span class="text-[9px] px-2 py-0.5 rounded bg-orange-500/10 text-orange-500 font-bold">QTY BASED</span>
                             </div>
                             <table class="w-full text-[10px] text-left border-collapse">
                                 <thead class="text-text-secondary uppercase font-bold sticky top-0 z-10 text-center">
