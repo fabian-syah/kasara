@@ -850,7 +850,7 @@ class ReportController extends Controller
                 else $results[$key]['in_manual'] += $qty;
             }
 
-            // Outgoing during day
+            // Outgoing and Audit Incoming during day
             $soldCategories = ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'];
             $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris'];
             $incomingAuditCategories = ['barang_masuk', 'pembelian', 'cancel_penjualan', 'retur_customer'];
@@ -862,7 +862,7 @@ class ReportController extends Controller
             
             if (!empty($filterBranchIds)) {
                 $dayOuts->where(function($q) use ($filterBranchIds) {
-                    $q->whereIn('branch_id', $filterBranchIds)->orWhereNull('branch_id');
+                    $q->whereIn('branch_id', $filterBranchIds)->orWhere('destination_id', $filterBranchIds)->orWhereNull('branch_id');
                 });
             }
             if (!empty($filterOnlineShopIds)) {
@@ -872,10 +872,13 @@ class ReportController extends Controller
             }
 
             foreach($dayOuts->get() as $out) {
-                // Skip audit records that are actually incoming items
-                if (in_array($out->category, $incomingAuditCategories)) continue;
+                $isIncoming = in_array($out->category, $incomingAuditCategories);
 
                 foreach($out->items as $pd) {
+                    // Filter out non-physical products (Services, Revenue Categories)
+                    $pName = strtolower($pd->product->name ?? '');
+                    if (str_contains($pName, 'omset') || str_contains($pName, 'jasa') || str_contains($pName, 'virtual')) continue;
+
                     $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                     if (!isset($results[$key])) {
                         $results[$key] = array_merge($defaultRow, [
@@ -884,22 +887,30 @@ class ReportController extends Controller
                     }
                     
                     $cat = $out->category;
-                    $results[$key]['out_total']++;
-                    
-                    if (in_array($cat, $soldCategories)) $results[$key]['out_sold']++;
-                    elseif ($cat === 'tukar_tambah') $results[$key]['out_tt']++;
-                    elseif ($cat === 'tukar_unit') $results[$key]['out_tu']++;
-                    elseif ($cat === 'downgrade') $results[$key]['out_dw']++;
-                    elseif ($cat === 'pindah_cabang') $results[$key]['out_pindah']++;
-                    elseif ($cat === 'kesalahan_input') $results[$key]['out_kesalahan']++;
-                    elseif ($cat === 'hilang') $results[$key]['out_hilang']++;
-                    elseif (in_array($cat, ['retur', 'refund'])) $results[$key]['out_retur']++;
-                    elseif (in_array($cat, $keluarCategories) || $cat === 'keluar' || $cat === 'angkat_barang') $results[$key]['out_keluar']++;
-                    else $results[$key]['out_keluar']++;
+
+                    if ($isIncoming) {
+                        $results[$key]['in_total']++;
+                        $results[$key]['in_manual']++;
+                    } else {
+                        $results[$key]['out_total']++;
+                        if (in_array($cat, $soldCategories)) $results[$key]['out_sold']++;
+                        elseif ($cat === 'tukar_tambah') $results[$key]['out_tt']++;
+                        elseif ($cat === 'tukar_unit') $results[$key]['out_tu']++;
+                        elseif ($cat === 'downgrade') $results[$key]['out_dw']++;
+                        elseif ($cat === 'pindah_cabang') $results[$key]['out_pindah']++;
+                        elseif ($cat === 'kesalahan_input') $results[$key]['out_kesalahan']++;
+                        elseif ($cat === 'hilang') $results[$key]['out_hilang']++;
+                        elseif (in_array($cat, ['retur', 'refund'])) $results[$key]['out_retur']++;
+                        elseif (in_array($cat, $keluarCategories) || $cat === 'keluar' || $cat === 'angkat_barang') $results[$key]['out_keluar']++;
+                        else $results[$key]['out_keluar']++;
+                    }
                 }
 
                 // Handle Non-HP
                 foreach($out->nonHpItems as $nhi) {
+                    $pName = strtolower($nhi->product->name ?? '');
+                    if (str_contains($pName, 'omset') || str_contains($pName, 'jasa') || str_contains($pName, 'virtual')) continue;
+
                     $key = "{$nhi->product_id}::";
                     if (!isset($results[$key])) {
                         $results[$key] = array_merge($defaultRow, [
@@ -907,9 +918,14 @@ class ReportController extends Controller
                         ]);
                     }
                     $qty = $nhi->quantity;
-                    $results[$key]['out_total'] += $qty;
-                    if (in_array($out->category, $soldCategories)) $results[$key]['out_sold'] += $qty;
-                    else $results[$key]['out_keluar'] += $qty;
+                    if ($isIncoming) {
+                        $results[$key]['in_total'] += $qty;
+                        $results[$key]['in_manual'] += $qty;
+                    } else {
+                        $results[$key]['out_total'] += $qty;
+                        if (in_array($out->category, $soldCategories)) $results[$key]['out_sold'] += $qty;
+                        else $results[$key]['out_keluar'] += $qty;
+                    }
                 }
             }
 
