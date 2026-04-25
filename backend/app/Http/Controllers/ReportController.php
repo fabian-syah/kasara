@@ -1000,12 +1000,19 @@ class ReportController extends Controller
             $nonHpData = [];
             
             foreach ($results as $row) {
-                // Determine if it's actually HP based on business logic
-                $isHp = ($row['type'] ?? 'non-hp') === 'hp';
-                
-                // Final filtering: if it doesn't have storage/condition or is a known non-hp name, move it
                 $pName = strtolower($row['name']);
-                if (str_contains($pName, 'jasa') || str_contains($pName, 'service') || str_contains($pName, 'arcis') || str_contains($pName, 'parfum') || str_contains($pName, 'acc ')) {
+                
+                // Logic to identify HP/IMEI units more accurately
+                // 1. If it has Storage (GB) and Condition (Baru/Bekas) in name, it's definitely an HP unit
+                $isHpUnit = str_contains($pName, ' gb)') || str_contains($pName, ' baru)') || str_contains($pName, ' bekas)');
+                
+                // 2. If it is explicitly typed as HP
+                $isExplicitHp = ($row['type'] ?? '') === 'hp';
+                
+                $isHp = ($isHpUnit || $isExplicitHp);
+
+                // EXCEPTIONS: If it is Jasa, Arcis, Service, it's NOT an HP unit regardless of name patterns
+                if (str_contains($pName, 'jasa') || str_contains($pName, 'service') || str_contains($pName, 'arcis') || str_contains($pName, 'parfum')) {
                     $isHp = false;
                 }
 
