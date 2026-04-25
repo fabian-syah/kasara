@@ -103,23 +103,25 @@ class StockTransferController extends Controller
                 if (in_array($item->id, $acceptedImeiIds)) {
                     // ACCEPTED
                     $item->status = 'available';
-                    // Placement is already set to destination in StockOutController@store?
-                    // Let's verify logic there. If logic sets placement to destination but status 'in_transit',
-                    // then we just change status to 'available'.
-                    // If logic kept placement at source, we update placement now.
-                    // Assuming StockOutController@store sets placement to DESTINATION and status to 'in_transit'.
-                    // So we just update status.
+
+                    // CREATE INVENTORY LOG AS "IN" FOR THE DESTINATION BRANCH
+                    // This ensures the mutation appears on the confirmation date, not the shipping date.
+                    InventoryLog::create([
+                        'product_id' => $item->product_id,
+                        'user_id' => $user->id,
+                        'branch_id' => ($stockOut->destination_type == 'branch') ? $stockOut->destination_id : null,
+                        'warehouse_id' => ($stockOut->destination_type == 'warehouse') ? $stockOut->destination_id : null,
+                        'online_shop_id' => ($stockOut->destination_type == 'online_shop') ? $stockOut->destination_id : null,
+                        'type' => 'in',
+                        'quantity' => 1,
+                        'balance_after' => 1, // Optional for HP
+                        'description' => "Pindah Cabang Masuk dari #{$stockOut->receipt_id} (" . ($item->imei ?? $item->p_code) . ")",
+                        'reference_id' => $item->id, // Store ProductDetail ID as reference
+                    ]);
                 } else {
                     // REJECTED / RETURNED
-                    $item->status = 'available'; // OR 'returned'? User said "masuk kembali ke stok inventory sebelumnya"
+                    $item->status = 'available';
                     // Return to SENDER
-                    // We need sender's location.
-                    // StockOut has user_id. User has placement AT THAT TIME? Or use generic placement?
-                    // Better: use InventoryLog or just infer from user.
-                    // OR: Use $stockOut->user->branch_id etc.
-                    // Risk: User might have moved.
-                    // Safer: Use stock out logs? Or just assume sender user is correct.
-                    // Let's use the creator's current placement placement
                     $sender = $stockOut->user;
                     if ($sender->branch_id) {
                         $item->placement_type = 'branch';
@@ -131,8 +133,19 @@ class StockTransferController extends Controller
                         $item->placement_type = 'online_shop';
                         $item->placement_id = $sender->online_shop_id;
                     }
-                    // What if sender has no placement now? Fallback to warehouse or specific return location?
-                    // For now, assume sender has placement.
+
+                    // Create log for Return to Sender? 
+                    InventoryLog::create([
+                        'product_id' => $item->product_id,
+                        'user_id' => $sender->id,
+                        'branch_id' => $sender->branch_id ?? null,
+                        'warehouse_id' => $sender->warehouse_id ?? null,
+                        'online_shop_id' => $sender->online_shop_id ?? null,
+                        'type' => 'in', // Returned back
+                        'quantity' => 1,
+                        'description' => "Transfer Ditolak/Retur dari #{$stockOut->receipt_id} (" . ($item->imei ?? $item->p_code) . ")",
+                        'reference_id' => $item->id,
+                    ]);
                 }
                 $item->save();
             }
