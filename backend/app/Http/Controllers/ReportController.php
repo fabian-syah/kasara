@@ -1152,7 +1152,11 @@ class ReportController extends Controller
             $callback = function () use ($items) {
                 if (ob_get_level() > 0) ob_end_clean();
                 
+                echo '<head><meta charset="utf-8"></head>';
                 echo '<table border="1">';
+                echo '<tr>';
+                echo '<th colspan="17" style="font-size: 16pt; font-weight: bold; background-color: #2c3e50; color: #ffffff;">LAPORAN MUTASI STOK</th>';
+                echo '</tr>';
                 echo '<tr>';
                 echo '<th style="background-color: #f3f4f6;">Nama Produk</th>';
                 echo '<th style="background-color: #f3f4f6;">Awal (All-Time)</th>';
@@ -1192,7 +1196,7 @@ class ReportController extends Controller
                     echo '<td align="center">' . ($row['out_dw'] ?? 0) . '</td>';
                     echo '<td align="center">' . $lainnya . '</td>';
                     echo '<td align="center">' . ($row['out_retur'] ?? 0) . '</td>';
-                    echo '<td align="center" style="font-weight: bold;">' . ($row['final'] ?? 0) . '</td>';
+                    echo '<td align="center" style="font-weight: bold; background-color: #eff6ff;">' . ($row['final'] ?? 0) . '</td>';
                     echo '</tr>';
                 }
                 echo '</table>';
