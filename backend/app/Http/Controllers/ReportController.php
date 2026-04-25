@@ -832,8 +832,8 @@ class ReportController extends Controller
                 $desc = strtoupper($log->description ?? '');
                 
                 if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT') || str_contains($desc, 'TRADE-IN') || str_contains($desc, 'TRADE IN')) $results[$key]['in_tt']++;
-                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU') || str_contains($desc, 'UNIT EXCHANGE')) $results[$key]['in_tu']++;
-                elseif (str_contains($desc, 'DOWNGRADE') || str_contains($desc, ' DW')) $results[$key]['in_dw']++;
+                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU') || str_contains($desc, 'UNIT EXCHANGE') || str_contains($desc, 'EXCHANGE') || str_contains($desc, ' UE')) $results[$key]['in_tu']++;
+                elseif (str_contains($desc, 'DOWNGRADE') || str_contains($desc, ' DW') || str_contains($desc, ' DG')) $results[$key]['in_dw']++;
                 elseif (str_contains($desc, 'REFUND') || str_contains($desc, ' RF')) $results[$key]['in_rf']++;
                 elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB') || str_contains($desc, 'AUDIT')) $results[$key]['in_ab']++;
                 else $results[$key]['in_manual']++;
