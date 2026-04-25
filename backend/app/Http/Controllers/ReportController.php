@@ -985,6 +985,14 @@ class ReportController extends Controller
                 // Balance at the END of the selected day (at $endTime)
                 // If viewing "Today", Final is just current balance.
                 // If viewing "Yesterday", Final = Initial + (Mutations on that day)
+                $pName = strtolower($row['name']);
+                
+                // CRITICAL: Filter out non-inventory products
+                if (str_contains($pName, 'omset') || str_contains($pName, 'virtual') || str_contains($pName, 'penjualan ')) {
+                    unset($results[$key]);
+                    continue;
+                }
+                
                 $row['final'] = $row['initial'] + $row['in_total'] - $row['out_total'];
             }
 
@@ -992,7 +1000,16 @@ class ReportController extends Controller
             $nonHpData = [];
             
             foreach ($results as $row) {
-                if (($row['type'] ?? 'hp') === 'hp') {
+                // Determine if it's actually HP based on business logic
+                $isHp = ($row['type'] ?? 'non-hp') === 'hp';
+                
+                // Final filtering: if it doesn't have storage/condition or is a known non-hp name, move it
+                $pName = strtolower($row['name']);
+                if (str_contains($pName, 'jasa') || str_contains($pName, 'service') || str_contains($pName, 'arcis') || str_contains($pName, 'parfum') || str_contains($pName, 'acc ')) {
+                    $isHp = false;
+                }
+
+                if ($isHp) {
                     $hpData[] = $row;
                 } else {
                     $nonHpData[] = $row;
