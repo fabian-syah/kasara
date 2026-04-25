@@ -2563,11 +2563,12 @@ onMounted(() => {
                 <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
                     <div class="p-6 border-b border-surface-700 flex justify-between items-center">
                         <div>
-                            <h3 class="font-bold text-text-primary">Mutasi Stok Hari Ini</h3>
-                            <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-primary-600">Jam Reset: {{ resetTime }}</span></p>
+                            <h3 class="font-bold text-text-primary text-lg">📊 Mutasi Stok</h3>
+                            <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-primary-600 font-bold">Jam Reset: {{ resetTime }}</span></p>
                         </div>
-                        <button @click="fetchStockHistory()" class="p-2 hover:bg-surface-700 rounded-lg transition-colors text-text-secondary">
-                            <RefreshCw :size="18" :class="{'animate-spin': historyLoading}" />
+                        <button @click="fetchStockHistory()" class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 rounded-xl text-text-primary text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 border border-surface-600/50">
+                            <RefreshCw :size="14" :class="{'animate-spin': historyLoading}" />
+                            <span class="hidden sm:inline">Refresh</span>
                         </button>
                     </div>
                     <div class="p-12 text-center" v-if="historyLoading">
@@ -2579,53 +2580,51 @@ onMounted(() => {
                     </div>
                     <div v-else class="overflow-x-auto">
                         <table class="w-full text-xs text-left border-collapse">
-                            <thead class="bg-surface-900/80 text-text-secondary uppercase font-bold sticky top-0 z-10">
+                            <thead class="text-text-secondary uppercase font-bold sticky top-0 z-10">
+                                <!-- Row 1: Group Headers -->
                                 <tr>
-                                    <th class="px-4 py-4 border border-surface-700 min-w-[200px]">Produk</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-surface-900">Awal</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-emerald-500/5 text-emerald-600">Masuk</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-sky-500/5 text-sky-600">Sold</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-amber-500/5 text-amber-600">Pindah<br/>Cabang</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-orange-500/5 text-orange-600">Kesalahan<br/>Input</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-rose-500/5 text-rose-600">Keluar</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-red-500/5 text-red-600">Hilang</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-purple-500/5 text-purple-600">Retur</th>
-                                    <th class="px-3 py-4 border border-surface-700 text-center bg-primary-500/10 text-primary-600 font-black">Akhir</th>
+                                    <th rowspan="2" class="px-4 py-3 border border-surface-700 min-w-[200px] bg-surface-900">Produk</th>
+                                    <th rowspan="2" class="px-3 py-3 border border-surface-700 text-center bg-surface-900 w-14">Awal</th>
+                                    <th rowspan="2" class="px-3 py-3 border border-surface-700 text-center bg-emerald-500/10 text-emerald-600 w-14">Masuk</th>
+                                    <th rowspan="2" class="px-3 py-3 border border-surface-700 text-center bg-sky-500/10 text-sky-600 w-14">Sold</th>
+                                    <!-- Barang Keluar Group -->
+                                    <th colspan="5" class="px-3 py-2.5 border border-surface-700 text-center bg-rose-500/8 text-rose-600">Barang Keluar</th>
+                                    <th rowspan="2" class="px-3 py-3 border border-surface-700 text-center bg-primary-500/10 text-primary-600 font-black w-14">Akhir</th>
+                                </tr>
+                                <!-- Row 2: Sub-columns -->
+                                <tr class="bg-surface-900/60">
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500">Pindah<br/>Cabang</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-orange-500">Kesalahan<br/>Input</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500">Keluar</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-red-600">Hilang</th>
+                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-purple-500">Retur</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-700/50">
                                 <template v-for="item in historyData" :key="item.name">
                                     <tr class="hover:bg-surface-700/20 transition-colors">
                                         <td class="px-4 py-3 border border-surface-700/30">
-                                            <div class="font-bold text-text-primary">{{ item.name }}</div>
+                                            <div class="font-bold text-text-primary text-[11px]">{{ item.name }}</div>
                                         </td>
                                         <td class="px-2 py-3 border border-surface-700/30 text-center font-bold text-text-secondary tabular-nums">{{ item.initial }}</td>
                                         
                                         <!-- Masuk -->
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums bg-emerald-500/5" 
                                             :class="item.in > 0 ? 'text-emerald-600 font-black' : 'text-text-secondary opacity-30'">{{ item.in }}</td>
                                         
                                         <!-- Sold -->
                                         <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums text-sm bg-sky-500/5" 
                                             :class="item.sold > 0 ? 'text-sky-600 font-black' : 'text-text-secondary opacity-30'">{{ item.sold }}</td>
                                         
-                                        <!-- Pindah Cabang -->
+                                        <!-- Barang Keluar Sub-cols -->
                                         <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
-                                            :class="item.out_pindah > 0 ? 'text-amber-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_pindah }}</td>
-                                        
-                                        <!-- Kesalahan Input -->
+                                            :class="item.out_pindah > 0 ? 'text-rose-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_pindah }}</td>
                                         <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
                                             :class="item.out_kesalahan > 0 ? 'text-orange-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_kesalahan }}</td>
-                                        
-                                        <!-- Keluar -->
                                         <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
                                             :class="item.out_keluar > 0 ? 'text-rose-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_keluar }}</td>
-                                        
-                                        <!-- Hilang -->
                                         <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
                                             :class="item.out_hilang > 0 ? 'text-red-600 font-black' : 'text-text-secondary opacity-30'">{{ item.out_hilang }}</td>
-                                        
-                                        <!-- Retur -->
                                         <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
                                             :class="item.out_retur > 0 ? 'text-purple-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_retur }}</td>
                                         
