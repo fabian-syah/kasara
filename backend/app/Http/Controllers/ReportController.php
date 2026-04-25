@@ -1135,13 +1135,13 @@ class ReportController extends Controller
             $nonHpItems = $data['data']['non_hp'] ?? [];
             $items = array_merge($hpItems, $nonHpItems);
             
-            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i');
+            $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.csv';
 
             // Log export
             ExportLog::create([
                 'user_id' => $user->id,
                 'report_name' => 'Laporan Barang Keluar Masuk',
-                'filename' => $filename . '.xls',
+                'filename' => $filename,
                 'params' => [
                     'branch_id' => $request->query('branch_id'),
                     'online_shop_id' => $request->query('online_shop_id'),
@@ -1150,58 +1150,49 @@ class ReportController extends Controller
                 ]
             ]);
 
-            return Excel::create($filename, function($excel) use ($items, $request) {
-                $excel->sheet('Mutasi Stok', function($sheet) use ($items, $request) {
-                    $sheet->setColumnFormat(['A' => '@']);
-                    
-                    $data = [
-                        ['LAPORAN MUTASI STOK (' . ($request->query('mode') === 'monthly' ? 'Bulanan' : 'Harian') . ')'],
-                        [
-                            'Nama Produk', 'Awal (All-Time)', 'Masuk (Total)', 'Manual', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
-                            'Keluar (Total)', 'Terjual', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Lainnya', 'Retur', 'Sisa (All-Time)'
-                        ]
-                    ];
+            $callback = function() use ($items, $request) {
+                $file = fopen('php://output', 'w');
+                // Force Excel to recognize UTF-8 and columns
+                fputs($file, "\xEF\xBB\xBF"); 
+                
+                fputcsv($file, ['LAPORAN MUTASI STOK (' . ($request->query('mode') === 'monthly' ? 'Bulanan' : 'Harian') . ')']);
+                fputcsv($file, [
+                    'Nama Produk', 'Awal (All-Time)', 'Masuk (Total)', 'Manual', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
+                    'Keluar (Total)', 'Terjual', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Lainnya', 'Retur', 'Sisa (All-Time)'
+                ]);
 
-                    foreach ($items as $row) {
-                        $lainnya = ($row['out_pindah'] ?? 0) + ($row['out_kesalahan'] ?? 0) + ($row['out_keluar'] ?? 0) + ($row['out_hilang'] ?? 0);
-                        $data[] = [
-                            $row['name'] ?? '-', 
-                            $row['initial'] ?? 0, 
-                            $row['in_total'] ?? 0, 
-                            $row['in_manual'] ?? 0, 
-                            $row['in_tt'] ?? 0, 
-                            $row['in_tu'] ?? 0, 
-                            $row['in_dw'] ?? 0, 
-                            $row['in_rf'] ?? 0, 
-                            $row['in_ab'] ?? 0,
-                            $row['out_total'] ?? 0,
-                            $row['out_sold'] ?? 0,
-                            $row['out_tt'] ?? 0,
-                            $row['out_tu'] ?? 0,
-                            $row['out_dw'] ?? 0,
-                            $lainnya,
-                            $row['out_retur'] ?? 0,
-                            $row['final'] ?? 0
-                        ];
-                    }
+                foreach ($items as $row) {
+                    $lainnya = ($row['out_pindah'] ?? 0) + ($row['out_kesalahan'] ?? 0) + ($row['out_keluar'] ?? 0) + ($row['out_hilang'] ?? 0);
+                    fputcsv($file, [
+                        $row['name'] ?? '-', 
+                        $row['initial'] ?? 0, 
+                        $row['in_total'] ?? 0, 
+                        $row['in_manual'] ?? 0, 
+                        $row['in_tt'] ?? 0, 
+                        $row['in_tu'] ?? 0, 
+                        $row['in_dw'] ?? 0, 
+                        $row['in_rf'] ?? 0, 
+                        $row['in_ab'] ?? 0,
+                        $row['out_total'] ?? 0,
+                        $row['out_sold'] ?? 0,
+                        $row['out_tt'] ?? 0,
+                        $row['out_tu'] ?? 0,
+                        $row['out_dw'] ?? 0,
+                        $lainnya,
+                        $row['out_retur'] ?? 0,
+                        $row['final'] ?? 0
+                    ]);
+                }
+                fclose($file);
+            };
 
-                    $sheet->fromArray($data, null, 'A1', false, false);
-                    
-                    // Styling
-                    $sheet->mergeCells('A1:Q1');
-                    $sheet->row(1, function($row) { 
-                        $row->setAlignment('center');
-                        $row->setFontSize(14);
-                        $row->setFontWeight('bold');
-                    });
-                    $sheet->row(2, function($row) { 
-                        $row->setBackground('#2C3E50');
-                        $row->setFontColor('#FFFFFF');
-                        $row->setFontWeight('bold');
-                        $row->setAlignment('center');
-                    });
-                });
-            })->download('xls');
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
         } catch (\Exception $e) {
             Log::error('Export Stock Error: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal: ' . $e->getMessage()], 500);
