@@ -1220,27 +1220,27 @@ class InventoryController extends Controller
 
                     $newDetails[] = $detail;
                     $inserted_count++;
-                }
 
-                // Log
-                if ($inserted_count > 0) {
+                    // Create individual Log for each unit (Better for reporting)
                     InventoryLog::create([
                         'product_id' => $product->id,
                         'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
                         'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
                         'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
-                        'user_id' => $ownerUserId, // Use Owner User ID
+                        'user_id' => $ownerUserId,
                         'distributor_id' => $distributorId,
                         'supplier_name' => $supplierName,
                         'type' => 'in',
-                        'quantity' => $inserted_count,
+                        'quantity' => 1,
                         'balance_after' => ProductDetail::where('product_id', $product->id)->where('status', 'available')->count(),
-                        'description' => "Stock In {$inserted_count} units (HP) from " . ($supplierName ?: "Distributor"),
-                        'reference_id' => 'STOCK-IN-HP-' . time(),
+                        'description' => "Stock In: {$product->name} ({$detail->imei}) dari " . ($supplierName ?: "Distributor"),
+                        'reference_id' => (string)$detail->id,
                         'notes' => $request->notes,
                     ]);
+                }
 
-                    // Create StockOut Record for Audit Purposes (Manual Stock In)
+                // Create StockOut Record for Audit Purposes (Manual Stock In)
+                if ($inserted_count > 0) {
                     $stockOutAudit = StockOut::create([
                         'receipt_id' => 'IN-HP-' . strtoupper(\Illuminate\Support\Str::random(6)),
                         'category' => $request->category ?? 'barang_masuk',
