@@ -993,6 +993,31 @@ const fetchDownloadLogs = async () => {
 const maxDate = new Date().toISOString().split('T')[0];
 const minDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
+const formattedDate = computed(() => {
+    if (!historyDate.value) return '';
+    const d = new Date(historyDate.value + 'T00:00:00');
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+});
+
+const isToday = computed(() => {
+    return historyDate.value === new Date().toISOString().split('T')[0];
+});
+
+const navigateDate = (offset) => {
+    const d = new Date(historyDate.value + 'T00:00:00');
+    d.setDate(d.getDate() + offset);
+    const newDate = d.toISOString().split('T')[0];
+    if (newDate >= minDate && newDate <= maxDate) {
+        historyDate.value = newDate;
+    }
+};
+
+const goToToday = () => {
+    historyDate.value = new Date().toISOString().split('T')[0];
+};
+
 watch([selectedLocationKey, historyDate, historyMode], () => {
     if (currentView.value === 'history') {
         fetchStockHistory();
@@ -2417,46 +2442,82 @@ onMounted(() => {
         <!-- ==================== HISTORY STOK VIEW ==================== -->
         <template v-else-if="currentView === 'history'">
             <div class="space-y-6 pb-20">
-                <!-- Modern Modern Filters -->
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface-800 p-6 rounded-3xl border border-surface-700 shadow-xl shadow-black/20">
-                    <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
-                        <!-- Mode Selector -->
-                        <div class="flex flex-col gap-2">
-                             <label class="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Periode Laporan</label>
-                             <div class="flex p-1 bg-surface-900 rounded-xl border border-surface-700">
-                                 <button @click="historyMode = 'daily'" 
-                                    class="px-4 py-2 rounded-lg text-xs font-bold transition-all"
-                                    :class="historyMode === 'daily' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-white'">
-                                    Harian
-                                 </button>
-                                 <button @click="historyMode = 'monthly'" 
-                                    class="px-4 py-2 rounded-lg text-xs font-bold transition-all"
-                                    :class="historyMode === 'monthly' ? 'bg-primary-500 text-white shadow-lg' : 'text-text-secondary hover:text-white'">
-                                    Bulanan
-                                 </button>
-                             </div>
+                <!-- Modern Filters Bar -->
+                <div class="history-filter-bar">
+                    <div class="flex flex-col gap-5 w-full">
+                        <!-- Row 1: Period Toggle + Date Navigator -->
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                            <!-- Mode Selector (Harian/Bulanan) -->
+                            <div class="flex flex-col gap-1.5">
+                                 <label class="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary/70 ml-1">Periode</label>
+                                 <div class="flex p-1 bg-surface-900/80 rounded-xl border border-surface-700/50 backdrop-blur-sm">
+                                     <button @click="historyMode = 'daily'" 
+                                        class="px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
+                                        :class="historyMode === 'daily' ? 'bg-gradient-to-r from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/25' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                                        📅 Harian
+                                     </button>
+                                     <button @click="historyMode = 'monthly'" 
+                                        class="px-5 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
+                                        :class="historyMode === 'monthly' ? 'bg-gradient-to-r from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/25' : 'text-text-secondary hover:text-white hover:bg-surface-700/50'">
+                                        📊 Bulanan
+                                     </button>
+                                 </div>
+                            </div>
+
+                            <!-- Date Navigator -->
+                            <div class="flex flex-col gap-1.5 flex-1 min-w-0">
+                                <label class="text-[10px] font-black uppercase tracking-[0.15em] text-text-secondary/70 ml-1">Navigasi Tanggal</label>
+                                <div class="flex items-center gap-2">
+                                    <!-- Prev Day -->
+                                    <button @click="navigateDate(-1)" 
+                                        :disabled="historyDate <= minDate"
+                                        class="p-2.5 rounded-xl bg-surface-900/80 border border-surface-700/50 text-text-secondary hover:text-white hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                                    </button>
+
+                                    <!-- Date Display + Hidden Input -->
+                                    <div class="relative flex-1 min-w-0 group cursor-pointer" @click="$refs.dateInput.showPicker?.() || $refs.dateInput.focus()">
+                                        <div class="flex items-center gap-3 px-4 py-2.5 bg-surface-900/80 border border-surface-700/50 rounded-xl group-hover:border-primary-500/40 transition-all duration-200 backdrop-blur-sm">
+                                            <Calendar class="text-primary-400 shrink-0 group-hover:text-primary-300 transition-colors" :size="16" />
+                                            <span class="text-sm font-bold text-white truncate">{{ formattedDate }}</span>
+                                            <span v-if="isToday" class="ml-auto px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/20 text-[9px] font-black text-emerald-400 uppercase tracking-wider shrink-0">Hari Ini</span>
+                                        </div>
+                                        <input ref="dateInput" type="date" v-model="historyDate" :min="minDate" :max="maxDate"
+                                            class="absolute inset-0 opacity-0 cursor-pointer [color-scheme:dark]" />
+                                    </div>
+
+                                    <!-- Next Day -->
+                                    <button @click="navigateDate(1)" 
+                                        :disabled="historyDate >= maxDate"
+                                        class="p-2.5 rounded-xl bg-surface-900/80 border border-surface-700/50 text-text-secondary hover:text-white hover:bg-surface-700 hover:border-primary-500/30 transition-all duration-200 active:scale-90 disabled:opacity-30 disabled:cursor-not-allowed backdrop-blur-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                                    </button>
+
+                                    <!-- Today Button -->
+                                    <button v-if="!isToday" @click="goToToday()"
+                                        class="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all duration-200 active:scale-95 whitespace-nowrap">
+                                        Hari Ini
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Date Picker -->
-                        <div class="flex flex-col gap-2 min-w-[200px]">
-                             <label class="text-[10px] font-black uppercase tracking-widest text-text-secondary ml-1">Pilih Tanggal</label>
-                             <div class="relative group">
-                                 <Calendar class="absolute left-3 top-1/2 -translate-y-1/2 text-primary-400 group-focus-within:text-primary-300 transition-colors" :size="16" />
-                                 <input type="date" v-model="historyDate" :min="minDate" :max="maxDate"
-                                    class="w-full pl-10 pr-4 py-2.5 bg-surface-900 border border-surface-700 rounded-xl text-sm font-bold text-white focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all [color-scheme:dark]" />
-                             </div>
+                        <!-- Row 2: Reset Info + Refresh -->
+                        <div class="flex items-center justify-between gap-4 pt-1 border-t border-surface-700/30">
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-900/60 border border-surface-700/30">
+                                    <Clock class="text-emerald-400" :size="13" />
+                                    <span class="text-[10px] font-bold text-text-secondary">Reset:</span>
+                                    <span class="text-[10px] font-black text-emerald-400 tabular-nums">{{ resetTime || '05:00' }}</span>
+                                </div>
+                                <span class="text-[10px] text-text-secondary/50 hidden sm:inline">Mutasi dihitung sejak jam 05:00 pagi</span>
+                            </div>
+                            <button @click="fetchStockHistory()" 
+                                class="flex items-center gap-2 px-4 py-2 bg-surface-700/60 hover:bg-surface-600 rounded-xl text-white text-xs font-bold transition-all duration-200 shadow-lg active:scale-95 border border-surface-600/50 hover:border-primary-500/30">
+                                <RefreshCw :size="14" :class="{'animate-spin': historyLoading}" />
+                                <span class="hidden sm:inline">Refresh</span>
+                            </button>
                         </div>
-                    </div>
-
-                    <div class="flex items-center gap-3 self-end lg:self-center">
-                         <div class="text-right hidden sm:block">
-                             <div class="text-[10px] font-black uppercase tracking-widest text-text-secondary">Data Terakhir</div>
-                             <div class="text-xs font-bold text-emerald-400">{{ resetTime }}</div>
-                         </div>
-                         <button @click="fetchStockHistory()" 
-                            class="p-3 bg-surface-700 hover:bg-surface-600 rounded-xl text-white transition-all shadow-lg active:scale-95">
-                            <RefreshCw :size="18" :class="{'animate-spin': historyLoading}" />
-                         </button>
                     </div>
                 </div>
 
@@ -2645,5 +2706,27 @@ select option {
     /* darker background */
     color: #ffffff !important;
     padding: 10px;
+}
+
+/* History filter bar glassmorphism */
+.history-filter-bar {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+    border: 1px solid rgba(71, 85, 105, 0.4);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+}
+
+.history-filter-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
 }
 </style>
