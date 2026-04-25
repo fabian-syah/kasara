@@ -779,29 +779,30 @@ class ReportController extends Controller
             
             // 2. Identify products that have mutations in this window
             // This ensures the report "resets" and only shows active items
-            $logKeys = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
-                ->where('created_at', '<', $endTime)
-                ->whereNotNull('reference_id')
-                ->where('type', 'in');
+            $logKeys = \App\Models\InventoryLog::where('inventory_logs.created_at', '>=', $resetTime)
+                ->where('inventory_logs.created_at', '<', $endTime)
+                ->whereNotNull('inventory_logs.reference_id')
+                ->where('inventory_logs.type', 'in');
             
-            $outKeys = StockOut::where('created_at', '>=', $resetTime)
-                ->where('created_at', '<', $endTime)
-                ->where('status', '!=', 'cancelled');
+            $outKeys = StockOut::where('stock_outs.created_at', '>=', $resetTime)
+                ->where('stock_outs.created_at', '<', $endTime)
+                ->where('stock_outs.status', '!=', 'cancelled');
 
             if (!empty($filterBranchIds)) {
-                $logKeys->whereIn('branch_id', $filterBranchIds);
-                $outKeys->whereIn('branch_id', $filterBranchIds);
+                $logKeys->whereIn('inventory_logs.branch_id', $filterBranchIds);
+                $outKeys->whereIn('stock_outs.branch_id', $filterBranchIds);
             }
             if (!empty($filterOnlineShopIds)) {
-                $logKeys->whereIn('online_shop_id', $filterOnlineShopIds);
-                $outKeys->whereIn('online_shop_id', $filterOnlineShopIds);
+                $logKeys->whereIn('inventory_logs.online_shop_id', $filterOnlineShopIds);
+                $outKeys->whereIn('stock_outs.online_shop_id', $filterOnlineShopIds);
             }
 
             $activeProductIds = array_unique(array_merge(
                 $logKeys->pluck('product_id')->toArray(),
                 $outKeys->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
                     ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-                    ->pluck('product_details.product_id')->toArray()
+                    ->select('product_details.product_id')
+                    ->pluck('product_id')->toArray()
             ));
 
             if (empty($activeProductIds)) {
