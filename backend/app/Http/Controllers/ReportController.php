@@ -1181,8 +1181,10 @@ class ReportController extends Controller
                 ];
             }
 
-            SimpleXLSXGen::fromArray($xlsxData)->downloadAs($filename);
-            exit;
+            return response((string)SimpleXLSXGen::fromArray($xlsxData), 200, [
+                'Content-Type' => 'application/vnd.ms-excel',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
         } catch (\Exception $e) {
             Log::error('Export Stock Error: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal: ' . $e->getMessage()], 500);
