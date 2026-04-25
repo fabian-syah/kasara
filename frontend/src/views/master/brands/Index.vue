@@ -84,9 +84,6 @@ const handleDelete = async (id) => {
     }
 };
 
-showModal.value = false;
-fetchData();
-
 // --- Delete with Password Confirmation ---
 const showDeleteModal = ref(false);
 const deletePassword = ref('');
@@ -123,6 +120,11 @@ const confirmDelete = async () => {
     } finally {
         verifyingPassword.value = false;
     }
+};
+
+const handleSaved = () => {
+    showModal.value = false;
+    fetchData();
 };
 
 onMounted(fetchData);
