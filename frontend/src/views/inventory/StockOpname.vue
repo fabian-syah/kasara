@@ -1063,7 +1063,7 @@ const downloadExcel = async (type) => {
             online_shop_id: selectedOnlineShopId.value,
             date: historyDate.value,
             mode: historyMode.value,
-            type: activeTab.value
+            type: itemMode.value // Corrected variable name from activeTab to itemMode
         };
         
         const response = await axios.get(endpoint, { 
