@@ -777,46 +777,7 @@ class ReportController extends Controller
 
             $results = [];
             
-            // 2. Identify products that have mutations in this window
-            // This ensures the report "resets" and only shows active items
-            $logKeys = \App\Models\InventoryLog::where('inventory_logs.created_at', '>=', $resetTime)
-                ->where('inventory_logs.created_at', '<', $endTime)
-                ->whereNotNull('inventory_logs.reference_id')
-                ->whereRaw("inventory_logs.reference_id ~ '^[0-9]+$'")
-                ->where('inventory_logs.type', 'in');
-            
-            $outKeys = StockOut::where('stock_outs.created_at', '>=', $resetTime)
-                ->where('stock_outs.created_at', '<', $endTime)
-                ->where('stock_outs.status', '!=', 'cancelled');
-
-            if (!empty($filterBranchIds)) {
-                $logKeys->whereIn('inventory_logs.branch_id', $filterBranchIds);
-                $outKeys->where(function($q) use ($filterBranchIds) {
-                    $q->whereIn('stock_outs.branch_id', $filterBranchIds)
-                      ->orWhereNull('stock_outs.branch_id');
-                });
-            }
-            if (!empty($filterOnlineShopIds)) {
-                $logKeys->whereIn('inventory_logs.online_shop_id', $filterOnlineShopIds);
-                $outKeys->where(function($q) use ($filterOnlineShopIds) {
-                    $q->whereIn('stock_outs.online_shop_id', $filterOnlineShopIds)
-                      ->orWhereNull('stock_outs.online_shop_id');
-                });
-            }
-
-            $activeProductIds = array_unique(array_merge(
-                $logKeys->pluck('product_id')->toArray(),
-                $outKeys->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
-                    ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-                    ->select('product_details.product_id')
-                    ->pluck('product_id')->toArray()
-            ));
-
-            if (empty($activeProductIds)) {
-                return response()->json(['data' => [], 'reset_time' => $resetTime->format('H:i d/m/Y')]);
-            }
-
-            // 3. Get current state for only active products
+            // 2. Get ALL current stock (all-time inventory for this location)
             $hpQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                 ->select(
                     'products.id as product_id',
@@ -826,7 +787,6 @@ class ReportController extends Controller
                     'product_details.condition',
                     \DB::raw('count(*) as qty')
                 )
-                ->whereIn('products.id', $activeProductIds)
                 ->where('product_details.status', 'available');
 
             if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
@@ -834,24 +794,34 @@ class ReportController extends Controller
 
             $hpQuery->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
 
+            $defaultRow = [
+                'initial' => 0, 
+                'in' => 0,
+                'sold' => 0,
+                'out_pindah' => 0,
+                'out_kesalahan' => 0,
+                'out_keluar' => 0,
+                'out_hilang' => 0,
+                'out_retur' => 0,
+                'final' => 0
+            ];
+
             foreach($hpQuery->get() as $s) {
                 $key = "{$s->product_id}:{$s->storage}:{$s->condition}";
-                $results[$key] = [
+                $results[$key] = array_merge($defaultRow, [
                     'name' => "{$s->brand} {$s->product_name} " . ($s->storage ? "({$s->storage}) " : "") . "(" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
                     'initial' => $s->qty, 
-                    'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
-                    'sold' => 0,
-                    'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0,
                     'final' => $s->qty
-                ];
+                ]);
             }
 
-            // 4. Backtrack mutations (Incoming Logs)
+            // 3. Backtrack mutations - Incoming (InventoryLogs type=in within window)
             $logs = \App\Models\InventoryLog::with(['product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->whereNotNull('reference_id')
-                ->whereRaw("reference_id ~ '^[0-9]+$'");
+                ->whereRaw("reference_id ~ '^[0-9]+$'")
+                ->where('type', 'in');
             
             if (!empty($filterBranchIds)) $logs->whereIn('branch_id', $filterBranchIds);
             if (!empty($filterOnlineShopIds)) $logs->whereIn('online_shop_id', $filterOnlineShopIds);
@@ -863,26 +833,19 @@ class ReportController extends Controller
                 
                 $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                 if (!isset($results[$key])) {
-                    $results[$key] = [
+                    $results[$key] = array_merge($defaultRow, [
                         'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
-                        'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
-                        'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
-                    ];
+                    ]);
                 }
 
-                if ($log->type == 'in') {
-                    $results[$key]['in']++;
-                    $results[$key]['initial']--;
-                    
-                    $desc = strtoupper($log->description ?? '');
-                    if (str_contains($desc, 'RESTOCK') || str_contains($desc, 'TU')) $results[$key]['in_tu']++;
-                    elseif (str_contains($desc, 'AUDIT') || str_contains($desc, 'AB')) $results[$key]['in_ab']++;
-                    elseif (str_contains($desc, 'TRANSFER') || str_contains($desc, 'TT')) $results[$key]['in_tt']++;
-                    else $results[$key]['in_dw']++;
-                }
+                $results[$key]['in']++;
+                $results[$key]['initial']--;
             }
 
-            // 5. Backtrack mutations (Outgoing Stock)
+            // 4. Backtrack mutations - Outgoing (StockOut within window)
+            $soldCategories = ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'];
+            $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris', 'angkat_barang'];
+
             $outQuery = StockOut::with(['items.product'])
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
@@ -905,23 +868,29 @@ class ReportController extends Controller
                 foreach($out->items as $pd) {
                     $key = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
                     if (!isset($results[$key])) {
-                        $results[$key] = [
+                        $results[$key] = array_merge($defaultRow, [
                             'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
-                            'initial' => 0, 'in' => 0, 'in_tt' => 0, 'in_tu' => 0, 'in_dw' => 0, 'in_rf' => 0, 'in_ab' => 0,
-                            'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
-                        ];
+                        ]);
                     }
                     
                     $cat = $out->category;
                     $results[$key]['initial']++;
                     
-                    if (in_array($cat, ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'])) {
+                    if (in_array($cat, $soldCategories)) {
                         $results[$key]['sold']++;
+                    } elseif ($cat === 'pindah_cabang') {
+                        $results[$key]['out_pindah']++;
+                    } elseif ($cat === 'kesalahan_input') {
+                        $results[$key]['out_kesalahan']++;
+                    } elseif (in_array($cat, $keluarCategories)) {
+                        $results[$key]['out_keluar']++;
+                    } elseif ($cat === 'hilang') {
+                        $results[$key]['out_hilang']++;
+                    } elseif (in_array($cat, ['retur', 'refund', 'tukar_tambah', 'tukar_unit', 'downgrade'])) {
+                        $results[$key]['out_retur']++;
                     } else {
-                        $results[$key]['out']++;
-                        if ($cat == 'pindah_cabang') $results[$key]['out_tt']++;
-                        elseif ($cat == 'retur') $results[$key]['out_tu']++;
-                        else $results[$key]['out_dw']++;
+                        // Fallback: cancel_penjualan, barang_masuk, etc
+                        $results[$key]['out_keluar']++;
                     }
                 }
             }

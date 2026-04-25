@@ -2563,8 +2563,8 @@ onMounted(() => {
                 <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
                     <div class="p-6 border-b border-surface-700 flex justify-between items-center">
                         <div>
-                            <h3 class="font-bold text-white">Mutasi Stok Hari Ini</h3>
-                            <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-emerald-400">Jam Reset: {{ resetTime }}</span></p>
+                            <h3 class="font-bold text-text-primary">Mutasi Stok Hari Ini</h3>
+                            <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-primary-600">Jam Reset: {{ resetTime }}</span></p>
                         </div>
                         <button @click="fetchStockHistory()" class="p-2 hover:bg-surface-700 rounded-lg transition-colors text-text-secondary">
                             <RefreshCw :size="18" :class="{'animate-spin': historyLoading}" />
@@ -2575,61 +2575,62 @@ onMounted(() => {
                         <p class="text-text-secondary text-sm">Menghitung mutasi stok...</p>
                     </div>
                     <div v-else-if="historyData.length === 0" class="p-12 text-center text-text-secondary">
-                         Tidak ada mutasi stok ditemukan sejak jam 05:00 pagi.
+                         Belum ada data inventory.
                     </div>
                     <div v-else class="overflow-x-auto">
                         <table class="w-full text-xs text-left border-collapse">
                             <thead class="bg-surface-900/80 text-text-secondary uppercase font-bold sticky top-0 z-10">
                                 <tr>
-                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 min-w-[200px]">Produk</th>
-                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 text-center bg-surface-900">Awal</th>
-                                    <!-- IN GROUP -->
-                                    <th colspan="6" class="px-4 py-2 border border-surface-700 text-center bg-emerald-500/5 text-emerald-400">Barang Masuk</th>
-                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 text-center bg-sky-500/10 text-sky-400">Sold</th>
-                                    <!-- OUT GROUP -->
-                                    <th colspan="4" class="px-4 py-2 border border-surface-700 text-center bg-rose-500/5 text-rose-400">Barang Keluar</th>
-                                    <th rowspan="2" class="px-4 py-4 border border-surface-700 text-center bg-primary-500/20 text-primary-400">Akhir</th>
-                                </tr>
-                                <tr class="bg-surface-900/50">
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px]">Total</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">TT</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">TU</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">DW</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">RF</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-emerald-500/70">AB</th>
-                                    
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px]">Total</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500/70">TT</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500/70">TU</th>
-                                    <th class="px-2 py-2 border border-surface-700 text-center text-[9px] text-rose-500/70">DW</th>
+                                    <th class="px-4 py-4 border border-surface-700 min-w-[200px]">Produk</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-surface-900">Awal</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-emerald-500/5 text-emerald-600">Masuk</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-sky-500/5 text-sky-600">Sold</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-amber-500/5 text-amber-600">Pindah<br/>Cabang</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-orange-500/5 text-orange-600">Kesalahan<br/>Input</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-rose-500/5 text-rose-600">Keluar</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-red-500/5 text-red-600">Hilang</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-purple-500/5 text-purple-600">Retur</th>
+                                    <th class="px-3 py-4 border border-surface-700 text-center bg-primary-500/10 text-primary-600 font-black">Akhir</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-surface-700/50">
                                 <template v-for="item in historyData" :key="item.name">
                                     <tr class="hover:bg-surface-700/20 transition-colors">
                                         <td class="px-4 py-3 border border-surface-700/30">
-                                            <div class="font-bold text-white mb-1">{{ item.name }}</div>
-                                            <span class="px-1.5 py-0.5 rounded bg-surface-900 border border-surface-700 text-[9px] font-black uppercase tracking-tighter" :class="conditionColor(item.condition)">{{ item.condition }}</span>
+                                            <div class="font-bold text-text-primary">{{ item.name }}</div>
                                         </td>
                                         <td class="px-2 py-3 border border-surface-700/30 text-center font-bold text-text-secondary tabular-nums">{{ item.initial }}</td>
                                         
-                                        <!-- IN COLS -->
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-white tabular-nums">{{ item.in }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_tt > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_tt }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_tu > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_tu }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_dw > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_dw }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_rf > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_rf }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.in_ab > 0 ? 'text-emerald-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.in_ab }}</td>
+                                        <!-- Masuk -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                            :class="item.in > 0 ? 'text-emerald-600 font-black' : 'text-text-secondary opacity-30'">{{ item.in }}</td>
                                         
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-sky-400 tabular-nums text-sm bg-sky-500/5">{{ item.sold }}</td>
+                                        <!-- Sold -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums text-sm bg-sky-500/5" 
+                                            :class="item.sold > 0 ? 'text-sky-600 font-black' : 'text-text-secondary opacity-30'">{{ item.sold }}</td>
                                         
-                                        <!-- OUT COLS -->
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-white tabular-nums">{{ item.out }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.out_tt > 0 ? 'text-rose-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_tt }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.out_tu > 0 ? 'text-rose-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_tu }}</td>
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" :class="item.out_dw > 0 ? 'text-rose-400 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_dw }}</td>
+                                        <!-- Pindah Cabang -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                            :class="item.out_pindah > 0 ? 'text-amber-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_pindah }}</td>
                                         
-                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-primary-500 tabular-nums text-sm bg-primary-500/5">{{ item.final }}</td>
+                                        <!-- Kesalahan Input -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                            :class="item.out_kesalahan > 0 ? 'text-orange-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_kesalahan }}</td>
+                                        
+                                        <!-- Keluar -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                            :class="item.out_keluar > 0 ? 'text-rose-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_keluar }}</td>
+                                        
+                                        <!-- Hilang -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                            :class="item.out_hilang > 0 ? 'text-red-600 font-black' : 'text-text-secondary opacity-30'">{{ item.out_hilang }}</td>
+                                        
+                                        <!-- Retur -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center tabular-nums" 
+                                            :class="item.out_retur > 0 ? 'text-purple-600 font-bold' : 'text-text-secondary opacity-30'">{{ item.out_retur }}</td>
+                                        
+                                        <!-- Akhir -->
+                                        <td class="px-2 py-3 border border-surface-700/30 text-center font-black text-primary-600 tabular-nums text-sm bg-primary-500/5">{{ item.final }}</td>
                                     </tr>
                                 </template>
                             </tbody>
