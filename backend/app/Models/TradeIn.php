@@ -15,6 +15,7 @@ class TradeIn extends Model
         'customer_name',
         'customer_phone',
         'source',
+        'distributor_id',
         'product_type_id',
         'imei',
         'ram',
@@ -34,6 +35,11 @@ class TradeIn extends Model
     public function productType()
     {
         return $this->belongsTo(ProductType::class);
+    }
+
+    public function distributor()
+    {
+        return $this->belongsTo(Distributor::class);
     }
 
     public function user()

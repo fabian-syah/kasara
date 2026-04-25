@@ -15,6 +15,7 @@ const props = defineProps({
     brands: Array,
     productTypes: Array,
     productPrices: Array,
+    distributors: Array,
     availablePaymentMethods: Array,
     salesAccount: String,
     selectedAccountObject: Object
@@ -30,6 +31,7 @@ const tradeInForm = ref({
     customer_name: "",
     customer_phone: "",
     source: "luar_pstore",
+    distributor_id: null,
     brand_id: null,
     product_type_id: null,
     storage: "",
@@ -51,9 +53,42 @@ const tradeInPhotos = ref({
 });
 
 // Computeds
+const filteredBrands = computed(() => {
+    if (!tradeInForm.value.distributor_id) return props.brands;
+    
+    // Create a map of Type ID -> Brand ID for efficiency
+    const typeToBrand = {};
+    props.productTypes.forEach(t => {
+        typeToBrand[t.id] = t.brand_id;
+    });
+
+    // Get brand IDs that have prices for this distributor
+    const brandIdsWithPrice = new Set(
+        props.productPrices
+            .filter(p => p.distributor_id === tradeInForm.value.distributor_id)
+            .map(p => typeToBrand[p.product_type_id])
+            .filter(id => id)
+    );
+    
+    return props.brands.filter(b => brandIdsWithPrice.has(b.id));
+});
+
 const filteredTradeInTypes = computed(() => {
     if (!tradeInForm.value.brand_id) return [];
-    return props.productTypes.filter(t => t.brand_id === tradeInForm.value.brand_id);
+    
+    let types = props.productTypes.filter(t => t.brand_id === tradeInForm.value.brand_id);
+    
+    // If distributor selected, only show types that have price entries for that distributor
+    if (tradeInForm.value.distributor_id) {
+        const typeIdsWithPrice = new Set(
+            props.productPrices
+                .filter(p => p.distributor_id === tradeInForm.value.distributor_id)
+                .map(p => p.product_type_id)
+        );
+        types = types.filter(t => typeIdsWithPrice.has(t.id));
+    }
+    
+    return types;
 });
 
 const selectedTradeInType = computed(() => {
@@ -70,10 +105,17 @@ const isImeiTradeIn = computed(() => {
 const filteredTradeInCapacities = computed(() => {
     if (!tradeInForm.value.product_type_id) return [];
     const set = new Set();
-    props.productPrices
-        .filter(p => p.product_type_id === tradeInForm.value.product_type_id)
-        .forEach(p => { if (p.storage) set.add(p.storage); });
-    if (selectedTradeInType.value?.storage) {
+    
+    // Filter prices by type AND distributor
+    const prices = props.productPrices.filter(p => {
+        const matchesType = p.product_type_id === tradeInForm.value.product_type_id;
+        const matchesDist = !tradeInForm.value.distributor_id || p.distributor_id === tradeInForm.value.distributor_id;
+        return matchesType && matchesDist;
+    });
+
+    prices.forEach(p => { if (p.storage) set.add(p.storage); });
+    
+    if (set.size === 0 && selectedTradeInType.value?.storage) {
         selectedTradeInType.value.storage.split(/[,]/).forEach(s => {
             const clean = s.trim();
             if (clean) set.add(clean);
@@ -84,12 +126,22 @@ const filteredTradeInCapacities = computed(() => {
 
 const filteredTradeInConditions = computed(() => {
     const defaults = ['new', 'second', 'ex_ibox'];
-    const set = new Set(defaults);
+    const set = new Set();
+    
     if (tradeInForm.value.product_type_id) {
         props.productPrices
-            .filter(p => p.product_type_id === tradeInForm.value.product_type_id && p.storage === tradeInForm.value.storage)
+            .filter(p => {
+                const matchesType = p.product_type_id === tradeInForm.value.product_type_id;
+                const matchesStorage = p.storage === tradeInForm.value.storage;
+                const matchesDist = !tradeInForm.value.distributor_id || p.distributor_id === tradeInForm.value.distributor_id;
+                return matchesType && matchesStorage && matchesDist;
+            })
             .forEach(p => { if (p.condition) set.add(p.condition); });
     }
+    
+    // Fallback if no specific prices found
+    if (set.size === 0) defaults.forEach(d => set.add(d));
+    
     return Array.from(set);
 });
 
@@ -98,6 +150,13 @@ const totalTradeInUnits = computed(() => {
 });
 
 // Watchers
+watch(() => tradeInForm.value.distributor_id, () => {
+    tradeInForm.value.brand_id = null;
+    tradeInForm.value.product_type_id = null;
+    tradeInForm.value.storage = "";
+    tradeInForm.value.condition = "";
+});
+
 watch(() => tradeInForm.value.brand_id, () => {
     tradeInForm.value.product_type_id = null;
     tradeInForm.value.storage = "";
@@ -156,8 +215,17 @@ watch(() => props.availablePaymentMethods, (methods) => {
 }, { immediate: true });
 
 async function submitTradeIn(pin = null) {
-    if (!tradeInForm.value.customer_name || !tradeInForm.value.customer_phone || !tradeInForm.value.brand_id || !tradeInForm.value.product_type_id || !tradeInForm.value.storage || !tradeInForm.value.condition || !tradeInForm.value.buy_price) {
-        alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Kondisi, Harga).");
+    const isImei = isImeiTradeIn.value;
+    const hasRequiredFields = tradeInForm.value.customer_name && 
+                             tradeInForm.value.customer_phone && 
+                             tradeInForm.value.brand_id && 
+                             tradeInForm.value.product_type_id && 
+                             tradeInForm.value.buy_price;
+
+    const hasSpecificFields = !isImei || (tradeInForm.value.storage && tradeInForm.value.condition);
+
+    if (!hasRequiredFields || !hasSpecificFields) {
+        alert("Mohon lengkapi semua data wajib.");
         return;
     }
 
@@ -181,11 +249,14 @@ async function submitTradeIn(pin = null) {
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     formData.append('customer_name', tradeInForm.value.customer_name);
     formData.append('customer_phone', tradeInForm.value.customer_phone);
+    if (tradeInForm.value.distributor_id) formData.append('distributor_id', tradeInForm.value.distributor_id);
     formData.append('brand_id', tradeInForm.value.brand_id);
     formData.append('product_type_id', tradeInForm.value.product_type_id);
     formData.append('source', tradeInForm.value.source);
-    formData.append('storage', tradeInForm.value.storage);
-    formData.append('condition', tradeInForm.value.condition);
+    if (isImeiTradeIn.value) {
+        formData.append('storage', tradeInForm.value.storage);
+        formData.append('condition', tradeInForm.value.condition);
+    }
     formData.append('buy_price', tradeInForm.value.buy_price);
     formData.append('payment_method_id', tradeInForm.value.payment_method_id);
     formData.append('reason', tradeInForm.value.reason);
@@ -241,6 +312,7 @@ async function submitTradeIn(pin = null) {
             customer_name: "",
             customer_phone: "",
             source: "luar_pstore",
+            distributor_id: null,
             brand_id: null,
             product_type_id: null,
             storage: "",
@@ -295,7 +367,7 @@ async function submitTradeIn(pin = null) {
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Sumber
-                            Handphone <span class="text-red-500">*</span></label>
+                            Barang <span class="text-red-500">*</span></label>
                         <select v-model="tradeInForm.source"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                             <option value="pstore">ex pstore</option>
@@ -308,7 +380,19 @@ async function submitTradeIn(pin = null) {
                 <div class="space-y-6">
                     <h4
                         class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
-                        Spesifikasi Unit</h4>
+                        Data Unit Angkat Barang</h4>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Distributor
+                                <span class="text-text-secondary opacity-50">(Opsional)</span></label>
+                            <select v-model="tradeInForm.distributor_id"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                                <option :value="null">Semua Distributor</option>
+                                <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label
@@ -317,7 +401,7 @@ async function submitTradeIn(pin = null) {
                             <select v-model="tradeInForm.brand_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null" disabled>Pilih Brand</option>
-                                <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}
+                                <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}
                                 </option>
                             </select>
                         </div>
@@ -335,7 +419,7 @@ async function submitTradeIn(pin = null) {
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 xs:grid-cols-2 gap-4">
+                    <div v-if="isImeiTradeIn" class="grid grid-cols-1 xs:grid-cols-2 gap-4">
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Kapasitas

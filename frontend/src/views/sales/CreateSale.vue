@@ -60,6 +60,7 @@ const categoriesPenjualan = [
 const brands = ref([]);
 const productTypes = ref([]);
 const productPrices = ref([]);
+const distributors = ref([]);
 
 const selectedAccountObject = computed(() => {
     return salesAccounts.value.find(acc => acc.name === salesAccount.value) || null;
@@ -133,13 +134,14 @@ async function fetchHeavyData() {
     if (isDataLoaded.value) return;
     loadingStep3Data.value = true;
     try {
-        const [hpRes, nonHpRes, paymentsRes, brandsRes, typesRes, pricesRes] = await Promise.all([
+        const [hpRes, nonHpRes, paymentsRes, brandsRes, typesRes, pricesRes, distRes] = await Promise.all([
             api.get('/inventory', { params: { type: 'hp', status: 'available', per_page: -1 } }),
             api.get('/inventory', { params: { type: 'non-hp', per_page: -1 } }),
             api.get('/payment-methods'),
             api.get('/brands'),
             api.get('/product-types', { params: { per_page: 1000 } }),
-            api.get('/product-prices', { params: { per_page: 1000 } })
+            api.get('/product-prices', { params: { per_page: 1000 } }),
+            api.get('/distributors')
         ]);
 
         // Process inventory
@@ -160,6 +162,7 @@ async function fetchHeavyData() {
         brands.value = brandsRes.data.data || brandsRes.data || [];
         productTypes.value = typesRes.data.data || typesRes.data || [];
         productPrices.value = pricesRes.data.data || pricesRes.data || [];
+        distributors.value = distRes.data.data || distRes.data || [];
         
         isDataLoaded.value = true;
     } catch (e) {
@@ -466,7 +469,7 @@ watch(transactionCategory, () => {
 
                 <AngkatBarangForm v-else-if="transactionCategory === 'angkat_barang'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
-                    :productPrices="productPrices" :selectedAccountObject="selectedAccountObject" 
+                    :productPrices="productPrices" :distributors="distributors" :selectedAccountObject="selectedAccountObject" 
                     @back="prevStep" @transaction-complete="handleTransactionComplete"
                     @verify-pin="handleVerifyPin" />
 
