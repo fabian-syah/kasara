@@ -738,6 +738,7 @@ class ReportController extends Controller
             $user = $request->user();
             $branchId = $request->query('branch_id');
             $onlineShopId = $request->query('online_shop_id');
+            $warehouseId = $request->query('warehouse_id');
             $date = $request->query('date', now()->toDateString());
             $mode = $request->query('mode', 'daily');
 
@@ -761,6 +762,7 @@ class ReportController extends Controller
 
             $filterBranchIds = $branchId ? [$branchId] : ($isRestricted ? $accessibleBranchIds : []);
             $filterOnlineShopIds = $onlineShopId ? [$onlineShopId] : ($isRestricted ? $accessibleOnlineShopIds : []);
+            $filterWarehouseIds = $warehouseId ? [$warehouseId] : [];
 
             // 1. Determine Logical Shift Date (Cutoff 5 AM)
             $now = now();
@@ -792,7 +794,8 @@ class ReportController extends Controller
                 ->where('product_details.status', 'available');
 
             if (!empty($filterBranchIds)) $currentStock->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
-            if (!empty($filterOnlineShopIds)) $currentStock->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+            elseif (!empty($filterOnlineShopIds)) $currentStock->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+            elseif (!empty($filterWarehouseIds)) $currentStock->whereIn('product_details.placement_id', $filterWarehouseIds)->where('product_details.placement_type', 'warehouse');
 
             $currentStock->groupBy('products.id', 'products.brand', 'products.name', 'products.type', 'products.has_imei', 'product_details.storage', 'product_details.condition');
 
@@ -819,7 +822,8 @@ class ReportController extends Controller
                 ->where('created_at', '<', $endTime)
                 ->where('type', 'in');
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
-            if (!empty($filterOnlineShopIds)) $dayLogs->whereIn('online_shop_id', $filterOnlineShopIds);
+            elseif (!empty($filterOnlineShopIds)) $dayLogs->where('online_shop_id', $filterOnlineShopIds[0]); // Explicitly use first if single
+            elseif (!empty($filterWarehouseIds)) $dayLogs->where('warehouse_id', $filterWarehouseIds[0]);
 
             foreach($dayLogs->get() as $log) {
                 // Try finding the specific product detail
@@ -870,11 +874,10 @@ class ReportController extends Controller
                 $dayOuts->where(function($q) use ($filterBranchIds) {
                     $q->whereIn('branch_id', $filterBranchIds)->orWhere('destination_id', $filterBranchIds)->orWhereNull('branch_id');
                 });
-            }
-            if (!empty($filterOnlineShopIds)) {
-                $dayOuts->where(function($q) use ($filterOnlineShopIds) {
-                    $q->whereIn('online_shop_id', $filterOnlineShopIds)->orWhereNull('online_shop_id');
-                });
+            } elseif (!empty($filterOnlineShopIds)) {
+                $dayOuts->whereIn('online_shop_id', $filterOnlineShopIds);
+            } elseif (!empty($filterWarehouseIds)) {
+                $dayOuts->whereIn('warehouse_id', $filterWarehouseIds);
             }
 
             foreach($dayOuts->get() as $out) {
@@ -963,7 +966,8 @@ class ReportController extends Controller
             // 4b. Get All Mutations from ResetTime until NOW (to calculate Initial Balance)
             $allLogsSinceReset = \App\Models\InventoryLog::where('created_at', '>=', $resetTime);
             if (!empty($filterBranchIds)) $allLogsSinceReset->whereIn('branch_id', $filterBranchIds);
-            if (!empty($filterOnlineShopIds)) $allLogsSinceReset->whereIn('online_shop_id', $filterOnlineShopIds);
+            elseif (!empty($filterOnlineShopIds)) $allLogsSinceReset->whereIn('online_shop_id', $filterOnlineShopIds);
+            elseif (!empty($filterWarehouseIds)) $allLogsSinceReset->where('warehouse_id', $filterWarehouseIds[0]);
             
             $netMutationsSinceReset = []; // key -> net change
             foreach ($allLogsSinceReset->get() as $log) {

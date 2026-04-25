@@ -968,6 +968,7 @@ const fetchStockHistory = async () => {
             params: {
                 branch_id: selectedBranchId.value,
                 online_shop_id: selectedOnlineShopId.value,
+                warehouse_id: selectedWarehouseId.value,
                 date: historyDate.value,
                 mode: historyMode.value
             }
