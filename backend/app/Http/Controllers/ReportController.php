@@ -826,6 +826,16 @@ class ReportController extends Controller
             elseif (!empty($filterWarehouseIds)) $dayLogs->where('warehouse_id', $filterWarehouseIds[0]);
 
             foreach($dayLogs->get() as $log) {
+                // Skip logs that are already accounted for in StockOut transactions (to avoid double counting)
+                // Transfers and Audits usually have a mention of the receipt_id or "Pindah Cabang" in the description
+                if ($log->description && (
+                    str_contains($log->description, 'Pindah Cabang') || 
+                    str_contains($log->description, 'Resi:') ||
+                    str_contains($log->description, 'Nota:')
+                )) {
+                    continue;
+                }
+
                 // Try finding the specific product detail
                 $pd = null;
                 if (is_numeric($log->reference_id)) {
@@ -1012,6 +1022,15 @@ class ReportController extends Controller
             elseif (!empty($filterWarehouseIds)) $allTimeInLogs->whereIn('warehouse_id', $filterWarehouseIds);
             
             foreach ($allTimeInLogs->get() as $log) {
+                // Skip logs that are already accounted for in StockOut transactions (to avoid double counting)
+                if ($log->description && (
+                    str_contains($log->description, 'Pindah Cabang') || 
+                    str_contains($log->description, 'Resi:') ||
+                    str_contains($log->description, 'Nota:')
+                )) {
+                    continue;
+                }
+
                 $pd = is_numeric($log->reference_id) ? ProductDetail::find($log->reference_id) : null;
                 if (!$pd) continue;
                 $k = "{$pd->product_id}:{$pd->storage}:{$pd->condition}";
