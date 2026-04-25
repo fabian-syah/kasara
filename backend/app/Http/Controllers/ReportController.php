@@ -754,10 +754,7 @@ class ReportController extends Controller
             } else {
                 $resetTime = $targetDate->copy()->setTime(5, 0, 0);
             }
-
-            $results = []; // Key: product_id:ram:storage:condition
-            $targetDateStr = $targetDate->toDateString();
-
+            
             $isRestricted = !$user->hasRole($unrestrictedRoles);
             $accessibleBranchIds = $user->getAccessibleBranchIds();
             $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -765,24 +762,71 @@ class ReportController extends Controller
             $filterBranchIds = $branchId ? [$branchId] : ($isRestricted ? $accessibleBranchIds : []);
             $filterOnlineShopIds = $onlineShopId ? [$onlineShopId] : ($isRestricted ? $accessibleOnlineShopIds : []);
 
-            // 1. Current Stock for HP (IMEI based)
-            // Note: History stock reporting in this system is optimized for HP.
+            // 1. Determine Logical Shift Date (Cutoff 5 AM)
+            $now = now();
+            if (!$date) {
+                // If it's before 5 AM, default to "Yesterday" shift
+                $targetDate = $now->hour < 5 ? $now->copy()->subDay() : $now->copy();
+            } else {
+                $targetDate = \Carbon\Carbon::parse($date);
+            }
+
+            // Calculation window: Selected Date 05:00 -> Next Day 05:00
+            $resetTime = $targetDate->copy()->setTime(5, 0, 0);
+            $endTime = $resetTime->copy()->addDay();
+
+            $results = [];
+            
+            // 2. Identify products that have mutations in this window
+            // This ensures the report "resets" and only shows active items
+            $logKeys = \App\Models\InventoryLog::where('created_at', '>=', $resetTime)
+                ->where('created_at', '<', $endTime)
+                ->whereNotNull('reference_id')
+                ->where(function($q) {
+                    $q->whereIn('action_type', ['stock_in', 'restock', 'Adjustment (Update)', 'Adjustment (Add)', 'audit_in', 'transfer_in']);
+                });
+            
+            $outKeys = StockOut::where('created_at', '>=', $resetTime)
+                ->where('created_at', '<', $endTime)
+                ->where('status', '!=', 'cancelled');
+
+            if (!empty($filterBranchIds)) {
+                $logKeys->whereIn('branch_id', $filterBranchIds);
+                $outKeys->whereIn('branch_id', $filterBranchIds);
+            }
+            if (!empty($filterOnlineShopIds)) {
+                $logKeys->whereIn('online_shop_id', $filterOnlineShopIds);
+                $outKeys->whereIn('online_shop_id', $filterOnlineShopIds);
+            }
+
+            $activeProductIds = array_unique(array_merge(
+                $logKeys->pluck('product_id')->toArray(),
+                $outKeys->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                    ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                    ->pluck('product_details.product_id')->toArray()
+            ));
+
+            if (empty($activeProductIds)) {
+                return response()->json(['data' => [], 'reset_time' => $resetTime->format('H:i d/m/Y')]);
+            }
+
+            // 3. Get current state for only active products
             $hpQuery = \App\Models\ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                ->selectRaw('
-                    products.id as product_id,
-                    products.brand,
-                    products.name as product_name,
-                    product_details.ram,
-                    product_details.storage,
-                    product_details.condition,
-                    COUNT(*) as qty
-                ')
-                ->where('product_details.status', 'available')
-                ->whereNull('products.deleted_at')
-                ->groupBy('products.id', 'products.brand', 'products.name', 'product_details.ram', 'product_details.storage', 'product_details.condition');
+                ->select(
+                    'products.id as product_id',
+                    'products.brand',
+                    'products.name as product_name',
+                    'product_details.storage',
+                    'product_details.condition',
+                    \DB::raw('count(*) as qty')
+                )
+                ->whereIn('products.id', $activeProductIds)
+                ->where('product_details.status', 'available');
 
             if (!empty($filterBranchIds)) $hpQuery->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
             if (!empty($filterOnlineShopIds)) $hpQuery->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
+
+            $hpQuery->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
 
             foreach($hpQuery->get() as $s) {
                 $key = "{$s->product_id}:{$s->storage}:{$s->condition}";
@@ -796,16 +840,16 @@ class ReportController extends Controller
                 ];
             }
 
-            // 2. Incoming Mutations (InventoryLogs)
-            $inLogs = InventoryLog::where('created_at', '>=', $resetTime)
-                ->where('type', 'in');
+            // 4. Backtrack mutations (Incoming Logs)
+            $logs = \App\Models\InventoryLog::with(['product'])
+                ->where('created_at', '>=', $resetTime)
+                ->where('created_at', '<', $endTime)
+                ->whereNotNull('reference_id');
             
-            if (!empty($filterBranchIds)) $inLogs->whereIn('branch_id', $filterBranchIds);
-            if (!empty($filterOnlineShopIds)) $inLogs->whereIn('online_shop_id', $filterOnlineShopIds);
-            
-            foreach($inLogs->get() as $log) {
-                if (!$log->reference_id || !is_numeric($log->reference_id)) continue;
-                
+            if (!empty($filterBranchIds)) $logs->whereIn('branch_id', $filterBranchIds);
+            if (!empty($filterOnlineShopIds)) $logs->whereIn('online_shop_id', $filterOnlineShopIds);
+
+            foreach($logs->get() as $log) {
                 $pd = ProductDetail::find($log->reference_id);
                 if (!$pd || $pd->product_id != $log->product_id) continue;
                 
@@ -817,23 +861,24 @@ class ReportController extends Controller
                         'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
                     ];
                 }
-                
-                $results[$key]['in']++;
-                $results[$key]['initial']--; 
-                
-                $desc = strtoupper($log->description ?? '');
-                if (str_contains($desc, 'TT')) $results[$key]['in_tt']++;
-                elseif (str_contains($desc, 'TU')) $results[$key]['in_tu']++;
-                elseif (str_contains($desc, 'DW')) $results[$key]['in_dw']++;
-                elseif (str_contains($desc, 'RF')) $results[$key]['in_rf']++;
-                elseif (str_contains($desc, 'AB')) $results[$key]['in_ab']++;
+
+                if (in_array($log->action_type, ['stock_in', 'restock', 'Adjustment (Add)', 'audit_in', 'transfer_in'])) {
+                    $results[$key]['in']++;
+                    $results[$key]['initial']--;
+                    
+                    if ($log->action_type == 'restock') $results[$key]['in_tu']++;
+                    elseif ($log->action_type == 'audit_in') $results[$key]['in_ab']++;
+                    elseif ($log->action_type == 'transfer_in') $results[$key]['in_tt']++;
+                    else $results[$key]['in_dw']++;
+                }
             }
 
-            // 3. Outgoing Mutations (StockOut)
+            // 5. Backtrack mutations (Outgoing Stock)
             $outQuery = StockOut::with(['items.product'])
                 ->where('created_at', '>=', $resetTime)
+                ->where('created_at', '<', $endTime)
                 ->where('status', '!=', 'cancelled');
-
+            
             if (!empty($filterBranchIds)) $outQuery->whereIn('branch_id', $filterBranchIds);
             if (!empty($filterOnlineShopIds)) $outQuery->whereIn('online_shop_id', $filterOnlineShopIds);
             
@@ -847,7 +892,7 @@ class ReportController extends Controller
                             'sold' => 0, 'out' => 0, 'out_tt' => 0, 'out_tu' => 0, 'out_dw' => 0, 'final' => 0
                         ];
                     }
-
+                    
                     $cat = $out->category;
                     $results[$key]['initial']++;
                     
@@ -855,9 +900,9 @@ class ReportController extends Controller
                         $results[$key]['sold']++;
                     } else {
                         $results[$key]['out']++;
-                        if (str_contains(strtoupper($cat), 'TT')) $results[$key]['out_tt']++;
-                        elseif (str_contains(strtoupper($cat), 'TU')) $results[$key]['out_tu']++;
-                        elseif (str_contains(strtoupper($cat), 'DW')) $results[$key]['out_dw']++;
+                        if ($cat == 'pindah_cabang') $results[$key]['out_tt']++;
+                        elseif ($cat == 'retur') $results[$key]['out_tu']++;
+                        else $results[$key]['out_dw']++;
                     }
                 }
             }
