@@ -1236,13 +1236,29 @@ class ReportController extends Controller
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
                 fputcsv($file, [
-                    'Nama Produk', 'Awal', 'Total In', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
-                    'Terjual', 'Total Out', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Akhir'
+                    'Nama Produk', 'Awal (All-Time)', 'Masuk (Total)', 'Manual', 'TT (In)', 'TU (In)', 'DW (In)', 'RF (In)', 'AB (In)', 
+                    'Keluar (Total)', 'Terjual', 'TT (Out)', 'TU (Out)', 'DW (Out)', 'Lainnya', 'Retur', 'Sisa (All-Time)'
                 ]);
                 foreach ($items as $row) {
+                    $lainnya = ($row['out_pindah'] ?? 0) + ($row['out_kesalahan'] ?? 0) + ($row['out_keluar'] ?? 0) + ($row['out_hilang'] ?? 0);
                     fputcsv($file, [
-                        $row['name'], $row['initial'], $row['in'], $row['in_tt'], $row['in_tu'], $row['in_dw'], $row['in_rf'], $row['in_ab'],
-                        $row['sold'], $row['out'], $row['out_tt'], $row['out_tu'], $row['out_dw'], $row['final']
+                        $row['name'], 
+                        $row['initial'], 
+                        $row['in_total'], 
+                        $row['in_manual'], 
+                        $row['in_tt'], 
+                        $row['in_tu'], 
+                        $row['in_dw'], 
+                        $row['in_rf'], 
+                        $row['in_ab'],
+                        $row['out_total'],
+                        $row['out_sold'],
+                        $row['out_tt'],
+                        $row['out_tu'],
+                        $row['out_dw'],
+                        $lainnya,
+                        $row['out_retur'] ?? 0,
+                        $row['final']
                     ]);
                 }
                 fclose($file);

@@ -2559,40 +2559,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Export Actions -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-6 flex flex-col justify-between">
-                         <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="p-2 bg-emerald-500/10 rounded-lg">
-                                    <FileSpreadsheet class="text-emerald-400" :size="20" />
-                                </div>
-                                <h4 class="font-bold text-white">Laporan Penjualan</h4>
-                            </div>
-                            <p class="text-xs text-text-secondary mb-6">Download data penjualan harian dalam format Excel.</p>
-                         </div>
-                         <button @click="downloadExcel('sales')"
-                            class="w-full flex items-center justify-center gap-2 py-3 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/10">
-                            <Download :size="18" /> DOWNLOAD EXCEL
-                         </button>
-                    </div>
 
-                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-6 flex flex-col justify-between">
-                         <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="p-2 bg-blue-500/10 rounded-lg">
-                                    <Package class="text-blue-400" :size="20" />
-                                </div>
-                                <h4 class="font-bold text-white">Laporan Barang Keluar Masuk</h4>
-                            </div>
-                            <p class="text-xs text-text-secondary mb-6">Download mutasi stok harian (In/Out) dalam format Excel.</p>
-                         </div>
-                         <button @click="downloadExcel('mutation')"
-                            class="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/10">
-                            <Download :size="18" /> DOWNLOAD EXCEL
-                         </button>
-                    </div>
-                </div>
 
                 <!-- History Table (Placeholder) -->
                 <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
@@ -2601,10 +2568,19 @@ onMounted(() => {
                             <h3 class="font-bold text-text-primary text-lg">📊 Mutasi Stok</h3>
                             <p class="text-[10px] text-text-secondary uppercase tracking-widest mt-1">Reset Tiap Jam 05:00 AM • <span class="text-primary-600 font-bold">Jam Reset: {{ resetTime }}</span></p>
                         </div>
-                        <button @click="fetchStockHistory()" class="flex items-center gap-2 px-4 py-2 bg-surface-700 hover:bg-surface-600 rounded-xl text-text-primary text-xs font-bold transition-all duration-200 shadow-sm active:scale-95 border border-surface-600/50">
-                            <RefreshCw :size="14" :class="{'animate-spin': historyLoading}" />
-                            <span class="hidden sm:inline">Refresh</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button @click="downloadExcel('sales')" class="flex items-center gap-2 px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-600/30 rounded-lg text-emerald-500 text-[10px] font-bold transition-all active:scale-95">
+                                <FileSpreadsheet :size="12" /> EXPORT PENJUALAN
+                            </button>
+                            <button @click="downloadExcel('mutation')" class="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-600/30 rounded-lg text-blue-400 text-[10px] font-bold transition-all active:scale-95">
+                                <Download :size="12" /> EXPORT MUTASI
+                            </button>
+                            <div class="w-px h-6 bg-surface-700 mx-1"></div>
+                            <button @click="fetchStockHistory()" class="flex items-center gap-2 px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-text-primary text-[10px] font-bold transition-all border border-surface-600/50">
+                                <RefreshCw :size="12" :class="{'animate-spin': historyLoading}" />
+                                <span>REFRESH</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="p-12 text-center" v-if="historyLoading">
                         <RefreshCw class="animate-spin text-primary-500 mx-auto mb-3" :size="32" />
