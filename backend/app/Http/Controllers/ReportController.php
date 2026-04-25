@@ -211,14 +211,9 @@ class ReportController extends Controller
             });
         }
 
-        // Sort A-Z safely for both categories
-        $hpSorted = collect($formattedHp)->sortBy(function($item) {
-            return strtolower($item['name'] ?? '');
-        })->values();
-        
-        $nonHpSorted = collect($formattedNonHp)->sortBy(function($item) {
-            return strtolower($item['name'] ?? '');
-        })->values();
+        // Sort A-Z strictly alphabetical and naturally (11 before 12, case-insensitive)
+        $hpSorted = collect($formattedHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
+        $nonHpSorted = collect($formattedNonHp)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
 
         return response()->json([
             'data' => [
@@ -1163,10 +1158,8 @@ class ReportController extends Controller
                 $titleSuffix = 'SEMUA BARANG';
             }
             
-            // Sort A-Z safely with fallback
-            $items = collect($items)->sortBy(function($item) {
-                return strtolower($item['name'] ?? '');
-            })->values()->toArray();
+            // Sort A-Z naturally (11 before 12, case-insensitive)
+            $items = collect($items)->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values()->toArray();
             
             $filename = 'LAPORAN_MUTASI_STOK_' . now()->format('d-m-Y_H-i') . '.xlsx';
 
