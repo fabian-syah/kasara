@@ -990,6 +990,16 @@ const fetchDownloadLogs = async () => {
         console.error('Error fetching logs:', err);
     }
 };
+    const historyDateDisplay = computed(() => {
+        if (!historyDate.value) return '';
+        if (historyMode.value === 'monthly') {
+            const date = new Date(historyDate.value);
+            return date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        }
+        
+        const date = new Date(historyDate.value);
+        return date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+    });
 
 const maxDate = new Date().toISOString().split('T')[0];
 const minDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
