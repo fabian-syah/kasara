@@ -973,7 +973,17 @@ const fetchStockHistory = async () => {
                 mode: historyMode.value
             }
         });
-        historyData.value = res.data.data || { hp: [], non_hp: [] };
+        const data = res.data.data || { hp: [], non_hp: [] };
+        
+        // Secondary sort on frontend for case-insensitive A-Z
+        const naturalSort = (a, b) => {
+            return (a.name || '').localeCompare((b.name || ''), 'id', { numeric: true, sensitivity: 'base' });
+        };
+        
+        if (data.hp) data.hp.sort(naturalSort);
+        if (data.non_hp) data.non_hp.sort(naturalSort);
+        
+        historyData.value = data;
         resetTime.value = res.data.reset_time_label || res.data.reset_time;
     } catch (err) {
         toast.error(err.response?.data?.error || 'Gagal memuat history stok');
