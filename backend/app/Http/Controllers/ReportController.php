@@ -821,7 +821,7 @@ class ReportController extends Controller
             ];
 
             // Helper function for consistent naming and grouping
-            $normalize = function($brand, $name, $storage, $condition) {
+            $normalize = function($brand, $name, $storage, $condition, $isActuallyHp = true) {
                 $b = trim($brand ?? '');
                 $n = trim($name ?? '');
                 $s = trim($storage ?? '');
@@ -836,8 +836,10 @@ class ReportController extends Controller
                 // Standardize multiple spaces and remove any ™ symbols that might differ
                 $dispName = trim(preg_replace('/\s+/', ' ', str_replace('™', '', $dispName)));
                 
-                if ($s) $dispName .= " ({$s})";
-                $dispName .= " (" . ($c === 'new' ? 'Baru' : ($c === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
+                if ($isActuallyHp) {
+                    if ($s) $dispName .= " ({$s})";
+                    $dispName .= " (" . ($c === 'new' ? 'Baru' : ($c === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")";
+                }
                 
                 return [
                     'display' => $dispName,
@@ -848,7 +850,8 @@ class ReportController extends Controller
 
             // 2. Initial Data from Current Stock (HP)
             foreach($currentStock->get() as $s) {
-                $norm = $normalize($s->brand, $s->product_name, $s->storage, $s->condition);
+                $isHpItem = ($s->type ?? ($s->has_imei ? 'hp' : 'non-hp')) === 'hp' || $s->has_imei;
+                $norm = $normalize($s->brand, $s->product_name, $s->storage, $s->condition, $isHpItem);
                 $groupKey = $norm['key'];
 
                 if (!isset($results[$groupKey])) {
@@ -879,7 +882,7 @@ class ReportController extends Controller
 
             foreach($currentNonHpStock->get() as $s) {
                 // Non-HP implicitly passes null for storage and condition
-                $norm = $normalize($s->brand, $s->product_name, null, null);
+                $norm = $normalize($s->brand, $s->product_name, null, null, false);
                 $groupKey = $norm['key'];
 
                 if (!isset($results[$groupKey])) {
@@ -905,7 +908,8 @@ class ReportController extends Controller
                 $pd = $log->productDetail;
                 if (!$pd) continue;
 
-                $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition);
+                $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
+                $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
                 $groupKey = $norm['key'];
 
                 if (!isset($results[$groupKey])) {
@@ -942,7 +946,8 @@ class ReportController extends Controller
                 $isIncoming = in_array($out->category, $incomingAuditCategories) || $isAB;
                 
                 foreach($out->items as $pd) {
-                    $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition);
+                    $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
+                    $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
                     $groupKey = $norm['key'];
 
                     if (!isset($results[$groupKey])) {
@@ -967,7 +972,7 @@ class ReportController extends Controller
                 }
 
                 foreach($out->nonHpItems as $nhi) {
-                    $norm = $normalize($nhi->product->brand ?? '', $nhi->product->name ?? '', null, null);
+                    $norm = $normalize($nhi->product->brand ?? '', $nhi->product->name ?? '', null, null, false);
                     $groupKey = $norm['key'];
 
                     if (!isset($results[$groupKey])) {
