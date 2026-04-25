@@ -783,6 +783,8 @@ class ReportController extends Controller
                     'products.id as product_id',
                     'products.brand',
                     'products.name as product_name',
+                    'products.type',
+                    'products.has_imei',
                     'product_details.storage',
                     'product_details.condition',
                     \DB::raw('count(*) as qty')
@@ -792,7 +794,7 @@ class ReportController extends Controller
             if (!empty($filterBranchIds)) $currentStock->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
             if (!empty($filterOnlineShopIds)) $currentStock->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
 
-            $currentStock->groupBy('products.id', 'products.brand', 'products.name', 'product_details.storage', 'product_details.condition');
+            $currentStock->groupBy('products.id', 'products.brand', 'products.name', 'products.type', 'products.has_imei', 'product_details.storage', 'product_details.condition');
 
             $defaultRow = [
                 'initial' => 0, 
@@ -805,6 +807,8 @@ class ReportController extends Controller
                 $key = "{$s->product_id}:{$s->storage}:{$s->condition}";
                 $results[$key] = array_merge($defaultRow, [
                     'name' => "{$s->brand} {$s->product_name} " . ($s->storage ? "({$s->storage}) " : "") . "(" . ($s->condition === 'new' ? 'Baru' : ($s->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                    'type' => $s->type ?? ($s->has_imei ? 'hp' : 'non-hp'),
+                    'has_imei' => $s->has_imei,
                     'initial' => $s->qty, 
                     'final' => $s->qty
                 ]);
@@ -835,6 +839,8 @@ class ReportController extends Controller
                 if (!isset($results[$key])) {
                     $results[$key] = array_merge($defaultRow, [
                         'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                        'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
+                        'has_imei' => $pd->product->has_imei,
                     ]);
                 }
                 
@@ -883,6 +889,8 @@ class ReportController extends Controller
                     if (!isset($results[$key])) {
                         $results[$key] = array_merge($defaultRow, [
                             'name' => ($pd->product->brand ?? '') . ' ' . ($pd->product->name ?? '') . " " . ($pd->storage ? "({$pd->storage}) " : "") . "(" . ($pd->condition === 'new' ? 'Baru' : ($pd->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas')) . ")",
+                            'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
+                            'has_imei' => $pd->product->has_imei,
                         ]);
                     }
                     
@@ -915,6 +923,8 @@ class ReportController extends Controller
                     if (!isset($results[$key])) {
                         $results[$key] = array_merge($defaultRow, [
                             'name' => ($nhi->product->brand ?? '') . ' ' . ($nhi->product->name ?? ''),
+                            'type' => $nhi->product->type ?? 'non-hp',
+                            'has_imei' => false,
                         ]);
                     }
                     $qty = $nhi->quantity;
@@ -1002,17 +1012,15 @@ class ReportController extends Controller
             foreach ($results as $row) {
                 $pName = strtolower($row['name']);
                 
-                // Logic to identify HP/IMEI units more accurately
-                // 1. If it has Storage (GB) and Condition (Baru/Bekas) in name, it's definitely an HP unit
-                $isHpUnit = str_contains($pName, ' gb)') || str_contains($pName, ' baru)') || str_contains($pName, ' bekas)');
+                // CRITICAL: Use has_imei flag if available, fallback to explicit type or name pattern
+                $hasImei = $row['has_imei'] ?? false;
+                $isHpType = ($row['type'] ?? '') === 'hp';
+                $isHpPattern = str_contains($pName, 'baru)') || str_contains($pName, 'bekas)') || str_contains($pName, 'gb)');
                 
-                // 2. If it is explicitly typed as HP
-                $isExplicitHp = ($row['type'] ?? '') === 'hp';
-                
-                $isHp = ($isHpUnit || $isExplicitHp);
+                $isHp = $hasImei || $isHpType || $isHpPattern;
 
-                // EXCEPTIONS: If it is Jasa, Arcis, Service, it's NOT an HP unit regardless of name patterns
-                if (str_contains($pName, 'jasa') || str_contains($pName, 'service') || str_contains($pName, 'arcis') || str_contains($pName, 'parfum')) {
+                // EXCEPTIONS: Services/Services/Specific brands that are never HP
+                if (str_contains($pName, 'jasa') || str_contains($pName, 'service') || str_contains($pName, 'arcis')) {
                     $isHp = false;
                 }
 
