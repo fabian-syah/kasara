@@ -516,13 +516,12 @@ class ReportController extends Controller
             }
         }
         
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang'];
 
         // 1. Get Base Stats (Omset & Transaction Count)
         $branchBase = DB::table('branches')
-            ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
-                $join->on('users.id', '=', 'stock_outs.user_id')
+                $join->on('branches.id', '=', 'stock_outs.branch_id')
                     ->whereIn('stock_outs.category', $salesCategories)
                     ->whereNull('stock_outs.deleted_at');
                 if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
@@ -538,8 +537,7 @@ class ReportController extends Controller
 
         // 2. Get Item Counts (Iphone vs Android)
         $branchItemCounts = DB::table('branches')
-            ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
-            ->join('stock_outs', 'users.id', '=', 'stock_outs.user_id')
+            ->join('stock_outs', 'branches.id', '=', 'stock_outs.branch_id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -558,8 +556,7 @@ class ReportController extends Controller
 
         // 3. Get Top Android Models per branch
         $branchAndroidModels = DB::table('branches')
-            ->leftJoin('users', 'branches.id', '=', 'users.branch_id')
-            ->join('stock_outs', 'users.id', '=', 'stock_outs.user_id')
+            ->join('stock_outs', 'branches.id', '=', 'stock_outs.branch_id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -607,9 +604,8 @@ class ReportController extends Controller
 
         // 4. Get Online Shop Stats
         $onlineBase = DB::table('online_shops')
-            ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
             ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
-                $join->on('users.id', '=', 'stock_outs.user_id')
+                $join->on('online_shops.id', '=', 'stock_outs.online_shop_id')
                     ->whereIn('stock_outs.category', $salesCategories)
                     ->whereNull('stock_outs.deleted_at');
                 if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
@@ -624,8 +620,7 @@ class ReportController extends Controller
             ->get()->keyBy('id');
 
         $onlineItemCounts = DB::table('online_shops')
-            ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
-            ->join('stock_outs', 'users.id', '=', 'stock_outs.user_id')
+            ->join('stock_outs', 'online_shops.id', '=', 'stock_outs.online_shop_id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -643,8 +638,7 @@ class ReportController extends Controller
             ->get()->keyBy('id');
 
         $onlineAndroidModels = DB::table('online_shops')
-            ->leftJoin('users', 'online_shops.id', '=', 'users.online_shop_id')
-            ->join('stock_outs', 'users.id', '=', 'stock_outs.user_id')
+            ->join('stock_outs', 'online_shops.id', '=', 'stock_outs.online_shop_id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -710,7 +704,7 @@ class ReportController extends Controller
         $includeZero = $request->boolean('include_zero', false);
         
         if (!$includeZero) {
-            $report = $report->filter(fn($item) => $item->omset > 0);
+            $report = $report->filter(fn($item) => $item->omset > 0 || $item->transaction_count > 0);
         }
 
         $report = $report->sortByDesc('omset')->values();
