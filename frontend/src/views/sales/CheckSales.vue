@@ -166,7 +166,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div>{{ detail.name }}</div>
                                         <div v-if="detail.ram || detail.storage" class="text-[10px] text-gray-500">
-                                            {{ [detail.ram, detail.storage].filter(Boolean).join('/') }}
+                                            {{ [...new Set([detail.ram, detail.storage].filter(Boolean))].join('/') }}
                                         </div>
                                         <span v-if="detail.condition"
                                             class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
@@ -656,7 +656,7 @@ const activeRecords = computed(() => {
     return Array.isArray(list) ? list.filter(item => item.category !== 'cancel_penjualan') : []
 })
 const totalSales = computed(() => activeRecords.value.reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
-const totalUnits = computed(() => activeRecords.value.reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
+const totalUnits = computed(() => activeRecords.value.filter(item => !['refund', 'angkat_barang'].includes(item.category)).reduce((sum, item) => sum + (parseInt(item.qty) || 0), 0))
 const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
 const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas').reduce((sum, item) => sum + (parseFloat(item.grand_total) || 0), 0))
 

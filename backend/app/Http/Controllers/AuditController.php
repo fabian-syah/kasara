@@ -956,19 +956,26 @@ class AuditController extends Controller
                             return 'others';
                         };
 
-                        $addUnitToMap = function (&$map, $brand, $category) {
+                        $addUnitToMap = function (&$map, $brand, $itemCategory, $trxCategory = null) {
                             $brand = strtolower($brand ?? '');
-                            if ($category === 'apple_lux') {
-                                $map['apple_lux']++;
-                            } elseif ($brand === 'apple' || str_contains($brand, 'iphone')) {
-                                $map['iphone']++;
-                            } else {
-                                // Count all other HP items as Android for summary purposes
-                                $map['android']++;
+                            $trxCategory = strtolower($trxCategory ?? '');
+                            
+                            // Only count towards HP totals if it's a standard sale, not a return/retrieval
+                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan']);
+
+                            if ($isStandardSale) {
+                                if ($itemCategory === 'apple_lux') {
+                                    $map['apple_lux']++;
+                                } elseif ($brand === 'apple' || str_contains($brand, 'iphone')) {
+                                    $map['iphone']++;
+                                } else {
+                                    // Count all other HP items as Android for summary purposes
+                                    $map['android']++;
+                                }
                             }
 
-                            if (isset($map[$category])) {
-                                $map[$category]++;
+                            if (isset($map[$itemCategory])) {
+                                $map[$itemCategory]++;
                             }
                         };
 
@@ -991,12 +998,12 @@ class AuditController extends Controller
                                 ];
                             }
 
-                            $cat = $getCategoryByItem($hp->distributor_id);
-                            $addUnitToMap($map, $hp->brand, $cat);
+                            $itemCat = $getCategoryByItem($hp->distributor_id);
+                            $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
 
                             $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
-                            $mapRp[$cat] += $price;
-                            $soldDetails[$cat][$hp->name ?? 'Unknown item'] = ($soldDetails[$cat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
+                            $mapRp[$itemCat] += $price;
+                            $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
                         }
 
                         // 2. Non-IMEI transactions
@@ -1041,10 +1048,16 @@ class AuditController extends Controller
                             // Breakdown for non-IMEI HP if any
                             if ($cat === 'hp' || $cat === 'apple_lux') {
                                 $brand = strtolower($item->brand ?? '');
-                                if ($brand === 'apple' || str_contains($brand, 'iphone'))
-                                    $map['iphone'] += $qty;
-                                else
-                                    $map['android'] += $qty;
+                                $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                                
+                                if ($isStandardSale) {
+                                    if ($brand === 'apple' || str_contains($brand, 'iphone'))
+                                        $map['iphone'] += $qty;
+                                    elseif ($cat === 'apple_lux')
+                                        $map['apple_lux'] += $qty;
+                                    else
+                                        $map['android'] += $qty;
+                                }
                             }
 
                             $map[$cat] += $qty;

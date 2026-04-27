@@ -1091,7 +1091,7 @@ async function exportInventory() {
               <template v-if="activeTab === 'hp'">
                 <td class="text-sm hidden lg:table-cell">
                   <span class="bg-surface-800 px-3 py-1 rounded-lg text-text-secondary" v-if="item.ram || item.storage">
-                    {{ [item.ram, item.storage].filter(Boolean).join('/') }}
+                    {{ [...new Set([item.ram, item.storage].filter(Boolean))].join('/') }}
                   </span>
                   <span v-else class="text-text-secondary">-</span>
                 </td>
