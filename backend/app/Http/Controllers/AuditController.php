@@ -853,7 +853,7 @@ class AuditController extends Controller
                         // 1. Total Omset & Payments (Memory-efficient aggregation)
                         $pQuery = DB::table('stock_outs');
                         $applyLocalScope($pQuery);
-                        $paymentStats = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        $paymentStats = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
                             ->select(
                                 'payment_method_id',
                                 DB::raw("sum(case when category = 'refund' then -selling_price else selling_price end) as total_amount"),
@@ -874,7 +874,7 @@ class AuditController extends Controller
                         // Handle splits separately across the small set of split transactions (usually few)
                         $splitQuery = DB::table('stock_outs');
                         $applyLocalScope($splitQuery);
-                        $splits = $splitQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        $splits = $splitQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
                             ->whereNotNull('split_payments')
                             ->select('split_payments', 'category')->get();
 
@@ -974,7 +974,7 @@ class AuditController extends Controller
                                 }
                             }
 
-                            if (isset($map[$itemCategory])) {
+                            if ($isStandardSale && isset($map[$itemCategory])) {
                                 $map[$itemCategory]++;
                             }
                         };
@@ -1003,12 +1003,10 @@ class AuditController extends Controller
                             $itemCat = $getCategoryByItem($hp->distributor_id);
                             $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
 
-                            $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
-                            $mapRp[$itemCat] += $price;
-
-                            // Only add to 'Sold' details if it's a standard sale
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
                             if ($isStandardSale) {
+                                $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
+                                $mapRp[$itemCat] += $price;
                                 $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
                             }
                         }
@@ -1053,12 +1051,13 @@ class AuditController extends Controller
                             $qty = (int) $item->quantity;
                             $cat = $getCategoryByItem($did);
 
-                            // Breakdown for non-IMEI HP if any
-                            if ($cat === 'hp' || $cat === 'apple_lux') {
-                                $brand = strtolower($item->brand ?? '');
-                                $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
-                                
-                                if ($isStandardSale) {
+                            // Only add to maps if it's a standard sale
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            if ($isStandardSale) {
+                                // Breakdown for non-IMEI HP if any
+                                if ($cat === 'hp' || $cat === 'apple_lux') {
+                                    $brand = strtolower($item->brand ?? '');
+                                    
                                     if ($brand === 'apple' || str_contains($brand, 'iphone'))
                                         $map['iphone'] += $qty;
                                     elseif ($cat === 'apple_lux')
@@ -1066,14 +1065,9 @@ class AuditController extends Controller
                                     else
                                         $map['android'] += $qty;
                                 }
-                            }
 
-                            $map[$cat] += $qty;
-                            $mapRp[$cat] += (float) $item->item_price * $qty;
-
-                            // Only add to 'Sold' details if it's a standard sale
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
-                            if ($isStandardSale) {
+                                $map[$cat] += $qty;
+                                $mapRp[$cat] += (float) $item->item_price * $qty;
                                 $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
                             }
                         }
