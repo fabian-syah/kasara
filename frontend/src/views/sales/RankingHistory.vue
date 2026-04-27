@@ -313,10 +313,12 @@
                                 { key: 'debs', label: 'Penjualan Debs', color: 'border border-gray-400 bg-white' },
                                 { key: 'arcis', label: 'Penjualan Arcis', color: 'border border-gray-400 bg-white' },
                                 { key: 'dokter_pstore', label: 'Penjualan Dokter Pstore', color: 'border border-gray-400 bg-white' },
+                                { key: 'sim_card', label: 'Sim Card', color: 'border border-gray-400 bg-white' },
                                 { key: 'perdana', label: 'Penjualan Perdana', color: 'border border-gray-400 bg-white' },
                                 { key: 'jaringan', label: '4G / LTE', color: 'border border-gray-400 bg-white' },
                                 { key: 'laptop', label: 'Penjualan Laptop', color: 'border border-gray-400 bg-white' },
-                                { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' }
+                                { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' },
+                                { key: 'jasa', label: 'Penjualan Jasa', color: 'border border-gray-400 bg-white' }
                             ]" :key="'report-cat-' + cat.key">
                                 <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))"
                                     class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
@@ -355,6 +357,31 @@
                                 <span class="capitalize">Android</span>
                                 <span class="text-emerald-950 font-black">{{
                                     salesData?.report_summary?.dist_map?.android || 0 }}</span>
+                            </div>
+
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Laptop</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">TV</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.tv || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">4G / LTE</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.jaringan || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Sim Card</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.sim_card || 0 }}</span>
                             </div>
 
                             <div
