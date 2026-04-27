@@ -403,8 +403,15 @@
                                     <div class="space-y-3 pl-2">
                                         <div v-for="(d, idx) in salesData.report_summary.activities.details.refund" :key="'ui-ref-'+idx" 
                                             class="border-l-2 border-red-100 pl-3 py-1">
-                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">{{ d.name }}</div>
-                                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
+                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
+                                                {{ d.name }} {{ d.storage ? `(${d.storage})` : '' }}
+                                            </div>
+                                            <div class="flex items-center gap-4 mt-1">
+                                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
+                                                <div v-if="d.price" class="text-[10px] font-black text-red-600 uppercase tracking-tighter">
+                                                    Harga Refund: {{ formatCurrency(d.price) }}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -413,8 +420,15 @@
                                     <div class="space-y-3 pl-2">
                                         <div v-for="(d, idx) in salesData.report_summary.activities.details.angkat_barang" :key="'ui-ab-'+idx" 
                                             class="border-l-2 border-blue-100 pl-3 py-1">
-                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">{{ d.name }}</div>
-                                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
+                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
+                                                {{ d.name }} {{ d.storage ? `(${d.storage})` : '' }}
+                                            </div>
+                                            <div class="flex items-center gap-4 mt-1">
+                                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
+                                                <div v-if="d.price" class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
+                                                    Harga Angkat: {{ formatCurrency(d.price) }}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1554,13 +1568,15 @@ const getBaseReportText = (isForCopy = false) => {
         if (actDetails.refund && actDetails.refund.length > 0) {
             text += `\n*Rincian Refund:*\n`;
             actDetails.refund.forEach(d => {
-                text += `• ${d.name || '-'}\n  IMEI: ${d.imei || '-'}\n`;
+                text += `• ${d.name || '-'}${d.storage ? ` (${d.storage})` : ''}\n  IMEI: ${d.imei || '-'}\n`;
+                if (d.price) text += `  Harga Refund: ${formatCurrency(d.price)}\n`;
             });
         }
         if (actDetails.angkat_barang && actDetails.angkat_barang.length > 0) {
             text += `\n*Rincian Angkat Barang:*\n`;
             actDetails.angkat_barang.forEach(d => {
-                text += `• ${d.name || '-'}\n  IMEI: ${d.imei || '-'}\n`;
+                text += `• ${d.name || '-'}${d.storage ? ` (${d.storage})` : ''}\n  IMEI: ${d.imei || '-'}\n`;
+                if (d.price) text += `  Harga Angkat Barang: ${formatCurrency(d.price)}\n`;
             });
         }
     }

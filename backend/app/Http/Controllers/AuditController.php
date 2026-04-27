@@ -989,12 +989,14 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
 
-                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei')->get() as $hp) {
+                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei')->get() as $hp) {
                             $catLower = strtolower($hp->category ?? '');
                             if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => $hp->name,
-                                    'imei' => $hp->imei
+                                    'imei' => $hp->imei,
+                                    'storage' => $hp->storage,
+                                    'price' => (float) $hp->item_price
                                 ];
                             }
 
@@ -1023,7 +1025,8 @@ class AuditController extends Controller
                             if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => ($item->name ?? 'Unknown') . " (Qty: {$item->quantity})",
-                                    'imei' => null
+                                    'imei' => null,
+                                    'price' => (float) $item->item_price
                                 ];
                             }
 
