@@ -1003,7 +1003,12 @@ class AuditController extends Controller
 
                             $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
                             $mapRp[$itemCat] += $price;
-                            $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
+
+                            // Only add to 'Sold' details if it's a standard sale
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            if ($isStandardSale) {
+                                $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
+                            }
                         }
 
                         // 2. Non-IMEI transactions
@@ -1062,7 +1067,12 @@ class AuditController extends Controller
 
                             $map[$cat] += $qty;
                             $mapRp[$cat] += (float) $item->item_price * $qty;
-                            $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
+
+                            // Only add to 'Sold' details if it's a standard sale
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            if ($isStandardSale) {
+                                $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
+                            }
                         }
 
 
