@@ -361,39 +361,7 @@ class AuditController extends Controller
 
                                 // Hard exclusion for Analist (Trial/ANU)
                                 if ($isAnalist) {
-                                    $sub->whereNotExists(function ($sq) {
-                                        $sq->select(DB::raw(1))
-                                            ->from('branches')
-                                            ->where(function ($bq) {
-                                                $bq->whereRaw('branches.id = stock_outs.branch_id')
-                                                    ->orWhereExists(function ($usq) {
-                                                        $usq->select(DB::raw(1))
-                                                            ->from('users')
-                                                            ->whereRaw('users.id = stock_outs.user_id')
-                                                            ->whereRaw('users.branch_id = branches.id');
-                                                    });
-                                            })
-                                            ->where(function ($nq) {
-                                                $nq->where('name', 'ilike', '%trial%')
-                                                    ->orWhere('name', 'ilike', '%testing%')
-                                                    ->orWhere('name', 'ilike', '%anu%')
-                                                    ->orWhere('name', 'ilike', '%huft%');
-                                            });
-                                    })
-                                        ->whereNotExists(function ($sq) {
-                                            $sq->select(DB::raw(1))
-                                                ->from('online_shops')
-                                                ->where(function ($oq) {
-                                                    $oq->whereRaw('online_shops.id = stock_outs.online_shop_id')
-                                                        ->orWhereExists(function ($usq) {
-                                                            $usq->select(DB::raw(1))
-                                                                ->from('users')
-                                                                ->whereRaw('users.id = stock_outs.user_id')
-                                                                ->whereRaw('users.online_shop_id = online_shops.id');
-                                                        });
-                                                })
-                                                ->where('name', 'ilike', '%ANU%');
-                                        });
+                                    // Filter removed
                                 }
                             });
                         }
@@ -480,39 +448,7 @@ class AuditController extends Controller
 
                                 // Hard exclusion for Analist (Trial/ANU)
                                 if ($isAnalist) {
-                                    $sub->whereNotExists(function ($sq) {
-                                        $sq->select(DB::raw(1))
-                                            ->from('branches')
-                                            ->where(function ($bq) {
-                                                $bq->whereRaw('branches.id = stock_outs.branch_id')
-                                                    ->orWhereExists(function ($usq) {
-                                                        $usq->select(DB::raw(1))
-                                                            ->from('users')
-                                                            ->whereRaw('users.id = stock_outs.user_id')
-                                                            ->whereRaw('users.branch_id = branches.id');
-                                                    });
-                                            })
-                                            ->where(function ($nq) {
-                                                $nq->where('name', 'ilike', '%trial%')
-                                                    ->orWhere('name', 'ilike', '%testing%')
-                                                    ->orWhere('name', 'ilike', '%anu%')
-                                                    ->orWhere('name', 'ilike', '%huft%');
-                                            });
-                                    })
-                                        ->whereNotExists(function ($sq) {
-                                            $sq->select(DB::raw(1))
-                                                ->from('online_shops')
-                                                ->where(function ($oq) {
-                                                    $oq->whereRaw('online_shops.id = stock_outs.online_shop_id')
-                                                        ->orWhereExists(function ($usq) {
-                                                            $usq->select(DB::raw(1))
-                                                                ->from('users')
-                                                                ->whereRaw('users.id = stock_outs.user_id')
-                                                                ->whereRaw('users.online_shop_id = online_shops.id');
-                                                        });
-                                                })
-                                                ->where('name', 'ilike', '%ANU%');
-                                        });
+                                    // Filter removed
                                 }
                                 if (!empty($warehouseIds)) {
                                     $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
@@ -740,15 +676,7 @@ class AuditController extends Controller
 
                                     // Analysts see everything EXCEPT internal trial branches
                                     if ($isAnalist) {
-                                        $q->whereNotExists(function ($sub) {
-                                            $sub->select(DB::raw(1))
-                                                ->from('branches')
-                                                ->where(function ($bq) {
-                                                    $bq->whereRaw('branches.id = stock_outs.branch_id')
-                                                        ->orWhereExists(fn($uq) => $uq->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereRaw('users.branch_id = branches.id'));
-                                                })
-                                                ->where(fn($sub2) => $sub2->where('name', 'ilike', '%trial%')->orWhere('name', 'ilike', '%testing%')->orWhere('name', 'ilike', '%anu%')->orWhere('name', 'ilike', '%huft%'));
-                                        });
+                                        // Filter removed to allow viewing trial locations
                                     }
                                 } else {
                                     // Restricted users (Staff, Leaders, etc.) use their accessible IDs
