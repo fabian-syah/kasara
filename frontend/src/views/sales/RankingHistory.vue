@@ -1446,6 +1446,12 @@ const categoryStocks = computed(() => {
             items: soldDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
+        },
+        {
+            label: 'STOK JASA',
+            items: soldDetails.jasa || {},
+            remaining: stockReport.jasa || 0,
+            remainingItems: stockDetails.jasa || {},
         }
     ];
 });
@@ -1496,7 +1502,8 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'perdana', label: 'Penjualan perdana', emoji: '⬜️' },
         { key: 'jaringan', label: '4G / LTE', emoji: '⬜️' },
         { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
-        { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' }
+        { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' },
+        { key: 'jasa', label: 'Penjualan Jasa', emoji: '⬜️' }
     ];
 
     categoryConfigs.forEach(cat => {

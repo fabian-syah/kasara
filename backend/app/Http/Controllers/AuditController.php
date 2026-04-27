@@ -952,6 +952,8 @@ class AuditController extends Controller
                                 return 'tv';
                             if ($did === 19)
                                 return 'jaringan';
+                            if ($did === 20)
+                                return 'jasa';
 
                             return 'others';
                         };
@@ -3005,6 +3007,7 @@ class AuditController extends Controller
             'jaringan' => ['label' => '4G / LTE', 'icon' => '⬜️'],
             'laptop' => ['label' => 'Penjualan laptop', 'icon' => '⬜️'],
             'tv' => ['label' => 'Penjualan tv', 'icon' => '⬜️'],
+            'jasa' => ['label' => 'Penjualan Jasa', 'icon' => '⬜️'],
         ];
 
         foreach ($dispMap as $key => $conf) {
