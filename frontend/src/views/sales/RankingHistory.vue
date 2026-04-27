@@ -269,7 +269,10 @@
                                 STOCK REPORT</p>
                             <h2
                                 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
-                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
+                                {{ isSingleShopReport
+                                    ? (selectedShop?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI')
+                                    : (selectedBranch?.name || authStore.user?.branch?.name || 'PSTORE TRANSAKSI')
+                                }}
                             </h2>
                             <p
                                 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
@@ -1473,18 +1476,6 @@ const categoryStocks = computed(() => {
             items: soldDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
-        },
-        {
-            label: 'STOK JASA',
-            items: soldDetails.jasa || {},
-            remaining: stockReport.jasa || 0,
-            remainingItems: stockDetails.jasa || {},
-        },
-        {
-            label: 'STOK SIM CARD',
-            items: soldDetails.sim_card || {},
-            remaining: stockReport.sim_card || 0,
-            remainingItems: stockDetails.sim_card || {},
         }
     ];
 });
@@ -1583,9 +1574,7 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'arcis', label: 'STOK ARCIS' },
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
-        { key: 'tv', label: 'STOK TVSTORE' },
-        { key: 'sim_card', label: 'STOK SIM CARD' },
-        { key: 'jasa', label: 'STOK JASA' }
+        { key: 'tv', label: 'STOK TVSTORE' }
     ];
 
     stockCats.forEach(cat => {
