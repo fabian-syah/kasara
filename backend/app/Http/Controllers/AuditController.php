@@ -761,10 +761,14 @@ class AuditController extends Controller
                         // 1. Total Omset & Payments (Memory-efficient aggregation)
                         $pQuery = DB::table('stock_outs');
                         $applyLocalScope($pQuery);
-                        $paymentStats = $pQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        
+                        // Categories that count towards Omset (Revenue)
+                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+
+                        $paymentStats = $pQuery->whereIn('stock_outs.category', $omsetCategories)
                             ->select(
                                 'payment_method_id',
-                                DB::raw("sum(case when category = 'refund' then -selling_price else selling_price end) as total_amount"),
+                                DB::raw("sum(selling_price) as total_amount"),
                                 DB::raw("count(*) as total_count")
                             )
                             ->whereNull('split_payments')
@@ -782,7 +786,7 @@ class AuditController extends Controller
                         // Handle splits separately across the small set of split transactions (usually few)
                         $splitQuery = DB::table('stock_outs');
                         $applyLocalScope($splitQuery);
-                        $splits = $splitQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])
+                        $splits = $splitQuery->whereIn('stock_outs.category', $omsetCategories)
                             ->whereNotNull('split_payments')
                             ->select('split_payments', 'category')->get();
 
@@ -791,8 +795,6 @@ class AuditController extends Controller
                             if (is_array($sData)) {
                                 foreach ($sData as $sp) {
                                     $amt = (float) ($sp['amount'] ?? 0);
-                                    if ($s->category === 'refund')
-                                        $amt = -$amt;
                                     $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                     $mName = $pm?->name ?? 'Lainnya';
                                     $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
@@ -957,18 +959,19 @@ class AuditController extends Controller
                                 }
                             }
 
-                            if (!isset($map[$cat])) $map[$cat] = 0;
-                            if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
-                            
-                            // Use standard selling price minus per-item discount
-                            $pricePerItem = (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
-                            
-                            $map[$cat] += $qty;
-                            $mapRp[$cat] += $pricePerItem * $qty;
-
-                            // Only add to 'Sold' details if it's a standard sale
+                            // Only count towards totals if it's a standard sale
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            
                             if ($isStandardSale) {
+                                if (!isset($map[$cat])) $map[$cat] = 0;
+                                if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
+                                
+                                // Use standard selling price minus per-item discount
+                                $pricePerItem = (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
+                                
+                                $map[$cat] += $qty;
+                                $mapRp[$cat] += $pricePerItem * $qty;
+                                
                                 $soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] ?? 0) + $qty;
                             }
                         }
