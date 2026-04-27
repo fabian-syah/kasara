@@ -1007,7 +1007,8 @@ class AuditController extends Controller
                             if ($isStandardSale) {
                                 $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
                                 $mapRp[$itemCat] += $price;
-                                $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
+                                $displayName = ($hp->name ?? 'Unknown item') . ($hp->storage ? " ({$hp->storage})" : "");
+                                $soldDetails[$itemCat][$displayName] = ($soldDetails[$itemCat][$displayName] ?? 0) + 1;
                             }
                         }
 
@@ -1084,9 +1085,9 @@ class AuditController extends Controller
                             ->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId));
 
                         $applyStockScope($alStock);
-                        foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
+                        foreach ($alStock->select('products.name', 'product_details.distributor_id', 'product_details.storage', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id', 'product_details.storage')->get() as $s) {
                             $cat = $getCategoryByItem($s->distributor_id);
-                            $cleanName = trim($s->name);
+                            $cleanName = trim($s->name) . ($s->storage ? " ({$s->storage})" : "");
                             $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                             $stockReport[$cat] += $s->qty;
                         }
