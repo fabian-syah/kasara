@@ -76,14 +76,14 @@
                     </div>
                     <div class="w-px h-4 bg-gray-200 dark:bg-surface-700 mr-1"></div>
                     <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchData"
-                        class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                        <option :value="null">Semua Cabang</option>
-                        <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                        class="bg-transparent border-none text-xs font-bold text-text-primary dark:text-white focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                        <option :value="null" class="dark:bg-surface-800 dark:text-white">Semua Cabang</option>
+                        <option v-for="b in filteredBranches" :key="b.id" :value="b.id" class="dark:bg-surface-800 dark:text-white">{{ b.name }}</option>
                     </select>
                     <select v-else v-model="filters.online_shop_id" @change="fetchData"
-                        class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                        <option :value="null">Semua Toko Online</option>
-                        <option v-for="s in onlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
+                        class="bg-transparent border-none text-xs font-bold text-text-primary dark:text-white focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                        <option :value="null" class="dark:bg-surface-800 dark:text-white">Semua Toko Online</option>
+                        <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id" class="dark:bg-surface-800 dark:text-white">{{ s.name }}</option>
                     </select>
                 </div>
                 <!-- Restricted users see their location indicator -->
@@ -1081,6 +1081,22 @@ const selectedYear = ref(currentYear);
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     return !['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'].some(r => role.includes(r));
+});
+
+const filteredBranches = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const isExcludedRole = ['super_admin', 'analist', 'analis'].some(r => role.includes(r));
+    if (!isExcludedRole) return branches.value;
+    const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+    return (branches.value || []).filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
+});
+
+const filteredOnlineShops = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const isExcludedRole = ['super_admin', 'analist', 'analis'].some(r => role.includes(r));
+    if (!isExcludedRole) return onlineShops.value;
+    const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+    return (onlineShops.value || []).filter(s => !excluded.some(term => (s.name || '').toLowerCase().includes(term)));
 });
 
 const availableMonths = computed(() => {

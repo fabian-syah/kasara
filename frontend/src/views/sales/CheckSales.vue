@@ -12,9 +12,10 @@
                 <div v-if="canFilterBranch" class="relative min-w-[200px]">
                     <select v-model="selectedLocationKey" @change="handleLocationChange"
                         class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                        <option value="all">Semua Cabang/Toko</option>
-                        <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                            :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
+                        <option value="all" class="dark:bg-surface-800 dark:text-white">Semua Cabang/Toko</option>
+                        <option v-for="loc in filteredLocations" :key="`${loc.type}:${loc.id}`"
+                            :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`"
+                            class="dark:bg-surface-800 dark:text-white">
                             {{ loc.type === 'branch' ? '[Cabang]' : '[Online]' }} {{ loc.name }}
                         </option>
                     </select>
@@ -26,8 +27,8 @@
                 <div class="relative min-w-[140px]">
                     <select v-model="selectedPeriod" @change="handlePeriodChange"
                         class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                        <option value="daily">Harian</option>
-                        <option value="monthly">Bulanan</option>
+                        <option value="daily" class="dark:bg-surface-800 dark:text-white">Harian</option>
+                        <option value="monthly" class="dark:bg-surface-800 dark:text-white">Bulanan</option>
                     </select>
                     <ChevronDown :size="16"
                         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -53,7 +54,7 @@
                     <div class="relative min-w-[140px]">
                         <select v-model="selectedMonth" @change="handleMonthChange"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                            <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
+                            <option v-for="m in restrictedMonths" :key="m.value" :value="m.value" class="dark:bg-surface-800 dark:text-white">{{ m.name }}</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -62,7 +63,7 @@
                     <div class="relative min-w-[100px]">
                         <select v-model="selectedYear" @change="handleMonthChange"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                            <option v-for="y in years" :key="y" :value="y" class="dark:bg-surface-800 dark:text-white">{{ y }}</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -493,6 +494,13 @@ const salesRecords = ref({
 })
 
 const locations = ref([])
+const filteredLocations = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const isExcludedRole = ['super_admin', 'analist', 'analis'].some(r => role.includes(r));
+    if (!isExcludedRole) return locations.value;
+    const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+    return (locations.value || []).filter(loc => !excluded.some(term => (loc.name || '').toLowerCase().includes(term)));
+});
 const selectedLocationKey = ref('all')
 
 const selectedBranchId = computed(() => {

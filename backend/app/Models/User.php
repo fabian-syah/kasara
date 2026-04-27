@@ -119,7 +119,16 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
-            return \App\Models\Branch::pluck('id')->toArray();
+            $query = \App\Models\Branch::query();
+            if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+                $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+                $query->where(function ($q) use ($excluded) {
+                    foreach ($excluded as $term) {
+                        $q->where('name', 'not ilike', '%' . $term . '%');
+                    }
+                });
+            }
+            return $query->pluck('id')->toArray();
         }
 
         if ($this->hasRole(['audit'])) {
@@ -140,7 +149,16 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
-            return \App\Models\OnlineShop::pluck('id')->toArray();
+            $query = \App\Models\OnlineShop::query();
+            if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+                $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+                $query->where(function ($q) use ($excluded) {
+                    foreach ($excluded as $term) {
+                        $q->where('name', 'not ilike', '%' . $term . '%');
+                    }
+                });
+            }
+            return $query->pluck('id')->toArray();
         }
 
         if ($this->hasRole(['audit'])) {
@@ -161,7 +179,16 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
-            return \App\Models\Warehouse::pluck('id')->toArray();
+            $query = \App\Models\Warehouse::query();
+            if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+                $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+                $query->where(function ($q) use ($excluded) {
+                    foreach ($excluded as $term) {
+                        $q->where('name', 'not ilike', '%' . $term . '%');
+                    }
+                });
+            }
+            return $query->pluck('id')->toArray();
         }
 
         if ($this->hasRole(['audit'])) {
@@ -182,7 +209,16 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
-            return \App\Models\Distributor::pluck('id')->toArray();
+            $query = \App\Models\Distributor::query();
+            if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+                $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+                $query->where(function ($q) use ($excluded) {
+                    foreach ($excluded as $term) {
+                        $q->where('name', 'not ilike', '%' . $term . '%');
+                    }
+                });
+            }
+            return $query->pluck('id')->toArray();
         }
 
         if ($this->hasRole(['audit'])) {

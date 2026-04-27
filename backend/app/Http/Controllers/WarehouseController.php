@@ -20,6 +20,14 @@ class WarehouseController extends Controller
         // Role-based access control
         if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'inventory'])) {
             // Full access (Global)
+            if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+                $query->where(function ($q) {
+                    $hidden = ['trial', 'testing', 'test', 'ANU', 'huft'];
+                    foreach ($hidden as $name) {
+                        $q->where('name', 'not ilike', '%' . $name . '%');
+                    }
+                });
+            }
         } else if ($user->hasAnyRole(['audit', 'leader', 'gudang'])) {
             // Assigned access
             $ids = $user->getAccessibleWarehouseIds();
