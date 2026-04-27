@@ -980,7 +980,16 @@ class AuditController extends Controller
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
                         $applyLocalScope($hpItemsQuery);
 
-                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount')->get() as $hp) {
+                        $activityDetails = ['refund' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
+
+                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei')->get() as $hp) {
+                            if (in_array($hp->category, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                                $activityDetails[$hp->category][] = [
+                                    'name' => $hp->name,
+                                    'imei' => $hp->imei
+                                ];
+                            }
+
                             $cat = $getCategoryByItem($hp->distributor_id);
                             $addUnitToMap($map, $hp->brand, $cat);
 
@@ -1109,6 +1118,7 @@ class AuditController extends Controller
                                 'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
                                 'refund' => $pQuery->clone()->where('category', 'refund')->count(),
                                 'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
+                                'details' => $activityDetails
                             ],
                             'debug' => [
                                 'requested_branch_id' => $requestedBranchId,
@@ -2955,8 +2965,23 @@ class AuditController extends Controller
         $report .= "Tukar tambah     : " . ($acts['tukar_tambah'] ?? 0) . "\n";
         $report .= "Downgrade        : " . ($acts['downgrade'] ?? 0) . "\n";
         $report .= "Refund           : " . ($acts['refund'] ?? 0) . "\n";
-        $report .= "Angkat barang    : " . ($acts['angkat_barang'] ?? 0) . "\n\n";
-        $report .= "Laptop           : " . ($dMap['laptop'] ?? 0) . "\nTv               : " . ($dMap['tv'] ?? 0) . "\npengunjung       : .........\n";
+        $report .= "Angkat barang    : " . ($acts['angkat_barang'] ?? 0) . "\n";
+
+        $details = $acts['details'] ?? [];
+        if (!empty($details['refund'])) {
+            $report .= "\n*Rincian Refund:*\n";
+            foreach ($details['refund'] as $d) {
+                $report .= "• " . ($d['name'] ?? '-') . "\n  IMEI: " . ($d['imei'] ?? '-') . "\n";
+            }
+        }
+        if (!empty($details['angkat_barang'])) {
+            $report .= "\n*Rincian Angkat Barang:*\n";
+            foreach ($details['angkat_barang'] as $d) {
+                $report .= "• " . ($d['name'] ?? '-') . "\n  IMEI: " . ($d['imei'] ?? '-') . "\n";
+            }
+        }
+
+        $report .= "\nLaptop           : " . ($dMap['laptop'] ?? 0) . "\nTv               : " . ($dMap['tv'] ?? 0) . "\npengunjung       : .........\n";
         $report .= "__________________\n__________________\n\n*Laporan keuangan*\n\n🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN          :\nSISA     :\n__________________\n__________________\n\nRincian Unit & Stok\n\n";
 
         $stkMap = [

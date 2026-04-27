@@ -1473,7 +1473,22 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Tukar tambah     : ${activities.tukar_tambah || 0}\n`;
     text += `Downgrade        : ${activities.downgrade || 0}\n`;
     text += `Refund           : ${activities.refund || 0}\n`;
-    text += `Angkat barang    : ${activities.angkat_barang || 0}\n\n`;
+    text += `Angkat barang    : ${activities.angkat_barang || 0}\n`;
+
+    const actDetails = activities.details || {};
+    if (actDetails.refund && actDetails.refund.length > 0) {
+        text += `\n*Rincian Refund:*\n`;
+        actDetails.refund.forEach(d => {
+            text += `• ${d.name || '-'}\n  IMEI: ${d.imei || '-'}\n`;
+        });
+    }
+    if (actDetails.angkat_barang && actDetails.angkat_barang.length > 0) {
+        text += `\n*Rincian Angkat Barang:*\n`;
+        actDetails.angkat_barang.forEach(d => {
+            text += `• ${d.name || '-'}\n  IMEI: ${d.imei || '-'}\n`;
+        });
+    }
+    text += `\n`;
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv            : ${summary.dist_map?.tv || 0}\n`;
