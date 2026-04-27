@@ -254,6 +254,8 @@ class ReportController extends Controller
         $csUserIdField = 'inventory_user_id';
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang'];
+        $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
+
 
         // Role-based scoping and strict isolation
         $requestedBranchId = $branchId;
@@ -318,12 +320,12 @@ class ReportController extends Controller
         };
 
         // 1. CS STATS (Aggregation by User)
-        $csQuery = StockOut::whereIn('category', $salesCategories)
+        $csQuery = StockOut::whereIn('category', $salesCategoriesExtended)
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->select(
                 'users.id',
                 'users.name',
-                DB::raw('SUM(stock_outs.selling_price) as omset')
+                DB::raw('SUM(CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN stock_outs.selling_price ELSE 0 END) as omset')
             );
 
         if ($startDate)
@@ -336,41 +338,50 @@ class ReportController extends Controller
 
         $csBase = $csQuery->groupBy('users.id', 'users.name')->get();
 
-        // Get counts for HP per User
-        $hpCountsQuery = DB::table('stock_out_items')
+        // Get counts for HP per User (Separated by type)
+        $hpCountsPerUser = DB::table('stock_out_items')
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
-            ->whereIn('stock_outs.category', $salesCategories);
-    if ($startDate)
-        $hpCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
-    if ($endDate)
-        $hpCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
-        $hpCountsQuery = $applyIsolation($hpCountsQuery, true);
-
-        $hpCountsPerUser = $hpCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('COUNT(*) as hp_count'))
+            ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
+            ->select(
+                "stock_outs.{$csUserIdField}",
+                DB::raw("COUNT(CASE WHEN stock_outs.category NOT IN ('refund', 'angkat_barang') THEN 1 END) as sold_count"),
+                DB::raw("COUNT(CASE WHEN stock_outs.category = 'refund' THEN 1 END) as refund_count"),
+                DB::raw("COUNT(CASE WHEN stock_outs.category = 'angkat_barang' THEN 1 END) as ab_count")
+            )
             ->groupBy("stock_outs.{$csUserIdField}")
-            ->pluck('hp_count', $csUserIdField);
+            ->get()
+            ->keyBy($csUserIdField);
 
-        // Get counts for Non-HP per User
-        $accCountsQuery = DB::table('stock_out_non_hp_items')
+        // Get counts for Non-HP per User (Separated by type)
+        $accCountsPerUser = DB::table('stock_out_non_hp_items')
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
-            ->whereIn('stock_outs.category', $salesCategories);
-    if ($startDate)
-        $accCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
-    if ($endDate)
-        $accCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
-        $accCountsQuery = $applyIsolation($accCountsQuery, true);
-
-        $accCountsPerUser = $accCountsQuery->select("stock_outs.{$csUserIdField}", DB::raw('SUM(quantity) as acc_count'))
+            ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
+            ->select(
+                "stock_outs.{$csUserIdField}",
+                DB::raw("SUM(CASE WHEN stock_outs.category NOT IN ('refund', 'angkat_barang') THEN quantity ELSE 0 END) as sold_count"),
+                DB::raw("SUM(CASE WHEN stock_outs.category = 'refund' THEN quantity ELSE 0 END) as refund_count"),
+                DB::raw("SUM(CASE WHEN stock_outs.category = 'angkat_barang' THEN quantity ELSE 0 END) as ab_count")
+            )
             ->groupBy("stock_outs.{$csUserIdField}")
-            ->pluck('acc_count', $csUserIdField);
+            ->get()
+            ->keyBy($csUserIdField);
 
         $csStats = $csBase->map(function ($user) use ($hpCountsPerUser, $accCountsPerUser) {
+            $hp = $hpCountsPerUser->get($user->id);
+            $acc = $accCountsPerUser->get($user->id);
+
             return [
                 'name' => $user->name,
-                'hp_count' => (int) ($hpCountsPerUser[$user->id] ?? 0),
-                'acc_count' => (int) ($accCountsPerUser[$user->id] ?? 0),
+                'hp_count' => (int) ($hp->sold_count ?? 0),
+                'acc_count' => (int) ($acc->sold_count ?? 0),
+                'refund_count' => (int) (($hp->refund_count ?? 0) + ($acc->refund_count ?? 0)),
+                'ab_count' => (int) (($hp->ab_count ?? 0) + ($acc->ab_count ?? 0)),
                 'omset' => (float) $user->omset
             ];
         });
@@ -382,7 +393,7 @@ class ReportController extends Controller
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
-            ->whereIn('stock_outs.category', $salesCategories);
+            ->whereIn('stock_outs.category', $salesCategoriesExtended);
     if ($startDate)
         $hpBaseQuery->where('stock_outs.reporting_date', '>=', $startDate);
     if ($endDate)
@@ -392,9 +403,10 @@ class ReportController extends Controller
         $hpBrandStats = (clone $hpBaseQuery)->select(
             'products.brand',
             'product_details.condition',
+            'stock_outs.category',
             DB::raw('COUNT(*) as count')
         )
-            ->groupBy('products.brand', 'product_details.condition')
+            ->groupBy('products.brand', 'product_details.condition', 'stock_outs.category')
             ->get();
 
         // Non-HP Brand Stats
@@ -402,7 +414,7 @@ class ReportController extends Controller
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
-            ->whereIn('stock_outs.category', $salesCategories);
+            ->whereIn('stock_outs.category', $salesCategoriesExtended);
     if ($startDate)
         $nhpBaseQuery->where('stock_outs.reporting_date', '>=', $startDate);
     if ($endDate)
@@ -411,28 +423,42 @@ class ReportController extends Controller
 
         $nhpBrandStats = (clone $nhpBaseQuery)->select(
             'products.brand',
+            'stock_outs.category',
             DB::raw('SUM(quantity) as count')
         )
-            ->groupBy('products.brand')
+            ->groupBy('products.brand', 'stock_outs.category')
             ->get();
 
         $brandStatsMap = [];
         foreach ($hpBrandStats as $s) {
             if (!isset($brandStatsMap[$s->brand])) {
-                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'hp_ex_ibox' => 0, 'non_hp' => 0];
+                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'hp_ex_ibox' => 0, 'non_hp' => 0, 'angkat_barang' => 0, 'refund' => 0];
             }
-            if ($s->condition === 'second')
-                $brandStatsMap[$s->brand]['hp_second'] += $s->count;
-            elseif ($s->condition === 'ex_ibox')
-                $brandStatsMap[$s->brand]['hp_ex_ibox'] += $s->count;
-            else
-                $brandStatsMap[$s->brand]['hp_new'] += $s->count;
+            
+            if ($s->category === 'refund') {
+                $brandStatsMap[$s->brand]['refund'] += $s->count;
+            } elseif ($s->category === 'angkat_barang') {
+                $brandStatsMap[$s->brand]['angkat_barang'] += $s->count;
+            } else {
+                if ($s->condition === 'second')
+                    $brandStatsMap[$s->brand]['hp_second'] += $s->count;
+                elseif ($s->condition === 'ex_ibox')
+                    $brandStatsMap[$s->brand]['hp_ex_ibox'] += $s->count;
+                else
+                    $brandStatsMap[$s->brand]['hp_new'] += $s->count;
+            }
         }
         foreach ($nhpBrandStats as $s) {
             if (!isset($brandStatsMap[$s->brand])) {
-                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'hp_ex_ibox' => 0, 'non_hp' => 0];
+                $brandStatsMap[$s->brand] = ['brand' => $s->brand, 'hp_new' => 0, 'hp_second' => 0, 'hp_ex_ibox' => 0, 'non_hp' => 0, 'angkat_barang' => 0, 'refund' => 0];
             }
-            $brandStatsMap[$s->brand]['non_hp'] += $s->count;
+            if ($s->category === 'refund') {
+                $brandStatsMap[$s->brand]['refund'] += $s->count;
+            } elseif ($s->category === 'angkat_barang') {
+                $brandStatsMap[$s->brand]['angkat_barang'] += $s->count;
+            } else {
+                $brandStatsMap[$s->brand]['non_hp'] += $s->count;
+            }
         }
 
         // 3. PRODUCT STATS (Aggregated)

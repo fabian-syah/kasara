@@ -2950,8 +2950,13 @@ class AuditController extends Controller
         $report .= "Android          : " . ($dMap['android'] ?? 0) . "\n";
         $report .= "Total HP         : " . (($dMap['iphone'] ?? 0) + ($dMap['android'] ?? 0) + ($dMap['apple_lux'] ?? 0)) . "\n\n";
 
-        $report .= "Tukar unit          : 0\nTukar tambah   : 0\nDowngrade       : 0\nRefund               : 0\nAngkat barang  : 0\n\n";
-        $report .= "Laptop        : " . ($dMap['laptop'] ?? 0) . "\nTv                : " . ($dMap['tv'] ?? 0) . "\npengunjung: .........\n";
+        $acts = $data['activities'] ?? [];
+        $report .= "Tukar unit       : " . ($acts['tukar_unit'] ?? 0) . "\n";
+        $report .= "Tukar tambah     : " . ($acts['tukar_tambah'] ?? 0) . "\n";
+        $report .= "Downgrade        : " . ($acts['downgrade'] ?? 0) . "\n";
+        $report .= "Refund           : " . ($acts['refund'] ?? 0) . "\n";
+        $report .= "Angkat barang    : " . ($acts['angkat_barang'] ?? 0) . "\n\n";
+        $report .= "Laptop           : " . ($dMap['laptop'] ?? 0) . "\nTv               : " . ($dMap['tv'] ?? 0) . "\npengunjung       : .........\n";
         $report .= "__________________\n__________________\n\n*Laporan keuangan*\n\n🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN          :\nSISA     :\n__________________\n__________________\n\nRincian Unit & Stok\n\n";
 
         $stkMap = [

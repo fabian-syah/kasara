@@ -395,6 +395,12 @@ const filteredProducts = computed(() => {
                                 HP Ex iBox</th>
                             <th
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700">
+                                Angkat Barang</th>
+                            <th
+                                class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700">
+                                Refund</th>
+                            <th
+                                class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700">
                                 Non-HP (Aksesoris)</th>
                             <th
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider rounded-tr-xl border-b border-surface-700">
@@ -413,14 +419,20 @@ const filteredProducts = computed(() => {
                                 formatNumber(b.hp_second) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 text-purple-400 font-medium">{{
                                 formatNumber(b.hp_ex_ibox) }}</td>
+                            <td class="px-6 py-4 border-b border-surface-800 text-blue-500 font-medium">
+                                {{ formatNumber(b.angkat_barang) }}
+                            </td>
+                            <td class="px-6 py-4 border-b border-surface-800 text-red-500 font-medium">
+                                {{ formatNumber(b.refund) }}
+                            </td>
                             <td class="px-6 py-4 border-b border-surface-800 text-blue-400 font-medium">{{
                                 formatNumber(b.non_hp) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 font-black text-text-primary">
-                                {{ formatNumber(b.hp_new + b.hp_second + b.hp_ex_ibox + b.non_hp) }}
+                                {{ formatNumber(b.hp_new + b.hp_second + b.hp_ex_ibox + b.non_hp + b.angkat_barang + b.refund) }}
                             </td>
                         </tr>
                         <tr v-if="stats.brands.length === 0">
-                            <td colspan="6" class="px-6 py-10 text-center text-text-secondary italic">Tidak ada data
+                            <td colspan="8" class="px-6 py-10 text-center text-text-secondary italic">Tidak ada data
                                 penjualan</td>
                         </tr>
                     </tbody>
@@ -523,6 +535,26 @@ const filteredProducts = computed(() => {
                                         :class="csSort.key === 'acc_count' ? 'text-primary-500' : 'opacity-30 group-hover:opacity-100'" />
                                 </div>
                             </th>
+                            <th @click="toggleSort('ab_count')"
+                                class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700 cursor-pointer hover:bg-surface-700 transition-colors group">
+                                <div class="flex items-center gap-2">
+                                    Angkat Barang
+                                    <component
+                                        :is="csSort.key === 'ab_count' ? (csSort.order === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown"
+                                        :size="12"
+                                        :class="csSort.key === 'ab_count' ? 'text-primary-500' : 'opacity-30 group-hover:opacity-100'" />
+                                </div>
+                            </th>
+                            <th @click="toggleSort('refund_count')"
+                                class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-surface-700 cursor-pointer hover:bg-surface-700 transition-colors group">
+                                <div class="flex items-center gap-2">
+                                    Refund
+                                    <component
+                                        :is="csSort.key === 'refund_count' ? (csSort.order === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown"
+                                        :size="12"
+                                        :class="csSort.key === 'refund_count' ? 'text-primary-500' : 'opacity-30 group-hover:opacity-100'" />
+                                </div>
+                            </th>
                             <th @click="toggleSort('omset')"
                                 class="px-6 py-4 text-xs font-bold text-text-secondary uppercase tracking-wider rounded-tr-xl border-b border-surface-700 cursor-pointer hover:bg-surface-700 transition-colors group">
                                 <div class="flex items-center gap-2">
@@ -553,12 +585,18 @@ const filteredProducts = computed(() => {
                             <td class="px-6 py-4 border-b border-surface-800">
                                 <span class="font-bold text-amber-400">{{ formatNumber(c.acc_count) }}</span> Item
                             </td>
+                            <td class="px-6 py-4 border-b border-surface-800">
+                                <span class="font-bold text-blue-500">{{ formatNumber(c.ab_count) }}</span> Unit
+                            </td>
+                            <td class="px-6 py-4 border-b border-surface-800">
+                                <span class="font-bold text-red-500">{{ formatNumber(c.refund_count) }}</span> Unit
+                            </td>
                             <td class="px-6 py-4 border-b border-surface-800 font-black text-emerald-400 text-lg">
                                 {{ formatCurrency(c.omset) }}
                             </td>
                         </tr>
                         <tr v-if="stats.cs.length === 0">
-                            <td colspan="4" class="px-6 py-10 text-center text-text-secondary italic">Tidak ada data CS
+                            <td colspan="6" class="px-6 py-10 text-center text-text-secondary italic">Tidak ada data CS
                             </td>
                         </tr>
                     </tbody>
