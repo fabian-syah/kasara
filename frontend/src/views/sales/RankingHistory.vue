@@ -1452,6 +1452,12 @@ const categoryStocks = computed(() => {
             items: soldDetails.jasa || {},
             remaining: stockReport.jasa || 0,
             remainingItems: stockDetails.jasa || {},
+        },
+        {
+            label: 'STOK SIM CARD',
+            items: soldDetails.sim_card || {},
+            remaining: stockReport.sim_card || 0,
+            remainingItems: stockDetails.sim_card || {},
         }
     ];
 });
@@ -1499,7 +1505,7 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'accessories', label: 'Penjualan accessories', emoji: '⬜️' },
         { key: 'apply', label: 'Penjualan apply', emoji: '⬜️' },
         { key: 'arcis', label: 'Penjualan arcis', emoji: '⬜️' },
-        { key: 'perdana', label: 'Penjualan perdana', emoji: '⬜️' },
+        { key: 'sim_card', label: 'Sim Card', emoji: '⬜️' },
         { key: 'jaringan', label: '4G / LTE', emoji: '⬜️' },
         { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' },
@@ -1536,6 +1542,7 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv            : ${summary.dist_map?.tv || 0}\n`;
     text += `4G / LTE      : ${summary.dist_map?.jaringan || 0}\n`;
+    text += `Sim Card      : ${summary.dist_map?.sim_card || 0}\n`;
     text += `pengunjung: .........\n`;
     text += `__________________\n__________________\n\n*Laporan keuangan*\n\n`;
     text += `🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN     :\nSISA   :\n`;
@@ -1549,7 +1556,9 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'arcis', label: 'STOK ARCIS' },
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
-        { key: 'tv', label: 'STOK TVSTORE' }
+        { key: 'tv', label: 'STOK TVSTORE' },
+        { key: 'sim_card', label: 'STOK SIM CARD' },
+        { key: 'jasa', label: 'STOK JASA' }
     ];
 
     stockCats.forEach(cat => {

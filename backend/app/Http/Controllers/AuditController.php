@@ -873,11 +873,11 @@ class AuditController extends Controller
                             }
                         }
 
-                        $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                        $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                        $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
+                        $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
                         $soldDetails = [];
-                        $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-                        $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'others' => []];
+                        $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                        $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'others' => []];
 
                         $getCategoryByItem = function ($did, $isHp = false) {
                             $did = (int) $did;
@@ -894,7 +894,7 @@ class AuditController extends Controller
                                 15 => 'dokter_pstore',   // Dokter Pstore
                                 16 => 'laptop',          // Laptopsss
                                 17 => 'tv',              // tvstOre
-                                18 => 'jaringan',        // Sim Card
+                                18 => 'sim_card',        // Sim Card
                                 19 => 'jaringan',        // network
                                 20 => 'jasa',            // Jasa
                             ];
