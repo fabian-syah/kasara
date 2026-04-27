@@ -1385,56 +1385,64 @@ const categoryStocks = computed(() => {
     const stockDetails = summary.stock_details || {};
     const distInMap = summary.dist_in_map || {};
 
-    return [
-        {
-            label: 'STOK APPLE LUX',
-            items: soldDetails.apple_lux || {},
-            remaining: stockReport.apple_lux || 0,
-            remainingItems: stockDetails.apple_lux || {},
-        },
-        {
-            label: 'STOK ACC',
-            items: soldDetails.accessories || {},
-            remaining: stockReport.accessories || 0,
-            remainingItems: stockDetails.accessories || {},
-        },
-        {
-            label: 'STOK APPLY',
-            items: soldDetails.apply || {},
-            remaining: stockReport.apply || 0,
-            remainingItems: stockDetails.apply || {},
-        },
-        {
-            label: 'STOK ARCIS',
-            items: soldDetails.arcis || {},
-            remaining: stockReport.arcis || 0,
-            remainingItems: stockDetails.arcis || {},
-        },
-        {
-            label: 'STOK DEBS',
-            items: soldDetails.debs || {},
-            remaining: stockReport.debs || 0,
-            remainingItems: stockDetails.debs || {},
-        },
-        {
-            label: 'STOK DOKTER PSTORE',
-            items: soldDetails.dokter_pstore || {},
-            remaining: stockReport.dokter_pstore || 0,
-            remainingItems: stockDetails.dokter_pstore || {},
-        },
-        {
-            label: 'STOK LAPTOPS',
-            items: soldDetails.laptop || {},
-            remaining: stockReport.laptop || 0,
-            remainingItems: stockDetails.laptop || {},
-        },
-        {
-            label: 'STOK TVSTORE',
-            items: soldDetails.tv || {},
-            remaining: stockReport.tv || 0,
-            remainingItems: stockDetails.tv || {},
-        }
+    const configs = [
+        { key: 'apple_lux', label: 'STOK APPLE LUX' },
+        { key: 'hp', label: 'STOK HANDPHONE' },
+        { key: 'accessories', label: 'STOK ACC' },
+        { key: 'apply', label: 'STOK APPLY' },
+        { key: 'arcis', label: 'STOK ARCIS' },
+        { key: 'debs', label: 'STOK DEBS' },
+        { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
+        { key: 'laptop', label: 'STOK LAPTOPS' },
+        { key: 'tv', label: 'STOK TVSTORE' },
+        { key: 'jaringan', label: 'STOK JARINGAN / SIMCARD' },
     ];
+
+    const result = [];
+    const processedKeys = new Set();
+
+    // 1. Add standard categories
+    configs.forEach(cfg => {
+        if (soldDetails[cfg.key] || stockReport[cfg.key]) {
+            result.push({
+                label: cfg.label,
+                items: soldDetails[cfg.key] || {},
+                remaining: stockReport[cfg.key] || 0,
+                remainingItems: stockDetails[cfg.key] || {},
+            });
+            processedKeys.add(cfg.key);
+        }
+    });
+
+    // 2. Add dynamic categories
+    const allKeys = new Set([
+        ...Object.keys(soldDetails),
+        ...Object.keys(stockReport)
+    ]);
+
+    allKeys.forEach(key => {
+        if (!processedKeys.has(key) && key !== 'others' && key !== 'iphone' && key !== 'android') {
+            const label = 'STOK ' + key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            result.push({
+                label: label,
+                items: soldDetails[key] || {},
+                remaining: stockReport[key] || 0,
+                remainingItems: stockDetails[key] || {},
+            });
+        }
+    });
+
+    // 3. Add others last
+    if (soldDetails.others || stockReport.others) {
+        result.push({
+            label: 'STOK LAINNYA',
+            items: soldDetails.others || {},
+            remaining: stockReport.others || 0,
+            remainingItems: stockDetails.others || {},
+        });
+    }
+
+    return result;
 });
 
 const getBaseReportText = (isForCopy = false) => {
@@ -1486,12 +1494,29 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' }
     ];
 
+    const standardKeys = categoryConfigs.map(c => c.key);
+    
+    // 1. Show standard categories first
     categoryConfigs.forEach(cat => {
         const val = mapRp[cat.key] || 0;
         if (val !== 0) {
             text += `${cat.emoji} ${cat.label} : ${formatCurrency(val)}\n`;
         }
     });
+
+    // 2. Show any dynamic/new categories that are not in standard list
+    Object.entries(mapRp).forEach(([key, val]) => {
+        if (!standardKeys.includes(key) && key !== 'others' && val !== 0) {
+            // Convert slug back to readable name
+            const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            text += `⚪️ Penjualan ${label} : ${formatCurrency(val)}\n`;
+        }
+    });
+
+    // 3. Show others last if it has value
+    if (mapRp.others && mapRp.others !== 0) {
+        text += `⚪️ Penjualan Lainnya : ${formatCurrency(mapRp.others)}\n`;
+    }
 
     if (isForCopy) {
         text += `\n__________________\n__________________\n\n`;

@@ -329,7 +329,6 @@ const handleVoid = async (item) => {
                             <th class="px-6 py-4 hidden md:table-cell">Sumber / Distributor</th>
                             <th class="px-6 py-4 hidden lg:table-cell">Catatan</th>
                             <th class="px-6 py-4 hidden lg:table-cell">Diinput Oleh</th>
-                            <th class="px-6 py-4 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700/50">
@@ -402,13 +401,6 @@ const handleVoid = async (item) => {
                                     <User :size="14" class="text-text-secondary" />
                                     <span>{{ item.user ? item.user.name : '-' }}</span>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <button @click="handleVoid(item)"
-                                    class="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                    title="Hapus / Void">
-                                    <Trash2 :size="16" />
-                                </button>
                             </td>
                         </tr>
                     </tbody>
