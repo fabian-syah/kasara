@@ -45,27 +45,7 @@ class AuditController extends Controller
             }
 
             // Hide trial branches for analist role across all components (In-memory filtering for speed and safety)
-            if ($user->hasAnyRole(['analist', 'analis'])) {
-                try {
-                    if (!empty($branchIds)) {
-                        $hiddenBranchIds = Branch::where(function ($q) {
-                            $q->where('name', 'ilike', '%trial%')
-                                ->orWhere('name', 'ilike', '%testing%')
-                                ->orWhere('name', 'ilike', '%anu%')
-                                ->orWhere('name', 'ilike', '%huft%');
-                        })->pluck('id')->toArray();
-
-                        $branchIds = array_values(array_diff($branchIds, $hiddenBranchIds));
-                    }
-
-                    if (!empty($onlineShopIds)) {
-                        $hiddenShopIds = OnlineShop::where('name', 'ilike', '%ANU%')->pluck('id')->toArray();
-                        $onlineShopIds = array_values(array_diff($onlineShopIds, $hiddenShopIds));
-                    }
-                } catch (\Throwable $e) {
-                    error_log("Analist filter error: " . $e->getMessage());
-                }
-            }
+            // Analist trial branch filter removed to allow viewing requested trial locations
 
             $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
             $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
@@ -1038,6 +1018,8 @@ class AuditController extends Controller
                                 }
                             }
 
+                            if (!isset($map[$cat])) $map[$cat] = 0;
+                            if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
                             $map[$cat] += $qty;
                             $mapRp[$cat] += (float) $item->item_price * $qty;
 
@@ -1063,6 +1045,8 @@ class AuditController extends Controller
                         foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                             $cat = $getCategoryByItem($s->distributor_id);
                             $cleanName = trim($s->name);
+                            if (!isset($rawStockDetails[$cat])) $rawStockDetails[$cat] = [];
+                            if (!isset($stockReport[$cat])) $stockReport[$cat] = 0;
                             $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                             $stockReport[$cat] += $s->qty;
                         }
@@ -1101,6 +1085,8 @@ class AuditController extends Controller
                             $cat = $getCategoryByItem($did);
                             $cleanName = trim($s->name);
                             $qty = (int) $s->quantity;
+                            if (!isset($rawStockDetails[$cat])) $rawStockDetails[$cat] = [];
+                            if (!isset($stockReport[$cat])) $stockReport[$cat] = 0;
                             $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
                             $stockReport[$cat] += $qty;
                         }
