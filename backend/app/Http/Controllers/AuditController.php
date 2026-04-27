@@ -892,41 +892,44 @@ class AuditController extends Controller
                         }
 
                         // 2. Non-IMEI transactions
-                        $nhpItemsQuery = DB::table('stock_out_non_hp_items')
+                        $nhpItems = DB::table('stock_out_non_hp_items')
                             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
                             ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
-                        $applyLocalScope($nhpItemsQuery);
+                            ->whereIn('stock_outs.category', $salesCategories)
+                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                        
+                        $applyLocalScope($nhpItems);
+                        $nhpItems = $nhpItems->select('stock_out_non_hp_items.*', 'stock_outs.category as trx_category', 'stock_outs.branch_id', 'stock_outs.online_shop_id', 'stock_outs.warehouse_id', 'products.name as product_name', 'products.brand as product_brand', 'products.distributor_id as product_distributor_id')->get();
 
-                        foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id', 'stock_out_non_hp_items.product_id', 'stock_outs.branch_id', 'stock_outs.warehouse_id', 'stock_outs.online_shop_id', 'stock_outs.category')->get() as $item) {
-                            $catLower = strtolower($item->category ?? '');
+                        foreach ($nhpItems as $item) {
+                            $catLower = strtolower($item->trx_category ?? '');
+                            
                             if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
-                                    'name' => ($item->name ?? 'Unknown') . " (Qty: {$item->quantity})",
+                                    'name' => ($item->product_name ?? 'Unknown') . " (Qty: {$item->quantity})",
                                     'imei' => null,
-                                    'price' => (float) $item->item_price
+                                    'price' => (float) $item->selling_price
                                 ];
                             }
 
                             $did = $item->distributor_id;
                             
                             // Fallback 1: Product's default distributor
-                            if (!$did && $item->product_id) {
-                                $p = \App\Models\Product::find($item->product_id);
-                                $did = $p->distributor_id ?? null;
+                            if (!$did) {
+                                $did = $item->product_distributor_id;
                             }
 
-                            // Fallback for transactions
+                            // Fallback for transactions (inventory logs)
                             if (!$did) {
                                 $lastLog = DB::table('inventory_logs')
                                     ->where('product_id', $item->product_id)
                                     ->where('type', 'in')
                                     ->where(function ($q) use ($item) {
-                                        if ($item->branch_id)
+                                        if (isset($item->branch_id) && $item->branch_id)
                                             $q->where('branch_id', $item->branch_id);
-                                        elseif ($item->warehouse_id)
+                                        elseif (isset($item->warehouse_id) && $item->warehouse_id)
                                             $q->where('warehouse_id', $item->warehouse_id);
-                                        elseif ($item->online_shop_id)
+                                        elseif (isset($item->online_shop_id) && $item->online_shop_id)
                                             $q->where('online_shop_id', $item->online_shop_id);
                                     })
                                     ->latest()
@@ -939,7 +942,7 @@ class AuditController extends Controller
 
                             // Breakdown for non-IMEI HP if any
                             if ($cat === 'hp' || $cat === 'apple_lux') {
-                                $brand = strtolower($item->brand ?? '');
+                                $brand = strtolower($item->product_brand ?? '');
                                 $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
 
                                 if ($isStandardSale) {
@@ -954,13 +957,17 @@ class AuditController extends Controller
 
                             if (!isset($map[$cat])) $map[$cat] = 0;
                             if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
+                            
+                            // Use standard selling price minus per-item discount
+                            $pricePerItem = (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
+                            
                             $map[$cat] += $qty;
-                            $mapRp[$cat] += (float) $item->item_price * $qty;
+                            $mapRp[$cat] += $pricePerItem * $qty;
 
                             // Only add to 'Sold' details if it's a standard sale
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
                             if ($isStandardSale) {
-                                $soldDetails[$cat][$item->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->name ?? 'Unknown non-hp'] ?? 0) + $qty;
+                                $soldDetails[$cat][$item->product_name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product_name ?? 'Unknown non-hp'] ?? 0) + $qty;
                             }
                         }
 
@@ -1027,7 +1034,7 @@ class AuditController extends Controller
 
                         // 4. Final Totals
                         $totalHpItems = $hpItemsQuery->count();
-                        $totalNhpItems = $nhpItemsQuery->sum('stock_out_non_hp_items.quantity');
+                        $totalNhpItems = $nhpItems->sum('quantity');
 
                         return [
                             'payments' => $pSums,
@@ -1054,7 +1061,9 @@ class AuditController extends Controller
                                 'total_nhp_items' => $totalNhpItems,
                                 'date_range' => [$startDate, $endDate],
                                 'is_unrestricted' => $isUnrestricted,
-                                'current_roles' => $currentRoles
+                                'current_roles' => $currentRoles,
+                                'dist_map_rp' => $mapRp,
+                                'dist_map' => $map
                             ]
                         ];
                     } catch (\Throwable $e) {
