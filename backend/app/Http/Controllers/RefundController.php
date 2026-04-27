@@ -101,7 +101,7 @@ class RefundController extends Controller
                         throw new \Exception("IMEI " . $request->imei . " sudah ada di inventory.");
                     }
 
-                    ProductDetail::create([
+                    $productDetail = ProductDetail::create([
                         'product_id' => $product->id,
                         'user_id' => $user->id,
                         'imei' => $request->imei,
@@ -147,10 +147,11 @@ class RefundController extends Controller
                     'notes' => $request->notes,
                 ]);
 
-                // Create StockOut record to ensure visibility in Cek Penjualan
-                StockOut::create([
+                // 5. Create StockOut record to ensure visibility in Cek Penjualan
+                $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'refund',
+                    'reporting_date' => now()->hour < 5 ? now()->subDay()->toDateString() : now()->toDateString(),
                     'customer_name' => $request->customer_name,
                     'customer_phone' => $request->customer_phone,
                     'customer_wa' => $request->customer_phone,
@@ -159,17 +160,30 @@ class RefundController extends Controller
                     'status' => 'received',
                     'notes' => "Refund Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoLog['unit'] ?? null,
-                    'selling_price' => 0,
+                    'selling_price' => $request->refund_price,
                     'transaction_pin' => $request->transaction_pin,
                     'payment_method_id' => $request->payment_method_id,
-                    'non_hp_items' => [
-                        [
-                            'product_id' => $product->id,
-                            'quantity' => 1,
-                            'selling_price' => 0
-                        ]
-                    ]
+                    'branch_id' => $user->branch_id,
+                    'warehouse_id' => $user->warehouse_id,
+                    'online_shop_id' => $user->online_shop_id,
                 ]);
+
+                if ($isImei) {
+                    // Attach the HP detail to StockOut
+                    $stockOut->items()->attach($productDetail->id, [
+                        'selling_price' => $request->refund_price,
+                        'distributor_id' => $request->distributor_id
+                    ]);
+                } else {
+                    // Create relational non-hp detail
+                    \App\Models\StockOutNonHpItem::create([
+                        'stock_out_id' => $stockOut->id,
+                        'product_id' => $product->id,
+                        'quantity' => 1,
+                        'selling_price' => $request->refund_price,
+                        'distributor_id' => $request->distributor_id
+                    ]);
+                }
 
                 return response()->json([
                     'success' => true,

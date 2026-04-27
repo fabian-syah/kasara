@@ -1197,6 +1197,11 @@ class AuditController extends Controller
                     // because it's handled as a separate 'TOTAL DISKON' row in the receipt/summary.
                     $basePrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
 
+                    // Fallback for activities that might not have a selling_price in the pivot
+                    if ($basePrice <= 0 && in_array(strtolower($trx->category), ['angkat_barang', 'refund', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                        $basePrice = (float) ($item->cost_price ?? 0);
+                    }
+
                     $details[] = [
                         'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP'),
                         'qty' => 1,
@@ -1228,6 +1233,25 @@ class AuditController extends Controller
                         'imei' => '-',
                         'distributor_name' => $dName
                     ];
+                }
+
+                // Fallback for legacy JSON-based non_hp_items (e.g. from older RefundController logic)
+                if (empty($details) && $trx->non_hp_items && is_array($trx->non_hp_items)) {
+                    foreach ($trx->non_hp_items as $item) {
+                        $pId = $item['product_id'] ?? null;
+                        $prod = $pId ? \App\Models\Product::find($pId) : null;
+                        
+                        $details[] = [
+                            'name' => ($trx->is_bundle ? '📦 ' : '') . ($prod->name ?? 'Item Non-HP'),
+                            'qty' => $item['quantity'] ?? 1,
+                            'price' => $item['selling_price'] ?? 0,
+                            'brand' => $prod->brand ?? '-',
+                            'type' => 'Item',
+                            'is_hp' => false,
+                            'imei' => '-',
+                            'distributor_name' => '-'
+                        ];
+                    }
                 }
 
                 $paymentMethodNames = [];
