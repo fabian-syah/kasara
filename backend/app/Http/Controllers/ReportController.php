@@ -519,20 +519,29 @@ class ReportController extends Controller
         }
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang'];
+        $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
+
 
         // 1. Get Base Stats (Omset & Transaction Count)
         $branchBase = DB::table('branches')
-            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
+            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategoriesExtended) {
                 $join->on('branches.id', '=', 'stock_outs.branch_id')
-                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereIn('stock_outs.category', $salesCategoriesExtended)
                     ->whereNull('stock_outs.deleted_at');
                 if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
                 if ($endDate) $join->where('stock_outs.reporting_date', '<=', $endDate);
             })
+            ->leftJoin('refunds', 'stock_outs.receipt_id', '=', 'refunds.receipt_id')
             ->select(
                 'branches.id',
-                DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset'),
-                DB::raw('COUNT(DISTINCT stock_outs.id) as transaction_count')
+                DB::raw('SUM(CASE WHEN stock_outs.category != \'refund\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as omset'),
+                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category != \'refund\' THEN stock_outs.id END) as transaction_count'),
+                // Refund details
+                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'refund\' THEN stock_outs.id END) as refund_count'),
+                DB::raw('SUM(CASE WHEN stock_outs.category = \'refund\' THEN COALESCE(refunds.refund_price, 0) ELSE 0 END) as refund_amount'),
+                // Angkat Barang details
+                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'angkat_barang\' THEN stock_outs.id END) as ab_count'),
+                DB::raw('SUM(CASE WHEN stock_outs.category = \'angkat_barang\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as ab_amount')
             )
             ->groupBy('branches.id')
             ->get()->keyBy('id');
@@ -594,6 +603,10 @@ class ReportController extends Controller
                 'type' => 'Offline',
                 'omset' => $base ? (float) $base->omset : 0,
                 'transaction_count' => $base ? (int) $base->transaction_count : 0,
+                'refund_count' => $base ? (int) $base->refund_count : 0,
+                'refund_amount' => $base ? (float) $base->refund_amount : 0,
+                'ab_count' => $base ? (int) $base->ab_count : 0,
+                'ab_amount' => $base ? (float) $base->ab_amount : 0,
                 'iphone_count' => $items ? (int) $items->iphone_count : 0,
                 'android_count' => $items ? (int) $items->android_count : 0,
                 'top_android_models' => $topModels
@@ -602,17 +615,24 @@ class ReportController extends Controller
 
         // 4. Get Online Shop Stats
         $onlineBase = DB::table('online_shops')
-            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategories) {
+            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategoriesExtended) {
                 $join->on('online_shops.id', '=', 'stock_outs.online_shop_id')
-                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereIn('stock_outs.category', $salesCategoriesExtended)
                     ->whereNull('stock_outs.deleted_at');
                 if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
                 if ($endDate) $join->where('stock_outs.reporting_date', '<=', $endDate);
             })
+            ->leftJoin('refunds', 'stock_outs.receipt_id', '=', 'refunds.receipt_id')
             ->select(
                 'online_shops.id',
-                DB::raw('SUM(COALESCE(stock_outs.selling_price, 0)) as omset'),
-                DB::raw('COUNT(DISTINCT stock_outs.id) as transaction_count')
+                DB::raw('SUM(CASE WHEN stock_outs.category != \'refund\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as omset'),
+                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category != \'refund\' THEN stock_outs.id END) as transaction_count'),
+                // Refund details
+                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'refund\' THEN stock_outs.id END) as refund_count'),
+                DB::raw('SUM(CASE WHEN stock_outs.category = \'refund\' THEN COALESCE(refunds.refund_price, 0) ELSE 0 END) as refund_amount'),
+                // Angkat Barang details
+                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'angkat_barang\' THEN stock_outs.id END) as ab_count'),
+                DB::raw('SUM(CASE WHEN stock_outs.category = \'angkat_barang\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as ab_amount')
             )
             ->groupBy('online_shops.id')
             ->get()->keyBy('id');
@@ -672,6 +692,10 @@ class ReportController extends Controller
                 'type' => 'Online',
                 'omset' => $base ? (float) $base->omset : 0,
                 'transaction_count' => $base ? (int) $base->transaction_count : 0,
+                'refund_count' => $base ? (int) $base->refund_count : 0,
+                'refund_amount' => $base ? (float) $base->refund_amount : 0,
+                'ab_count' => $base ? (int) $base->ab_count : 0,
+                'ab_amount' => $base ? (float) $base->ab_amount : 0,
                 'iphone_count' => $items ? (int) $items->iphone_count : 0,
                 'android_count' => $items ? (int) $items->android_count : 0,
                 'top_android_models' => $topModels

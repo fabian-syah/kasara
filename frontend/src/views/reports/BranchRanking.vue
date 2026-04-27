@@ -169,6 +169,14 @@ const totalOmset = computed(() => {
     return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
 });
 
+const totalRefund = computed(() => {
+    return filteredRanking.value.reduce((sum, item) => sum + (item.refund_amount || 0), 0);
+});
+
+const totalAb = computed(() => {
+    return filteredRanking.value.reduce((sum, item) => sum + (item.ab_amount || 0), 0);
+});
+
 const top3 = computed(() => {
     return filteredRanking.value.slice(0, 3);
 });
@@ -627,6 +635,12 @@ const exportToPDF = async () => {
 -->
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Rincian Refund</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Rincian Angkat Barang</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
                                         Hasil Omset</th>
                                 </tr>
                             </thead>
@@ -637,7 +651,7 @@ const exportToPDF = async () => {
                                         
                                         <!-- SEPARATOR TABLE ROW -->
                                         <template v-if="item.isSeparator">
-                                            <td colspan="3" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
+                                            <td colspan="5" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
                                                 <div class="flex items-center gap-3 justify-center">
                                                     <Store class="w-5 h-5 text-primary-500" />
                                                     <span class="text-sm md:text-base font-black text-text-primary uppercase tracking-[0.2em]">{{ item.name }}</span>
@@ -675,6 +689,26 @@ const exportToPDF = async () => {
                                                 </div>
                                             </td>
                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                <div class="flex flex-col items-end">
+                                                    <span class="text-xs md:text-sm font-black text-red-500 tabular-nums">
+                                                        {{ formatCurrency(item.refund_amount) }}
+                                                    </span>
+                                                    <span class="text-[8px] font-bold text-text-secondary uppercase tracking-widest">
+                                                        {{ item.refund_count }} TRANSAKSI
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                <div class="flex flex-col items-end">
+                                                    <span class="text-xs md:text-sm font-black text-blue-500 tabular-nums">
+                                                        {{ formatCurrency(item.ab_amount) }}
+                                                    </span>
+                                                    <span class="text-[8px] font-bold text-text-secondary uppercase tracking-widest">
+                                                        {{ item.ab_count }} UNIT
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                                 <span v-if="item.omset > 0"
                                                     class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
                                                     {{ formatCurrency(item.omset) }}
@@ -687,10 +721,20 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
+                            <tfoot v-if="filteredRanking.length > 0 \u0026\u0026 (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
-                                    <td colspan="2" class="px-8 py-6 text-sm font-black text-text-primary uppercase tracking-widest text-right">
-                                        TOTAL KESELURUHAN OMSET
+                                    <td colspan="2" class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">
+                                        TOTAL PERIODE
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <span class="text-xs font-black text-red-500 tabular-nums">
+                                            {{ formatCurrency(totalRefund) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <span class="text-xs font-black text-blue-500 tabular-nums">
+                                            {{ formatCurrency(totalAb) }}
+                                        </span>
                                     </td>
                                     <td class="px-8 py-6 text-right">
                                         <span class="text-xl font-black text-primary-500 tabular-nums tracking-tighter drop-shadow-sm">
