@@ -18,6 +18,7 @@ import {
     Type
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
+import AnimatedThemeToggle from "../common/AnimatedThemeToggle.vue";
 
 const emit = defineEmits(['toggle-mobile-menu', 'toggle-sidebar']);
 const router = useRouter();
@@ -79,11 +80,9 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
         <div class="flex items-center gap-1 sm:gap-2">
 
             <!-- Dark mode quick toggle -->
-            <button @click="themeStore.toggleDarkMode" :aria-label="themeStore.isDark ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'"
-                class="hidden md:block p-2.5 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-surface-100 dark:hover:bg-surface-800">
-                <Sun v-if="themeStore.isDark" :size="20" />
-                <Moon v-else :size="20" />
-            </button>
+            <div class="hidden md:block mr-2">
+                <AnimatedThemeToggle />
+            </div>
 
             <!-- Notifications -->
             <button aria-label="Notifikasi"
