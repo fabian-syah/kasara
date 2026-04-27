@@ -36,16 +36,46 @@ class AuditController extends Controller
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $distributorIds = $user->getAccessibleDistributorIds();
 
-            if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) {
-                return response()->json([
-                    'daily_sales' => [],
-                    'brand_sales' => [],
-                    'cs_sales' => []
-                ]);
+            // Global exclusion for super_admin and analist roles
+            if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+                $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
+                
+                if (!empty($branchIds)) {
+                    $branchIds = Branch::whereIn('id', $branchIds)
+                        ->where(function ($q) use ($excludedTerms) {
+                            foreach ($excludedTerms as $term) {
+                                $q->where('name', 'not ilike', '%' . $term . '%');
+                            }
+                        })->pluck('id')->toArray();
+                }
+
+                if (!empty($onlineShopIds)) {
+                    $onlineShopIds = OnlineShop::whereIn('id', $onlineShopIds)
+                        ->where(function ($q) use ($excludedTerms) {
+                            foreach ($excludedTerms as $term) {
+                                $q->where('name', 'not ilike', '%' . $term . '%');
+                            }
+                        })->pluck('id')->toArray();
+                }
+
+                if (!empty($warehouseIds)) {
+                    $warehouseIds = Warehouse::whereIn('id', $warehouseIds)
+                        ->where(function ($q) use ($excludedTerms) {
+                            foreach ($excludedTerms as $term) {
+                                $q->where('name', 'not ilike', '%' . $term . '%');
+                            }
+                        })->pluck('id')->toArray();
+                }
             }
 
-            // Hide trial branches for analist role across all components (In-memory filtering for speed and safety)
-            // Analist trial branch filter removed to allow viewing requested trial locations
+            if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) {
+                return response()->json([
+                    'daily_sales' => ['data' => []],
+                    'brand_sales' => [],
+                    'cs_sales' => [],
+                    'report_summary' => null
+                ]);
+            }
 
             $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
             $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
@@ -65,6 +95,7 @@ class AuditController extends Controller
 
             $isUnrestricted = $user->hasAnyRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'analis', 'leader', 'developer', 'pimpinan_pusat']);
             $isAnalist = $user->hasAnyRole(['analist', 'analis']);
+            $isSuperAdmin = $user->hasRole('super_admin');
             $currentRoles = $user->roles()->pluck('name')->toArray();
 
             // Fallback: If ID is not numeric, it might be a name
@@ -633,12 +664,12 @@ class AuditController extends Controller
                 },
 
                 // 10. Unified Report Summary
-                function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $currentRoles) {
+                function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $isSuperAdmin, $currentRoles) {
                     try {
-                        $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
+                        $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                             $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
 
-                            $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist) {
+                            $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                                 $scoper = function ($qq, $col, $val) {
                                     $qq->where(function ($sq) use ($col, $val) {
                                         $sq->where("stock_outs.$col", $val)
@@ -664,8 +695,8 @@ class AuditController extends Controller
                                             ->whereRaw('users.id = stock_outs.user_id')
                                             ->where('users.distributor_id', $requestedDistributorId);
                                     });
-                                } elseif ($isUnrestricted) {
-                                    // Superadmins/Owners see everything of the requested type (if provided)
+                                } elseif ($isUnrestricted && !$isAnalist && !$isSuperAdmin) {
+                                    // Superadmins/Owners (non-filtered) see everything of the requested type (if provided)
                                     if ($requestedLocationType === 'branch') {
                                         $q->whereNotNull('stock_outs.branch_id')
                                             ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereNotNull('users.branch_id'));
@@ -673,13 +704,8 @@ class AuditController extends Controller
                                         $q->whereNotNull('stock_outs.online_shop_id')
                                             ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereNotNull('users.online_shop_id'));
                                     }
-
-                                    // Analysts see everything EXCEPT internal trial branches
-                                    if ($isAnalist) {
-                                        // Filter removed to allow viewing trial locations
-                                    }
                                 } else {
-                                    // Restricted users (Staff, Leaders, etc.) use their accessible IDs
+                                    // Restricted users (Staff, Leaders, etc.) OR Filtered Unrestricted (Analist, SuperAdmin) use their accessible IDs
                                     $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                         if (!empty($branchIds)) {
                                             $sub->orWhereIn('stock_outs.branch_id', $branchIds)
@@ -698,8 +724,8 @@ class AuditController extends Controller
                             });
                         };
 
-                        $applyStockScope = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
-                            $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
+                        $applyStockScope = function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
+                            $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                                 if ($requestedBranchId) {
                                     $sub->where('placement_id', $requestedBranchId)->whereRaw('LOWER(placement_type) LIKE ?', ['%branch%']);
                                 } elseif ($requestedOnlineShopId) {
@@ -708,7 +734,7 @@ class AuditController extends Controller
                                     $sub->where('placement_id', $requestedWarehouseId)->whereRaw('LOWER(placement_type) LIKE ?', ['%warehouse%']);
                                 } elseif ($requestedDistributorId) {
                                     $sub->where('placement_id', $requestedDistributorId)->whereRaw('LOWER(placement_type) LIKE ?', ['%distributor%']);
-                                } elseif ($isUnrestricted) {
+                                } elseif ($isUnrestricted && !$isAnalist && !$isSuperAdmin) {
                                     return;
                                 } else {
                                     if (!empty($branchIds))
@@ -719,14 +745,14 @@ class AuditController extends Controller
                             });
                         };
 
-                        $applyInScope = function ($q) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
+                        $applyInScope = function ($q) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                             $startTS = $startDate . ' 05:00:00';
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                             $q->where(function ($qq) use ($startDate, $endDate, $startTS, $endTS) {
                                 $qq->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                                     ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                             });
-                            $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted) {
+                            $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                                 if ($requestedBranchId)
                                     $sub->where('stock_outs.branch_id', $requestedBranchId);
                                 elseif ($requestedOnlineShopId)
@@ -737,7 +763,7 @@ class AuditController extends Controller
                                     $sub->whereExists(function ($ss) use ($requestedDistributorId) {
                                         $ss->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.distributor_id', $requestedDistributorId);
                                     });
-                                } elseif ($isUnrestricted) {
+                                } elseif ($isUnrestricted && !$isAnalist && !$isSuperAdmin) {
                                     return;
                                 } else {
                                     if (!empty($branchIds)) {
