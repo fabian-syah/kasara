@@ -721,7 +721,7 @@ const exportToPDF = async () => {
                                     </tr>
                                 </template>
                             </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 \u0026\u0026 (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
+                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
                                 <tr class="bg-surface-800/50 border-t border-surface-700">
                                     <td colspan="2" class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">
                                         TOTAL PERIODE
