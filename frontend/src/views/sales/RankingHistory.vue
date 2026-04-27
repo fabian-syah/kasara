@@ -269,7 +269,8 @@
                                 STOCK REPORT</p>
                             <h2
                                 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white uppercase tracking-tighter mb-4">
-                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE TRANSAKSI' }}
+                                {{ authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE
+                                TRANSAKSI' }}
                             </h2>
                             <p
                                 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-2 tracking-wider">
@@ -295,7 +296,7 @@
                             class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-12">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
                             <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
-                                }}</span>
+                            }}</span>
                         </div>
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
@@ -325,7 +326,7 @@
                                         <span class="capitalize">{{ cat.label }}</span>
                                     </div>
                                     <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </template>
                         </div>
@@ -399,16 +400,22 @@
                             <!-- Rincian Unit (Refund/Angkat Barang Details) -->
                             <div v-if="salesData?.report_summary?.activities?.details" class="mt-4 mb-8 space-y-6">
                                 <div v-if="salesData.report_summary.activities.details.refund?.length > 0">
-                                    <h4 class="text-[10px] font-black text-red-600/70 uppercase tracking-[0.2em] mb-2">Rincian Refund:</h4>
+                                    <h4 class="text-[10px] font-black text-red-600/70 uppercase tracking-[0.2em] mb-2">
+                                        Rincian Refund:</h4>
                                     <div class="space-y-3 pl-2">
-                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.refund" :key="'ui-ref-'+idx" 
-                                            class="border-l-2 border-red-100 pl-3 py-1">
-                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
+                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.refund"
+                                            :key="'ui-ref-' + idx" class="border-l-2 border-red-100 pl-3 py-1">
+                                            <div
+                                                class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
                                                 {{ d.name }} {{ d.storage ? `(${d.storage})` : '' }}
                                             </div>
                                             <div class="flex items-center gap-4 mt-1">
-                                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
-                                                <div v-if="d.price !== undefined && d.price !== null" class="text-[10px] font-black text-red-600 uppercase tracking-tighter">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                                                    IMEI: {{ d.imei ||
+                                                        '-' }}</div>
+                                                <div v-if="d.price !== undefined && d.price !== null"
+                                                    class="text-[10px] font-black text-red-600 uppercase tracking-tighter">
                                                     Harga Refund: {{ formatCurrency(d.price) }}
                                                 </div>
                                             </div>
@@ -416,16 +423,23 @@
                                     </div>
                                 </div>
                                 <div v-if="salesData.report_summary.activities.details.angkat_barang?.length > 0">
-                                    <h4 class="text-[10px] font-black text-blue-600/70 uppercase tracking-[0.2em] mb-2">Rincian Angkat Barang:</h4>
+                                    <h4 class="text-[10px] font-black text-blue-600/70 uppercase tracking-[0.2em] mb-2">
+                                        Rincian Angkat Barang:
+                                    </h4>
                                     <div class="space-y-3 pl-2">
-                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.angkat_barang" :key="'ui-ab-'+idx" 
-                                            class="border-l-2 border-blue-100 pl-3 py-1">
-                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
+                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.angkat_barang"
+                                            :key="'ui-ab-' + idx" class="border-l-2 border-blue-100 pl-3 py-1">
+                                            <div
+                                                class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
                                                 {{ d.name }} {{ d.storage ? `(${d.storage})` : '' }}
                                             </div>
                                             <div class="flex items-center gap-4 mt-1">
-                                                <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
-                                                <div v-if="d.price !== undefined && d.price !== null" class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                                                    IMEI: {{ d.imei ||
+                                                        '-' }}</div>
+                                                <div v-if="d.price !== undefined && d.price !== null"
+                                                    class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
                                                     Harga Angkat: {{ formatCurrency(d.price) }}
                                                 </div>
                                             </div>
@@ -567,7 +581,7 @@
                                 class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px] appearance-none">
                                 <option :value="null" class="dark:bg-surface-800">Semua GB</option>
                                 <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb
-                                }}GB</option>
+                                    }}GB</option>
                             </select>
                         </template>
                     </div>
@@ -743,7 +757,7 @@
                                         <tr class="bg-gray-50/30 dark:bg-surface-900/30">
                                             <td class="px-6 py-2"></td>
                                             <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">— {{ t.label
-                                            }}</td>
+                                                }}</td>
                                             <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
                                             <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{
                                                 t.qty }}</td>
@@ -807,7 +821,7 @@
                                         <tr class="bg-gray-50/30 dark:bg-surface-900/30">
                                             <td class="px-6 py-2"></td>
                                             <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">{{ t.label
-                                            }}</td>
+                                                }}</td>
                                             <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
                                             <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{
                                                 t.qty }}</td>
@@ -852,13 +866,13 @@
                                     <td class="px-6 py-4 font-bold text-text-primary">{{
                                         formatDateString(item.reporting_date) }}</td>
                                     <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0
-                                    }}</td>
+                                        }}</td>
                                     <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units
                                         || 0 }}</td>
                                     <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0
-                                    }}</td>
+                                        }}</td>
                                     <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units || 0
-                                    }}</td>
+                                        }}</td>
                                     <td
                                         class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                         {{ formatCurrency(item.total_omset) }}</td>
@@ -1385,64 +1399,56 @@ const categoryStocks = computed(() => {
     const stockDetails = summary.stock_details || {};
     const distInMap = summary.dist_in_map || {};
 
-    const configs = [
-        { key: 'apple_lux', label: 'STOK APPLE LUX' },
-        { key: 'hp', label: 'STOK HANDPHONE' },
-        { key: 'accessories', label: 'STOK ACC' },
-        { key: 'apply', label: 'STOK APPLY' },
-        { key: 'arcis', label: 'STOK ARCIS' },
-        { key: 'debs', label: 'STOK DEBS' },
-        { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
-        { key: 'laptop', label: 'STOK LAPTOPS' },
-        { key: 'tv', label: 'STOK TVSTORE' },
-        { key: 'jaringan', label: 'STOK JARINGAN / SIMCARD' },
+    return [
+        {
+            label: 'STOK APPLE LUX',
+            items: soldDetails.apple_lux || {},
+            remaining: stockReport.apple_lux || 0,
+            remainingItems: stockDetails.apple_lux || {},
+        },
+        {
+            label: 'STOK ACC',
+            items: soldDetails.accessories || {},
+            remaining: stockReport.accessories || 0,
+            remainingItems: stockDetails.accessories || {},
+        },
+        {
+            label: 'STOK APPLY',
+            items: soldDetails.apply || {},
+            remaining: stockReport.apply || 0,
+            remainingItems: stockDetails.apply || {},
+        },
+        {
+            label: 'STOK ARCIS',
+            items: soldDetails.arcis || {},
+            remaining: stockReport.arcis || 0,
+            remainingItems: stockDetails.arcis || {},
+        },
+        {
+            label: 'STOK DEBS',
+            items: soldDetails.debs || {},
+            remaining: stockReport.debs || 0,
+            remainingItems: stockDetails.debs || {},
+        },
+        {
+            label: 'STOK DOKTER PSTORE',
+            items: soldDetails.dokter_pstore || {},
+            remaining: stockReport.dokter_pstore || 0,
+            remainingItems: stockDetails.dokter_pstore || {},
+        },
+        {
+            label: 'STOK LAPTOPS',
+            items: soldDetails.laptop || {},
+            remaining: stockReport.laptop || 0,
+            remainingItems: stockDetails.laptop || {},
+        },
+        {
+            label: 'STOK TVSTORE',
+            items: soldDetails.tv || {},
+            remaining: stockReport.tv || 0,
+            remainingItems: stockDetails.tv || {},
+        }
     ];
-
-    const result = [];
-    const processedKeys = new Set();
-
-    // 1. Add standard categories
-    configs.forEach(cfg => {
-        if (soldDetails[cfg.key] || stockReport[cfg.key]) {
-            result.push({
-                label: cfg.label,
-                items: soldDetails[cfg.key] || {},
-                remaining: stockReport[cfg.key] || 0,
-                remainingItems: stockDetails[cfg.key] || {},
-            });
-            processedKeys.add(cfg.key);
-        }
-    });
-
-    // 2. Add dynamic categories
-    const allKeys = new Set([
-        ...Object.keys(soldDetails),
-        ...Object.keys(stockReport)
-    ]);
-
-    allKeys.forEach(key => {
-        if (!processedKeys.has(key) && key !== 'others' && key !== 'iphone' && key !== 'android') {
-            const label = 'STOK ' + key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            result.push({
-                label: label,
-                items: soldDetails[key] || {},
-                remaining: stockReport[key] || 0,
-                remainingItems: stockDetails[key] || {},
-            });
-        }
-    });
-
-    // 3. Add others last
-    if (soldDetails.others || stockReport.others) {
-        result.push({
-            label: 'STOK LAINNYA',
-            items: soldDetails.others || {},
-            remaining: stockReport.others || 0,
-            remainingItems: stockDetails.others || {},
-        });
-    }
-
-    return result;
 });
 
 const getBaseReportText = (isForCopy = false) => {
@@ -1494,29 +1500,12 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' }
     ];
 
-    const standardKeys = categoryConfigs.map(c => c.key);
-    
-    // 1. Show standard categories first
     categoryConfigs.forEach(cat => {
         const val = mapRp[cat.key] || 0;
         if (val !== 0) {
             text += `${cat.emoji} ${cat.label} : ${formatCurrency(val)}\n`;
         }
     });
-
-    // 2. Show any dynamic/new categories that are not in standard list
-    Object.entries(mapRp).forEach(([key, val]) => {
-        if (!standardKeys.includes(key) && key !== 'others' && val !== 0) {
-            // Convert slug back to readable name
-            const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-            text += `⚪️ Penjualan ${label} : ${formatCurrency(val)}\n`;
-        }
-    });
-
-    // 3. Show others last if it has value
-    if (mapRp.others && mapRp.others !== 0) {
-        text += `⚪️ Penjualan Lainnya : ${formatCurrency(mapRp.others)}\n`;
-    }
 
     if (isForCopy) {
         text += `\n__________________\n__________________\n\n`;
