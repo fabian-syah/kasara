@@ -1076,11 +1076,11 @@ class AuditController extends Controller
                             'stock_details' => $rawStockDetails,
                             'sold_details' => $soldDetails,
                             'activities' => [
-                                'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
-                                'tukar_tambah' => $pQuery->clone()->where('category', 'tukar_tambah')->count(),
-                                'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
-                                'refund' => $pQuery->clone()->where('category', 'refund')->count(),
-                                'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
+                                'tukar_unit' => count($activityDetails['tukar_unit'] ?? []),
+                                'tukar_tambah' => count($activityDetails['tukar_tambah'] ?? []),
+                                'downgrade' => count($activityDetails['downgrade'] ?? []),
+                                'refund' => count($activityDetails['refund'] ?? []),
+                                'angkat_barang' => count($activityDetails['angkat_barang'] ?? []),
                                 'details' => $activityDetails
                             ],
                             'debug' => [
