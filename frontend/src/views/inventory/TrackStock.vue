@@ -250,6 +250,7 @@ function formatCurrency(value) {
                                 'border-l-amber-500': result.category === 'kesalahan_input',
                                 'border-l-purple-500': result.category === 'retur',
                                 'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
+                                'border-l-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
                                 'border-l-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
                             }">
 
@@ -260,13 +261,16 @@ function formatCurrency(value) {
                                         'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
                                         'bg-purple-500/20 text-purple-500': result.category === 'retur',
                                         'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
+                                        'bg-indigo-500/20 text-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
                                         'bg-emerald-500/20 text-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
                                     }">
                                         <component :is="categoryIcons[result.category]" :size="24" />
                                     </div>
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2 mb-1">
-                                            <span
+                                            <span v-if="['angkat_barang', 'refund'].includes(result.category)"
+                                                class="text-blue-400 text-[10px] font-bold bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded uppercase tracking-wider">MASUK (AKTIVITAS)</span>
+                                            <span v-else
                                                 class="text-red-400 text-[10px] font-bold bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded uppercase tracking-wider">KELUAR</span>
                                             <p class="font-bold text-text-primary text-base truncate">{{ result.id }}
                                             </p>
