@@ -2967,20 +2967,6 @@ class AuditController extends Controller
         $report .= "Refund           : " . ($acts['refund'] ?? 0) . "\n";
         $report .= "Angkat barang    : " . ($acts['angkat_barang'] ?? 0) . "\n";
 
-        $details = $acts['details'] ?? [];
-        if (!empty($details['refund'])) {
-            $report .= "\n*Rincian Refund:*\n";
-            foreach ($details['refund'] as $d) {
-                $report .= "• " . ($d['name'] ?? '-') . "\n  IMEI: " . ($d['imei'] ?? '-') . "\n";
-            }
-        }
-        if (!empty($details['angkat_barang'])) {
-            $report .= "\n*Rincian Angkat Barang:*\n";
-            foreach ($details['angkat_barang'] as $d) {
-                $report .= "• " . ($d['name'] ?? '-') . "\n  IMEI: " . ($d['imei'] ?? '-') . "\n";
-            }
-        }
-
         $report .= "\nLaptop           : " . ($dMap['laptop'] ?? 0) . "\nTv               : " . ($dMap['tv'] ?? 0) . "\npengunjung       : .........\n";
         $report .= "__________________\n__________________\n\n*Laporan keuangan*\n\n🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN          :\nSISA     :\n__________________\n__________________\n\nRincian Unit & Stok\n\n";
 
@@ -3009,7 +2995,23 @@ class AuditController extends Controller
             }
         }
 
+        $details = $acts['details'] ?? [];
+        if (!empty($details['refund']) || !empty($details['angkat_barang'])) {
+            $report .= "__________________\n__________________\n\n*Rincian Unit*\n";
+            if (!empty($details['refund'])) {
+                $report .= "\n*Rincian Refund:*\n";
+                foreach ($details['refund'] as $d) {
+                    $report .= "• " . ($d['name'] ?? '-') . "\n  IMEI: " . ($d['imei'] ?? '-') . "\n";
+                }
+            }
+            if (!empty($details['angkat_barang'])) {
+                $report .= "\n*Rincian Angkat Barang:*\n";
+                foreach ($details['angkat_barang'] as $d) {
+                    $report .= "• " . ($d['name'] ?? '-') . "\n  IMEI: " . ($d['imei'] ?? '-') . "\n";
+                }
+            }
+        }
+
         return response()->json(['report' => $report, 'data' => $data]);
     }
 }
-
