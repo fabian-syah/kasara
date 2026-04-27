@@ -102,7 +102,7 @@
                                             <div class="font-black uppercase text-black">{{ item.name }}</div>
                                             <div v-if="item.ram || item.storage"
                                                 class="text-[10px] text-black font-medium">
-                                                {{ [item.ram, item.storage].filter(Boolean).join('/') }}
+                                                {{ [...new Set([item.ram, item.storage].filter(Boolean))].join('/') }}
                                             </div>
                                             <div v-if="item.condition" class="text-[9px] text-black font-bold italic">
                                                 Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition ===
