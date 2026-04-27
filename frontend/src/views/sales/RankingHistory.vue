@@ -408,7 +408,7 @@
                                             </div>
                                             <div class="flex items-center gap-4 mt-1">
                                                 <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
-                                                <div v-if="d.price" class="text-[10px] font-black text-red-600 uppercase tracking-tighter">
+                                                <div v-if="d.price !== undefined && d.price !== null" class="text-[10px] font-black text-red-600 uppercase tracking-tighter">
                                                     Harga Refund: {{ formatCurrency(d.price) }}
                                                 </div>
                                             </div>
@@ -425,7 +425,7 @@
                                             </div>
                                             <div class="flex items-center gap-4 mt-1">
                                                 <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
-                                                <div v-if="d.price" class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
+                                                <div v-if="d.price !== undefined && d.price !== null" class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
                                                     Harga Angkat: {{ formatCurrency(d.price) }}
                                                 </div>
                                             </div>
@@ -1569,14 +1569,14 @@ const getBaseReportText = (isForCopy = false) => {
             text += `\n*Rincian Refund:*\n`;
             actDetails.refund.forEach(d => {
                 text += `• ${d.name || '-'}${d.storage ? ` (${d.storage})` : ''}\n  IMEI: ${d.imei || '-'}\n`;
-                if (d.price) text += `  Harga Refund: ${formatCurrency(d.price)}\n`;
+                if (d.price !== undefined && d.price !== null) text += `  Harga Refund: ${formatCurrency(d.price)}\n`;
             });
         }
         if (actDetails.angkat_barang && actDetails.angkat_barang.length > 0) {
             text += `\n*Rincian Angkat Barang:*\n`;
             actDetails.angkat_barang.forEach(d => {
                 text += `• ${d.name || '-'}${d.storage ? ` (${d.storage})` : ''}\n  IMEI: ${d.imei || '-'}\n`;
-                if (d.price) text += `  Harga Angkat Barang: ${formatCurrency(d.price)}\n`;
+                if (d.price !== undefined && d.price !== null) text += `  Harga Angkat Barang: ${formatCurrency(d.price)}\n`;
             });
         }
     }
