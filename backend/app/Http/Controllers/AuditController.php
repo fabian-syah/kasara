@@ -1182,6 +1182,8 @@ class AuditController extends Controller
 
                 $detailedSplitPayments = $trx->split_payments_data ?? [];
 
+                $totalQty = collect($details)->sum('qty');
+
                 return [
                     'id' => $trx->id,
                     'date' => $trx->created_at?->toDateTimeString() ?? '-',
@@ -1190,7 +1192,7 @@ class AuditController extends Controller
                     'customer_phone' => $trx->customer_wa ?? '-',
                     'category' => $trx->category,
                     'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
-                    'qty' => $trx->is_bundle ? 1 : count($details),
+                    'qty' => $totalQty,
                     'items' => $details,
                     'grand_total' => (float) $trx->selling_price,
                     'selling_price' => (float) $trx->selling_price,
