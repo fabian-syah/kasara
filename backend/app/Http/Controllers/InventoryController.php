@@ -46,7 +46,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist', 'audit']);
 
         // 2. Base Query
         if ($type === 'non-hp') {
@@ -1691,7 +1691,7 @@ class InventoryController extends Controller
 
         // Common Restriction Logic (Same as Index)
         $applyLocationFilter = function ($query, $tablePrefix = '') use ($user) {
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist', 'audit'];
             if (!$user->hasRole($unrestrictedRoles)) {
                 $query->where(function ($q) use ($user, $tablePrefix) {
                     $branchIds = $user->getAccessibleBranchIds();
@@ -1832,7 +1832,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter($dIds));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist', 'audit']);
 
         if (app()->bound(\Laravel\Octane\Contracts\DispatchesTasks::class)) {
             [$branches, $shops, $warehouses, $distributors] = \Laravel\Octane\Facades\Octane::concurrently([
@@ -2179,7 +2179,7 @@ class InventoryController extends Controller
         $wIds = array_unique(array_filter($wIds));
         $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
 
-        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist', 'audit']);
 
         // Non-HP Query
         $nonHpQuery = Inventory::with('product')

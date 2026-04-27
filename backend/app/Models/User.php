@@ -118,7 +118,7 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'branch')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
+        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'audit', 'admin_produk'])) {
             return \App\Models\Branch::pluck('id')->toArray();
         }
 
@@ -139,7 +139,7 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'online_shop')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
+        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'audit', 'admin_produk'])) {
             return \App\Models\OnlineShop::pluck('id')->toArray();
         }
 
@@ -160,7 +160,7 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'warehouse')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
+        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk', 'audit'])) {
             return \App\Models\Warehouse::pluck('id')->toArray();
         }
 
@@ -181,7 +181,7 @@ class User extends Authenticatable
         $extras = $this->placements()->where('model_type', 'distributor')->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk'])) {
+        if ($this->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'admin_produk', 'audit'])) {
             return \App\Models\Distributor::pluck('id')->toArray();
         }
 
