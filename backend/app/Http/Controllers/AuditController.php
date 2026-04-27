@@ -981,6 +981,12 @@ class AuditController extends Controller
                             }
 
                             $did = $item->distributor_id;
+                            
+                            // Fallback 1: Product's default distributor
+                            if (!$did && $item->product_id) {
+                                $p = \App\Models\Product::find($item->product_id);
+                                $did = $p->distributor_id ?? null;
+                            }
 
                             // Fallback for transactions
                             if (!$did) {
@@ -1176,7 +1182,11 @@ class AuditController extends Controller
                     $qty = $item->quantity;
                     // Same here, use basic price minus per-item discount only.
                     $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
-                    $dist = $item->distributor_id ? $distributors->get($item->distributor_id) : null;
+                    $did = $item->distributor_id;
+                    if (!$did && $item->product) {
+                        $did = $item->product->distributor_id;
+                    }
+                    $dist = $did ? $distributors->get($did) : null;
                     $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
 
                     $details[] = [
