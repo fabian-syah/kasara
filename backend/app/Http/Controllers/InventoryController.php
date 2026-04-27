@@ -1549,6 +1549,11 @@ class InventoryController extends Controller
 
     public function update(Request $request, $id)
     {
+        $user = Auth::user();
+        if (!$user->hasRole(['super_admin', 'audit', 'owner', 'admin_produk'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $detail = ProductDetail::findOrFail($id);
 
         $request->validate([
@@ -1557,6 +1562,7 @@ class InventoryController extends Controller
             'cost_price' => 'required|numeric',
             'selling_price' => 'numeric',
             'status' => 'required|in:available,sold,retur,missing',
+            'notes' => 'nullable|string',
         ]);
 
         $detail->update($request->only([
@@ -1564,7 +1570,8 @@ class InventoryController extends Controller
             'storage',
             'cost_price',
             'selling_price',
-            'status'
+            'status',
+            'notes'
         ]));
 
         return response()->json([

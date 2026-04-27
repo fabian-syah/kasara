@@ -97,6 +97,8 @@ import {
   ScanBarcode,
   Upload,
   Warehouse,
+  Save,
+  Pencil,
   Truck
 } from "lucide-vue-next";
 
@@ -321,6 +323,57 @@ const canFilterBranch = computed(() => {
   const role = (authStore.userRole || '').toLowerCase();
   return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
 });
+
+const canEditInventory = computed(() => {
+  const role = (authStore.userRole || '').toLowerCase();
+  return ['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
+});
+
+// Edit Modal State
+const showEditModal = ref(false);
+const isSavingUpdate = ref(false);
+const editingItem = ref(null);
+const editForm = ref({
+  imei: '',
+  storage: '',
+  cost_price: 0,
+  selling_price: 0,
+  status: 'available',
+  notes: ''
+});
+
+function openEditModal(item) {
+  editingItem.value = item;
+  editForm.value = {
+    imei: item.imei || '',
+    storage: item.storage || '',
+    cost_price: item.cost_price || 0,
+    selling_price: item.selling_price || item.price || 0,
+    status: item.status || 'available',
+    notes: item.notes || ''
+  };
+  showEditModal.value = true;
+}
+
+async function saveInventoryUpdate() {
+  if (!editingItem.value) return;
+  
+  isSavingUpdate.value = true;
+  try {
+    const response = await api.post(`/inventory/${editingItem.value.id}`, editForm.value);
+    if (response.data.success) {
+      toast.success("Inventory berhasil diupdate");
+      showEditModal.value = false;
+      loadInventory(pagination.value.current_page);
+    }
+  } catch (error) {
+    console.error("Update failed:", error);
+    toast.error(error.response?.data?.message || "Gagal mengupdate inventory");
+  } finally {
+    isSavingUpdate.value = false;
+  }
+}
+
 
 const computedBrands = computed(() => {
   return brandOptions.value.filter(b => b.toLowerCase().includes(filterSearchQuery.brand.toLowerCase()));
@@ -1179,6 +1232,11 @@ async function exportInventory() {
                     :aria-label="'Lihat detail ' + (item.product?.name || 'barang')">
                     <Eye :size="16" class="text-text-secondary" />
                   </button>
+                  <button v-if="canEditInventory && activeTab === 'hp'" @click.stop="openEditModal(item)"
+                    class="p-2 hover:bg-surface-700 rounded-lg transition-colors"
+                    :aria-label="'Edit ' + (item.product?.name || 'barang')">
+                    <Pencil :size="16" class="text-primary-400" />
+                  </button>
                 </div>
               </td>
             </tr>
@@ -1505,6 +1563,71 @@ async function exportInventory() {
         </div>
       </div>
     </div>
+    
+    <!-- Edit Inventory Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+      <div class="absolute inset-0 bg-surface-950/80 backdrop-blur-sm" @click="showEditModal = false"></div>
+      <div class="relative w-full max-w-lg bg-surface-900 border border-surface-800 rounded-3xl shadow-2xl overflow-hidden animate-in">
+        <div class="p-6 border-b border-surface-800 flex justify-between items-center bg-surface-800/50">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
+              <Pencil :size="20" class="text-primary-400" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-text-primary">Edit Inventory</h3>
+              <p class="text-xs text-text-secondary mt-0.5">{{ editingItem?.product?.name }}</p>
+            </div>
+          </div>
+          <button @click="showEditModal = false" class="p-2 hover:bg-surface-700 rounded-xl transition-colors text-text-secondary">
+            <X :size="20" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">IMEI</label>
+            <input v-model="editForm.imei" type="text" class="input w-full font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Kapasitas / RAM</label>
+            <input v-model="editForm.storage" type="text" class="input w-full" placeholder="e.g. 8/256" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Modal (Rp)</label>
+              <input v-model.number="editForm.cost_price" type="number" class="input w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Jual (Rp)</label>
+              <input v-model.number="editForm.selling_price" type="number" class="input w-full" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Status</label>
+            <select v-model="editForm.status" class="input w-full">
+              <option value="available">Tersedia (Available)</option>
+              <option value="sold">Terjual (Sold)</option>
+              <option value="retur">Retur / Service</option>
+              <option value="missing">Hilang (Missing)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Catatan</label>
+            <textarea v-model="editForm.notes" class="input w-full h-24 py-2" placeholder="Catatan tambahan..."></textarea>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-surface-800 bg-surface-800/30 flex gap-3">
+          <button @click="showEditModal = false" class="btn btn-secondary flex-1">Batal</button>
+          <button @click="saveInventoryUpdate" :disabled="isSavingUpdate" class="btn btn-primary flex-1 gap-2">
+            <Loader2 v-if="isSavingUpdate" :size="18" class="animate-spin" />
+            <Save v-else :size="18" />
+            {{ isSavingUpdate ? 'Menyimpan...' : 'Simpan Perubahan' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
 
     <!-- Image Lightbox Modal -->
     <div v-if="showLightbox"
