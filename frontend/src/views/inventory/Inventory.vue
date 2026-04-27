@@ -1586,20 +1586,20 @@ async function exportInventory() {
         <div class="p-6 space-y-4">
           <div>
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">IMEI</label>
-            <input v-model="editForm.imei" type="text" class="input w-full font-mono" />
+            <input v-model="editForm.imei" type="text" class="input w-full font-mono opacity-50 cursor-not-allowed" disabled />
           </div>
           <div>
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Kapasitas / RAM</label>
-            <input v-model="editForm.storage" type="text" class="input w-full" placeholder="e.g. 8/256" />
+            <input v-model="editForm.storage" type="text" class="input w-full opacity-50 cursor-not-allowed" disabled />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Modal (Rp)</label>
-              <input v-model.number="editForm.cost_price" type="number" class="input w-full" />
+              <input v-money:cost_price="editForm" type="text" class="input w-full" placeholder="0" />
             </div>
             <div>
               <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Jual (Rp)</label>
-              <input v-model.number="editForm.selling_price" type="number" class="input w-full" />
+              <input v-money:selling_price="editForm" type="text" class="input w-full" placeholder="0" />
             </div>
           </div>
           <div>
