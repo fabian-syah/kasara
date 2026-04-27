@@ -892,21 +892,23 @@ class AuditController extends Controller
                         }
 
                         // 2. Non-IMEI transactions
-                        $nhpItems = DB::table('stock_out_non_hp_items')
-                            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-                            ->leftJoin('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                            ->whereIn('stock_outs.category', $salesCategories)
-                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
-                        
-                        $applyLocalScope($nhpItems);
-                        $nhpItems = $nhpItems->select('stock_out_non_hp_items.*', 'stock_outs.category as trx_category', 'stock_outs.branch_id', 'stock_outs.online_shop_id', 'stock_outs.warehouse_id', 'products.name as product_name', 'products.brand as product_brand', 'products.distributor_id as product_distributor_id')->get();
+                        $nhpItems = \App\Models\StockOutNonHpItem::with(['product', 'stockOut'])
+                            ->whereHas('stockOut', function ($q) use ($startDate, $endDate, $salesCategories, $applyLocalScope) {
+                                $q->whereIn('category', $salesCategories)
+                                    ->whereBetween('reporting_date', [$startDate, $endDate]);
+                                $applyLocalScope($q);
+                            })
+                            ->get();
 
                         foreach ($nhpItems as $item) {
-                            $catLower = strtolower($item->trx_category ?? '');
+                            $trx = $item->stockOut;
+                            if (!$trx) continue;
+
+                            $catLower = strtolower($trx->category ?? '');
                             
                             if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
-                                    'name' => ($item->product_name ?? 'Unknown') . " (Qty: {$item->quantity})",
+                                    'name' => ($item->product?->name ?? 'Unknown') . " (Qty: {$item->quantity})",
                                     'imei' => null,
                                     'price' => (float) $item->selling_price
                                 ];
@@ -915,8 +917,8 @@ class AuditController extends Controller
                             $did = $item->distributor_id;
                             
                             // Fallback 1: Product's default distributor
-                            if (!$did) {
-                                $did = $item->product_distributor_id;
+                            if (!$did && $item->product) {
+                                $did = $item->product->distributor_id;
                             }
 
                             // Fallback for transactions (inventory logs)
@@ -924,13 +926,13 @@ class AuditController extends Controller
                                 $lastLog = DB::table('inventory_logs')
                                     ->where('product_id', $item->product_id)
                                     ->where('type', 'in')
-                                    ->where(function ($q) use ($item) {
-                                        if (isset($item->branch_id) && $item->branch_id)
-                                            $q->where('branch_id', $item->branch_id);
-                                        elseif (isset($item->warehouse_id) && $item->warehouse_id)
-                                            $q->where('warehouse_id', $item->warehouse_id);
-                                        elseif (isset($item->online_shop_id) && $item->online_shop_id)
-                                            $q->where('online_shop_id', $item->online_shop_id);
+                                    ->where(function ($q) use ($trx) {
+                                        if ($trx->branch_id)
+                                            $q->where('branch_id', $trx->branch_id);
+                                        elseif ($trx->warehouse_id)
+                                            $q->where('warehouse_id', $trx->warehouse_id);
+                                        elseif ($trx->online_shop_id)
+                                            $q->where('online_shop_id', $trx->online_shop_id);
                                     })
                                     ->latest()
                                     ->first();
@@ -942,7 +944,7 @@ class AuditController extends Controller
 
                             // Breakdown for non-IMEI HP if any
                             if ($cat === 'hp' || $cat === 'apple_lux') {
-                                $brand = strtolower($item->product_brand ?? '');
+                                $brand = strtolower($item->product?->brand ?? '');
                                 $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
 
                                 if ($isStandardSale) {
@@ -967,7 +969,7 @@ class AuditController extends Controller
                             // Only add to 'Sold' details if it's a standard sale
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
                             if ($isStandardSale) {
-                                $soldDetails[$cat][$item->product_name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product_name ?? 'Unknown non-hp'] ?? 0) + $qty;
+                                $soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] ?? 0) + $qty;
                             }
                         }
 
