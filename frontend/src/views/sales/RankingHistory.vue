@@ -396,6 +396,30 @@
                                     salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
 
+                            <!-- Rincian Unit (Refund/Angkat Barang Details) -->
+                            <div v-if="salesData?.report_summary?.activities?.details" class="mt-4 mb-8 space-y-6">
+                                <div v-if="salesData.report_summary.activities.details.refund?.length > 0">
+                                    <h4 class="text-[10px] font-black text-red-600/70 uppercase tracking-[0.2em] mb-2">Rincian Refund:</h4>
+                                    <div class="space-y-3 pl-2">
+                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.refund" :key="'ui-ref-'+idx" 
+                                            class="border-l-2 border-red-100 pl-3 py-1">
+                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">{{ d.name }}</div>
+                                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="salesData.report_summary.activities.details.angkat_barang?.length > 0">
+                                    <h4 class="text-[10px] font-black text-blue-600/70 uppercase tracking-[0.2em] mb-2">Rincian Angkat Barang:</h4>
+                                    <div class="space-y-3 pl-2">
+                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.angkat_barang" :key="'ui-ab-'+idx" 
+                                            class="border-l-2 border-blue-100 pl-3 py-1">
+                                            <div class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">{{ d.name }}</div>
+                                            <div class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">IMEI: {{ d.imei || '-' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Non-HP Sales in Unit Section -->
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">

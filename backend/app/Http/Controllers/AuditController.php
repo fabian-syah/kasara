@@ -983,8 +983,9 @@ class AuditController extends Controller
                         $activityDetails = ['refund' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
 
                         foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei')->get() as $hp) {
-                            if (in_array($hp->category, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
-                                $activityDetails[$hp->category][] = [
+                            $catLower = strtolower($hp->category ?? '');
+                            if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                                $activityDetails[$catLower][] = [
                                     'name' => $hp->name,
                                     'imei' => $hp->imei
                                 ];
@@ -1005,7 +1006,15 @@ class AuditController extends Controller
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
                         $applyLocalScope($nhpItemsQuery);
 
-                        foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id', 'stock_out_non_hp_items.product_id', 'stock_outs.branch_id', 'stock_outs.warehouse_id', 'stock_outs.online_shop_id')->get() as $item) {
+                        foreach ($nhpItemsQuery->select('products.name', 'products.brand', 'stock_out_non_hp_items.quantity', 'stock_out_non_hp_items.selling_price as item_price', 'stock_out_non_hp_items.distributor_id', 'stock_out_non_hp_items.product_id', 'stock_outs.branch_id', 'stock_outs.warehouse_id', 'stock_outs.online_shop_id', 'stock_outs.category')->get() as $item) {
+                            $catLower = strtolower($item->category ?? '');
+                            if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                                $activityDetails[$catLower][] = [
+                                    'name' => ($item->name ?? 'Unknown') . " (Qty: {$item->quantity})",
+                                    'imei' => null
+                                ];
+                            }
+
                             $did = $item->distributor_id;
 
                             // Fallback for transactions
