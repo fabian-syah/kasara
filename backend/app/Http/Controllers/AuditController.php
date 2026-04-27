@@ -1143,11 +1143,11 @@ class AuditController extends Controller
                             'stock_details' => $rawStockDetails,
                             'sold_details' => $soldDetails,
                             'activities' => [
-                                'tukar_unit' => $pQuery->clone()->where('category', 'tukar_unit')->count(),
-                                'tukar_tambah' => $pQuery->clone()->where('category', 'tukar_tambah')->count(),
-                                'downgrade' => $pQuery->clone()->where('category', 'downgrade')->count(),
-                                'refund' => $pQuery->clone()->where('category', 'refund')->count(),
-                                'angkat_barang' => $pQuery->clone()->where('category', 'angkat_barang')->count(),
+                                'tukar_unit' => DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->where(fn($q) => $applyLocalScope($q))->where('category', 'tukar_unit')->count(),
+                                'tukar_tambah' => DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->where(fn($q) => $applyLocalScope($q))->where('category', 'tukar_tambah')->count(),
+                                'downgrade' => DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->where(fn($q) => $applyLocalScope($q))->where('category', 'downgrade')->count(),
+                                'refund' => DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->where(fn($q) => $applyLocalScope($q))->where('category', 'refund')->count(),
+                                'angkat_barang' => DB::table('stock_outs')->whereBetween('reporting_date', [$startDate, $endDate])->where(fn($q) => $applyLocalScope($q))->where('category', 'angkat_barang')->count(),
                                 'details' => $activityDetails
                             ],
                             'debug' => [
