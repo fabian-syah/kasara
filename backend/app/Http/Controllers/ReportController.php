@@ -253,7 +253,7 @@ class ReportController extends Controller
         // Group CS stats by Petugas Stok (inventory_user_id) as requested
         $csUserIdField = 'inventory_user_id';
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang'];
 
         // Role-based scoping and strict isolation
         $requestedBranchId = $branchId;
@@ -300,9 +300,11 @@ class ReportController extends Controller
 
             $query->where(function($q) use ($tableName, $filterBranchIds, $filterOnlineShopIds) {
                 if (!empty($filterBranchIds)) {
+                    $q->orWhereIn("stock_outs.branch_id", $filterBranchIds);
                     $q->orWhereIn("{$tableName}.branch_id", $filterBranchIds);
                 }
                 if (!empty($filterOnlineShopIds)) {
+                    $q->orWhereIn("stock_outs.online_shop_id", $filterOnlineShopIds);
                     $q->orWhereIn("{$tableName}.online_shop_id", $filterOnlineShopIds);
                 }
                 
@@ -580,10 +582,6 @@ class ReportController extends Controller
 
         $branches = DB::table('branches')
             ->where('is_active', true)
-            ->where('name', 'NOT ILIKE', '%TRIAL%')
-            ->where('name', 'NOT ILIKE', '%ANU%')
-            ->where('name', 'NOT ILIKE', '%TESTING%')
-            ->where('name', 'NOT ILIKE', '%HUFT%')
             ->get();
         $branchStats = $branches->map(function($b) use ($branchBase, $branchItemCounts, $branchAndroidModels) {
             $base = $branchBase[$b->id] ?? null;
@@ -662,10 +660,6 @@ class ReportController extends Controller
 
         $shops = DB::table('online_shops')
             ->where('is_active', true)
-            ->where('name', 'NOT ILIKE', '%TRIAL%')
-            ->where('name', 'NOT ILIKE', '%ANU%')
-            ->where('name', 'NOT ILIKE', '%TESTING%')
-            ->where('name', 'NOT ILIKE', '%HUFT%')
             ->get();
         $onlineStats = $shops->map(function($s) use ($onlineBase, $onlineItemCounts, $onlineAndroidModels) {
             $base = $onlineBase[$s->id] ?? null;

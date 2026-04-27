@@ -382,11 +382,15 @@ class DashboardController extends Controller
                     ->whereIn('stock_outs.category', $salesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
-                if ($user->branch_id) {
-                    $query->where('users.branch_id', $user->branch_id);
-                } else {
-                    $query->where('users.online_shop_id', $user->online_shop_id);
-                }
+                $query->where(function ($q) use ($user) {
+                    if ($user->branch_id) {
+                        $q->where('stock_outs.branch_id', $user->branch_id)
+                          ->orWhere('users.branch_id', $user->branch_id);
+                    } elseif ($user->online_shop_id) {
+                        $q->where('stock_outs.online_shop_id', $user->online_shop_id)
+                          ->orWhere('users.online_shop_id', $user->online_shop_id);
+                    }
+                });
 
                 if ($end) {
                     $query->whereBetween('stock_outs.reporting_date', [$start, $end]);
