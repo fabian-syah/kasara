@@ -765,9 +765,13 @@
                                     </template>
                                     <th v-if="currentView === 'sales'" class="px-6 py-4 text-center">Total Penjualan
                                     </th>
-                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Tukar/Angkat/DW</th>
-                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
-                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Retur</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">TU</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">TT</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">DW</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">AB</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">RF</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">RT</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center text-primary-500">Total Unit</th>
                                     <th class="px-6 py-4 text-right">Grand Total</th>
                                 </template>
                                 <template v-else-if="currentView === 'type'">
@@ -960,12 +964,20 @@
                                                 item.total_sales }}</td>
                                         </template>
                                         <template v-if="currentView === 'activity'">
-                                            <td class="px-6 py-4 text-center font-bold text-amber-500">{{
-                                                item.total_angkat_barang || 0 }}</td>
-                                            <td class="px-6 py-4 text-center font-bold text-red-500">{{
+                                            <td class="px-2 py-4 text-center font-bold text-blue-500 text-xs">{{
+                                                item.total_tu || 0 }}</td>
+                                            <td class="px-2 py-4 text-center font-bold text-indigo-500 text-xs">{{
+                                                item.total_tt || 0 }}</td>
+                                            <td class="px-2 py-4 text-center font-bold text-orange-500 text-xs">{{
+                                                item.total_dw || 0 }}</td>
+                                            <td class="px-2 py-4 text-center font-bold text-amber-500 text-xs">{{
+                                                item.total_ab || 0 }}</td>
+                                            <td class="px-2 py-4 text-center font-bold text-red-500 text-xs">{{
                                                 item.total_refund || 0 }}</td>
-                                            <td class="px-6 py-4 text-center font-bold text-purple-500">{{
+                                            <td class="px-2 py-4 text-center font-bold text-purple-500 text-xs">{{
                                                 item.total_retur || 0 }}</td>
+                                            <td class="px-2 py-4 text-center font-black text-primary-500">{{
+                                                (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) + (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur || 0) }}</td>
                                         </template>
                                         <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                             {{ formatCurrency(item.grand_total) }}</td>
@@ -1055,9 +1067,13 @@
                                 </template>
 
                                 <template v-else-if="currentView === 'activity'">
-                                    <td class="px-6 py-4 text-center text-amber-500">{{ totals.activity }}</td>
-                                    <td class="px-6 py-4 text-center text-red-500">{{ totals.refund }}</td>
-                                    <td class="px-6 py-4 text-center text-purple-500">{{ totals.retur }}</td>
+                                    <td class="px-2 py-4 text-center text-blue-500 text-xs">{{ totals.tu }}</td>
+                                    <td class="px-2 py-4 text-center text-indigo-500 text-xs">{{ totals.tt }}</td>
+                                    <td class="px-2 py-4 text-center text-orange-500 text-xs">{{ totals.dw }}</td>
+                                    <td class="px-2 py-4 text-center text-amber-500 text-xs">{{ totals.ab }}</td>
+                                    <td class="px-2 py-4 text-center text-red-500 text-xs">{{ totals.refund }}</td>
+                                    <td class="px-2 py-4 text-center text-purple-500 text-xs">{{ totals.retur }}</td>
+                                    <td class="px-2 py-4 text-center text-primary-500 font-black">{{ totals.activity }}</td>
                                     <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
                                 </template>
 
@@ -1334,8 +1350,8 @@ const sortedData = computed(() => {
     return [...filtered].sort((a, b) => {
         const order = sortConfig.value.order
         if (currentView.value === 'activity') {
-            const valA = (a.total_angkat_barang || 0) + (a.total_refund || 0) + (a.total_retur || 0)
-            const valB = (b.total_angkat_barang || 0) + (b.total_refund || 0) + (b.total_retur || 0)
+            const valA = (a.total_tu || 0) + (a.total_tt || 0) + (a.total_dw || 0) + (a.total_ab || 0) + (a.total_refund || 0) + (a.total_retur || 0)
+            const valB = (b.total_tu || 0) + (b.total_tt || 0) + (b.total_dw || 0) + (b.total_ab || 0) + (b.total_refund || 0) + (b.total_retur || 0)
             return order === 'num-asc' ? valA - valB : valB - valA
         }
         if (order === 'num-desc') return (b.total_sales || b.grand_total || b.qty || b.total_omset || 0) - (a.total_sales || a.grand_total || a.qty || a.total_omset || 0)
@@ -1757,7 +1773,7 @@ const filteredBrandHierarchy = computed(() => {
 })
 
 const totals = computed(() => {
-    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity = 0, refund = 0, retur = 0;
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
 
     if (currentView.value === 'brand') {
         filteredBrandHierarchy.value.forEach(row => units += row.qty);
@@ -1776,7 +1792,10 @@ const totals = computed(() => {
                 iphone += (item.iphone_units || 0);
                 android += (item.android_units || 0);
                 nonHp += (item.non_hp_units || 0);
-                activity += (item.total_angkat_barang || 0);
+                tu += (item.total_tu || 0);
+                tt += (item.total_tt || 0);
+                dw += (item.total_dw || 0);
+                ab += (item.total_ab || 0);
                 refund += (item.total_refund || 0);
                 retur += (item.total_retur || 0);
                 revenue += (item.grand_total || 0);
@@ -1786,7 +1805,8 @@ const totals = computed(() => {
         });
     }
 
-    return { units, iphone, android, nonHp, revenue, activity, refund, retur };
+    const activity = tu + tt + dw + ab + refund + retur;
+    return { units, iphone, android, nonHp, revenue, tu, tt, dw, ab, refund, retur, activity };
 });
 
 const handlePeriodChange = () => {

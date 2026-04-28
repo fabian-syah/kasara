@@ -446,7 +446,10 @@ class AuditController extends Controller
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
                         DB::raw("sum(case when stock_outs.category not in ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as grand_total"), 
-                        DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), 
+                        DB::raw("sum(case when stock_outs.category = 'tukar_unit' then 1 else 0 end) as total_tu"),
+                        DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then 1 else 0 end) as total_tt"),
+                        DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as total_dw"),
+                        DB::raw("sum(case when stock_outs.category = 'angkat_barang' then 1 else 0 end) as total_ab"),
                         DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"),
                         DB::raw("sum(case when stock_outs.category = 'retur' then 1 else 0 end) as total_retur"))
                         ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
