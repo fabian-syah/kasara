@@ -1048,6 +1048,7 @@ class StockOutController extends Controller
                     'imei' => $i->imei,
                     'product_name' => $i->product?->name,
                     'quantity' => 1,
+                    'notes' => $i->pivot?->notes
                 ])->toArray();
 
                 // Non-HP enrich
@@ -1062,8 +1063,71 @@ class StockOutController extends Controller
                             'product_name' => $products[$nhp['product_id']] ?? 'Unknown Product',
                             'quantity' => $nhp['quantity'] ?? 1,
                             'tracking_no' => $nhp['tracking_no'] ?? null,
+                            'notes' => $nhp['notes'] ?? null
                         ];
                     }
+                }
+
+                // Consolidate Bundles if applicable
+                if ($out->is_bundle) {
+                    $grouped = [];
+                    $bundles = [];
+                    $fallbackBundleName = $out->bundle_description ?: 'Paket Bundling';
+                    
+                    // Historical component-aware matching logic
+                    $bundleComponents = [];
+                    if ($fallbackBundleName) {
+                        $descPart = str_replace('Paket Bundling:', '', $fallbackBundleName);
+                        $bundleComponents = array_map('trim', explode(',', $descPart));
+                    }
+
+                    foreach ($mergedItems as $item) {
+                        $bundleTag = $item['notes'] ?? null;
+                        $cleanName = $item['product_name'] ?? '';
+                        
+                        $isPartOfBundle = false;
+                        $groupKey = $bundleTag;
+
+                        if ($bundleTag && ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) {
+                            $isPartOfBundle = true;
+                        } else if (!$bundleTag && !empty($bundleComponents)) {
+                            foreach ($bundleComponents as $idx => $comp) {
+                                if (!empty($comp) && (str_contains(strtolower($cleanName), strtolower($comp)) || str_contains(strtolower($comp), strtolower($cleanName)))) {
+                                    $isPartOfBundle = true;
+                                    $groupKey = $fallbackBundleName;
+                                    unset($bundleComponents[$idx]);
+                                    break;
+                                }
+                            }
+                        }
+
+                        if ($isPartOfBundle && $groupKey) {
+                            if (!isset($bundles[$groupKey])) {
+                                $bundles[$groupKey] = [
+                                    'product_name' => '📦 ' . $groupKey,
+                                    'quantity' => 0,
+                                    'type' => 'bundle',
+                                    'imei' => [],
+                                    'bundle_composition' => []
+                                ];
+                            }
+                            $bundles[$groupKey]['quantity'] += $item['quantity'];
+                            $bundles[$groupKey]['bundle_composition'][] = $item['type'] === 'hp' ? 'IMEI' : 'NON-IMEI';
+                            if (isset($item['imei']) && $item['imei'] !== '-') {
+                                $bundles[$groupKey]['imei'][] = $item['imei'];
+                            }
+                        } else {
+                            $grouped[] = $item;
+                        }
+                    }
+
+                    foreach ($bundles as $bName => $bData) {
+                        $composition = array_unique($bData['bundle_composition']);
+                        $bData['product_name'] .= ' [' . implode(' + ', $composition) . ']';
+                        $bData['imei'] = implode(', ', array_unique($bData['imei'])) ?: '-';
+                        $grouped[] = $bData;
+                    }
+                    $mergedItems = $grouped;
                 }
 
                 // Filter items to only include the searched item if it's an IMEI or Tracking No

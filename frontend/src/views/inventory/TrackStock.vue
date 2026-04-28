@@ -304,10 +304,10 @@ function formatCurrency(value) {
                                 <div class="space-y-2">
                                     <div v-for="(item, idx) in result.items" :key="idx"
                                         class="flex items-center gap-3 p-2 bg-surface-700/30 rounded-lg">
-                                        <component :is="item.type === 'non-hp' ? Box : Smartphone" :size="16"
+                                        <component :is="item.type === 'bundle' ? Package : (item.type === 'non-hp' ? Box : Smartphone)" :size="16"
                                             class="text-text-secondary" />
                                         <div class="flex-1">
-                                            <p class="text-text-primary text-sm font-medium">{{ item.product_name }}</p>
+                                            <p class="text-text-primary text-sm font-medium" :class="{'text-primary-400 font-black': item.type === 'bundle'}">{{ item.product_name }}</p>
                                             <p class="text-text-secondary text-xs"
                                                 v-if="item.imei && item.imei !== '-'">{{
                                                     item.imei }}</p>
