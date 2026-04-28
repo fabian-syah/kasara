@@ -186,8 +186,8 @@
                         <ChevronRight :size="20"
                             class="text-text-secondary group-hover:text-red-500 transition-colors" />
                     </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Angkat Barang & Refund</h3>
-                    <p class="text-sm text-text-secondary">Ranking sales berdasarkan jumlah refund & angkat barang</p>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Ranking Aktivitas Unit</h3>
+                    <p class="text-sm text-text-secondary">Berdasarkan Refund, Tukar Unit/Tambah, Angkat Barang & Downgrade</p>
                 </button>
 
                 <!-- Card: Per Distributor -->
@@ -1124,7 +1124,7 @@ const viewLabels = {
     'brand': 'Penjualan per Merek Produk',
     'type': 'Penjualan per Tipe/Model',
     'condition': 'Penjualan per Kondisi',
-    'activity': 'Peringkat Berdasarkan Aktivitas Unit (Tukar/Refund/Angkat)',
+    'activity': 'Peringkat Berdasarkan Aktivitas Unit (Refund/Tukar/Angkat/Downgrade)',
     'distributor': 'Peringkat Penjualan per Distributor'
 }
 
