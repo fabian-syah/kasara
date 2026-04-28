@@ -1230,12 +1230,8 @@ class AuditController extends Controller
                     $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
                     $dist = $dId ? $distributors->get($dId) : null;
                     $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
-
-                    // Use the selling_price as typed by the user. Do not subtract distributed_discount here 
-                    // because it's handled as a separate 'TOTAL DISKON' row in the receipt/summary.
                     $basePrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
 
-                    // Fallback for activities that might not have a selling_price in the pivot
                     if ($basePrice <= 0 && in_array(strtolower($trx->category), ['angkat_barang', 'refund', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                         $basePrice = (float) ($item->cost_price ?? 0);
                     }
@@ -1249,14 +1245,14 @@ class AuditController extends Controller
                         'is_hp' => true,
                         'imei' => $item->imei ?? '-',
                         'distributor_name' => $dName,
-                        'ram' => $item->storage, // The modal expects ram/storage
+                        'ram' => $item->storage,
                         'storage' => $item->storage,
-                        'condition' => $item->condition
+                        'condition' => $item->condition,
+                        'notes' => $item->pivot?->notes
                     ];
                 }
                 foreach ($trx->nonHpDetails as $item) {
                     $qty = $item->quantity;
-                    // Same here, use basic price minus per-item discount only.
                     $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
                     $did = $item->distributor_id;
                     if (!$did && $item->product) {
@@ -1273,11 +1269,11 @@ class AuditController extends Controller
                         'type' => 'Item',
                         'is_hp' => false,
                         'imei' => '-',
-                        'distributor_name' => $dName
+                        'distributor_name' => $dName,
+                        'notes' => $item->notes
                     ];
                 }
 
-                // Fallback for legacy JSON-based non_hp_items (e.g. from older RefundController logic)
                 if (empty($details) && $trx->non_hp_items && is_array($trx->non_hp_items)) {
                     foreach ($trx->non_hp_items as $item) {
                         $pId = $item['product_id'] ?? null;
@@ -1291,8 +1287,66 @@ class AuditController extends Controller
                             'type' => 'Item',
                             'is_hp' => false,
                             'imei' => '-',
-                            'distributor_name' => '-'
+                            'distributor_name' => '-',
+                            'notes' => $item['notes'] ?? null
                         ];
+                    }
+                }
+
+                // GROUPING LOGIC FOR BUNDLES
+                if ($trx->is_bundle) {
+                    $grouped = [];
+                    $bundles = [];
+                    $fallbackBundleName = $trx->bundle_description ?: 'Paket Bundling';
+                    
+                    foreach ($details as $d) {
+                        // Check if this item is part of a bundle (tagged in notes)
+                        $bundleTag = $d['notes'] ?? null;
+                        
+                        // Fallback: if transaction is a bundle but item has no tag, 
+                        // assume it's part of the main bundle description
+                        if (!$bundleTag) {
+                            $bundleTag = $fallbackBundleName;
+                        }
+                        
+                        if ($bundleTag && (str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket') || $bundleTag === $fallbackBundleName)) {
+                            if (!isset($bundles[$bundleTag])) {
+                                $bundles[$bundleTag] = [
+                                    'name' => '📦 ' . $bundleTag,
+                                    'qty' => 1,
+                                    'price' => 0,
+                                    'brand' => 'BUNDLE',
+                                    'type' => 'Bundle',
+                                    'is_hp' => false,
+                                    'imei' => [],
+                                    'distributor_name' => [],
+                                    'storage' => '-',
+                                    'condition' => '-',
+                                    'ram' => '-',
+                                    'is_bundle_row' => true
+                                ];
+                            }
+                            $bundles[$bundleTag]['price'] += ($d['price'] * $d['qty']);
+                            if ($d['imei'] && $d['imei'] !== '-') {
+                                $bundles[$bundleTag]['imei'][] = $d['imei'];
+                                $bundles[$bundleTag]['is_hp'] = true;
+                            }
+                            if ($d['distributor_name'] && $d['distributor_name'] !== 'KOSONG') {
+                                $bundles[$bundleTag]['distributor_name'][] = $d['distributor_name'];
+                            }
+                        } else {
+                            $grouped[] = $d;
+                        }
+                    }
+                    
+                    foreach ($bundles as $bName => $bData) {
+                        $bData['imei'] = implode(', ', array_unique($bData['imei'])) ?: '-';
+                        $bData['distributor_name'] = implode(', ', array_unique($bData['distributor_name'])) ?: 'KOSONG';
+                        $grouped[] = $bData;
+                    }
+                    
+                    if (!empty($bundles)) {
+                        $details = $grouped;
                     }
                 }
 
@@ -1336,6 +1390,7 @@ class AuditController extends Controller
                     'total_discount' => (float) $trx->total_discount,
                     'original_price' => (float) ($trx->selling_price + $trx->total_discount),
                     'is_bundle' => (bool) $trx->is_bundle,
+                    'bundle_description' => $trx->bundle_description,
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
                     'notes' => $trx->notes

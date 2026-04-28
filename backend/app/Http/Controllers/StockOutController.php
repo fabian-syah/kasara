@@ -747,6 +747,7 @@ class StockOutController extends Controller
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $deductAmount,
                             'returned_quantity' => 0,
                             'distributor_id' => $inventory->distributor_id, // Capture from inventory source
+                            'notes' => $item['name'] ?? 'Bundle Item'
                         ]);
                     }
                 }
@@ -767,6 +768,7 @@ class StockOutController extends Controller
                     'item_discount' => $hpMeta['item_discount'] ?? 0,
                     'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
                     'distributor_id' => $detail->distributor_id, // Capture HP distributor permanently
+                    'notes' => $bundleHpPrices[$detail->id] ? ($request->items ? (collect($request->items)->first(fn($i) => isset($i['bundle_items']) && collect($i['bundle_items'])->contains('id', $detail->id))['name'] ?? 'Bundle Item') : 'Bundle Item') : null
                 ]);
 
                 $updateStatus = $newStatus;
