@@ -1431,12 +1431,17 @@ const salesHierarchy = computed(() => {
     return raw.map(cs => {
         const distMap = new Map()
         
+        // List kategori aktivitas (seperti di backend)
+        const activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
+        
         // Coba ambil dari 'breakdown' atau 'details'
         const rawItems = cs.breakdown || cs.details || []
         
         const breakdown = rawItems.filter(item => {
-            if (currentView.value === 'sales') return !item.category || item.category === 'sale';
-            if (currentView.value === 'activity') return item.category && item.category !== 'sale';
+            const isActivity = item.category && activityCats.includes(item.category.toLowerCase());
+            
+            if (currentView.value === 'sales') return !isActivity;
+            if (currentView.value === 'activity') return isActivity;
             return true;
         })
         
