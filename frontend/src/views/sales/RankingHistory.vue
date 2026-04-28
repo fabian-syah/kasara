@@ -980,7 +980,7 @@
                                                 (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) + (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur || 0) }}</td>
                                         </template>
                                         <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
-                                            {{ formatCurrency(item.grand_total) }}</td>
+                                            {{ formatCurrency(currentView === 'activity' ? item.total_activity_rp : item.grand_total) }}</td>
                                     </template>
 
                                     <!-- Type / Conditioner / Other -->
@@ -1074,7 +1074,7 @@
                                     <td class="px-2 py-4 text-center text-red-500 text-xs">{{ totals.refund }}</td>
                                     <td class="px-2 py-4 text-center text-purple-500 text-xs">{{ totals.retur }}</td>
                                     <td class="px-2 py-4 text-center text-primary-500 font-black">{{ totals.activity }}</td>
-                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
+                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.activity_revenue) }}</td>
                                 </template>
 
                                 <template v-else-if="currentView === 'type'">
@@ -1773,7 +1773,7 @@ const filteredBrandHierarchy = computed(() => {
 })
 
 const totals = computed(() => {
-    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
 
     if (currentView.value === 'brand') {
         filteredBrandHierarchy.value.forEach(row => units += row.qty);
@@ -1799,6 +1799,7 @@ const totals = computed(() => {
                 refund += (item.total_refund || 0);
                 retur += (item.total_retur || 0);
                 revenue += (item.grand_total || 0);
+                activity_revenue += (item.total_activity_rp || 0);
             } else {
                 units += (item.qty || 0);
             }
@@ -1806,7 +1807,7 @@ const totals = computed(() => {
     }
 
     const activity = tu + tt + dw + ab + refund + retur;
-    return { units, iphone, android, nonHp, revenue, tu, tt, dw, ab, refund, retur, activity };
+    return { units, iphone, android, nonHp, revenue, activity_revenue, tu, tt, dw, ab, refund, retur, activity };
 });
 
 const handlePeriodChange = () => {
