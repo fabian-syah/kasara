@@ -342,6 +342,20 @@ const editForm = ref({
   notes: ''
 });
 
+const displayCostPrice = computed({
+  get: () => formatNumber(editForm.value.cost_price),
+  set: (val) => {
+    editForm.value.cost_price = parseCurrency(val);
+  }
+});
+
+const displaySellingPrice = computed({
+  get: () => formatNumber(editForm.value.selling_price),
+  set: (val) => {
+    editForm.value.selling_price = parseCurrency(val);
+  }
+});
+
 function openEditModal(item) {
   editingItem.value = item;
   editForm.value = {
@@ -1595,11 +1609,17 @@ async function exportInventory() {
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Modal (Rp)</label>
-              <input v-money:cost_price="editForm" type="text" class="input w-full" placeholder="0" />
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">Rp</span>
+                <input v-model="displayCostPrice" type="text" class="input w-full pl-10" placeholder="0" />
+              </div>
             </div>
             <div>
               <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Jual (Rp)</label>
-              <input v-money:selling_price="editForm" type="text" class="input w-full" placeholder="0" />
+              <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">Rp</span>
+                <input v-model="displaySellingPrice" type="text" class="input w-full pl-10" placeholder="0" />
+              </div>
             </div>
           </div>
           <div>

@@ -392,22 +392,87 @@ class AuditController extends Controller
 
                                 // Hard exclusion for Analist (Trial/ANU)
                                 if ($isAnalist) {
-                                    // Filter removed
+                                    $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
+                                    $sub->whereNotExists(function ($exQ) use ($excludedTerms) {
+                                        $exQ->select(DB::raw(1))->from('branches')->whereRaw('branches.id = stock_outs.branch_id')
+                                            ->where(function ($inner) use ($excludedTerms) {
+                                                foreach ($excludedTerms as $term) { $inner->orWhere('name', 'ilike', '%' . $term . '%'); }
+                                            });
+                                    })->whereNotExists(function ($exQ) use ($excludedTerms) {
+                                        $exQ->select(DB::raw(1))->from('online_shops')->whereRaw('online_shops.id = stock_outs.online_shop_id')
+                                            ->where(function ($inner) use ($excludedTerms) {
+                                                foreach ($excludedTerms as $term) { $inner->orWhere('name', 'ilike', '%' . $term . '%'); }
+                                            });
+                                    });
                                 }
                             });
                         }
                     });
+
+                    // Breakdown Query
+                    $hpBreakdown = (clone $baseQuery)->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                        ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                        ->join('products', 'product_details.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
+                        ->select(
+                            DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
+                            'products.brand',
+                            'products.name',
+                            'product_details.condition',
+                            'product_details.storage',
+                            'distributors.name as distributor',
+                            DB::raw('count(*) as qty')
+                        )
+                        ->groupBy('owner_id', 'products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')
+                        ->get()->groupBy('owner_id');
+
+                    $nhpBreakdown = (clone $baseQuery)->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+                        ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                        ->select(
+                            DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
+                            'products.brand',
+                            'products.name',
+                            DB::raw('sum(stock_out_non_hp_items.quantity) as qty')
+                        )
+                        ->groupBy('owner_id', 'products.brand', 'products.name')
+                        ->get()->groupBy('owner_id');
+
                     $itemStatsQuery = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                     $nhpStatsQuery = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
+                    
                     $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', DB::raw("sum(case when stock_outs.category in ('shopee','orderan_online','penjualan_offline','penjualan_store','tukar_unit','tukar_tambah','downgrade','cancel_penjualan','angkat_barang') then stock_outs.selling_price when stock_outs.category = 'refund' then -stock_outs.selling_price else 0 end) as grand_total"), DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"))->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
-                    return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery) {
+                    
+                    return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $hpBreakdown, $nhpBreakdown) {
                         $items = $itemStatsQuery->get($stat->owner_id);
                         $nhp = $nhpStatsQuery->get($stat->owner_id);
                         $iphone = (int) ($items->iphone_units ?? 0);
                         $android = (int) ($items->android_units ?? 0);
                         $nonHp = (int) ($nhp->non_hp_units ?? 0);
+
+                        $breakdown = ($hpBreakdown->get($stat->owner_id) ?? collect())->map(function($b) {
+                            return [
+                                'brand' => $b->brand,
+                                'name' => $b->name,
+                                'condition' => $b->condition,
+                                'storage' => $b->storage,
+                                'distributor' => $b->distributor,
+                                'qty' => (int)$b->qty,
+                                'is_hp' => true
+                            ];
+                        })->concat(($nhpBreakdown->get($stat->owner_id) ?? collect())->map(function($b) {
+                            return [
+                                'brand' => $b->brand,
+                                'name' => $b->name,
+                                'condition' => 'new',
+                                'storage' => null,
+                                'distributor' => null,
+                                'qty' => (int)$b->qty,
+                                'is_hp' => false
+                            ];
+                        }));
+
                         return [
                             'owner_id' => $stat->owner_id,
                             'cs_name' => $stat->cs_name ?? 'Unknown',
@@ -418,7 +483,8 @@ class AuditController extends Controller
                             'iphone_units' => $iphone,
                             'android_units' => $android,
                             'non_hp_units' => $nonHp,
-                            'total_sales' => $iphone + $android + $nonHp
+                            'total_sales' => $iphone + $android + $nonHp,
+                            'breakdown' => $breakdown->values()
                         ];
                     });
                 },
