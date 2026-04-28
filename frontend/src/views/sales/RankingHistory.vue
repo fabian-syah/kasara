@@ -614,11 +614,10 @@
                             </button>
                         </template>
                     </div>
+                </div>
 
-                    </div>
-
-                    <!-- Global Filters for Rankings -->
-                    <div class="flex flex-col gap-4 pt-4 border-t border-gray-100 dark:border-surface-700">
+                <!-- Global Filters for Rankings -->
+                <div class="flex flex-col gap-4 pt-4 border-t border-gray-100 dark:border-surface-700">
                         <div class="flex flex-wrap items-center gap-3">
                             <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
                                 <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Distributor</span>
