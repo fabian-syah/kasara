@@ -1443,7 +1443,11 @@ const salesHierarchy = computed(() => {
     return raw.map(cs => {
         const distMap = new Map()
         
-        const breakdown = cs.breakdown || []
+        const breakdown = (cs.breakdown || []).filter(item => {
+            if (currentView.value === 'sales') return !item.category;
+            if (currentView.value === 'activity') return !!item.category;
+            return true;
+        })
         breakdown.forEach(item => {
             const dist = item.distributor || '-'
             if (!distMap.has(dist)) {
