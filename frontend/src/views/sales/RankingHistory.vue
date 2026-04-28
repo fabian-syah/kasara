@@ -730,8 +730,8 @@
                                     <td class="px-6 py-4">
                                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm" :class="getRankBadgeClass(idx)">{{ idx + 1 }}</div>
                                     </td>
-                                    <td class="px-6 py-4 font-bold text-text-primary">{{ row.brand }}</td>
-                                    <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                    <td class="px-6 py-4 font-bold text-text-primary uppercase">{{ row.brand }}</td>
+                                    <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4"></td>
                                     <td class="px-6 py-4 text-center font-black text-purple-500">{{ row.qty }}</td>
                                 </tr>
                                 <!-- Brand Breakdown -->
@@ -779,7 +779,7 @@
                                         class="px-6 py-4 font-black text-sm text-text-primary dark:text-white uppercase tracking-tight">
                                         {{ row.distributor }}</td>
                                     <td v-if="showBrandCondition || showBrandGb"
-                                        class="px-6 py-4 text-text-secondary italic text-xs">—</td>
+                                        class="px-6 py-4"></td>
                                     <td class="px-6 py-4 text-center font-black text-indigo-500 uppercase">{{ row.qty }}
                                     </td>
                                 </tr>
@@ -805,7 +805,7 @@
                                                     <td class="px-6 py-1.5 pl-10" colspan="2">
                                                         <div class="flex items-center gap-2">
                                                             <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">{{ formatCondition(c.condition) }}</span>
-                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ c.capacity }}GB</span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ formatCapacity(c.capacity) }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
@@ -1243,8 +1243,8 @@ const sortedData = computed(() => {
     if (currentView.value === 'revenue') base = salesData.value.daily_history || []
     else if (currentView.value === 'sales' || currentView.value === 'activity') base = salesHierarchy.value
     else if (currentView.value === 'brand') base = brandHierarchy.value
-    else if (currentView.value === 'type') base = salesData.value.type_stats || []
-    else if (currentView.value === 'condition') base = salesData.value.condition_stats || []
+    else if (currentView.value === 'type') base = salesData.value.type_sales || []
+    else if (currentView.value === 'condition') base = salesData.value.condition_sales || []
     else if (currentView.value === 'distributor') base = distributorHierarchy.value
 
     let filtered = base
