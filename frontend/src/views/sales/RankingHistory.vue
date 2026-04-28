@@ -615,13 +615,54 @@
                         </template>
                     </div>
 
-                    <!-- Search -->
-                    <div class="relative w-full sm:w-80 group">
-                        <Search
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors"
-                            :size="18" />
-                        <input v-model="searchQuery" type="text" placeholder="Cari..."
-                            class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
+                    </div>
+
+                    <!-- Global Filters for Rankings -->
+                    <div class="flex flex-col gap-4 pt-4 border-t border-gray-100 dark:border-surface-700">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
+                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Distributor</span>
+                                <select v-model="filters.distributor_id" @change="fetchData"
+                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[100px]">
+                                    <option :value="null">Semua</option>
+                                    <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
+                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Produk</span>
+                                <select v-model="filters.product_type_id" @change="fetchData"
+                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[100px]">
+                                    <option :value="null">Semua</option>
+                                    <option v-for="p in productTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
+                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Kondisi</span>
+                                <select v-model="filters.condition" @change="fetchData"
+                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[80px]">
+                                    <option :value="null">Semua</option>
+                                    <option value="baru">Baru</option>
+                                    <option value="bekas">Bekas</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
+                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">GB</span>
+                                <select v-model="filters.capacity" @change="fetchData"
+                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[60px]">
+                                    <option :value="null">Semua</option>
+                                    <option v-for="gb in [16, 32, 64, 128, 256, 512, 1024]" :key="gb" :value="gb">{{ gb }}GB</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div class="relative w-full sm:w-80 group">
+                            <Search
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors"
+                                :size="18" />
+                            <input v-model="searchQuery" type="text" placeholder="Cari..."
+                                class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
+                        </div>
                     </div>
                 </div>
 
@@ -1253,7 +1294,7 @@ const sortedData = computed(() => {
 
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase().trim()
-        filtered = filtered.filter(item => {
+        const deepSearch = (item) => {
             const label = (
                 (item.cs_name || '') + ' ' + 
                 (item.name || '') + ' ' + 
@@ -1262,8 +1303,22 @@ const sortedData = computed(() => {
                 (item.label || '') + ' ' + 
                 (item.condition || '')
             ).toLowerCase()
-            return label.includes(q)
-        })
+            if (label.includes(q)) return true
+            if (item.tree) {
+                const nodes = Array.isArray(item.tree) ? item.tree : Array.from(item.tree.values())
+                if (nodes.some(node => deepSearch(node))) return true
+            }
+            if (item.types) {
+                const types = Array.isArray(item.types) ? item.types : Array.from(item.types.values())
+                if (types.some(t => deepSearch(t))) return true
+            }
+            if (item.conditions) {
+                const conds = Array.isArray(item.conditions) ? item.conditions : Array.from(item.conditions.values())
+                if (conds.some(c => (c.condition || '').toLowerCase().includes(q) || (c.capacity || '').toString().includes(q))) return true
+            }
+            return false
+        }
+        filtered = filtered.filter(item => deepSearch(item))
     }
 
     return [...filtered].sort((a, b) => {
