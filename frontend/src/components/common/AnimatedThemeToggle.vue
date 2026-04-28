@@ -11,12 +11,6 @@
       
       <!-- Day Decor -->
       <div class="decor day-decor">
-        <!-- Plane -->
-        <div class="plane">
-          <svg viewBox="0 0 24 24" fill="white" width="12" height="12">
-            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-          </svg>
-        </div>
 
         <!-- Left Cloud -->
         <div class="cloud-group cg-1">
@@ -128,23 +122,6 @@ const themeStore = useThemeStore();
   transform: translateY(15px);
 }
 
-/* Plane Animation */
-.plane {
-  position: absolute;
-  left: -20px;
-  top: 15px;
-  opacity: 0.8;
-  animation: fly 12s linear infinite;
-  z-index: 2;
-}
-
-@keyframes fly {
-  0% { transform: translateX(0) translateY(0) rotate(10deg); }
-  25% { transform: translateX(40px) translateY(-5px) rotate(5deg); }
-  50% { transform: translateX(80px) translateY(0) rotate(0deg); }
-  75% { transform: translateX(120px) translateY(5px) rotate(-5deg); }
-  100% { transform: translateX(160px) translateY(0) rotate(-10deg); }
-}
 
 .cloud-group {
   position: absolute;

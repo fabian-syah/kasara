@@ -1452,7 +1452,7 @@ const distributorHierarchy = computed(() => {
 
 // Hierarchical Sales Report
 const salesHierarchy = computed(() => {
-    const raw = salesData.value.cs || []
+    const raw = salesData.value.cs_sales || []
     return raw.map(cs => {
         const distMap = new Map()
         
