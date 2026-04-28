@@ -1290,8 +1290,7 @@ const resetBreakdowns = () => {
 const sortedData = computed(() => {
     let base = []
     if (currentView.value === 'revenue') base = salesData.value.daily_history || []
-    else if (currentView.value === 'sales') base = salesHierarchy.value
-    else if (currentView.value === 'activity') base = salesData.value.cs_sales || []
+    else if (currentView.value === 'sales' || currentView.value === 'activity') base = salesHierarchy.value
     else if (currentView.value === 'brand') base = brandHierarchy.value
     else if (currentView.value === 'type') base = salesData.value.type_stats || []
     else if (currentView.value === 'condition') base = salesData.value.condition_stats || []
