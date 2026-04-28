@@ -431,14 +431,16 @@ class AuditController extends Controller
 
                     $nhpBreakdown = (clone $breakdownBase)->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
                         ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                        ->leftJoin('distributors', 'products.distributor_id', '=', 'distributors.id')
                         ->select(
                             DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
                             'products.brand',
                             'products.name',
+                            'distributors.name as distributor',
                             'stock_outs.category',
                             DB::raw('sum(stock_out_non_hp_items.quantity) as qty')
                         )
-                        ->groupBy('owner_id', 'products.brand', 'products.name', 'stock_outs.category')
+                        ->groupBy('owner_id', 'products.brand', 'products.name', 'distributors.name', 'stock_outs.category')
                         ->get()->groupBy('owner_id');
 
                     // Define specific categories
@@ -491,7 +493,7 @@ class AuditController extends Controller
                                 'name' => $b->name,
                                 'condition' => 'new',
                                 'storage' => null,
-                                'distributor' => null,
+                                'distributor' => $b->distributor,
                                 'qty' => (int)$b->qty,
                                 'category' => $b->category,
                                 'is_hp' => false
