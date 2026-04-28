@@ -72,7 +72,9 @@ class StockOutController extends Controller
         // DATE FILTER
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->category !== 'recap_harian') {
-            if ($request->month && $request->year) {
+            if ($request->date) {
+                $query->where('reporting_date', $request->date);
+            } elseif ($request->month && $request->year) {
                 $m = (int) $request->month;
                 $y = (int) $request->year;
 
@@ -99,9 +101,7 @@ class StockOutController extends Controller
                 $query->whereMonth('reporting_date', $m)
                     ->whereYear('reporting_date', $y);
             } elseif ($request->start_date && $request->end_date) {
-                // Logic already handles date range clamping if we use the same pattern as AuditController
-                // But index() currently doesn't have explicit start_date/end_date filter here
-                // Let's add it if needed, or stick to month/year for now
+                $query->whereBetween('reporting_date', [$request->start_date, $request->end_date]);
             }
         }
 
