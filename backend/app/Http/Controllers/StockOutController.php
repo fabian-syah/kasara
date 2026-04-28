@@ -118,12 +118,17 @@ class StockOutController extends Controller
             $query->where(function($q) {
                 $q->whereHas('nonHpDetails')
                   ->orWhere(function($sub) {
-                      $sub->whereNotNull('non_hp_items')->where('non_hp_items', '!=', '[]')->where('non_hp_items', '!=', '{}');
+                      $sub->whereNotNull('non_hp_items')
+                          ->where('non_hp_items', 'not like', '[]')
+                          ->where('non_hp_items', 'not like', '{}')
+                          ->where('non_hp_items', 'not like', '""');
                   });
             });
         }
 
-        $results = $query->latest()->paginate($request->per_page ?? 20);
+        $results = $query->with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'destination', 'destinationBranch'])
+            ->latest()
+            ->paginate($request->per_page ?? 20);
 
         // Transform results to handle bundling consolidation
         $results->getCollection()->transform(function ($stockOut) {
