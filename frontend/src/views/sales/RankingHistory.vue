@@ -585,25 +585,25 @@
                         <!-- Breakdown Toggles (Sales, Activity, Brand, Distributor View) -->
                         <template v-if="['sales', 'activity', 'brand', 'distributor'].includes(currentView)">
                             <div class="h-6 w-px bg-gray-200 dark:bg-surface-700 mx-1 hidden lg:block"></div>
-                            <button @click="showBrandDistributor = !showBrandDistributor"
-                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
-                                Tampilkan Distributor
-                            </button>
-                            <button @click="showBrandType = !showBrandType"
-                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
-                                Tampilkan Tipe
-                            </button>
-                            <button @click="showBrandCondition = !showBrandCondition"
-                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
-                                Tampilkan Kondisi
-                            </button>
-                            <button @click="showBrandGb = !showBrandGb"
+                             <button @click="toggleBreakdown('distributor')"
+                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                 :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
+                                 Tampilkan Distributor
+                             </button>
+                             <button @click="toggleBreakdown('type')"
+                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                 :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
+                                 Tampilkan Tipe
+                             </button>
+                             <button @click="toggleBreakdown('condition')"
+                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                 :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
+                                 Tampilkan Kondisi
+                             </button>
+                             <button @click="toggleBreakdown('gb')"
                                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                  :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
                                  <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
@@ -1141,7 +1141,6 @@ const filters = ref({
     online_shop_id: null,
     distributor_id: null,
     condition: null,
-    capacity: null,
     product_type_id: null
 })
 
@@ -1185,6 +1184,20 @@ const getConditionClass = (cond) => {
     return maps[cond] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'
 }
 
+const toggleBreakdown = (type) => {
+    if (type === 'distributor') showBrandDistributor.value = !showBrandDistributor.value
+    if (type === 'type') showBrandType.value = !showBrandType.value
+    if (type === 'condition') showBrandCondition.value = !showBrandCondition.value
+    if (type === 'gb') showBrandGb.value = !showBrandGb.value
+    
+    console.log(`[DEBUG RANKING] Toggle ${type} clicked. New Status:`, {
+        distributor: showBrandDistributor.value,
+        type: showBrandType.value,
+        condition: showBrandCondition.value,
+        gb: showBrandGb.value
+    })
+}
+
 const formatCondition = (cond) => {
     const maps = { 'new': 'Baru', 'ex_ibox': 'Ex iBox', 'second': 'Second' }
     return maps[cond] || cond
@@ -1205,9 +1218,10 @@ const navigateTo = (view) => {
         filters.value.distributor_id = null;
         filters.value.product_type_id = null;
         filters.value.condition = null;
-        filters.value.capacity = null;
         fetchData();
     }
+    console.log('Navigating to:', view)
+
     // Set default sort based on view
     if (view === 'revenue' || view === 'sales') sortConfig.value.order = 'num-desc'
     else sortConfig.value.order = 'num-desc'
@@ -1228,6 +1242,16 @@ const sortedData = computed(() => {
     else if (currentView.value === 'type') base = salesData.value.type_stats || []
     else if (currentView.value === 'condition') base = salesData.value.condition_stats || []
     else if (currentView.value === 'distributor') base = distributorHierarchy.value
+
+    console.log(`[DEBUG RANKING] sortedData calculated for view: ${currentView.value}`, {
+        baseCount: base.length,
+        firstItemTree: base[0]?.tree ? 'Has Tree' : 'No Tree',
+        toggles: {
+            dist: showBrandDistributor.value,
+            type: showBrandType.value,
+            cond: showBrandCondition.value
+        }
+    })
 
     let filtered = base
     if (currentView.value === 'activity') {
@@ -1763,13 +1787,13 @@ const fetchData = async () => {
             end_date: filters.value.end_date,
             branch_id: filters.value.branch_id,
             online_shop_id: filters.value.online_shop_id,
-            location_type: locationType.value, // Added location type
+            location_type: locationType.value,
             distributor_id: filters.value.distributor_id,
             condition: filters.value.condition,
-            capacity: filters.value.capacity,
             product_type_id: filters.value.product_type_id
         };
         const response = await axios.get('/audit/sales', { params })
+        console.log('[DEBUG RANKING] Data received from API:', response.data)
         salesData.value = response.data
         // Populate filter dropdowns from actual sales data
         if (response.data.filter_options) {
