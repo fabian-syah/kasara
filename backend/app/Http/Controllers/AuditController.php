@@ -431,7 +431,7 @@ class AuditController extends Controller
 
                     $nhpBreakdown = (clone $breakdownBase)->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
                         ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-                        ->leftJoin('distributors', 'products.distributor_id', '=', 'distributors.id')
+                        ->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
                         ->select(
                             DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
                             'products.brand',
