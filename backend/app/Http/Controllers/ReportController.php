@@ -849,7 +849,7 @@ class ReportController extends Controller
 
             $soldCategories = ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling'];
             $keluarCategories = ['giveaway_customer', 'hadiah', 'brand_ambassador', 'event_sponsorship', 'promo', 'inventaris', 'hilang'];
-            $incomingAuditCategories = ['barang_masuk', 'pembelian', 'cancel_penjualan', 'retur_customer'];
+            $incomingAuditCategories = ['barang_masuk', 'pembelian', 'cancel_penjualan', 'retur_customer', 'refund'];
 
             $defaultRow = [
                 'initial' => 0, 
@@ -999,6 +999,7 @@ class ReportController extends Controller
                     if ($isIncoming) {
                         $results[$groupKey]['in_total']++;
                         if ($isAB) $results[$groupKey]['in_ab']++;
+                        elseif ($cat === 'refund') $results[$groupKey]['in_rf']++;
                         else $results[$groupKey]['in_manual']++;
                     } else {
                         $results[$groupKey]['out_total']++;

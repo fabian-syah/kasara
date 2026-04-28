@@ -666,31 +666,22 @@ const activeRecords = computed(() => {
     return Array.isArray(list) ? list.filter(item => item.category !== 'cancel_penjualan') : []
 })
 const totalSales = computed(() => activeRecords.value.reduce((sum, item) => {
-    // If backend already sends negative for refund, sum + val is correct.
-    // Assuming backend grand_total for refund is the amount to be deducted.
     const val = parseFloat(item.grand_total) || 0;
-    if (item.category === 'refund') {
-        // If it's already negative, adding it works. If it's positive, we subtract.
-        return sum + (val < 0 ? val : -val);
-    }
-    if (item.category === 'angkat_barang') return sum; // Angkat barang is expense, don't add to revenue
+    // Exclude refund and angkat_barang from revenue summary
+    if (item.category === 'refund' || item.category === 'angkat_barang') return sum;
     return sum + val;
 }, 0))
 const totalUnits = computed(() => activeRecords.value.reduce((sum, item) => {
     const q = parseInt(item.qty) || 0;
-    if (item.category === 'refund') return sum - q;
-    if (item.category === 'angkat_barang') return sum; // Angkat barang is stock in, don't count as unit sold
+    // Exclude refund and angkat_barang from sales unit summary
+    if (item.category === 'refund' || item.category === 'angkat_barang') return sum;
     return sum + q;
 }, 0))
-const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas' && !['angkat_barang'].includes(item.category)).reduce((sum, item) => {
-    const val = parseFloat(item.grand_total) || 0;
-    if (item.category === 'refund') return sum + (val < 0 ? val : -val);
-    return sum + val;
+const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas' && !['angkat_barang', 'refund'].includes(item.category)).reduce((sum, item) => {
+    return sum + (parseFloat(item.grand_total) || 0);
 }, 0))
-const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas' && !['angkat_barang'].includes(item.category)).reduce((sum, item) => {
-    const val = parseFloat(item.grand_total) || 0;
-    if (item.category === 'refund') return sum + (val < 0 ? val : -val);
-    return sum + val;
+const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas' && !['angkat_barang', 'refund'].includes(item.category)).reduce((sum, item) => {
+    return sum + (parseFloat(item.grand_total) || 0);
 }, 0))
 
 const formatCurrency = (val) => {

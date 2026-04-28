@@ -1313,7 +1313,7 @@ const sortedData = computed(() => {
     let base = []
     if (currentView.value === 'revenue') base = salesData.value.daily_history || []
     else if (currentView.value === 'sales') base = salesHierarchy.value
-    else if (currentView.value === 'activity') base = salesData.value.cs || []
+    else if (currentView.value === 'activity') base = salesData.value.cs_sales || []
     else if (currentView.value === 'brand') base = brandHierarchy.value
     else if (currentView.value === 'type') base = salesData.value.type_stats || []
     else if (currentView.value === 'condition') base = salesData.value.condition_stats || []
@@ -1330,6 +1330,11 @@ const sortedData = computed(() => {
 
     return [...filtered].sort((a, b) => {
         const order = sortConfig.value.order
+        if (currentView.value === 'activity') {
+            const valA = (a.total_angkat_barang || 0) + (a.total_refund || 0)
+            const valB = (b.total_angkat_barang || 0) + (b.total_refund || 0)
+            return order === 'num-asc' ? valA - valB : valB - valA
+        }
         if (order === 'num-desc') return (b.total_sales || b.grand_total || b.qty || b.total_omset || 0) - (a.total_sales || a.grand_total || a.qty || a.total_omset || 0)
         if (order === 'num-asc') return (a.total_sales || a.grand_total || a.qty || a.total_omset || 0) - (b.total_sales || b.grand_total || b.qty || b.total_omset || 0)
         if (order === 'alpha-asc') return (a.cs_name || a.name || a.brand || '').toString().localeCompare(b.cs_name || b.name || b.brand || '')
