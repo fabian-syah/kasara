@@ -1423,31 +1423,40 @@ const distributorHierarchy = computed(() => {
 // Hierarchical Sales Report
 const salesHierarchy = computed(() => {
     const raw = salesData.value.cs_sales || []
+    
+    if (raw.length > 0) {
+        console.log('[DEBUG INSPECT] First CS Object:', raw[0])
+    }
+
     return raw.map(cs => {
         const distMap = new Map()
         
-        const breakdown = (cs.breakdown || []).filter(item => {
-            if (currentView.value === 'sales') return !item.category;
-            if (currentView.value === 'activity') return !!item.category;
+        // Coba ambil dari 'breakdown' atau 'details'
+        const rawItems = cs.breakdown || cs.details || []
+        
+        const breakdown = rawItems.filter(item => {
+            if (currentView.value === 'sales') return !item.category || item.category === 'sale';
+            if (currentView.value === 'activity') return item.category && item.category !== 'sale';
             return true;
         })
+        
         breakdown.forEach(item => {
-            const dist = item.distributor || '-'
+            const dist = item.distributor || 'Tanpa Distributor'
             if (!distMap.has(dist)) {
                 distMap.set(dist, { label: dist, qty: 0, types: new Map() })
             }
             const dNode = distMap.get(dist)
-            dNode.qty += (item.qty || 0)
+            dNode.qty += (item.qty || 1) // Default 1 jika qty tidak ada
 
-            const type = item.name || '-'
+            const type = item.name || item.product_name || '-'
             if (!dNode.types.has(type)) {
                 dNode.types.set(type, { label: type, qty: 0, conditions: new Map() })
             }
             const tNode = dNode.types.get(type)
-            tNode.qty += (item.qty || 0)
+            tNode.qty += (item.qty || 1)
 
             const cond = item.condition || '-'
-            const gb = item.storage || '-'
+            const gb = item.storage || item.capacity || '-'
             const cgKey = `${cond}||${gb}`
 
             if (!tNode.conditions.has(cgKey)) {
@@ -1457,7 +1466,7 @@ const salesHierarchy = computed(() => {
                     qty: 0
                 })
             }
-            tNode.conditions.get(cgKey).qty += (item.qty || 0)
+            tNode.conditions.get(cgKey).qty += (item.qty || 1)
         })
 
         const result = {
