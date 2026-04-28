@@ -1298,9 +1298,16 @@ const sortedData = computed(() => {
     else if (currentView.value === 'distributor') base = distributorHierarchy.value
 
     let filtered = base
+    if (currentView.value === 'activity') {
+        filtered = base.filter(item => {
+            const totalActivity = (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) + (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur || 0)
+            return totalActivity > 0
+        })
+    }
+
     if (searchQuery.value && !['brand', 'distributor'].includes(currentView.value)) {
         const q = searchQuery.value.toLowerCase()
-        filtered = base.filter(item => {
+        filtered = filtered.filter(item => {
             const name = (item.cs_name || item.name || item.reporting_date || item.brand || item.distributor || item.condition || '').toString().toLowerCase()
             return name.includes(q)
         })
