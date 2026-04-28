@@ -488,8 +488,12 @@ class AuditController extends Controller
                             'cs_name' => $stat->cs_name ?? 'Unknown',
                             'photo' => $stat->photo ?? $stat->photo_inv,
                             'grand_total' => (float) $stat->grand_total,
-                            'total_angkat_barang' => (int) $stat->total_angkat_barang,
+                            'total_tu' => (int) $stat->total_tu,
+                            'total_tt' => (int) $stat->total_tt,
+                            'total_dw' => (int) $stat->total_dw,
+                            'total_ab' => (int) $stat->total_ab,
                             'total_refund' => (int) $stat->total_refund,
+                            'total_retur' => (int) $stat->total_retur,
                             'iphone_units' => $iphone,
                             'android_units' => $android,
                             'non_hp_units' => $nonHp,
@@ -970,11 +974,11 @@ class AuditController extends Controller
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
                         $applyLocalScope($hpItemsQuery);
 
-                        $activityDetails = ['refund' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
+                        $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
 
                         foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei')->get() as $hp) {
                             $catLower = strtolower($hp->category ?? '');
-                            if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                            if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => $hp->name,
                                     'imei' => $hp->imei,
@@ -1010,7 +1014,7 @@ class AuditController extends Controller
 
                             $catLower = strtolower($trx->category ?? '');
                             
-                            if (in_array($catLower, ['refund', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                            if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => ($item->product?->name ?? 'Unknown') . " (Qty: {$item->quantity})",
                                     'imei' => null,
