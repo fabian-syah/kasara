@@ -751,7 +751,7 @@
                         </thead>
                         <tbody v-if="currentView === 'brand'"
                             class="divide-y divide-gray-100 dark:divide-surface-700 text-sm">
-                            <template v-for="(row, idx) in filteredBrandHierarchy" :key="'brand-row-' + row.brand">
+                            <template v-for="(row, idx) in sortedData" :key="'brand-row-' + row.brand">
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-surface-700/30 transition-colors"
                                     :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': showBrandType || showBrandCondition || showBrandGb }">
                                     <td class="px-6 py-4">
@@ -815,7 +815,7 @@
                         </tbody>
                         <tbody v-else-if="currentView === 'distributor'"
                             class="divide-y divide-gray-100 dark:divide-surface-700 text-sm">
-                            <template v-for="(row, idx) in distributorHierarchy" :key="'dist-row-' + row.distributor">
+                            <template v-for="(row, idx) in sortedData" :key="'dist-row-' + row.distributor">
                                 <tr class="hover:bg-gray-50 dark:hover:bg-surface-700/50 transition-colors group">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center justify-center w-8 h-8 rounded-lg font-black text-sm"
@@ -1304,11 +1304,11 @@ const sortedData = computed(() => {
         })
     }
 
-    if (searchQuery.value && !['brand', 'distributor'].includes(currentView.value)) {
+    if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase()
         filtered = filtered.filter(item => {
-            const name = (item.cs_name || item.name || item.reporting_date || item.brand || item.distributor || item.condition || '').toString().toLowerCase()
-            return name.includes(q)
+            const label = (item.cs_name || item.name || item.reporting_date || item.brand || item.distributor || item.condition || item.label || '').toString().toLowerCase()
+            return label.includes(q)
         })
     }
 
@@ -1735,19 +1735,13 @@ const copyReportToClipboard = async () => {
     }
 }
 
-const filteredBrandHierarchy = computed(() => {
-    if (!searchQuery.value) return brandHierarchy.value
-    const q = searchQuery.value.toLowerCase()
-    return brandHierarchy.value.filter(b => b.brand.toLowerCase().includes(q))
-})
+
 
 const totals = computed(() => {
     let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
 
-    if (currentView.value === 'brand') {
-        filteredBrandHierarchy.value.forEach(row => units += row.qty);
-    } else if (currentView.value === 'distributor') {
-        distributorHierarchy.value.forEach(row => units += row.qty);
+    if (currentView.value === 'brand' || currentView.value === 'distributor') {
+        sortedData.value.forEach(row => units += row.qty);
     } else {
         sortedData.value.forEach(item => {
             if (currentView.value === 'revenue') {
