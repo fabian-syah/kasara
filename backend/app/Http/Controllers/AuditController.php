@@ -447,7 +447,8 @@ class AuditController extends Controller
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
                         DB::raw("sum(case when stock_outs.category not in ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as grand_total"), 
                         DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), 
-                        DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"))
+                        DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"),
+                        DB::raw("sum(case when stock_outs.category = 'retur' then 1 else 0 end) as total_retur"))
                         ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
                     
                     return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $hpBreakdown, $nhpBreakdown) {
@@ -1152,6 +1153,7 @@ class AuditController extends Controller
                                 'tukar_tambah' => count($activityDetails['tukar_tambah'] ?? []),
                                 'downgrade' => count($activityDetails['downgrade'] ?? []),
                                 'refund' => count($activityDetails['refund'] ?? []),
+                                'retur' => count($activityDetails['retur'] ?? []),
                                 'angkat_barang' => count($activityDetails['angkat_barang'] ?? []),
                                 'details' => $activityDetails
                             ],

@@ -765,9 +765,9 @@
                                     </template>
                                     <th v-if="currentView === 'sales'" class="px-6 py-4 text-center">Total Penjualan
                                     </th>
-                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">
-                                        Tukar/Angkat/Downgrade</th>
+                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Tukar/Angkat/DW</th>
                                     <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Refund</th>
+                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-center">Retur</th>
                                     <th class="px-6 py-4 text-right">Grand Total</th>
                                 </template>
                                 <template v-else-if="currentView === 'type'">
@@ -964,6 +964,8 @@
                                                 item.total_angkat_barang || 0 }}</td>
                                             <td class="px-6 py-4 text-center font-bold text-red-500">{{
                                                 item.total_refund || 0 }}</td>
+                                            <td class="px-6 py-4 text-center font-bold text-purple-500">{{
+                                                item.total_retur || 0 }}</td>
                                         </template>
                                         <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                             {{ formatCurrency(item.grand_total) }}</td>
@@ -1055,6 +1057,7 @@
                                 <template v-else-if="currentView === 'activity'">
                                     <td class="px-6 py-4 text-center text-amber-500">{{ totals.activity }}</td>
                                     <td class="px-6 py-4 text-center text-red-500">{{ totals.refund }}</td>
+                                    <td class="px-6 py-4 text-center text-purple-500">{{ totals.retur }}</td>
                                     <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
                                 </template>
 
@@ -1331,8 +1334,8 @@ const sortedData = computed(() => {
     return [...filtered].sort((a, b) => {
         const order = sortConfig.value.order
         if (currentView.value === 'activity') {
-            const valA = (a.total_angkat_barang || 0) + (a.total_refund || 0)
-            const valB = (b.total_angkat_barang || 0) + (b.total_refund || 0)
+            const valA = (a.total_angkat_barang || 0) + (a.total_refund || 0) + (a.total_retur || 0)
+            const valB = (b.total_angkat_barang || 0) + (b.total_refund || 0) + (b.total_retur || 0)
             return order === 'num-asc' ? valA - valB : valB - valA
         }
         if (order === 'num-desc') return (b.total_sales || b.grand_total || b.qty || b.total_omset || 0) - (a.total_sales || a.grand_total || a.qty || a.total_omset || 0)
@@ -1652,6 +1655,7 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Tukar tambah     : ${activities.tukar_tambah || 0}\n`;
     text += `Downgrade        : ${activities.downgrade || 0}\n`;
     text += `Refund           : ${activities.refund || 0}\n`;
+    text += `Retur            : ${activities.retur || 0}\n`;
     text += `Angkat barang    : ${activities.angkat_barang || 0}\n\n`;
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
@@ -1753,7 +1757,7 @@ const filteredBrandHierarchy = computed(() => {
 })
 
 const totals = computed(() => {
-    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity = 0, refund = 0;
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity = 0, refund = 0, retur = 0;
 
     if (currentView.value === 'brand') {
         filteredBrandHierarchy.value.forEach(row => units += row.qty);
@@ -1774,6 +1778,7 @@ const totals = computed(() => {
                 nonHp += (item.non_hp_units || 0);
                 activity += (item.total_angkat_barang || 0);
                 refund += (item.total_refund || 0);
+                retur += (item.total_retur || 0);
                 revenue += (item.grand_total || 0);
             } else {
                 units += (item.qty || 0);
@@ -1781,7 +1786,7 @@ const totals = computed(() => {
         });
     }
 
-    return { units, iphone, android, nonHp, revenue, activity, refund };
+    return { units, iphone, android, nonHp, revenue, activity, refund, retur };
 });
 
 const handlePeriodChange = () => {

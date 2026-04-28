@@ -980,8 +980,9 @@ class ReportController extends Controller
             }
 
             foreach($dayOuts->get() as $out) {
-                $isAB = $out->category === 'angkat_barang';
-                $isIncoming = in_array($out->category, $incomingAuditCategories) || $isAB;
+                $cat = $out->category;
+                $isAB = $cat === 'angkat_barang';
+                $isIncoming = in_array($cat, $incomingAuditCategories) || $isAB;
                 
                 foreach($out->items as $pd) {
                     $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
@@ -1005,7 +1006,7 @@ class ReportController extends Controller
                         $results[$groupKey]['out_total']++;
                         $cat = $out->category;
                         if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold']++;
-                        elseif ($cat === 'retur' || $cat === 'refund') $results[$groupKey]['out_retur']++;
+                        elseif ($cat === 'retur') $results[$groupKey]['out_retur']++;
                         else $results[$groupKey]['out_keluar']++;
                     }
                 }
@@ -1024,10 +1025,12 @@ class ReportController extends Controller
                     $qty = $nhi->quantity;
                     if ($isIncoming) {
                         $results[$groupKey]['in_total'] += $qty;
-                        $results[$groupKey]['in_manual'] += $qty;
+                        if ($cat === 'refund') $results[$groupKey]['in_rf'] += $qty;
+                        else $results[$groupKey]['in_manual'] += $qty;
                     } else {
                         $results[$groupKey]['out_total'] += $qty;
-                        if (in_array($out->category, $soldCategories)) $results[$groupKey]['out_sold'] += $qty;
+                        if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold'] += $qty;
+                        elseif ($cat === 'retur') $results[$groupKey]['out_retur'] += $qty;
                         else $results[$groupKey]['out_keluar'] += $qty;
                     }
                 }
