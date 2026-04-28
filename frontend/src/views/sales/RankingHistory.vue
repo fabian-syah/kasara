@@ -585,63 +585,30 @@
                             </select>
                         </div>
 
-                        <!-- Filters (hidden on daily/revenue, brand, and distributor view) -->
-                        <template v-if="!['revenue', 'brand', 'distributor', 'sales'].includes(currentView)">
-                            <select v-model="filters.distributor_id" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px] appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua Distributor</option>
-                                <option v-for="d in distributors" :key="d.id" :value="d.id" class="dark:bg-surface-800">
-                                    {{ d.name }}</option>
-                            </select>
-                            <select v-model="filters.product_type_id" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[120px] appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua Tipe</option>
-                                <option v-for="p in productTypes" :key="p.id" :value="p.id" class="dark:bg-surface-800">
-                                    {{ p.name }}</option>
-                            </select>
-                            <select v-model="filters.condition" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua Kondisi</option>
-                                <option value="new" class="dark:bg-surface-800">Baru</option>
-                                <option value="ex_ibox" class="dark:bg-surface-800">Ex iBox</option>
-                                <option value="second" class="dark:bg-surface-800">Second</option>
-                            </select>
-                            <select v-model="filters.capacity" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px] appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua GB</option>
-                                <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb
-                                    }}GB</option>
-                            </select>
-                        </template>
-
-                        <!-- Breakdown Toggles (Sales View Only) -->
-                        <template v-if="currentView === 'sales'">
+                        <!-- Breakdown Toggles (Sales & Activity View) -->
+                        <template v-if="['sales', 'activity'].includes(currentView)">
                             <button @click="showBrandDistributor = !showBrandDistributor"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                 :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <ToggleRight v-if="showBrandDistributor" :size="16" />
-                                <ToggleLeft v-else :size="16" />
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
                                 Tampilkan Distributor
                             </button>
                             <button @click="showBrandType = !showBrandType"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                 :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <ToggleRight v-if="showBrandType" :size="16" />
-                                <ToggleLeft v-else :size="16" />
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
                                 Tampilkan Tipe
                             </button>
                             <button @click="showBrandCondition = !showBrandCondition"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                 :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <ToggleRight v-if="showBrandCondition" :size="16" />
-                                <ToggleLeft v-else :size="16" />
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
                                 Tampilkan Kondisi
                             </button>
                             <button @click="showBrandGb = !showBrandGb"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                 :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                <ToggleRight v-if="showBrandGb" :size="16" />
-                                <ToggleLeft v-else :size="16" />
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
                                 Tampilkan GB
                             </button>
                         </template>
@@ -663,29 +630,25 @@
                     <button @click="showBrandDistributor = !showBrandDistributor"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandDistributor" :size="16" :key="'toggle-on-dist'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-dist'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
                         Tampilkan Distributor
                     </button>
                     <button @click="showBrandType = !showBrandType"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandType" :size="16" :key="'toggle-on-type'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-type'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
                         Tampilkan Tipe
                     </button>
                     <button @click="showBrandCondition = !showBrandCondition"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandCondition" :size="16" :key="'toggle-on-cond'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-cond'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
                         Tampilkan Kondisi
                     </button>
                     <button @click="showBrandGb = !showBrandGb"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandGb" :size="16" :key="'toggle-on-gb'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-gb'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
                         Tampilkan GB
                     </button>
                 </div>
@@ -696,29 +659,25 @@
                     <button @click="showBrandDistributor = !showBrandDistributor"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandDistributor" :size="16" :key="'toggle-on-dist-2'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-dist-2'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
                         Tampilkan Brand
                     </button>
                     <button @click="showBrandType = !showBrandType"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandType" :size="16" :key="'toggle-on-type-2'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-type-2'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
                         Tampilkan Tipe
                     </button>
                     <button @click="showBrandCondition = !showBrandCondition"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandCondition" :size="16" :key="'toggle-on-cond-2'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-cond-2'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
                         Tampilkan Kondisi
                     </button>
                     <button @click="showBrandGb = !showBrandGb"
                         class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                         :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <ToggleRight v-if="showBrandGb" :size="16" :key="'toggle-on-gb-2'" />
-                        <ToggleLeft v-else :size="16" :key="'toggle-off-gb-2'" />
+                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
                         Tampilkan GB
                     </button>
                 </div>
@@ -920,7 +879,7 @@
                         <tbody v-else class="divide-y divide-gray-100 dark:divide-surface-700 text-sm">
                             <template v-for="(item, idx) in sortedData" :key="'gen-' + currentView + '-' + (item.id || item.reporting_date || item.cs_name || idx)">
                                 <tr class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors"
-                                    :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': currentView === 'sales' && (showBrandType || showBrandCondition || showBrandGb) }">
+                                    :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': ['sales', 'activity'].includes(currentView) && (showBrandType || showBrandCondition || showBrandGb) }">
                                     <td class="px-6 py-4">
                                         <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
                                             :class="getRankBadgeClass(idx)">{{ idx + 1 }}</div>
@@ -996,8 +955,8 @@
                                     </template>
                                 </tr>
 
-                                <!-- CS Breakdown (Sales View Only) -->
-                                <template v-if="currentView === 'sales' && (showBrandDistributor || showBrandType || showBrandCondition || showBrandGb)">
+                                <!-- CS Breakdown (Sales & Activity View) -->
+                                <template v-if="['sales', 'activity'].includes(currentView) && (showBrandDistributor || showBrandType || showBrandCondition || showBrandGb)">
                                     <template v-for="d in item.tree" :key="'cs-dist-' + item.owner_id + '-' + d.label">
                                         <tr v-if="showBrandDistributor" class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                             <td class="px-6 py-2"></td>
@@ -1100,7 +1059,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import {
     Trophy, ArrowLeft, Calendar, Loader2, Search, RefreshCw,
     Smartphone, Layers, Tag, RotateCcw, ChevronRight, Users,
-    Truck, ListFilter, MapPin, Globe, ToggleLeft, ToggleRight,
+    Truck, ListFilter, MapPin, Globe, ToggleLeft, ToggleRight, CircleDot,
     FileText, X, Copy, Check, Database
 } from 'lucide-vue-next'
 import axios from '../../api/axios'
