@@ -1300,13 +1300,21 @@ class AuditController extends Controller
                     $fallbackBundleName = $trx->bundle_description ?: 'Paket Bundling';
                     
                     foreach ($details as $d) {
-                        // Check if this item is part of a bundle (tagged in notes)
                         $bundleTag = $d['notes'] ?? null;
-                        
-                        if ($bundleTag && ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) {
-                            if (!isset($bundles[$bundleTag])) {
-                                $bundles[$bundleTag] = [
-                                    'name' => '📦 ' . $bundleTag,
+                        $cleanName = str_replace('📦 ', '', $d['name']);
+                        $isFuzzyMatch = $fallbackBundleName && (
+                            str_contains(strtolower($fallbackBundleName), strtolower($cleanName)) ||
+                            str_contains(strtolower($cleanName), 'bundling') || 
+                            str_contains(strtolower($cleanName), 'paket')
+                        );
+
+                        if ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag ?? ''), 'bundle') || str_contains(strtolower($bundleTag ?? ''), 'paket') || (!$bundleTag && $isFuzzyMatch)) {
+                            // Determine the group name: prefer explicit tag, then fallback description
+                            $groupKey = ($bundleTag && (str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) ? $bundleTag : $fallbackBundleName;
+                            
+                            if (!isset($bundles[$groupKey])) {
+                                $bundles[$groupKey] = [
+                                    'name' => '📦 ' . $groupKey,
                                     'qty' => 1,
                                     'price' => 0,
                                     'brand' => 'BUNDLE',
@@ -1320,13 +1328,13 @@ class AuditController extends Controller
                                     'is_bundle' => true
                                 ];
                             }
-                            $bundles[$bundleTag]['price'] += ($d['price'] * $d['qty']);
+                            $bundles[$groupKey]['price'] += ($d['price'] * $d['qty']);
                             if ($d['imei'] && $d['imei'] !== '-') {
-                                $bundles[$bundleTag]['imei'][] = $d['imei'];
-                                $bundles[$bundleTag]['is_hp'] = true;
+                                $bundles[$groupKey]['imei'][] = $d['imei'];
+                                $bundles[$groupKey]['is_hp'] = true;
                             }
                             if ($d['distributor_name'] && $d['distributor_name'] !== 'KOSONG') {
-                                $bundles[$bundleTag]['distributor_name'][] = $d['distributor_name'];
+                                $bundles[$groupKey]['distributor_name'][] = $d['distributor_name'];
                             }
                         } else {
                             $grouped[] = $d;

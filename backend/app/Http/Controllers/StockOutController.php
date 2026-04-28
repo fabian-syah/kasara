@@ -653,108 +653,14 @@ class StockOutController extends Controller
                             'distributed_discount' => $item['distributed_discount'] ?? 0,
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $item['quantity'],
                             'returned_quantity' => 0,
-                            'distributor_id' => $distId // Captured from inventory
+                            'distributor_id' => $distId, // Captured from inventory
+                            'notes' => $item['bundle_name'] ?? null
                         ]);
                     }
                 }
             }
 
-            // Handle bundled items (if any)
-            $bundleHpPrices = [];
-            if ($request->items) {
-                // If the items are passed as a bundle structure, we need to extract the product_detail_ids
-                $allBundleItemIds = [];
-                $allBundleNonHp = [];
-
-                $hpBundleMap = []; // Map detail_id => bundle_name
-                foreach ($request->items as $item) {
-                    if (isset($item['is_bundle']) && $item['is_bundle'] && isset($item['bundle_items'])) {
-                        foreach ($item['bundle_items'] as $bItem) {
-                            if (isset($bItem['imei']) && $bItem['imei']) {
-                                $allBundleItemIds[] = $bItem['id'];
-                                $hpBundleMap[$bItem['id']] = $item['name'] ?? 'Bundle Item';
-                                // TRACK OVERRIDDEN PRICES FOR BUNDLE ITEMS
-                                if (isset($bItem['price'])) {
-                                    $bundleHpPrices[$bItem['id']] = floatval($bItem['price']);
-                                }
-                            } else {
-                                $allBundleNonHp[] = [
-                                    'product_id' => $bItem['product_id'],
-                                    'quantity' => $bItem['quantity'] ?? 1,
-                                    'selling_price' => $bItem['price'] ?? 0,
-                                    'bundle_name' => $item['name'] ?? 'Bundle Item'
-                                ];
-                            }
-                        }
-                    }
-                }
-
-                // Add to productDetails if not already there
-                if (!empty($allBundleItemIds)) {
-                    $bundleDetails = ProductDetail::whereIn('id', $allBundleItemIds)
-                        ->where('status', 'available')
-                        ->get();
-
-                    if ($bundleDetails->count() !== count($allBundleItemIds)) {
-                        throw new \Exception('Beberapa barang bundling sudah tidak tersedia.');
-                    }
-                    $productDetails = $productDetails->merge($bundleDetails);
-                }
-
-                // Process Non-HP bundle items with multi-inventory support
-                foreach ($allBundleNonHp as $bNonHp) {
-                    $product = Product::findOrFail($bNonHp['product_id']);
-                    $invQuery = Inventory::where('product_id', $bNonHp['product_id']);
-
-                    if ($user->branch_id) {
-                        $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
-                    } elseif ($user->warehouse_id) {
-                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
-                    } elseif ($user->online_shop_id) {
-                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
-                    }
-
-                    $inventories = $invQuery->where('quantity', '>', 0)->orderBy('quantity', 'asc')->get();
-                    $totalAvailable = $inventories->sum('quantity');
-
-                    if ($totalAvailable < $bNonHp['quantity']) {
-                        throw new \Exception("Stok bundling tidak cukup untuk produk: {$product->name}. Tersedia: $totalAvailable");
-                    }
-
-                    $remainingToDeduct = $bNonHp['quantity'];
-                    foreach ($inventories as $inventory) {
-                        if ($remainingToDeduct <= 0) break;
-
-                        $deductAmount = min($inventory->quantity, $remainingToDeduct);
-                        $inventory->decrement('quantity', $deductAmount);
-                        $remainingToDeduct -= $deductAmount;
-
-                        InventoryLog::create([
-                            'product_id' => $bNonHp['product_id'],
-                            'type' => 'out',
-                            'quantity' => $deductAmount,
-                            'balance_after' => $inventory->quantity,
-                            'description' => "Stock Out Bundling ({$request->category})",
-                            'reference_id' => 'OUT-BUN-' . time() . '-' . $inventory->id,
-                            'user_id' => $user->id,
-                            'branch_id' => $user->branch_id ?? null,
-                            'warehouse_id' => $user->warehouse_id ?? null,
-                            'online_shop_id' => $user->online_shop_id ?? null,
-                        ]);
-
-                        StockOutNonHpItem::create([
-                            'stock_out_id' => $stockOut->id,
-                            'product_id' => $bNonHp['product_id'],
-                            'quantity' => $deductAmount,
-                            'selling_price' => $bNonHp['selling_price'] ?? 0,
-                            'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $deductAmount,
-                            'returned_quantity' => 0,
-                            'distributor_id' => $inventory->distributor_id, // Capture from inventory source
-                            'notes' => $bNonHp['bundle_name'] ?? 'Bundle Item'
-                        ]);
-                    }
-                }
-            }
+            // Bundling logic handled via metadata tags above
 
             // Attach items and update status
             $newStatus = $this->getStatusByCategory($request->category);
@@ -763,15 +669,15 @@ class StockOutController extends Controller
                 /** @var \App\Models\ProductDetail $detail */
                 $hpMeta = $request->hp_items_meta[$detail->id] ?? null;
                 
-                // Priority: hp_items_meta (explicit) > bundleHpPrices (from bundle items) > $detail->selling_price
-                $finalSellingPrice = $hpMeta['selling_price'] ?? ($bundleHpPrices[$detail->id] ?? $detail->selling_price);
+                // Priority: hp_items_meta (explicit) > $detail->selling_price
+                $finalSellingPrice = $hpMeta['selling_price'] ?? $detail->selling_price;
 
                 $stockOut->items()->attach($detail->id, [
                     'selling_price' => $finalSellingPrice,
                     'item_discount' => $hpMeta['item_discount'] ?? 0,
                     'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
                     'distributor_id' => $detail->distributor_id, // Capture HP distributor permanently
-                    'notes' => $hpBundleMap[$detail->id] ?? null
+                    'notes' => $hpMeta['bundle_name'] ?? null
                 ]);
 
                 $updateStatus = $newStatus;
