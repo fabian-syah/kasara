@@ -589,25 +589,25 @@
                                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                  :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
                                  <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
-                                 Tampilkan Distributor
+                                 Distributor
                              </button>
                              <button @click="toggleBreakdown('type')"
                                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                  :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
                                  <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
-                                 Tampilkan Tipe
+                                 Tipe
                              </button>
                              <button @click="toggleBreakdown('condition')"
                                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                  :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
                                  <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
-                                 Tampilkan Kondisi
+                                 Kondisi
                              </button>
                              <button @click="toggleBreakdown('gb')"
                                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                  :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
                                  <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
-                                 Detail GB
+                                 GB
                              </button>
                         </template>
                     </div>
@@ -919,7 +919,7 @@
                                                     <td class="px-6 py-1.5 pl-20" colspan="5">
                                                         <div class="flex items-center gap-2">
                                                             <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">{{ formatCondition(c.condition) }}</span>
-                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ c.capacity }}GB</span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ formatCapacity(c.capacity) }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
@@ -1184,22 +1184,21 @@ const getConditionClass = (cond) => {
     return maps[cond] || 'bg-gray-500/10 text-gray-500 border-gray-500/20'
 }
 
+const formatCapacity = (cap) => {
+    if (!cap || cap === '-') return '-';
+    const str = cap.toString().toUpperCase();
+    if (str.includes('GB') || str.includes('TB')) return str;
+    return `${str}GB`;
+}
+
 const toggleBreakdown = (type) => {
     if (type === 'distributor') showBrandDistributor.value = !showBrandDistributor.value
     if (type === 'type') showBrandType.value = !showBrandType.value
     if (type === 'condition') showBrandCondition.value = !showBrandCondition.value
     if (type === 'gb') showBrandGb.value = !showBrandGb.value
-    
-    console.log(`[DEBUG RANKING] Toggle ${type} clicked. New Status:`, {
-        distributor: showBrandDistributor.value,
-        type: showBrandType.value,
-        condition: showBrandCondition.value,
-        gb: showBrandGb.value
-    })
 }
 
 const logRender = (msg, data) => {
-    console.log(`[DEBUG RENDER] ${msg}:`, data)
     return true
 }
 
@@ -1247,16 +1246,6 @@ const sortedData = computed(() => {
     else if (currentView.value === 'type') base = salesData.value.type_stats || []
     else if (currentView.value === 'condition') base = salesData.value.condition_stats || []
     else if (currentView.value === 'distributor') base = distributorHierarchy.value
-
-    console.log(`[DEBUG RANKING] sortedData calculated for view: ${currentView.value}`, {
-        baseCount: base.length,
-        firstItemTree: base[0]?.tree ? 'Has Tree' : 'No Tree',
-        toggles: {
-            dist: showBrandDistributor.value,
-            type: showBrandType.value,
-            cond: showBrandCondition.value
-        }
-    })
 
     let filtered = base
     if (currentView.value === 'activity') {
@@ -1424,10 +1413,6 @@ const distributorHierarchy = computed(() => {
 const salesHierarchy = computed(() => {
     const raw = salesData.value.cs_sales || []
     
-    if (raw.length > 0) {
-        console.log('[DEBUG INSPECT] First CS Object:', raw[0])
-    }
-
     return raw.map(cs => {
         const distMap = new Map()
         
@@ -1484,7 +1469,6 @@ const salesHierarchy = computed(() => {
                 })).sort((a, b) => b.qty - a.qty)
             })).sort((a, b) => b.qty - a.qty)
         }
-        if (cs.cs_name) console.log(`[DEBUG TREE] Built tree for ${cs.cs_name}:`, result.tree.length, 'distributors')
         return result
     })
 })
@@ -1814,7 +1798,6 @@ const fetchData = async () => {
             product_type_id: filters.value.product_type_id
         };
         const response = await axios.get('/audit/sales', { params })
-        console.log('[DEBUG RANKING] Data received from API:', response.data)
         salesData.value = response.data
         // Populate filter dropdowns from actual sales data
         if (response.data.filter_options) {
