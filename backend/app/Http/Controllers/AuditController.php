@@ -1301,16 +1301,10 @@ class AuditController extends Controller
                     
                     foreach ($details as $d) {
                         $bundleTag = $d['notes'] ?? null;
-                        $cleanName = str_replace('📦 ', '', $d['name']);
-                        $isFuzzyMatch = $fallbackBundleName && (
-                            str_contains(strtolower($fallbackBundleName), strtolower($cleanName)) ||
-                            str_contains(strtolower($cleanName), 'bundling') || 
-                            str_contains(strtolower($cleanName), 'paket')
-                        );
-
-                        if ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag ?? ''), 'bundle') || str_contains(strtolower($bundleTag ?? ''), 'paket') || (!$bundleTag && $isFuzzyMatch)) {
-                            // Determine the group name: prefer explicit tag, then fallback description
-                            $groupKey = ($bundleTag && (str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) ? $bundleTag : $fallbackBundleName;
+                        
+                        if ($bundleTag && ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) {
+                            // Determine the group name
+                            $groupKey = $bundleTag;
                             
                             if (!isset($bundles[$groupKey])) {
                                 $bundles[$groupKey] = [
