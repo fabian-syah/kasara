@@ -113,43 +113,112 @@ class StockOutController extends Controller
 
         $results = $query->latest()->paginate($request->per_page ?? 20);
 
-        // For Non-HP items, we need to load product details manually since they are in JSON
-        if ($request->type === 'non-hp' || !$request->type) {
-            foreach ($results->items() as $item) {
-                // We combine JSON storage (legacy) and the new StockOutNonHpItem relationship
-                $enrichedItems = $item->non_hp_items ?? [];
+        // Transform results to handle bundling consolidation
+        $results->getCollection()->transform(function ($stockOut) {
+            $details = [];
 
-                // If relational data exists (NEW system), use it
-                if ($item->nonHpDetails && $item->nonHpDetails->count() > 0) {
-                    $itemConverted = [];
-                    foreach ($item->nonHpDetails as $detail) {
-                        $itemConverted[] = [
-                            'product_id' => $detail->product_id,
-                            'product_name' => $detail->product?->name ?? 'Unknown',
-                            'product_brand' => $detail->product?->brand ?? $detail->product?->brandRelation?->name ?? '-',
-                            'product_sku' => $detail->product?->sku ?? '-',
-                            'quantity' => $detail->quantity,
-                            'selling_price' => $detail->selling_price,
-                        ];
-                    }
-                    $item->non_hp_items = $itemConverted;
-                } else if (!empty($enrichedItems)) {
-                    // Enrich legacy JSON data
-                    $productIds = array_unique(array_column($enrichedItems, 'product_id'));
-                    $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+            // 1. Collect HP Items
+            foreach ($stockOut->items as $item) {
+                $details[] = [
+                    'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP'),
+                    'qty' => 1,
+                    'price' => (float) ($item->pivot?->selling_price ?? 0),
+                    'type' => 'HP',
+                    'is_hp' => true,
+                    'imei' => $item->imei ?? '-',
+                    'notes' => $item->pivot?->notes
+                ];
+            }
+
+            // 2. Collect Non-HP Items
+            foreach ($stockOut->nonHpDetails as $detail) {
+                $details[] = [
+                    'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($detail->product?->name ?? 'Item'),
+                    'qty' => $detail->quantity,
+                    'price' => (float) $detail->selling_price,
+                    'type' => 'Item',
+                    'is_hp' => false,
+                    'imei' => '-',
+                    'notes' => $detail->notes
+                ];
+            }
+
+            // 3. Consolidate Bundles if applicable
+            if ($stockOut->is_bundle) {
+                $grouped = [];
+                $bundles = [];
+                $fallbackBundleName = $stockOut->bundle_description ?: 'Paket Bundling';
+                
+                // Historical component-aware matching logic
+                $bundleComponents = [];
+                if ($fallbackBundleName) {
+                    $descPart = str_replace('Paket Bundling:', '', $fallbackBundleName);
+                    $bundleComponents = array_map('trim', explode(',', $descPart));
+                }
+
+                foreach ($details as $d) {
+                    $bundleTag = $d['notes'] ?? null;
+                    $cleanName = str_replace('📦 ', '', $d['name']);
                     
-                    foreach ($enrichedItems as &$nonHpItem) {
-                        if (!isset($nonHpItem['product_name'])) {
-                            $prod = $products[$nonHpItem['product_id']] ?? null;
-                            $nonHpItem['product_name'] = $prod?->name ?? 'Unknown';
-                            $nonHpItem['product_brand'] = $prod?->brand ?? $prod?->brandRelation?->name ?? '-';
-                            $nonHpItem['product_sku'] = $prod?->sku ?? '-';
+                    $isPartOfBundle = false;
+                    $groupKey = $bundleTag;
+
+                    if ($bundleTag && ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) {
+                        $isPartOfBundle = true;
+                    } else if (!$bundleTag && !empty($bundleComponents)) {
+                        foreach ($bundleComponents as $idx => $comp) {
+                            if (!empty($comp) && (str_contains(strtolower($cleanName), strtolower($comp)) || str_contains(strtolower($comp), strtolower($cleanName)))) {
+                                $isPartOfBundle = true;
+                                $groupKey = $fallbackBundleName;
+                                unset($bundleComponents[$idx]);
+                                break;
+                            }
                         }
                     }
-                    $item->non_hp_items = $enrichedItems;
+
+                    if ($isPartOfBundle && $groupKey) {
+                        if (!isset($bundles[$groupKey])) {
+                            $bundles[$groupKey] = [
+                                'name' => '📦 ' . $groupKey,
+                                'qty' => 0,
+                                'price' => 0,
+                                'type' => 'Bundle',
+                                'is_hp' => false,
+                                'imei' => [],
+                                'is_bundle_row' => true,
+                                'bundle_composition' => []
+                            ];
+                        }
+                        $bundles[$groupKey]['qty'] += $d['qty'];
+                        $bundles[$groupKey]['price'] += ($d['price'] * $d['qty']);
+                        $bundles[$groupKey]['bundle_composition'][] = $d['type'] === 'HP' ? 'IMEI' : 'NON-IMEI';
+                        if ($d['imei'] && $d['imei'] !== '-') {
+                            $bundles[$groupKey]['imei'][] = $d['imei'];
+                            $bundles[$groupKey]['is_hp'] = true;
+                        }
+                    } else {
+                        $grouped[] = $d;
+                    }
                 }
+
+                foreach ($bundles as $bName => $bData) {
+                    $bData['imei'] = implode(', ', array_unique($bData['imei'])) ?: '-';
+                    $composition = array_unique($bData['bundle_composition']);
+                    $bData['name'] .= ' [' . implode(' + ', $composition) . ']';
+                    $grouped[] = $bData;
+                }
+                $details = $grouped;
             }
-        }
+
+            // Update the object with consolidated items
+            $stockOut->consolidated_items = $details;
+            
+            // For backward compatibility with views that use product_names/imeis strings
+            $stockOut->product_names = collect($details)->pluck('name')->implode(', ');
+            $stockOut->imeis = collect($details)->pluck('imei')->filter(fn($i) => $i !== '-')->implode(', ');
+
+            return $stockOut;
+        });
 
         return response()->json($results);
     }
