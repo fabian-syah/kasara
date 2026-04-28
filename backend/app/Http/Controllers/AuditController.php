@@ -1299,13 +1299,35 @@ class AuditController extends Controller
                     $bundles = [];
                     $fallbackBundleName = $trx->bundle_description ?: 'Paket Bundling';
                     
+                    // Prepare bundle components for smarter matching (historical data)
+                    $bundleComponents = [];
+                    if ($fallbackBundleName) {
+                        $descPart = str_replace('Paket Bundling:', '', $fallbackBundleName);
+                        $bundleComponents = array_map('trim', explode(',', $descPart));
+                    }
+                    
                     foreach ($details as $d) {
                         $bundleTag = $d['notes'] ?? null;
+                        $cleanName = str_replace('📦 ', '', $d['name']);
                         
+                        $isPartOfBundle = false;
+                        $groupKey = $bundleTag;
+
                         if ($bundleTag && ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) {
-                            // Determine the group name
-                            $groupKey = $bundleTag;
-                            
+                            $isPartOfBundle = true;
+                        } else if (!$bundleTag && !empty($bundleComponents)) {
+                            // Try fuzzy match against remaining components for historical data
+                            foreach ($bundleComponents as $idx => $comp) {
+                                if (!empty($comp) && (str_contains(strtolower($cleanName), strtolower($comp)) || str_contains(strtolower($comp), strtolower($cleanName)))) {
+                                    $isPartOfBundle = true;
+                                    $groupKey = $fallbackBundleName;
+                                    unset($bundleComponents[$idx]); // Consume this component
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if ($isPartOfBundle && $groupKey) {
                             if (!isset($bundles[$groupKey])) {
                                 $bundles[$groupKey] = [
                                     'name' => '📦 ' . $groupKey,
