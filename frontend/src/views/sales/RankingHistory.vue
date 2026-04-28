@@ -1279,6 +1279,12 @@ const formatCondition = (cond) => {
     return maps[cond] || cond
 }
 
+const goBack = () => {
+    currentView.value = 'menu'
+    searchQuery.value = ''
+    resetBreakdowns()
+}
+
 const navigateTo = (view) => {
     currentView.value = view
     searchQuery.value = ''
