@@ -585,38 +585,8 @@
                             </select>
                         </div>
 
-                        <!-- Filters (Dropdowns) -->
-                        <template v-if="!['menu', 'revenue', 'report'].includes(currentView)">
-                            <select v-model="filters.distributor_id" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[140px] appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua Distributor</option>
-                                <option v-for="d in distributors" :key="d.id" :value="d.id" class="dark:bg-surface-800">
-                                    {{ d.name }}</option>
-                            </select>
-                            <select v-model="filters.product_type_id" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[120px] appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua Tipe</option>
-                                <option v-for="p in productTypes" :key="p.id" :value="p.id" class="dark:bg-surface-800">
-                                    {{ p.name }}</option>
-                            </select>
-                            <select v-model="filters.condition" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua Kondisi</option>
-                                <option value="new" class="dark:bg-surface-800">Baru</option>
-                                <option value="ex_ibox" class="dark:bg-surface-800">Ex iBox</option>
-                                <option value="second" class="dark:bg-surface-800">Second</option>
-                            </select>
-                            <select v-model="filters.capacity" @change="fetchData"
-                                class="bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary dark:text-white focus:ring-1 focus:ring-primary-500 cursor-pointer min-w-[100px] appearance-none">
-                                <option :value="null" class="dark:bg-surface-800">Semua GB</option>
-                                <option v-for="gb in capacities" :key="gb" :value="gb" class="dark:bg-surface-800">{{ gb
-                                    }}GB</option>
-                            </select>
-                        </template>
-
                         <!-- Breakdown Toggles (Sales & Activity View) -->
                         <template v-if="['sales', 'activity'].includes(currentView)">
-                            <div class="h-6 w-px bg-gray-200 dark:bg-surface-700 mx-1 hidden lg:block"></div>
                             <button @click="showBrandDistributor = !showBrandDistributor"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                 :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">

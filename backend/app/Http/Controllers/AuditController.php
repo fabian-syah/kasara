@@ -409,8 +409,8 @@ class AuditController extends Controller
                         }
                     });
 
-                    // Breakdown Query - Exclude Refund & AB
-                    $breakdownBase = (clone $baseQuery)->whereNotIn('stock_outs.category', ['refund', 'angkat_barang']);
+                    // Breakdown Query - Include All (Sales & Activity)
+                    $breakdownBase = (clone $baseQuery);
 
                     $hpBreakdown = (clone $breakdownBase)->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
                         ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
