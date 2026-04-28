@@ -409,8 +409,10 @@ class AuditController extends Controller
                         }
                     });
 
-                    // Breakdown Query
-                    $hpBreakdown = (clone $baseQuery)->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                    // Breakdown Query - Exclude Refund & AB
+                    $breakdownBase = (clone $baseQuery)->whereNotIn('stock_outs.category', ['refund', 'angkat_barang']);
+
+                    $hpBreakdown = (clone $breakdownBase)->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
                         ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                         ->join('products', 'product_details.product_id', '=', 'products.id')
                         ->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')
@@ -426,7 +428,7 @@ class AuditController extends Controller
                         ->groupBy('owner_id', 'products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')
                         ->get()->groupBy('owner_id');
 
-                    $nhpBreakdown = (clone $baseQuery)->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+                    $nhpBreakdown = (clone $breakdownBase)->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
                         ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
                         ->select(
                             DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
@@ -437,12 +439,16 @@ class AuditController extends Controller
                         ->groupBy('owner_id', 'products.brand', 'products.name')
                         ->get()->groupBy('owner_id');
 
-                    $itemStatsQuery = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
-                    $nhpStatsQuery = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
+                    $itemStatsQuery = (clone $breakdownBase)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when products.brand = 'Apple' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when products.brand != 'Apple' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
+                    $nhpStatsQuery = (clone $breakdownBase)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                     
                     $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
-                    })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', DB::raw("sum(case when stock_outs.category in ('shopee','orderan_online','penjualan_offline','penjualan_store','tukar_unit','tukar_tambah','downgrade','cancel_penjualan','angkat_barang') then stock_outs.selling_price when stock_outs.category = 'refund' then -stock_outs.selling_price else 0 end) as grand_total"), DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"))->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
+                    })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
+                        DB::raw("sum(case when stock_outs.category not in ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as grand_total"), 
+                        DB::raw("sum(case when stock_outs.category in ('tukar_tambah','tukar_unit','angkat_barang','downgrade') then 1 else 0 end) as total_angkat_barang"), 
+                        DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"))
+                        ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
                     
                     return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $hpBreakdown, $nhpBreakdown) {
                         $items = $itemStatsQuery->get($stat->owner_id);
