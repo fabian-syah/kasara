@@ -582,8 +582,8 @@
                             </select>
                         </div>
 
-                        <!-- Breakdown Toggles (Sales, Activity, Brand, Distributor View) -->
-                        <template v-if="['sales', 'activity', 'brand', 'distributor'].includes(currentView)">
+                        <!-- Breakdown Toggles (Available in all views except menu) -->
+                        <template v-if="currentView !== 'menu'">
                             <div class="h-6 w-px bg-gray-200 dark:bg-surface-700 mx-1 hidden lg:block"></div>
                              <button @click="toggleBreakdown('distributor')"
                                  class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
@@ -613,36 +613,8 @@
                     </div>
                 </div>
 
-                <!-- Global Filters for Rankings -->
+                <!-- Search Bar & Tools -->
                 <div class="flex flex-col gap-4 pt-4 border-t border-gray-100 dark:border-surface-700">
-                        <div class="flex flex-wrap items-center gap-3">
-                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
-                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Distributor</span>
-                                <select v-model="filters.distributor_id" @change="fetchData"
-                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[100px]">
-                                    <option :value="null">Semua</option>
-                                    <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
-                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Produk</span>
-                                <select v-model="filters.product_type_id" @change="fetchData"
-                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[100px]">
-                                    <option :value="null">Semua</option>
-                                    <option v-for="p in productTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-1.5">
-                                <span class="text-[10px] font-bold text-text-secondary mr-2 uppercase tracking-wider">Kondisi</span>
-                                <select v-model="filters.condition" @change="fetchData"
-                                    class="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer appearance-none min-w-[80px]">
-                                    <option :value="null">Semua</option>
-                                    <option value="baru">Baru</option>
-                                    <option value="bekas">Bekas</option>
-                                </select>
-                            </div>
-
-                        </div>
 
                         <!-- Search Bar -->
                         <div class="relative w-full sm:w-80 group">
