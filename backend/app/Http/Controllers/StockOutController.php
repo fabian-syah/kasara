@@ -111,6 +111,18 @@ class StockOutController extends Controller
             $query->where('reporting_date', '>=', $limitDate);
         }
 
+        // Filter by Type (HP vs Non-HP)
+        if ($request->type === 'hp') {
+            $query->whereHas('items');
+        } elseif ($request->type === 'non-hp') {
+            $query->where(function($q) {
+                $q->whereHas('nonHpDetails')
+                  ->orWhere(function($sub) {
+                      $sub->whereNotNull('non_hp_items')->where('non_hp_items', '!=', '[]')->where('non_hp_items', '!=', '{}');
+                  });
+            });
+        }
+
         $results = $query->latest()->paginate($request->per_page ?? 20);
 
         // Transform results to handle bundling consolidation
@@ -130,7 +142,7 @@ class StockOutController extends Controller
                 ];
             }
 
-            // 2. Collect Non-HP Items
+            // 2. Collect Non-HP Items (Relationship)
             foreach ($stockOut->nonHpDetails as $detail) {
                 $details[] = [
                     'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($detail->product?->name ?? 'Item'),
@@ -143,7 +155,25 @@ class StockOutController extends Controller
                 ];
             }
 
-            // 3. Consolidate Bundles if applicable
+            // 3. Collect Legacy Non-HP Items (JSON Fallback)
+            if ($stockOut->non_hp_items && empty($details)) {
+                $jsonItems = is_string($stockOut->non_hp_items) ? json_decode($stockOut->non_hp_items, true) : $stockOut->non_hp_items;
+                if (is_array($jsonItems)) {
+                    foreach ($jsonItems as $ji) {
+                        $details[] = [
+                            'name' => $ji['product_name'] ?? 'Item',
+                            'qty' => $ji['quantity'] ?? 1,
+                            'price' => (float) ($ji['selling_price'] ?? 0),
+                            'type' => 'Item',
+                            'is_hp' => false,
+                            'imei' => '-',
+                            'notes' => $ji['notes'] ?? null
+                        ];
+                    }
+                }
+            }
+
+            // Consolidate Bundles if applicable
             if ($stockOut->is_bundle) {
                 $grouped = [];
                 $bundles = [];
@@ -216,6 +246,9 @@ class StockOutController extends Controller
             // For backward compatibility with views that use product_names/imeis strings
             $stockOut->product_names = collect($details)->pluck('name')->implode(', ');
             $stockOut->imeis = collect($details)->pluck('imei')->filter(fn($i) => $i !== '-')->implode(', ');
+            
+            // Unified Recipient Label
+            $stockOut->recipient_label = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->shopee_receiver ?: ($stockOut->giveaway_receiver ?: '-')));
 
             return $stockOut;
         });

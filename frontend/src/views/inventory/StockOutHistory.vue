@@ -415,49 +415,34 @@ const getCategoryColor = (cat) => {
                                         <span class="font-medium whitespace-nowrap max-w-[150px] truncate block">
                                             {{ item.category === 'pindah_cabang'
                                                 ? (item.destination?.name || item.destination_branch?.name || '-')
-                                                : (item.receiver_name || item.shopee_receiver || item.giveaway_receiver ||
-                                                    item.recipient_name || '-')
+                                                : (item.recipient_label || '-')
                                             }}
                                         </span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
-                                        <!-- HP Items -->
-                                        <div v-for="(detail, index) in (item.items || []).slice(0, 3)" :key="index"
+                                        <!-- Consolidated Items -->
+                                        <div v-for="(detail, index) in (item.consolidated_items || []).slice(0, 5)" :key="index"
                                             class="text-xs flex justify-between gap-4">
-                                            <span class="text-text-secondary truncate max-w-[150px]">
-                                                {{ detail.product ? detail.product.name : 'Unknown Product' }}
+                                            <span class="text-text-secondary truncate max-w-[150px]" :class="{'text-primary-400 font-bold': detail.type === 'Bundle'}">
+                                                {{ detail.name }}
                                             </span>
                                             <span class="font-mono text-xs bg-surface-900 px-1 rounded">
-                                                {{ detail.imei || `Qty: ${detail.quantity}` }}
+                                                {{ detail.imei && detail.imei !== '-' ? detail.imei : `Qty: ${detail.qty}` }}
                                             </span>
                                         </div>
-                                        <div v-if="(item.items || []).length > 3"
+                                        <div v-if="(item.consolidated_items || []).length > 5"
                                             class="text-xs text-primary-400 italic">
-                                            +{{ (item.items || []).length - 3 }} item lainnya
+                                            +{{ (item.consolidated_items || []).length - 5 }} item lainnya
                                         </div>
-                                        <!-- Non-HP Items (mixed) -->
-                                        <div v-if="item.non_hp_items && item.non_hp_items.length > 0"
-                                            class="mt-1 border-t border-surface-700/40 pt-1">
-                                            <div v-for="(nhItem, idx) in item.non_hp_items" :key="'nh-' + idx"
-                                                class="text-xs flex justify-between gap-4">
-                                                <span class="text-amber-400 truncate max-w-[150px]">
-                                                    {{ nhItem.product_name || 'Non-HP' }}
-                                                </span>
-                                                <span class="font-mono text-xs bg-surface-900 px-1 rounded">
-                                                    ×{{ nhItem.quantity }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <span v-if="!(item.items || []).length && !(item.non_hp_items || []).length"
+                                        <span v-if="!(item.consolidated_items || []).length"
                                             class="text-xs text-text-secondary">-</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
-                                        <span class="font-bold text-red-400">-{{ (item.items || []).length }}
-                                            Unit</span>
+                                        <span class="font-bold text-red-400">-{{ item.items_count || 0 }} Unit</span>
                                         <span v-if="item.selling_price" class="text-xs text-emerald-400 font-medium">
                                             {{ formatCurrency(item.selling_price) }}
                                         </span>
@@ -503,8 +488,7 @@ const getCategoryColor = (cat) => {
                                         <span class="font-medium whitespace-nowrap max-w-[150px] truncate block">
                                             {{ item.category === 'pindah_cabang'
                                                 ? (item.destination?.name || item.destination_branch?.name || '-')
-                                                : (item.receiver_name || item.shopee_receiver || item.giveaway_receiver ||
-                                                    item.recipient_name || '-')
+                                                : (item.recipient_label || '-')
                                             }}
                                         </span>
                                     </div>
@@ -513,33 +497,20 @@ const getCategoryColor = (cat) => {
                                 <!-- Col 4: Item (Product Name) -->
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
-                                        <div v-for="(detail, index) in (item.non_hp_items || []).slice(0, 3)"
+                                        <div v-for="(detail, index) in (item.consolidated_items || []).slice(0, 5)"
                                             :key="index" class="text-xs flex justify-between gap-4">
-                                            <span class="text-text-secondary truncate max-w-[150px]">
-                                                {{ detail.product_name || 'Unknown Product' }}
+                                            <span class="text-text-secondary truncate max-w-[150px]" :class="{'text-primary-400 font-bold': detail.type === 'Bundle'}">
+                                                {{ detail.name }}
                                             </span>
                                             <span class="font-mono text-xs bg-surface-900 px-1 rounded">
-                                                Qty: {{ detail.quantity }}
+                                                Qty: {{ detail.qty }}
                                             </span>
                                         </div>
-                                        <div v-if="(item.non_hp_items || []).length > 3"
+                                        <div v-if="(item.consolidated_items || []).length > 5"
                                             class="text-xs text-primary-400 italic">
-                                            +{{ (item.non_hp_items || []).length - 3 }} item lainnya
+                                            +{{ (item.consolidated_items || []).length - 5 }} item lainnya
                                         </div>
-                                        <!-- HP Items (mixed) -->
-                                        <div v-if="item.items && item.items.length > 0"
-                                            class="mt-1 border-t border-surface-700/40 pt-1">
-                                            <div v-for="(hpItem, idx) in item.items" :key="'hp-' + idx"
-                                                class="text-xs flex justify-between gap-4">
-                                                <span class="text-primary-400 truncate max-w-[150px]">
-                                                    {{ hpItem.product ? hpItem.product.name : 'HP' }}
-                                                </span>
-                                                <span class="font-mono text-xs bg-surface-900 px-1 rounded">
-                                                    {{ hpItem.imei }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <span v-if="!(item.non_hp_items || []).length && !(item.items || []).length"
+                                        <span v-if="!(item.consolidated_items || []).length"
                                             class="text-xs text-text-secondary md:hidden block">-</span>
                                     </div>
                                 </td>
@@ -548,8 +519,7 @@ const getCategoryColor = (cat) => {
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-1">
                                         <span class="font-bold text-red-400">
-                                            -{{(item.non_hp_items || []).reduce((acc, curr) => acc +
-                                                parseInt(curr.quantity), 0)}} Unit
+                                            -{{ item.items_count || 0 }} Unit
                                         </span>
                                         <span v-if="item.selling_price" class="text-xs text-emerald-400 font-medium">
                                             {{ formatCurrency(item.selling_price) }}
