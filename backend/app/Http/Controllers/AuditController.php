@@ -1323,7 +1323,7 @@ class AuditController extends Controller
                                     'storage' => '-',
                                     'condition' => '-',
                                     'ram' => '-',
-                                    'is_bundle_row' => true
+                                    'is_bundle' => true
                                 ];
                             }
                             $bundles[$bundleTag]['price'] += ($d['price'] * $d['qty']);
