@@ -896,8 +896,8 @@
                                 </tr>
 
                                 <!-- CS Breakdown (Sales & Activity View) -->
-                                <template v-for="d in (item.tree || [])" :key="'cs-dist-' + item.owner_id + '-' + d.label">
-                                    <tr v-if="showBrandDistributor" class="bg-indigo-50/20 dark:bg-indigo-900/10">
+                                <template v-for="(d, dIdx) in (item.tree || [])" :key="'cs-dist-' + idx + '-' + dIdx">
+                                    <tr v-if="showBrandDistributor && logRender('Distributor Row', d.label)" class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                         <td class="px-6 py-2"></td>
                                         <td class="px-6 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 pl-10" colspan="5">
                                             Distributor: {{ d.label }}</td>
@@ -905,16 +905,16 @@
                                             {{ d.qty }}</td>
                                         <td class="px-6 py-2"></td>
                                     </tr>
-                                    <template v-for="t in (d.types || [])" :key="'cs-type-' + item.owner_id + '-' + d.label + '-' + t.label">
-                                        <tr v-if="showBrandType" class="bg-gray-50/30 dark:bg-surface-900/30">
+                                    <template v-for="(t, tIdx) in (d.types || [])" :key="'cs-type-' + idx + '-' + dIdx + '-' + tIdx">
+                                        <tr v-if="showBrandType && logRender('Type Row', t.label)" class="bg-gray-50/30 dark:bg-surface-900/30">
                                             <td class="px-6 py-2"></td>
                                             <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16" colspan="5">— {{ t.label }}</td>
                                             <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{ t.qty }}</td>
                                             <td class="px-6 py-2"></td>
                                         </tr>
                                         <template v-if="showBrandCondition || showBrandGb">
-                                            <template v-for="(c, cIdx) in (t.conditions || [])" :key="'cs-cond-' + item.owner_id + '-' + d.label + '-' + t.label + '-' + cIdx">
-                                                <tr class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
+                                            <template v-for="(c, cIdx) in (t.conditions || [])" :key="'cs-cond-' + idx + '-' + dIdx + '-' + tIdx + '-' + cIdx">
+                                                <tr v-if="logRender('Cond Row', c.condition)" class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
                                                     <td class="px-6 py-1.5"></td>
                                                     <td class="px-6 py-1.5 pl-20" colspan="5">
                                                         <div class="flex items-center gap-2">
@@ -1198,6 +1198,11 @@ const toggleBreakdown = (type) => {
     })
 }
 
+const logRender = (msg, data) => {
+    console.log(`[DEBUG RENDER] ${msg}:`, data)
+    return true
+}
+
 const formatCondition = (cond) => {
     const maps = { 'new': 'Baru', 'ex_ibox': 'Ex iBox', 'second': 'Second' }
     return maps[cond] || cond
@@ -1455,7 +1460,7 @@ const salesHierarchy = computed(() => {
             tNode.conditions.get(cgKey).qty += (item.qty || 0)
         })
 
-        return {
+        const result = {
             ...cs,
             tree: Array.from(distMap.values()).map(d => ({
                 ...d,
@@ -1465,6 +1470,8 @@ const salesHierarchy = computed(() => {
                 })).sort((a, b) => b.qty - a.qty)
             })).sort((a, b) => b.qty - a.qty)
         }
+        if (cs.cs_name) console.log(`[DEBUG TREE] Built tree for ${cs.cs_name}:`, result.tree.length, 'distributors')
+        return result
     })
 })
 
