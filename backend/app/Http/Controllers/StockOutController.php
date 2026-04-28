@@ -666,11 +666,13 @@ class StockOutController extends Controller
                 $allBundleItemIds = [];
                 $allBundleNonHp = [];
 
+                $hpBundleMap = []; // Map detail_id => bundle_name
                 foreach ($request->items as $item) {
                     if (isset($item['is_bundle']) && $item['is_bundle'] && isset($item['bundle_items'])) {
                         foreach ($item['bundle_items'] as $bItem) {
                             if (isset($bItem['imei']) && $bItem['imei']) {
                                 $allBundleItemIds[] = $bItem['id'];
+                                $hpBundleMap[$bItem['id']] = $item['name'] ?? 'Bundle Item';
                                 // TRACK OVERRIDDEN PRICES FOR BUNDLE ITEMS
                                 if (isset($bItem['price'])) {
                                     $bundleHpPrices[$bItem['id']] = floatval($bItem['price']);
@@ -679,7 +681,8 @@ class StockOutController extends Controller
                                 $allBundleNonHp[] = [
                                     'product_id' => $bItem['product_id'],
                                     'quantity' => $bItem['quantity'] ?? 1,
-                                    'selling_price' => $bItem['price'] ?? 0
+                                    'selling_price' => $bItem['price'] ?? 0,
+                                    'bundle_name' => $item['name'] ?? 'Bundle Item'
                                 ];
                             }
                         }
@@ -747,7 +750,7 @@ class StockOutController extends Controller
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $deductAmount,
                             'returned_quantity' => 0,
                             'distributor_id' => $inventory->distributor_id, // Capture from inventory source
-                            'notes' => $item['name'] ?? 'Bundle Item'
+                            'notes' => $bNonHp['bundle_name'] ?? 'Bundle Item'
                         ]);
                     }
                 }
@@ -768,7 +771,7 @@ class StockOutController extends Controller
                     'item_discount' => $hpMeta['item_discount'] ?? 0,
                     'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
                     'distributor_id' => $detail->distributor_id, // Capture HP distributor permanently
-                    'notes' => $bundleHpPrices[$detail->id] ? ($request->items ? (collect($request->items)->first(fn($i) => isset($i['bundle_items']) && collect($i['bundle_items'])->contains('id', $detail->id))['name'] ?? 'Bundle Item') : 'Bundle Item') : null
+                    'notes' => $hpBundleMap[$detail->id] ?? null
                 ]);
 
                 $updateStatus = $newStatus;

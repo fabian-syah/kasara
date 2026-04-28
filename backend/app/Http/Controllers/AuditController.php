@@ -1303,13 +1303,7 @@ class AuditController extends Controller
                         // Check if this item is part of a bundle (tagged in notes)
                         $bundleTag = $d['notes'] ?? null;
                         
-                        // Fallback: if transaction is a bundle but item has no tag, 
-                        // assume it's part of the main bundle description
-                        if (!$bundleTag) {
-                            $bundleTag = $fallbackBundleName;
-                        }
-                        
-                        if ($bundleTag && (str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket') || $bundleTag === $fallbackBundleName)) {
+                        if ($bundleTag && ($bundleTag === $fallbackBundleName || str_contains(strtolower($bundleTag), 'bundle') || str_contains(strtolower($bundleTag), 'paket'))) {
                             if (!isset($bundles[$bundleTag])) {
                                 $bundles[$bundleTag] = [
                                     'name' => '📦 ' . $bundleTag,
