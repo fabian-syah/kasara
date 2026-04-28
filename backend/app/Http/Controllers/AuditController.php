@@ -441,16 +441,24 @@ class AuditController extends Controller
                         ->groupBy('owner_id', 'products.brand', 'products.name', 'stock_outs.category')
                         ->get()->groupBy('owner_id');
 
-                    // Sales Stats Query (Only category is NULL)
-                    $salesBase = (clone $baseQuery)->whereNull('stock_outs.category');
+                    // Define specific categories
+                    $stdSalesCats = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling'];
+                    $activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
+
+                    // Sales Stats Query (Only standard sales)
+                    $salesBase = (clone $baseQuery)->where(function($q) use ($stdSalesCats) {
+                        $q->whereIn('stock_outs.category', $stdSalesCats)
+                          ->orWhereNull('stock_outs.category');
+                    });
+                    
                     $itemStatsQuery = (clone $salesBase)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                     $nhpStatsQuery = (clone $salesBase)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                     
                     $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
-                        DB::raw("sum(case when stock_outs.category IS NULL then stock_outs.selling_price else 0 end) as grand_total"), 
-                        DB::raw("sum(case when stock_outs.category IN ('tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur') then stock_outs.selling_price else 0 end) as total_activity_rp"),
+                        DB::raw("sum(case when stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", $stdSalesCats) . "') then stock_outs.selling_price else 0 end) as grand_total"), 
+                        DB::raw("sum(case when stock_outs.category IN ('" . implode("','", $activityCats) . "') then stock_outs.selling_price else 0 end) as total_activity_rp"),
                         DB::raw("sum(case when stock_outs.category = 'tukar_unit' then 1 else 0 end) as total_tu"),
                         DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then 1 else 0 end) as total_tt"),
                         DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as total_dw"),
