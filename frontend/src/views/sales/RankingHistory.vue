@@ -623,10 +623,9 @@
                                 :size="18" />
                             <input v-model="searchQuery" type="text" placeholder="Cari..."
                                 class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
-                        </div>
-                        </div>
                     </div>
                 </div>
+            </div>
 
                 <!-- Content Area -->
             <div
@@ -957,6 +956,7 @@
                 </div>
         </div>
     </div>
+</div>
 </template>
 
 <script setup>
