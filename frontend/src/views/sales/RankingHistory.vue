@@ -585,8 +585,9 @@
                             </select>
                         </div>
 
-                        <!-- Breakdown Toggles (Sales & Activity View) -->
-                        <template v-if="['sales', 'activity'].includes(currentView)">
+                        <!-- Breakdown Toggles (Sales, Activity, Brand, Distributor View) -->
+                        <template v-if="['sales', 'activity', 'brand', 'distributor'].includes(currentView)">
+                            <div class="h-6 w-px bg-gray-200 dark:bg-surface-700 mx-1 hidden lg:block"></div>
                             <button @click="showBrandDistributor = !showBrandDistributor"
                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
                                 :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
@@ -624,63 +625,9 @@
                     </div>
                 </div>
 
-                <!-- Breakdown Toggles (Brand View Only) -->
-                <div v-if="currentView === 'brand'"
-                    class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 dark:border-surface-700">
-                    <button @click="showBrandDistributor = !showBrandDistributor"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
-                        Tampilkan Distributor
-                    </button>
-                    <button @click="showBrandType = !showBrandType"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
-                        Tampilkan Tipe
-                    </button>
-                    <button @click="showBrandCondition = !showBrandCondition"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
-                        Tampilkan Kondisi
-                    </button>
-                    <button @click="showBrandGb = !showBrandGb"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
-                        Tampilkan GB
-                    </button>
-                </div>
 
-                <!-- Breakdown Toggles (Distributor View Only) -->
-                <div v-if="currentView === 'distributor'"
-                    class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 dark:border-surface-700">
-                    <button @click="showBrandDistributor = !showBrandDistributor"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
-                        Tampilkan Brand
-                    </button>
-                    <button @click="showBrandType = !showBrandType"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
-                        Tampilkan Tipe
-                    </button>
-                    <button @click="showBrandCondition = !showBrandCondition"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
-                        Tampilkan Kondisi
-                    </button>
-                    <button @click="showBrandGb = !showBrandGb"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                        :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                        <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
-                        Tampilkan GB
-                    </button>
-                </div>
+
+
             </div>
 
             <!-- Content Area -->
@@ -1305,9 +1252,16 @@ const sortedData = computed(() => {
     }
 
     if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase()
+        const q = searchQuery.value.toLowerCase().trim()
         filtered = filtered.filter(item => {
-            const label = (item.cs_name || item.name || item.reporting_date || item.brand || item.distributor || item.condition || item.label || '').toString().toLowerCase()
+            const label = (
+                (item.cs_name || '') + ' ' + 
+                (item.name || '') + ' ' + 
+                (item.brand || '') + ' ' + 
+                (item.distributor || '') + ' ' + 
+                (item.label || '') + ' ' + 
+                (item.condition || '')
+            ).toLowerCase()
             return label.includes(q)
         })
     }
