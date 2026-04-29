@@ -269,6 +269,23 @@ class DashboardController extends Controller
                 if (!empty($accessibleOnlineShopIds)) $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
                 if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
             });
+        } elseif ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            $leaderboardQuery->where(function($q) use ($excludedKeywords) {
+                $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
+                    $bq->where(function($nq) use ($excludedKeywords) {
+                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                    });
+                })->whereDoesntHave('onlineShop', function($sq) use ($excludedKeywords) {
+                    $sq->where(function($nq) use ($excludedKeywords) {
+                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                    });
+                })->whereDoesntHave('warehouse', function($wq) use ($excludedKeywords) {
+                    $wq->where(function($nq) use ($excludedKeywords) {
+                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                    });
+                });
+            });
         }
 
         $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
