@@ -150,6 +150,33 @@ const typeList = ref([]);
 const brandList = ref([]);
 const availableLocations = ref([]);
 const selectedLocationKey = ref('all');
+const isLocationDropdownOpen = ref(false);
+const locationDropdownRef = ref(null);
+const locationSearchQuery = ref("");
+
+const filteredLocations = computed(() => {
+  if (!locationSearchQuery.value) return availableLocations.value;
+  const q = locationSearchQuery.value.toLowerCase();
+  return availableLocations.value.filter(loc => 
+    loc.label.toLowerCase().includes(q) || 
+    loc.type.toLowerCase().includes(q)
+  );
+});
+
+const selectedLocationLabel = computed(() => {
+  if (selectedLocationKey.value === 'all') return 'Semua Lokasi';
+  const loc = availableLocations.value.find(l => l.key === selectedLocationKey.value);
+  if (!loc) return 'Semua Lokasi';
+  const typeLabel = loc.type === 'branch' ? '[Cabang]' : (loc.type === 'online_shop' ? '[Toko]' : (loc.type === 'distributor' ? '[Distributor]' : '[Gudang]'));
+  return `${typeLabel} ${loc.label}`;
+});
+
+function selectLocation(key) {
+  selectedLocationKey.value = key;
+  isLocationDropdownOpen.value = false;
+  locationSearchQuery.value = "";
+}
+
 const selectedLocationValue = computed(() => {
   if (!selectedLocationKey.value || selectedLocationKey.value === 'all') return null;
   return selectedLocationKey.value.split('_')[1];
@@ -431,11 +458,8 @@ const branches = ref([]);
 const { user } = storeToRefs(authStore);
 
 onMounted(() => {
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.group')) {
-      activeFilterDropdown.value = null;
-    }
-  });
+  document.addEventListener('click', handleGlobalClick);
+  document.addEventListener('mousedown', handleClickOutside);
 
   loadInventory();
   fetchInventoryUsers();
@@ -572,8 +596,21 @@ function onVillageChange(id) {
 
 
 onUnmounted(() => {
-  document.removeEventListener('click', (e) => { });
+  document.removeEventListener('click', handleGlobalClick);
+  document.removeEventListener('mousedown', handleClickOutside);
 });
+
+function handleGlobalClick(e) {
+  if (!e.target.closest('.group')) {
+    activeFilterDropdown.value = null;
+  }
+}
+
+const handleClickOutside = (event) => {
+  if (locationDropdownRef.value && !locationDropdownRef.value.contains(event.target)) {
+    isLocationDropdownOpen.value = false;
+  }
+};
 
 watch(searchQuery, debounce((newVal) => {
   debouncedSearch.value = newVal;
@@ -912,16 +949,41 @@ async function exportInventory() {
         <!-- Filters Wrapper -->
         <div class="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto items-start md:items-center">
 
-          <!-- Location Filter (Not Embedded Only) -->
-          <div class="w-full md:w-56">
+          <div class="w-full md:w-56 relative" v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" ref="locationDropdownRef">
             <label for="location-filter" class="sr-only">Filter Lokasi</label>
-            <select id="location-filter" v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" v-model="selectedLocationKey"
-              class="input w-full bg-surface-800">
-              <option value="all">Semua Lokasi</option>
-              <option v-for="loc in availableLocations" :key="loc.key" :value="loc.key">
-                {{ loc.type === 'branch' ? '[Cabang]' : (loc.type === 'online_shop' ? '[Toko]' : (loc.type === 'distributor' ? '[Distributor]' : '[Gudang]')) }} {{ loc.label }}
-              </option>
-            </select>
+            <button @click="isLocationDropdownOpen = !isLocationDropdownOpen" 
+              class="input w-full bg-surface-800 flex items-center justify-between text-left">
+              <span class="truncate">{{ selectedLocationLabel }}</span>
+              <ChevronDown :size="16" class="transition-transform duration-200" :class="{ 'rotate-180': isLocationDropdownOpen }" />
+            </button>
+            
+            <div v-if="isLocationDropdownOpen" 
+              class="absolute z-[60] mt-2 w-full bg-surface-800 border border-surface-700 rounded-xl shadow-2xl p-2 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+              <div class="relative mb-2">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="14" />
+                <input v-model="locationSearchQuery" type="text" placeholder="Cari lokasi..." 
+                  class="input w-full pl-9 py-1.5 text-sm bg-surface-900 border-none focus:ring-1 focus:ring-primary-500" @click.stop />
+              </div>
+              <div class="max-h-64 overflow-y-auto space-y-0.5 custom-scrollbar">
+                <button @click="selectLocation('all')" 
+                  class="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-700 transition-colors text-sm"
+                  :class="{ 'bg-primary-500 text-white': selectedLocationKey === 'all' }">
+                  Semua Lokasi
+                </button>
+                <button v-for="loc in filteredLocations" :key="loc.key" @click="selectLocation(loc.key)" 
+                  class="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-700 transition-colors text-sm flex items-center gap-2"
+                  :class="{ 'bg-primary-500 text-white': selectedLocationKey === loc.key }">
+                  <component :is="loc.icon" :size="14" :class="selectedLocationKey === loc.key ? 'text-white' : 'text-text-secondary'" />
+                  <span class="truncate flex flex-col">
+                    <span class="font-medium">{{ loc.label }}</span>
+                    <span class="text-[10px] uppercase tracking-wider opacity-70">{{ loc.type === 'branch' ? 'Cabang' : (loc.type === 'online_shop' ? 'Toko' : (loc.type === 'distributor' ? 'Distributor' : 'Gudang')) }}</span>
+                  </span>
+                </button>
+                <div v-if="filteredLocations.length === 0" class="px-3 py-4 text-center text-text-secondary text-sm">
+                  Tidak ada lokasi ditemukan
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Month Filter -->
