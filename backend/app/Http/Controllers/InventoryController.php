@@ -114,6 +114,24 @@ class InventoryController extends Controller
             });
         }
 
+        // 3.1 Analist Exclusion (Hide trial/testing branches)
+        if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            $query->where(function ($q) use ($excludedKeywords) {
+                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                    $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
+                        $sq->where('placement_type', $pType);
+                        $modelClass = $pType === 'branch' ? \App\Models\Branch::class : ($pType === 'online_shop' ? \App\Models\OnlineShop::class : \App\Models\Warehouse::class);
+                        $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
+                            $pq->where(function ($nq) use ($excludedKeywords) {
+                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                            });
+                        });
+                    });
+                }
+            });
+        }
+
         // 4. Frontend Filters
         if ($request->filled('online_shop_id'))
             $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
@@ -344,8 +362,7 @@ class InventoryController extends Controller
             $query->where('status', $request->stock_status);
         }
 
-        // Role restriction (Unrestricted can see all, others only their accessible ones)
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
         if (!$user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($user) {
                 $branchIds = $user->getAccessibleBranchIds();
@@ -357,6 +374,24 @@ class InventoryController extends Controller
                     $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
                 if (!empty($shopIds))
                     $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds));
+            });
+        }
+
+        // Analist Exclusion for Export
+        if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            $query->where(function ($q) use ($excludedKeywords) {
+                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                    $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
+                        $sq->where('placement_type', $pType);
+                        $modelClass = $pType === 'branch' ? \App\Models\Branch::class : ($pType === 'online_shop' ? \App\Models\OnlineShop::class : \App\Models\Warehouse::class);
+                        $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
+                            $pq->where(function ($nq) use ($excludedKeywords) {
+                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                            });
+                        });
+                    });
+                }
             });
         }
 
@@ -549,6 +584,48 @@ class InventoryController extends Controller
             });
         }
 
+        // Analist Exclusion for Stock In History
+        if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            $query->where(function ($q) use ($excludedKeywords, $type) {
+                if ($type === 'non-hp') {
+                    // For logs, we check the placement of the product/user combo
+                    $q->whereNotExists(function ($sub) use ($excludedKeywords) {
+                        $sub->select(\DB::raw(1))
+                            ->from('inventories')
+                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
+                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
+                            ->where(function ($inner) use ($excludedKeywords) {
+                                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                                    $inner->orWhere(function ($sq) use ($pType, $excludedKeywords) {
+                                        $sq->where('placement_type', $pType);
+                                        $tableName = $pType === 'branch' ? 'branches' : ($pType === 'online_shop' ? 'online_shops' : 'warehouses');
+                                        $sq->whereExists(function ($exq) use ($tableName, $excludedKeywords) {
+                                            $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventories.placement_id")
+                                                ->where(function ($nq) use ($excludedKeywords) {
+                                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                                });
+                                        });
+                                    });
+                                }
+                            });
+                    });
+                } else {
+                    foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                        $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
+                            $sq->where('placement_type', $pType);
+                            $modelClass = $pType === 'branch' ? \App\Models\Branch::class : ($pType === 'online_shop' ? \App\Models\OnlineShop::class : \App\Models\Warehouse::class);
+                            $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
+                                $pq->where(function ($nq) use ($excludedKeywords) {
+                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                });
+                            });
+                        });
+                    }
+                }
+            });
+        }
+
         // AUDIT BRANCH FILTER
         if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
             $query->where(function ($q) use ($request, $type) {
@@ -688,6 +765,27 @@ class InventoryController extends Controller
 
                 if (!$hasConstraint) {
                     $q->whereRaw('0 = 1');
+                }
+            });
+        }
+
+        // Analist Exclusion for Stock Out History
+        if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            $query->where(function ($q) use ($excludedKeywords) {
+                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                    $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
+                        $tableName = $pType === 'branch' ? 'branches' : ($pType === 'online_shop' ? 'online_shops' : 'warehouses');
+                        $colName = $pType === 'branch' ? 'branch_id' : ($pType === 'online_shop' ? 'online_shop_id' : 'warehouse_id');
+                        
+                        $sq->whereNotNull($colName)
+                           ->whereExists(function ($exq) use ($tableName, $colName, $excludedKeywords) {
+                               $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
+                                   ->where(function ($nq) use ($excludedKeywords) {
+                                       foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                   });
+                           });
+                    });
                 }
             });
         }
