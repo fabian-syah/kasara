@@ -28,7 +28,9 @@ class ReportController extends Controller
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
-        $isRestricted = !$user->hasRole('super_admin');
+        $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
+        $isAnalistOnly = $user->hasRole('analist') && !$user->hasRole('super_admin');
+        $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
 
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
@@ -44,7 +46,14 @@ class ReportController extends Controller
                 $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                     ->where('products.brand', $brand->name)
                     ->where('product_details.status', 'available')
-                    ->whereNull('products.deleted_at');
+                    ->whereNull('products.deleted_at')
+                    ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
+                        foreach ($excludedKeywords as $kw) {
+                            $q->whereHasMorph('product_details.placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class], function($pq) use ($kw) {
+                                $pq->where('name', 'not like', "%$kw%");
+                            });
+                        }
+                    });
 
                 if ($isRestricted) {
                     if (!empty($accessibleOnlineShopIds) && !empty($accessibleBranchIds)) {
@@ -76,7 +85,14 @@ class ReportController extends Controller
             if ($filterType === 'all' || $filterType === 'non-hp') {
                 $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
                     ->where('products.brand', $brand->name)
-                    ->whereNull('products.deleted_at');
+                    ->whereNull('products.deleted_at')
+                    ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
+                        foreach ($excludedKeywords as $kw) {
+                            $q->whereHasMorph('inventories.placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class], function($pq) use ($kw) {
+                                $pq->where('name', 'not like', "%$kw%");
+                            });
+                        }
+                    });
 
                 if ($isRestricted) {
                     if (!empty($accessibleOnlineShopIds) && !empty($accessibleBranchIds)) {
@@ -128,7 +144,15 @@ class ReportController extends Controller
             $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                 ->where('products.type', 'hp')
                 ->where('product_details.status', 'available')
-                ->whereNull('products.deleted_at');
+                ->whereNull('products.deleted_at')
+                ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    foreach ($excludedKeywords as $kw) {
+                        $q->whereHasMorph('product_details.placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class], function($pq) use ($kw) {
+                            $pq->where('name', 'not like', "%$kw%");
+                        });
+                    }
+                });
 
             // Filter Placement
             if ($isOnlineShop && $user->online_shop_id) {
@@ -175,7 +199,15 @@ class ReportController extends Controller
         if ($filterType === 'all' || $filterType === 'non-hp') {
             $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
                 ->where('products.type', 'non-hp')
-                ->whereNull('products.deleted_at');
+                ->whereNull('products.deleted_at')
+                ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    foreach ($excludedKeywords as $kw) {
+                        $q->whereHasMorph('inventories.placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class], function($pq) use ($kw) {
+                            $pq->where('name', 'not like', "%$kw%");
+                        });
+                    }
+                });
 
             if ($isOnlineShop && $user->online_shop_id) {
                 $nonHpQuery->where('inventories.placement_type', 'online_shop')
@@ -550,6 +582,10 @@ class ReportController extends Controller
 
         // 1. Get Base Stats (Omset & Transaction Count)
         $branchBase = DB::table('branches')
+            ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                foreach ($excludedKeywords as $kw) $q->where('branches.name', 'not like', "%$kw%");
+            })
             ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategoriesExtended) {
                 $join->on('branches.id', '=', 'stock_outs.branch_id')
                     ->whereIn('stock_outs.category', $salesCategoriesExtended)
@@ -641,6 +677,10 @@ class ReportController extends Controller
 
         // 4. Get Online Shop Stats
         $onlineBase = DB::table('online_shops')
+            ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                foreach ($excludedKeywords as $kw) $q->where('online_shops.name', 'not like', "%$kw%");
+            })
             ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategoriesExtended) {
                 $join->on('online_shops.id', '=', 'stock_outs.online_shop_id')
                     ->whereIn('stock_outs.category', $salesCategoriesExtended)
@@ -769,8 +809,18 @@ class ReportController extends Controller
         }
 
         return response()->json([
-            'branches' => \App\Models\Branch::orderBy('name')->get(['id', 'name']),
-            'online_shops' => \App\Models\OnlineShop::orderBy('name')->get(['id', 'name'])
+            'branches' => \App\Models\Branch::orderBy('name')
+                ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    foreach ($excludedKeywords as $kw) $q->where('name', 'not like', "%$kw%");
+                })
+                ->get(['id', 'name']),
+            'online_shops' => \App\Models\OnlineShop::orderBy('name')
+                ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    foreach ($excludedKeywords as $kw) $q->where('name', 'not like', "%$kw%");
+                })
+                ->get(['id', 'name'])
         ]);
     }
 

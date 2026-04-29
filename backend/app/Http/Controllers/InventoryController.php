@@ -118,10 +118,15 @@ class InventoryController extends Controller
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
             $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
             $query->where(function ($q) use ($excludedKeywords) {
-                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                     $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
                         $sq->where('placement_type', $pType);
-                        $modelClass = $pType === 'branch' ? \App\Models\Branch::class : ($pType === 'online_shop' ? \App\Models\OnlineShop::class : \App\Models\Warehouse::class);
+                        $modelClass = match ($pType) {
+                            'branch' => \App\Models\Branch::class,
+                            'online_shop' => \App\Models\OnlineShop::class,
+                            'warehouse' => \App\Models\Warehouse::class,
+                            'distributor' => \App\Models\Distributor::class,
+                        };
                         $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
                             $pq->where(function ($nq) use ($excludedKeywords) {
                                 foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
@@ -596,7 +601,7 @@ class InventoryController extends Controller
                             ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
                             ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
                             ->where(function ($inner) use ($excludedKeywords) {
-                                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                                     $inner->orWhere(function ($sq) use ($pType, $excludedKeywords) {
                                         $sq->where('placement_type', $pType);
                                         $tableName = $pType === 'branch' ? 'branches' : ($pType === 'online_shop' ? 'online_shops' : 'warehouses');
@@ -611,10 +616,15 @@ class InventoryController extends Controller
                             });
                     });
                 } else {
-                    foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                    foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                         $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
                             $sq->where('placement_type', $pType);
-                            $modelClass = $pType === 'branch' ? \App\Models\Branch::class : ($pType === 'online_shop' ? \App\Models\OnlineShop::class : \App\Models\Warehouse::class);
+                            $modelClass = match ($pType) {
+                                'branch' => \App\Models\Branch::class,
+                                'online_shop' => \App\Models\OnlineShop::class,
+                                'warehouse' => \App\Models\Warehouse::class,
+                                'distributor' => \App\Models\Distributor::class,
+                            };
                             $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
                                 $pq->where(function ($nq) use ($excludedKeywords) {
                                     foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
@@ -773,10 +783,20 @@ class InventoryController extends Controller
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
             $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
             $query->where(function ($q) use ($excludedKeywords) {
-                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                     $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
-                        $tableName = $pType === 'branch' ? 'branches' : ($pType === 'online_shop' ? 'online_shops' : 'warehouses');
-                        $colName = $pType === 'branch' ? 'branch_id' : ($pType === 'online_shop' ? 'online_shop_id' : 'warehouse_id');
+                        $tableName = match ($pType) {
+                            'branch' => 'branches',
+                            'online_shop' => 'online_shops',
+                            'warehouse' => 'warehouses',
+                            'distributor' => 'distributors',
+                        };
+                        $colName = match ($pType) {
+                            'branch' => 'branch_id',
+                            'online_shop' => 'online_shop_id',
+                            'warehouse' => 'warehouse_id',
+                            'distributor' => 'distributor_id',
+                        };
                         
                         $sq->whereNotNull($colName)
                            ->whereExists(function ($exq) use ($tableName, $colName, $excludedKeywords) {
