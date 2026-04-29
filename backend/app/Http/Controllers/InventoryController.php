@@ -1918,6 +1918,8 @@ class InventoryController extends Controller
     public function getMetaLocations(Request $request)
     {
         $user = Auth::user();
+        $isAnalistOnly = $user->hasRole('analist') && !$user->hasRole('super_admin');
+        $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
 
         // 1. Accessibility Restrictions
         $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);
@@ -1939,18 +1941,29 @@ class InventoryController extends Controller
 
         $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
 
+        $fetcher = function ($modelClass, $ids) use ($unrestricted, $isAnalistOnly, $excludedKeywords) {
+            return $modelClass::where('is_active', true)
+                ->when(!$unrestricted, fn($q) => $q->whereIn('id', $ids))
+                ->when($isAnalistOnly, function ($q) use ($excludedKeywords) {
+                    foreach ($excludedKeywords as $kw) {
+                        $q->where('name', 'not like', "%$kw%");
+                    }
+                })
+                ->get(['id', 'name']);
+        };
+
         if (app()->bound(\Laravel\Octane\Contracts\DispatchesTasks::class)) {
             [$branches, $shops, $warehouses, $distributors] = \Laravel\Octane\Facades\Octane::concurrently([
-                fn() => \App\Models\Branch::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $bIds))->get(['id', 'name']),
-                fn() => \App\Models\OnlineShop::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $osIds))->get(['id', 'name']),
-                fn() => \App\Models\Warehouse::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $wIds))->get(['id', 'name']),
-                fn() => \App\Models\Distributor::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $dIds))->get(['id', 'name']),
+                fn() => $fetcher(\App\Models\Branch::class, $bIds),
+                fn() => $fetcher(\App\Models\OnlineShop::class, $osIds),
+                fn() => $fetcher(\App\Models\Warehouse::class, $wIds),
+                fn() => $fetcher(\App\Models\Distributor::class, $dIds),
             ]);
         } else {
-            $branches = \App\Models\Branch::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $bIds))->get(['id', 'name']);
-            $shops = \App\Models\OnlineShop::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $osIds))->get(['id', 'name']);
-            $warehouses = \App\Models\Warehouse::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $wIds))->get(['id', 'name']);
-            $distributors = \App\Models\Distributor::where('is_active', true)->when(!$unrestricted, fn($q) => $q->whereIn('id', $dIds))->get(['id', 'name']);
+            $branches = $fetcher(\App\Models\Branch::class, $bIds);
+            $shops = $fetcher(\App\Models\OnlineShop::class, $osIds);
+            $warehouses = $fetcher(\App\Models\Warehouse::class, $wIds);
+            $distributors = $fetcher(\App\Models\Distributor::class, $dIds);
         }
 
         return response()->json([
