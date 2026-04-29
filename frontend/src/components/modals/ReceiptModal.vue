@@ -10,8 +10,7 @@
                 <div
                     class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-surface-700 print:hidden shrink-0">
                     <h3 class="text-lg font-bold text-text-primary">
-                        {{ transaction?.category === 'angkat_barang' ? 'Nota Angkat Barang' : (transaction?.category ===
-                            'refund' ? 'Nota Refund' : 'Nota Penjualan') }}
+                        {{ receiptTitle }}
                     </h3>
                     <div class="flex items-center gap-2">
                         <button v-if="showEditIcon" @click="$emit('open-checklist')"
@@ -63,6 +62,13 @@
                             </div>
                         </div>
 
+                        <!-- ===== NOTA TYPE TITLE ===== -->
+                        <div class="text-center mb-4">
+                            <h2 class="text-base font-black text-black uppercase border-b-2 border-black inline-block px-6 pb-0.5 tracking-widest">
+                                {{ receiptTitle }}
+                            </h2>
+                        </div>
+
                         <!-- ===== INFO NOTA ===== -->
                         <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs mb-4">
                             <span class="font-semibold text-black">No. Nota</span>
@@ -82,11 +88,11 @@
                         <!-- ===== TABEL ITEMS ===== -->
                         <table class="w-full text-xs border-collapse mb-4">
                             <thead>
-                                <tr class="border-t-2 border-b-2 border-black">
+                                <tr class="border-t-2 border-b-2 border-black bg-gray-50/50">
                                     <th class="py-2 px-1 text-left font-bold text-black w-[50px]">Banyak</th>
                                     <th class="py-2 px-1 text-left font-bold text-black">IMEI</th>
                                     <th class="py-2 px-1 text-left font-bold text-black">Keterangan</th>
-                                    <th class="py-2 px-1 text-right font-bold text-black w-[100px]">Jumlah</th>
+                                    <th class="py-2 px-1 text-right font-bold text-black w-[100px]">{{ columnLabelJumlah }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -99,7 +105,11 @@
                                             {{ item.imei && item.imei !== '-' ? item.imei : (item.is_hp ? '-' : 'ACCESSORY') }}
                                         </td>
                                         <td class="py-2 px-1 text-black align-top">
-                                            <div class="font-black uppercase text-black">{{ item.name }}</div>
+                                            <!-- Badge for In/Out if applicable -->
+                                            <span v-if="item.name.includes('OUT:')" class="inline-block px-1.5 py-0.5 bg-red-100 text-red-700 text-[8px] font-black rounded mb-1">UNIT KELUAR</span>
+                                            <span v-else-if="item.name.includes('IN:')" class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black rounded mb-1">UNIT MASUK</span>
+                                            
+                                            <div class="font-black uppercase text-black">{{ item.name.replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '') }}</div>
                                             <div v-if="item.ram || item.storage"
                                                 class="text-[10px] text-black font-medium">
                                                 {{ [...new Set([item.ram, item.storage].filter(Boolean))].join('/') }}
@@ -115,7 +125,7 @@
                                                 {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
                                             </div>
                                             <div class="flex flex-col">
-                                                <span>{{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
+                                                <span :class="item.price < 0 ? 'text-emerald-700' : ''">{{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
                                                     (item.discount || item.item_discount || 0))) }}</span>
                                                 <span v-if="(item.discount || item.item_discount) > 0"
                                                     class="text-[7px] text-primary-600 bg-primary-50 px-1 rounded inline-block self-end mt-0.5">
@@ -134,15 +144,13 @@
                                     <td class="py-3 px-1"></td>
                                     <td class="py-3 px-1"></td>
                                 </tr>
-                                <!-- No summary rows inside table to keep it clean -->
                             </tbody>
                         </table>
 
                         <!-- ===== PAYMENT SECTION ===== -->
                         <div class="flex justify-end mb-4 payment-section">
                             <div class="w-[240px] text-xs space-y-1">
-                                <!-- Subtotal before all discounts -->
-                                <!-- Summary Section -->
+                                <!-- Subtotal -->
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black text-[10px]">SUB TOTAL :</span>
                                     <span class="text-black">
@@ -152,7 +160,7 @@
                                     </span>
                                 </div>
 
-                                <!-- Total Diskon (Gabungan) if any -->
+                                <!-- Total Diskon if any -->
                                 <div v-if="transaction.total_discount > 0"
                                     class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black text-[10px]">TOTAL DISKON :</span>
@@ -194,10 +202,9 @@
                                 <div
                                     class="flex justify-between border-t-2 border-black pt-2 pb-1 relative transition-all">
                                     <div class="absolute -top-1 left-0 right-0 h-0.5 bg-black/10 print:hidden"></div>
-                                    <span class="font-black text-black text-xs uppercase tracking-tight">HARGA
-                                        TOTAL</span>
+                                    <span class="font-black text-black text-xs uppercase tracking-tight">{{ labelTotal }}</span>
                                     <span class="font-black text-black text-xs">
-                                        {{ formatCurrency(calculatedGrandTotal) }}
+                                        {{ formatCurrency(Math.abs(calculatedGrandTotal)) }}
                                     </span>
                                 </div>
 
@@ -205,7 +212,7 @@
                                 <div
                                     class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
                                     <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
-                                    <span class="text-[10px] uppercase">DIBAYAR :</span>
+                                    <span class="text-[10px] uppercase">{{ labelBayar }} :</span>
                                 </div>
 
                                 <!-- Change / Kembalian -->
@@ -222,8 +229,13 @@
                         </div>
 
                         <!-- ===== TRANSACTION NOTES ===== -->
-                        <div v-if="transaction.notes" class="mb-4 text-[10px] text-black italic">
-                            <span class="font-bold">Catatan:</span> {{ transaction.notes }}
+                        <div v-if="transaction.notes || transaction.reason" class="mb-4 text-[10px] text-black italic">
+                            <div v-if="transaction.reason">
+                                <span class="font-bold">Alasan:</span> {{ transaction.reason }}
+                            </div>
+                            <div v-if="transaction.notes">
+                                <span class="font-bold">Catatan:</span> {{ transaction.notes }}
+                            </div>
                         </div>
 
                         <!-- ===== GARANSI NOTES ===== -->
@@ -285,11 +297,6 @@
                         <Printer :size="18" />
                         Cetak
                     </button>
-                    <!-- <button @click="shareToWhatsApp"
-                        class="flex-1 px-4 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
-                        <MessageSquare :size="18" />
-                        Kirim WA
-                    </button> -->
                 </div>
             </div>
         </div>
@@ -326,52 +333,8 @@ const close = () => {
 
 const isGeneratingPDF = ref(false);
 
-// Auto-send if prop is true and modal opens
-import { watch } from 'vue';
-/* watch(() => props.isOpen, (newVal) => {
-    if (newVal && props.autoSend) {
-        // Short delay to ensure DOM is ready
-        setTimeout(() => {
-            shareToWhatsApp(true); // isAuto = true
-        }, 500);
-    }
-}, { immediate: true }); */
-
 const printReceipt = () => {
     window.print();
-};
-
-const shareToWhatsApp = async (isAuto = false) => {
-    if (isGeneratingPDF.value) return;
-
-    try {
-        isGeneratingPDF.value = true;
-
-        // Call backend to handle EVERYTHING (PDF -> GDrive -> WA Link)
-        // Increased timeout to 90 seconds since GDrive PDF generation is heavy
-        const response = await api.get(`/receipts/${props.transaction.id}/share-wa`, {
-            timeout: 90000
-        });
-        const result = response.data;
-
-        if (result.success && result.wa_url) {
-            window.open(result.wa_url, '_blank');
-            emit('sent');
-        } else {
-            throw new Error(result.error || 'Gagal membuat link sharing');
-        }
-
-    } catch (error) {
-        console.error('WhatsApp sharing failed:', error);
-        // Only alert if NOT automatic, to avoid intrusive popups right after a successful sale
-        if (!isAuto) {
-            alert('Gagal memproses pengiriman WhatsApp: ' + error.message);
-        } else {
-            console.warn('Auto-send WA failed, user can still click manually.');
-        }
-    } finally {
-        isGeneratingPDF.value = false;
-    }
 };
 
 useEscapeKey(() => {
@@ -391,6 +354,47 @@ const formatNumber = (value) => {
     if (value === null || value === undefined || isNaN(value)) return '0';
     return new Intl.NumberFormat('id-ID').format(value);
 };
+
+// Computed property for Receipt Title
+const receiptTitle = computed(() => {
+    const cat = props.transaction?.category || 'penjualan';
+    const mapping = {
+        'penjualan_store': 'Nota Penjualan Store',
+        'penjualan': 'Nota Penjualan',
+        'penjualan_offline': 'Nota Penjualan',
+        'refund': 'Nota Refund',
+        'tukar_tambah': 'Nota Tukar Tambah',
+        'tukar_unit': 'Nota Tukar Unit',
+        'angkat_barang': 'Nota Angkat Barang',
+        'downgrade': 'Nota Downgrade',
+        'shopee': 'Nota Shopee',
+        'orderan_online': 'Nota Order Online'
+    };
+    return mapping[cat] || 'Nota Penjualan';
+});
+
+// Dynamic labels for table and summary
+const columnLabelJumlah = computed(() => {
+    const cat = props.transaction?.category;
+    if (cat === 'refund') return 'Refund';
+    if (cat === 'angkat_barang') return 'Harga Angkat';
+    return 'Jumlah';
+});
+
+const labelTotal = computed(() => {
+    const cat = props.transaction?.category;
+    if (cat === 'tukar_tambah' || cat === 'downgrade' || cat === 'tukar_unit') return 'SELISIH HARGA';
+    if (cat === 'refund') return 'TOTAL REFUND';
+    if (cat === 'angkat_barang') return 'TOTAL ANGKAT';
+    return 'HARGA TOTAL';
+});
+
+const labelBayar = computed(() => {
+    const cat = props.transaction?.category;
+    if (cat === 'refund' || cat === 'downgrade') return 'DIKEMBALIKAN';
+    if (cat === 'angkat_barang') return 'DIBAYARKAN';
+    return 'DIBAYAR';
+});
 
 // Robust calculations for totals and change
 const calculatedTotalPaid = computed(() => {
@@ -412,10 +416,13 @@ const calculatedGrandTotal = computed(() => {
 });
 
 const calculatedChange = computed(() => {
-    return Math.max(0, calculatedTotalPaid.value - calculatedGrandTotal.value);
+    const cat = props.transaction?.category;
+    // For refund/downgrade where we pay the customer, "change" is usually not needed in the same way
+    if (cat === 'refund' || cat === 'downgrade') return 0;
+    return Math.max(0, calculatedTotalPaid.value - Math.abs(calculatedGrandTotal.value));
 });
 
-// Perbaikan untuk menampilkan nomor WhatsApp dengan benar
+// WhatsApp Phone
 const displayPhone = computed(() => {
     const phone = props.transaction.branch?.phone || authStore.userBranch?.phone;
     if (phone && phone.trim() !== '') {
@@ -424,7 +431,7 @@ const displayPhone = computed(() => {
     return 'HP, Laptop, Barang Elektronik Bergaransi';
 });
 
-// Perbaikan untuk Customer Phone
+// Customer Phone
 const displayCustomerPhone = computed(() => {
     const p = props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone || props.transaction.event_phone;
     if (p && p.trim() !== '') {
@@ -433,17 +440,15 @@ const displayCustomerPhone = computed(() => {
     return '-';
 });
 
-// Perbaikan untuk Tanggal
+// Date
 const displayDate = computed(() => {
     let rawDate = props.transaction.date || props.transaction.created_at;
     if (!rawDate) return '-';
     
-    // Check if it's already a formatted frontend date like "08 Apr 2026"
     if (typeof rawDate === 'string' && /^[0-9]{2} [A-Za-z]{3,4} [0-9]{4}$/.test(rawDate)) {
         return rawDate;
     }
     
-    // Parse backend timestamps / date strings
     const dateObj = new Date(rawDate);
     if (!isNaN(dateObj.getTime())) {
         return dateObj.toLocaleString("id-ID", {
@@ -452,7 +457,7 @@ const displayDate = computed(() => {
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
-        }).replace(/\./g, ':'); // Ensure HH:mm format vs dots
+        }).replace(/\./g, ':');
     }
     return rawDate;
 });
@@ -472,15 +477,11 @@ const allReceiptItems = computed(() => {
         });
     }
     
-    // 2. Add Non-HP Items if they're not already in the main items list
-    // (Non-HP items are often stored in non_hp_items or nonHpItems from backend)
+    // 2. Add Non-HP Items
     const nonHpSource = props.transaction.non_hp_items || props.transaction.non_hp_details || props.transaction.nonHpItems;
     
     if (nonHpSource?.length > 0) {
-        // If it's a bundle, the first item in 'items' might already represent the bundle
-        // so we check to avoid double-listing for those specific cases
         const hasBundleRepresented = list.some(it => it.is_bundle);
-        
         if (!hasBundleRepresented) {
             nonHpSource.forEach(it => {
                 list.push({
@@ -537,46 +538,18 @@ const allReceiptItems = computed(() => {
 
 .nota-paper .text-primary-700 {
     color: #1d4ed8 !important;
-    /* Blue for discount all */
 }
 
-.nota-paper .text-amber-700 {
-    color: #b45309 !important;
-    /* Amber for item discount */
+.nota-paper .text-emerald-700 {
+    color: #047857 !important;
 }
 
-/* Force standard colors for PDF capture to avoid html2canvas oklab error */
 .pdf-capture-mode,
 .pdf-capture-mode * {
     background-color: #ffffff !important;
     border-color: #e5e7eb !important;
-    /* Standard gray-200 hex */
     color: #000000 !important;
     box-shadow: none !important;
-}
-
-.pdf-capture-mode .bg-gray-50\/50 {
-    background-color: #f9fafb !important;
-}
-
-.pdf-capture-mode .border-gray-300 {
-    border-color: #d1d5db !important;
-}
-
-.pdf-capture-mode .border-gray-400 {
-    border-color: #9ca3af !important;
-}
-
-.pdf-capture-mode .text-gray-700 {
-    color: #374151 !important;
-}
-
-.pdf-capture-mode .text-gray-600 {
-    color: #4b5563 !important;
-}
-
-.pdf-capture-mode .text-gray-500 {
-    color: #6b7280 !important;
 }
 </style>
 
@@ -587,7 +560,6 @@ const allReceiptItems = computed(() => {
         size: auto;
     }
 
-    /* Hide everything by default */
     html,
     body,
     #app,
@@ -598,7 +570,6 @@ const allReceiptItems = computed(() => {
         height: auto !important;
     }
 
-    /* Only show the receipt wrapper and its children */
     #receipt-modal-print-wrapper,
     #receipt-modal-print-wrapper * {
         visibility: visible !important;
@@ -631,7 +602,6 @@ const allReceiptItems = computed(() => {
         background: white !important;
     }
 
-    /* Fix logo gepeng in print/capture */
     .nota-paper img {
         height: auto !important;
         max-height: none !important;
@@ -644,12 +614,10 @@ const allReceiptItems = computed(() => {
         break-inside: avoid;
     }
 
-    /* Target UI elements inside the wrapper to hide */
     .print\:hidden {
         display: none !important;
     }
 
-    /* Ensure images show */
     img {
         display: block !important;
         -webkit-print-color-adjust: exact !important;
