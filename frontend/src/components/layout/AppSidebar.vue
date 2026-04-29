@@ -185,7 +185,7 @@ const menuItems = [
         icon: ClipboardList,
         items: [
             { id: "sales_check_main", path: "/sales/check", label: "Riwayat Penjualan" },
-            { id: "sales_ranking", path: "/sales/ranking", label: "Peringkat & Foto" },
+            { id: "sales_ranking", path: "/sales/ranking", label: "Peringkat Penjualan" },
         ]
     },
 

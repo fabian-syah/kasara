@@ -576,7 +576,7 @@ const routes = [
                 name: 'SalesRankingHistory',
                 component: () => import('../views/sales/RankingHistory.vue'),
                 meta: {
-                    title: 'Peringkat & Foto',
+                    title: 'Peringkat Penjualan',
                     menu: 'sales_ranking',
                     permissions: ['transactions.view']
                 }
