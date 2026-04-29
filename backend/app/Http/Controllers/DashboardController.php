@@ -274,15 +274,15 @@ class DashboardController extends Controller
             $leaderboardQuery->where(function($q) use ($excludedKeywords) {
                 $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
                     $bq->where(function($nq) use ($excludedKeywords) {
-                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                     });
                 })->whereDoesntHave('onlineShop', function($sq) use ($excludedKeywords) {
                     $sq->where(function($nq) use ($excludedKeywords) {
-                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                     });
                 })->whereDoesntHave('warehouse', function($wq) use ($excludedKeywords) {
                     $wq->where(function($nq) use ($excludedKeywords) {
-                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                     });
                 });
             });

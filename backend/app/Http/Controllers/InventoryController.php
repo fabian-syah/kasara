@@ -129,7 +129,7 @@ class InventoryController extends Controller
                         };
                         $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
                             $pq->where(function ($nq) use ($excludedKeywords) {
-                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                             });
                         });
                     });
@@ -608,7 +608,7 @@ class InventoryController extends Controller
                                         $sq->whereExists(function ($exq) use ($tableName, $excludedKeywords) {
                                             $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventories.placement_id")
                                                 ->where(function ($nq) use ($excludedKeywords) {
-                                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                                                 });
                                         });
                                     });
@@ -627,7 +627,7 @@ class InventoryController extends Controller
                             };
                             $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
                                 $pq->where(function ($nq) use ($excludedKeywords) {
-                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                                 });
                             });
                         });
@@ -802,7 +802,7 @@ class InventoryController extends Controller
                            ->whereExists(function ($exq) use ($tableName, $colName, $excludedKeywords) {
                                $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
                                    ->where(function ($nq) use ($excludedKeywords) {
-                                       foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                       foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                                    });
                            });
                     });
@@ -1966,7 +1966,7 @@ class InventoryController extends Controller
                 ->when(!$unrestricted, fn($q) => $q->whereIn('id', $ids))
                 ->when($isAnalistOnly, function ($q) use ($excludedKeywords) {
                     foreach ($excludedKeywords as $kw) {
-                        $q->where('name', 'not like', "%$kw%");
+                        $q->where('name', 'not ilike', "%$kw%");
                     }
                 })
                 ->get(['id', 'name']);
