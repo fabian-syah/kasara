@@ -913,10 +913,11 @@ class InventoryController extends Controller
 
         // Date Filters
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $dateTable = $type === 'non-hp' ? 'inventory_logs' : 'product_details';
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $query->whereDate($dateTable . '.created_at', $request->date);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+            $query->whereMonth($dateTable . '.created_at', $request->month)->whereYear($dateTable . '.created_at', $request->year);
         }
 
         // Sorting (Join with products for alphabetical sort)
@@ -996,9 +997,9 @@ class InventoryController extends Controller
 
         // Date Filters
         if ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $query->whereDate('inventory_logs.created_at', $request->date);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+            $query->whereMonth('inventory_logs.created_at', $request->month)->whereYear('inventory_logs.created_at', $request->year);
         }
 
         // Sorting
