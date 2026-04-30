@@ -804,7 +804,7 @@ const handleExport = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        const filename = `Laporan-Penjualan-${filters.value.start_date}-to-${filters.value.end_date}.csv`;
+        const filename = `Laporan-Penjualan-${filters.value.start_date}-to-${filters.value.end_date}.xls`;
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();

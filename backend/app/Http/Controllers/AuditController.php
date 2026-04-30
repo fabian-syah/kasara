@@ -2516,23 +2516,28 @@ class AuditController extends Controller
             $rows = $export->collection();
 
             $callback = function () use ($headings, $rows) {
-                $file = fopen('php://output', 'w');
-                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM for Excel
-
-                // Use semicolon for better Excel compatibility in Indonesia (standard list separator)
-                fputcsv($file, $headings, ';');
-
-                foreach ($rows as $row) {
-                    fputcsv($file, array_values($row), ';');
+                echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+                echo '<head><meta http-equiv="Content-type" content="text/html;charset=utf-8" /></head>';
+                echo '<body><table border="1">';
+                echo '<tr style="background-color: #059669; color: white; font-weight: bold;">';
+                foreach ($headings as $h) {
+                    echo '<th>' . htmlspecialchars($h) . '</th>';
                 }
-
-                fclose($file);
+                echo '</tr>';
+                foreach ($rows as $row) {
+                    echo '<tr>';
+                    foreach ($row as $v) {
+                        echo '<td>' . htmlspecialchars($v) . '</td>';
+                    }
+                    echo '</tr>';
+                }
+                echo '</table></body></html>';
             };
 
-            $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.csv';
+            $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.xls';
 
             return response()->stream($callback, 200, [
-                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Type' => 'application/vnd.ms-excel',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
