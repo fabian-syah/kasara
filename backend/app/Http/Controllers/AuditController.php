@@ -2510,33 +2510,42 @@ class AuditController extends Controller
         $branchId = $request->branch_id;
         $onlineShopId = $request->online_shop_id;
 
-        $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
-        $headings = $export->headings();
-        $rows = $export->collection();
+        try {
+            $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
+            $headings = $export->headings();
+            $rows = $export->collection();
 
-        $callback = function () use ($headings, $rows) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM for Excel
+            $callback = function () use ($headings, $rows) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM for Excel
 
-            // Use semicolon for better Excel compatibility in Indonesia (standard list separator)
-            fputcsv($file, $headings, ';');
+                // Use semicolon for better Excel compatibility in Indonesia (standard list separator)
+                fputcsv($file, $headings, ';');
 
-            foreach ($rows as $row) {
-                fputcsv($file, array_values($row), ';');
-            }
+                foreach ($rows as $row) {
+                    fputcsv($file, array_values($row), ';');
+                }
 
-            fclose($file);
-        };
+                fclose($file);
+            };
 
-        $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.csv';
+            $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.csv';
 
-        return response()->stream($callback, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
+            return response()->stream($callback, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('Export Sales Error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**
