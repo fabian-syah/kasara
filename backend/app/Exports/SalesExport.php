@@ -76,6 +76,42 @@ class SalesExport
                 $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
             }
 
+            // Helper to calculate split payments
+            $splitPayments = $so->split_payments_data;
+            $payData = [
+                'cash' => 0,
+                'edc_bca' => 0,
+                'edc_mandiri' => 0,
+                'trf_bca' => 0,
+                'trf_mandiri' => 0,
+                'qris' => 0,
+                'other' => 0
+            ];
+
+            if (empty($splitPayments)) {
+                $name = strtolower($so->paymentMethod->name ?? '');
+                $amount = $so->paid_amount ?: $so->selling_price;
+                if (str_contains($name, 'cash') || str_contains($name, 'tunai')) $payData['cash'] = $amount;
+                elseif (str_contains($name, 'edc') && str_contains($name, 'bca')) $payData['edc_bca'] = $amount;
+                elseif (str_contains($name, 'edc') && str_contains($name, 'mandiri')) $payData['edc_mandiri'] = $amount;
+                elseif (str_contains($name, 'bca')) $payData['trf_bca'] = $amount;
+                elseif (str_contains($name, 'mandiri')) $payData['trf_mandiri'] = $amount;
+                elseif (str_contains($name, 'qris')) $payData['qris'] = $amount;
+                else $payData['other'] = $amount;
+            } else {
+                foreach ($splitPayments as $sp) {
+                    $name = strtolower($sp['method_name'] ?? '');
+                    $amount = $sp['amount'] ?? 0;
+                    if (str_contains($name, 'cash') || str_contains($name, 'tunai')) $payData['cash'] += $amount;
+                    elseif (str_contains($name, 'edc') && str_contains($name, 'bca')) $payData['edc_bca'] += $amount;
+                    elseif (str_contains($name, 'edc') && str_contains($name, 'mandiri')) $payData['edc_mandiri'] += $amount;
+                    elseif (str_contains($name, 'bca')) $payData['trf_bca'] += $amount;
+                    elseif (str_contains($name, 'mandiri')) $payData['trf_mandiri'] += $amount;
+                    elseif (str_contains($name, 'qris')) $payData['qris'] += $amount;
+                    else $payData['other'] += $amount;
+                }
+            }
+
             $groups = [];
             $singles = [];
 
@@ -152,6 +188,13 @@ class SalesExport
                     'total' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
                     'distributor' => implode(', ', $distributors) ?: '-',
                     'payment' => $payment ?: '-',
+                    'cash_toko' => $payData['cash'],
+                    'edc_bca' => $payData['edc_bca'],
+                    'edc_mandiri' => $payData['edc_mandiri'],
+                    'trf_bca' => $payData['trf_bca'],
+                    'trf_mandiri' => $payData['trf_mandiri'],
+                    'qris' => $payData['qris'],
+                    'other' => $payData['other'],
                     'status' => strtoupper($so->status),
                     'price_out' => '-',
                     'price_in' => '-',
@@ -204,9 +247,16 @@ class SalesExport
                         'imei' => $finalImei,
                         'qty' => 1,
                         'price' => 'Rp ' . number_format($pOut, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($pOut, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($exchangeInfo ? $diff : $pOut, 0, ',', '.'),
                         'distributor' => $finalDistributor,
                         'payment' => $payment ?: '-',
+                        'cash_toko' => $payData['cash'],
+                        'edc_bca' => $payData['edc_bca'],
+                        'edc_mandiri' => $payData['edc_mandiri'],
+                        'trf_bca' => $payData['trf_bca'],
+                        'trf_mandiri' => $payData['trf_mandiri'],
+                        'qris' => $payData['qris'],
+                        'other' => $payData['other'],
                         'status' => strtoupper($so->status),
                         'price_out' => $exchangeInfo ? 'Rp ' . number_format($pOut, 0, ',', '.') : '-',
                         'price_in' => $exchangeInfo ? 'Rp ' . number_format($pIn, 0, ',', '.') : '-',
@@ -234,6 +284,13 @@ class SalesExport
                         'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
                         'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
+                        'cash_toko' => $payData['cash'],
+                        'edc_bca' => $payData['edc_bca'],
+                        'edc_mandiri' => $payData['edc_mandiri'],
+                        'trf_bca' => $payData['trf_bca'],
+                        'trf_mandiri' => $payData['trf_mandiri'],
+                        'qris' => $payData['qris'],
+                        'other' => $payData['other'],
                         'status' => strtoupper($so->status),
                         'price_out' => '-',
                         'price_in' => '-',
@@ -241,6 +298,7 @@ class SalesExport
                     ];
                 }
             }
+
         }
 
         return $rows;
@@ -263,6 +321,13 @@ class SalesExport
             'Total Harga',
             'Distributor',
             'Metode Pembayaran',
+            'Cash Toko',
+            'EDC BCA',
+            'EDC Mandiri',
+            'Transfer BCA',
+            'Transfer Mandiri',
+            'QRIS',
+            'Lainnya',
             'Status',
             'Harga Unit Keluar',
             'Harga Unit Masuk',
