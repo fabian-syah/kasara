@@ -59,10 +59,25 @@ class SalesExport
         $stockOuts = $query->latest('created_at')->get();
         $rows = [];
 
+        // Pre-fetch exchange data to avoid N+1
+        $receiptIds = $stockOuts->pluck('receipt_id')->unique()->toArray();
+        $ttData = \App\Models\TukarTambah::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+        $dgData = \App\Models\Downgrade::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+        $ueData = \App\Models\UnitExchange::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+
         foreach ($stockOuts as $so) {
             $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
             $csName = $so->inventoryUser->name ?? ($so->user->name ?? '-');
+            $cat = strtolower($so->category);
+            $receiptId = $so->receipt_id;
             
+            // Check for Exchange Data
+            $exchangeInfo = null;
+            $exchangeType = '';
+            if ($cat === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); $exchangeType = 'TUKAR TAMBAH'; }
+            elseif ($cat === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); $exchangeType = 'DOWNGRADE'; }
+            elseif ($cat === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); $exchangeType = 'TUKAR UNIT'; }
+
             if ($so->is_bundle) {
                 // Consolidate bundle into ONE row
                 $totalPrice = 0;
@@ -115,6 +130,29 @@ class SalesExport
                     'price_in' => $priceIn ? 'Rp ' . number_format($priceIn, 0, ',', '.') : '-',
                     'balance' => $balance ? 'Rp ' . number_format($balance, 0, ',', '.') : '-'
                 ];
+
+                // If bundle IS an exchange (rare but possible), add the incoming unit row
+                if ($exchangeInfo) {
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => $exchangeType . " (MASUK)",
+                        'product' => ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? '-') . "]",
+                        'imei' => "'" . ($exchangeInfo->incoming_imei ?? '-'),
+                        'qty' => 1,
+                        'price' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
+                        'payment' => '-',
+                        'status' => 'INCOMING',
+                        'price_out' => '-',
+                        'price_in' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
+                        'balance' => '-'
+                    ];
+                }
             } else {
                 // Standard multi-row display for non-bundles
                 $payment = $so->paymentMethod->name ?? null;
@@ -133,10 +171,10 @@ class SalesExport
                     $priceIn = 0;
                     $balance = 0;
 
-                    $cat = strtolower($so->category);
-                    if ($cat === 'downgrade' || $cat === 'tukar_tambah' || $cat === 'tukar_unit') {
-                        $priceOut = $price;
-                        $balance = $price;
+                    if ($exchangeInfo) {
+                        $priceOut = $exchangeInfo->outgoing_price ?? $price;
+                        $priceIn = $exchangeInfo->incoming_cost_price ?? 0;
+                        $balance = $exchangeInfo->price_difference ?? ($priceOut - $priceIn);
                     }
 
                     $rows[] = [
@@ -146,7 +184,7 @@ class SalesExport
                         'user' => $csName,
                         'customer' => $so->customer_name ?? '-',
                         'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => str_replace('_', ' ', strtoupper($so->category)),
+                        'category' => $exchangeInfo ? $exchangeType . " (KELUAR)" : str_replace('_', ' ', strtoupper($so->category)),
                         'product' => $productName . " [" . $condition . "]" . $notes,
                         'imei' => $item->imei ? "'" . $item->imei : '-',
                         'qty' => 1,
@@ -160,7 +198,30 @@ class SalesExport
                     ];
                 }
 
-                // Non-HP Items
+                // If standard item IS an exchange, add the incoming unit row
+                if ($exchangeInfo) {
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => $exchangeType . " (MASUK)",
+                        'product' => ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? '-') . "]",
+                        'imei' => "'" . ($exchangeInfo->incoming_imei ?? '-'),
+                        'qty' => 1,
+                        'price' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
+                        'payment' => '-',
+                        'status' => 'INCOMING',
+                        'price_out' => '-',
+                        'price_in' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
+                        'balance' => '-'
+                    ];
+                }
+
+                // Non-HP Items (Usually not exchangeable but included for completeness)
                 foreach ($so->nonHpItems as $item) {
                     $notes = $item->notes ? " (" . $item->notes . ")" : "";
                     $price = $item->price ?? 0;

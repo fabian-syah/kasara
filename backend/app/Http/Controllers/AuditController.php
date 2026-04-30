@@ -1223,8 +1223,22 @@ class AuditController extends Controller
 
 
 
-            $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors) {
+            $receiptIds = collect($paginatedSales->items())->pluck('receipt_id')->unique()->toArray();
+            $ttData = \App\Models\TukarTambah::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $dgData = \App\Models\Downgrade::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $ueData = \App\Models\UnitExchange::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+
+            $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData) {
                 $details = [];
+                $catLower = strtolower($trx->category);
+                $receiptId = $trx->receipt_id;
+
+                // Pre-identify exchange data
+                $exchangeInfo = null;
+                $exchangeType = '';
+                if ($catLower === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); $exchangeType = 'TUKAR TAMBAH'; }
+                elseif ($catLower === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); $exchangeType = 'DOWNGRADE'; }
+                elseif ($catLower === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); $exchangeType = 'TUKAR UNIT'; }
 
                 foreach ($trx->items as $item) {
                     $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
@@ -1237,7 +1251,7 @@ class AuditController extends Controller
                     }
 
                     $details[] = [
-                        'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP'),
+                        'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP') . ($exchangeInfo ? " (KELUAR)" : ""),
                         'qty' => 1,
                         'price' => $basePrice,
                         'brand' => $item->product?->brand ?? '-',
@@ -1249,6 +1263,24 @@ class AuditController extends Controller
                         'storage' => $item->storage,
                         'condition' => $item->condition,
                         'notes' => $item->pivot?->notes
+                    ];
+                }
+
+                // Inject Incoming Unit if exchange
+                if ($exchangeInfo) {
+                    $details[] = [
+                        'name' => ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " (MASUK)",
+                        'qty' => 1,
+                        'price' => (float) ($exchangeInfo->incoming_cost_price ?? 0),
+                        'brand' => 'CONS',
+                        'type' => 'HP',
+                        'is_hp' => true,
+                        'imei' => $exchangeInfo->incoming_imei ?? '-',
+                        'distributor_name' => 'KONSUMEN',
+                        'ram' => $exchangeInfo->incoming_storage ?? '-',
+                        'storage' => $exchangeInfo->incoming_storage ?? '-',
+                        'condition' => $exchangeInfo->incoming_condition ?? 'Second',
+                        'notes' => 'Unit Tukar Tambah/Exchange'
                     ];
                 }
                 foreach ($trx->nonHpDetails as $item) {
