@@ -90,10 +90,10 @@ class SalesExport
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
                     'product' => "📦 " . ($so->bundle_description ?: 'Paket Bundling'),
-                    'imei' => implode(', ', $allImeis) ?: '-',
+                    'imei' => implode(', ', array_map(fn($i) => "'" . $i, $allImeis)) ?: '-',
                     'qty' => 1,
-                    'price' => $totalPrice,
-                    'total' => $totalPrice,
+                    'price' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
                     'payment' => $payment ?: '-',
                     'status' => strtoupper($so->status)
                 ];
@@ -119,10 +119,10 @@ class SalesExport
                         'whatsapp' => $so->customer_wa ?? '-',
                         'category' => str_replace('_', ' ', strtoupper($so->category)),
                         'product' => $productName . " [" . $condition . "]" . $notes,
-                        'imei' => $item->imei ?? '-',
+                        'imei' => $item->imei ? "'" . $item->imei : '-',
                         'qty' => 1,
-                        'price' => $item->pivot->selling_price ?? 0,
-                        'total' => $item->pivot->selling_price ?? 0,
+                        'price' => 'Rp ' . number_format($item->pivot->selling_price ?? 0, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($item->pivot->selling_price ?? 0, 0, ',', '.'),
                         'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status)
                     ];
@@ -142,8 +142,8 @@ class SalesExport
                         'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
                         'imei' => '-',
                         'qty' => $item->quantity,
-                        'price' => $item->price ?? 0,
-                        'total' => ($item->price ?? 0) * $item->quantity,
+                        'price' => 'Rp ' . number_format($item->price ?? 0, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format(($item->price ?? 0) * $item->quantity, 0, ',', '.'),
                         'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status)
                     ];

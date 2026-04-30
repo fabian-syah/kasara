@@ -2512,49 +2512,57 @@ class AuditController extends Controller
 
         try {
             $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
-            $headings = $export->headings();
-            $rows = $export->collection();
+            $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xls";
 
-            $callback = function () use ($headings, $rows) {
+            return response()->streamDownload(function() use ($export) {
                 echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-                echo '<head><meta http-equiv="Content-type" content="text/html;charset=utf-8" /></head>';
-                echo '<body><table border="1">';
-                echo '<tr style="background-color: #059669; color: white; font-weight: bold;">';
-                foreach ($headings as $h) {
-                    echo '<th>' . htmlspecialchars($h) . '</th>';
+                echo '<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><style> .text { mso-number-format:"\@"; } .header { background-color: #2e7d32; color: white; font-weight: bold; } </style></head>';
+                echo '<body>';
+                echo '<table border="1">';
+                echo '<thead>';
+                echo '<tr>';
+                foreach ($export->headings() as $heading) {
+                    echo '<th class="header">' . $heading . '</th>';
                 }
                 echo '</tr>';
-                foreach ($rows as $row) {
+                echo '</thead>';
+                echo '<tbody>';
+                foreach ($export->collection() as $row) {
                     echo '<tr>';
-                    foreach ($row as $v) {
-                        echo '<td>' . htmlspecialchars($v) . '</td>';
-                    }
+                    echo '<td>' . ($row['waktu'] ?? '') . '</td>';
+                    echo '<td>' . ($row['order_no'] ?? '') . '</td>';
+                    echo '<td>' . ($row['lokasi'] ?? '') . '</td>';
+                    echo '<td>' . ($row['user'] ?? '') . '</td>';
+                    echo '<td>' . ($row['customer'] ?? '') . '</td>';
+                    echo '<td>' . ($row['whatsapp'] ?? '') . '</td>';
+                    echo '<td>' . ($row['category'] ?? '') . '</td>';
+                    echo '<td>' . ($row['product'] ?? '') . '</td>';
+                    echo '<td class="text">' . ($row['imei'] ?? '-') . '</td>';
+                    echo '<td>' . ($row['qty'] ?? 1) . '</td>';
+                    echo '<td>' . ($row['price'] ?? 0) . '</td>';
+                    echo '<td>' . ($row['total'] ?? 0) . '</td>';
+                    echo '<td>' . ($row['payment'] ?? '-') . '</td>';
+                    echo '<td>' . ($row['status'] ?? '-') . '</td>';
                     echo '</tr>';
                 }
-                echo '</table></body></html>';
-            };
-
-            $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.xls';
-
-            return response()->stream($callback, 200, [
+                echo '</tbody>';
+                echo '</table>';
+                echo '</body></html>';
+            }, $filename, [
                 'Content-Type' => 'application/vnd.ms-excel',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                'Cache-Control' => 'no-cache, no-store, must-revalidate',
-                'Pragma' => 'no-cache',
-                'Expires' => '0',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+                'Cache-Control' => 'max-age=0',
             ]);
         } catch (\Throwable $e) {
             \Log::error('Export Sales Error: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'line' => $e->getLine()
             ]);
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500);
         }
     }
 
     /**
-
      * Get stock-in data for audit.
      */
     public function stockIn(Request $request)
