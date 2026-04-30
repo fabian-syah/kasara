@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
 use App\Traits\VerifiesPin;
+use App\Utils\SimpleXLSXGen;
 
 class InventoryController extends Controller
 {
@@ -401,47 +402,65 @@ class InventoryController extends Controller
         }
 
         $items = $query->latest()->get();
+        $xlsxData = [];
 
-        $callback = function () use ($items, $type) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-
-            if ($type === 'hp') {
-                fputcsv($file, ['Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory']);
-                foreach ($items as $item) {
-                    fputcsv($file, [
-                        $item->product->brand ?? '-',
-                        $item->product->name ?? '-',
-                        $item->storage ?? '-',
-                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                        "'" . ($item->imei ?? '-'), // Prefix with ' to prevent Excel scientific notation
-                        $item->placement_type . ' #' . $item->placement_id,
-                        $item->distributor->name ?? ($item->supplier_name ?? '-'),
-                        $item->selling_price ?? 0,
-                        $item->status,
-                        $item->user->name ?? '-',
-                    ]);
-                }
-            } else {
-                fputcsv($file, ['Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan']);
-                foreach ($items as $item) {
-                    fputcsv($file, [
-                        $item->product->brand ?? '-',
-                        $item->product->name ?? '-',
-                        $item->placement_type . ' #' . $item->placement_id,
-                        $item->quantity ?? 0,
-                        $item->latest_distributor ?? ($item->latest_supplier ?? '-'),
-                        $item->user->name ?? '-',
-                        $item->notes ?? '-',
-                    ]);
-                }
+        if ($type === 'hp') {
+            $xlsxData[] = ['Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory'];
+            foreach ($items as $item) {
+                $xlsxData[] = [
+                    $item->product->brand ?? '-',
+                    $item->product->name ?? '-',
+                    implode('/', array_filter([$item->ram, $item->storage])),
+                    $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
+                    $item->imei ?? '-',
+                    $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
+                    $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                    $item->selling_price ?? 0,
+                    $item->status,
+                    $item->user->name ?? '-',
+                ];
             }
-            fclose($file);
-        };
+        } else {
+            $xlsxData[] = ['Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan'];
+            foreach ($items as $item) {
+                // Priority for distributor name (logic same as index)
+                $distName = null;
+                if ($item->distributor_id) {
+                    $distName = \App\Models\Distributor::find($item->distributor_id)?->name;
+                }
+                if (!$distName) {
+                    $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
+                        ->where(function($q) use ($item) {
+                            if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
+                            elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
+                            elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
+                        })
+                        ->where('type', 'in')
+                        ->latest()
+                        ->first();
+                    $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
+                }
+                if (!$distName && $item->user && $item->user->distributor) {
+                    $distName = $item->user->distributor->name;
+                }
 
-        $filename = 'inventory-' . $type . '-' . now()->format('Y-m-d') . '.csv';
-        return response()->stream($callback, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+                $xlsxData[] = [
+                    $item->product->brand ?? '-',
+                    $item->product->name ?? '-',
+                    $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
+                    $item->quantity ?? 0,
+                    $distName ?? '-',
+                    $item->user->name ?? '-',
+                    $item->notes ?? '-',
+                ];
+            }
+        }
+
+        $xlsx = SimpleXLSXGen::fromArray($xlsxData);
+        $filename = 'inventory-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+        
+        return response((string)$xlsx, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
