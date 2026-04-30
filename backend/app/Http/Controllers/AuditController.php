@@ -2566,7 +2566,7 @@ class AuditController extends Controller
                 $cat = strtolower($row['category'] ?? '');
                 $isExchange = str_contains($cat, 'tukar') || str_contains($cat, 'downgrade');
                 
-                $xlsxData[] = [
+                $xlsxRow = [
                     $row['waktu'] ?? '',
                     $row['order_no'] ?? '',
                     $row['lokasi'] ?? '',
@@ -2581,18 +2581,22 @@ class AuditController extends Controller
                     $row['total'] ?? '',
                     $row['distributor'] ?? '',
                     $row['payment'] ?? '',
-                    $row['cash_toko'] ?? 0,
-                    $row['edc_bca'] ?? 0,
-                    $row['edc_mandiri'] ?? 0,
-                    $row['trf_bca'] ?? 0,
-                    $row['trf_mandiri'] ?? 0,
-                    $row['qris'] ?? 0,
-                    $row['other'] ?? 0,
+                ];
+
+                if (isset($row['payment_details'])) {
+                    foreach ($row['payment_details'] as $amt) {
+                        $xlsxRow[] = $amt;
+                    }
+                }
+
+                $xlsxRow = array_merge($xlsxRow, [
                     $row['status'] ?? '',
                     ($isExchange && $row['price_out'] !== '-') ? $row['price_out'] : '',
                     ($isExchange && $row['price_in'] !== '-') ? $row['price_in'] : '',
                     ($isExchange && $row['balance'] !== '-') ? $row['balance'] : ''
-                ];
+                ]);
+
+                $xlsxData[] = $xlsxRow;
             }
 
             return response((string)\App\Utils\SimpleXLSXGen::fromArray($xlsxData), 200, [
