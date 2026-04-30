@@ -880,7 +880,7 @@ class InventoryController extends Controller
         return response()->json($query->latest()->paginate(20));
     }
 
-    // Export Stock In History as CSV
+    // Export Stock In History as XLSX
     public function exportStockInHistory(Request $request)
     {
         $user = Auth::user();
@@ -894,12 +894,7 @@ class InventoryController extends Controller
                     $q->whereHas('product', function ($pq) use ($lowKeyword) {
                         $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                             ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-
-                        if (\Schema::hasColumn('products', 'non_imei_category')) {
-                            $pq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
-                        }
-                    })
-                        ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
+                    });
                 });
             }
         } else {
@@ -916,153 +911,122 @@ class InventoryController extends Controller
             }
         }
 
+        // Date Filters
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         if ($request->date) {
-            $d = $request->date;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
-                $today = $logicalNow->toDateString();
-                $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday)
-                    $d = $today;
-            }
-            $query->whereDate('created_at', $d);
+            $query->whereDate('created_at', $request->date);
         } elseif ($request->month && $request->year) {
-            $m = (int) $request->month;
-            $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                $currentMonth = (int) $logicalNow->format('m');
-                $currentYear = (int) $logicalNow->format('Y');
-                $lastMonthTemp = $logicalNow->copy()->subMonth();
-                $lastMonth = (int) $lastMonthTemp->format('m');
-                if ($y < $currentYear) {
-                    $m = $currentMonth;
-                    $y = $currentYear;
-                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
-                    $m = $currentMonth;
-                }
-            }
-            $query->whereMonth('created_at', $m)->whereYear('created_at', $y);
+            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
         }
 
-        $items = $query->latest()->get();
-
-        $callback = function () use ($items, $type) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-            if ($type === 'hp') {
-                fputcsv($file, ['Tanggal', 'Produk', 'SKU', 'IMEI', 'RAM', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Diinput Oleh']);
-                foreach ($items as $item) {
-                    fputcsv($file, [
-                        $item->created_at->format('Y-m-d H:i'),
-                        $item->product->name ?? '-',
-                        $item->product->sku ?? '-',
-                        $item->imei ?? '-',
-                        $item->ram ?? '-',
-                        $item->storage ?? '-',
-                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                        $item->cost_price ?? 0,
-                        $item->selling_price ?? 0,
-                        $item->distributor->name ?? ($item->supplier_name ?? '-'),
-                        $item->user->name ?? '-',
-                    ]);
-                }
-            } else {
-                fputcsv($file, ['Tanggal', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Distributor', 'Diinput Oleh']);
-                foreach ($items as $item) {
-                    fputcsv($file, [
-                        $item->created_at->format('Y-m-d H:i'),
-                        $item->product->name ?? '-',
-                        $item->product->sku ?? '-',
-                        $item->quantity ?? 0,
-                        $item->description ?? '-',
-                        $item->distributor->name ?? ($item->supplier_name ?? '-'),
-                        $item->user->name ?? '-',
-                    ]);
-                }
-            }
-            fclose($file);
-        };
-
-        $filename = 'stok-masuk-' . ($type) . '-' . now()->format('Y-m-d') . '.csv';
-        return response()->stream($callback, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
-    }
-
-    // Export Stock Out History as CSV
-    public function exportStockOutHistory(Request $request)
-    {
-        $user = $request->user();
-        $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
-
-        if ($request->search) {
-            $lowKeyword = strtolower($request->search);
-
-            $query->where(function ($q) use ($lowKeyword) {
-                $q->whereHas('product', function ($pq) use ($lowKeyword) {
-                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-
-                    if (\Schema::hasColumn('products', 'non_imei_category')) {
-                        $pq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
-                    }
-                })
-                    ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
-            });
+        // Sorting (Join with products for alphabetical sort)
+        if ($type === 'non-hp') {
+            $items = $query->join('products', 'inventory_logs.product_id', '=', 'products.id')
+                ->orderBy('products.brand')
+                ->orderBy('products.name')
+                ->select('inventory_logs.*')
+                ->get();
+        } else {
+            $items = $query->join('products', 'product_details.product_id', '=', 'products.id')
+                ->orderBy('products.brand')
+                ->orderBy('products.name')
+                ->select('product_details.*')
+                ->get();
         }
 
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        if ($request->date) {
-            $d = $request->date;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                $today = $logicalNow->toDateString();
-                $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                if ($d < $yesterday)
-                    $d = $today;
-            }
-            $query->whereDate('created_at', $d);
-        } elseif ($request->month && $request->year) {
-            $m = (int) $request->month;
-            $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                $currentMonth = (int) $logicalNow->format('m');
-                $currentYear = (int) $logicalNow->format('Y');
-                $lastMonthTemp = $logicalNow->copy()->subMonth();
-                $lastMonth = (int) $lastMonthTemp->format('m');
-                if ($y < $currentYear) {
-                    $m = $currentMonth;
-                    $y = $currentYear;
-                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
-                    $m = $currentMonth;
-                }
-            }
-            $query->whereMonth('created_at', $m)->whereYear('created_at', $y);
-        }
-
-        $items = $query->latest()->get();
-
-        $callback = function () use ($items) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($file, ['Tanggal', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Diinput Oleh']);
+        $xlsxData = [];
+        if ($type === 'hp') {
+            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'SKU', 'IMEI', 'RAM', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Diinput Oleh'];
             foreach ($items as $item) {
-                fputcsv($file, [
+                $xlsxData[] = [
                     $item->created_at->format('Y-m-d H:i'),
+                    $item->product->brand ?? '-',
+                    $item->product->name ?? '-',
+                    $item->product->sku ?? '-',
+                    $item->imei ?? '-',
+                    $item->ram ?? '-',
+                    $item->storage ?? '-',
+                    $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
+                    $item->cost_price ?? 0,
+                    $item->selling_price ?? 0,
+                    $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                    $item->user->name ?? '-',
+                ];
+            }
+        } else {
+            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Distributor', 'Diinput Oleh'];
+            foreach ($items as $item) {
+                $xlsxData[] = [
+                    $item->created_at->format('Y-m-d H:i'),
+                    $item->product->brand ?? '-',
                     $item->product->name ?? '-',
                     $item->product->sku ?? '-',
                     $item->quantity ?? 0,
                     $item->description ?? '-',
+                    $item->distributor->name ?? ($item->supplier_name ?? '-'),
                     $item->user->name ?? '-',
-                ]);
+                ];
             }
-            fclose($file);
-        };
+        }
 
-        $filename = 'stok-keluar-' . now()->format('Y-m-d') . '.csv';
-        return response()->stream($callback, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+        $xlsx = SimpleXLSXGen::fromArray($xlsxData);
+        $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+        
+        return response((string)$xlsx, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    // Export Stock Out History as XLSX
+    public function exportStockOutHistory(Request $request)
+    {
+        $user = Auth::user();
+        $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
+
+        if ($request->search) {
+            $lowKeyword = strtolower($request->search);
+            $query->where(function ($q) use ($lowKeyword) {
+                $q->whereHas('product', function ($pq) use ($lowKeyword) {
+                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                });
+            });
+        }
+
+        // Date Filters
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($request->month && $request->year) {
+            $query->whereMonth('created_at', $request->month)->whereYear('created_at', $request->year);
+        }
+
+        // Sorting
+        $items = $query->join('products', 'inventory_logs.product_id', '=', 'products.id')
+            ->orderBy('products.brand')
+            ->orderBy('products.name')
+            ->select('inventory_logs.*')
+            ->get();
+
+        $xlsxData = [];
+        $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Diinput Oleh'];
+        foreach ($items as $item) {
+            $xlsxData[] = [
+                $item->created_at->format('Y-m-d H:i'),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                $item->product->sku ?? '-',
+                $item->quantity ?? 0,
+                $item->description ?? '-',
+                $item->user->name ?? '-',
+            ];
+        }
+
+        $xlsx = SimpleXLSXGen::fromArray($xlsxData);
+        $filename = 'stok-keluar-' . now()->format('Y-m-d') . '.xlsx';
+        
+        return response((string)$xlsx, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
