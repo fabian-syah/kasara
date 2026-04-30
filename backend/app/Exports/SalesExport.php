@@ -36,10 +36,24 @@ class SalesExport
             ->where('status', '!=', 'cancelled');
 
         if ($this->branchId) {
-            $query->where('branch_id', $this->branchId);
-        }
-        if ($this->onlineShopId) {
-            $query->where('online_shop_id', $this->onlineShopId);
+            $query->where('stock_outs.branch_id', $this->branchId);
+        } elseif ($this->onlineShopId) {
+            $query->where('stock_outs.online_shop_id', $this->onlineShopId);
+        } else {
+            // User-based scoping for non-admins
+            if ($this->user && !$this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
+                $branchIds = $this->user->getAccessibleBranchIds();
+                $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
+                
+                $query->where(function($q) use ($branchIds, $onlineShopIds) {
+                    $q->whereIn('stock_outs.branch_id', $branchIds)
+                      ->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                      ->orWhereHas('user', function($uq) use ($branchIds, $onlineShopIds) {
+                          $uq->whereIn('branch_id', $branchIds)
+                             ->orWhereIn('online_shop_id', $onlineShopIds);
+                      });
+                });
+            }
         }
 
         $stockOuts = $query->latest('created_at')->get();
