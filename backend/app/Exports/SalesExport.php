@@ -130,29 +130,6 @@ class SalesExport
                     'price_in' => $priceIn ? 'Rp ' . number_format($priceIn, 0, ',', '.') : '-',
                     'balance' => $balance ? 'Rp ' . number_format($balance, 0, ',', '.') : '-'
                 ];
-
-                // If bundle IS an exchange (rare but possible), add the incoming unit row
-                if ($exchangeInfo) {
-                    $rows[] = [
-                        'waktu' => $so->created_at->format('d/m/Y H:i'),
-                        'order_no' => $so->receipt_id,
-                        'lokasi' => $location,
-                        'user' => $csName,
-                        'customer' => $so->customer_name ?? '-',
-                        'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => $exchangeType . " (MASUK)",
-                        'product' => ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? '-') . "]",
-                        'imei' => "'" . ($exchangeInfo->incoming_imei ?? '-'),
-                        'qty' => 1,
-                        'price' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
-                        'payment' => '-',
-                        'status' => 'INCOMING',
-                        'price_out' => '-',
-                        'price_in' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
-                        'balance' => '-'
-                    ];
-                }
             } else {
                 // Standard multi-row display for non-bundles
                 $payment = $so->paymentMethod->name ?? null;
@@ -171,10 +148,19 @@ class SalesExport
                     $priceIn = 0;
                     $balance = 0;
 
+                    $finalProductName = $productName . " [" . $condition . "]" . $notes;
+                    $finalImei = $item->imei ? "'" . $item->imei : '-';
+
                     if ($exchangeInfo) {
                         $priceOut = $exchangeInfo->outgoing_price ?? $price;
                         $priceIn = $exchangeInfo->incoming_cost_price ?? 0;
                         $balance = $exchangeInfo->price_difference ?? ($priceOut - $priceIn);
+
+                        $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
+                        $inImei = $exchangeInfo->incoming_imei ?? '-';
+
+                        $finalProductName = "[OUT] " . $finalProductName . " | [IN] " . $inProd;
+                        $finalImei = "[OUT] " . str_replace("'", "", $finalImei) . " | [IN] " . $inImei;
                     }
 
                     $rows[] = [
@@ -184,9 +170,9 @@ class SalesExport
                         'user' => $csName,
                         'customer' => $so->customer_name ?? '-',
                         'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => $exchangeInfo ? $exchangeType . " (KELUAR)" : str_replace('_', ' ', strtoupper($so->category)),
-                        'product' => $productName . " [" . $condition . "]" . $notes,
-                        'imei' => $item->imei ? "'" . $item->imei : '-',
+                        'category' => str_replace('_', ' ', strtoupper($so->category)),
+                        'product' => $finalProductName,
+                        'imei' => $finalImei,
                         'qty' => 1,
                         'price' => 'Rp ' . number_format($price, 0, ',', '.'),
                         'total' => 'Rp ' . number_format($price, 0, ',', '.'),
@@ -198,30 +184,7 @@ class SalesExport
                     ];
                 }
 
-                // If standard item IS an exchange, add the incoming unit row
-                if ($exchangeInfo) {
-                    $rows[] = [
-                        'waktu' => $so->created_at->format('d/m/Y H:i'),
-                        'order_no' => $so->receipt_id,
-                        'lokasi' => $location,
-                        'user' => $csName,
-                        'customer' => $so->customer_name ?? '-',
-                        'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => $exchangeType . " (MASUK)",
-                        'product' => ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? '-') . "]",
-                        'imei' => "'" . ($exchangeInfo->incoming_imei ?? '-'),
-                        'qty' => 1,
-                        'price' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
-                        'payment' => '-',
-                        'status' => 'INCOMING',
-                        'price_out' => '-',
-                        'price_in' => 'Rp ' . number_format($exchangeInfo->incoming_cost_price ?? 0, 0, ',', '.'),
-                        'balance' => '-'
-                    ];
-                }
-
-                // Non-HP Items (Usually not exchangeable but included for completeness)
+                // Non-HP Items
                 foreach ($so->nonHpItems as $item) {
                     $notes = $item->notes ? " (" . $item->notes . ")" : "";
                     $price = $item->price ?? 0;
@@ -240,9 +203,9 @@ class SalesExport
                         'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
                         'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status),
-                        'price_out' => '-',
-                        'price_in' => '-',
-                        'balance' => '-'
+                        'price_out' => '',
+                        'price_in' => '',
+                        'balance' => ''
                     ];
                 }
             }

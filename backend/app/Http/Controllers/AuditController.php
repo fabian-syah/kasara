@@ -1250,37 +1250,29 @@ class AuditController extends Controller
                         $basePrice = (float) ($item->cost_price ?? 0);
                     }
 
+                    $pName = ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP');
+                    $pImei = $item->imei ?? '-';
+
+                    if ($exchangeInfo) {
+                        $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
+                        $inImei = $exchangeInfo->incoming_imei ?? '-';
+                        $pName = "[OUT] " . $pName . " | [IN] " . $inProd;
+                        $pImei = "[OUT] " . $pImei . " | [IN] " . $inImei;
+                    }
+
                     $details[] = [
-                        'name' => ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP') . ($exchangeInfo ? " (KELUAR)" : ""),
+                        'name' => $pName,
                         'qty' => 1,
                         'price' => $basePrice,
                         'brand' => $item->product?->brand ?? '-',
                         'type' => 'HP',
                         'is_hp' => true,
-                        'imei' => $item->imei ?? '-',
+                        'imei' => $pImei,
                         'distributor_name' => $dName,
                         'ram' => $item->storage,
                         'storage' => $item->storage,
                         'condition' => $item->condition,
                         'notes' => $item->pivot?->notes
-                    ];
-                }
-
-                // Inject Incoming Unit if exchange
-                if ($exchangeInfo) {
-                    $details[] = [
-                        'name' => ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " (MASUK)",
-                        'qty' => 1,
-                        'price' => (float) ($exchangeInfo->incoming_cost_price ?? 0),
-                        'brand' => 'CONS',
-                        'type' => 'HP',
-                        'is_hp' => true,
-                        'imei' => $exchangeInfo->incoming_imei ?? '-',
-                        'distributor_name' => 'KONSUMEN',
-                        'ram' => $exchangeInfo->incoming_storage ?? '-',
-                        'storage' => $exchangeInfo->incoming_storage ?? '-',
-                        'condition' => $exchangeInfo->incoming_condition ?? 'Second',
-                        'notes' => 'Unit Tukar Tambah/Exchange'
                     ];
                 }
                 foreach ($trx->nonHpDetails as $item) {
