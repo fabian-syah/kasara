@@ -409,6 +409,8 @@ async function submitUnitExchange(pin = null) {
                             Unit Terpilih: {{ selectedOutgoingItem.product?.name ||
                                 selectedOutgoingItem.name }} ({{
                                 selectedOutgoingItem.imei || 'Non-IMEI' }})
+                            <br/>
+                            Harga Jual: Rp {{ formatNumber(selectedOutgoingItem.selling_price) }}
                         </p>
                     </div>
 

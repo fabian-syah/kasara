@@ -122,6 +122,9 @@ class UnitExchangeController extends Controller
                 ]);
 
                 // 4. Create StockOut record for reporting and tracking visibility
+                $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
+                $outPrice = $outgoingUnit->selling_price ?? 0;
+
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'tukar_unit',
@@ -133,13 +136,14 @@ class UnitExchangeController extends Controller
                     'status' => 'received', // Mark as completed
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
-                    'selling_price' => 0, // Isolated from sales turnover
+                    'selling_price' => $outPrice,
+                    'total_amount' => $outPrice,
                     'transaction_pin' => $request->transaction_pin,
                 ]);
 
                 // Attach the outgoing unit to the StockOut record
                 $stockOut->items()->attach($request->outgoing_product_detail_id, [
-                    'selling_price' => 0,
+                    'selling_price' => $outPrice,
                     'item_discount' => 0,
                 ]);
 
