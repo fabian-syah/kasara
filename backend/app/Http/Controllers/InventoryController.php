@@ -1073,106 +1073,137 @@ class InventoryController extends Controller
             $logTable = (new InventoryLog)->getTable();
             $prodTable = (new Product)->getTable();
 
-            $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
+            $query = \App\Models\StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product', 'nonHpDetails.product', 'paymentMethod']);
 
-            // Filter by HP vs Non-HP
-            if ($type === 'non-hp') {
-                $query->whereHas('product', function ($pq) {
-                    $pq->where('has_imei', false);
-                });
-            } else {
-                $query->whereHas('product', function ($pq) {
-                    $pq->where('has_imei', true);
+            // Filter by Type (HP vs Non-HP)
+            if ($type === 'hp') {
+                $query->whereHas('items');
+            } elseif ($type === 'non-hp') {
+                $query->where(function ($q) {
+                    $q->whereHas('nonHpDetails')
+                        ->orWhereNotNull('non_hp_items');
                 });
             }
 
             if ($request->search) {
-                $lowKeyword = strtolower($request->search);
-                $query->where(function ($q) use ($lowKeyword) {
-                    $q->whereHas('product', function ($pq) use ($lowKeyword) {
-                        $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                $query->search($request->search);
+            }
+
+            // Role Restrictions (Same as StockOutController@index)
+            if (!$user->hasRole(['super_admin', 'admin_produk', 'owner'])) {
+                $query->whereHas('user', function ($q) use ($user) {
+                    $bIds = $user->getAccessibleBranchIds();
+                    $wIds = $user->getAccessibleWarehouseIds();
+                    $osIds = $user->getAccessibleOnlineShopIds();
+                    $q->where(function ($sq) use ($bIds, $wIds, $osIds) {
+                        if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
+                        if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
+                        if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
                     });
                 });
             }
 
-            // Apply Location Filters
-            if ($request->branch_id)
-                $query->where($logTable . '.branch_id', $request->branch_id);
-            if ($request->warehouse_id)
-                $query->where($logTable . '.warehouse_id', $request->warehouse_id);
-            if ($request->online_shop_id)
-                $query->where($logTable . '.online_shop_id', $request->online_shop_id);
-
-            // Apply Role Restrictions
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
-            if (!$user->hasRole($unrestrictedRoles)) {
-                $query->where(function ($q) use ($user, $logTable) {
-                    $branchIds = $user->getAccessibleBranchIds();
-                    $warehouseIds = $user->getAccessibleWarehouseIds();
-                    $shopIds = $user->getAccessibleOnlineShopIds();
-
-                    if (!empty($branchIds))
-                        $q->orWhereIn($logTable . '.branch_id', $branchIds);
-                    if (!empty($warehouseIds))
-                        $q->orWhereIn($logTable . '.warehouse_id', $warehouseIds);
-                    if (!empty($shopIds))
-                        $q->orWhereIn($logTable . '.online_shop_id', $shopIds);
-                    $q->orWhere($logTable . '.user_id', $user->id);
-                });
-            }
-
-            // Date Filters
+            // Date Filters (Using reporting_date like UI)
             if ($request->month && $request->year) {
                 $m = (int) $request->month;
                 $y = (int) $request->year;
-                
-                // Role-based protection from getHistory
+                // Protection logic
                 if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
                     $logicalNow = now()->hour < 5 ? now()->subDay() : now();
                     $currentMonth = (int) $logicalNow->format('m');
                     $currentYear = (int) $logicalNow->format('Y');
-                    $lastMonthTemp = $logicalNow->copy()->subMonth();
-                    $lastMonth = (int) $lastMonthTemp->format('m');
-                    if ($y < $currentYear) {
+                    if ($y < $currentYear || ($y == $currentYear && $m < $currentMonth - 1)) {
                         $m = $currentMonth; $y = $currentYear;
-                    } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
-                        $m = $currentMonth;
                     }
                 }
-                $query->whereMonth($logTable . '.created_at', $m)->whereYear($logTable . '.created_at', $y);
+                $query->whereMonth('reporting_date', $m)->whereYear('reporting_date', $y);
             } elseif ($request->date) {
-                $d = $request->date;
-                // Role-based protection from getHistory
-                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-                    $today = $logicalNow->toDateString();
-                    $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                    if ($d < $yesterday) $d = $today;
-                }
-                $query->whereDate($logTable . '.created_at', $d);
+                $query->where('reporting_date', $request->date);
             }
 
-            // Sorting in PHP for stability
-            $items = $query->get()->sortBy(function ($item) {
-                return strtolower((optional($item->product)->brand ?? '') . (optional($item->product)->name ?? ''));
-            });
+            $results = $query->latest()->get();
+
+            // Transform data exactly like StockOutController@index
+            $items = [];
+            foreach ($results as $stockOut) {
+                $details = [];
+                // Collect HP
+                foreach ($stockOut->items as $item) {
+                    $details[] = [
+                        'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'HP'),
+                        'qty' => 1,
+                        'imei' => $item->imei ?? '-',
+                        'notes' => $item->pivot?->notes
+                    ];
+                }
+                // Collect Non-HP
+                foreach ($stockOut->nonHpDetails as $detail) {
+                    $details[] = [
+                        'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($detail->product?->name ?? 'Item'),
+                        'qty' => $detail->quantity,
+                        'imei' => '-',
+                        'notes' => $detail->notes
+                    ];
+                }
+
+                // Consolidation (Bundling)
+                if ($stockOut->is_bundle) {
+                    $grouped = [];
+                    $bundles = [];
+                    $fallbackBundleName = $stockOut->bundle_description ?: 'Paket Bundling';
+                    foreach ($details as $d) {
+                        $bundleTag = $d['notes'] ?: $fallbackBundleName;
+                        if (!isset($bundles[$bundleTag])) {
+                            $bundles[$bundleTag] = ['name' => '📦 ' . $bundleTag, 'qty' => 0, 'imei' => []];
+                        }
+                        $bundles[$bundleTag]['qty'] += $d['qty'];
+                        if ($d['imei'] !== '-') $bundles[$bundleTag]['imei'][] = $d['imei'];
+                    }
+                    foreach ($bundles as $b) {
+                        $grouped[] = [
+                            'name' => $b['name'],
+                            'qty' => $b['qty'],
+                            'imei' => implode(', ', array_unique($b['imei'])) ?: '-',
+                        ];
+                    }
+                    $details = $grouped;
+                }
+
+                $recipient = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->shopee_receiver ?: '-'));
+                
+                foreach ($details as $d) {
+                    $items[] = (object)[
+                        'created_at' => $stockOut->created_at,
+                        'receipt_id' => $stockOut->receipt_id,
+                        'category' => $stockOut->category,
+                        'recipient' => $recipient,
+                        'name' => $d['name'],
+                        'imei' => $d['imei'],
+                        'qty' => $d['qty'],
+                        'user_name' => optional($stockOut->user)->name ?? '-',
+                        'inv_user' => optional($stockOut->inventoryUser)->name ?? '-',
+                    ];
+                }
+            }
 
             $monthName = $request->month ? \Carbon\Carbon::create()->month($m)->format('F') : '';
             $title = 'LAPORAN STOK KELUAR - ' . strtoupper($type) . ' - ' . ($request->month ? strtoupper($monthName) . ' ' . $y : $request->date);
 
             $xlsxData = [];
             $xlsxData[] = [$title];
-            $xlsxData[] = []; // Spacer
-            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Akun Inventory'];
+            $xlsxData[] = [];
+            $xlsxData[] = ['Tanggal', 'ID Transaksi', 'Kategori', 'Penerima', 'Item', 'IMEI / Qty', 'Admin', 'Inventory'];
+            
             foreach ($items as $item) {
                 $xlsxData[] = [
-                    $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
-                    optional($item->product)->brand ?? '-',
-                    optional($item->product)->name ?? '-',
-                    $item->quantity ?? 0,
-                    $item->description ?? '-',
-                    optional($item->user)->name ?? '-',
+                    $item->created_at->format('Y-m-d H:i'),
+                    $item->receipt_id,
+                    $item->category,
+                    $item->recipient,
+                    $item->name,
+                    $item->imei !== '-' ? $item->imei : $item->qty,
+                    $item->user_name,
+                    $item->inv_user,
                 ];
             }
 
