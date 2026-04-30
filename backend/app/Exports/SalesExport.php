@@ -76,6 +76,11 @@ class SalesExport
                     $totalPrice += (($item->price ?? 0) * $item->quantity);
                 }
 
+                $payment = $so->paymentMethod->name ?? null;
+                if (!$payment && !empty($so->split_payments_data)) {
+                    $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
+                }
+
                 $rows[] = [
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
@@ -89,11 +94,16 @@ class SalesExport
                     'qty' => 1,
                     'price' => $totalPrice,
                     'total' => $totalPrice,
-                    'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                    'payment' => $payment ?: '-',
                     'status' => strtoupper($so->status)
                 ];
             } else {
                 // Standard multi-row display for non-bundles
+                $payment = $so->paymentMethod->name ?? null;
+                if (!$payment && !empty($so->split_payments_data)) {
+                    $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
+                }
+
                 // HP Items
                 foreach ($so->items as $item) {
                     $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
@@ -113,7 +123,7 @@ class SalesExport
                         'qty' => 1,
                         'price' => $item->pivot->selling_price ?? 0,
                         'total' => $item->pivot->selling_price ?? 0,
-                        'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                        'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status)
                     ];
                 }
@@ -134,7 +144,7 @@ class SalesExport
                         'qty' => $item->quantity,
                         'price' => $item->price ?? 0,
                         'total' => ($item->price ?? 0) * $item->quantity,
-                        'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                        'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status)
                     ];
                 }
