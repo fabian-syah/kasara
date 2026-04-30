@@ -1013,7 +1013,13 @@ class InventoryController extends Controller
                     ->get();
             }
 
+            $monthName = $request->month ? \Carbon\Carbon::create()->month($m)->format('F') : '';
+            $title = 'LAPORAN STOK MASUK - ' . strtoupper($type) . ' - ' . ($request->month ? strtoupper($monthName) . ' ' . $y : $request->date);
+
             $xlsxData = [];
+            $xlsxData[] = [$title];
+            $xlsxData[] = []; // Spacer
+
             if ($type === 'hp') {
                 $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'IMEI', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Akun Inventory'];
                 foreach ($items as $item) {
@@ -1046,7 +1052,7 @@ class InventoryController extends Controller
             }
 
             $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-            $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+            $filename = 'stok-masuk-' . $type . '-' . ($request->month ? $monthName . '-' . $y : $request->date) . '.xlsx';
 
             return response((string) $xlsx, 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1068,6 +1074,17 @@ class InventoryController extends Controller
             $prodTable = (new Product)->getTable();
 
             $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
+
+            // Filter by HP vs Non-HP
+            if ($type === 'non-hp') {
+                $query->whereHas('product', function ($pq) {
+                    $pq->where('has_imei', false);
+                });
+            } else {
+                $query->whereHas('product', function ($pq) {
+                    $pq->where('has_imei', true);
+                });
+            }
 
             if ($request->search) {
                 $lowKeyword = strtolower($request->search);
@@ -1141,7 +1158,12 @@ class InventoryController extends Controller
                 return strtolower((optional($item->product)->brand ?? '') . (optional($item->product)->name ?? ''));
             });
 
+            $monthName = $request->month ? \Carbon\Carbon::create()->month($m)->format('F') : '';
+            $title = 'LAPORAN STOK KELUAR - ' . strtoupper($type) . ' - ' . ($request->month ? strtoupper($monthName) . ' ' . $y : $request->date);
+
             $xlsxData = [];
+            $xlsxData[] = [$title];
+            $xlsxData[] = []; // Spacer
             $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Akun Inventory'];
             foreach ($items as $item) {
                 $xlsxData[] = [
@@ -1155,7 +1177,7 @@ class InventoryController extends Controller
             }
 
             $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-            $filename = 'stok-keluar-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+            $filename = 'stok-keluar-' . $type . '-' . ($request->month ? $monthName . '-' . $y : $request->date) . '.xlsx';
 
             return response((string) $xlsx, 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
