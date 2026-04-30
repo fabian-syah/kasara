@@ -63,8 +63,15 @@ class SalesExport
             $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
             $csName = $so->inventoryUser->name ?? ($so->user->name ?? '-');
             
+            // If it's a bundle, we can optionally add a header row or just prefix the products
+            $bundlePrefix = $so->is_bundle ? "📦 Paket Bundling: " . ($so->bundle_description ?: 'Paket') . " - " : "";
+
             // HP Items
             foreach ($so->items as $item) {
+                $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
+                $condition = $item->condition === 'new' ? 'Baru' : 'Second';
+                $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
+                
                 $rows[] = [
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
@@ -73,7 +80,7 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
-                    'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " (" . ($item->condition === 'new' ? 'Baru' : 'Second') . ")",
+                    'product' => $bundlePrefix . $productName . " [" . $condition . "]" . $notes,
                     'imei' => $item->imei ?? '-',
                     'qty' => 1,
                     'price' => $item->pivot->selling_price ?? 0,
@@ -85,6 +92,7 @@ class SalesExport
 
             // Non-HP Items
             foreach ($so->nonHpItems as $item) {
+                $notes = $item->notes ? " (" . $item->notes . ")" : "";
                 $rows[] = [
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
@@ -93,7 +101,7 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
-                    'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? ''),
+                    'product' => $bundlePrefix . ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
                     'imei' => '-',
                     'qty' => $item->quantity,
                     'price' => $item->price ?? 0,
