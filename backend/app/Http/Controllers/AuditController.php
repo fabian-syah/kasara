@@ -1224,9 +1224,9 @@ class AuditController extends Controller
 
 
             $receiptIds = collect($paginatedSales->items())->pluck('receipt_id')->unique()->toArray();
-            $ttData = \App\Models\TukarTambah::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-            $dgData = \App\Models\Downgrade::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-            $ueData = \App\Models\UnitExchange::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $ttData = \App\Models\TukarTambah::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $dgData = \App\Models\Downgrade::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $ueData = \App\Models\UnitExchange::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
 
             $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData) {
                 $details = [];
@@ -1267,7 +1267,7 @@ class AuditController extends Controller
                             'type' => 'IN',
                             'is_hp' => true,
                             'imei' => $inImei,
-                            'distributor_name' => 'Konsumen',
+                            'distributor_name' => $exchangeInfo->distributor->name ?? 'Konsumen',
                             'condition' => $exchangeInfo->incoming_condition ?? 'second',
                             'storage' => $exchangeInfo->incoming_storage ?? '-',
                             'is_incoming' => true

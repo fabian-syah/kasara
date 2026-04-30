@@ -162,6 +162,11 @@ class SalesExport
                         $priceIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
                         $balance = $priceOut - $priceIn;
 
+                        // Unified Distributor: OUT distributor | IN distributor
+                        $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                        $distIn = $exchangeInfo->distributor->name ?? 'Konsumen';
+                        $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
+
                         $rows[] = [
                             'waktu' => $so->created_at->format('d/m/Y H:i'),
                             'order_no' => $so->receipt_id,
@@ -173,8 +178,9 @@ class SalesExport
                             'product' => $finalProductName,
                             'imei' => $finalImei,
                             'qty' => 1,
-                            'price' => 'Rp ' . number_format($price, 0, ',', '.'),
-                            'total' => 'Rp ' . number_format($price, 0, ',', '.'),
+                            'price' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
+                            'total' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
+                            'distributor' => $finalDistributor,
                             'payment' => $payment,
                             'status' => strtoupper($so->status),
                             'price_out' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
@@ -195,6 +201,7 @@ class SalesExport
                             'qty' => 1,
                             'price' => 'Rp ' . number_format($price, 0, ',', '.'),
                             'total' => 'Rp ' . number_format($price, 0, ',', '.'),
+                            'distributor' => $item->distributor->name ?? $item->supplier_name ?? '-',
                             'payment' => $payment,
                             'status' => strtoupper($so->status),
                             'price_out' => '-',
@@ -220,6 +227,7 @@ class SalesExport
                         'qty' => $item->quantity,
                         'price' => 'Rp ' . number_format($price, 0, ',', '.'),
                         'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
+                        'distributor' => $item->distributor->name ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status),
                         'price_out' => '',
@@ -248,6 +256,7 @@ class SalesExport
             'Qty',
             'Harga Satuan',
             'Total Harga',
+            'Distributor',
             'Metode Pembayaran',
             'Status',
             'Harga Unit Keluar',
@@ -271,6 +280,7 @@ class SalesExport
             $row['qty'],
             $row['price'],
             $row['total'],
+            $row['distributor'],
             $row['payment'],
             $row['status'],
             $row['price_out'] ?? '',
