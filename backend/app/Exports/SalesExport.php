@@ -30,7 +30,7 @@ class SalesExport
     {
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling'];
 
-        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
+        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
             ->where('status', '!=', 'cancelled');
@@ -61,6 +61,7 @@ class SalesExport
 
         foreach ($stockOuts as $so) {
             $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
+            $csName = $so->inventoryUser->name ?? ($so->user->name ?? '-');
             
             // HP Items
             foreach ($so->items as $item) {
@@ -68,7 +69,7 @@ class SalesExport
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
                     'lokasi' => $location,
-                    'user' => $so->user->name ?? '-',
+                    'user' => $csName,
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
@@ -88,7 +89,7 @@ class SalesExport
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
                     'lokasi' => $location,
-                    'user' => $so->user->name ?? '-',
+                    'user' => $csName,
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
@@ -112,7 +113,7 @@ class SalesExport
             'Waktu',
             'No Pesanan',
             'Lokasi',
-            'User/Admin',
+            'Customer Service',
             'Nama Customer',
             'WhatsApp',
             'Kategori',
