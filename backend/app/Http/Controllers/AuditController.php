@@ -2560,15 +2560,35 @@ class AuditController extends Controller
                 
                 echo ' <Styles>' . "\n";
                 echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Bottom"/><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/></Style>' . "\n";
-                echo '  <Style ss:ID="Header"><Alignment ss:Horizontal="Center"/><Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2E7D32" ss:Pattern="Solid"/></Style>' . "\n";
+                echo '  <Style ss:ID="Header"><Alignment ss:Horizontal="Center" ss:Vertical="Center"/><Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2E7D32" ss:Pattern="Solid"/><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>' . "\n";
                 echo '  <Style ss:ID="Text"><NumberFormat ss:Format="@"/></Style>' . "\n";
+                echo '  <Style ss:ID="CellData"><Borders><Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/><Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>' . "\n";
                 echo ' </Styles>' . "\n";
 
                 echo ' <Worksheet ss:Name="Penjualan">' . "\n";
                 echo '  <Table>' . "\n";
                 
+                // Explicit Column Widths
+                echo '   <Column ss:Width="110"/>' . "\n"; // Waktu
+                echo '   <Column ss:Width="100"/>' . "\n"; // No Pesanan
+                echo '   <Column ss:Width="110"/>' . "\n"; // Lokasi
+                echo '   <Column ss:Width="120"/>' . "\n"; // CS
+                echo '   <Column ss:Width="120"/>' . "\n"; // Customer
+                echo '   <Column ss:Width="100"/>' . "\n"; // WA
+                echo '   <Column ss:Width="130"/>' . "\n"; // Kategori
+                echo '   <Column ss:Width="300"/>' . "\n"; // Produk
+                echo '   <Column ss:Width="150" ss:StyleID="Text"/>' . "\n"; // IMEI
+                echo '   <Column ss:Width="40"/>' . "\n";  // Qty
+                echo '   <Column ss:Width="100"/>' . "\n"; // Harga Satuan
+                echo '   <Column ss:Width="100"/>' . "\n"; // Total Harga
+                echo '   <Column ss:Width="120"/>' . "\n"; // Pembayaran
+                echo '   <Column ss:Width="80"/>' . "\n";  // Status
+                echo '   <Column ss:Width="110"/>' . "\n"; // Harga Out
+                echo '   <Column ss:Width="110"/>' . "\n"; // Harga In
+                echo '   <Column ss:Width="110"/>' . "\n"; // Selisih
+
                 // Headings
-                echo '   <Row ss:Height="20">' . "\n";
+                echo '   <Row ss:Height="25">' . "\n";
                 foreach ($headings as $h) {
                     echo '    <Cell ss:StyleID="Header"><Data ss:Type="String">' . htmlspecialchars($h) . '</Data></Cell>' . "\n";
                 }
@@ -2576,30 +2596,37 @@ class AuditController extends Controller
 
                 // Data
                 foreach ($rows as $row) {
-                    echo '   <Row>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['waktu'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['order_no'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['lokasi'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['user'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['customer'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['whatsapp'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['category'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['product'] ?? '') . '</Data></Cell>' . "\n";
+                    $cat = strtolower($row['category'] ?? '');
+                    $isExchange = str_contains($cat, 'tukar') || str_contains($cat, 'downgrade');
+
+                    echo '   <Row ss:Height="18">' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['waktu'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['order_no'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['lokasi'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['user'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['customer'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['whatsapp'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['category'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['product'] ?? '') . '</Data></Cell>' . "\n";
                     
-                    // IMEI force text
+                    // IMEI
                     $imei = str_replace("'", "", $row['imei'] ?? '-');
                     echo '    <Cell ss:StyleID="Text"><Data ss:Type="String">' . htmlspecialchars($imei) . '</Data></Cell>' . "\n";
                     
-                    echo '    <Cell><Data ss:Type="Number">' . (int)($row['qty'] ?? 1) . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['price'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['total'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['payment'] ?? '') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['status'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="Number">' . (int)($row['qty'] ?? 1) . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['price'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['total'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['payment'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['status'] ?? '') . '</Data></Cell>' . "\n";
                     
-                    // New columns
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['price_out'] ?? '-') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['price_in'] ?? '-') . '</Data></Cell>' . "\n";
-                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['balance'] ?? '-') . '</Data></Cell>' . "\n";
+                    // Specialized columns (only for exchanges)
+                    $priceOut = ($isExchange && $row['price_out'] !== '-') ? $row['price_out'] : '';
+                    $priceIn = ($isExchange && $row['price_in'] !== '-') ? $row['price_in'] : '';
+                    $balance = ($isExchange && $row['balance'] !== '-') ? $row['balance'] : '';
+
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($priceOut) . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($priceIn) . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($balance) . '</Data></Cell>' . "\n";
                     echo '   </Row>' . "\n";
                 }
 
