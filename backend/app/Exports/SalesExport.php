@@ -182,6 +182,11 @@ class SalesExport
             }
         }
 
+        // Sort alphabetically by product name (A-Z)
+        usort($rows, function ($a, $b) {
+            return strcasecmp($a['product'], $b['product']);
+        });
+
         return $rows;
     }
 

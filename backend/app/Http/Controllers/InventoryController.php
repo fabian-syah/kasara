@@ -401,7 +401,19 @@ class InventoryController extends Controller
             });
         }
 
-        $items = $query->latest()->get();
+        if ($type === 'non-hp') {
+            $items = $query->join('products', 'inventories.product_id', '=', 'products.id')
+                ->orderBy('products.brand')
+                ->orderBy('products.name')
+                ->select('inventories.*')
+                ->get();
+        } else {
+            $items = $query->join('products', 'product_details.product_id', '=', 'products.id')
+                ->orderBy('products.brand')
+                ->orderBy('products.name')
+                ->select('product_details.*')
+                ->get();
+        }
         $xlsxData = [];
 
         if ($type === 'hp') {
