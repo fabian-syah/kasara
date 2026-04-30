@@ -35,11 +35,58 @@ class SalesExport
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
             ->where('status', '!=', 'cancelled');
 
-        if ($this->branchId) {
-            $query->where('stock_outs.branch_id', $this->branchId);
-        } elseif ($this->onlineShopId) {
-            $query->where('stock_outs.online_shop_id', $this->onlineShopId);
-        }
+        // Location Scoping to match AuditController
+        $query->where(function($q) {
+            if ($this->branchId) {
+                $q->where('stock_outs.branch_id', $this->branchId)
+                  ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $this->branchId));
+            } elseif ($this->onlineShopId) {
+                $q->where('stock_outs.online_shop_id', $this->onlineShopId)
+                  ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $this->onlineShopId));
+            } else {
+                // If no specific location requested, use accessible ones for non-admins
+                if ($this->user && !$this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
+                    $branchIds = $this->user->getAccessibleBranchIds();
+                    $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
+                    
+                    $q->where(function($sub) use ($branchIds, $onlineShopIds) {
+                        if (!empty($branchIds)) {
+                            $sub->orWhereIn('stock_outs.branch_id', $branchIds)
+                                ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
+                        }
+                        
+                        if (empty($branchIds) && empty($onlineShopIds)) {
+                            $sub->whereRaw('1=0');
+                        }
+                    });
+                }
+            }
+        });
+
+        // Global exclusion for 'Trial' / 'Test' data
+        $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+        $query->where(function($q) use ($excluded) {
+            // Keep if NO branch/shop OR if branch/shop name doesn't match excluded terms
+            $q->where(function($sub) use ($excluded) {
+                $sub->whereDoesntHave('branch', function($bq) use ($excluded) {
+                    $bq->where(function($qq) use ($excluded) {
+                        foreach ($excluded as $term) {
+                            $qq->orWhere('name', 'ILIKE', '%' . $term . '%');
+                        }
+                    });
+                })->whereDoesntHave('onlineShop', function($sq) use ($excluded) {
+                    $sq->where(function($qq) use ($excluded) {
+                        foreach ($excluded as $term) {
+                            $qq->orWhere('name', 'ILIKE', '%' . $term . '%');
+                        }
+                    });
+                });
+            });
+        });
 
         $stockOuts = $query->latest('stock_outs.created_at')->get();
         $rows = [];
