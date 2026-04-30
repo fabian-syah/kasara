@@ -152,6 +152,7 @@ const exportExcel = async () => {
     exporting.value = true;
     try {
         const params = { 
+            type: activeTab.value,
             search: searchQuery.value,
             branch_id: props.branchId || undefined,
             online_shop_id: props.onlineShopId || undefined
@@ -168,7 +169,15 @@ const exportExcel = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `stok-keluar-${getTodayLocal()}.xlsx`);
+        
+        let filename = `stok-keluar-${activeTab.value}`;
+        if (filterMode.value === 'month') {
+            filename += `-${selectedMonth.value.month}-${selectedMonth.value.year}`;
+        } else {
+            filename += `-${dateParam || getTodayLocal()}`;
+        }
+        
+        link.setAttribute('download', `${filename}.xlsx`);
         document.body.appendChild(link);
         link.click();
         link.remove();
