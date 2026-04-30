@@ -28,36 +28,6 @@ class SalesExport
 
     public function collection()
     {
-        // 1. Get Accessible IDs and filter out excluded ones (Matching AuditController logic)
-        $branchIds = [];
-        $onlineShopIds = [];
-        $isGlobal = $this->user && $this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis']);
-
-        if ($this->user) {
-            $branchIds = $this->user->getAccessibleBranchIds();
-            $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
-            
-            // Global exclusion for certain roles or just always for safety
-            $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
-            if (!empty($branchIds)) {
-                $branchIds = \App\Models\Branch::whereIn('id', $branchIds)
-                    ->where(function ($q) use ($excludedTerms) {
-                        foreach ($excludedTerms as $term) {
-                            $q->where('name', 'not ilike', '%' . $term . '%');
-                        }
-                    })->pluck('id')->toArray();
-            }
-            if (!empty($onlineShopIds)) {
-                $onlineShopIds = \App\Models\OnlineShop::whereIn('id', $onlineShopIds)
-                    ->where(function ($q) use ($excludedTerms) {
-                        foreach ($excludedTerms as $term) {
-                            $q->where('name', 'not ilike', '%' . $term . '%');
-                        }
-                    })->pluck('id')->toArray();
-            }
-        }
-
-        // 2. Build the Query
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling'];
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
@@ -65,39 +35,14 @@ class SalesExport
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
             ->where('status', '!=', 'cancelled');
 
-        // 3. Apply Scoping & Exclusion
-        $query->where(function ($q) use ($branchIds, $onlineShopIds, $isGlobal) {
-            $requestedBranchId = $this->branchId;
-            $requestedOnlineShopId = $this->onlineShopId;
+        if ($this->branchId) {
+            $query->where('branch_id', $this->branchId);
+        }
+        if ($this->onlineShopId) {
+            $query->where('online_shop_id', $this->onlineShopId);
+        }
 
-            if ($requestedBranchId) {
-                $q->where('stock_outs.branch_id', $requestedBranchId);
-            } elseif ($requestedOnlineShopId) {
-                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
-            } else {
-                if (!$isGlobal) {
-                    $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                        $sub->whereIn('stock_outs.branch_id', $branchIds)
-                            ->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                    });
-                }
-            }
-        });
-
-        // Global exclusion for 'Trial' / 'Test' data
-        $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
-        $excludedBranchIds = \App\Models\Branch::where(function($q) use ($excludedTerms) {
-            foreach ($excludedTerms as $term) $q->orWhere('name', 'ilike', '%'.$term.'%');
-        })->pluck('id')->toArray();
-        
-        $excludedShopIds = \App\Models\OnlineShop::where(function($q) use ($excludedTerms) {
-            foreach ($excludedTerms as $term) $q->orWhere('name', 'ilike', '%'.$term.'%');
-        })->pluck('id')->toArray();
-
-        if (!empty($excludedBranchIds)) $query->whereNotIn('stock_outs.branch_id', $excludedBranchIds);
-        if (!empty($excludedShopIds)) $query->whereNotIn('stock_outs.online_shop_id', $excludedShopIds);
-
-        $stockOuts = $query->latest('stock_outs.created_at')->get();
+        $stockOuts = $query->latest('created_at')->get();
         $rows = [];
 
         foreach ($stockOuts as $so) {
