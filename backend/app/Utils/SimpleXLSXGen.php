@@ -58,13 +58,16 @@ class SimpleXLSXGen {
 </styleSheet>';
         
         // 6. xl/worksheets/sheet1.xml
-        $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="40"/><col min="2" max="17" width="12"/></cols><sheetData>';
+        $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="20"/><col min="2" max="2" width="20"/><col min="3" max="100" width="15"/></cols><sheetData>';
         foreach ($this->rows as $rIdx => $row) {
             $ws .= '<row r="'.($rIdx+1).'">';
             foreach ($row as $cIdx => $val) {
                 $col = $this->num2alpha($cIdx) . ($rIdx + 1);
-                $s = 0; if ($rIdx === 0) $s = 1; elseif ($rIdx === 1) $s = 2; elseif ($rIdx > 1) { if ($cIdx >= 3 && $cIdx <= 8) $s = 3; elseif ($cIdx >= 9 && $cIdx <= 15) $s = 4; elseif ($cIdx === 16) $s = 5; }
-                if (is_numeric($val) && strlen($val) < 12) {
+                $s = 0; 
+                if ($rIdx === 0) $s = 1; // Title style
+                elseif ($rIdx === 1) $s = 2; // Header style
+                
+                if (is_numeric($val) && strlen($val) < 12 && !str_starts_with($val, '0')) {
                     $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
                 } else {
                     $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';

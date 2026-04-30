@@ -128,7 +128,8 @@ class SalesExport
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
                         $finalProductName = "OUT: " . $productName . " [" . $condition . "]" . $notes . "\nIN: " . $inProd;
                         $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
-                        $distIn = $exchangeInfo->distributor->name ?? 'Konsumen';
+                        
+                        $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
                         $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
                     }
 

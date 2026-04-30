@@ -2556,50 +2556,41 @@ class AuditController extends Controller
 
         try {
             $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
-            $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.csv";
+            $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xlsx";
 
-            return response()->streamDownload(function() use ($export) {
-                $file = fopen('php://output', 'w');
+            $xlsxData = [];
+            $xlsxData[] = ["LAPORAN PENJUALAN (" . strtoupper($startDate) . " - " . strtoupper($endDate) . ")"];
+            $xlsxData[] = $export->headings();
+
+            $rows = $export->collection();
+            foreach ($rows as $row) {
+                $cat = strtolower($row['category'] ?? '');
+                $isExchange = str_contains($cat, 'tukar') || str_contains($cat, 'downgrade');
                 
-                // Add BOM for Excel UTF-8 support
-                fputs($file, "\xEF\xBB\xBF");
+                $xlsxData[] = [
+                    $row['waktu'] ?? '',
+                    $row['order_no'] ?? '',
+                    $row['lokasi'] ?? '',
+                    $row['user'] ?? '',
+                    $row['customer'] ?? '',
+                    $row['whatsapp'] ?? '',
+                    $row['category'] ?? '',
+                    $row['product'] ?? '',
+                    str_replace("'", "", $row['imei'] ?? '-'),
+                    $row['qty'] ?? 1,
+                    $row['price'] ?? '',
+                    $row['total'] ?? '',
+                    $row['distributor'] ?? '',
+                    $row['payment'] ?? '',
+                    $row['status'] ?? '',
+                    ($isExchange && $row['price_out'] !== '-') ? $row['price_out'] : '',
+                    ($isExchange && $row['price_in'] !== '-') ? $row['price_in'] : '',
+                    ($isExchange && $row['balance'] !== '-') ? $row['balance'] : ''
+                ];
+            }
 
-                // Headings
-                fputcsv($file, $export->headings());
-
-                // Data
-                $rows = $export->collection();
-                foreach ($rows as $row) {
-                    $cat = strtolower($row['category'] ?? '');
-                    $isExchange = str_contains($cat, 'tukar') || str_contains($cat, 'downgrade');
-                    
-                    // Filter row data to match headings
-                    $data = [
-                        $row['waktu'] ?? '',
-                        $row['order_no'] ?? '',
-                        $row['lokasi'] ?? '',
-                        $row['user'] ?? '',
-                        $row['customer'] ?? '',
-                        $row['whatsapp'] ?? '',
-                        $row['category'] ?? '',
-                        $row['product'] ?? '',
-                        str_replace("'", "", $row['imei'] ?? '-'),
-                        $row['qty'] ?? 1,
-                        $row['price'] ?? '',
-                        $row['total'] ?? '',
-                        $row['distributor'] ?? '',
-                        $row['payment'] ?? '',
-                        $row['status'] ?? '',
-                        ($isExchange && $row['price_out'] !== '-') ? $row['price_out'] : '',
-                        ($isExchange && $row['price_in'] !== '-') ? $row['price_in'] : '',
-                        ($isExchange && $row['balance'] !== '-') ? $row['balance'] : ''
-                    ];
-                    
-                    fputcsv($file, $data);
-                }
-                fclose($file);
-            }, $filename, [
-                'Content-Type' => 'text/csv; charset=UTF-8',
+            return response((string)\App\Utils\SimpleXLSXGen::fromArray($xlsxData), 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
                 'Cache-Control' => 'max-age=0',
             ]);
