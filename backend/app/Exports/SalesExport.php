@@ -60,7 +60,7 @@ class SalesExport
         $rows = [];
 
         // Pre-fetch exchange data to avoid N+1
-        $receiptIds = $stockOuts->pluck('receipt_id')->unique()->toArray();
+        $receiptIds = $stockOuts->pluck('receipt_id')->filter()->toArray();
         $ttData = \App\Models\TukarTambah::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
         $dgData = \App\Models\Downgrade::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
         $ueData = \App\Models\UnitExchange::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
@@ -73,10 +73,9 @@ class SalesExport
             
             // Check for Exchange Data
             $exchangeInfo = null;
-            $exchangeType = '';
-            if ($cat === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); $exchangeType = 'TUKAR TAMBAH'; }
-            elseif ($cat === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); $exchangeType = 'DOWNGRADE'; }
-            elseif ($cat === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); $exchangeType = 'TUKAR UNIT'; }
+            if ($cat === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); }
+            elseif ($cat === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); }
+            elseif ($cat === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); }
 
             if ($so->is_bundle) {
                 // Consolidate bundle into ONE row
@@ -152,39 +151,59 @@ class SalesExport
                     $finalImei = $item->imei ? "'" . $item->imei : '-';
 
                     if ($exchangeInfo) {
-                        $priceOut = $exchangeInfo->outgoing_price ?? $price;
-                        $priceIn = $exchangeInfo->incoming_cost_price ?? 0;
-                        $balance = $exchangeInfo->price_difference ?? ($priceOut - $priceIn);
-
+                        $priceOut = (float) ($exchangeInfo->outgoing_price ?? ($cat == 'tukar_unit' ? ($exchangeInfo->incoming_cost_price ?? 0) : 0));
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
+                        
+                        $finalProductName = "OUT: " . $productName . " [" . $condition . "]" . $notes . "\nIN: " . $inProd;
+                        $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
 
-                        $finalProductName = "[OUT] " . $finalProductName . " | [IN] " . $inProd;
-                        $finalImei = "[OUT] " . str_replace("'", "", $finalImei) . " | [IN] " . $inImei;
+                        $priceOut = (float)($exchangeInfo->outgoing_price ?? $price);
+                        $priceIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
+                        $balance = $priceOut - $priceIn;
+
+                        $rows[] = [
+                            'waktu' => $so->created_at->format('d/m/Y H:i'),
+                            'order_no' => $so->receipt_id,
+                            'lokasi' => $location,
+                            'user' => $csName,
+                            'customer' => $so->customer_name ?? '-',
+                            'whatsapp' => $so->customer_wa ?? '-',
+                            'category' => str_replace('_', ' ', strtoupper($so->category)),
+                            'product' => $finalProductName,
+                            'imei' => $finalImei,
+                            'qty' => 1,
+                            'price' => 'Rp ' . number_format($price, 0, ',', '.'),
+                            'total' => 'Rp ' . number_format($price, 0, ',', '.'),
+                            'payment' => $payment,
+                            'status' => strtoupper($so->status),
+                            'price_out' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
+                            'price_in' => 'Rp ' . number_format($priceIn, 0, ',', '.'),
+                            'balance' => 'Rp ' . number_format($balance, 0, ',', '.')
+                        ];
+                    } else {
+                        $rows[] = [
+                            'waktu' => $so->created_at->format('d/m/Y H:i'),
+                            'order_no' => $so->receipt_id,
+                            'lokasi' => $location,
+                            'user' => $csName,
+                            'customer' => $so->customer_name ?? '-',
+                            'whatsapp' => $so->customer_wa ?? '-',
+                            'category' => str_replace('_', ' ', strtoupper($so->category)),
+                            'product' => $productName . " [" . $condition . "]" . $notes,
+                            'imei' => $item->imei ? "'" . $item->imei : '-',
+                            'qty' => 1,
+                            'price' => 'Rp ' . number_format($price, 0, ',', '.'),
+                            'total' => 'Rp ' . number_format($price, 0, ',', '.'),
+                            'payment' => $payment,
+                            'status' => strtoupper($so->status),
+                            'price_out' => '-',
+                            'price_in' => '-',
+                            'balance' => '-'
+                        ];
                     }
-
-                    $rows[] = [
-                        'waktu' => $so->created_at->format('d/m/Y H:i'),
-                        'order_no' => $so->receipt_id,
-                        'lokasi' => $location,
-                        'user' => $csName,
-                        'customer' => $so->customer_name ?? '-',
-                        'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => str_replace('_', ' ', strtoupper($so->category)),
-                        'product' => $finalProductName,
-                        'imei' => $finalImei,
-                        'qty' => 1,
-                        'price' => 'Rp ' . number_format($price, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($price, 0, ',', '.'),
-                        'payment' => $payment ?: '-',
-                        'status' => strtoupper($so->status),
-                        'price_out' => $priceOut ? 'Rp ' . number_format($priceOut, 0, ',', '.') : '-',
-                        'price_in' => $priceIn ? 'Rp ' . number_format($priceIn, 0, ',', '.') : '-',
-                        'balance' => $balance ? 'Rp ' . number_format($balance, 0, ',', '.') : '-'
-                    ];
                 }
 
-                // Non-HP Items
                 foreach ($so->nonHpItems as $item) {
                     $notes = $item->notes ? " (" . $item->notes . ")" : "";
                     $price = $item->price ?? 0;
@@ -253,7 +272,10 @@ class SalesExport
             $row['price'],
             $row['total'],
             $row['payment'],
-            $row['status']
+            $row['status'],
+            $row['price_out'] ?? '',
+            $row['price_in'] ?? '',
+            $row['balance'] ?? ''
         ];
     }
 }

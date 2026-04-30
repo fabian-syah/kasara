@@ -1256,8 +1256,24 @@ class AuditController extends Controller
                     if ($exchangeInfo) {
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
-                        $pName = "[OUT] " . $pName . " | [IN] " . $inProd;
-                        $pImei = "[OUT] " . $pImei . " | [IN] " . $inImei;
+                        
+                        // Add a special "Incoming" item to the details array
+                        // This makes it show as a second row in CheckSales and Nota
+                        $details[] = [
+                            'name' => "IN: " . $inProd,
+                            'qty' => 1,
+                            'price' => (float)($exchangeInfo->incoming_cost_price ?? 0),
+                            'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
+                            'type' => 'IN',
+                            'is_hp' => true,
+                            'imei' => $inImei,
+                            'distributor_name' => 'Konsumen',
+                            'condition' => $exchangeInfo->incoming_condition ?? 'second',
+                            'storage' => $exchangeInfo->incoming_storage ?? '-',
+                            'is_incoming' => true
+                        ];
+
+                        $pName = "OUT: " . $pName;
                     }
 
                     $details[] = [
@@ -1435,7 +1451,11 @@ class AuditController extends Controller
                     'bundle_description' => $trx->bundle_description,
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
-                    'notes' => $trx->notes
+                    'notes' => $trx->notes,
+                    // Specialized Pricing for UI columns if needed
+                    'price_out' => $exchangeInfo ? (float)($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) : null,
+                    'price_in' => $exchangeInfo ? (float)($exchangeInfo->incoming_cost_price ?? 0) : null,
+                    'price_diff' => $exchangeInfo ? (float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0)) : null,
                 ];
             });
 
