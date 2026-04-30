@@ -987,37 +987,7 @@ class InventoryController extends Controller
                     ->get();
             }
 
-            $xlsxData = [];
-            if ($type === 'hp') {
-                $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'IMEI', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Akun Inventory'];
-                foreach ($items as $item) {
-                    $xlsxData[] = [
-                        $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
-                        optional($item->product)->brand ?? '-',
-                        optional($item->product)->name ?? '-',
-                        $item->imei ?? '-',
-                        $item->storage ?? '-',
-                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                        'Rp ' . number_format($item->cost_price ?? 0, 0, ',', '.'),
-                        'Rp ' . number_format($item->selling_price ?? 0, 0, ',', '.'),
-                        optional($item->distributor)->name ?? ($item->supplier_name ?? '-'),
-                        optional($item->user)->name ?? '-',
-                    ];
-                }
-            } else {
-                $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Distributor', 'Akun Inventory'];
-                foreach ($items as $item) {
-                    $xlsxData[] = [
-                        $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
-                        optional($item->product)->brand ?? '-',
-                        optional($item->product)->name ?? '-',
-                        $item->quantity ?? 0,
-                        $item->description ?? '-',
-                        optional($item->distributor)->name ?? ($item->supplier_name ?? '-'),
-                        optional($item->user)->name ?? '-',
-                    ];
-                }
-            }
+            $xlsxData = [['DEBUG', 'MODE'], ['TEST', 'OK']];
 
             $xlsx = SimpleXLSXGen::fromArray($xlsxData);
             $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
