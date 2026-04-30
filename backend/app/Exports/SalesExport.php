@@ -63,36 +63,19 @@ class SalesExport
             $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
             $csName = $so->inventoryUser->name ?? ($so->user->name ?? '-');
             
-            // If it's a bundle, we can optionally add a header row or just prefix the products
-            $bundlePrefix = $so->is_bundle ? "📦 Paket Bundling: " . ($so->bundle_description ?: 'Paket') . " - " : "";
-
-            // HP Items
-            foreach ($so->items as $item) {
-                $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
-                $condition = $item->condition === 'new' ? 'Baru' : 'Second';
-                $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
+            if ($so->is_bundle) {
+                // Consolidate bundle into ONE row
+                $totalPrice = 0;
+                $allImeis = [];
                 
-                $rows[] = [
-                    'waktu' => $so->created_at->format('d/m/Y H:i'),
-                    'order_no' => $so->receipt_id,
-                    'lokasi' => $location,
-                    'user' => $csName,
-                    'customer' => $so->customer_name ?? '-',
-                    'whatsapp' => $so->customer_wa ?? '-',
-                    'category' => str_replace('_', ' ', strtoupper($so->category)),
-                    'product' => $bundlePrefix . $productName . " [" . $condition . "]" . $notes,
-                    'imei' => $item->imei ?? '-',
-                    'qty' => 1,
-                    'price' => $item->pivot->selling_price ?? 0,
-                    'total' => $item->pivot->selling_price ?? 0,
-                    'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
-                    'status' => strtoupper($so->status)
-                ];
-            }
+                foreach ($so->items as $item) {
+                    $totalPrice += ($item->pivot->selling_price ?? 0);
+                    if ($item->imei) $allImeis[] = $item->imei;
+                }
+                foreach ($so->nonHpItems as $item) {
+                    $totalPrice += (($item->price ?? 0) * $item->quantity);
+                }
 
-            // Non-HP Items
-            foreach ($so->nonHpItems as $item) {
-                $notes = $item->notes ? " (" . $item->notes . ")" : "";
                 $rows[] = [
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
@@ -101,14 +84,60 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => str_replace('_', ' ', strtoupper($so->category)),
-                    'product' => $bundlePrefix . ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
-                    'imei' => '-',
-                    'qty' => $item->quantity,
-                    'price' => $item->price ?? 0,
-                    'total' => ($item->price ?? 0) * $item->quantity,
+                    'product' => "📦 " . ($so->bundle_description ?: 'Paket Bundling'),
+                    'imei' => implode(', ', $allImeis) ?: '-',
+                    'qty' => 1,
+                    'price' => $totalPrice,
+                    'total' => $totalPrice,
                     'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
                     'status' => strtoupper($so->status)
                 ];
+            } else {
+                // Standard multi-row display for non-bundles
+                // HP Items
+                foreach ($so->items as $item) {
+                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
+                    $condition = $item->condition === 'new' ? 'Baru' : 'Second';
+                    $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
+                    
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => str_replace('_', ' ', strtoupper($so->category)),
+                        'product' => $productName . " [" . $condition . "]" . $notes,
+                        'imei' => $item->imei ?? '-',
+                        'qty' => 1,
+                        'price' => $item->pivot->selling_price ?? 0,
+                        'total' => $item->pivot->selling_price ?? 0,
+                        'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                        'status' => strtoupper($so->status)
+                    ];
+                }
+
+                // Non-HP Items
+                foreach ($so->nonHpItems as $item) {
+                    $notes = $item->notes ? " (" . $item->notes . ")" : "";
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => str_replace('_', ' ', strtoupper($so->category)),
+                        'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
+                        'imei' => '-',
+                        'qty' => $item->quantity,
+                        'price' => $item->price ?? 0,
+                        'total' => ($item->price ?? 0) * $item->quantity,
+                        'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
+                        'status' => strtoupper($so->status)
+                    ];
+                }
             }
         }
 
