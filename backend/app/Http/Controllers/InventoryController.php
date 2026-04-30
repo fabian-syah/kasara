@@ -974,13 +974,11 @@ class InventoryController extends Controller
                 $query->whereMonth($dateTable . '.created_at', $request->month)->whereYear($dateTable . '.created_at', $request->year);
             }
 
-            // Sorting & Join
+            // Sorting & Execution
             if ($type === 'non-hp') {
-                $items = $query->join($prodTable, $logTable . '.product_id', '=', $prodTable . '.id')
-                    ->select($logTable . '.*')
-                    ->orderBy($prodTable . '.brand')
-                    ->orderBy($prodTable . '.name')
-                    ->get();
+                $items = $query->get()->sortBy(function ($item) {
+                    return strtolower((optional($item->product)->brand ?? '') . (optional($item->product)->name ?? ''));
+                });
             } else {
                 $items = $query->join($prodTable, $detailTable . '.product_id', '=', $prodTable . '.id')
                     ->select($detailTable . '.*')
