@@ -171,7 +171,7 @@ class SalesExport
                     
                     $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
                     $finalDistributor = $distOut;
-                    $finalProductName = ($so->is_bundle ? "📦 " : "") . $productName . " [" . $condition . "]";
+                    $finalProductName = $productName . " [" . $condition . "]";
                     $finalImei = $item->imei ? "'" . $item->imei : '-';
                     
                     $pOut = $price; $pIn = 0; $diff = 0;
@@ -225,7 +225,7 @@ class SalesExport
                         'customer' => $so->customer_name ?? '-',
                         'whatsapp' => $so->customer_wa ?? '-',
                         'category' => strtoupper($so->category),
-                        'product' => ($so->is_bundle ? "📦 " : "") . ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})",
+                        'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})",
                         'imei' => '-',
                         'qty' => $item->quantity,
                         'price' => 'Rp ' . number_format($price, 0, ',', '.'),
