@@ -30,7 +30,7 @@ class SalesExport
     {
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling'];
 
-        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
+        $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
             ->where('status', '!=', 'cancelled');
@@ -40,18 +40,12 @@ class SalesExport
         } elseif ($this->onlineShopId) {
             $query->where('stock_outs.online_shop_id', $this->onlineShopId);
         } else {
-            // User-based scoping for non-admins
             if ($this->user && !$this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
                 $branchIds = $this->user->getAccessibleBranchIds();
                 $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
-                
                 $query->where(function($q) use ($branchIds, $onlineShopIds) {
                     $q->whereIn('stock_outs.branch_id', $branchIds)
-                      ->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                      ->orWhereHas('user', function($uq) use ($branchIds, $onlineShopIds) {
-                          $uq->whereIn('branch_id', $branchIds)
-                             ->orWhereIn('online_shop_id', $onlineShopIds);
-                      });
+                      ->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
                 });
             }
         }
@@ -59,11 +53,10 @@ class SalesExport
         $stockOuts = $query->latest('created_at')->get();
         $rows = [];
 
-        // Pre-fetch exchange data to avoid N+1
         $receiptIds = $stockOuts->pluck('receipt_id')->filter()->toArray();
-        $ttData = \App\Models\TukarTambah::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-        $dgData = \App\Models\Downgrade::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-        $ueData = \App\Models\UnitExchange::with('incomingProductType')->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+        $ttData = \App\Models\TukarTambah::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+        $dgData = \App\Models\Downgrade::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+        $ueData = \App\Models\UnitExchange::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
 
         foreach ($stockOuts as $so) {
             $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
@@ -71,43 +64,25 @@ class SalesExport
             $cat = strtolower($so->category);
             $receiptId = $so->receipt_id;
             
-            // Check for Exchange Data
             $exchangeInfo = null;
-            if ($cat === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); }
-            elseif ($cat === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); }
-            elseif ($cat === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); }
+            if ($cat === 'tukar_tambah') $exchangeInfo = $ttData->get($receiptId);
+            elseif ($cat === 'downgrade') $exchangeInfo = $dgData->get($receiptId);
+            elseif ($cat === 'tukar_unit') $exchangeInfo = $ueData->get($receiptId);
+
+            $payment = $so->paymentMethod->name ?? null;
+            if (!$payment && !empty($so->split_payments_data)) {
+                $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
+            }
 
             if ($so->is_bundle) {
-                // Consolidate bundle into ONE row
                 $totalPrice = 0;
                 $allImeis = [];
-                
                 foreach ($so->items as $item) {
                     $totalPrice += ($item->pivot->selling_price ?? 0);
                     if ($item->imei) $allImeis[] = $item->imei;
                 }
                 foreach ($so->nonHpItems as $item) {
                     $totalPrice += (($item->price ?? 0) * $item->quantity);
-                }
-
-                $payment = $so->paymentMethod->name ?? null;
-                if (!$payment && !empty($so->split_payments_data)) {
-                    $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
-                }
-
-                $priceOut = 0;
-                $priceIn = 0;
-                $balance = 0;
-
-                // Category specific logic
-                $isDowngrade = strtolower($so->category) === 'downgrade';
-                $isTukarTambah = strtolower($so->category) === 'tukar_tambah';
-                $isTukarUnit = strtolower($so->category) === 'tukar_unit';
-
-                if ($isDowngrade || $isTukarTambah || $isTukarUnit) {
-                    $priceOut = $totalPrice; // Usually the selling price is the OUT price
-                    $priceIn = 0; // Needs data from somewhere else if available
-                    $balance = $totalPrice; 
                 }
 
                 $rows[] = [
@@ -117,98 +92,66 @@ class SalesExport
                     'user' => $csName,
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
-                    'category' => str_replace('_', ' ', strtoupper($so->category)),
+                    'category' => strtoupper($so->category),
                     'product' => "📦 " . ($so->bundle_description ?: 'Paket Bundling'),
                     'imei' => implode(', ', array_map(fn($i) => "'" . $i, $allImeis)) ?: '-',
                     'qty' => 1,
                     'price' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
                     'total' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
+                    'distributor' => $so->items->first()->distributor->name ?? '-',
                     'payment' => $payment ?: '-',
                     'status' => strtoupper($so->status),
-                    'price_out' => $priceOut ? 'Rp ' . number_format($priceOut, 0, ',', '.') : '-',
-                    'price_in' => $priceIn ? 'Rp ' . number_format($priceIn, 0, ',', '.') : '-',
-                    'balance' => $balance ? 'Rp ' . number_format($balance, 0, ',', '.') : '-'
+                    'price_out' => '-',
+                    'price_in' => '-',
+                    'balance' => '-'
                 ];
             } else {
-                // Standard multi-row display for non-bundles
-                $payment = $so->paymentMethod->name ?? null;
-                if (!$payment && !empty($so->split_payments_data)) {
-                    $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
-                }
-
-                // HP Items
                 foreach ($so->items as $item) {
                     $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
                     $condition = $item->condition === 'new' ? 'Baru' : 'Second';
                     $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
-                    
                     $price = $item->pivot->selling_price ?? 0;
-                    $priceOut = 0;
-                    $priceIn = 0;
-                    $balance = 0;
-
+                    
+                    $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                    $finalDistributor = $distOut;
                     $finalProductName = $productName . " [" . $condition . "]" . $notes;
                     $finalImei = $item->imei ? "'" . $item->imei : '-';
+                    
+                    $pOut = $price; $pIn = 0; $diff = 0;
 
                     if ($exchangeInfo) {
-                        $priceOut = (float) ($exchangeInfo->outgoing_price ?? ($cat == 'tukar_unit' ? ($exchangeInfo->incoming_cost_price ?? 0) : 0));
+                        $pOut = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : $price));
+                        $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
+                        $diff = $pOut - $pIn;
+
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
-                        
                         $finalProductName = "OUT: " . $productName . " [" . $condition . "]" . $notes . "\nIN: " . $inProd;
                         $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
-
-                        $priceOut = (float)($exchangeInfo->outgoing_price ?? $price);
-                        $priceIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
-                        $balance = $priceOut - $priceIn;
-
-                        // Unified Distributor: OUT distributor | IN distributor
-                        $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
                         $distIn = $exchangeInfo->distributor->name ?? 'Konsumen';
                         $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
-
-                        $rows[] = [
-                            'waktu' => $so->created_at->format('d/m/Y H:i'),
-                            'order_no' => $so->receipt_id,
-                            'lokasi' => $location,
-                            'user' => $csName,
-                            'customer' => $so->customer_name ?? '-',
-                            'whatsapp' => $so->customer_wa ?? '-',
-                            'category' => str_replace('_', ' ', strtoupper($so->category)),
-                            'product' => $finalProductName,
-                            'imei' => $finalImei,
-                            'qty' => 1,
-                            'price' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
-                            'total' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
-                            'distributor' => $finalDistributor,
-                            'payment' => $payment,
-                            'status' => strtoupper($so->status),
-                            'price_out' => 'Rp ' . number_format($priceOut, 0, ',', '.'),
-                            'price_in' => 'Rp ' . number_format($priceIn, 0, ',', '.'),
-                            'balance' => 'Rp ' . number_format($balance, 0, ',', '.')
-                        ];
-                    } else {
-                        $rows[] = [
-                            'waktu' => $so->created_at->format('d/m/Y H:i'),
-                            'order_no' => $so->receipt_id,
-                            'lokasi' => $location,
-                            'user' => $csName,
-                            'customer' => $so->customer_name ?? '-',
-                            'whatsapp' => $so->customer_wa ?? '-',
-                            'category' => str_replace('_', ' ', strtoupper($so->category)),
-                            'product' => $productName . " [" . $condition . "]" . $notes,
-                            'imei' => $item->imei ? "'" . $item->imei : '-',
-                            'qty' => 1,
-                            'price' => 'Rp ' . number_format($price, 0, ',', '.'),
-                            'total' => 'Rp ' . number_format($price, 0, ',', '.'),
-                            'distributor' => $item->distributor->name ?? $item->supplier_name ?? '-',
-                            'payment' => $payment,
-                            'status' => strtoupper($so->status),
-                            'price_out' => '-',
-                            'price_in' => '-',
-                            'balance' => '-'
-                        ];
                     }
+
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => strtoupper($so->category),
+                        'product' => $finalProductName,
+                        'imei' => $finalImei,
+                        'qty' => 1,
+                        'price' => 'Rp ' . number_format($pOut, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($pOut, 0, ',', '.'),
+                        'distributor' => $finalDistributor,
+                        'payment' => $payment ?: '-',
+                        'status' => strtoupper($so->status),
+                        'price_out' => $exchangeInfo ? 'Rp ' . number_format($pOut, 0, ',', '.') : '-',
+                        'price_in' => $exchangeInfo ? 'Rp ' . number_format($pIn, 0, ',', '.') : '-',
+                        'balance' => $exchangeInfo ? 'Rp ' . number_format($diff, 0, ',', '.') : '-'
+                    ];
                 }
 
                 foreach ($so->nonHpItems as $item) {
@@ -221,7 +164,7 @@ class SalesExport
                         'user' => $csName,
                         'customer' => $so->customer_name ?? '-',
                         'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => str_replace('_', ' ', strtoupper($so->category)),
+                        'category' => strtoupper($so->category),
                         'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
                         'imei' => '-',
                         'qty' => $item->quantity,
@@ -230,9 +173,9 @@ class SalesExport
                         'distributor' => $item->distributor->name ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status),
-                        'price_out' => '',
-                        'price_in' => '',
-                        'balance' => ''
+                        'price_out' => '-',
+                        'price_in' => '-',
+                        'balance' => '-'
                     ];
                 }
             }
@@ -268,21 +211,21 @@ class SalesExport
     public function map($row): array
     {
         return [
-            $row['waktu'],
-            $row['order_no'],
-            $row['lokasi'],
-            $row['user'],
-            $row['customer'],
-            $row['whatsapp'],
-            $row['category'],
-            $row['product'],
-            $row['imei'],
-            $row['qty'],
-            $row['price'],
-            $row['total'],
-            $row['distributor'],
-            $row['payment'],
-            $row['status'],
+            $row['waktu'] ?? '',
+            $row['order_no'] ?? '',
+            $row['lokasi'] ?? '',
+            $row['user'] ?? '',
+            $row['customer'] ?? '',
+            $row['whatsapp'] ?? '',
+            $row['category'] ?? '',
+            $row['product'] ?? '',
+            $row['imei'] ?? '',
+            $row['qty'] ?? 0,
+            $row['price'] ?? '',
+            $row['total'] ?? '',
+            $row['distributor'] ?? '',
+            $row['payment'] ?? '',
+            $row['status'] ?? '',
             $row['price_out'] ?? '',
             $row['price_in'] ?? '',
             $row['balance'] ?? ''
