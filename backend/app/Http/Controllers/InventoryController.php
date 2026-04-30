@@ -883,8 +883,8 @@ class InventoryController extends Controller
     // Export Stock In History as XLSX
     public function exportStockInHistory(Request $request)
     {
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
+        ini_set('memory_limit', '1024M');
+        set_time_limit(600);
         try {
             $user = Auth::user();
             $type = $request->type ?? 'hp';
@@ -894,7 +894,10 @@ class InventoryController extends Controller
             $prodTable = (new Product)->getTable();
 
             if ($type === 'non-hp') {
-                $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
+                $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in')
+                    ->whereHas('product', function ($pq) {
+                        $pq->where('has_imei', false);
+                    });
                 if ($request->search) {
                     $lowKeyword = strtolower($request->search);
                     $query->where(function ($q) use ($lowKeyword) {
@@ -990,7 +993,7 @@ class InventoryController extends Controller
             $xlsxData = [];
             if ($type === 'hp') {
                 $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'IMEI', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Akun Inventory'];
-                foreach ($items->take(100) as $item) {
+                foreach ($items as $item) {
                     $xlsxData[] = [
                         $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
                         optional($item->product)->brand ?? '-',
@@ -1006,7 +1009,7 @@ class InventoryController extends Controller
                 }
             } else {
                 $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Distributor', 'Akun Inventory'];
-                foreach ($items->take(100) as $item) {
+                foreach ($items as $item) {
                     $xlsxData[] = [
                         $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
                         optional($item->product)->brand ?? '-',
