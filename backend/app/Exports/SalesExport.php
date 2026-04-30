@@ -74,40 +74,65 @@ class SalesExport
                 $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
             }
 
-            if ($so->is_bundle) {
+            $groups = [];
+            $singles = [];
+
+            // Grouping logic: Items with the same non-empty note are combined into a bundle row.
+            // Items with empty notes are treated as individual single rows.
+            foreach ($so->items as $item) {
+                $note = trim($item->pivot->notes ?? '');
+                if ($note !== '') {
+                    $groups[$note][] = ['type' => 'hp', 'data' => $item];
+                } else {
+                    $singles[] = ['type' => 'hp', 'data' => $item];
+                }
+            }
+            foreach ($so->nonHpItems as $item) {
+                $note = trim($item->notes ?? '');
+                if ($note !== '') {
+                    $groups[$note][] = ['type' => 'non_hp', 'data' => $item];
+                } else {
+                    $singles[] = ['type' => 'non_hp', 'data' => $item];
+                }
+            }
+
+            // 1. Process Grouped Bundles
+            foreach ($groups as $groupName => $items) {
                 $totalPrice = 0;
                 $allImeis = [];
                 $productList = [];
                 $distributors = [];
 
-                foreach ($so->items as $item) {
-                    $rawPrice = $item->pivot->selling_price ?? 0;
-                    $itemDiscount = $item->pivot->item_discount ?? 0;
-                    $distDiscount = $item->pivot->distributed_discount ?? 0;
-                    $netPrice = $rawPrice - $itemDiscount - $distDiscount;
-                    $totalPrice += $netPrice;
+                foreach ($items as $it) {
+                    if ($it['type'] === 'hp') {
+                        $item = $it['data'];
+                        $rawPrice = $item->pivot->selling_price ?? 0;
+                        $itemDiscount = $item->pivot->item_discount ?? 0;
+                        $distDiscount = $item->pivot->distributed_discount ?? 0;
+                        $netPrice = $rawPrice - $itemDiscount - $distDiscount;
+                        $totalPrice += $netPrice;
 
-                    if ($item->imei) $allImeis[] = $item->imei;
-                    
-                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
-                    $productList[] = "📦 " . $productName;
-                    
-                    $dist = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
-                    if (!in_array($dist, $distributors)) $distributors[] = $dist;
-                }
+                        if ($item->imei) $allImeis[] = $item->imei;
+                        
+                        $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
+                        $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
+                        
+                        $dist = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                        if (!in_array($dist, $distributors)) $distributors[] = $dist;
+                    } else {
+                        $item = $it['data'];
+                        $rawPrice = $item->selling_price ?? 0;
+                        $itemDiscount = $item->item_discount ?? 0;
+                        $distDiscount = $item->distributed_discount ?? 0;
+                        $netPrice = ($rawPrice - $itemDiscount - $distDiscount) * $item->quantity;
+                        $totalPrice += $netPrice;
 
-                foreach ($so->nonHpItems as $item) {
-                    $rawPrice = $item->selling_price ?? 0;
-                    $itemDiscount = $item->item_discount ?? 0;
-                    $distDiscount = $item->distributed_discount ?? 0;
-                    $netPrice = ($rawPrice - $itemDiscount - $distDiscount) * $item->quantity;
-                    $totalPrice += $netPrice;
-
-                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . ($item->notes ? " (" . $item->notes . ")" : "") . " (Qty: {$item->quantity})";
-                    $productList[] = "📦 " . $productName;
-                    
-                    $dist = $item->supplier_name ?? '-';
-                    if ($dist !== '-' && !in_array($dist, $distributors)) $distributors[] = $dist;
+                        $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})";
+                        $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
+                        
+                        $dist = $item->supplier_name ?? '-';
+                        if ($dist !== '-' && !in_array($dist, $distributors)) $distributors[] = $dist;
+                    }
                 }
 
                 $rows[] = [
@@ -130,13 +155,15 @@ class SalesExport
                     'price_in' => '-',
                     'balance' => '-'
                 ];
-            } else {
-                foreach ($so->items as $item) {
+            }
+
+            // 2. Process Individual Singles
+            foreach ($singles as $it) {
+                if ($it['type'] === 'hp') {
+                    $item = $it['data'];
                     $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
                     $condition = $item->condition === 'new' ? 'Baru' : 'Second';
-                    $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
                     
-                    // Calculate Net Price for HP
                     $rawPrice = $item->pivot->selling_price ?? 0;
                     $itemDiscount = $item->pivot->item_discount ?? 0;
                     $distDiscount = $item->pivot->distributed_discount ?? 0;
@@ -144,7 +171,7 @@ class SalesExport
                     
                     $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
                     $finalDistributor = $distOut;
-                    $finalProductName = $productName . " [" . $condition . "]" . $notes;
+                    $finalProductName = ($so->is_bundle ? "📦 " : "") . $productName . " [" . $condition . "]";
                     $finalImei = $item->imei ? "'" . $item->imei : '-';
                     
                     $pOut = $price; $pIn = 0; $diff = 0;
@@ -156,7 +183,7 @@ class SalesExport
 
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
-                        $finalProductName = "OUT: " . $productName . " [" . $condition . "]" . $notes . "\nIN: " . $inProd;
+                        $finalProductName = "OUT: " . $productName . " [" . $condition . "]\nIN: " . $inProd;
                         $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
                         
                         $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
@@ -183,12 +210,8 @@ class SalesExport
                         'price_in' => $exchangeInfo ? 'Rp ' . number_format($pIn, 0, ',', '.') : '-',
                         'balance' => $exchangeInfo ? 'Rp ' . number_format($diff, 0, ',', '.') : '-'
                     ];
-                }
-
-                foreach ($so->nonHpItems as $item) {
-                    $notes = $item->notes ? " (" . $item->notes . ")" : "";
-                    
-                    // Calculate Net Price for Non-HP
+                } else {
+                    $item = $it['data'];
                     $rawPrice = $item->selling_price ?? 0;
                     $itemDiscount = $item->item_discount ?? 0;
                     $distDiscount = $item->distributed_discount ?? 0;
@@ -202,7 +225,7 @@ class SalesExport
                         'customer' => $so->customer_name ?? '-',
                         'whatsapp' => $so->customer_wa ?? '-',
                         'category' => strtoupper($so->category),
-                        'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
+                        'product' => ($so->is_bundle ? "📦 " : "") . ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})",
                         'imei' => '-',
                         'qty' => $item->quantity,
                         'price' => 'Rp ' . number_format($price, 0, ',', '.'),
