@@ -969,12 +969,11 @@ class InventoryController extends Controller
             }
 
             // Date Filters
-            $logicalNow = now()->hour < 5 ? now()->subDay() : now();
             $dateTable = $type === 'non-hp' ? $logTable : $detailTable;
-            if ($request->date) {
-                $query->whereDate($dateTable . '.created_at', $request->date);
-            } elseif ($request->month && $request->year) {
+            if ($request->month && $request->year) {
                 $query->whereMonth($dateTable . '.created_at', $request->month)->whereYear($dateTable . '.created_at', $request->year);
+            } elseif ($request->date) {
+                $query->whereDate($dateTable . '.created_at', $request->date);
             }
 
             // Sorting & Execution
@@ -1094,10 +1093,10 @@ class InventoryController extends Controller
             }
 
             // Date Filters
-            if ($request->date) {
-                $query->whereDate($logTable . '.created_at', $request->date);
-            } elseif ($request->month && $request->year) {
+            if ($request->month && $request->year) {
                 $query->whereMonth($logTable . '.created_at', $request->month)->whereYear($logTable . '.created_at', $request->year);
+            } elseif ($request->date) {
+                $query->whereDate($logTable . '.created_at', $request->date);
             }
 
             // Sorting in PHP for stability
