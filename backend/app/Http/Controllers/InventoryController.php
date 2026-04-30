@@ -972,31 +972,28 @@ class InventoryController extends Controller
 
         $xlsxData = [];
         if ($type === 'hp') {
-            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'SKU', 'IMEI', 'RAM', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Diinput Oleh'];
+            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'IMEI', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Akun Inventory'];
             foreach ($items as $item) {
                 $xlsxData[] = [
                     $item->created_at->format('Y-m-d H:i'),
                     $item->product->brand ?? '-',
                     $item->product->name ?? '-',
-                    $item->product->sku ?? '-',
                     $item->imei ?? '-',
-                    $item->ram ?? '-',
                     $item->storage ?? '-',
                     $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                    $item->cost_price ?? 0,
-                    $item->selling_price ?? 0,
+                    'Rp ' . number_format($item->cost_price ?? 0, 0, ',', '.'),
+                    'Rp ' . number_format($item->selling_price ?? 0, 0, ',', '.'),
                     $item->distributor->name ?? ($item->supplier_name ?? '-'),
                     $item->user->name ?? '-',
                 ];
             }
         } else {
-            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Distributor', 'Diinput Oleh'];
+            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Distributor', 'Akun Inventory'];
             foreach ($items as $item) {
                 $xlsxData[] = [
                     $item->created_at->format('Y-m-d H:i'),
                     $item->product->brand ?? '-',
                     $item->product->name ?? '-',
-                    $item->product->sku ?? '-',
                     $item->quantity ?? 0,
                     $item->description ?? '-',
                     $item->distributor->name ?? ($item->supplier_name ?? '-'),
@@ -1065,13 +1062,12 @@ class InventoryController extends Controller
             ->get();
 
         $xlsxData = [];
-        $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'SKU', 'Quantity', 'Deskripsi', 'Diinput Oleh'];
+        $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Akun Inventory'];
         foreach ($items as $item) {
             $xlsxData[] = [
                 $item->created_at->format('Y-m-d H:i'),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
-                $item->product->sku ?? '-',
                 $item->quantity ?? 0,
                 $item->description ?? '-',
                 $item->user->name ?? '-',
