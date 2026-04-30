@@ -74,36 +74,40 @@ class SalesExport
                 $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
             }
 
-            foreach ($so->items as $item) {
-                $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
-                $condition = $item->condition === 'new' ? 'Baru' : 'Second';
-                $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
-                
-                // Calculate Net Price for HP
-                $rawPrice = $item->pivot->selling_price ?? 0;
-                $itemDiscount = $item->pivot->item_discount ?? 0;
-                $distDiscount = $item->pivot->distributed_discount ?? 0;
-                $price = $rawPrice - $itemDiscount - $distDiscount;
-                
-                $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
-                $finalDistributor = $distOut;
-                $finalProductName = ($so->is_bundle ? "📦 " : "") . $productName . " [" . $condition . "]" . $notes;
-                $finalImei = $item->imei ? "'" . $item->imei : '-';
-                
-                $pOut = $price; $pIn = 0; $diff = 0;
+            if ($so->is_bundle) {
+                $totalPrice = 0;
+                $allImeis = [];
+                $productList = [];
+                $distributors = [];
 
-                if ($exchangeInfo) {
-                    $pOut = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : $price));
-                    $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
-                    $diff = $pOut - $pIn;
+                foreach ($so->items as $item) {
+                    $rawPrice = $item->pivot->selling_price ?? 0;
+                    $itemDiscount = $item->pivot->item_discount ?? 0;
+                    $distDiscount = $item->pivot->distributed_discount ?? 0;
+                    $netPrice = $rawPrice - $itemDiscount - $distDiscount;
+                    $totalPrice += $netPrice;
 
-                    $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
-                    $inImei = $exchangeInfo->incoming_imei ?? '-';
-                    $finalProductName = "OUT: " . $productName . " [" . $condition . "]" . $notes . "\nIN: " . $inProd;
-                    $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
+                    if ($item->imei) $allImeis[] = $item->imei;
                     
-                    $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
-                    $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
+                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
+                    $productList[] = "📦 " . $productName;
+                    
+                    $dist = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                    if (!in_array($dist, $distributors)) $distributors[] = $dist;
+                }
+
+                foreach ($so->nonHpItems as $item) {
+                    $rawPrice = $item->selling_price ?? 0;
+                    $itemDiscount = $item->item_discount ?? 0;
+                    $distDiscount = $item->distributed_discount ?? 0;
+                    $netPrice = ($rawPrice - $itemDiscount - $distDiscount) * $item->quantity;
+                    $totalPrice += $netPrice;
+
+                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . ($item->notes ? " (" . $item->notes . ")" : "") . " (Qty: {$item->quantity})";
+                    $productList[] = "📦 " . $productName;
+                    
+                    $dist = $item->supplier_name ?? '-';
+                    if ($dist !== '-' && !in_array($dist, $distributors)) $distributors[] = $dist;
                 }
 
                 $rows[] = [
@@ -114,49 +118,103 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => strtoupper($so->category),
-                    'product' => $finalProductName,
-                    'imei' => $finalImei,
+                    'product' => implode("\n", $productList),
+                    'imei' => implode(', ', array_map(fn($i) => "'" . $i, $allImeis)) ?: '-',
                     'qty' => 1,
-                    'price' => 'Rp ' . number_format($pOut, 0, ',', '.'),
-                    'total' => 'Rp ' . number_format($pOut, 0, ',', '.'),
-                    'distributor' => $finalDistributor,
-                    'payment' => $payment ?: '-',
-                    'status' => strtoupper($so->status),
-                    'price_out' => $exchangeInfo ? 'Rp ' . number_format($pOut, 0, ',', '.') : '-',
-                    'price_in' => $exchangeInfo ? 'Rp ' . number_format($pIn, 0, ',', '.') : '-',
-                    'balance' => $exchangeInfo ? 'Rp ' . number_format($diff, 0, ',', '.') : '-'
-                ];
-            }
-
-            foreach ($so->nonHpItems as $item) {
-                $notes = $item->notes ? " (" . $item->notes . ")" : "";
-                
-                // Calculate Net Price for Non-HP
-                $rawPrice = $item->selling_price ?? 0;
-                $itemDiscount = $item->item_discount ?? 0;
-                $distDiscount = $item->distributed_discount ?? 0;
-                $price = $rawPrice - $itemDiscount - $distDiscount;
-                
-                $rows[] = [
-                    'waktu' => $so->created_at->format('d/m/Y H:i'),
-                    'order_no' => $so->receipt_id,
-                    'lokasi' => $location,
-                    'user' => $csName,
-                    'customer' => $so->customer_name ?? '-',
-                    'whatsapp' => $so->customer_wa ?? '-',
-                    'category' => strtoupper($so->category),
-                    'product' => ($so->is_bundle ? "📦 " : "") . ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
-                    'imei' => '-',
-                    'qty' => $item->quantity,
-                    'price' => 'Rp ' . number_format($price, 0, ',', '.'),
-                    'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
-                    'distributor' => $item->supplier_name ?? '-',
+                    'price' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
+                    'total' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
+                    'distributor' => implode(', ', $distributors) ?: '-',
                     'payment' => $payment ?: '-',
                     'status' => strtoupper($so->status),
                     'price_out' => '-',
                     'price_in' => '-',
                     'balance' => '-'
                 ];
+            } else {
+                foreach ($so->items as $item) {
+                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
+                    $condition = $item->condition === 'new' ? 'Baru' : 'Second';
+                    $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
+                    
+                    // Calculate Net Price for HP
+                    $rawPrice = $item->pivot->selling_price ?? 0;
+                    $itemDiscount = $item->pivot->item_discount ?? 0;
+                    $distDiscount = $item->pivot->distributed_discount ?? 0;
+                    $price = $rawPrice - $itemDiscount - $distDiscount;
+                    
+                    $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                    $finalDistributor = $distOut;
+                    $finalProductName = $productName . " [" . $condition . "]" . $notes;
+                    $finalImei = $item->imei ? "'" . $item->imei : '-';
+                    
+                    $pOut = $price; $pIn = 0; $diff = 0;
+
+                    if ($exchangeInfo) {
+                        $pOut = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : $price));
+                        $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
+                        $diff = $pOut - $pIn;
+
+                        $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
+                        $inImei = $exchangeInfo->incoming_imei ?? '-';
+                        $finalProductName = "OUT: " . $productName . " [" . $condition . "]" . $notes . "\nIN: " . $inProd;
+                        $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
+                        
+                        $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
+                        $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
+                    }
+
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => strtoupper($so->category),
+                        'product' => $finalProductName,
+                        'imei' => $finalImei,
+                        'qty' => 1,
+                        'price' => 'Rp ' . number_format($pOut, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($pOut, 0, ',', '.'),
+                        'distributor' => $finalDistributor,
+                        'payment' => $payment ?: '-',
+                        'status' => strtoupper($so->status),
+                        'price_out' => $exchangeInfo ? 'Rp ' . number_format($pOut, 0, ',', '.') : '-',
+                        'price_in' => $exchangeInfo ? 'Rp ' . number_format($pIn, 0, ',', '.') : '-',
+                        'balance' => $exchangeInfo ? 'Rp ' . number_format($diff, 0, ',', '.') : '-'
+                    ];
+                }
+
+                foreach ($so->nonHpItems as $item) {
+                    $notes = $item->notes ? " (" . $item->notes . ")" : "";
+                    
+                    // Calculate Net Price for Non-HP
+                    $rawPrice = $item->selling_price ?? 0;
+                    $itemDiscount = $item->item_discount ?? 0;
+                    $distDiscount = $item->distributed_discount ?? 0;
+                    $price = $rawPrice - $itemDiscount - $distDiscount;
+                    
+                    $rows[] = [
+                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'order_no' => $so->receipt_id,
+                        'lokasi' => $location,
+                        'user' => $csName,
+                        'customer' => $so->customer_name ?? '-',
+                        'whatsapp' => $so->customer_wa ?? '-',
+                        'category' => strtoupper($so->category),
+                        'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
+                        'imei' => '-',
+                        'qty' => $item->quantity,
+                        'price' => 'Rp ' . number_format($price, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
+                        'distributor' => $item->supplier_name ?? '-',
+                        'payment' => $payment ?: '-',
+                        'status' => strtoupper($so->status),
+                        'price_out' => '-',
+                        'price_in' => '-',
+                        'balance' => '-'
+                    ];
+                }
             }
         }
 
