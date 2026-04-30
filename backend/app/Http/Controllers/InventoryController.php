@@ -1192,7 +1192,7 @@ class InventoryController extends Controller
             $xlsxData = [];
             $xlsxData[] = [$title];
             $xlsxData[] = [];
-            $xlsxData[] = ['Tanggal', 'ID Transaksi', 'Kategori', 'Penerima', 'Item', 'IMEI / Qty', 'Admin', 'Inventory'];
+            $xlsxData[] = ['Tanggal', 'ID Transaksi', 'Kategori', 'Penerima', 'Item', 'IMEI / Qty', 'Inventory'];
             
             foreach ($items as $item) {
                 $xlsxData[] = [
@@ -1202,7 +1202,6 @@ class InventoryController extends Controller
                     $item->recipient,
                     $item->name,
                     $item->imei !== '-' ? $item->imei : $item->qty,
-                    $item->user_name,
                     $item->inv_user,
                 ];
             }
