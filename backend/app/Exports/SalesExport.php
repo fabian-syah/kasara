@@ -28,46 +28,52 @@ class SalesExport
 
     public function collection()
     {
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang'];
+
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
+            ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
-            ->where('status', '!=', 'cancelled')
-            ->whereIn('category', ['penjualan_offline', 'shopee', 'orderan_online', 'penjualan_store', 'bundling', 'sale', 'pos']);
+            ->where('status', '!=', 'cancelled');
 
+        // Location Scoping
         if ($this->branchId) {
-            $query->where('branch_id', $this->branchId);
-        }
-        if ($this->onlineShopId) {
-            $query->where('online_shop_id', $this->onlineShopId);
+            $query->where('stock_outs.branch_id', $this->branchId);
+        } elseif ($this->onlineShopId) {
+            $query->where('stock_outs.online_shop_id', $this->onlineShopId);
+        } else {
+            // Global Scoping for restricted roles
+            if ($this->user && !$this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
+                $branchIds = $this->user->getAccessibleBranchIds();
+                $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
+                
+                $query->where(function($q) use ($branchIds, $onlineShopIds) {
+                    $q->whereIn('stock_outs.branch_id', $branchIds)
+                      ->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                      ->orWhereHas('user', function($uq) use ($branchIds, $onlineShopIds) {
+                          $uq->whereIn('branch_id', $branchIds)
+                             ->orWhereIn('online_shop_id', $onlineShopIds);
+                      });
+                });
+            }
         }
 
-        // Application level scoping for non-admins
-        if ($this->user && !$this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
-            $accessibleBranchIds = $this->user->getAccessibleBranchIds();
-            $accessibleOnlineShopIds = $this->user->getAccessibleOnlineShopIds();
-            
-            $query->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                $q->whereIn('branch_id', $accessibleBranchIds)
-                  ->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
-            });
-        }
-
-        // Exclude test locations (Branch/Online Shop)
+        // Exclude test locations (matching User.php logic)
         $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
-        $query->where(function($q) use ($excluded) {
-            $q->whereHas('branch', function($sub) use ($excluded) {
+        $query->whereDoesntHave('branch', function($q) use ($excluded) {
+            $q->where(function($sub) use ($excluded) {
                 foreach ($excluded as $term) {
-                    $sub->where('name', 'not ilike', '%' . $term . '%');
+                    $sub->orWhere('name', 'ILIKE', '%' . $term . '%');
                 }
-            })->orWhereHas('onlineShop', function($sub) use ($excluded) {
+            });
+        })->whereDoesntHave('onlineShop', function($q) use ($excluded) {
+            $q->where(function($sub) use ($excluded) {
                 foreach ($excluded as $term) {
-                    $sub->where('name', 'not ilike', '%' . $term . '%');
+                    $sub->orWhere('name', 'ILIKE', '%' . $term . '%');
                 }
-            })->orWhere(function($sub) {
-                $sub->whereNull('branch_id')->whereNull('online_shop_id');
             });
         });
 
-        $stockOuts = $query->latest()->get();
+        $stockOuts = $query->latest('stock_outs.created_at')->get();
         $rows = [];
 
         foreach ($stockOuts as $so) {
