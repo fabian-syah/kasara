@@ -971,9 +971,33 @@ class InventoryController extends Controller
             // Date Filters
             $dateTable = $type === 'non-hp' ? $logTable : $detailTable;
             if ($request->month && $request->year) {
-                $query->whereMonth($dateTable . '.created_at', $request->month)->whereYear($dateTable . '.created_at', $request->year);
+                $m = (int) $request->month;
+                $y = (int) $request->year;
+                
+                // Role-based protection from getHistory
+                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
+                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+                    $currentMonth = (int) $logicalNow->format('m');
+                    $currentYear = (int) $logicalNow->format('Y');
+                    $lastMonthTemp = $logicalNow->copy()->subMonth();
+                    $lastMonth = (int) $lastMonthTemp->format('m');
+                    if ($y < $currentYear) {
+                        $m = $currentMonth; $y = $currentYear;
+                    } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
+                        $m = $currentMonth;
+                    }
+                }
+                $query->whereMonth($dateTable . '.created_at', $m)->whereYear($dateTable . '.created_at', $y);
             } elseif ($request->date) {
-                $query->whereDate($dateTable . '.created_at', $request->date);
+                $d = $request->date;
+                // Role-based protection from getHistory
+                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
+                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+                    $today = $logicalNow->toDateString();
+                    $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                    if ($d < $yesterday) $d = $today;
+                }
+                $query->whereDate($dateTable . '.created_at', $d);
             }
 
             // Sorting & Execution
@@ -1094,9 +1118,33 @@ class InventoryController extends Controller
 
             // Date Filters
             if ($request->month && $request->year) {
-                $query->whereMonth($logTable . '.created_at', $request->month)->whereYear($logTable . '.created_at', $request->year);
+                $m = (int) $request->month;
+                $y = (int) $request->year;
+                
+                // Role-based protection from getHistory
+                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
+                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+                    $currentMonth = (int) $logicalNow->format('m');
+                    $currentYear = (int) $logicalNow->format('Y');
+                    $lastMonthTemp = $logicalNow->copy()->subMonth();
+                    $lastMonth = (int) $lastMonthTemp->format('m');
+                    if ($y < $currentYear) {
+                        $m = $currentMonth; $y = $currentYear;
+                    } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
+                        $m = $currentMonth;
+                    }
+                }
+                $query->whereMonth($logTable . '.created_at', $m)->whereYear($logTable . '.created_at', $y);
             } elseif ($request->date) {
-                $query->whereDate($logTable . '.created_at', $request->date);
+                $d = $request->date;
+                // Role-based protection from getHistory
+                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
+                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+                    $today = $logicalNow->toDateString();
+                    $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                    if ($d < $yesterday) $d = $today;
+                }
+                $query->whereDate($logTable . '.created_at', $d);
             }
 
             // Sorting in PHP for stability
