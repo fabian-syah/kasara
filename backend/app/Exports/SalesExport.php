@@ -50,7 +50,9 @@ class SalesExport
             }
         }
 
-        $stockOuts = $query->latest('created_at')->get();
+        $stockOuts = $query->orderBy('reporting_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
         $rows = [];
 
         $receiptIds = $stockOuts->pluck('receipt_id')->filter()->toArray();
