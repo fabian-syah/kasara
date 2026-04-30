@@ -28,6 +28,36 @@ class SalesExport
 
     public function collection()
     {
+        // 1. Get Accessible IDs and filter out excluded ones (Matching AuditController logic)
+        $branchIds = [];
+        $onlineShopIds = [];
+        $isGlobal = $this->user && $this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis']);
+
+        if ($this->user) {
+            $branchIds = $this->user->getAccessibleBranchIds();
+            $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
+            
+            // Global exclusion for certain roles or just always for safety
+            $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
+            if (!empty($branchIds)) {
+                $branchIds = \App\Models\Branch::whereIn('id', $branchIds)
+                    ->where(function ($q) use ($excludedTerms) {
+                        foreach ($excludedTerms as $term) {
+                            $q->where('name', 'not ilike', '%' . $term . '%');
+                        }
+                    })->pluck('id')->toArray();
+            }
+            if (!empty($onlineShopIds)) {
+                $onlineShopIds = \App\Models\OnlineShop::whereIn('id', $onlineShopIds)
+                    ->where(function ($q) use ($excludedTerms) {
+                        foreach ($excludedTerms as $term) {
+                            $q->where('name', 'not ilike', '%' . $term . '%');
+                        }
+                    })->pluck('id')->toArray();
+            }
+        }
+
+        // 2. Build the Query
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling'];
 
         $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'branch', 'onlineShop', 'paymentMethod'])
@@ -35,21 +65,21 @@ class SalesExport
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
             ->where('status', '!=', 'cancelled');
 
-        // Location Scoping to match AuditController
-        $query->where(function($q) {
-            if ($this->branchId) {
-                $q->where('stock_outs.branch_id', $this->branchId)
-                  ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $this->branchId));
-            } elseif ($this->onlineShopId) {
-                $q->where('stock_outs.online_shop_id', $this->onlineShopId)
-                  ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $this->onlineShopId));
+        // 3. Apply Scoping (Matching AuditController exactly)
+        $query->where(function ($q) use ($branchIds, $onlineShopIds, $isGlobal) {
+            $requestedBranchId = $this->branchId;
+            $requestedOnlineShopId = $this->onlineShopId;
+
+            if ($requestedBranchId) {
+                $q->where('stock_outs.branch_id', $requestedBranchId)
+                  ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+            } elseif ($requestedOnlineShopId) {
+                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                  ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
             } else {
-                // If no specific location requested, use accessible ones for non-admins
-                if ($this->user && !$this->user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis'])) {
-                    $branchIds = $this->user->getAccessibleBranchIds();
-                    $onlineShopIds = $this->user->getAccessibleOnlineShopIds();
-                    
-                    $q->where(function($sub) use ($branchIds, $onlineShopIds) {
+                // If no specific location, use accessible ones
+                if (!$isGlobal) {
+                    $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                         if (!empty($branchIds)) {
                             $sub->orWhereIn('stock_outs.branch_id', $branchIds)
                                 ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
@@ -58,34 +88,24 @@ class SalesExport
                             $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
                                 ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
                         }
-                        
                         if (empty($branchIds) && empty($onlineShopIds)) {
                             $sub->whereRaw('1=0');
                         }
                     });
+                } else {
+                    // Global users see all except excluded ones
+                    $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
+                    $q->whereDoesntHave('branch', function($bq) use ($excludedTerms) {
+                        $bq->where(function($qq) use ($excludedTerms) {
+                            foreach ($excludedTerms as $term) $qq->orWhere('name', 'ilike', '%'.$term.'%');
+                        });
+                    })->whereDoesntHave('onlineShop', function($sq) use ($excludedTerms) {
+                        $sq->where(function($qq) use ($excludedTerms) {
+                            foreach ($excludedTerms as $term) $qq->orWhere('name', 'ilike', '%'.$term.'%');
+                        });
+                    });
                 }
             }
-        });
-
-        // Global exclusion for 'Trial' / 'Test' data
-        $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
-        $query->where(function($q) use ($excluded) {
-            // Keep if NO branch/shop OR if branch/shop name doesn't match excluded terms
-            $q->where(function($sub) use ($excluded) {
-                $sub->whereDoesntHave('branch', function($bq) use ($excluded) {
-                    $bq->where(function($qq) use ($excluded) {
-                        foreach ($excluded as $term) {
-                            $qq->orWhere('name', 'ILIKE', '%' . $term . '%');
-                        }
-                    });
-                })->whereDoesntHave('onlineShop', function($sq) use ($excluded) {
-                    $sq->where(function($qq) use ($excluded) {
-                        foreach ($excluded as $term) {
-                            $qq->orWhere('name', 'ILIKE', '%' . $term . '%');
-                        }
-                    });
-                });
-            });
         });
 
         $stockOuts = $query->latest('stock_outs.created_at')->get();
