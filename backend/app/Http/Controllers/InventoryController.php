@@ -987,13 +987,43 @@ class InventoryController extends Controller
                     ->get();
             }
 
-            $xlsxData = [['DEBUG', 'MODE'], ['TEST', 'OK']];
+            $xlsxData = [];
+            if ($type === 'hp') {
+                $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'IMEI', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Akun Inventory'];
+                foreach ($items->take(100) as $item) {
+                    $xlsxData[] = [
+                        $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
+                        optional($item->product)->brand ?? '-',
+                        optional($item->product)->name ?? '-',
+                        $item->imei ?? '-',
+                        $item->storage ?? '-',
+                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
+                        'Rp ' . number_format($item->cost_price ?? 0, 0, ',', '.'),
+                        'Rp ' . number_format($item->selling_price ?? 0, 0, ',', '.'),
+                        optional($item->distributor)->name ?? ($item->supplier_name ?? '-'),
+                        optional($item->user)->name ?? '-',
+                    ];
+                }
+            } else {
+                $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Distributor', 'Akun Inventory'];
+                foreach ($items->take(100) as $item) {
+                    $xlsxData[] = [
+                        $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
+                        optional($item->product)->brand ?? '-',
+                        optional($item->product)->name ?? '-',
+                        $item->quantity ?? 0,
+                        $item->description ?? '-',
+                        optional($item->distributor)->name ?? ($item->supplier_name ?? '-'),
+                        optional($item->user)->name ?? '-',
+                    ];
+                }
+            }
 
-            $csv = "DEBUG,MODE\nTEST,OK";
-            $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.csv';
+            $xlsx = SimpleXLSXGen::fromArray($xlsxData);
+            $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
 
-            return response($csv, 200, [
-                'Content-Type' => 'text/csv',
+            return response((string) $xlsx, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Throwable $e) {
