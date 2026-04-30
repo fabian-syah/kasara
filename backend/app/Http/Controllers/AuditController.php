@@ -2515,39 +2515,72 @@ class AuditController extends Controller
             $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xls";
 
             return response()->streamDownload(function() use ($export) {
-                echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-                echo '<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><style> .text { mso-number-format:"\@"; } .header { background-color: #2e7d32; color: white; font-weight: bold; } </style></head>';
-                echo '<body>';
-                echo '<table border="1">';
-                echo '<thead>';
-                echo '<tr>';
-                foreach ($export->headings() as $heading) {
-                    echo '<th class="header">' . $heading . '</th>';
+                $headings = $export->headings();
+                $rows = $export->collection();
+
+                echo '<?xml version="1.0"?>' . "\n";
+                echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+                echo '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ' .
+                     'xmlns:o="urn:schemas-microsoft-com:office:office" ' .
+                     'xmlns:x="urn:schemas-microsoft-com:office:excel" ' .
+                     'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" ' .
+                     'xmlns:html="http://www.w3.org/TR/REC-html40">' . "\n";
+                
+                echo ' <Styles>' . "\n";
+                echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Bottom"/><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/></Style>' . "\n";
+                echo '  <Style ss:ID="Header"><Alignment ss:Horizontal="Center"/><Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2E7D32" ss:Pattern="Solid"/></Style>' . "\n";
+                echo '  <Style ss:ID="Text"><NumberFormat ss:Format="@"/></Style>' . "\n";
+                echo '  <Style ss:ID="Currency"><NumberFormat ss:Format="Standard"/></Style>' . "\n";
+                echo ' </Styles>' . "\n";
+
+                echo ' <Worksheet ss:Name="Penjualan">' . "\n";
+                echo '  <Table>' . "\n";
+                
+                // Columns width definition (optional but good)
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Waktu
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // No Pesanan
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Lokasi
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // CS
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Customer
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // WA
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Kategori
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="250"/>' . "\n"; // Produk
+                echo '   <Column ss:AutoFitWidth="1" ss:Width="120" ss:StyleID="Text"/>' . "\n"; // IMEI
+
+                // Headings
+                echo '   <Row ss:Height="20">' . "\n";
+                foreach ($headings as $h) {
+                    echo '    <Cell ss:StyleID="Header"><Data ss:Type="String">' . htmlspecialchars($h) . '</Data></Cell>' . "\n";
                 }
-                echo '</tr>';
-                echo '</thead>';
-                echo '<tbody>';
-                foreach ($export->collection() as $row) {
-                    echo '<tr>';
-                    echo '<td>' . ($row['waktu'] ?? '') . '</td>';
-                    echo '<td>' . ($row['order_no'] ?? '') . '</td>';
-                    echo '<td>' . ($row['lokasi'] ?? '') . '</td>';
-                    echo '<td>' . ($row['user'] ?? '') . '</td>';
-                    echo '<td>' . ($row['customer'] ?? '') . '</td>';
-                    echo '<td>' . ($row['whatsapp'] ?? '') . '</td>';
-                    echo '<td>' . ($row['category'] ?? '') . '</td>';
-                    echo '<td>' . ($row['product'] ?? '') . '</td>';
-                    echo '<td class="text">' . ($row['imei'] ?? '-') . '</td>';
-                    echo '<td>' . ($row['qty'] ?? 1) . '</td>';
-                    echo '<td>' . ($row['price'] ?? 0) . '</td>';
-                    echo '<td>' . ($row['total'] ?? 0) . '</td>';
-                    echo '<td>' . ($row['payment'] ?? '-') . '</td>';
-                    echo '<td>' . ($row['status'] ?? '-') . '</td>';
-                    echo '</tr>';
+                echo '   </Row>' . "\n";
+
+                // Data
+                foreach ($rows as $row) {
+                    echo '   <Row>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['waktu'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['order_no'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['lokasi'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['user'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['customer'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['whatsapp'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['category'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['product'] ?? '') . '</Data></Cell>' . "\n";
+                    
+                    // IMEI force text
+                    $imei = str_replace("'", "", $row['imei'] ?? '-'); // Remove the quote we added earlier
+                    echo '    <Cell ss:StyleID="Text"><Data ss:Type="String">' . htmlspecialchars($imei) . '</Data></Cell>' . "\n";
+                    
+                    echo '    <Cell><Data ss:Type="Number">' . (int)($row['qty'] ?? 1) . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['price'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['total'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['payment'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['status'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '   </Row>' . "\n";
                 }
-                echo '</tbody>';
-                echo '</table>';
-                echo '</body></html>';
+
+                echo '  </Table>' . "\n";
+                echo ' </Worksheet>' . "\n";
+                echo '</Workbook>' . "\n";
             }, $filename, [
                 'Content-Type' => 'application/vnd.ms-excel',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
