@@ -2593,6 +2593,7 @@ class AuditController extends Controller
                 echo '   <Column ss:Width="40"/>' . "\n";  // Qty
                 echo '   <Column ss:Width="100"/>' . "\n"; // Harga Satuan
                 echo '   <Column ss:Width="100"/>' . "\n"; // Total Harga
+                echo '   <Column ss:Width="130"/>' . "\n"; // Distributor
                 echo '   <Column ss:Width="120"/>' . "\n"; // Pembayaran
                 echo '   <Column ss:Width="80"/>' . "\n";  // Status
                 echo '   <Column ss:Width="110"/>' . "\n"; // Harga Out
@@ -2628,6 +2629,7 @@ class AuditController extends Controller
                     echo '    <Cell ss:StyleID="CellData"><Data ss:Type="Number">' . (int)($row['qty'] ?? 1) . '</Data></Cell>' . "\n";
                     echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['price'] ?? '') . '</Data></Cell>' . "\n";
                     echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['total'] ?? '') . '</Data></Cell>' . "\n";
+                    echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['distributor'] ?? '') . '</Data></Cell>' . "\n";
                     echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['payment'] ?? '') . '</Data></Cell>' . "\n";
                     echo '    <Cell ss:StyleID="CellData"><Data ss:Type="String">' . htmlspecialchars($row['status'] ?? '') . '</Data></Cell>' . "\n";
                     
