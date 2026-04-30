@@ -3,8 +3,13 @@
 namespace App\Exports;
 
 use App\Models\StockOut;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class SalesExport
+class SalesExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize
 {
     protected $branchId;
     protected $onlineShopId;
