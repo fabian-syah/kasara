@@ -20,4 +20,9 @@ class StockOutNonHpItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function distributor()
+    {
+        return $this->belongsTo(Distributor::class);
+    }
 }

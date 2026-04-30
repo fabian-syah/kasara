@@ -30,7 +30,7 @@ class SalesExport
     {
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling'];
 
-        $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
+        $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
             ->where('status', '!=', 'cancelled');
@@ -132,7 +132,7 @@ class SalesExport
                         $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})";
                         $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
                         
-                        $dist = $item->supplier_name ?? '-';
+                        $dist = $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-';
                         if ($dist !== '-' && !in_array($dist, $distributors)) $distributors[] = $dist;
                     }
                 }
@@ -232,7 +232,7 @@ class SalesExport
                         'qty' => $item->quantity,
                         'price' => 'Rp ' . number_format($price, 0, ',', '.'),
                         'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
-                        'distributor' => $item->supplier_name ?? '-',
+                        'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'status' => strtoupper($so->status),
                         'price_out' => '-',
