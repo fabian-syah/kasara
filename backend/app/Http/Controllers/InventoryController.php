@@ -886,8 +886,14 @@ class InventoryController extends Controller
         $user = Auth::user();
         $type = $request->type ?? 'hp';
 
+        $logTable = (new InventoryLog)->getTable();
+        $detailTable = (new ProductDetail)->getTable();
+        $prodTable = (new Product)->getTable();
+
         if ($type === 'non-hp') {
-            $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
+            $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in')
+                ->join($prodTable, $logTable . '.product_id', '=', $prodTable . '.id')
+                ->select($logTable . '.*');
             if ($request->search) {
                 $lowKeyword = strtolower($request->search);
                 $query->where(function ($q) use ($lowKeyword) {
@@ -898,11 +904,14 @@ class InventoryController extends Controller
                 });
             }
         } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user']);
+            $query = ProductDetail::with(['product', 'distributor', 'user'])
+                ->join($prodTable, $detailTable . '.product_id', '=', $prodTable . '.id')
+                ->select($detailTable . '.*');
+
             if ($request->search) {
                 $lowKeyword = strtolower($request->search);
-                $query->where(function ($q) use ($lowKeyword) {
-                    $q->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"])
+                $query->where(function ($q) use ($lowKeyword, $detailTable) {
+                    $q->whereRaw('LOWER(' . $detailTable . '.imei) LIKE ?', ["%{$lowKeyword}%"])
                         ->orWhereHas('product', function ($sq) use ($lowKeyword) {
                             $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                                 ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
@@ -913,62 +922,52 @@ class InventoryController extends Controller
 
         // Apply Location Filters
         if ($request->branch_id) {
-            if ($type === 'non-hp') $query->where('inventory_logs.branch_id', $request->branch_id);
-            else $query->where('product_details.placement_type', 'branch')->where('product_details.placement_id', $request->branch_id);
+            if ($type === 'non-hp') $query->where($logTable . '.branch_id', $request->branch_id);
+            else $query->where($detailTable . '.placement_type', 'branch')->where($detailTable . '.placement_id', $request->branch_id);
         }
         if ($request->warehouse_id) {
-            if ($type === 'non-hp') $query->where('inventory_logs.warehouse_id', $request->warehouse_id);
-            else $query->where('product_details.placement_type', 'warehouse')->where('product_details.placement_id', $request->warehouse_id);
+            if ($type === 'non-hp') $query->where($logTable . '.warehouse_id', $request->warehouse_id);
+            else $query->where($detailTable . '.placement_type', 'warehouse')->where($detailTable . '.placement_id', $request->warehouse_id);
         }
         if ($request->online_shop_id) {
-            if ($type === 'non-hp') $query->where('inventory_logs.online_shop_id', $request->online_shop_id);
-            else $query->where('product_details.placement_type', 'online_shop')->where('product_details.placement_id', $request->online_shop_id);
+            if ($type === 'non-hp') $query->where($logTable . '.online_shop_id', $request->online_shop_id);
+            else $query->where($detailTable . '.placement_type', 'online_shop')->where($detailTable . '.placement_id', $request->online_shop_id);
         }
 
         // Apply Role Restrictions
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($user, $type) {
+            $query->where(function ($q) use ($user, $type, $logTable, $detailTable) {
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $shopIds = $user->getAccessibleOnlineShopIds();
 
                 if ($type === 'non-hp') {
-                    if (!empty($branchIds)) $q->orWhereIn('inventory_logs.branch_id', $branchIds);
-                    if (!empty($warehouseIds)) $q->orWhereIn('inventory_logs.warehouse_id', $warehouseIds);
-                    if (!empty($shopIds)) $q->orWhereIn('inventory_logs.online_shop_id', $shopIds);
-                    $q->orWhere('inventory_logs.user_id', $user->id);
+                    if (!empty($branchIds)) $q->orWhereIn($logTable . '.branch_id', $branchIds);
+                    if (!empty($warehouseIds)) $q->orWhereIn($logTable . '.warehouse_id', $warehouseIds);
+                    if (!empty($shopIds)) $q->orWhereIn($logTable . '.online_shop_id', $shopIds);
+                    $q->orWhere($logTable . '.user_id', $user->id);
                 } else {
-                    if (!empty($branchIds)) $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'branch')->whereIn('product_details.placement_id', $branchIds));
-                    if (!empty($warehouseIds)) $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'warehouse')->whereIn('product_details.placement_id', $warehouseIds));
-                    if (!empty($shopIds)) $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'online_shop')->whereIn('product_details.placement_id', $shopIds));
+                    if (!empty($branchIds)) $q->orWhere(fn($sq) => $sq->where($detailTable . '.placement_type', 'branch')->whereIn($detailTable . '.placement_id', $branchIds));
+                    if (!empty($warehouseIds)) $q->orWhere(fn($sq) => $sq->where($detailTable . '.placement_type', 'warehouse')->whereIn($detailTable . '.placement_id', $warehouseIds));
+                    if (!empty($shopIds)) $q->orWhere(fn($sq) => $sq->where($detailTable . '.placement_type', 'online_shop')->whereIn($detailTable . '.placement_id', $shopIds));
                 }
             });
         }
 
         // Date Filters
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $dateTable = $type === 'non-hp' ? 'inventory_logs' : 'product_details';
+        $dateTable = $type === 'non-hp' ? $logTable : $detailTable;
         if ($request->date) {
             $query->whereDate($dateTable . '.created_at', $request->date);
         } elseif ($request->month && $request->year) {
             $query->whereMonth($dateTable . '.created_at', $request->month)->whereYear($dateTable . '.created_at', $request->year);
         }
 
-        // Sorting (Join with products for alphabetical sort)
-        if ($type === 'non-hp') {
-            $items = $query->join('products', 'inventory_logs.product_id', '=', 'products.id')
-                ->orderBy('products.brand')
-                ->orderBy('products.name')
-                ->select('inventory_logs.*')
-                ->get();
-        } else {
-            $items = $query->join('products', 'product_details.product_id', '=', 'products.id')
-                ->orderBy('products.brand')
-                ->orderBy('products.name')
-                ->select('product_details.*')
-                ->get();
-        }
+        // Final Sorting & Execution
+        $items = $query->orderBy($prodTable . '.brand')
+            ->orderBy($prodTable . '.name')
+            ->get();
 
         $xlsxData = [];
         if ($type === 'hp') {
@@ -1011,15 +1010,19 @@ class InventoryController extends Controller
         ]);
     }
 
-    // Export Stock Out History as XLSX
     public function exportStockOutHistory(Request $request)
     {
         $user = Auth::user();
-        $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
+        $logTable = (new InventoryLog)->getTable();
+        $prodTable = (new Product)->getTable();
+
+        $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out')
+            ->join($prodTable, $logTable . '.product_id', '=', $prodTable . '.id')
+            ->select($logTable . '.*');
 
         if ($request->search) {
             $lowKeyword = strtolower($request->search);
-            $query->where(function ($q) use ($lowKeyword) {
+            $query->where(function ($q) use ($lowKeyword, $prodTable) {
                 $q->whereHas('product', function ($pq) use ($lowKeyword) {
                     $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                         ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
@@ -1028,37 +1031,35 @@ class InventoryController extends Controller
         }
 
         // Apply Location Filters
-        if ($request->branch_id) $query->where('inventory_logs.branch_id', $request->branch_id);
-        if ($request->warehouse_id) $query->where('inventory_logs.warehouse_id', $request->warehouse_id);
-        if ($request->online_shop_id) $query->where('inventory_logs.online_shop_id', $request->online_shop_id);
+        if ($request->branch_id) $query->where($logTable . '.branch_id', $request->branch_id);
+        if ($request->warehouse_id) $query->where($logTable . '.warehouse_id', $request->warehouse_id);
+        if ($request->online_shop_id) $query->where($logTable . '.online_shop_id', $request->online_shop_id);
 
         // Apply Role Restrictions
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($user) {
+            $query->where(function ($q) use ($user, $logTable) {
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $shopIds = $user->getAccessibleOnlineShopIds();
 
-                if (!empty($branchIds)) $q->orWhereIn('inventory_logs.branch_id', $branchIds);
-                if (!empty($warehouseIds)) $q->orWhereIn('inventory_logs.warehouse_id', $warehouseIds);
-                if (!empty($shopIds)) $q->orWhereIn('inventory_logs.online_shop_id', $shopIds);
-                $q->orWhere('inventory_logs.user_id', $user->id);
+                if (!empty($branchIds)) $q->orWhereIn($logTable . '.branch_id', $branchIds);
+                if (!empty($warehouseIds)) $q->orWhereIn($logTable . '.warehouse_id', $warehouseIds);
+                if (!empty($shopIds)) $q->orWhereIn($logTable . '.online_shop_id', $shopIds);
+                $q->orWhere($logTable . '.user_id', $user->id);
             });
         }
 
         // Date Filters
         if ($request->date) {
-            $query->whereDate('inventory_logs.created_at', $request->date);
+            $query->whereDate($logTable . '.created_at', $request->date);
         } elseif ($request->month && $request->year) {
-            $query->whereMonth('inventory_logs.created_at', $request->month)->whereYear('inventory_logs.created_at', $request->year);
+            $query->whereMonth($logTable . '.created_at', $request->month)->whereYear($logTable . '.created_at', $request->year);
         }
 
         // Sorting
-        $items = $query->join('products', 'inventory_logs.product_id', '=', 'products.id')
-            ->orderBy('products.brand')
-            ->orderBy('products.name')
-            ->select('inventory_logs.*')
+        $items = $query->orderBy($prodTable . '.brand')
+            ->orderBy($prodTable . '.name')
             ->get();
 
         $xlsxData = [];
