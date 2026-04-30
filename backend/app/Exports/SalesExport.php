@@ -78,7 +78,12 @@ class SalesExport
                 $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
                 $condition = $item->condition === 'new' ? 'Baru' : 'Second';
                 $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
-                $price = $item->pivot->selling_price ?? 0;
+                
+                // Calculate Net Price for HP
+                $rawPrice = $item->pivot->selling_price ?? 0;
+                $itemDiscount = $item->pivot->item_discount ?? 0;
+                $distDiscount = $item->pivot->distributed_discount ?? 0;
+                $price = $rawPrice - $itemDiscount - $distDiscount;
                 
                 $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
                 $finalDistributor = $distOut;
@@ -125,7 +130,13 @@ class SalesExport
 
             foreach ($so->nonHpItems as $item) {
                 $notes = $item->notes ? " (" . $item->notes . ")" : "";
-                $price = $item->price ?? 0;
+                
+                // Calculate Net Price for Non-HP
+                $rawPrice = $item->selling_price ?? 0;
+                $itemDiscount = $item->item_discount ?? 0;
+                $distDiscount = $item->distributed_discount ?? 0;
+                $price = $rawPrice - $itemDiscount - $distDiscount;
+                
                 $rows[] = [
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
