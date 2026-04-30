@@ -81,6 +81,21 @@ class SalesExport
                     $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
                 }
 
+                $priceOut = 0;
+                $priceIn = 0;
+                $balance = 0;
+
+                // Category specific logic
+                $isDowngrade = strtolower($so->category) === 'downgrade';
+                $isTukarTambah = strtolower($so->category) === 'tukar_tambah';
+                $isTukarUnit = strtolower($so->category) === 'tukar_unit';
+
+                if ($isDowngrade || $isTukarTambah || $isTukarUnit) {
+                    $priceOut = $totalPrice; // Usually the selling price is the OUT price
+                    $priceIn = 0; // Needs data from somewhere else if available
+                    $balance = $totalPrice; 
+                }
+
                 $rows[] = [
                     'waktu' => $so->created_at->format('d/m/Y H:i'),
                     'order_no' => $so->receipt_id,
@@ -95,7 +110,10 @@ class SalesExport
                     'price' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
                     'total' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
                     'payment' => $payment ?: '-',
-                    'status' => strtoupper($so->status)
+                    'status' => strtoupper($so->status),
+                    'price_out' => $priceOut ? 'Rp ' . number_format($priceOut, 0, ',', '.') : '-',
+                    'price_in' => $priceIn ? 'Rp ' . number_format($priceIn, 0, ',', '.') : '-',
+                    'balance' => $balance ? 'Rp ' . number_format($balance, 0, ',', '.') : '-'
                 ];
             } else {
                 // Standard multi-row display for non-bundles
@@ -110,6 +128,17 @@ class SalesExport
                     $condition = $item->condition === 'new' ? 'Baru' : 'Second';
                     $notes = $item->pivot->notes ? " (" . $item->pivot->notes . ")" : "";
                     
+                    $price = $item->pivot->selling_price ?? 0;
+                    $priceOut = 0;
+                    $priceIn = 0;
+                    $balance = 0;
+
+                    $cat = strtolower($so->category);
+                    if ($cat === 'downgrade' || $cat === 'tukar_tambah' || $cat === 'tukar_unit') {
+                        $priceOut = $price;
+                        $balance = $price;
+                    }
+
                     $rows[] = [
                         'waktu' => $so->created_at->format('d/m/Y H:i'),
                         'order_no' => $so->receipt_id,
@@ -121,16 +150,20 @@ class SalesExport
                         'product' => $productName . " [" . $condition . "]" . $notes,
                         'imei' => $item->imei ? "'" . $item->imei : '-',
                         'qty' => 1,
-                        'price' => 'Rp ' . number_format($item->pivot->selling_price ?? 0, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($item->pivot->selling_price ?? 0, 0, ',', '.'),
+                        'price' => 'Rp ' . number_format($price, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($price, 0, ',', '.'),
                         'payment' => $payment ?: '-',
-                        'status' => strtoupper($so->status)
+                        'status' => strtoupper($so->status),
+                        'price_out' => $priceOut ? 'Rp ' . number_format($priceOut, 0, ',', '.') : '-',
+                        'price_in' => $priceIn ? 'Rp ' . number_format($priceIn, 0, ',', '.') : '-',
+                        'balance' => $balance ? 'Rp ' . number_format($balance, 0, ',', '.') : '-'
                     ];
                 }
 
                 // Non-HP Items
                 foreach ($so->nonHpItems as $item) {
                     $notes = $item->notes ? " (" . $item->notes . ")" : "";
+                    $price = $item->price ?? 0;
                     $rows[] = [
                         'waktu' => $so->created_at->format('d/m/Y H:i'),
                         'order_no' => $so->receipt_id,
@@ -142,10 +175,13 @@ class SalesExport
                         'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $notes,
                         'imei' => '-',
                         'qty' => $item->quantity,
-                        'price' => 'Rp ' . number_format($item->price ?? 0, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format(($item->price ?? 0) * $item->quantity, 0, ',', '.'),
+                        'price' => 'Rp ' . number_format($price, 0, ',', '.'),
+                        'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
                         'payment' => $payment ?: '-',
-                        'status' => strtoupper($so->status)
+                        'status' => strtoupper($so->status),
+                        'price_out' => '-',
+                        'price_in' => '-',
+                        'balance' => '-'
                     ];
                 }
             }
@@ -170,7 +206,10 @@ class SalesExport
             'Harga Satuan',
             'Total Harga',
             'Metode Pembayaran',
-            'Status'
+            'Status',
+            'Harga Unit Keluar',
+            'Harga Unit Masuk',
+            'Selisih (Sisa Bayar)'
         ];
     }
 

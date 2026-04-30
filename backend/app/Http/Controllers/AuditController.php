@@ -2512,7 +2512,7 @@ class AuditController extends Controller
 
         try {
             $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
-            $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xls";
+            $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xml";
 
             return response()->streamDownload(function() use ($export) {
                 $headings = $export->headings();
@@ -2530,23 +2530,11 @@ class AuditController extends Controller
                 echo '  <Style ss:ID="Default" ss:Name="Normal"><Alignment ss:Vertical="Bottom"/><Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/></Style>' . "\n";
                 echo '  <Style ss:ID="Header"><Alignment ss:Horizontal="Center"/><Font ss:FontName="Calibri" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2E7D32" ss:Pattern="Solid"/></Style>' . "\n";
                 echo '  <Style ss:ID="Text"><NumberFormat ss:Format="@"/></Style>' . "\n";
-                echo '  <Style ss:ID="Currency"><NumberFormat ss:Format="Standard"/></Style>' . "\n";
                 echo ' </Styles>' . "\n";
 
                 echo ' <Worksheet ss:Name="Penjualan">' . "\n";
                 echo '  <Table>' . "\n";
                 
-                // Columns width definition (optional but good)
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Waktu
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // No Pesanan
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Lokasi
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // CS
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Customer
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // WA
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="100"/>' . "\n"; // Kategori
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="250"/>' . "\n"; // Produk
-                echo '   <Column ss:AutoFitWidth="1" ss:Width="120" ss:StyleID="Text"/>' . "\n"; // IMEI
-
                 // Headings
                 echo '   <Row ss:Height="20">' . "\n";
                 foreach ($headings as $h) {
@@ -2567,7 +2555,7 @@ class AuditController extends Controller
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['product'] ?? '') . '</Data></Cell>' . "\n";
                     
                     // IMEI force text
-                    $imei = str_replace("'", "", $row['imei'] ?? '-'); // Remove the quote we added earlier
+                    $imei = str_replace("'", "", $row['imei'] ?? '-');
                     echo '    <Cell ss:StyleID="Text"><Data ss:Type="String">' . htmlspecialchars($imei) . '</Data></Cell>' . "\n";
                     
                     echo '    <Cell><Data ss:Type="Number">' . (int)($row['qty'] ?? 1) . '</Data></Cell>' . "\n";
@@ -2575,6 +2563,11 @@ class AuditController extends Controller
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['total'] ?? '') . '</Data></Cell>' . "\n";
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['payment'] ?? '') . '</Data></Cell>' . "\n";
                     echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['status'] ?? '') . '</Data></Cell>' . "\n";
+                    
+                    // New columns
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['price_out'] ?? '-') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['price_in'] ?? '-') . '</Data></Cell>' . "\n";
+                    echo '    <Cell><Data ss:Type="String">' . htmlspecialchars($row['balance'] ?? '-') . '</Data></Cell>' . "\n";
                     echo '   </Row>' . "\n";
                 }
 
@@ -2582,7 +2575,7 @@ class AuditController extends Controller
                 echo ' </Worksheet>' . "\n";
                 echo '</Workbook>' . "\n";
             }, $filename, [
-                'Content-Type' => 'application/vnd.ms-excel',
+                'Content-Type' => 'application/xml',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
                 'Cache-Control' => 'max-age=0',
             ]);
