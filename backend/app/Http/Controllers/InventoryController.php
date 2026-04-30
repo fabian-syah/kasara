@@ -989,11 +989,11 @@ class InventoryController extends Controller
 
             $xlsxData = [['DEBUG', 'MODE'], ['TEST', 'OK']];
 
-            $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-            $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+            $csv = "DEBUG,MODE\nTEST,OK";
+            $filename = 'stok-masuk-' . $type . '-' . now()->format('Y-m-d') . '.csv';
 
-            return response((string) $xlsx, 200, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            return response($csv, 200, [
+                'Content-Type' => 'text/csv',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
         } catch (\Throwable $e) {
