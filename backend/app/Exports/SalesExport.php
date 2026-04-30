@@ -3,13 +3,8 @@
 namespace App\Exports;
 
 use App\Models\StockOut;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class SalesExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize
+class SalesExport
 {
     protected $branchId;
     protected $onlineShopId;
@@ -186,7 +181,7 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, WithTitl
             }
         }
 
-        return collect($rows);
+        return $rows;
     }
 
     public function headings(): array
@@ -210,30 +205,6 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, WithTitl
             'Harga Unit Keluar',
             'Harga Unit Masuk',
             'Selisih (Sisa Bayar)'
-        ];
-    }
-
-    public function map($row): array
-    {
-        return [
-            $row['waktu'] ?? '',
-            $row['order_no'] ?? '',
-            $row['lokasi'] ?? '',
-            $row['user'] ?? '',
-            $row['customer'] ?? '',
-            $row['whatsapp'] ?? '',
-            $row['category'] ?? '',
-            $row['product'] ?? '',
-            $row['imei'] ?? '',
-            $row['qty'] ?? 0,
-            $row['price'] ?? '',
-            $row['total'] ?? '',
-            $row['distributor'] ?? '',
-            $row['payment'] ?? '',
-            $row['status'] ?? '',
-            $row['price_out'] ?? '',
-            $row['price_in'] ?? '',
-            $row['balance'] ?? ''
         ];
     }
 }
