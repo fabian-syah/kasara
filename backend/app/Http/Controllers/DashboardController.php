@@ -336,7 +336,11 @@ class DashboardController extends Controller
 
             $excludeFilter = function ($item) {
                 $name = strtolower($item->name);
-                return !str_contains($name, 'trial') && !str_contains($name, 'testing') && !str_contains($name, 'anu') && !str_contains($name, 'huft');
+                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                foreach ($excludedKeywords as $kw) {
+                    if (str_contains($name, $kw)) return false;
+                }
+                return true;
             };
 
             $branches = $branchesArr->filter($excludeFilter);
@@ -369,12 +373,12 @@ class DashboardController extends Controller
                 $ranks = collect();
 
                 foreach ($branches as $b) {
-                    $omset = (float) ($stats->where('branch_id', $b->id)->first()->total_omset ?? 0);
+                    $omset = (float) ($stats->where('branch_id', $b->id)->sum('total_omset') ?? 0);
                     $ranks->push(['id' => $b->id, 'name' => $b->name, 'type' => 'branch', 'omset' => $omset]);
                 }
 
                 foreach ($shops as $s) {
-                    $omset = (float) ($stats->where('online_shop_id', $s->id)->first()->total_omset ?? 0);
+                    $omset = (float) ($stats->where('online_shop_id', $s->id)->sum('total_omset') ?? 0);
                     $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset]);
                 }
 

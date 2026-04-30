@@ -581,55 +581,55 @@ class ReportController extends Controller
 
 
         // 1. Get Base Stats (Omset & Transaction Count)
-        $branchBase = DB::table('branches')
-            ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
-                foreach ($excludedKeywords as $kw) $q->where('branches.name', 'not ilike', "%$kw%");
-            })
-            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategoriesExtended) {
-                $join->on('branches.id', '=', 'stock_outs.branch_id')
-                    ->whereIn('stock_outs.category', $salesCategoriesExtended)
-                    ->whereNull('stock_outs.deleted_at');
-                if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
-                if ($endDate) $join->where('stock_outs.reporting_date', '<=', $endDate);
-            })
-            ->leftJoin('refunds', 'stock_outs.receipt_id', '=', 'refunds.receipt_id')
-            ->select(
-                'branches.id',
-                DB::raw('SUM(CASE WHEN stock_outs.category != \'refund\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as omset'),
-                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category != \'refund\' THEN stock_outs.id END) as transaction_count'),
-                // Refund details
-                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'refund\' THEN stock_outs.id END) as refund_count'),
-                DB::raw('SUM(CASE WHEN stock_outs.category = \'refund\' THEN COALESCE(refunds.refund_price, 0) ELSE 0 END) as refund_amount'),
-                // Angkat Barang details
-                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'angkat_barang\' THEN stock_outs.id END) as ab_count'),
-                DB::raw('SUM(CASE WHEN stock_outs.category = \'angkat_barang\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as ab_amount')
-            )
-            ->groupBy('branches.id')
-            ->get()->keyBy('id');
+        $baseQuery = DB::table('stock_outs')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->whereNull('stock_outs.deleted_at');
+
+        if ($startDate) $baseQuery->where('stock_outs.reporting_date', '>=', $startDate);
+        if ($endDate) $baseQuery->where('stock_outs.reporting_date', '<=', $endDate);
+
+        $baseStats = $baseQuery->select(
+            DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
+            DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
+            // Omset: Sales excluding AB and Refund
+            DB::raw('SUM(CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as sales_omset'),
+            DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN stock_outs.id END) as transaction_count'),
+            // Refund details
+            DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'refund\' THEN stock_outs.id END) as refund_count'),
+            DB::raw('SUM(CASE WHEN stock_outs.category = \'refund\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as refund_amount'),
+            // Angkat Barang details
+            DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'angkat_barang\' THEN stock_outs.id END) as ab_count'),
+            DB::raw('SUM(CASE WHEN stock_outs.category = \'angkat_barang\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as ab_amount')
+        )
+        ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
+        ->get();
 
         // 2. Get Item Counts (Iphone vs Android)
-        $branchItemCounts = DB::table('branches')
-            ->join('stock_outs', 'branches.id', '=', 'stock_outs.branch_id')
+        $itemCountsQuery = DB::table('stock_outs')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
             ->whereIn('stock_outs.category', $salesCategories)
             ->whereNull('stock_outs.deleted_at')
-            ->where('products.type', 'hp')
-            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
-            ->select(
-                'branches.id',
-                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) LIKE '%iphone%' OR LOWER(products.brand) LIKE '%apple%') THEN 1 END) as iphone_count"),
-                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) NOT LIKE '%iphone%' AND LOWER(products.brand) NOT LIKE '%apple%') THEN 1 END) as android_count")
-            )
-            ->groupBy('branches.id')
-            ->get()->keyBy('id');
+            ->where('products.type', 'hp');
 
-        // 3. Get Top Android Models per branch
-        $branchAndroidModels = DB::table('branches')
-            ->join('stock_outs', 'branches.id', '=', 'stock_outs.branch_id')
+        if ($startDate) $itemCountsQuery->where('stock_outs.reporting_date', '>=', $startDate);
+        if ($endDate) $itemCountsQuery->where('stock_outs.reporting_date', '<=', $endDate);
+
+        $itemCounts = $itemCountsQuery->select(
+            DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
+            DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
+            DB::raw("COUNT(CASE WHEN (LOWER(products.brand) LIKE '%iphone%' OR LOWER(products.brand) LIKE '%apple%') THEN 1 END) as iphone_count"),
+            DB::raw("COUNT(CASE WHEN (LOWER(products.brand) NOT LIKE '%iphone%' AND LOWER(products.brand) NOT LIKE '%apple%') THEN 1 END) as android_count")
+        )
+        ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
+        ->get();
+
+        // 3. Get Top Android Models
+        $androidModelsQuery = DB::table('stock_outs')
+            ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -639,131 +639,80 @@ class ReportController extends Controller
             ->where(function($q) {
                 $q->where(DB::raw('LOWER(products.brand)'), 'NOT LIKE', '%iphone%')
                   ->where(DB::raw('LOWER(products.brand)'), 'NOT LIKE', '%apple%');
-            })
-            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
-            ->select(
-                'branches.id as branch_id',
-                'products.name as model_name',
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('branches.id', 'products.name')
-            ->orderBy('count', 'desc')
-            ->get()->groupBy('branch_id');
+            });
+
+        if ($startDate) $androidModelsQuery->where('stock_outs.reporting_date', '>=', $startDate);
+        if ($endDate) $androidModelsQuery->where('stock_outs.reporting_date', '<=', $endDate);
+
+        $androidModels = $androidModelsQuery->select(
+            DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
+            DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
+            'products.name as model_name',
+            DB::raw('COUNT(*) as count')
+        )
+        ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'), 'products.name')
+        ->orderBy('count', 'desc')
+        ->get();
 
         $branches = DB::table('branches')
             ->where('is_active', true)
+            ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
+            })
             ->get();
-        $branchStats = $branches->map(function($b) use ($branchBase, $branchItemCounts, $branchAndroidModels) {
-            $base = $branchBase[$b->id] ?? null;
-            $items = $branchItemCounts[$b->id] ?? null;
-            $topModels = $branchAndroidModels->get($b->id)?->take(3)->pluck('model_name')->toArray() ?? [];
+
+        $branchStats = $branches->map(function($b) use ($baseStats, $itemCounts, $androidModels) {
+            $branchBase = $baseStats->where('branch_id', $b->id);
+            $branchItems = $itemCounts->where('branch_id', $b->id);
+            $topModels = $androidModels->where('branch_id', $b->id)->take(3)->pluck('model_name')->toArray();
             
+            // Total Omset = Sales + AB - Refund (Consistent with Dashboard Ranking)
+            $omset = $branchBase->sum('sales_omset') + $branchBase->sum('ab_amount') - $branchBase->sum('refund_amount');
+
             return (object) [
                 'id' => $b->id,
                 'name' => $b->name,
                 'type' => 'Offline',
-                'omset' => $base ? (float) $base->omset : 0,
-                'transaction_count' => $base ? (int) $base->transaction_count : 0,
-                'refund_count' => $base ? (int) $base->refund_count : 0,
-                'refund_amount' => $base ? (float) $base->refund_amount : 0,
-                'ab_count' => $base ? (int) $base->ab_count : 0,
-                'ab_amount' => $base ? (float) $base->ab_amount : 0,
-                'iphone_count' => $items ? (int) $items->iphone_count : 0,
-                'android_count' => $items ? (int) $items->android_count : 0,
+                'omset' => (float) $omset,
+                'transaction_count' => (int) $branchBase->sum('transaction_count'),
+                'refund_count' => (int) $branchBase->sum('refund_count'),
+                'refund_amount' => (float) $branchBase->sum('refund_amount'),
+                'ab_count' => (int) $branchBase->sum('ab_count'),
+                'ab_amount' => (float) $branchBase->sum('ab_amount'),
+                'iphone_count' => (int) $branchItems->sum('iphone_count'),
+                'android_count' => (int) $branchItems->sum('android_count'),
                 'top_android_models' => $topModels
             ];
         });
 
-        // 4. Get Online Shop Stats
-        $onlineBase = DB::table('online_shops')
-            ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
-                foreach ($excludedKeywords as $kw) $q->where('online_shops.name', 'not ilike', "%$kw%");
-            })
-            ->leftJoin('stock_outs', function($join) use ($startDate, $endDate, $salesCategoriesExtended) {
-                $join->on('online_shops.id', '=', 'stock_outs.online_shop_id')
-                    ->whereIn('stock_outs.category', $salesCategoriesExtended)
-                    ->whereNull('stock_outs.deleted_at');
-                if ($startDate) $join->where('stock_outs.reporting_date', '>=', $startDate);
-                if ($endDate) $join->where('stock_outs.reporting_date', '<=', $endDate);
-            })
-            ->leftJoin('refunds', 'stock_outs.receipt_id', '=', 'refunds.receipt_id')
-            ->select(
-                'online_shops.id',
-                DB::raw('SUM(CASE WHEN stock_outs.category != \'refund\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as omset'),
-                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category != \'refund\' THEN stock_outs.id END) as transaction_count'),
-                // Refund details
-                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'refund\' THEN stock_outs.id END) as refund_count'),
-                DB::raw('SUM(CASE WHEN stock_outs.category = \'refund\' THEN COALESCE(refunds.refund_price, 0) ELSE 0 END) as refund_amount'),
-                // Angkat Barang details
-                DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'angkat_barang\' THEN stock_outs.id END) as ab_count'),
-                DB::raw('SUM(CASE WHEN stock_outs.category = \'angkat_barang\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as ab_amount')
-            )
-            ->groupBy('online_shops.id')
-            ->get()->keyBy('id');
-
-        $onlineItemCounts = DB::table('online_shops')
-            ->join('stock_outs', 'online_shops.id', '=', 'stock_outs.online_shop_id')
-            ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
-            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-            ->join('products', 'product_details.product_id', '=', 'products.id')
-            ->whereIn('stock_outs.category', $salesCategories)
-            ->whereNull('stock_outs.deleted_at')
-            ->where('products.type', 'hp')
-            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
-            ->select(
-                'online_shops.id',
-                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) LIKE '%iphone%' OR LOWER(products.brand) LIKE '%apple%') THEN 1 END) as iphone_count"),
-                DB::raw("COUNT(CASE WHEN (LOWER(products.brand) NOT LIKE '%iphone%' AND LOWER(products.brand) NOT LIKE '%apple%') THEN 1 END) as android_count")
-            )
-            ->groupBy('online_shops.id')
-            ->get()->keyBy('id');
-
-        $onlineAndroidModels = DB::table('online_shops')
-            ->join('stock_outs', 'online_shops.id', '=', 'stock_outs.online_shop_id')
-            ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
-            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-            ->join('products', 'product_details.product_id', '=', 'products.id')
-            ->whereIn('stock_outs.category', $salesCategories)
-            ->whereNull('stock_outs.deleted_at')
-            ->where('products.type', 'hp')
-            ->where(function($q) {
-                $q->where(DB::raw('LOWER(products.brand)'), 'NOT LIKE', '%iphone%')
-                  ->where(DB::raw('LOWER(products.brand)'), 'NOT LIKE', '%apple%');
-            })
-            ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
-            ->select(
-                'online_shops.id as shop_id',
-                'products.name as model_name',
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('online_shops.id', 'products.name')
-            ->orderBy('count', 'desc')
-            ->get()->groupBy('shop_id');
-
         $shops = DB::table('online_shops')
             ->where('is_active', true)
+            ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
+                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
+            })
             ->get();
-        $onlineStats = $shops->map(function($s) use ($onlineBase, $onlineItemCounts, $onlineAndroidModels) {
-            $base = $onlineBase[$s->id] ?? null;
-            $items = $onlineItemCounts[$s->id] ?? null;
-            $topModels = $onlineAndroidModels->get($s->id)?->take(3)->pluck('model_name')->toArray() ?? [];
+
+        $onlineStats = $shops->map(function($s) use ($baseStats, $itemCounts, $androidModels) {
+            $shopBase = $baseStats->where('online_shop_id', $s->id);
+            $shopItems = $itemCounts->where('online_shop_id', $s->id);
+            $topModels = $androidModels->where('online_shop_id', $s->id)->take(3)->pluck('model_name')->toArray();
             
+            $omset = $shopBase->sum('sales_omset') + $shopBase->sum('ab_amount') - $shopBase->sum('refund_amount');
+
             return (object) [
                 'id' => $s->id,
                 'name' => $s->name,
                 'type' => 'Online',
-                'omset' => $base ? (float) $base->omset : 0,
-                'transaction_count' => $base ? (int) $base->transaction_count : 0,
-                'refund_count' => $base ? (int) $base->refund_count : 0,
-                'refund_amount' => $base ? (float) $base->refund_amount : 0,
-                'ab_count' => $base ? (int) $base->ab_count : 0,
-                'ab_amount' => $base ? (float) $base->ab_amount : 0,
-                'iphone_count' => $items ? (int) $items->iphone_count : 0,
-                'android_count' => $items ? (int) $items->android_count : 0,
+                'omset' => (float) $omset,
+                'transaction_count' => (int) $shopBase->sum('transaction_count'),
+                'refund_count' => (int) $shopBase->sum('refund_count'),
+                'refund_amount' => (float) $shopBase->sum('refund_amount'),
+                'ab_count' => (int) $shopBase->sum('ab_count'),
+                'ab_amount' => (float) $shopBase->sum('ab_amount'),
+                'iphone_count' => (int) $shopItems->sum('iphone_count'),
+                'android_count' => (int) $shopItems->sum('android_count'),
                 'top_android_models' => $topModels
             ];
         });
