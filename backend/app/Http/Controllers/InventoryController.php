@@ -883,6 +883,8 @@ class InventoryController extends Controller
     // Export Stock In History as XLSX
     public function exportStockInHistory(Request $request)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
         try {
             $user = Auth::user();
             $type = $request->type ?? 'hp';
@@ -1026,8 +1028,8 @@ class InventoryController extends Controller
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
         }
     }
 
