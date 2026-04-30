@@ -2559,7 +2559,6 @@ class AuditController extends Controller
             $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xlsx";
 
             $xlsxData = [];
-            $xlsxData[] = ["LAPORAN PENJUALAN (" . strtoupper($startDate) . " - " . strtoupper($endDate) . ")"];
             $xlsxData[] = $export->headings();
 
             $rows = $export->collection();

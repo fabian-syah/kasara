@@ -58,16 +58,36 @@ class SimpleXLSXGen {
 </styleSheet>';
         
         // 6. xl/worksheets/sheet1.xml
-        $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="20"/><col min="2" max="2" width="20"/><col min="3" max="100" width="15"/></cols><sheetData>';
+        $colWidths = [];
+        foreach ($this->rows as $row) {
+            foreach ($row as $cIdx => $val) {
+                $len = mb_strlen((string)$val) + 4; // Add some padding
+                if (!isset($colWidths[$cIdx]) || $len > $colWidths[$cIdx]) {
+                    $colWidths[$cIdx] = $len;
+                }
+            }
+        }
+        // Cap widths
+        foreach ($colWidths as $k => $v) {
+            if ($v > 50) $colWidths[$k] = 50;
+        }
+
+        $colsXml = '<cols>';
+        foreach ($colWidths as $cIdx => $width) {
+            $idx = $cIdx + 1;
+            $colsXml .= '<col min="'.$idx.'" max="'.$idx.'" width="'.$width.'"/>';
+        }
+        $colsXml .= '</cols>';
+
+        $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $colsXml . '<sheetData>';
         foreach ($this->rows as $rIdx => $row) {
             $ws .= '<row r="'.($rIdx+1).'">';
             foreach ($row as $cIdx => $val) {
                 $col = $this->num2alpha($cIdx) . ($rIdx + 1);
                 $s = 0; 
-                if ($rIdx === 0) $s = 1; // Title style
-                elseif ($rIdx === 1) $s = 2; // Header style
+                if ($rIdx === 0) $s = 2; // Header style (if title removed, index 0 is header)
                 
-                if (is_numeric($val) && strlen($val) < 12 && !str_starts_with($val, '0')) {
+                if (is_numeric($val) && strlen((string)$val) < 12 && !str_starts_with((string)$val, '0')) {
                     $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
                 } else {
                     $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';
