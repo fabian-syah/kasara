@@ -2510,12 +2510,33 @@ class AuditController extends Controller
         $branchId = $request->branch_id;
         $onlineShopId = $request->online_shop_id;
 
-        $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.xlsx';
+        $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
+        $headings = $export->headings();
+        $rows = $export->collection();
 
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user),
-            $filename
-        );
+        $callback = function () use ($headings, $rows) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM for Excel
+
+            // Use semicolon for better Excel compatibility in Indonesia (standard list separator)
+            fputcsv($file, $headings, ';');
+
+            foreach ($rows as $row) {
+                fputcsv($file, array_values($row), ';');
+            }
+
+            fclose($file);
+        };
+
+        $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.csv';
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     /**

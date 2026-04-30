@@ -56,13 +56,19 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             });
         }
 
-        // Exclude test data
-        $query->whereHas('user', function($q) {
-            $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
-            $q->where(function($sub) use ($excluded) {
+        // Exclude test locations (Branch/Online Shop)
+        $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+        $query->where(function($q) use ($excluded) {
+            $q->whereHas('branch', function($sub) use ($excluded) {
                 foreach ($excluded as $term) {
                     $sub->where('name', 'not ilike', '%' . $term . '%');
                 }
+            })->orWhereHas('onlineShop', function($sub) use ($excluded) {
+                foreach ($excluded as $term) {
+                    $sub->where('name', 'not ilike', '%' . $term . '%');
+                }
+            })->orWhere(function($sub) {
+                $sub->whereNull('branch_id')->whereNull('online_shop_id');
             });
         });
 
@@ -85,8 +91,8 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
                     'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " (" . ($item->condition === 'new' ? 'Baru' : 'Second') . ")",
                     'imei' => $item->imei ?? '-',
                     'qty' => 1,
-                    'price' => $item->price ?? 0,
-                    'total' => $item->price ?? 0,
+                    'price' => $item->pivot->selling_price ?? 0,
+                    'total' => $item->pivot->selling_price ?? 0,
                     'payment' => $so->paymentMethod->name ?? ($so->payment_method_name ?? '-'),
                     'status' => strtoupper($so->status)
                 ];
