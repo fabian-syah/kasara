@@ -1069,17 +1069,6 @@ class InventoryController extends Controller
 
             $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
 
-            // Filter by HP vs Non-HP
-            if ($type === 'non-hp') {
-                $query->whereHas('product', function ($pq) {
-                    $pq->where('has_imei', false);
-                });
-            } else {
-                $query->whereHas('product', function ($pq) {
-                    $pq->where('has_imei', true);
-                });
-            }
-
             if ($request->search) {
                 $lowKeyword = strtolower($request->search);
                 $query->where(function ($q) use ($lowKeyword) {
