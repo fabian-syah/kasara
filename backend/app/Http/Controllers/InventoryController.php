@@ -1036,76 +1036,98 @@ class InventoryController extends Controller
 
     public function exportStockOutHistory(Request $request)
     {
-        $user = Auth::user();
-        $logTable = (new InventoryLog)->getTable();
-        $prodTable = (new Product)->getTable();
+        ini_set('memory_limit', '1024M');
+        set_time_limit(600);
+        try {
+            $user = Auth::user();
+            $type = $request->type ?? 'hp';
+            $logTable = (new InventoryLog)->getTable();
+            $prodTable = (new Product)->getTable();
 
-        $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out')
-            ->join($prodTable, $logTable . '.product_id', '=', $prodTable . '.id')
-            ->select($logTable . '.*');
+            $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'out');
 
-        if ($request->search) {
-            $lowKeyword = strtolower($request->search);
-            $query->where(function ($q) use ($lowKeyword, $prodTable) {
-                $q->whereHas('product', function ($pq) use ($lowKeyword) {
-                    $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+            // Filter by HP vs Non-HP
+            if ($type === 'non-hp') {
+                $query->whereHas('product', function ($pq) {
+                    $pq->where('has_imei', false);
                 });
+            } else {
+                $query->whereHas('product', function ($pq) {
+                    $pq->where('has_imei', true);
+                });
+            }
+
+            if ($request->search) {
+                $lowKeyword = strtolower($request->search);
+                $query->where(function ($q) use ($lowKeyword) {
+                    $q->whereHas('product', function ($pq) use ($lowKeyword) {
+                        $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                    });
+                });
+            }
+
+            // Apply Location Filters
+            if ($request->branch_id)
+                $query->where($logTable . '.branch_id', $request->branch_id);
+            if ($request->warehouse_id)
+                $query->where($logTable . '.warehouse_id', $request->warehouse_id);
+            if ($request->online_shop_id)
+                $query->where($logTable . '.online_shop_id', $request->online_shop_id);
+
+            // Apply Role Restrictions
+            $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
+            if (!$user->hasRole($unrestrictedRoles)) {
+                $query->where(function ($q) use ($user, $logTable) {
+                    $branchIds = $user->getAccessibleBranchIds();
+                    $warehouseIds = $user->getAccessibleWarehouseIds();
+                    $shopIds = $user->getAccessibleOnlineShopIds();
+
+                    if (!empty($branchIds))
+                        $q->orWhereIn($logTable . '.branch_id', $branchIds);
+                    if (!empty($warehouseIds))
+                        $q->orWhereIn($logTable . '.warehouse_id', $warehouseIds);
+                    if (!empty($shopIds))
+                        $q->orWhereIn($logTable . '.online_shop_id', $shopIds);
+                    $q->orWhere($logTable . '.user_id', $user->id);
+                });
+            }
+
+            // Date Filters
+            if ($request->date) {
+                $query->whereDate($logTable . '.created_at', $request->date);
+            } elseif ($request->month && $request->year) {
+                $query->whereMonth($logTable . '.created_at', $request->month)->whereYear($logTable . '.created_at', $request->year);
+            }
+
+            // Sorting in PHP for stability
+            $items = $query->get()->sortBy(function ($item) {
+                return strtolower((optional($item->product)->brand ?? '') . (optional($item->product)->name ?? ''));
             });
+
+            $xlsxData = [];
+            $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Akun Inventory'];
+            foreach ($items as $item) {
+                $xlsxData[] = [
+                    $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
+                    optional($item->product)->brand ?? '-',
+                    optional($item->product)->name ?? '-',
+                    $item->quantity ?? 0,
+                    $item->description ?? '-',
+                    optional($item->user)->name ?? '-',
+                ];
+            }
+
+            $xlsx = SimpleXLSXGen::fromArray($xlsxData);
+            $filename = 'stok-keluar-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+
+            return response((string) $xlsx, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
         }
-
-        // Apply Location Filters
-        if ($request->branch_id) $query->where($logTable . '.branch_id', $request->branch_id);
-        if ($request->warehouse_id) $query->where($logTable . '.warehouse_id', $request->warehouse_id);
-        if ($request->online_shop_id) $query->where($logTable . '.online_shop_id', $request->online_shop_id);
-
-        // Apply Role Restrictions
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
-        if (!$user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($user, $logTable) {
-                $branchIds = $user->getAccessibleBranchIds();
-                $warehouseIds = $user->getAccessibleWarehouseIds();
-                $shopIds = $user->getAccessibleOnlineShopIds();
-
-                if (!empty($branchIds)) $q->orWhereIn($logTable . '.branch_id', $branchIds);
-                if (!empty($warehouseIds)) $q->orWhereIn($logTable . '.warehouse_id', $warehouseIds);
-                if (!empty($shopIds)) $q->orWhereIn($logTable . '.online_shop_id', $shopIds);
-                $q->orWhere($logTable . '.user_id', $user->id);
-            });
-        }
-
-        // Date Filters
-        if ($request->date) {
-            $query->whereDate($logTable . '.created_at', $request->date);
-        } elseif ($request->month && $request->year) {
-            $query->whereMonth($logTable . '.created_at', $request->month)->whereYear($logTable . '.created_at', $request->year);
-        }
-
-        // Sorting
-        $items = $query->orderBy($prodTable . '.brand')
-            ->orderBy($prodTable . '.name')
-            ->get();
-
-        $xlsxData = [];
-        $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Akun Inventory'];
-        foreach ($items as $item) {
-            $xlsxData[] = [
-                $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
-                optional($item->product)->brand ?? '-',
-                optional($item->product)->name ?? '-',
-                $item->quantity ?? 0,
-                $item->description ?? '-',
-                optional($item->user)->name ?? '-',
-            ];
-        }
-
-        $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-        $filename = 'stok-keluar-' . now()->format('Y-m-d') . '.xlsx';
-        
-        return response((string)$xlsx, 200, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
     }
 
     public function stockIn(Request $request)
