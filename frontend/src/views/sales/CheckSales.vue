@@ -69,6 +69,13 @@
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
+                <!-- Export Excel -->
+                <button @click="handleExport" :disabled="exportLoading || loading"
+                    class="flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all disabled:opacity-50 font-bold text-sm shadow-lg shadow-emerald-500/20">
+                    <Loader2 v-if="exportLoading" :size="18" class="animate-spin" />
+                    <Download v-else :size="18" />
+                    <span>Export Excel</span>
+                </button>
             </div>
         </div>
 
@@ -468,6 +475,7 @@ import { useAuthStore } from '../../store/auth'
 
 const authStore = useAuthStore()
 const loading = ref(false)
+const exportLoading = ref(false)
 const selectedPeriod = ref('daily')
 
 const categoryLabels = {
@@ -777,6 +785,37 @@ const fetchData = async () => {
         loading.value = false
     }
 }
+
+const handleExport = async () => {
+    exportLoading.value = true;
+    try {
+        const params = {
+            start_date: filters.value.start_date,
+            end_date: filters.value.end_date,
+            branch_id: selectedBranchId.value,
+            online_shop_id: selectedOnlineShopId.value
+        };
+        
+        const response = await axios.get('/audit/sales/export', { 
+            params,
+            responseType: 'blob' 
+        });
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        const filename = `Laporan-Penjualan-${filters.value.start_date}-to-${filters.value.end_date}.xlsx`;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Export failed:', error);
+    } finally {
+        exportLoading.value = false;
+    }
+};
 
 const formatNumber = (num) => {
     if (!num) return '0'

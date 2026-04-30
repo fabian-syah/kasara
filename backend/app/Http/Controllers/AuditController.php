@@ -2464,7 +2464,7 @@ class AuditController extends Controller
     }
 
     /**
-     * Export Audit Sales data as CSV.
+     * Export Audit Sales data as Excel.
      */
     public function exportSales(Request $request)
     {
@@ -2482,8 +2482,8 @@ class AuditController extends Controller
         $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
         $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
 
-        // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
+        // Role-based Date Restriction (similar to sales() method)
+        if (!$user->hasAnyRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
             $today = $logicalNow->toDateString();
             $yesterday = $logicalNow->copy()->subDay()->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
@@ -2507,126 +2507,15 @@ class AuditController extends Controller
             }
         }
 
-        // Filter by specific location
-        $requestedBranchId = $request->branch_id;
-        $requestedOnlineShopId = $request->online_shop_id;
-        $requestedWarehouseId = $request->warehouse_id;
-        $requestedDistributorId = $request->distributor_id;
+        $branchId = $request->branch_id;
+        $onlineShopId = $request->online_shop_id;
 
-        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                    if ($requestedBranchId) {
-                        if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
-                            $sub->where('branch_id', $requestedBranchId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedOnlineShopId) {
-                        if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
-                            $sub->where('online_shop_id', $requestedOnlineShopId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedWarehouseId) {
-                        if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
-                            $sub->where('warehouse_id', $requestedWarehouseId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedDistributorId) {
-                        if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
-                            $sub->where('distributor_id', $requestedDistributorId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } else {
-                        if (!empty($branchIds))
-                            $sub->orWhereIn('branch_id', $branchIds);
-                        if (!empty($onlineShopIds))
-                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds))
-                            $sub->orWhereIn('warehouse_id', $warehouseIds);
-                        if (!empty($distributorIds))
-                            $sub->orWhereIn('distributor_id', $distributorIds);
-                    }
-                });
-            });
-        };
+        $filename = 'laporan-penjualan-' . $startDate . '-to-' . $endDate . '.xlsx';
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
-
-        $dailySalesQuery = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers'])
-            ->whereIn('category', $salesCategories)
-            ->whereBetween('reporting_date', [$startDate, $endDate]);
-
-        $scopeToAccess($dailySalesQuery);
-
-        $items = $dailySalesQuery->latest()->get();
-
-        $callback = function () use ($items) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF)); // UTF-8 BOM
-
-            fputcsv($file, [
-                'Waktu',
-                'No Pesanan',
-                'Nama Pelanggan',
-                'Kategori',
-                'Tipe',
-                'Brand',
-                'Nama Type',
-                'Jumlah Barang',
-                'Status',
-                'Audit Score (%)'
-            ]);
-
-            foreach ($items as $trx) {
-                // Calculate Audit Score (Logic from sales() method)
-                $categoryQuestions = Question::where('category', $trx->category)->get();
-                $currentQuestionIds = $categoryQuestions->pluck('id')->toArray();
-                $existingAnswers = $trx->auditAnswers;
-
-                $totalQuestions = $categoryQuestions->count();
-                $yesCount = $existingAnswers->where('answer', true)->count();
-
-                // Snapshot handling logic similar to getChecklist
-                foreach ($categoryQuestions as $cq) {
-                    $existingAns = $existingAnswers->firstWhere('question_id', $cq->id);
-                    if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $cq->content) {
-                        $totalQuestions++;
-                    }
-                }
-                foreach ($existingAnswers as $ans) {
-                    if ($ans->question_id === null || !in_array($ans->question_id, $currentQuestionIds)) {
-                        $totalQuestions++;
-                    }
-                }
-
-                $auditScore = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : null;
-
-                fputcsv($file, [
-                    $trx->created_at->format('Y-m-d H:i'),
-                    $trx->receipt_id,
-                    $trx->customer_name ?? $trx->receiver_name ?? $trx->shopee_receiver ?? $trx->giveaway_receiver ?? '-',
-                    $trx->category,
-                    $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
-                    $trx->items->map(fn($i) => $i->product->brand ?? '-')->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: ($trx->nonHpItems->map(fn($i) => $i->product->brand ?? '-')->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-'),
-                    $trx->items->map(fn($i) => $i->product->name ?? '-')->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: ($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-')->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-'),
-                    $trx->items->count() + ($trx->non_hp_items ? collect($trx->non_hp_items)->sum('quantity') : $trx->nonHpItems->sum('quantity')),
-                    $trx->status === 'received' ? 'Lunas' : 'Pending',
-                    $auditScore !== null ? $auditScore . '%' : '-'
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        $filename = 'audit-sales-export-' . now()->format('Y-m-d') . '.csv';
-
-        return response()->stream($callback, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user),
+            $filename
+        );
     }
 
     /**
