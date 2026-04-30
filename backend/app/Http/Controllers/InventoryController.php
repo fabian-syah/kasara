@@ -911,6 +911,41 @@ class InventoryController extends Controller
             }
         }
 
+        // Apply Location Filters
+        if ($request->branch_id) {
+            if ($type === 'non-hp') $query->where('inventory_logs.branch_id', $request->branch_id);
+            else $query->where('product_details.placement_type', 'branch')->where('product_details.placement_id', $request->branch_id);
+        }
+        if ($request->warehouse_id) {
+            if ($type === 'non-hp') $query->where('inventory_logs.warehouse_id', $request->warehouse_id);
+            else $query->where('product_details.placement_type', 'warehouse')->where('product_details.placement_id', $request->warehouse_id);
+        }
+        if ($request->online_shop_id) {
+            if ($type === 'non-hp') $query->where('inventory_logs.online_shop_id', $request->online_shop_id);
+            else $query->where('product_details.placement_type', 'online_shop')->where('product_details.placement_id', $request->online_shop_id);
+        }
+
+        // Apply Role Restrictions
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            $query->where(function ($q) use ($user, $type) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $shopIds = $user->getAccessibleOnlineShopIds();
+
+                if ($type === 'non-hp') {
+                    if (!empty($branchIds)) $q->orWhereIn('inventory_logs.branch_id', $branchIds);
+                    if (!empty($warehouseIds)) $q->orWhereIn('inventory_logs.warehouse_id', $warehouseIds);
+                    if (!empty($shopIds)) $q->orWhereIn('inventory_logs.online_shop_id', $shopIds);
+                    $q->orWhere('inventory_logs.user_id', $user->id);
+                } else {
+                    if (!empty($branchIds)) $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'branch')->whereIn('product_details.placement_id', $branchIds));
+                    if (!empty($warehouseIds)) $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'warehouse')->whereIn('product_details.placement_id', $warehouseIds));
+                    if (!empty($shopIds)) $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'online_shop')->whereIn('product_details.placement_id', $shopIds));
+                }
+            });
+        }
+
         // Date Filters
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
         $dateTable = $type === 'non-hp' ? 'inventory_logs' : 'product_details';
@@ -992,6 +1027,26 @@ class InventoryController extends Controller
                     $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                         ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
                 });
+            });
+        }
+
+        // Apply Location Filters
+        if ($request->branch_id) $query->where('inventory_logs.branch_id', $request->branch_id);
+        if ($request->warehouse_id) $query->where('inventory_logs.warehouse_id', $request->warehouse_id);
+        if ($request->online_shop_id) $query->where('inventory_logs.online_shop_id', $request->online_shop_id);
+
+        // Apply Role Restrictions
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            $query->where(function ($q) use ($user) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $shopIds = $user->getAccessibleOnlineShopIds();
+
+                if (!empty($branchIds)) $q->orWhereIn('inventory_logs.branch_id', $branchIds);
+                if (!empty($warehouseIds)) $q->orWhereIn('inventory_logs.warehouse_id', $warehouseIds);
+                if (!empty($shopIds)) $q->orWhereIn('inventory_logs.online_shop_id', $shopIds);
+                $q->orWhere('inventory_logs.user_id', $user->id);
             });
         }
 

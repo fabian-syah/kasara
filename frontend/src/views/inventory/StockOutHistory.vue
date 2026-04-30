@@ -151,7 +151,11 @@ const fetchData = async (page = 1) => {
 const exportExcel = async () => {
     exporting.value = true;
     try {
-        const params = { search: searchQuery.value };
+        const params = { 
+            search: searchQuery.value,
+            branch_id: props.branchId || undefined,
+            online_shop_id: props.onlineShopId || undefined
+        };
         const dateParam = getDateParam();
         if (dateParam) {
             params.date = dateParam;
