@@ -423,9 +423,15 @@ class InventoryController extends Controller
         $xlsxData = [];
 
         if ($type === 'hp') {
-            $xlsxData[] = ['Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory'];
+            $xlsxData[] = ['No', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory'];
+            $totalHarga = 0;
+            $count = 0;
             foreach ($items as $item) {
+                $count++;
+                $price = $item->selling_price > 0 ? $item->selling_price : ($item->product->price ?? ($item->product->selling_price ?? 0));
+                $totalHarga += $price;
                 $xlsxData[] = [
+                    $count,
                     $item->product->brand ?? '-',
                     $item->product->name ?? '-',
                     implode('/', array_filter([$item->ram, $item->storage])),
@@ -433,14 +439,21 @@ class InventoryController extends Controller
                     $item->imei ?? '-',
                     $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
                     $item->distributor->name ?? ($item->supplier_name ?? '-'),
-                    $item->selling_price ?? 0,
+                    $price,
                     $item->status,
                     $item->user->name ?? '-',
                 ];
             }
+            $xlsxData[] = ['TOTAL', '', '', '', '', '', '', '', $totalHarga, '', ''];
+            $xlsxData[] = ['JUMLAH PRODUK: ' . $count];
         } else {
-            $xlsxData[] = ['Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan'];
+            $xlsxData[] = ['No', 'Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan'];
+            $totalStok = 0;
+            $count = 0;
             foreach ($items as $item) {
+                $count++;
+                $stok = $item->quantity ?? 0;
+                $totalStok += $stok;
                 // Priority for distributor name (logic same as index)
                 $distName = null;
                 if ($item->distributor_id) {
@@ -463,15 +476,18 @@ class InventoryController extends Controller
                 }
 
                 $xlsxData[] = [
+                    $count,
                     $item->product->brand ?? '-',
                     $item->product->name ?? '-',
                     $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
-                    $item->quantity ?? 0,
+                    $stok,
                     $distName ?? '-',
                     $item->user->name ?? '-',
                     $item->notes ?? '-',
                 ];
             }
+            $xlsxData[] = ['TOTAL', '', '', '', $totalStok, '', '', ''];
+            $xlsxData[] = ['JUMLAH JENIS PRODUK: ' . $count];
         }
 
         $xlsx = SimpleXLSXGen::fromArray($xlsxData);
