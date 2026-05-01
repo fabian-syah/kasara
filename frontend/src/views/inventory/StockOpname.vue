@@ -22,11 +22,27 @@ const rawNonHpItems = ref([]);
 const currentView = ref('menu');
 
 // Download Center Date Range
+const exportMode = ref('daily'); // 'daily' or 'monthly'
+const exportMonth = ref(new Date().toISOString().slice(0, 7)); // 'YYYY-MM'
 const exportStartDate = ref(new Date().toISOString().split('T')[0]);
 const exportEndDate = ref(new Date().toISOString().split('T')[0]);
+const activeExportButton = ref('today');
+
+const minExportDate = computed(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().split('T')[0];
+});
+
+const maxExportDate = computed(() => {
+    return new Date().toISOString().split('T')[0];
+});
 
 const setExportRange = (type) => {
     const today = new Date();
+    exportMode.value = 'daily';
+    activeExportButton.value = type;
+
     if (type === 'today') {
         const d = today.toISOString().split('T')[0];
         exportStartDate.value = d;
@@ -37,26 +53,27 @@ const setExportRange = (type) => {
         const d = yesterday.toISOString().split('T')[0];
         exportStartDate.value = d;
         exportEndDate.value = d;
-    } else if (type === '7days') {
-        const start = new Date(today);
-        start.setDate(start.getDate() - 7);
-        exportStartDate.value = start.toISOString().split('T')[0];
-        exportEndDate.value = today.toISOString().split('T')[0];
-    } else if (type === '30days') {
-        const start = new Date(today);
-        start.setDate(start.getDate() - 30);
-        exportStartDate.value = start.toISOString().split('T')[0];
-        exportEndDate.value = today.toISOString().split('T')[0];
-    } else if (type === 'thisMonth') {
-        const start = new Date(today.getFullYear(), today.getMonth(), 1);
-        exportStartDate.value = start.toISOString().split('T')[0];
-        exportEndDate.value = today.toISOString().split('T')[0];
-    } else if (type === 'last2months') {
-        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        exportStartDate.value = start.toISOString().split('T')[0];
-        exportEndDate.value = today.toISOString().split('T')[0];
+    } else if (type === 'month') {
+        exportMode.value = 'monthly';
+        // When switching to month mode, we'll use exportMonth ref
+        updateMonthRange();
     }
 };
+
+const updateMonthRange = () => {
+    if (!exportMonth.value) return;
+    const [year, month] = exportMonth.value.split('-').map(Number);
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0);
+    exportStartDate.value = start.toISOString().split('T')[0];
+    exportEndDate.value = end.toISOString().split('T')[0];
+};
+
+watch(exportMonth, () => {
+    if (exportMode.value === 'monthly') {
+        updateMonthRange();
+    }
+});
 
 // Location Filter logic
 const locations = ref([])
@@ -1417,42 +1434,47 @@ onMounted(() => {
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-5">
                         <div class="flex flex-col lg:flex-row lg:items-end gap-6">
                             <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
-                                        <Calendar :size="12" /> Dari Tanggal
-                                    </label>
-                                    <input type="date" v-model="exportStartDate"
-                                        class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
-                                </div>
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
-                                        <Calendar :size="12" /> Sampai Tanggal
-                                    </label>
-                                    <input type="date" v-model="exportEndDate"
-                                        class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
-                                </div>
+                                <template v-if="exportMode === 'daily'">
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                            <Calendar :size="12" /> Dari Tanggal
+                                        </label>
+                                        <input type="date" v-model="exportStartDate" :min="minExportDate" :max="maxExportDate"
+                                            class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                            <Calendar :size="12" /> Sampai Tanggal
+                                        </label>
+                                        <input type="date" v-model="exportEndDate" :min="minExportDate" :max="maxExportDate"
+                                            class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div class="col-span-full space-y-2">
+                                        <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                            <Calendar :size="12" /> Pilih Bulan Laporan
+                                        </label>
+                                        <input type="month" v-model="exportMonth"
+                                            class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
+                                    </div>
+                                </template>
                             </div>
                             <div class="flex flex-wrap items-center gap-2">
                                 <button @click="setExportRange('today')" 
-                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5"
-                                    :class="exportStartDate === new Date().toISOString().split('T')[0] && exportEndDate === new Date().toISOString().split('T')[0] ? 'bg-primary-500/10 border-primary-500/50 text-primary-400' : 'text-text-secondary'">
-                                    Hari Ini
+                                    class="px-5 h-11 rounded-xl text-xs font-black transition-all border tracking-tight"
+                                    :class="activeExportButton === 'today' ? 'bg-primary-500 border-primary-500 text-white shadow-lg shadow-primary-500/25' : 'bg-surface-900 border-surface-700 text-text-secondary hover:border-surface-600'">
+                                    HARI INI
                                 </button>
                                 <button @click="setExportRange('yesterday')" 
-                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
-                                    Kemarin
+                                    class="px-5 h-11 rounded-xl text-xs font-black transition-all border tracking-tight"
+                                    :class="activeExportButton === 'yesterday' ? 'bg-primary-500 border-primary-500 text-white shadow-lg shadow-primary-500/25' : 'bg-surface-900 border-surface-700 text-text-secondary hover:border-surface-600'">
+                                    KEMARIN
                                 </button>
-                                <button @click="setExportRange('7days')" 
-                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
-                                    7 Hari
-                                </button>
-                                <button @click="setExportRange('thisMonth')" 
-                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
-                                    Bulan Ini
-                                </button>
-                                <button @click="setExportRange('last2months')" 
-                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
-                                    2 Bulan Terakhir
+                                <button @click="setExportRange('month')" 
+                                    class="px-5 h-11 rounded-xl text-xs font-black transition-all border tracking-tight"
+                                    :class="activeExportButton === 'month' ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/25' : 'bg-surface-900 border-surface-700 text-text-secondary hover:border-surface-600'">
+                                    BULANAN
                                 </button>
                             </div>
                         </div>
