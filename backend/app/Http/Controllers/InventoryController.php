@@ -646,16 +646,25 @@ class InventoryController extends Controller
         
         // Filter by Branch/Shop/Warehouse
         if ($request->branch_id) {
-            if ($type === 'hp' && $mode === 'out') $query->where('branch_id', $request->branch_id);
-            else $query->where('branch_id', $request->branch_id); // Simplified
+            if ($query->getModel() instanceof \App\Models\ProductDetail) {
+                $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
+            } else {
+                $query->where('branch_id', $request->branch_id);
+            }
         }
         if ($request->online_shop_id) {
-             if ($type === 'hp' && $mode === 'out') $query->where('online_shop_id', $request->online_shop_id);
-             else $query->where('online_shop_id', $request->online_shop_id);
+            if ($query->getModel() instanceof \App\Models\ProductDetail) {
+                $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
+            } else {
+                $query->where('online_shop_id', $request->online_shop_id);
+            }
         }
         if ($request->warehouse_id) {
-             if ($type === 'hp' && $mode === 'out') $query->where('warehouse_id', $request->warehouse_id);
-             else $query->where('warehouse_id', $request->warehouse_id);
+            if ($query->getModel() instanceof \App\Models\ProductDetail) {
+                $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
+            } else {
+                $query->where('warehouse_id', $request->warehouse_id);
+            }
         }
 
         // Filter by Date (5 AM reset rule)
