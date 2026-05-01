@@ -332,7 +332,7 @@ class InventoryController extends Controller
                 $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
                 str_replace("'", "", $item->imei ?? '-'),
                 $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
-                $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 $price,
                 strtoupper($item->status),
                 $item->user->name ?? '-',
@@ -354,7 +354,7 @@ class InventoryController extends Controller
         foreach ($nonHpItems as $idx => $item) {
             $stok = $item->quantity ?? 0;
             $totalNonHpQty += $stok;
-            $distName = $item->distributor->name ?? ($item->supplier_name ?? '-');
+            $distName = $item->distributor?->name ?? ($item->supplier_name ?? '-');
             $nonHpSheet[] = [
                 $idx + 1,
                 $item->product->brand ?? '-',
@@ -457,7 +457,7 @@ class InventoryController extends Controller
                 $item->condition,
                 str_replace("'", "", $item->imei ?? '-'),
                 $item->placement ? $item->placement->name : '-',
-                $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
                 $item->user->name ?? '-',
             ];
@@ -482,7 +482,7 @@ class InventoryController extends Controller
                 $item->product->name ?? '-',
                 $locationName,
                 (int)$item->quantity,
-                $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
                 $item->user->name ?? '-',
                 $item->description ?? '-',

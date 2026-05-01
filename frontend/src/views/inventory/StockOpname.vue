@@ -1067,16 +1067,16 @@ const downloadExcel = async (type) => {
     let endpoint = '';
     if (type === 'sales') {
         title = 'Laporan Penjualan';
-        endpoint = '/audit/export-sales';
+        endpoint = '/audit/sales/export';
     } else if (type === 'inventory') {
         title = 'Laporan Data Inventory';
         endpoint = '/inventory/export';
     } else if (type === 'stock-in') {
         title = 'Laporan Riwayat Stok Masuk';
-        endpoint = '/inventory/export-stock-in';
+        endpoint = '/inventory/history/in/export';
     } else if (type === 'stock-out') {
         title = 'Laporan Riwayat Stok Keluar';
-        endpoint = '/inventory/export-stock-out';
+        endpoint = '/inventory/history/out/export';
     }
 
     toast.info(`Sedang menyiapkan ${title}...`);

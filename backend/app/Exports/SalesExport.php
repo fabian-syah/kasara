@@ -151,7 +151,7 @@ class SalesExport
                         $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
                         $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
                         
-                        $dist = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                        $dist = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
                         if (!in_array($dist, $distributors)) $distributors[] = $dist;
                     } else {
                         $item = $it['data'];
@@ -164,7 +164,7 @@ class SalesExport
                         $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})";
                         $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
                         
-                        $dist = $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-';
+                        $dist = $item->distributor?->name ?? $item->product->brand ?? $item->supplier_name ?? '-';
                         if ($dist !== '-' && !in_array($dist, $distributors)) $distributors[] = $dist;
                     }
                 }
@@ -204,7 +204,7 @@ class SalesExport
                     $distDiscount = $item->pivot->distributed_discount ?? 0;
                     $price = $rawPrice - $itemDiscount - $distDiscount;
                     
-                    $distOut = $item->distributor->name ?? $item->supplier_name ?? 'PSTORE';
+                    $distOut = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
                     $finalDistributor = $distOut;
                     $finalProductName = $productName . " [" . $condition . "]";
                     $finalImei = $item->imei ? "'" . $item->imei : '-';
@@ -221,7 +221,7 @@ class SalesExport
                         $finalProductName = "OUT: " . $productName . " [" . $condition . "] || IN: " . $inProd;
                         $finalImei = "OUT: " . ($item->imei ?? '-') . " || IN: " . $inImei;
                         
-                        $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
+                        $distIn = $exchangeInfo->distributor?->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
                         $finalDistributor = "OUT: " . $distOut . " || IN: " . $distIn;
                     }
 
@@ -266,7 +266,7 @@ class SalesExport
                         'qty' => (float)$item->quantity,
                         'price' => (float)$price,
                         'total' => $isNeg ? -(float)($price * $item->quantity) : (float)($price * $item->quantity),
-                        'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
+                        'distributor' => $item->distributor?->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
                         'status' => ($cat === 'penjualan_store' || $cat === 'penjualan_offline') ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
