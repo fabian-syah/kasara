@@ -77,6 +77,8 @@ class SalesExport
                 $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
             }
 
+            $isNeg = in_array($cat, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+            
             // Helper to calculate split payments
             if (!$this->paymentMethods) {
                 $this->paymentMethods = \App\Models\PaymentMethod::orderBy('category')->orderBy('name')->get();
@@ -87,9 +89,11 @@ class SalesExport
             foreach ($this->paymentMethods as $pm) {
                 $payData[$pm->name] = 0;
             }
+
             if (empty($splitPayments)) {
                 $name = $so->paymentMethod->name ?? '';
                 $amount = $so->paid_amount ?: $so->selling_price;
+                if ($isNeg) $amount = -$amount;
                 if (isset($payData[$name])) {
                     $payData[$name] = $amount;
                 }
@@ -97,6 +101,7 @@ class SalesExport
                 foreach ($splitPayments as $sp) {
                     $name = $sp['method_name'] ?? '';
                     $amount = $sp['amount'] ?? 0;
+                    if ($isNeg) $amount = -$amount;
                     if (isset($payData[$name])) {
                         $payData[$name] += $amount;
                     }
@@ -176,7 +181,7 @@ class SalesExport
                     'imei' => implode(', ', array_map(fn($i) => "'" . $i, $allImeis)) ?: '-',
                     'qty' => 1,
                     'price' => (float)$totalPrice,
-                    'total' => (float)$totalPrice,
+                    'total' => $isNeg ? -(float)$totalPrice : (float)$totalPrice,
                     'distributor' => implode(', ', $distributors) ?: '-',
                     'payment' => $payment ?: '-',
                     'payment_details' => $payData,
@@ -232,14 +237,14 @@ class SalesExport
                         'imei' => $finalImei,
                         'qty' => 1,
                         'price' => (float)$pOut,
-                        'total' => (float)($exchangeInfo ? $diff : $pOut),
+                        'total' => $isNeg ? -(float)($exchangeInfo ? $diff : $pOut) : (float)($exchangeInfo ? $diff : $pOut),
                         'distributor' => $finalDistributor,
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
                         'status' => strtoupper($so->status),
                         'price_out' => $exchangeInfo ? (float)$pOut : 0,
                         'price_in' => $exchangeInfo ? (float)$pIn : 0,
-                        'balance' => $exchangeInfo ? (float)$diff : 0
+                        'balance' => $isNeg ? -(float)($exchangeInfo ? $diff : 0) : (float)($exchangeInfo ? $diff : 0)
                     ];
                 } else {
                     $item = $it['data'];
@@ -260,7 +265,7 @@ class SalesExport
                         'imei' => '-',
                         'qty' => (float)$item->quantity,
                         'price' => (float)$price,
-                        'total' => (float)($price * $item->quantity),
+                        'total' => $isNeg ? -(float)($price * $item->quantity) : (float)($price * $item->quantity),
                         'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
