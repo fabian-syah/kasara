@@ -1058,7 +1058,7 @@ class InventoryController extends Controller
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
             'storage' => 'nullable|string',
-            'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox,ex_inter,refurbished',
+            'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
             'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',

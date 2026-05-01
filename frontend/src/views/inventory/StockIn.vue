@@ -1172,7 +1172,7 @@ onMounted(fetchInitialData);
                                         class="input bg-surface-900 h-10 text-sm">
                                         <option value="new">Baru</option>
                                         <option value="second">Bekas</option>
-                                        <option v-if="item.brand_id === 1" value="ex_ibox">Ex iBox</option>
+                                        <option value="ex_ibox">Ex iBox</option>
                                     </select>
                                 </div>
                                 <div>
