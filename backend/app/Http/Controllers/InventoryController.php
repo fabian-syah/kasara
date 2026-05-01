@@ -309,64 +309,119 @@ class InventoryController extends Controller
     public function export(Request $request)
     {
         $user = Auth::user();
-        $type = $request->type ?? 'hp';
+        
+        // --- PREPARE DATA HP ---
+        $hpQuery = ProductDetail::with(['product', 'distributor', 'user', 'placement']);
+        $this->applyInventoryFilters($hpQuery, $request, 'hp');
+        $hpItems = $hpQuery->join('products', 'product_details.product_id', '=', 'products.id')
+            ->orderBy('products.brand')
+            ->orderBy('products.name')
+            ->select('product_details.*')
+            ->get();
 
-        if ($type === 'non-hp') {
-            $query = Inventory::with(['product', 'user', 'placement']);
-            // Apply Filters (logic similar to index)
-            if ($request->search) {
-                $search = $request->search;
-                $query->whereHas('product', function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")->orWhere('brand', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%");
-                });
-            }
-        } else {
-            $query = ProductDetail::with(['product', 'distributor', 'user']);
-            if ($request->search) {
-                $search = $request->search;
+        $hpSheet = [['No', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory']];
+        $totalHpPrice = 0;
+        foreach ($hpItems as $idx => $item) {
+            $price = $item->selling_price > 0 ? $item->selling_price : ($item->product->price ?? ($item->product->selling_price ?? 0));
+            $totalHpPrice += $price;
+            $hpSheet[] = [
+                $idx + 1,
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                implode('/', array_filter([$item->ram, $item->storage])),
+                $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
+                str_replace("'", "", $item->imei ?? '-'),
+                $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
+                $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                $price,
+                strtoupper($item->status),
+                $item->user->name ?? '-',
+            ];
+        }
+        $hpSheet[] = ['TOTAL', '', '', '', '', '', '', '', $totalHpPrice, '', ''];
+
+        // --- PREPARE DATA NON-HP ---
+        $nonHpQuery = Inventory::with(['product', 'user', 'placement']);
+        $this->applyInventoryFilters($nonHpQuery, $request, 'non-hp');
+        $nonHpItems = $nonHpQuery->join('products', 'inventories.product_id', '=', 'products.id')
+            ->orderBy('products.brand')
+            ->orderBy('products.name')
+            ->select('inventories.*')
+            ->get();
+
+        $nonHpSheet = [['No', 'Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan']];
+        $totalNonHpQty = 0;
+        foreach ($nonHpItems as $idx => $item) {
+            $stok = $item->quantity ?? 0;
+            $totalNonHpQty += $stok;
+            $distName = $item->distributor->name ?? ($item->supplier_name ?? '-');
+            $nonHpSheet[] = [
+                $idx + 1,
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
+                $stok,
+                $distName,
+                $item->user->name ?? '-',
+                $item->notes ?? '-',
+            ];
+        }
+        $nonHpSheet[] = ['TOTAL', '', '', '', $totalNonHpQty, '', '', ''];
+
+        $filename = 'LAPORAN_INVENTORY_' . now()->format('Y-m-d_H-i') . '.xlsx';
+        
+        // Log Export
+        \App\Models\ExportLog::create([
+            'user_id' => $user->id,
+            'report_name' => 'Laporan Data Inventory',
+            'filename' => $filename,
+            'params' => $request->all()
+        ]);
+
+        $xlsx = SimpleXLSXGen::fromSheets([
+            'Data IMEI' => $hpSheet,
+            'Data Non-IMEI' => $nonHpSheet
+        ]);
+
+        return response((string)$xlsx, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    private function applyInventoryFilters($query, $request, $type)
+    {
+        $user = Auth::user();
+        if ($request->search) {
+            $search = $request->search;
+            if ($type === 'hp') {
                 $query->where(function ($q) use ($search) {
                     $q->where('imei', 'like', "%{$search}%")->orWhereHas('product', function ($pq) use ($search) {
                         $pq->where('name', 'like', "%{$search}%")->orWhere('brand', 'like', "%{$search}%");
                     });
                 });
+            } else {
+                $query->whereHas('product', function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")->orWhere('brand', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%");
+                });
             }
         }
 
-        // Common Filters (simplified for export)
-        if ($request->branch_id) {
-            $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
-        }
-        if ($request->online_shop_id) {
-            $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
-        }
-        if ($request->warehouse_id) {
-            $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
-        }
+        if ($request->branch_id) $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
+        if ($request->online_shop_id) $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
+        if ($request->warehouse_id) $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
+        
         if ($request->brand) {
             $brandArr = explode(',', $request->brand);
-            $query->whereHas('product', function ($q) use ($brandArr) {
-                $q->whereIn('brand', $brandArr);
-            });
+            $query->whereHas('product', fn($q) => $q->whereIn('brand', $brandArr));
         }
-        if ($request->product) {
-            $prodArr = explode(',', $request->product);
-            $query->whereHas('product', function ($q) use ($prodArr) {
-                $q->whereIn('name', $prodArr);
-            });
-        }
-        if ($request->condition && $request->condition !== 'all' && $type === 'hp') {
-            $query->where('condition', $request->condition);
-        }
-        // Always filter for available stock if not explicitly searching for something else
-        if ($type === 'non-hp') {
-            $query->where('status', 'available')->where('quantity', '>', 0);
-        } else {
+        
+        if ($type === 'hp') {
             $status = $request->status ?? $request->stock_status;
-            if ($status && $status !== 'all') {
-                $query->where('status', $status);
-            } else {
-                $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
-            }
+            if ($status && $status !== 'all') $query->where('status', $status);
+            else $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
+        } else {
+            $query->where('quantity', '>', 0);
         }
 
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
@@ -375,128 +430,197 @@ class InventoryController extends Controller
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $shopIds = $user->getAccessibleOnlineShopIds();
-                if (!empty($branchIds))
-                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
-                if (!empty($warehouseIds))
-                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
-                if (!empty($shopIds))
-                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds));
+                if (!empty($branchIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
+                if (!empty($warehouseIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
+                if (!empty($shopIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds));
             });
         }
+    }
 
-        // Analist Exclusion for Export
-        if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
-            $query->where(function ($q) use ($excludedKeywords) {
-                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
-                    $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
-                        $sq->where('placement_type', $pType);
-                        $modelClass = match ($pType) {
-                            'branch' => \App\Models\Branch::class,
-                            'online_shop' => \App\Models\OnlineShop::class,
-                            'warehouse' => \App\Models\Warehouse::class,
-                            'distributor' => \App\Models\Distributor::class,
-                        };
-                        $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
-                            $pq->where(function ($nq) use ($excludedKeywords) {
-                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
-                            });
-                        });
-                    });
-                }
-            });
-        }
-
-        if ($type === 'non-hp') {
-            $items = $query->join('products', 'inventories.product_id', '=', 'products.id')
-                ->orderBy('products.brand')
-                ->orderBy('products.name')
-                ->select('inventories.*')
-                ->get();
-        } else {
-            $items = $query->join('products', 'product_details.product_id', '=', 'products.id')
-                ->orderBy('products.brand')
-                ->orderBy('products.name')
-                ->select('product_details.*')
-                ->get();
-        }
-        $xlsxData = [];
-
-        if ($type === 'hp') {
-            $xlsxData[] = ['No', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory'];
-            $totalHarga = 0;
-            $count = 0;
-            foreach ($items as $item) {
-                $count++;
-                $price = $item->selling_price > 0 ? $item->selling_price : ($item->product->price ?? ($item->product->selling_price ?? 0));
-                $totalHarga += $price;
-                $xlsxData[] = [
-                    $count,
-                    $item->product->brand ?? '-',
-                    $item->product->name ?? '-',
-                    implode('/', array_filter([$item->ram, $item->storage])),
-                    $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                    $item->imei ?? '-',
-                    $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
-                    $item->distributor->name ?? ($item->supplier_name ?? '-'),
-                    $price,
-                    $item->status,
-                    $item->user->name ?? '-',
-                ];
-            }
-            $xlsxData[] = ['TOTAL', '', '', '', '', '', '', '', $totalHarga, '', ''];
-            $xlsxData[] = ['JUMLAH PRODUK: ' . $count];
-        } else {
-            $xlsxData[] = ['No', 'Merek', 'Produk', 'Lokasi', 'Stok', 'Distributor / Supplier', 'Akun Inventory', 'Catatan'];
-            $totalStok = 0;
-            $count = 0;
-            foreach ($items as $item) {
-                $count++;
-                $stok = $item->quantity ?? 0;
-                $totalStok += $stok;
-                // Priority for distributor name (logic same as index)
-                $distName = null;
-                if ($item->distributor_id) {
-                    $distName = \App\Models\Distributor::find($item->distributor_id)?->name;
-                }
-                if (!$distName) {
-                    $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                        ->where(function($q) use ($item) {
-                            if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
-                            elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
-                            elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
-                        })
-                        ->where('type', 'in')
-                        ->latest()
-                        ->first();
-                    $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
-                }
-                if (!$distName && $item->user && $item->user->distributor) {
-                    $distName = $item->user->distributor->name;
-                }
-
-                $xlsxData[] = [
-                    $count,
-                    $item->product->brand ?? '-',
-                    $item->product->name ?? '-',
-                    $item->placement ? $item->placement->name : ($item->placement_type . ' #' . $item->placement_id),
-                    $stok,
-                    $distName ?? '-',
-                    $item->user->name ?? '-',
-                    $item->notes ?? '-',
-                ];
-            }
-            $xlsxData[] = ['TOTAL', '', '', '', $totalStok, '', '', ''];
-            $xlsxData[] = ['JUMLAH JENIS PRODUK: ' . $count];
-        }
-
-        $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-        $filename = 'inventory-' . $type . '-' . now()->format('Y-m-d') . '.xlsx';
+    public function exportStockInHistory(Request $request)
+    {
+        $user = Auth::user();
         
+        // 1. HP STOCK IN (ProductDetail)
+        $hpQuery = ProductDetail::with(['product', 'distributor', 'user', 'placement']);
+        $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'in');
+        $hpItems = $hpQuery->latest()->get();
+
+        $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory']];
+        foreach ($hpItems as $idx => $item) {
+            $hpSheet[] = [
+                $idx + 1,
+                $item->created_at->format('d/m/Y H:i'),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                implode('/', array_filter([$item->ram, $item->storage])),
+                $item->condition,
+                str_replace("'", "", $item->imei ?? '-'),
+                $item->placement ? $item->placement->name : '-',
+                $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                (float)($item->cost_price ?? 0),
+                $item->user->name ?? '-',
+            ];
+        }
+
+        // 2. NON-HP STOCK IN (InventoryLog)
+        $nonHpQuery = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
+        $this->applyStockHistoryFilters($nonHpQuery, $request, 'non-hp', 'in');
+        $nonHpItems = $nonHpQuery->latest()->get();
+
+        $nonHpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
+        foreach ($nonHpItems as $idx => $item) {
+            $locationName = '-';
+            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
+            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
+            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+
+            $nonHpSheet[] = [
+                $idx + 1,
+                $item->created_at->format('d/m/Y H:i'),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                $locationName,
+                (int)$item->quantity,
+                $item->distributor->name ?? ($item->supplier_name ?? '-'),
+                (float)($item->cost_price ?? 0),
+                $item->user->name ?? '-',
+                $item->description ?? '-',
+            ];
+        }
+
+        $dateSuffix = $request->date ? "_{$request->date}" : "_" . now()->format('Y-m-d_H-i');
+        $filename = 'RIWAYAT_STOK_MASUK' . $dateSuffix . '.xlsx';
+        \App\Models\ExportLog::create([
+            'user_id' => $user->id,
+            'report_name' => 'Riwayat Stok Masuk',
+            'filename' => $filename,
+            'params' => $request->all()
+        ]);
+
+        $xlsx = SimpleXLSXGen::fromSheets([
+            'Riwayat HP' => $hpSheet,
+            'Riwayat Non-HP' => $nonHpSheet
+        ]);
+
         return response((string)$xlsx, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    public function exportStockOutHistory(Request $request)
+    {
+        $user = Auth::user();
+
+        // 1. HP STOCK OUT (InventoryLog where product->type == 'hp')
+        $hpQuery = InventoryLog::with(['product', 'user', 'distributor'])
+            ->where('type', 'out')
+            ->whereHas('product', fn($q) => $q->where('type', 'hp'));
+        $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'out');
+        $hpItems = $hpQuery->latest()->get();
+
+        $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
+        foreach ($hpItems as $idx => $item) {
+            $locationName = '-';
+            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
+            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
+            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+
+            // Extract IMEI from description or reference if possible
+            $imei = '-';
+            if (preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
+                $imei = $matches[1];
+            }
+
+            $hpSheet[] = [
+                $idx + 1,
+                $item->created_at->format('d/m/Y H:i'),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                str_replace("'", "", $imei),
+                $locationName,
+                $item->description ?? '-',
+                $item->user->name ?? '-',
+            ];
+        }
+
+        // 2. NON-HP STOCK OUT (InventoryLog where product->type == 'non-hp')
+        $nonHpQuery = InventoryLog::with(['product', 'user', 'distributor'])
+            ->where('type', 'out')
+            ->whereHas('product', fn($q) => $q->where('type', 'non-hp'));
+        $this->applyStockHistoryFilters($nonHpQuery, $request, 'non-hp', 'out');
+        $nonHpItems = $nonHpQuery->latest()->get();
+
+        $nonHpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
+        foreach ($nonHpItems as $idx => $item) {
+            $locationName = '-';
+            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
+            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
+            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+
+            $nonHpSheet[] = [
+                $idx + 1,
+                $item->created_at->format('d/m/Y H:i'),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                $locationName,
+                (int)$item->quantity,
+                $item->description ?? '-',
+                $item->user->name ?? '-',
+            ];
+        }
+
+        $dateSuffix = $request->date ? "_{$request->date}" : "_" . now()->format('Y-m-d_H-i');
+        $filename = 'RIWAYAT_STOK_KELUAR' . $dateSuffix . '.xlsx';
+        
+        // Log Export
+        \App\Models\ExportLog::create([
+            'user_id' => $user->id,
+            'report_name' => 'Riwayat Stok Keluar',
+            'filename' => $filename,
+            'params' => $request->all()
+        ]);
+
+        $xlsx = SimpleXLSXGen::fromSheets([
+            'Riwayat HP' => $hpSheet,
+            'Riwayat Non-HP' => $nonHpSheet
+        ]);
+
+        return response((string)$xlsx, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    private function applyStockHistoryFilters($query, $request, $type, $mode)
+    {
+        $user = Auth::user();
+        
+        // Filter by Branch/Shop/Warehouse
+        if ($request->branch_id) {
+            if ($type === 'hp' && $mode === 'out') $query->where('branch_id', $request->branch_id);
+            else $query->where('branch_id', $request->branch_id); // Simplified
+        }
+        if ($request->online_shop_id) {
+             if ($type === 'hp' && $mode === 'out') $query->where('online_shop_id', $request->online_shop_id);
+             else $query->where('online_shop_id', $request->online_shop_id);
+        }
+        if ($request->warehouse_id) {
+             if ($type === 'hp' && $mode === 'out') $query->where('warehouse_id', $request->warehouse_id);
+             else $query->where('warehouse_id', $request->warehouse_id);
+        }
+
+        // Filter by Date
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        // Accessibility (Simplified for now)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            // Add access scoping if needed
+        }
     }
 
     // Stock In History
@@ -902,343 +1026,6 @@ class InventoryController extends Controller
         return response()->json($query->latest()->paginate(20));
     }
 
-    // Export Stock In History as XLSX
-    public function exportStockInHistory(Request $request)
-    {
-        ini_set('memory_limit', '1024M');
-        set_time_limit(600);
-        try {
-            $user = Auth::user();
-            $type = $request->type ?? 'hp';
-
-            $logTable = (new InventoryLog)->getTable();
-            $detailTable = (new ProductDetail)->getTable();
-            $prodTable = (new Product)->getTable();
-
-            if ($type === 'non-hp') {
-                $query = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in')
-                    ->whereHas('product', function ($pq) {
-                        $pq->where('has_imei', false);
-                    });
-                if ($request->search) {
-                    $lowKeyword = strtolower($request->search);
-                    $query->where(function ($q) use ($lowKeyword) {
-                        $q->whereHas('product', function ($pq) use ($lowKeyword) {
-                            $pq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                        });
-                    });
-                }
-            } else {
-                $query = ProductDetail::with(['product', 'distributor', 'user']);
-                if ($request->search) {
-                    $lowKeyword = strtolower($request->search);
-                    $query->where(function ($q) use ($lowKeyword, $detailTable) {
-                        $q->whereRaw('LOWER(' . $detailTable . '.imei) LIKE ?', ["%{$lowKeyword}%"])
-                            ->orWhereHas('product', function ($sq) use ($lowKeyword) {
-                                $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                            });
-                    });
-                }
-            }
-
-            // Apply Location Filters
-            if ($request->branch_id) {
-                if ($type === 'non-hp')
-                    $query->where($logTable . '.branch_id', $request->branch_id);
-                else
-                    $query->where($detailTable . '.placement_type', 'branch')->where($detailTable . '.placement_id', $request->branch_id);
-            }
-            if ($request->warehouse_id) {
-                if ($type === 'non-hp')
-                    $query->where($logTable . '.warehouse_id', $request->warehouse_id);
-                else
-                    $query->where($detailTable . '.placement_type', 'warehouse')->where($detailTable . '.placement_id', $request->warehouse_id);
-            }
-            if ($request->online_shop_id) {
-                if ($type === 'non-hp')
-                    $query->where($logTable . '.online_shop_id', $request->online_shop_id);
-                else
-                    $query->where($detailTable . '.placement_type', 'online_shop')->where($detailTable . '.placement_id', $request->online_shop_id);
-            }
-
-            // Apply Role Restrictions
-            $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
-            if (!$user->hasRole($unrestrictedRoles)) {
-                $query->where(function ($q) use ($user, $type, $logTable, $detailTable) {
-                    $branchIds = $user->getAccessibleBranchIds();
-                    $warehouseIds = $user->getAccessibleWarehouseIds();
-                    $shopIds = $user->getAccessibleOnlineShopIds();
-
-                    if ($type === 'non-hp') {
-                        if (!empty($branchIds))
-                            $q->orWhereIn($logTable . '.branch_id', $branchIds);
-                        if (!empty($warehouseIds))
-                            $q->orWhereIn($logTable . '.warehouse_id', $warehouseIds);
-                        if (!empty($shopIds))
-                            $q->orWhereIn($logTable . '.online_shop_id', $shopIds);
-                        $q->orWhere($logTable . '.user_id', $user->id);
-                    } else {
-                        if (!empty($branchIds))
-                            $q->orWhere(fn($sq) => $sq->where($detailTable . '.placement_type', 'branch')->whereIn($detailTable . '.placement_id', $branchIds));
-                        if (!empty($warehouseIds))
-                            $q->orWhere(fn($sq) => $sq->where($detailTable . '.placement_type', 'warehouse')->whereIn($detailTable . '.placement_id', $warehouseIds));
-                        if (!empty($shopIds))
-                            $q->orWhere(fn($sq) => $sq->where($detailTable . '.placement_type', 'online_shop')->whereIn($detailTable . '.placement_id', $shopIds));
-                    }
-                });
-            }
-
-            // Date Filters
-            $dateTable = $type === 'non-hp' ? $logTable : $detailTable;
-            if ($request->month && $request->year) {
-                $m = (int) $request->month;
-                $y = (int) $request->year;
-                
-                // Role-based protection from getHistory
-                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-                    $currentMonth = (int) $logicalNow->format('m');
-                    $currentYear = (int) $logicalNow->format('Y');
-                    $lastMonthTemp = $logicalNow->copy()->subMonth();
-                    $lastMonth = (int) $lastMonthTemp->format('m');
-                    if ($y < $currentYear) {
-                        $m = $currentMonth; $y = $currentYear;
-                    } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
-                        $m = $currentMonth;
-                    }
-                }
-                $query->whereMonth($dateTable . '.created_at', $m)->whereYear($dateTable . '.created_at', $y);
-            } elseif ($request->date) {
-                $d = $request->date;
-                // Role-based protection from getHistory
-                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-                    $today = $logicalNow->toDateString();
-                    $yesterday = $logicalNow->copy()->subDay()->toDateString();
-                    if ($d < $yesterday) $d = $today;
-                }
-                $query->whereDate($dateTable . '.created_at', $d);
-            }
-
-            // Sorting & Execution
-            if ($type === 'non-hp') {
-                $items = $query->get()->sortBy(function ($item) {
-                    return strtolower((optional($item->product)->brand ?? '') . (optional($item->product)->name ?? ''));
-                });
-            } else {
-                $items = $query->join($prodTable, $detailTable . '.product_id', '=', $prodTable . '.id')
-                    ->select($detailTable . '.*')
-                    ->orderBy($prodTable . '.brand')
-                    ->orderBy($prodTable . '.name')
-                    ->get();
-            }
-
-            $monthName = $request->month ? \Carbon\Carbon::create()->month($m)->format('F') : '';
-            $title = 'LAPORAN STOK MASUK - ' . strtoupper($type) . ' - ' . ($request->month ? strtoupper($monthName) . ' ' . $y : $request->date);
-
-            $xlsxData = [];
-            $xlsxData[] = [$title];
-            $xlsxData[] = []; // Spacer
-
-            if ($type === 'hp') {
-                $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'IMEI', 'Storage', 'Kondisi', 'Harga Modal', 'Harga Jual', 'Distributor', 'Akun Inventory'];
-                foreach ($items as $item) {
-                    $xlsxData[] = [
-                        $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
-                        optional($item->product)->brand ?? '-',
-                        optional($item->product)->name ?? '-',
-                        $item->imei ?? '-',
-                        $item->storage ?? '-',
-                        $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas'),
-                        'Rp ' . number_format($item->cost_price ?? 0, 0, ',', '.'),
-                        'Rp ' . number_format($item->selling_price ?? 0, 0, ',', '.'),
-                        optional($item->distributor)->name ?? ($item->supplier_name ?? '-'),
-                        optional($item->user)->name ?? '-',
-                    ];
-                }
-            } else {
-                $xlsxData[] = ['Tanggal', 'Merek', 'Produk', 'Quantity', 'Deskripsi', 'Distributor', 'Akun Inventory'];
-                foreach ($items as $item) {
-                    $xlsxData[] = [
-                        $item->created_at ? $item->created_at->format('Y-m-d H:i') : '-',
-                        optional($item->product)->brand ?? '-',
-                        optional($item->product)->name ?? '-',
-                        $item->quantity ?? 0,
-                        $item->description ?? '-',
-                        optional($item->distributor)->name ?? ($item->supplier_name ?? '-'),
-                        optional($item->user)->name ?? '-',
-                    ];
-                }
-            }
-
-            $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-            $filename = 'stok-masuk-' . $type . '-' . ($request->month ? $monthName . '-' . $y : $request->date) . '.xlsx';
-
-            return response((string) $xlsx, 200, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => 'Export failed: ' . $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
-        }
-    }
-
-    public function exportStockOutHistory(Request $request)
-    {
-        ini_set('memory_limit', '1024M');
-        set_time_limit(600);
-        try {
-            $user = Auth::user();
-            $type = $request->type ?? 'hp';
-            $logTable = (new InventoryLog)->getTable();
-            $prodTable = (new Product)->getTable();
-
-            $query = \App\Models\StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product', 'nonHpDetails.product', 'paymentMethod']);
-
-            // Filter by Type (HP vs Non-HP)
-            if ($type === 'hp') {
-                $query->whereHas('items');
-            } elseif ($type === 'non-hp') {
-                $query->where(function ($q) {
-                    $q->whereHas('nonHpDetails')
-                        ->orWhereNotNull('non_hp_items');
-                });
-            }
-
-            if ($request->search) {
-                $query->search($request->search);
-            }
-
-            // Role Restrictions (Same as StockOutController@index)
-            if (!$user->hasRole(['super_admin', 'admin_produk', 'owner'])) {
-                $query->whereHas('user', function ($q) use ($user) {
-                    $bIds = $user->getAccessibleBranchIds();
-                    $wIds = $user->getAccessibleWarehouseIds();
-                    $osIds = $user->getAccessibleOnlineShopIds();
-                    $q->where(function ($sq) use ($bIds, $wIds, $osIds) {
-                        if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
-                        if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
-                        if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
-                    });
-                });
-            }
-
-            // Date Filters (Using reporting_date like UI)
-            if ($request->month && $request->year) {
-                $m = (int) $request->month;
-                $y = (int) $request->year;
-                // Protection logic
-                if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                    $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-                    $currentMonth = (int) $logicalNow->format('m');
-                    $currentYear = (int) $logicalNow->format('Y');
-                    if ($y < $currentYear || ($y == $currentYear && $m < $currentMonth - 1)) {
-                        $m = $currentMonth; $y = $currentYear;
-                    }
-                }
-                $query->whereMonth('reporting_date', $m)->whereYear('reporting_date', $y);
-            } elseif ($request->date) {
-                $query->where('reporting_date', $request->date);
-            }
-
-            $results = $query->latest()->get();
-
-            // Transform data exactly like StockOutController@index
-            $items = [];
-            foreach ($results as $stockOut) {
-                $details = [];
-                // Collect HP
-                foreach ($stockOut->items as $item) {
-                    $details[] = [
-                        'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'HP'),
-                        'qty' => 1,
-                        'imei' => $item->imei ?? '-',
-                        'notes' => $item->pivot?->notes
-                    ];
-                }
-                // Collect Non-HP
-                foreach ($stockOut->nonHpDetails as $detail) {
-                    $details[] = [
-                        'name' => ($stockOut->is_bundle ? '📦 ' : '') . ($detail->product?->name ?? 'Item'),
-                        'qty' => $detail->quantity,
-                        'imei' => '-',
-                        'notes' => $detail->notes
-                    ];
-                }
-
-                // Consolidation (Bundling)
-                if ($stockOut->is_bundle) {
-                    $grouped = [];
-                    $bundles = [];
-                    $fallbackBundleName = $stockOut->bundle_description ?: 'Paket Bundling';
-                    foreach ($details as $d) {
-                        $bundleTag = $d['notes'] ?: $fallbackBundleName;
-                        if (!isset($bundles[$bundleTag])) {
-                            $bundles[$bundleTag] = ['name' => '📦 ' . $bundleTag, 'qty' => 0, 'imei' => []];
-                        }
-                        $bundles[$bundleTag]['qty'] += $d['qty'];
-                        if ($d['imei'] !== '-') $bundles[$bundleTag]['imei'][] = $d['imei'];
-                    }
-                    foreach ($bundles as $b) {
-                        $grouped[] = [
-                            'name' => $b['name'],
-                            'qty' => $b['qty'],
-                            'imei' => implode(', ', array_unique($b['imei'])) ?: '-',
-                        ];
-                    }
-                    $details = $grouped;
-                }
-
-                $recipient = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->shopee_receiver ?: '-'));
-                
-                foreach ($details as $d) {
-                    $items[] = (object)[
-                        'created_at' => $stockOut->created_at,
-                        'receipt_id' => $stockOut->receipt_id,
-                        'category' => $stockOut->category,
-                        'recipient' => $recipient,
-                        'name' => $d['name'],
-                        'imei' => $d['imei'],
-                        'qty' => $d['qty'],
-                        'user_name' => optional($stockOut->user)->name ?? '-',
-                        'inv_user' => optional($stockOut->inventoryUser)->name ?? '-',
-                    ];
-                }
-            }
-
-            $monthName = $request->month ? \Carbon\Carbon::create()->month($m)->format('F') : '';
-            $title = 'LAPORAN STOK KELUAR - ' . strtoupper($type) . ' - ' . ($request->month ? strtoupper($monthName) . ' ' . $y : $request->date);
-
-            $xlsxData = [];
-            $xlsxData[] = [$title];
-            $xlsxData[] = [];
-            $xlsxData[] = ['Tanggal', 'ID Transaksi', 'Kategori', 'Penerima', 'Item', 'IMEI / Qty', 'Inventory'];
-            
-            foreach ($items as $item) {
-                $xlsxData[] = [
-                    $item->created_at->format('Y-m-d H:i'),
-                    $item->receipt_id,
-                    $item->category,
-                    $item->recipient,
-                    $item->name,
-                    $item->imei !== '-' ? $item->imei : $item->qty,
-                    $item->inv_user,
-                ];
-            }
-
-            $xlsx = SimpleXLSXGen::fromArray($xlsxData);
-            $filename = 'stok-keluar-' . $type . '-' . ($request->month ? $monthName . '-' . $y : $request->date) . '.xlsx';
-
-            return response((string) $xlsx, 200, [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['message' => 'Export failed: ' . $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
-        }
-    }
 
     public function stockIn(Request $request)
     {

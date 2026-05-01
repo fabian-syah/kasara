@@ -177,7 +177,7 @@
                                         <span class="font-bold text-black text-[10px] uppercase">{{ payment.method_name
                                         }} :</span>
                                         <span class="text-black">
-                                            {{ formatCurrency(Math.abs(payment.amount)) }}
+                                            {{ formatCurrency(payment.amount) }}
                                         </span>
                                     </div>
                                 </template>
@@ -186,14 +186,14 @@
                                         class="flex justify-between border-b border-gray-300 pb-1">
                                         <span class="font-bold text-black text-[10px]">CASH :</span>
                                         <span class="text-black">
-                                            {{ formatCurrency(Math.abs(transaction.cash)) }}
+                                            {{ formatCurrency(transaction.cash) }}
                                         </span>
                                     </div>
                                     <div v-if="transaction.transfer > 0"
                                         class="flex justify-between border-b border-gray-300 pb-1">
                                         <span class="font-bold text-black text-[10px]">TF :</span>
                                         <span class="text-black">
-                                            {{ formatCurrency(Math.abs(transaction.transfer)) }}
+                                            {{ formatCurrency(transaction.transfer) }}
                                         </span>
                                     </div>
                                 </template>
@@ -211,7 +211,7 @@
                                 <!-- Total Paid / Dibayar -->
                                 <div
                                     class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
-                                    <span>{{ formatCurrency(Math.abs(calculatedTotalPaid)) }}</span>
+                                    <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
                                     <span class="text-[10px] uppercase">{{ labelBayar }} :</span>
                                 </div>
 
@@ -400,7 +400,7 @@ const labelBayar = computed(() => {
 const calculatedTotalPaid = computed(() => {
     // 1. Try direct fields
     const directPaid = Number(props.transaction.paid || props.transaction.paid_amount || 0);
-    if (directPaid > 0) return directPaid;
+    if (directPaid !== 0) return directPaid;
 
     // 2. Sum from split_payments_data if direct is 0
     if (props.transaction.split_payments_data?.length > 0) {

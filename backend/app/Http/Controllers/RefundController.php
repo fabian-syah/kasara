@@ -148,6 +148,7 @@ class RefundController extends Controller
                 ]);
 
                 // 5. Create StockOut record to ensure visibility in Cek Penjualan
+                $negRefund = -abs((float)$request->refund_price);
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'refund',
@@ -160,12 +161,20 @@ class RefundController extends Controller
                     'status' => 'received',
                     'notes' => "Refund Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoLog['unit'] ?? null,
-                    'selling_price' => $request->refund_price,
+                    'selling_price' => $negRefund,
+                    'total_amount' => $negRefund,
+                    'paid' => $negRefund,
                     'transaction_pin' => $request->transaction_pin,
                     'payment_method_id' => $request->payment_method_id,
                     'branch_id' => $user->branch_id,
                     'warehouse_id' => $user->warehouse_id,
                     'online_shop_id' => $user->online_shop_id,
+                    'split_payments' => json_encode([
+                        [
+                            'payment_method_id' => $request->payment_method_id,
+                            'amount' => $negRefund
+                        ]
+                    ])
                 ]);
 
                 if ($isImei) {

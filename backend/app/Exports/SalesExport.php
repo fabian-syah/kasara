@@ -218,10 +218,8 @@ class SalesExport
 
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
-                        $finalProductName = "OUT: " . $productName . " [" . $condition . "]\nIN: " . $inProd;
-                        $finalProductName = str_replace("\n", " || ", $finalProductName);
-                        $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
-                        $finalImei = str_replace("\n", " || ", $finalImei);
+                        $finalProductName = "OUT: " . $productName . " [" . $condition . "] || IN: " . $inProd;
+                        $finalImei = "OUT: " . ($item->imei ?? '-') . " || IN: " . $inImei;
                         
                         $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
                         $finalDistributor = "OUT: " . $distOut . " || IN: " . $distIn;
@@ -243,7 +241,7 @@ class SalesExport
                         'distributor' => $finalDistributor,
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
-                        'status' => $cat === 'penjualan_store' ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
+                        'status' => ($cat === 'penjualan_store' || $cat === 'penjualan_offline') ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
                         'price_out' => $exchangeInfo ? (float)$pOut : 0,
                         'price_in' => $exchangeInfo ? (float)$pIn : 0,
                         'balance' => $isNeg ? -abs($exchangeInfo ? $diff : 0) : (float)($exchangeInfo ? $diff : 0)
@@ -271,7 +269,7 @@ class SalesExport
                         'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
-                        'status' => $cat === 'penjualan_store' ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
+                        'status' => ($cat === 'penjualan_store' || $cat === 'penjualan_offline') ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
                         'price_out' => 0,
                         'price_in' => 0,
                         'balance' => 0

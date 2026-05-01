@@ -1064,16 +1064,46 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
     }
 });
 
-const downloadExcel = async (type) => {
-    toast.info(`Sedang menyiapkan ${type === 'sales' ? 'Laporan Penjualan' : 'Laporan Barang Keluar Masuk'}...`);
+const downloadLogs = ref([]);
+const fetchDownloadLogs = async () => {
+    if (!authStore.userRole?.toLowerCase().includes('admin') && !authStore.userRole?.toLowerCase().includes('audit')) return;
     try {
-        const endpoint = type === 'sales' ? '/reports/export-sales' : '/reports/export-stock-movement';
+        const res = await axios.get('/reports/download-history', {
+            params: {
+                branch_id: selectedBranchId.value || undefined,
+            }
+        });
+        downloadLogs.value = res.data.data || res.data || [];
+    } catch (err) {
+        console.error('Error fetching logs:', err);
+    }
+};
+
+const downloadExcel = async (type) => {
+    let title = '';
+    let endpoint = '';
+    if (type === 'sales') {
+        title = 'Laporan Penjualan';
+        endpoint = '/audit/export-sales';
+    } else if (type === 'inventory') {
+        title = 'Laporan Data Inventory';
+        endpoint = '/inventory/export';
+    } else if (type === 'stock-in') {
+        title = 'Laporan Riwayat Stok Masuk';
+        endpoint = '/inventory/export-stock-in';
+    } else if (type === 'stock-out') {
+        title = 'Laporan Riwayat Stok Keluar';
+        endpoint = '/inventory/export-stock-out';
+    }
+
+    toast.info(`Sedang menyiapkan ${title}...`);
+    try {
         const params = {
-            branch_id: selectedBranchId.value,
-            online_shop_id: selectedOnlineShopId.value,
+            branch_id: selectedBranchId.value || undefined,
+            online_shop_id: selectedOnlineShopId.value || undefined,
+            warehouse_id: selectedWarehouseId.value || undefined,
             date: historyDate.value,
             mode: historyMode.value,
-            type: itemMode.value // Corrected variable name from activeTab to itemMode
         };
         
         const response = await axios.get(endpoint, { 
@@ -1081,8 +1111,8 @@ const downloadExcel = async (type) => {
             responseType: 'blob'
         });
         
-        const timestamp = historyDate.value + '_' + new Date().getHours() + '-' + new Date().getMinutes();
-        const filename = `LAPORAN_MUTASI_STOK_${timestamp}.xlsx`;
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `${type.toUpperCase()}_${timestamp}.xlsx`;
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
@@ -1091,10 +1121,10 @@ const downloadExcel = async (type) => {
         document.body.appendChild(link);
         link.click();
         
-        toast.success('Laporan berhasil didownload!');
+        toast.success(`${title} berhasil didownload!`);
         fetchDownloadLogs(); 
     } catch (err) {
-        toast.error('Gagal mendownload laporan.');
+        toast.error(`Gagal mendownload ${title}.`);
     }
 };
 
@@ -1350,6 +1380,105 @@ onMounted(() => {
                             <ChevronRight :size="16" class="text-primary-500" />
                         </div>
                     </button>
+                <!-- ==================== DOWNLOAD CENTER (NEW) ==================== -->
+                <div class="mt-8 space-y-6">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-primary-500/10 rounded-lg">
+                            <Download :size="20" class="text-primary-400" />
+                        </div>
+                        <h2 class="text-xl font-bold text-text-primary tracking-tight">Download Center</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Excel Penjualan -->
+                        <button @click="downloadExcel('sales')"
+                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-emerald-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 bg-emerald-500/10 rounded-lg group-hover:bg-emerald-500/20 transition-colors">
+                                    <FileSpreadsheet :size="20" class="text-emerald-400" />
+                                </div>
+                                <span class="text-sm font-bold text-text-primary">Excel Penjualan</span>
+                            </div>
+                            <p class="text-xs text-text-secondary">Laporan riwayat penjualan (Sales History)</p>
+                        </button>
+
+                        <!-- Excel Data Inventory -->
+                        <button @click="downloadExcel('inventory')"
+                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-blue-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
+                                    <Box :size="20" class="text-blue-400" />
+                                </div>
+                                <span class="text-sm font-bold text-text-primary">Excel Data Inventory</span>
+                            </div>
+                            <p class="text-xs text-text-secondary">Data stok saat ini (HP & Non-HP)</p>
+                        </button>
+
+                        <!-- Excel Riwayat Stok Masuk -->
+                        <button @click="downloadExcel('stock-in')"
+                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-purple-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition-colors">
+                                    <Download :size="20" class="text-purple-400" />
+                                </div>
+                                <span class="text-sm font-bold text-text-primary">Stok Masuk</span>
+                            </div>
+                            <p class="text-xs text-text-secondary">Riwayat barang masuk (HP & Non-HP)</p>
+                        </button>
+
+                        <!-- Excel Riwayat Stok Keluar -->
+                        <button @click="downloadExcel('stock-out')"
+                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-amber-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="p-2 bg-amber-500/10 rounded-lg group-hover:bg-amber-500/20 transition-colors">
+                                    <Truck :size="20" class="text-amber-400" />
+                                </div>
+                                <span class="text-sm font-bold text-text-primary">Stok Keluar</span>
+                            </div>
+                            <p class="text-xs text-text-secondary">Riwayat barang keluar (HP & Non-HP)</p>
+                        </button>
+                    </div>
+
+                    <!-- Download History (For Admin/Audit) -->
+                    <div v-if="downloadLogs.length > 0" class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                        <div class="px-5 py-4 border-b border-surface-700 bg-surface-800/50 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <History :size="18" class="text-primary-400" />
+                                <h3 class="font-bold text-text-primary">Riwayat Download Excel</h3>
+                            </div>
+                            <button @click="fetchDownloadLogs" class="p-1.5 hover:bg-surface-700 rounded-lg transition-colors">
+                                <RefreshCw :size="14" class="text-text-secondary" />
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-surface-900/50 text-text-secondary text-[10px] uppercase tracking-wider">
+                                    <tr>
+                                        <th class="px-5 py-3 font-bold">Waktu</th>
+                                        <th class="px-5 py-3 font-bold">User</th>
+                                        <th class="px-5 py-3 font-bold">Nama Laporan</th>
+                                        <th class="px-5 py-3 font-bold">File</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-surface-700">
+                                    <tr v-for="log in downloadLogs.slice(0, 5)" :key="log.id" class="hover:bg-surface-700/30 transition-colors">
+                                        <td class="px-5 py-3 text-text-secondary whitespace-nowrap">
+                                            {{ new Date(log.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) }}
+                                        </td>
+                                        <td class="px-5 py-3">
+                                            <div class="font-medium text-text-primary">{{ log.user?.name || 'User' }}</div>
+                                            <div class="text-[10px] text-text-secondary">{{ log.user?.roles?.[0]?.name }}</div>
+                                        </td>
+                                        <td class="px-5 py-3 text-text-primary font-medium">{{ log.report_name }}</td>
+                                        <td class="px-5 py-3 text-text-secondary italic text-xs">{{ log.filename }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div v-if="downloadLogs.length > 5" class="px-5 py-3 bg-surface-900/30 text-center">
+                            <p class="text-xs text-text-secondary font-medium">Hanya menampilkan 5 download terakhir</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </template>

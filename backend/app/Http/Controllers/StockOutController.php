@@ -819,6 +819,21 @@ class StockOutController extends Controller
                 }
 
                 $detail->update($updateData);
+
+                // Log HP Movement to InventoryLog
+                InventoryLog::create([
+                    'product_id' => $detail->product_id,
+                    'type' => 'out',
+                    'quantity' => 1,
+                    'balance_after' => 0, // Simplified for HP
+                    'description' => strtoupper($request->category) . " (" . ($detail->imei ?? '-') . ")" . ($request->customer_name ? " - " . $request->customer_name : ""),
+                    'reference_id' => $stockOut->receipt_id,
+                    'user_id' => $user->id,
+                    'distributor_id' => $detail->distributor_id,
+                    'branch_id' => $user->branch_id ?? null,
+                    'warehouse_id' => $user->warehouse_id ?? null,
+                    'online_shop_id' => $user->online_shop_id ?? null,
+                ]);
             }
 
             DB::commit();

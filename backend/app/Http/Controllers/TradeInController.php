@@ -142,6 +142,7 @@ class TradeInController extends Controller
 
                         $processedTradeIns[] = $tradeIn;
 
+                        $negBuyPrice = -abs((float)$request->buy_price);
                         // Create StockOut record for reporting
                         StockOut::create([
                             'receipt_id' => $receiptId,
@@ -157,10 +158,18 @@ class TradeInController extends Controller
                             'status' => 'received',
                             'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                             'proof_image' => $photoLog['unit'] ?? null,
-                            'selling_price' => 0, // Manual transactions usually don't count towards regular sales omset unless set
+                            'selling_price' => $negBuyPrice,
+                            'total_amount' => $negBuyPrice,
+                            'paid' => $negBuyPrice,
                             'transaction_pin' => $request->transaction_pin,
                             'payment_method_id' => $request->payment_method_id,
-                        ])->items()->attach($pd->id, ['selling_price' => 0]);
+                            'split_payments' => json_encode([
+                                [
+                                    'payment_method_id' => $request->payment_method_id,
+                                    'amount' => $negBuyPrice
+                                ]
+                            ])
+                        ])->items()->attach($pd->id, ['selling_price' => $negBuyPrice]);
                     }
                 } else {
                     // Non-HP or fallback quantity based
@@ -187,6 +196,7 @@ class TradeInController extends Controller
                         'branch_id' => $user->branch_id,
                     ]);
 
+                    $negBuyPriceTotal = -abs((float)$request->buy_price * $quantity);
                     // Create StockOut record for reporting
                     StockOut::create([
                         'receipt_id' => $receiptId,
@@ -202,14 +212,22 @@ class TradeInController extends Controller
                         'status' => 'received',
                         'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                         'proof_image' => $photoLog['unit'] ?? null,
-                        'selling_price' => 0,
+                        'selling_price' => $negBuyPriceTotal,
+                        'total_amount' => $negBuyPriceTotal,
+                        'paid' => $negBuyPriceTotal,
                         'transaction_pin' => $request->transaction_pin,
                         'payment_method_id' => $request->payment_method_id,
+                        'split_payments' => json_encode([
+                            [
+                                'payment_method_id' => $request->payment_method_id,
+                                'amount' => $negBuyPriceTotal
+                            ]
+                        ]),
                         'non_hp_items' => [
                             [
                                 'product_id' => $product->id,
                                 'quantity' => $quantity,
-                                'selling_price' => 0
+                                'selling_price' => -abs((float)$request->buy_price)
                             ]
                         ]
                     ]);

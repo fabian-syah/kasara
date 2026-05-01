@@ -129,6 +129,9 @@ class DowngradeController extends Controller
                 ]);
 
                 // 4. Create StockOut record (This represents the "Omset" part)
+                $diff = (float)$request->price_difference;
+                $negDiff = -abs($diff);
+
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'downgrade',
@@ -140,10 +143,17 @@ class DowngradeController extends Controller
                     'status' => 'received',
                     'notes' => "Downgrade Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
-                    'selling_price' => $request->outgoing_price,
-                    'total_amount' => $request->outgoing_price,
+                    'selling_price' => $negDiff,
+                    'total_amount' => $negDiff,
+                    'paid' => $negDiff,
                     'payment_method_id' => $request->payment_method_id,
                     'transaction_pin' => $request->transaction_pin,
+                    'split_payments' => json_encode([
+                        [
+                            'payment_method_id' => $request->payment_method_id,
+                            'amount' => $negDiff
+                        ]
+                    ])
                 ]);
 
                 // Attach outgoing unit

@@ -1162,7 +1162,26 @@ class ReportController extends Controller
 
     public function getDownloadHistory(Request $request)
     {
-        $history = ExportLog::with('user')->latest()->take(50)->get();
+        $user = auth()->user();
+        $query = ExportLog::with(['user.roles']);
+
+        // Scope logs for non-super-admins
+        $unrestrictedRoles = ['super_admin', 'analist', 'owner'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            $branchIds = $user->getAccessibleBranchIds();
+            $shopIds = $user->getAccessibleOnlineShopIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            
+            $query->whereHas('user', function($q) use ($branchIds, $shopIds, $warehouseIds) {
+                $q->where(function($sq) use ($branchIds, $shopIds, $warehouseIds) {
+                    if (!empty($branchIds)) $sq->orWhereIn('branch_id', $branchIds);
+                    if (!empty($shopIds)) $sq->orWhereIn('online_shop_id', $shopIds);
+                    if (!empty($warehouseIds)) $sq->orWhereIn('warehouse_id', $warehouseIds);
+                });
+            });
+        }
+
+        $history = $query->latest()->take(50)->get();
         return response()->json($history);
     }
 }

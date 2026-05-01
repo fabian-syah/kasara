@@ -1443,8 +1443,9 @@ class AuditController extends Controller
                 $rawSellingPrice = (float) $trx->selling_price;
                 $priceOut = $rawSellingPrice;
                 if ($exchangeInfo) {
-                    $pOut = (float)($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0));
                     $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
+                    $pOut = (float)($exchangeInfo->outgoing_price ?? 0);
+                    if ($pOut == 0) $pOut = (float) $trx->selling_price; // Fallback
                     $rawSellingPrice = $pOut - $pIn;
                     $priceOut = $pOut;
                 }
@@ -1469,7 +1470,7 @@ class AuditController extends Controller
                     'bundle_description' => $trx->bundle_description,
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
-                    'status' => $catLower === 'penjualan_store' ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
+                    'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline') ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? $priceOut : null,
@@ -2583,7 +2584,20 @@ class AuditController extends Controller
 
         try {
             $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
-            $filename = "Laporan-Penjualan-{$startDate}-to-{$endDate}.xlsx";
+            
+            $locationName = 'ALL';
+            if ($branchId) $locationName = \App\Models\Branch::find($branchId)?->name ?? 'CABANG';
+            elseif ($onlineShopId) $locationName = \App\Models\OnlineShop::find($onlineShopId)?->name ?? 'ONLINE';
+            
+            $filename = "LAPORAN_PENJUALAN_" . strtoupper(str_replace(' ', '_', $locationName)) . "_{$startDate}_SD_{$endDate}.xlsx";
+
+            // Log Export
+            \App\Models\ExportLog::create([
+                'user_id' => $user->id,
+                'report_name' => 'Laporan Penjualan',
+                'filename' => $filename,
+                'params' => $request->all()
+            ]);
 
             $xlsxData = [];
             $xlsxData[] = $export->headings();
@@ -2626,12 +2640,24 @@ class AuditController extends Controller
                 $xlsxData[] = $xlsxRow;
             }
 
+            // Log Export
+            \App\Models\ExportLog::create([
+                'user_id' => $user->id,
+                'report_name' => 'Laporan Penjualan (Excel)',
+                'filename' => $filename,
+                'params' => [
+                    'branch_id' => $branchId,
+                    'online_shop_id' => $onlineShopId,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
+                ]
+            ]);
+
             return response((string)\App\Utils\SimpleXLSXGen::fromArray($xlsxData), 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
                 'Cache-Control' => 'max-age=0',
             ]);
-        } catch (\Throwable $e) {
         } catch (\Throwable $e) {
             \Log::error('Export Sales Error: ' . $e->getMessage(), [
                 'file' => $e->getFile(),

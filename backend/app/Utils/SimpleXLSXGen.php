@@ -4,16 +4,22 @@ namespace App\Utils;
 
 /**
  * NanoXLSX - A minimal pure-PHP XLSX generator with zero dependencies.
- * Includes a built-in minimal ZIP writer.
+ * Now supports multiple sheets.
  */
 class SimpleXLSXGen {
-    protected $rows = [];
-    protected $sheetName = 'Sheet1';
+    protected $sheets = []; // [ ['name' => 'Sheet1', 'rows' => [...]] ]
 
-    public static function fromArray(array $rows, $sheetName = null) {
+    public static function fromArray(array $rows, $sheetName = 'Sheet1') {
         $inst = new static();
-        $inst->rows = $rows;
-        if ($sheetName) $inst->sheetName = $sheetName;
+        $inst->sheets[] = ['name' => $sheetName, 'rows' => $rows];
+        return $inst;
+    }
+
+    public static function fromSheets(array $sheets) {
+        $inst = new static();
+        foreach ($sheets as $name => $rows) {
+            $inst->sheets[] = ['name' => $name, 'rows' => $rows];
+        }
         return $inst;
     }
 
@@ -21,16 +27,37 @@ class SimpleXLSXGen {
         $files = [];
         
         // 1. [Content_Types].xml
-        $files['[Content_Types].xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
+        $contentTypes .= '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>';
+        $contentTypes .= '<Default Extension="xml" ContentType="application/xml"/>';
+        $contentTypes .= '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>';
+        foreach ($this->sheets as $idx => $sheet) {
+            $sId = $idx + 1;
+            $contentTypes .= '<Override PartName="/xl/worksheets/sheet'.$sId.'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+        }
+        $contentTypes .= '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+        $files['[Content_Types].xml'] = $contentTypes;
         
         // 2. _rels/.rels
         $files['_rels/.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
         
         // 3. xl/_rels/workbook.xml.rels
-        $files['xl/_rels/workbook.xml.rels'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        $wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+        foreach ($this->sheets as $idx => $sheet) {
+            $sId = $idx + 1;
+            $wbRels .= '<Relationship Id="rId'.$sId.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'.$sId.'.xml"/>';
+        }
+        $wbRels .= '<Relationship Id="rId'.(count($this->sheets) + 1).'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        $files['xl/_rels/workbook.xml.rels'] = $wbRels;
         
         // 4. xl/workbook.xml
-        $files['xl/workbook.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>';
+        $wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>';
+        foreach ($this->sheets as $idx => $sheet) {
+            $sId = $idx + 1;
+            $wb .= '<sheet name="'.htmlspecialchars($sheet['name']).'" sheetId="'.$sId.'" r:id="rId'.$sId.'"/>';
+        }
+        $wb .= '</sheets></workbook>';
+        $files['xl/workbook.xml'] = $wb;
         
         // 5. xl/styles.xml
         $files['xl/styles.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Calibri"/></font>
@@ -48,66 +75,68 @@ class SimpleXLSXGen {
 <borders count="1"><border><left/><right/><top/><bottom/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
 <cellXfs count="8">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
-<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
-<xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
-<xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
 <xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf>
 </cellXfs>
 </styleSheet>';
         
-        // 6. xl/worksheets/sheet1.xml
-        $colWidths = [];
-        foreach ($this->rows as $row) {
-            foreach ($row as $cIdx => $val) {
-                $len = mb_strlen((string)$val) + 4; // Add some padding
-                if (!isset($colWidths[$cIdx]) || $len > $colWidths[$cIdx]) {
-                    $colWidths[$cIdx] = $len;
-                }
-            }
-        }
-        // Cap widths
-        foreach ($colWidths as $k => $v) {
-            if ($v > 50) $colWidths[$k] = 50;
-        }
-
-        $colsXml = '<cols>';
-        foreach ($colWidths as $cIdx => $width) {
-            $idx = $cIdx + 1;
-            $colsXml .= '<col min="'.$idx.'" max="'.$idx.'" width="'.$width.'"/>';
-        }
-        $colsXml .= '</cols>';
-
-        $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $colsXml . '<sheetData>';
-        foreach ($this->rows as $rIdx => $row) {
-            $ws .= '<row r="'.($rIdx+1).'">';
-            foreach ($row as $cIdx => $val) {
-                $col = $this->num2alpha($cIdx) . ($rIdx + 1);
-                $s = 0; 
-                if ($rIdx === 0) {
-                    $s = 2; // Header
-                } elseif (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
-                    // Right align numbers. Format as rupiah if column index is 10+ or value > 1000
-                    if ($cIdx >= 10 || (float)$val > 1000) {
-                        $s = 7; 
-                    } else {
-                        $s = 6;
+        // 6. xl/worksheets/sheetN.xml
+        foreach ($this->sheets as $idx => $sheet) {
+            $sId = $idx + 1;
+            $colWidths = [];
+            foreach ($sheet['rows'] as $row) {
+                foreach ($row as $cIdx => $val) {
+                    $len = mb_strlen((string)$val) + 4;
+                    if (!isset($colWidths[$cIdx]) || $len > $colWidths[$cIdx]) {
+                        $colWidths[$cIdx] = $len;
                     }
                 }
-                
-                if (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
-                    $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
-                } else {
-                    $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';
-                }
             }
-            $ws .= '</row>';
+            foreach ($colWidths as $k => $v) {
+                if ($v > 50) $colWidths[$k] = 50;
+            }
+
+            $colsXml = '<cols>';
+            foreach ($colWidths as $cIdx => $width) {
+                $cNum = $cIdx + 1;
+                $colsXml .= '<col min="'.$cNum.'" max="'.$cNum.'" width="'.$width.'"/>';
+            }
+            $colsXml .= '</cols>';
+
+            $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $colsXml . '<sheetData>';
+            foreach ($sheet['rows'] as $rIdx => $row) {
+                $ws .= '<row r="'.($rIdx+1).'">';
+                foreach ($row as $cIdx => $val) {
+                    $col = $this->num2alpha($cIdx) . ($rIdx + 1);
+                    $s = 0; 
+                    if ($rIdx === 0) {
+                        $s = 2; // Header
+                    } elseif (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                        // Right align numbers. Format as rupiah if value looks like a price
+                        if ((float)$val > 10000) {
+                            $s = 7; 
+                        } else {
+                            $s = 6;
+                        }
+                    }
+                    
+                    if (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                        $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
+                    } else {
+                        $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';
+                    }
+                }
+                $ws .= '</row>';
+            }
+            $ws .= '</sheetData></worksheet>';
+            $files['xl/worksheets/sheet'.$sId.'.xml'] = $ws;
         }
-        $ws .= '</sheetData></worksheet>';
-        $files['xl/worksheets/sheet1.xml'] = $ws;
 
         return $this->zipFiles($files);
     }
@@ -127,11 +156,9 @@ class SimpleXLSXGen {
             $size = strlen($content);
             $nameLen = strlen($name);
 
-            // Local file header
             $header = pack("VvvvvvVVVvv", 0x04034b50, 20, 0, 0, 0, 0, $crc, $size, $size, $nameLen, 0);
             $zipData .= $header . $name . $content;
 
-            // Central directory entry
             $cdEntry = pack("VvvvvvvVVVvvvvvVV", 0x02014b50, 20, 20, 0, 0, 0, 0, $crc, $size, $size, $nameLen, 0, 0, 0, 0, 128, $offset);
             $centralDir .= $cdEntry . $name;
             
