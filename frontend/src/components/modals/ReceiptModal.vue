@@ -177,7 +177,7 @@
                                         <span class="font-bold text-black text-[10px] uppercase">{{ payment.method_name
                                         }} :</span>
                                         <span class="text-black">
-                                            {{ formatCurrency(payment.amount) }}
+                                            {{ formatCurrency(Math.abs(payment.amount)) }}
                                         </span>
                                     </div>
                                 </template>
@@ -186,14 +186,14 @@
                                         class="flex justify-between border-b border-gray-300 pb-1">
                                         <span class="font-bold text-black text-[10px]">CASH :</span>
                                         <span class="text-black">
-                                            {{ formatCurrency(transaction.cash) }}
+                                            {{ formatCurrency(Math.abs(transaction.cash)) }}
                                         </span>
                                     </div>
                                     <div v-if="transaction.transfer > 0"
                                         class="flex justify-between border-b border-gray-300 pb-1">
                                         <span class="font-bold text-black text-[10px]">TF :</span>
                                         <span class="text-black">
-                                            {{ formatCurrency(transaction.transfer) }}
+                                            {{ formatCurrency(Math.abs(transaction.transfer)) }}
                                         </span>
                                     </div>
                                 </template>
@@ -211,7 +211,7 @@
                                 <!-- Total Paid / Dibayar -->
                                 <div
                                     class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
-                                    <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
+                                    <span>{{ formatCurrency(Math.abs(calculatedTotalPaid)) }}</span>
                                     <span class="text-[10px] uppercase">{{ labelBayar }} :</span>
                                 </div>
 

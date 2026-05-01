@@ -1232,6 +1232,7 @@ class AuditController extends Controller
                 $details = [];
                 $catLower = strtolower($trx->category);
                 $receiptId = $trx->receipt_id;
+                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
 
                 // Pre-identify exchange data
                 $exchangeInfo = null;
@@ -1262,7 +1263,7 @@ class AuditController extends Controller
                         $details[] = [
                             'name' => "IN: " . $inProd,
                             'qty' => 1,
-                            'price' => (float)($exchangeInfo->incoming_cost_price ?? 0),
+                            'price' => -(float)($exchangeInfo->incoming_cost_price ?? 0),
                             'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
                             'type' => 'IN',
                             'is_hp' => true,
@@ -1429,12 +1430,26 @@ class AuditController extends Controller
                 }
                 $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
-                $detailedSplitPayments = $trx->split_payments_data ?? [];
+                $detailedSplitPayments = collect($trx->split_payments_data ?? [])->map(function($sp) use ($isNeg) {
+                    if ($isNeg) {
+                        $sp['amount'] = -abs((float)($sp['amount'] ?? 0));
+                    }
+                    return $sp;
+                })->toArray();
 
                 $totalQty = collect($details)->sum('qty');
 
-                $catLower = strtolower($trx->category);
-                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+
+                $rawSellingPrice = (float) $trx->selling_price;
+                $priceOut = $rawSellingPrice;
+                if ($exchangeInfo) {
+                    $pOut = (float)($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0));
+                    $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
+                    $rawSellingPrice = $pOut - $pIn;
+                    $priceOut = $pOut;
+                }
+
+                $finalPrice = $isNeg ? -abs($rawSellingPrice) : $rawSellingPrice;
 
                 return [
                     'id' => $trx->id,
@@ -1446,20 +1461,20 @@ class AuditController extends Controller
                     'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
                     'qty' => $totalQty,
                     'items' => $details,
-                    'grand_total' => $isNeg ? -abs((float) $trx->selling_price) : (float) $trx->selling_price,
-                    'selling_price' => $isNeg ? -abs((float) $trx->selling_price) : (float) $trx->selling_price,
+                    'grand_total' => $finalPrice,
+                    'selling_price' => $finalPrice,
                     'total_discount' => (float) $trx->total_discount,
-                    'original_price' => (float) ($trx->selling_price + $trx->total_discount),
+                    'original_price' => (float) ($priceOut + $trx->total_discount),
                     'is_bundle' => (bool) $trx->is_bundle,
                     'bundle_description' => $trx->bundle_description,
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
+                    'status' => $catLower === 'penjualan_store' ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
                     // Specialized Pricing for UI columns if needed
-                    'price_out' => $exchangeInfo ? (float)($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) : null,
+                    'price_out' => $exchangeInfo ? $priceOut : null,
                     'price_in' => $exchangeInfo ? (float)($exchangeInfo->incoming_cost_price ?? 0) : null,
-                    'price_diff' => $exchangeInfo ? ($isNeg ? -abs((float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0))) : (float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0))) : null,
-                    'status' => $catLower === 'penjualan_store' ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
+                    'price_diff' => $finalPrice,
                 ];
             });
 
