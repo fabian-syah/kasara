@@ -952,14 +952,6 @@ const downloadLogs = ref([]);
 const historyDate = ref(new Date().toISOString().split('T')[0]);
 const historyMode = ref('daily');
 
-const fetchDownloadHistory = async () => {
-    try {
-        const res = await axios.get('/reports/download-history');
-        downloadLogs.value = res.data;
-    } catch (error) {
-        console.error('Failed to fetch download history:', error);
-    }
-};
 
 const fetchStockHistory = async () => {
     historyLoading.value = true;
@@ -992,14 +984,6 @@ const fetchStockHistory = async () => {
     }
 };
 
-const fetchDownloadLogs = async () => {
-    try {
-        const res = await axios.get('/reports/download-history');
-        downloadLogs.value = res.data;
-    } catch (err) {
-        console.error('Error fetching logs:', err);
-    }
-};
     const historyDateDisplay = computed(() => {
         if (!historyDate.value) return '';
         if (historyMode.value === 'monthly') {
@@ -1064,7 +1048,6 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
     }
 });
 
-const downloadLogs = ref([]);
 const fetchDownloadLogs = async () => {
     if (!authStore.userRole?.toLowerCase().includes('admin') && !authStore.userRole?.toLowerCase().includes('audit')) return;
     try {
