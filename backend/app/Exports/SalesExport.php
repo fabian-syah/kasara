@@ -224,7 +224,7 @@ class SalesExport
                         $finalImei = str_replace("\n", " || ", $finalImei);
                         
                         $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
-                        $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
+                        $finalDistributor = "OUT: " . $distOut . " || IN: " . $distIn;
                     }
 
                     $rows[] = [
