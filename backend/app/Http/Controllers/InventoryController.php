@@ -361,11 +361,12 @@ class InventoryController extends Controller
         if ($type === 'non-hp') {
             $query->where('status', 'available')->where('quantity', '>', 0);
         } else {
-            $query->where('status', 'available');
-        }
-
-        if ($request->stock_status && $request->stock_status !== 'all') {
-            $query->where('status', $request->stock_status);
+            $status = $request->status ?? $request->stock_status;
+            if ($status && $status !== 'all') {
+                $query->where('status', $status);
+            } else {
+                $query->whereIn('status', ['available', 'booking', 'returned', 'process']);
+            }
         }
 
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
@@ -387,13 +388,18 @@ class InventoryController extends Controller
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
             $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
             $query->where(function ($q) use ($excludedKeywords) {
-                foreach (['branch', 'online_shop', 'warehouse'] as $pType) {
+                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                     $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
                         $sq->where('placement_type', $pType);
-                        $modelClass = $pType === 'branch' ? \App\Models\Branch::class : ($pType === 'online_shop' ? \App\Models\OnlineShop::class : \App\Models\Warehouse::class);
+                        $modelClass = match ($pType) {
+                            'branch' => \App\Models\Branch::class,
+                            'online_shop' => \App\Models\OnlineShop::class,
+                            'warehouse' => \App\Models\Warehouse::class,
+                            'distributor' => \App\Models\Distributor::class,
+                        };
                         $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
                             $pq->where(function ($nq) use ($excludedKeywords) {
-                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'like', "%$kw%");
+                                foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                             });
                         });
                     });
