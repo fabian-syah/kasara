@@ -509,33 +509,81 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function exportStockOutHistory(Request $request)
+    public function exportStockHistoryCombined(Request $request)
     {
         $user = Auth::user();
 
-        // 1. HP STOCK OUT (InventoryLog where product->type == 'hp')
-        $hpQuery = InventoryLog::with(['product', 'user', 'distributor'])
-            ->where('type', 'out')
+        // --- 1. STOCK IN HP ---
+        $hpInQuery = InventoryLog::with(['product', 'user', 'distributor', 'placement'])
+            ->where('type', 'in')
             ->whereHas('product', fn($q) => $q->where('type', 'hp'));
-        $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'out');
-        $hpItems = $hpQuery->latest()->get();
+        $this->applyStockHistoryFilters($hpInQuery, $request, 'hp', 'in');
+        $hpInItems = $hpInQuery->latest()->get();
 
-        $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
-        foreach ($hpItems as $idx => $item) {
+        $hpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Spec', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory']];
+        foreach ($hpInItems as $idx => $item) {
+            $hpInSheet[] = [
+                $idx + 1,
+                date('d/m/Y H:i', strtotime($item->created_at)),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                implode('/', array_filter([$item->ram, $item->storage])),
+                $item->condition ?? '-',
+                str_replace("'", "", $item->imei ?? '-'),
+                $item->placement ? $item->placement->name : '-',
+                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
+                (float)($item->cost_price ?? 0),
+                $item->user->name ?? '-',
+            ];
+        }
+
+        // --- 2. STOCK IN NON-HP ---
+        $nonHpInQuery = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in')
+            ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
+        $this->applyStockHistoryFilters($nonHpInQuery, $request, 'non-hp', 'in');
+        $nonHpInItems = $nonHpInQuery->latest()->get();
+
+        $nonHpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
+        foreach ($nonHpInItems as $idx => $item) {
             $locationName = '-';
             if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
             elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
             elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
 
-            // Extract IMEI from description or reference if possible
-            $imei = '-';
-            if (preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
-                $imei = $matches[1];
-            }
-
-            $hpSheet[] = [
+            $nonHpInSheet[] = [
                 $idx + 1,
-                $item->created_at->format('d/m/Y H:i'),
+                date('d/m/Y H:i', strtotime($item->created_at)),
+                $item->product->brand ?? '-',
+                $item->product->name ?? '-',
+                $locationName,
+                (int)$item->quantity,
+                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
+                (float)($item->cost_price ?? 0),
+                $item->user->name ?? '-',
+                $item->description ?? '-',
+            ];
+        }
+
+        // --- 3. STOCK OUT HP ---
+        $hpOutQuery = InventoryLog::with(['product', 'user', 'distributor'])
+            ->where('type', 'out')
+            ->whereHas('product', fn($q) => $q->where('type', 'hp'));
+        $this->applyStockHistoryFilters($hpOutQuery, $request, 'hp', 'out');
+        $hpOutItems = $hpOutQuery->latest()->get();
+
+        $hpOutSheet = [['No', 'Waktu', 'Merek', 'Produk', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
+        foreach ($hpOutItems as $idx => $item) {
+            $locationName = '-';
+            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
+            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
+            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+
+            $imei = '-';
+            if (preg_match('/\(([\d]+)\)/', $item->description, $matches)) { $imei = $matches[1]; }
+
+            $hpOutSheet[] = [
+                $idx + 1,
+                date('d/m/Y H:i', strtotime($item->created_at)),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 str_replace("'", "", $imei),
@@ -545,23 +593,23 @@ class InventoryController extends Controller
             ];
         }
 
-        // 2. NON-HP STOCK OUT (InventoryLog where product->type == 'non-hp')
-        $nonHpQuery = InventoryLog::with(['product', 'user', 'distributor'])
+        // --- 4. STOCK OUT NON-HP ---
+        $nonHpOutQuery = InventoryLog::with(['product', 'user', 'distributor'])
             ->where('type', 'out')
-            ->whereHas('product', fn($q) => $q->where('type', 'non-hp'));
-        $this->applyStockHistoryFilters($nonHpQuery, $request, 'non-hp', 'out');
-        $nonHpItems = $nonHpQuery->latest()->get();
+            ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
+        $this->applyStockHistoryFilters($nonHpOutQuery, $request, 'non-hp', 'out');
+        $nonHpOutItems = $nonHpOutQuery->latest()->get();
 
-        $nonHpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
-        foreach ($nonHpItems as $idx => $item) {
+        $nonHpOutSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
+        foreach ($nonHpOutItems as $idx => $item) {
             $locationName = '-';
             if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
             elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
             elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
 
-            $nonHpSheet[] = [
+            $nonHpOutSheet[] = [
                 $idx + 1,
-                $item->created_at->format('d/m/Y H:i'),
+                date('d/m/Y H:i', strtotime($item->created_at)),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 $locationName,
@@ -571,20 +619,21 @@ class InventoryController extends Controller
             ];
         }
 
-        $dateSuffix = $request->date ? "_{$request->date}" : "_" . now()->format('Y-m-d_H-i');
-        $filename = 'RIWAYAT_STOK_KELUAR' . $dateSuffix . '.xlsx';
+        $dateSuffix = $request->start_date ? "_{$request->start_date}_SD_{$request->end_date}" : "_" . now()->format('Y-m-d');
+        $filename = 'RIWAYAT_STOK_MASUK_KELUAR' . $dateSuffix . '.xlsx';
         
-        // Log Export
         \App\Models\ExportLog::create([
             'user_id' => $user->id,
-            'report_name' => 'Riwayat Stok Keluar',
+            'report_name' => 'Riwayat Stok Masuk Keluar Combined',
             'filename' => $filename,
             'params' => $request->all()
         ]);
 
         $xlsx = SimpleXLSXGen::fromSheets([
-            'Riwayat HP' => $hpSheet,
-            'Riwayat Non-HP' => $nonHpSheet
+            'Laporan Masuk HP' => $hpInSheet,
+            'Laporan Masuk Non-HP' => $nonHpInSheet,
+            'Laporan Keluar HP' => $hpOutSheet,
+            'Laporan Keluar Non-HP' => $nonHpOutSheet
         ]);
 
         return response((string)$xlsx, 200, [

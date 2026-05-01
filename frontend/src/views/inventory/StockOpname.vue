@@ -71,6 +71,12 @@ const updateMonthRange = () => {
     exportEndDate.value = end.toISOString().split('T')[0];
 };
 
+watch(exportMonth, () => {
+    if (exportMode.value === 'monthly') {
+        updateMonthRange();
+    }
+});
+
 watch([exportStartDate, exportEndDate], () => {
     if (!isSettingRange) {
         activeExportButton.value = 'manual';
@@ -1127,12 +1133,9 @@ const downloadExcel = async (type) => {
     } else if (type === 'inventory') {
         title = 'Laporan Data Inventory';
         endpoint = '/inventory/export';
-    } else if (type === 'stock-in') {
-        title = 'Laporan Riwayat Stok Masuk';
-        endpoint = '/inventory/history/in/export';
-    } else if (type === 'stock-out') {
-        title = 'Laporan Riwayat Stok Keluar';
-        endpoint = '/inventory/history/out/export';
+    } else if (type === 'history') {
+        title = 'Laporan Stok Masuk & Keluar';
+        endpoint = '/inventory/history/export';
     }
 
     toast.info(`Sedang menyiapkan ${title}...`);
@@ -1152,7 +1155,13 @@ const downloadExcel = async (type) => {
             responseType: 'blob'
         });
         
-        const filename = `${type.toUpperCase()}_${exportStartDate.value}_SD_${exportEndDate.value}.xlsx`;
+        let filename = '';
+        if (type === 'inventory') {
+            const locationName = selectedLocationKey.value === 'all' ? 'SEMUA_CABANG' : selectedLocationKey.value.split(':')[1];
+            filename = `DATA_INVENTORY_${locationName}.xlsx`;
+        } else {
+            filename = `${type.toUpperCase()}_${exportStartDate.value}_SD_${exportEndDate.value}.xlsx`;
+        }
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
@@ -1506,28 +1515,16 @@ onMounted(() => {
                             <p class="text-xs text-text-secondary">Data stok saat ini (HP & Non-HP)</p>
                         </button>
 
-                        <!-- Excel Riwayat Stok Masuk -->
-                        <button @click="downloadExcel('stock-in')"
-                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-purple-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5">
+                        <!-- Excel Stok Masuk & Keluar -->
+                        <button @click="downloadExcel('history')"
+                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-purple-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5 col-span-1 md:col-span-2 lg:col-span-2">
                             <div class="flex items-center gap-3 mb-3">
                                 <div class="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20 transition-colors">
-                                    <Download :size="20" class="text-purple-400" />
+                                    <History :size="20" class="text-purple-400" />
                                 </div>
-                                <span class="text-sm font-bold text-text-primary">Stok Masuk</span>
+                                <span class="text-sm font-bold text-text-primary">Excel Stok Masuk/Keluar</span>
                             </div>
-                            <p class="text-xs text-text-secondary">Riwayat barang masuk (HP & Non-HP)</p>
-                        </button>
-
-                        <!-- Excel Riwayat Stok Keluar -->
-                        <button @click="downloadExcel('stock-out')"
-                            class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-amber-500/50 p-5 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5">
-                            <div class="flex items-center gap-3 mb-3">
-                                <div class="p-2 bg-amber-500/10 rounded-lg group-hover:bg-amber-500/20 transition-colors">
-                                    <Truck :size="20" class="text-amber-400" />
-                                </div>
-                                <span class="text-sm font-bold text-text-primary">Stok Keluar</span>
-                            </div>
-                            <p class="text-xs text-text-secondary">Riwayat barang keluar (HP & Non-HP)</p>
+                            <p class="text-xs text-text-secondary">Riwayat barang masuk & keluar (4 Sheet: HP & Non-HP)</p>
                         </button>
                     </div>
 
