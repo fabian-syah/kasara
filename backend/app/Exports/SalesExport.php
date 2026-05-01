@@ -243,7 +243,7 @@ class SalesExport
                         'distributor' => $finalDistributor,
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
-                        'status' => strtoupper($so->status),
+                        'status' => $cat === 'penjualan_store' ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
                         'price_out' => $exchangeInfo ? (float)$pOut : 0,
                         'price_in' => $exchangeInfo ? (float)$pIn : 0,
                         'balance' => $isNeg ? -abs($exchangeInfo ? $diff : 0) : (float)($exchangeInfo ? $diff : 0)
@@ -271,7 +271,7 @@ class SalesExport
                         'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
-                        'status' => strtoupper($so->status),
+                        'status' => $cat === 'penjualan_store' ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
                         'price_out' => 0,
                         'price_in' => 0,
                         'balance' => 0

@@ -1459,6 +1459,7 @@ class AuditController extends Controller
                     'price_out' => $exchangeInfo ? (float)($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) : null,
                     'price_in' => $exchangeInfo ? (float)($exchangeInfo->incoming_cost_price ?? 0) : null,
                     'price_diff' => $exchangeInfo ? ($isNeg ? -abs((float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0))) : (float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0))) : null,
+                    'status' => $catLower === 'penjualan_store' ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                 ];
             });
 

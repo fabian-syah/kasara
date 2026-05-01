@@ -674,21 +674,15 @@ const activeRecords = computed(() => {
     return Array.isArray(list) ? list.filter(item => item.category !== 'cancel_penjualan') : []
 })
 const totalSales = computed(() => activeRecords.value.reduce((sum, item) => {
-    const val = parseFloat(item.grand_total) || 0;
-    // Exclude refund and angkat_barang from revenue summary
-    if (item.category === 'refund' || item.category === 'angkat_barang') return sum;
-    return sum + val;
-}, 0))
-const totalUnits = computed(() => activeRecords.value.reduce((sum, item) => {
-    const q = parseInt(item.qty) || 0;
-    // Exclude refund and angkat_barang from sales unit summary
-    if (item.category === 'refund' || item.category === 'angkat_barang') return sum;
-    return sum + q;
-}, 0))
-const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas' && !['angkat_barang', 'refund'].includes(item.category)).reduce((sum, item) => {
     return sum + (parseFloat(item.grand_total) || 0);
 }, 0))
-const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas' && !['angkat_barang', 'refund'].includes(item.category)).reduce((sum, item) => {
+const totalUnits = computed(() => activeRecords.value.reduce((sum, item) => {
+    return sum + (parseInt(item.qty) || 0);
+}, 0))
+const totalLunas = computed(() => activeRecords.value.filter(item => item.status === 'Lunas').reduce((sum, item) => {
+    return sum + (parseFloat(item.grand_total) || 0);
+}, 0))
+const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas').reduce((sum, item) => {
     return sum + (parseFloat(item.grand_total) || 0);
 }, 0))
 
