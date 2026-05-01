@@ -170,7 +170,7 @@ class SalesExport
                 }
 
                 $rows[] = [
-                    'waktu' => $so->created_at->format('d/m/Y H:i'),
+                    'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
                     'order_no' => $so->receipt_id,
                     'lokasi' => $location,
                     'user' => $csName,
@@ -226,7 +226,7 @@ class SalesExport
                     }
 
                     $rows[] = [
-                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
                         'order_no' => $so->receipt_id,
                         'lokasi' => $location,
                         'user' => $csName,
@@ -254,7 +254,7 @@ class SalesExport
                     $price = $rawPrice - $itemDiscount - $distDiscount;
                     
                     $rows[] = [
-                        'waktu' => $so->created_at->format('d/m/Y H:i'),
+                        'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
                         'order_no' => $so->receipt_id,
                         'lokasi' => $location,
                         'user' => $csName,

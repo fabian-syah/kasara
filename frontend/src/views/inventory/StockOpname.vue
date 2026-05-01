@@ -1152,8 +1152,7 @@ const downloadExcel = async (type) => {
             responseType: 'blob'
         });
         
-        const timestamp = new Date().toISOString().split('T')[0];
-        const filename = `${type.toUpperCase()}_${timestamp}.xlsx`;
+        const filename = `${type.toUpperCase()}_${exportStartDate.value}_SD_${exportEndDate.value}.xlsx`;
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
