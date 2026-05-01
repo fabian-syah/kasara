@@ -47,13 +47,15 @@ class SimpleXLSXGen {
 </fills>
 <borders count="1"><border><left/><right/><top/><bottom/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="6">
-<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-<xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<cellXfs count="8">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="3" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="4" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf>
 </cellXfs>
 </styleSheet>';
         
@@ -85,9 +87,18 @@ class SimpleXLSXGen {
             foreach ($row as $cIdx => $val) {
                 $col = $this->num2alpha($cIdx) . ($rIdx + 1);
                 $s = 0; 
-                if ($rIdx === 0) $s = 2; // Header style (if title removed, index 0 is header)
+                if ($rIdx === 0) {
+                    $s = 2; // Header
+                } elseif (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                    // Right align numbers. Format as rupiah if column index is 10+ or value > 1000
+                    if ($cIdx >= 10 || (float)$val > 1000) {
+                        $s = 7; 
+                    } else {
+                        $s = 6;
+                    }
+                }
                 
-                if (is_numeric($val) && strlen((string)$val) < 12 && !str_starts_with((string)$val, '0')) {
+                if (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                     $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
                 } else {
                     $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';

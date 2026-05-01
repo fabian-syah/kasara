@@ -2591,9 +2591,9 @@ class AuditController extends Controller
 
                 $xlsxRow = array_merge($xlsxRow, [
                     $row['status'] ?? '',
-                    ($isExchange && $row['price_out'] !== '-') ? $row['price_out'] : '',
-                    ($isExchange && $row['price_in'] !== '-') ? $row['price_in'] : '',
-                    ($isExchange && $row['balance'] !== '-') ? $row['balance'] : ''
+                    ($isExchange && $row['price_out'] != 0) ? $row['price_out'] : '',
+                    ($isExchange && $row['price_in'] != 0) ? $row['price_in'] : '',
+                    ($isExchange && $row['balance'] != 0) ? $row['balance'] : ''
                 ]);
 
                 $xlsxData[] = $xlsxRow;

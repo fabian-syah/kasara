@@ -87,15 +87,11 @@ class SalesExport
             foreach ($this->paymentMethods as $pm) {
                 $payData[$pm->name] = 0;
             }
-            $payData['Lainnya'] = 0;
-
             if (empty($splitPayments)) {
                 $name = $so->paymentMethod->name ?? '';
                 $amount = $so->paid_amount ?: $so->selling_price;
                 if (isset($payData[$name])) {
                     $payData[$name] = $amount;
-                } else {
-                    $payData['Lainnya'] = $amount;
                 }
             } else {
                 foreach ($splitPayments as $sp) {
@@ -103,8 +99,6 @@ class SalesExport
                     $amount = $sp['amount'] ?? 0;
                     if (isset($payData[$name])) {
                         $payData[$name] += $amount;
-                    } else {
-                        $payData['Lainnya'] += $amount;
                     }
                 }
             }
@@ -181,8 +175,8 @@ class SalesExport
                     'product' => implode("\n", $productList),
                     'imei' => implode(', ', array_map(fn($i) => "'" . $i, $allImeis)) ?: '-',
                     'qty' => 1,
-                    'price' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
-                    'total' => 'Rp ' . number_format($totalPrice, 0, ',', '.'),
+                    'price' => (float)$totalPrice,
+                    'total' => (float)$totalPrice,
                     'distributor' => implode(', ', $distributors) ?: '-',
                     'payment' => $payment ?: '-',
                     'payment_details' => $payData,
@@ -237,15 +231,15 @@ class SalesExport
                         'product' => $finalProductName,
                         'imei' => $finalImei,
                         'qty' => 1,
-                        'price' => 'Rp ' . number_format($pOut, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($exchangeInfo ? $diff : $pOut, 0, ',', '.'),
+                        'price' => (float)$pOut,
+                        'total' => (float)($exchangeInfo ? $diff : $pOut),
                         'distributor' => $finalDistributor,
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
                         'status' => strtoupper($so->status),
-                        'price_out' => $exchangeInfo ? 'Rp ' . number_format($pOut, 0, ',', '.') : '-',
-                        'price_in' => $exchangeInfo ? 'Rp ' . number_format($pIn, 0, ',', '.') : '-',
-                        'balance' => $exchangeInfo ? 'Rp ' . number_format($diff, 0, ',', '.') : '-'
+                        'price_out' => $exchangeInfo ? (float)$pOut : 0,
+                        'price_in' => $exchangeInfo ? (float)$pIn : 0,
+                        'balance' => $exchangeInfo ? (float)$diff : 0
                     ];
                 } else {
                     $item = $it['data'];
@@ -264,16 +258,16 @@ class SalesExport
                         'category' => strtoupper($so->category),
                         'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})",
                         'imei' => '-',
-                        'qty' => $item->quantity,
-                        'price' => 'Rp ' . number_format($price, 0, ',', '.'),
-                        'total' => 'Rp ' . number_format($price * $item->quantity, 0, ',', '.'),
+                        'qty' => (float)$item->quantity,
+                        'price' => (float)$price,
+                        'total' => (float)($price * $item->quantity),
                         'distributor' => $item->distributor->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
                         'status' => strtoupper($so->status),
-                        'price_out' => '-',
-                        'price_in' => '-',
-                        'balance' => '-'
+                        'price_out' => 0,
+                        'price_in' => 0,
+                        'balance' => 0
                     ];
                 }
             }
@@ -309,7 +303,6 @@ class SalesExport
         foreach ($this->paymentMethods as $pm) {
             $heads[] = $pm->name;
         }
-        $heads[] = 'Metode Lainnya';
         
         $heads = array_merge($heads, [
             'Status',
