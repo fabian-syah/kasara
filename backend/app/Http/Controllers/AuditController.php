@@ -2285,10 +2285,18 @@ class AuditController extends Controller
             }
             unset($detail);
 
+            $catLower = strtolower($trx->category);
+            $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+
             $hargaJual = (float) ($trx->selling_price ?? 0);
             $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
             $defaultHargaModal = $hargaJual > 0 ? round($hargaJual * 0.95) : 0;
             $profit = $hargaJual - $totalHargaModal;
+
+            if ($isNeg) {
+                $hargaJual = -abs($hargaJual);
+                $profit = -abs($profit);
+            }
 
             $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
             $yesCount = $answers->where('answer', true)->count();
