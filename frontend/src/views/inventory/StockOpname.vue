@@ -65,10 +65,23 @@ const setExportRange = (type) => {
 const updateMonthRange = () => {
     if (!exportMonth.value) return;
     const [year, month] = exportMonth.value.split('-').map(Number);
+    
+    // Use local date creation to avoid UTC shift
     const start = new Date(year, month - 1, 1);
     const end = new Date(year, month, 0);
-    exportStartDate.value = start.toISOString().split('T')[0];
-    exportEndDate.value = end.toISOString().split('T')[0];
+    
+    const formatDate = (date) => {
+        const d = new Date(date);
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        const year = d.getFullYear();
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+        return [year, month, day].join('-');
+    };
+    
+    exportStartDate.value = formatDate(start);
+    exportEndDate.value = formatDate(end);
 };
 
 watch(exportMonth, () => {
@@ -81,6 +94,14 @@ watch([exportStartDate, exportEndDate], () => {
     if (!isSettingRange) {
         activeExportButton.value = 'manual';
     }
+});
+
+const selectedLocationName = computed(() => {
+    if (selectedLocationKey.value === 'all') return 'SEMUA_CABANG';
+    const [prefix, id] = selectedLocationKey.value.split(':');
+    const typeMap = { 'B': 'branch', 'S': 'online_shop', 'W': 'warehouse', 'D': 'distributor' };
+    const loc = locations.value.find(l => l.id == id && l.type === typeMap[prefix]);
+    return loc ? loc.name.toUpperCase().replace(/\s+/g, '_') : id;
 });
 
 // Location Filter logic
@@ -1157,8 +1178,7 @@ const downloadExcel = async (type) => {
         
         let filename = '';
         if (type === 'inventory') {
-            const locationName = selectedLocationKey.value === 'all' ? 'SEMUA_CABANG' : selectedLocationKey.value.split(':')[1];
-            filename = `DATA_INVENTORY_${locationName}.xlsx`;
+            filename = `DATA_INVENTORY_${selectedLocationName.value}.xlsx`;
         } else {
             filename = `${type.toUpperCase()}_${exportStartDate.value}_SD_${exportEndDate.value}.xlsx`;
         }

@@ -513,10 +513,8 @@ class InventoryController extends Controller
     {
         $user = Auth::user();
 
-        // --- 1. STOCK IN HP ---
-        $hpInQuery = InventoryLog::with(['product', 'user', 'distributor', 'placement'])
-            ->where('type', 'in')
-            ->whereHas('product', fn($q) => $q->where('type', 'hp'));
+        // --- 1. STOCK IN HP (Using ProductDetail for specs/IMEI) ---
+        $hpInQuery = ProductDetail::with(['product', 'user', 'distributor', 'placement']);
         $this->applyStockHistoryFilters($hpInQuery, $request, 'hp', 'in');
         $hpInItems = $hpInQuery->latest()->get();
 
@@ -537,7 +535,7 @@ class InventoryController extends Controller
             ];
         }
 
-        // --- 2. STOCK IN NON-HP ---
+        // --- 2. STOCK IN NON-HP (InventoryLog) ---
         $nonHpInQuery = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in')
             ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
         $this->applyStockHistoryFilters($nonHpInQuery, $request, 'non-hp', 'in');
@@ -564,7 +562,7 @@ class InventoryController extends Controller
             ];
         }
 
-        // --- 3. STOCK OUT HP ---
+        // --- 3. STOCK OUT HP (InventoryLog) ---
         $hpOutQuery = InventoryLog::with(['product', 'user', 'distributor'])
             ->where('type', 'out')
             ->whereHas('product', fn($q) => $q->where('type', 'hp'));
@@ -593,7 +591,7 @@ class InventoryController extends Controller
             ];
         }
 
-        // --- 4. STOCK OUT NON-HP ---
+        // --- 4. STOCK OUT NON-HP (InventoryLog) ---
         $nonHpOutQuery = InventoryLog::with(['product', 'user', 'distributor'])
             ->where('type', 'out')
             ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
@@ -629,7 +627,7 @@ class InventoryController extends Controller
             'params' => $request->all()
         ]);
 
-        $xlsx = SimpleXLSXGen::fromSheets([
+        $xlsx = \App\Utils\SimpleXLSXGen::fromSheets([
             'Laporan Masuk HP' => $hpInSheet,
             'Laporan Masuk Non-HP' => $nonHpInSheet,
             'Laporan Keluar HP' => $hpOutSheet,
