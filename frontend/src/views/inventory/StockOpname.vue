@@ -1380,6 +1380,8 @@ onMounted(() => {
                             <ChevronRight :size="16" class="text-primary-500" />
                         </div>
                     </button>
+                </div>
+
                 <!-- ==================== DOWNLOAD CENTER (NEW) ==================== -->
                 <div class="mt-8 space-y-6">
                     <div class="flex items-center gap-3">
