@@ -2557,12 +2557,12 @@ class AuditController extends Controller
         // Role-based Date Restriction (similar to sales() method)
         if (!$user->hasAnyRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
             $today = $logicalNow->toDateString();
-            $yesterday = $logicalNow->copy()->subDay()->toDateString();
+            $sixDaysAgo = $logicalNow->copy()->subDays(6)->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
             $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
 
             if ($startDate === $endDate) {
-                if ($startDate < $yesterday) {
+                if ($startDate < $sixDaysAgo) {
                     $startDate = $today;
                     $endDate = $today;
                 }

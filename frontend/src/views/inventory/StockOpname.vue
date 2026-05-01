@@ -38,7 +38,9 @@ const maxExportDate = computed(() => {
     return new Date().toISOString().split('T')[0];
 });
 
+let isSettingRange = false;
 const setExportRange = (type) => {
+    isSettingRange = true;
     const today = new Date();
     exportMode.value = 'daily';
     activeExportButton.value = type;
@@ -55,9 +57,9 @@ const setExportRange = (type) => {
         exportEndDate.value = d;
     } else if (type === 'month') {
         exportMode.value = 'monthly';
-        // When switching to month mode, we'll use exportMonth ref
         updateMonthRange();
     }
+    setTimeout(() => { isSettingRange = false; }, 50);
 };
 
 const updateMonthRange = () => {
@@ -69,9 +71,9 @@ const updateMonthRange = () => {
     exportEndDate.value = end.toISOString().split('T')[0];
 };
 
-watch(exportMonth, () => {
-    if (exportMode.value === 'monthly') {
-        updateMonthRange();
+watch([exportStartDate, exportEndDate], () => {
+    if (!isSettingRange) {
+        activeExportButton.value = 'manual';
     }
 });
 
