@@ -611,11 +611,15 @@ class InventoryController extends Controller
              else $query->where('warehouse_id', $request->warehouse_id);
         }
 
-        // Filter by Date
+        // Filter by Date (5 AM reset rule)
         if ($request->start_date && $request->end_date) {
-            $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
+            $start = $request->start_date . ' 05:00:00';
+            $end = date('Y-m-d', strtotime($request->end_date . ' +1 day')) . ' 04:59:59';
+            $query->whereBetween('created_at', [$start, $end]);
         } elseif ($request->date) {
-            $query->whereDate('created_at', $request->date);
+            $start = $request->date . ' 05:00:00';
+            $end = date('Y-m-d', strtotime($request->date . ' +1 day')) . ' 04:59:59';
+            $query->whereBetween('created_at', [$start, $end]);
         }
 
         // Accessibility (Simplified for now)
