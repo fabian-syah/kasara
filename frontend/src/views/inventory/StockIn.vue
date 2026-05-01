@@ -101,6 +101,7 @@ const nonHpItems = ref([
         brand_id: null,
         type_name: "",
         quantity: 1,
+        cost_price: 0,
         selling_price: 0,
         selling_price_display: "",
         filteredTypes: [],
@@ -114,6 +115,7 @@ const addNonHpItem = () => {
         brand_id: null,
         type_name: "",
         quantity: 1,
+        cost_price: 0,
         selling_price: 0,
         selling_price_display: "",
         filteredTypes: [],
@@ -157,7 +159,7 @@ const removeNonHpItem = (index) => {
 // Automatically clear invalid brand selections when distributor changes
 watch(selectedDistributor, () => {
     const validBrandIds = new Set(filteredBrands.value.map(b => b.id));
-    
+
     nonHpItems.value.forEach(item => {
         if (item.brand_id && !validBrandIds.has(item.brand_id)) {
             item.brand_id = null;
@@ -814,6 +816,7 @@ async function submitStockIn(verifiedPin = null) {
                     brand_id: item.brand_id,
                     type_name: item.type_name,
                     quantity: item.quantity,
+                    cost_price: item.cost_price || 0,
                     selling_price: item.selling_price || 0
                 };
             });
@@ -942,7 +945,7 @@ onMounted(fetchInitialData);
                                 <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
                                 <div class="flex flex-col">
                                     <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                        }}</span>
+                                    }}</span>
                                     <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
                                         by: {{ user.created_by.username }}
                                     </span>
@@ -1107,7 +1110,7 @@ onMounted(fetchInitialData);
                     class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
-                    }}</span></div>
+                            }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
                         selectedDistributorName }}</span></div>
                 </div>
@@ -1235,44 +1238,56 @@ onMounted(fetchInitialData);
                                 <Trash2 :size="14" />
                             </button>
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                                <div class="md:col-span-3">
+                                <div class="md:col-span-2">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk</label>
                                     <select v-model="item.brand_id" @change="handleBrandChangeNonHp(idx)"
-                                        class="input bg-surface-900 text-xs h-10 px-3">
+                                        class="input bg-surface-900 text-[10px] h-10 px-2">
                                         <option :value="null">-- Merk --</option>
                                         <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}
                                         </option>
                                     </select>
                                 </div>
-                                <div class="md:col-span-4">
+                                <div class="md:col-span-3">
                                     <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama
                                         Barang</label>
                                     <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..."
-                                        class="input bg-surface-900 text-xs h-10 px-3 disabled:opacity-30 font-bold"
+                                        class="input bg-surface-900 text-[10px] h-10 px-2 disabled:opacity-30 font-bold"
                                         :list="'type-options-' + idx" />
                                     <datalist :id="'type-options-' + idx">
                                         <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
                                     </datalist>
                                     <div v-if="getNonHpCategory(item)" class="mt-1 flex items-center">
-                                        <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-tighter border border-blue-500/20">
+                                        <span
+                                            class="px-1 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-tighter border border-blue-500/20">
                                             {{ getNonHpCategory(item) }}
                                         </span>
                                     </div>
                                 </div>
-                                <div class="md:col-span-2">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">QTY</label>
+                                <div class="md:col-span-1">
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-center">QTY</label>
                                     <input v-model.number="item.quantity" type="number" min="1"
-                                        class="input bg-surface-900 text-xs h-10 text-center px-2 font-bold" />
+                                        class="input bg-surface-900 text-[10px] h-10 text-center px-1 font-bold" />
                                 </div>
                                 <div class="md:col-span-3">
                                     <label
-                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-emerald-500">Harga
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-amber-500">Harga
+                                        Modal</label>
+                                    <div
+                                        class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
+                                        <span class="text-[9px] text-text-secondary mr-1 font-black">Rp</span>
+                                        <input v-money:cost_price="item" type="text" placeholder="0"
+                                            class="bg-transparent border-none outline-none w-full text-[10px] font-bold text-text-primary" />
+                                    </div>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-blue-500">Harga
                                         Jual</label>
                                     <div
                                         class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
-                                        <span class="text-[9px] text-text-secondary mr-1 font-black">IDR</span>
+                                        <span class="text-[9px] text-text-secondary mr-1 font-black">Rp</span>
                                         <input v-money:selling_price="item" type="text" placeholder="0"
-                                            class="bg-transparent border-none outline-none w-full text-xs font-bold text-text-primary" />
+                                            class="bg-transparent border-none outline-none w-full text-[10px] font-bold text-text-primary" />
                                     </div>
                                 </div>
                             </div>

@@ -1032,17 +1032,21 @@ class InventoryController extends Controller
         $request->validate([
             'product_id' => 'required_if:type,hp|nullable|exists:products,id',
             'distributor_id' => 'nullable|exists:distributors,id',
+            'new_distributor_name' => 'nullable|string|max:255',
             'type' => 'required|in:hp,non-hp,HP,NON-HP',
-            'transaction_pin' => 'nullable|string|size:4',
+            'transaction_pin' => 'nullable|string|min:4|max:6',
 
             'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
             'placement_id' => 'required|integer',
+            'inventory_user_id' => 'nullable|integer|exists:users,id',
 
             // Multi-item support for Non-HP
             'items' => 'required_if:type,non-hp|array',
             'items.*.brand_name' => 'nullable|string',
+            'items.*.brand_id' => 'nullable|integer|exists:brands,id',
             'items.*.type_name' => 'required_with:items|string',
             'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.cost_price' => 'nullable|numeric|min:0',
             'items.*.selling_price' => 'nullable|numeric|min:0',
 
             // Fallback for Legacy/Single Input
@@ -1054,7 +1058,7 @@ class InventoryController extends Controller
             'imeis.*.ram' => 'nullable|string',
             'imeis.*.storage' => 'nullable|string',
             'storage' => 'nullable|string',
-            'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
+            'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox,ex_inter,refurbished',
             'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
