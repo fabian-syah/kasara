@@ -33,7 +33,7 @@ class SalesExport
 
         $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
+            ->whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
             ->where('status', '!=', 'cancelled');
 
         if ($this->branchId) {
