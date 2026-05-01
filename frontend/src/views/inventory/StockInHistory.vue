@@ -164,7 +164,15 @@ const exportExcel = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `stok-masuk-${activeTab.value}-${getTodayLocal()}.xlsx`);
+        
+        let filename = `stok-masuk-${activeTab.value}`;
+        if (filterMode.value === 'month') {
+            filename += `-${selectedMonth.value.month}-${selectedMonth.value.year}`;
+        } else {
+            filename += `-${dateParam || getTodayLocal()}`;
+        }
+        
+        link.setAttribute('download', `${filename}.xlsx`);
         document.body.appendChild(link);
         link.click();
         link.remove();
