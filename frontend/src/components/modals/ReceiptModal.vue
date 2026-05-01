@@ -204,7 +204,7 @@
                                     <div class="absolute -top-1 left-0 right-0 h-0.5 bg-black/10 print:hidden"></div>
                                     <span class="font-black text-black text-xs uppercase tracking-tight">{{ labelTotal }}</span>
                                     <span class="font-black text-black text-xs">
-                                        {{ formatCurrency(Math.abs(calculatedGrandTotal)) }}
+                                        {{ formatCurrency(calculatedGrandTotal) }}
                                     </span>
                                 </div>
 

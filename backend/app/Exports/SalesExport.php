@@ -219,7 +219,9 @@ class SalesExport
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
                         $finalProductName = "OUT: " . $productName . " [" . $condition . "]\nIN: " . $inProd;
+                        $finalProductName = str_replace("\n", " || ", $finalProductName);
                         $finalImei = "OUT: " . ($item->imei ?? '-') . "\nIN: " . $inImei;
+                        $finalImei = str_replace("\n", " || ", $finalImei);
                         
                         $distIn = $exchangeInfo->distributor->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
                         $finalDistributor = "OUT: " . $distOut . "\nIN: " . $distIn;
@@ -237,14 +239,14 @@ class SalesExport
                         'imei' => $finalImei,
                         'qty' => 1,
                         'price' => (float)$pOut,
-                        'total' => $isNeg ? -(float)($exchangeInfo ? $diff : $pOut) : (float)($exchangeInfo ? $diff : $pOut),
+                        'total' => $isNeg ? -abs($exchangeInfo ? $diff : $pOut) : (float)($exchangeInfo ? $diff : $pOut),
                         'distributor' => $finalDistributor,
                         'payment' => $payment ?: '-',
                         'payment_details' => $payData,
                         'status' => strtoupper($so->status),
                         'price_out' => $exchangeInfo ? (float)$pOut : 0,
                         'price_in' => $exchangeInfo ? (float)$pIn : 0,
-                        'balance' => $isNeg ? -(float)($exchangeInfo ? $diff : 0) : (float)($exchangeInfo ? $diff : 0)
+                        'balance' => $isNeg ? -abs($exchangeInfo ? $diff : 0) : (float)($exchangeInfo ? $diff : 0)
                     ];
                 } else {
                     $item = $it['data'];

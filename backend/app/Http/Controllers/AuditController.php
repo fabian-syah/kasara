@@ -1433,6 +1433,9 @@ class AuditController extends Controller
 
                 $totalQty = collect($details)->sum('qty');
 
+                $catLower = strtolower($trx->category);
+                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+
                 return [
                     'id' => $trx->id,
                     'date' => $trx->created_at?->toDateTimeString() ?? '-',
@@ -1443,8 +1446,8 @@ class AuditController extends Controller
                     'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
                     'qty' => $totalQty,
                     'items' => $details,
-                    'grand_total' => (float) $trx->selling_price,
-                    'selling_price' => (float) $trx->selling_price,
+                    'grand_total' => $isNeg ? -abs((float) $trx->selling_price) : (float) $trx->selling_price,
+                    'selling_price' => $isNeg ? -abs((float) $trx->selling_price) : (float) $trx->selling_price,
                     'total_discount' => (float) $trx->total_discount,
                     'original_price' => (float) ($trx->selling_price + $trx->total_discount),
                     'is_bundle' => (bool) $trx->is_bundle,
@@ -1455,7 +1458,7 @@ class AuditController extends Controller
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? (float)($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) : null,
                     'price_in' => $exchangeInfo ? (float)($exchangeInfo->incoming_cost_price ?? 0) : null,
-                    'price_diff' => $exchangeInfo ? (float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0)) : null,
+                    'price_diff' => $exchangeInfo ? ($isNeg ? -abs((float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0))) : (float)(($exchangeInfo->outgoing_price ?? ($catLower === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : 0)) - ($exchangeInfo->incoming_cost_price ?? 0))) : null,
                 ];
             });
 
