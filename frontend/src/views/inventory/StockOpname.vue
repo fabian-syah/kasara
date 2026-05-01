@@ -21,6 +21,43 @@ const rawHpItems = ref([]);
 const rawNonHpItems = ref([]);
 const currentView = ref('menu');
 
+// Download Center Date Range
+const exportStartDate = ref(new Date().toISOString().split('T')[0]);
+const exportEndDate = ref(new Date().toISOString().split('T')[0]);
+
+const setExportRange = (type) => {
+    const today = new Date();
+    if (type === 'today') {
+        const d = today.toISOString().split('T')[0];
+        exportStartDate.value = d;
+        exportEndDate.value = d;
+    } else if (type === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const d = yesterday.toISOString().split('T')[0];
+        exportStartDate.value = d;
+        exportEndDate.value = d;
+    } else if (type === '7days') {
+        const start = new Date(today);
+        start.setDate(start.getDate() - 7);
+        exportStartDate.value = start.toISOString().split('T')[0];
+        exportEndDate.value = today.toISOString().split('T')[0];
+    } else if (type === '30days') {
+        const start = new Date(today);
+        start.setDate(start.getDate() - 30);
+        exportStartDate.value = start.toISOString().split('T')[0];
+        exportEndDate.value = today.toISOString().split('T')[0];
+    } else if (type === 'thisMonth') {
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        exportStartDate.value = start.toISOString().split('T')[0];
+        exportEndDate.value = today.toISOString().split('T')[0];
+    } else if (type === 'last2months') {
+        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        exportStartDate.value = start.toISOString().split('T')[0];
+        exportEndDate.value = today.toISOString().split('T')[0];
+    }
+};
+
 // Location Filter logic
 const locations = ref([])
 const selectedLocationKey = ref('all')
@@ -1085,7 +1122,9 @@ const downloadExcel = async (type) => {
             branch_id: selectedBranchId.value || undefined,
             online_shop_id: selectedOnlineShopId.value || undefined,
             warehouse_id: selectedWarehouseId.value || undefined,
-            date: historyDate.value,
+            start_date: exportStartDate.value,
+            end_date: exportEndDate.value,
+            date: exportStartDate.value, // for legacy support
             mode: historyMode.value,
         };
         
@@ -1372,6 +1411,51 @@ onMounted(() => {
                             <Download :size="20" class="text-primary-400" />
                         </div>
                         <h2 class="text-xl font-bold text-text-primary tracking-tight">Download Center</h2>
+                    </div>
+
+                    <!-- Date Filter for Download Center -->
+                    <div class="bg-surface-800 rounded-2xl border border-surface-700 p-5">
+                        <div class="flex flex-col lg:flex-row lg:items-end gap-6">
+                            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                        <Calendar :size="12" /> Dari Tanggal
+                                    </label>
+                                    <input type="date" v-model="exportStartDate"
+                                        class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-black text-text-secondary uppercase tracking-widest flex items-center gap-2">
+                                        <Calendar :size="12" /> Sampai Tanggal
+                                    </label>
+                                    <input type="date" v-model="exportEndDate"
+                                        class="w-full bg-surface-900 border-surface-700 rounded-xl px-4 h-11 text-sm text-text-primary focus:border-primary-500 focus:ring-0 transition-all" />
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button @click="setExportRange('today')" 
+                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5"
+                                    :class="exportStartDate === new Date().toISOString().split('T')[0] && exportEndDate === new Date().toISOString().split('T')[0] ? 'bg-primary-500/10 border-primary-500/50 text-primary-400' : 'text-text-secondary'">
+                                    Hari Ini
+                                </button>
+                                <button @click="setExportRange('yesterday')" 
+                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
+                                    Kemarin
+                                </button>
+                                <button @click="setExportRange('7days')" 
+                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
+                                    7 Hari
+                                </button>
+                                <button @click="setExportRange('thisMonth')" 
+                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
+                                    Bulan Ini
+                                </button>
+                                <button @click="setExportRange('last2months')" 
+                                    class="px-4 h-11 rounded-xl text-xs font-bold transition-all border border-surface-700 hover:border-primary-500/50 hover:bg-primary-500/5 text-text-secondary">
+                                    2 Bulan Terakhir
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

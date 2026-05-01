@@ -612,7 +612,9 @@ class InventoryController extends Controller
         }
 
         // Filter by Date
-        if ($request->date) {
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('created_at', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
+        } elseif ($request->date) {
             $query->whereDate('created_at', $request->date);
         }
 
