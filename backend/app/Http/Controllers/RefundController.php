@@ -27,6 +27,7 @@ class RefundController extends Controller
             'brand_id' => 'required|exists:brands,id',
             'product_type_id' => 'required|exists:product_types,id',
             'imei' => 'nullable|string|max:25',
+            'quantity' => 'nullable|integer|min:1',
             'storage' => 'nullable|string|max:20',
             'condition' => 'required|in:new,second,ex_ibox',
             'refund_price' => 'required|numeric|min:0',
@@ -107,6 +108,7 @@ class RefundController extends Controller
                     'inventory_user_id' => $inventoryUserId,
                     'distributor_id' => $request->distributor_id,
                     'branch_id' => $branchId,
+                    'quantity' => $request->quantity ?? 1,
                 ]);
 
                 // 3. Add to Inventory
@@ -143,10 +145,11 @@ class RefundController extends Controller
                         ],
                         ['quantity' => 0]
                     );
-                    $inventory->increment('quantity', 1);
+                    $inventory->increment('quantity', $request->quantity ?? 1);
                 }
 
                 // 4. Log the Inventory Entry
+                $qty = $request->quantity ?? 1;
                 InventoryLog::create([
                     'product_id' => $product->id,
                     'branch_id' => $branchId,
@@ -154,7 +157,7 @@ class RefundController extends Controller
                     'online_shop_id' => $onlineShopId,
                     'user_id' => $inventoryUserId,
                     'type' => 'in',
-                    'quantity' => 1,
+                    'quantity' => $qty,
                     'reference_id' => 'Refund: ' . $receiptId,
                     'description' => 'Refund Barang: ' . $productType->name . ($request->imei ? ' (' . $request->imei . ')' : ''),
                     'supplier_name' => 'Refund Customer',
@@ -163,7 +166,7 @@ class RefundController extends Controller
                 ]);
 
                 // 5. Create StockOut record to ensure visibility in Cek Penjualan
-                $negRefund = -abs((float)$request->refund_price);
+                $negRefund = -abs((float)$request->refund_price * $qty);
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'refund',
@@ -204,7 +207,7 @@ class RefundController extends Controller
                     \App\Models\StockOutNonHpItem::create([
                         'stock_out_id' => $stockOut->id,
                         'product_id' => $product->id,
-                        'quantity' => 1,
+                        'quantity' => $request->quantity ?? 1,
                         'selling_price' => $request->refund_price,
                         'distributor_id' => $request->distributor_id
                     ]);

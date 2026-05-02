@@ -50,8 +50,10 @@ const downgradeForm = ref({
     incoming_storage: "",
     incoming_condition: "second",
     incoming_imei: "",
+    incoming_quantity: 1,
     incoming_cost_price: 0,
     outgoing_product_detail_id: null,
+    outgoing_quantity: 1,
     outgoing_price: 0,
     payment_method_id: null,
     reason: "",
@@ -212,7 +214,9 @@ const filteredInventoryProducts = computed(() => {
 });
 
 const downgradePriceDiff = computed(() => {
-    return (downgradeForm.value.outgoing_price || 0) - (downgradeForm.value.incoming_cost_price || 0);
+    const totalOut = (downgradeForm.value.outgoing_price || 0) * (downgradeForm.value.outgoing_quantity || 1);
+    const totalIn = (downgradeForm.value.incoming_cost_price || 0) * (downgradeForm.value.incoming_quantity || 1);
+    return totalOut - totalIn;
 });
 
 // Watchers
@@ -379,9 +383,11 @@ async function submitDowngrade(pin = null) {
     formData.append('incoming_storage', downgradeForm.value.incoming_storage);
     formData.append('incoming_condition', downgradeForm.value.incoming_condition);
     formData.append('incoming_imei', downgradeForm.value.incoming_imei);
+    formData.append('incoming_quantity', downgradeForm.value.incoming_quantity);
     formData.append('incoming_cost_price', downgradeForm.value.incoming_cost_price);
 
     formData.append('outgoing_product_detail_id', downgradeForm.value.outgoing_product_detail_id);
+    formData.append('outgoing_quantity', downgradeForm.value.outgoing_quantity);
     formData.append('outgoing_price', downgradeForm.value.outgoing_price);
     formData.append('price_difference', downgradePriceDiff.value);
     formData.append('payment_method_id', downgradeForm.value.payment_method_id);
@@ -406,8 +412,8 @@ async function submitDowngrade(pin = null) {
                     price: downgradeForm.value.outgoing_price,
                     condition: selectedOutgoingDowngrade.value?.condition || 'second',
                     storage: selectedOutgoingDowngrade.value?.storage,
-                    qty: 1,
-                    is_hp: true
+                    qty: downgradeForm.value.outgoing_quantity,
+                    is_hp: !!selectedOutgoingDowngrade.value?.imei
                 },
                 {
                     name: 'IN: ' + (selectedDowngradeType.value?.name || 'Unit Masuk'),
@@ -415,8 +421,8 @@ async function submitDowngrade(pin = null) {
                     price: -downgradeForm.value.incoming_cost_price,
                     condition: downgradeForm.value.incoming_condition,
                     storage: downgradeForm.value.incoming_storage,
-                    qty: 1,
-                    is_hp: true
+                    qty: downgradeForm.value.incoming_quantity,
+                    is_hp: isImeiDowngrade.value
                 }
             ],
             original_price: downgradePriceDiff.value,
@@ -444,8 +450,10 @@ async function submitDowngrade(pin = null) {
             incoming_storage: "",
             incoming_condition: "second",
             incoming_imei: "",
+            incoming_quantity: 1,
             incoming_cost_price: 0,
             outgoing_product_detail_id: null,
+            outgoing_quantity: 1,
             outgoing_price: 0,
             payment_method_id: null,
             reason: "",
@@ -589,9 +597,18 @@ async function submitDowngrade(pin = null) {
                         <input v-model="downgradeForm.incoming_imei" type="text" placeholder="15 digit IMEI..."
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-mono" />
                     </div>
+                    <div v-else>
+                        <label
+                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH UNIT <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="downgradeForm.incoming_quantity" type="number" min="1"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit</span>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
-                            DOWNGRADE / BARANG MASUK <span class="text-red-500">*</span></label>
+                            UNIT MASUK (PER UNIT) <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
@@ -665,6 +682,16 @@ async function submitDowngrade(pin = null) {
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
                     </div>
+
+                    <div v-if="selectedOutgoingDowngrade && !selectedOutgoingDowngrade.imei">
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH KELUAR <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="downgradeForm.outgoing_quantity" type="number" min="1" :max="selectedOutgoingDowngrade.stock || selectedOutgoingDowngrade.quantity"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit (Maks: {{ selectedOutgoingDowngrade.stock || selectedOutgoingDowngrade.quantity }})</span>
+                        </div>
+                    </div>
+                </div>
 
                     <!-- Photo Section -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
@@ -769,11 +796,16 @@ async function submitDowngrade(pin = null) {
                                 </p>
                             </div>
                             <div class="text-right">
+                                <p class="text-lg font-bold text-text-primary">
+                                    {{ formatCurrency(downgradeForm.outgoing_price * downgradeForm.outgoing_quantity) }}
+                                </p>
+                            </div>
+                            <div class="text-right">
                                 <span
-                                    class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">HARGA
+                                    class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">TOTAL
                                     UNIT MASUK</span>
                                 <p class="text-lg font-bold text-text-primary">
-                                    {{ formatCurrency(downgradeForm.incoming_cost_price) }}
+                                    {{ formatCurrency(downgradeForm.incoming_cost_price * downgradeForm.incoming_quantity) }}
                                 </p>
                             </div>
                         </div>

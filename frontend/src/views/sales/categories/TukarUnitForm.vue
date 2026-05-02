@@ -51,8 +51,10 @@ const unitExchangeForm = ref({
     incoming_storage: "",
     incoming_condition: "",
     incoming_imei: "",
+    incoming_quantity: 1,
     incoming_cost_price: 0,
     outgoing_product_detail_id: null,
+    outgoing_quantity: 1,
     outgoing_price: 0,
     reason: "",
     notes: "",
@@ -380,8 +382,10 @@ async function submitUnitExchange(pin = null) {
     formData.append('incoming_storage', unitExchangeForm.value.incoming_storage);
     formData.append('incoming_condition', unitExchangeForm.value.incoming_condition);
     formData.append('incoming_imei', unitExchangeForm.value.incoming_imei);
+    formData.append('incoming_quantity', unitExchangeForm.value.incoming_quantity);
     formData.append('incoming_cost_price', unitExchangeForm.value.incoming_cost_price);
     formData.append('outgoing_product_detail_id', unitExchangeForm.value.outgoing_product_detail_id);
+    formData.append('outgoing_quantity', unitExchangeForm.value.outgoing_quantity);
     formData.append('outgoing_price', unitExchangeForm.value.outgoing_price);
     formData.append('reason', unitExchangeForm.value.reason);
     formData.append('notes', unitExchangeForm.value.notes);
@@ -400,16 +404,16 @@ async function submitUnitExchange(pin = null) {
                     name: `OUT: ${data.outgoing_product_detail?.product?.name || data.outgoing_product_detail?.name || 'Unit Keluar'}`,
                     imei: data.outgoing_product_detail?.imei || '-',
                     price: data.outgoing_price,
-                    qty: 1,
+                    qty: data.outgoing_quantity || 1,
                     condition: data.outgoing_product_detail?.condition || 'second',
                     storage: data.outgoing_product_detail?.storage,
-                    is_hp: true
+                    is_hp: !!data.outgoing_product_detail?.imei
                 },
                 {
                     name: `IN: ${data.incoming_product_type?.name || 'Unit Masuk'}`,
                     imei: data.incoming_imei || '-',
                     price: -data.outgoing_price, // Negative to balance out
-                    qty: 1,
+                    qty: data.incoming_quantity || 1,
                     condition: data.incoming_condition,
                     storage: data.incoming_storage,
                     is_hp: true
@@ -441,8 +445,10 @@ async function submitUnitExchange(pin = null) {
             incoming_storage: "",
             incoming_condition: "",
             incoming_imei: "",
+            incoming_quantity: 1,
             incoming_cost_price: 0,
             outgoing_product_detail_id: null,
+            outgoing_quantity: 1,
             outgoing_price: 0,
             reason: "",
             notes: "",
@@ -577,15 +583,21 @@ async function submitUnitExchange(pin = null) {
                         </div>
                     </div>
                     <div v-if="isImeiExchange">
-                        <label
-                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Masukkan
-                            IMEI <span class="text-red-500">*</span></label>
                         <input v-model="unitExchangeForm.incoming_imei" type="text" placeholder="15 digit IMEI..."
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                     </div>
+                    <div v-else>
+                        <label
+                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH UNIT <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="unitExchangeForm.incoming_quantity" type="number" min="1"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit</span>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
-                            Tukar Unit / Barang Masuk <span class="text-red-500">*</span></label>
+                            Tukar Unit / Barang Masuk (Per Unit) <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
@@ -652,6 +664,15 @@ async function submitUnitExchange(pin = null) {
                             <input v-money:outgoing_price="unitExchangeForm" type="text"
                                 :placeholder="'Contoh: ' + formatNumber(suggestedOutgoingPrice)"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                        </div>
+                    </div>
+
+                    <div v-if="selectedOutgoingItem && !selectedOutgoingItem.imei">
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH KELUAR <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="unitExchangeForm.outgoing_quantity" type="number" min="1" :max="selectedOutgoingItem.stock || selectedOutgoingItem.quantity"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit (Maks: {{ selectedOutgoingItem.stock || selectedOutgoingItem.quantity }})</span>
                         </div>
                     </div>
 

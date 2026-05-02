@@ -31,12 +31,14 @@ class UnitExchangeController extends Controller
             // Incoming
             'incoming_product_type_id' => 'required|exists:product_types,id',
             'incoming_imei' => 'nullable|string|max:25',
+            'incoming_quantity' => 'nullable|integer|min:1',
             'incoming_storage' => 'nullable|string|max:20',
             'incoming_condition' => 'required|in:new,second,ex_ibox',
             'incoming_cost_price' => 'required|numeric|min:0',
 
             // Outgoing
             'outgoing_product_detail_id' => 'required|exists:product_details,id',
+            'outgoing_quantity' => 'nullable|integer|min:1',
             'outgoing_price' => 'nullable|numeric|min:0',
 
             'reason' => 'required|string',
@@ -98,6 +100,8 @@ class UnitExchangeController extends Controller
                     'inventory_user_id' => $inventoryUserId,
                     'distributor_id' => $request->distributor_id,
                     'branch_id' => $branchId,
+                    'incoming_quantity' => $request->incoming_quantity ?? 1,
+                    'outgoing_quantity' => $request->outgoing_quantity ?? 1,
                 ]);
 
                 // 3. Handle Incoming Unit (Entry to Inventory)
@@ -118,23 +122,36 @@ class UnitExchangeController extends Controller
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
-                // Add to ProductDetail
-                ProductDetail::create([
-                    'product_id' => $product->id,
-                    'user_id' => $inventoryUserId,
-                    'imei' => $request->incoming_imei,
-                    'storage' => $request->incoming_storage,
-                    'condition' => $request->incoming_condition,
-                    'status' => 'available',
-                    'placement_type' => $placementType,
-                    'placement_id' => $placementId,
-                    'cost_price' => $request->incoming_cost_price,
-                    'selling_price' => $incomingProductType->price ?? 0,
-                    'supplier_name' => 'Exchange: ' . $request->customer_name,
-                    'distributor_id' => $request->distributor_id,
-                    'unit_exchange_id' => $exchange->id,
-                    'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
-                ]);
+                $inQty = $request->incoming_quantity ?? 1;
+                if ($isImei) {
+                    ProductDetail::create([
+                        'product_id' => $product->id,
+                        'user_id' => $inventoryUserId,
+                        'imei' => $request->incoming_imei,
+                        'storage' => $request->incoming_storage,
+                        'condition' => $request->incoming_condition,
+                        'status' => 'available',
+                        'placement_type' => $placementType,
+                        'placement_id' => $placementId,
+                        'cost_price' => $request->incoming_cost_price,
+                        'selling_price' => $incomingProductType->price ?? 0,
+                        'supplier_name' => 'Exchange: ' . $request->customer_name,
+                        'distributor_id' => $request->distributor_id,
+                        'unit_exchange_id' => $exchange->id,
+                        'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
+                    ]);
+                } else {
+                    $inventoryIn = \App\Models\Inventory::firstOrCreate(
+                        [
+                            'product_id' => $product->id,
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'user_id' => $inventoryUserId
+                        ],
+                        ['quantity' => 0]
+                    );
+                    $inventoryIn->increment('quantity', $inQty);
+                }
 
                 // 4. Create StockOut record for reporting and tracking visibility
                 $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
@@ -161,20 +178,33 @@ class UnitExchangeController extends Controller
                     'online_shop_id' => $targetUser->online_shop_id ?? $user->online_shop_id,
                 ]);
 
-                // Attach the outgoing unit to the StockOut record
-                $stockOut->items()->attach($request->outgoing_product_detail_id, [
-                    'selling_price' => $outPrice,
-                    'item_discount' => 0,
-                ]);
-
-                // 5. Handle Outgoing Unit (Exit from Inventory)
-                $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
-                $oldStatus = $outgoingUnit->status;
-
-                $outgoingUnit->update([
-                    'status' => 'sold', // Mark as sold or transitioned
-                    'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Unit: " . $receiptId
-                ]);
+                // Attach outgoing unit
+                $outQty = $request->outgoing_quantity ?? 1;
+                if ($outgoingUnit->imei) {
+                    $stockOut->items()->attach($request->outgoing_product_detail_id, [
+                        'selling_price' => $outPrice,
+                        'item_discount' => 0,
+                    ]);
+                    $outgoingUnit->update([
+                        'status' => 'sold',
+                        'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Unit: " . $receiptId
+                    ]);
+                } else {
+                    \App\Models\StockOutNonHpItem::create([
+                        'stock_out_id' => $stockOut->id,
+                        'product_id' => $outgoingUnit->product_id,
+                        'quantity' => $outQty,
+                        'selling_price' => $outPrice,
+                    ]);
+                    // Decrement from Inventory
+                    $inventoryOut = \App\Models\Inventory::where([
+                        'product_id' => $outgoingUnit->product_id,
+                        'placement_type' => $outgoingUnit->placement_type,
+                        'placement_id' => $outgoingUnit->placement_id,
+                        'user_id' => $inventoryUserId
+                    ])->first();
+                    if ($inventoryOut) $inventoryOut->decrement('quantity', $outQty);
+                }
 
                 // 6. Log both movements
                 // In Log
@@ -184,7 +214,7 @@ class UnitExchangeController extends Controller
                     'warehouse_id' => $warehouseId,
                     'user_id' => $inventoryUserId,
                     'type' => 'in',
-                    'quantity' => 1,
+                    'quantity' => $inQty,
                     'reference_id' => 'Exchange IN: ' . $receiptId,
                     'description' => 'Tukar Unit (Masuk): ' . $incomingProductType->name . ($request->incoming_imei ? ' (' . $request->incoming_imei . ')' : ''),
                     'supplier_name' => 'Exchange Customer',
@@ -198,7 +228,7 @@ class UnitExchangeController extends Controller
                     'warehouse_id' => $warehouseId,
                     'user_id' => $inventoryUserId,
                     'type' => 'out',
-                    'quantity' => 1,
+                    'quantity' => $outQty,
                     'reference_id' => 'Exchange OUT: ' . $receiptId,
                     'description' => 'Tukar Unit (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
                 ]);

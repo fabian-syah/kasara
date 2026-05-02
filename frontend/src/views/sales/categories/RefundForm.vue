@@ -44,6 +44,7 @@ const refundForm = ref({
     storage: "",
     condition: "",
     imei: "",
+    quantity: 1,
     refund_price: 0,
     payment_method_id: null,
     reason: "",
@@ -288,6 +289,7 @@ async function submitRefund(pin = null) {
     formData.append('storage', refundForm.value.storage);
     formData.append('condition', refundForm.value.condition);
     formData.append('imei', refundForm.value.imei);
+    formData.append('quantity', refundForm.value.quantity);
     formData.append('refund_price', refundForm.value.refund_price);
     formData.append('payment_method_id', refundForm.value.payment_method_id);
     formData.append('reason', refundForm.value.reason);
@@ -305,12 +307,12 @@ async function submitRefund(pin = null) {
             items: [{
                 product: data.product_type,
                 name: data.product_type?.name,
-                imei: data.imei || '-',
-                selling_price: data.refund_price,
-                condition: data.condition,
-                storage: data.storage,
-                price: data.refund_price,
-                qty: 1,
+                imei: refundForm.value.imei || '-',
+                selling_price: refundForm.value.refund_price,
+                condition: refundForm.value.condition,
+                storage: refundForm.value.storage,
+                price: refundForm.value.refund_price,
+                qty: refundForm.value.quantity,
                 is_hp: true
             }],
             original_price: data.refund_price,
@@ -340,6 +342,7 @@ async function submitRefund(pin = null) {
             storage: "",
             condition: "",
             imei: "",
+            quantity: 1,
             refund_price: 0,
             payment_method_id: props.availablePaymentMethods?.[0]?.id || null,
             reason: "",
@@ -469,6 +472,15 @@ async function submitRefund(pin = null) {
                             IMEI <span class="text-red-500">*</span></label>
                         <input v-model="refundForm.imei" type="text" placeholder="15 digit IMEI..."
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                    </div>
+                    <div v-else>
+                        <label
+                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Jumlah Unit <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="refundForm.quantity" type="number" min="1"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit</span>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -215,7 +215,7 @@ class TradeInController extends Controller
 
                     $negBuyPriceTotal = -abs((float)$request->buy_price * $quantity);
                     // Create StockOut record for reporting
-                    StockOut::create([
+                    $stockOut = StockOut::create([
                         'receipt_id' => $receiptId,
                         'category' => 'angkat_barang',
                         'customer_name' => $request->customer_name,
@@ -240,14 +240,14 @@ class TradeInController extends Controller
                                 'payment_method_id' => $request->payment_method_id,
                                 'amount' => $negBuyPriceTotal
                             ]
-                        ]),
-                        'non_hp_items' => [
-                            [
-                                'product_id' => $product->id,
-                                'quantity' => $quantity,
-                                'selling_price' => -abs((float)$request->buy_price)
-                            ]
-                        ]
+                        ])
+                    ]);
+
+                    \App\Models\StockOutNonHpItem::create([
+                        'stock_out_id' => $stockOut->id,
+                        'product_id' => $product->id,
+                        'quantity' => $quantity,
+                        'selling_price' => -abs((float)$request->buy_price)
                     ]);
 
                     // For non-HP, use Inventory model (quantity based)

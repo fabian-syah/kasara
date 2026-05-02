@@ -52,8 +52,10 @@ const tukarTambahForm = ref({
     incoming_storage: "",
     incoming_condition: "second",
     incoming_imei: "",
+    incoming_quantity: 1,
     incoming_cost_price: 0,
     outgoing_product_detail_id: null,
+    outgoing_quantity: 1,
     outgoing_price: 0,
     payment_method_id: null,
     reason: "",
@@ -213,7 +215,9 @@ const filteredInventoryProducts = computed(() => {
 });
 
 const tukarTambahPriceDiff = computed(() => {
-    return (tukarTambahForm.value.outgoing_price || 0) - (tukarTambahForm.value.incoming_cost_price || 0);
+    const totalOut = (tukarTambahForm.value.outgoing_price || 0) * (tukarTambahForm.value.outgoing_quantity || 1);
+    const totalIn = (tukarTambahForm.value.incoming_cost_price || 0) * (tukarTambahForm.value.incoming_quantity || 1);
+    return totalOut - totalIn;
 });
 
 // Watchers
@@ -381,9 +385,11 @@ async function submitTukarTambah(pin = null) {
     formData.append('incoming_storage', tukarTambahForm.value.incoming_storage);
     formData.append('incoming_condition', tukarTambahForm.value.incoming_condition);
     formData.append('incoming_imei', tukarTambahForm.value.incoming_imei);
+    formData.append('incoming_quantity', tukarTambahForm.value.incoming_quantity);
     formData.append('incoming_cost_price', tukarTambahForm.value.incoming_cost_price);
 
     formData.append('outgoing_product_detail_id', tukarTambahForm.value.outgoing_product_detail_id);
+    formData.append('outgoing_quantity', tukarTambahForm.value.outgoing_quantity);
     formData.append('outgoing_price', tukarTambahForm.value.outgoing_price);
     formData.append('price_difference', tukarTambahPriceDiff.value);
     formData.append('payment_method_id', tukarTambahForm.value.payment_method_id);
@@ -406,8 +412,8 @@ async function submitTukarTambah(pin = null) {
                     price: tukarTambahForm.value.outgoing_price,
                     condition: selectedOutgoingTukarTambah.value?.condition || 'second',
                     storage: selectedOutgoingTukarTambah.value?.storage,
-                    qty: 1,
-                    is_hp: true
+                    qty: tukarTambahForm.value.outgoing_quantity,
+                    is_hp: !!selectedOutgoingTukarTambah.value?.imei
                 },
                 {
                     name: 'IN: ' + (selectedTukarTambahType.value?.name || 'Unit Masuk'),
@@ -415,8 +421,8 @@ async function submitTukarTambah(pin = null) {
                     price: -tukarTambahForm.value.incoming_cost_price,
                     condition: tukarTambahForm.value.incoming_condition,
                     storage: tukarTambahForm.value.incoming_storage,
-                    qty: 1,
-                    is_hp: true
+                    qty: tukarTambahForm.value.incoming_quantity,
+                    is_hp: isImeiTukarTambah.value
                 }
             ],
             original_price: tukarTambahPriceDiff.value,
@@ -444,8 +450,10 @@ async function submitTukarTambah(pin = null) {
             incoming_storage: "",
             incoming_condition: "second",
             incoming_imei: "",
+            incoming_quantity: 1,
             incoming_cost_price: 0,
             outgoing_product_detail_id: null,
+            outgoing_quantity: 1,
             outgoing_price: 0,
             payment_method_id: null,
             reason: "",
@@ -587,9 +595,18 @@ async function submitTukarTambah(pin = null) {
                         <input v-model="tukarTambahForm.incoming_imei" type="text" placeholder="15 digit IMEI..."
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                     </div>
+                    <div v-else>
+                        <label
+                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH UNIT <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="tukarTambahForm.incoming_quantity" type="number" min="1"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit</span>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
-                            TUKAR TAMBAH / BARANG MASUK <span class="text-red-500">*</span></label>
+                            UNIT MASUK (PER UNIT) <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
@@ -653,6 +670,15 @@ async function submitTukarTambah(pin = null) {
                             <input v-money:outgoing_price="tukarTambahForm" type="text"
                                 :placeholder="'Contoh: ' + formatNumber(suggestedOutgoingPrice)"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                        </div>
+                    </div>
+
+                    <div v-if="selectedOutgoingTukarTambah && !selectedOutgoingTukarTambah.imei">
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH KELUAR <span class="text-red-500">*</span></label>
+                        <div class="flex items-center gap-4">
+                            <input v-model.number="tukarTambahForm.outgoing_quantity" type="number" min="1" :max="selectedOutgoingTukarTambah.stock || selectedOutgoingTukarTambah.quantity"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <span class="text-xs font-bold text-text-secondary uppercase">Unit (Maks: {{ selectedOutgoingTukarTambah.stock || selectedOutgoingTukarTambah.quantity }})</span>
                         </div>
                     </div>
 
@@ -742,19 +768,16 @@ async function submitTukarTambah(pin = null) {
                         class="p-8 bg-primary-600 rounded-[2rem] shadow-2xl shadow-primary-500/30 text-center transform transition-all hover:scale-[1.02]">
                         <div class="grid grid-cols-2 gap-4 mb-6">
                             <div class="text-left">
-                                <span
-                                    class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">HARGA
-                                    UNIT KELUAR</span>
                                 <p class="text-lg font-bold text-white">
-                                    {{ formatCurrency(tukarTambahForm.outgoing_price) }}
+                                    {{ formatCurrency(tukarTambahForm.outgoing_price * tukarTambahForm.outgoing_quantity) }}
                                 </p>
                             </div>
                             <div class="text-right">
                                 <span
-                                    class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">HARGA
+                                    class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">TOTAL
                                     UNIT MASUK</span>
                                 <p class="text-lg font-bold text-white">
-                                    {{ formatCurrency(tukarTambahForm.incoming_cost_price) }}
+                                    {{ formatCurrency(tukarTambahForm.incoming_cost_price * tukarTambahForm.incoming_quantity) }}
                                 </p>
                             </div>
                         </div>

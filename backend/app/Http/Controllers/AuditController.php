@@ -498,23 +498,49 @@ class AuditController extends Controller
                     
                     $itemStatsQuery = (clone $salesBase)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                     $nhpStatsQuery = (clone $salesBase)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
+
+                    // Activity Unit breakdown (IMEI + Non-HP)
+                    $activityItemQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur'])
+                        ->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                        ->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), 
+                            DB::raw("sum(case when stock_outs.category = 'tukar_unit' then 1 else 0 end) as tu_imei"),
+                            DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then 1 else 0 end) as tt_imei"),
+                            DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as dw_imei"),
+                            DB::raw("sum(case when stock_outs.category = 'angkat_barang' then 1 else 0 end) as ab_imei"),
+                            DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as rf_imei"),
+                            DB::raw("sum(case when stock_outs.category = 'retur' then 1 else 0 end) as rt_imei")
+                        )->groupBy('owner_id')->get()->keyBy('owner_id');
+
+                    $activityNhpQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur'])
+                        ->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+                        ->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), 
+                            DB::raw("sum(case when stock_outs.category = 'tukar_unit' then stock_out_non_hp_items.quantity else 0 end) as tu_nhp"),
+                            DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then stock_out_non_hp_items.quantity else 0 end) as tt_nhp"),
+                            DB::raw("sum(case when stock_outs.category = 'downgrade' then stock_out_non_hp_items.quantity else 0 end) as dw_nhp"),
+                            DB::raw("sum(case when stock_outs.category = 'angkat_barang' then stock_out_non_hp_items.quantity else 0 end) as ab_nhp"),
+                            DB::raw("sum(case when stock_outs.category = 'refund' then stock_out_non_hp_items.quantity else 0 end) as rf_nhp"),
+                            DB::raw("sum(case when stock_outs.category = 'retur' then stock_out_non_hp_items.quantity else 0 end) as rt_nhp")
+                        )->groupBy('owner_id')->get()->keyBy('owner_id');
                     
                     $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
                         DB::raw("sum(case when stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", $stdSalesCats) . "') then stock_outs.selling_price else 0 end) as grand_total"), 
-                        DB::raw("sum(case when stock_outs.category IN ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as total_activity_rp"),
-                        DB::raw("sum(case when stock_outs.category = 'tukar_unit' then 1 else 0 end) as total_tu"),
-                        DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then 1 else 0 end) as total_tt"),
-                        DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as total_dw"),
-                        DB::raw("sum(case when stock_outs.category = 'angkat_barang' then 1 else 0 end) as total_ab"),
-                        DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as total_refund"),
-                        DB::raw("sum(case when stock_outs.category = 'retur' then 1 else 0 end) as total_retur"))
+                        DB::raw("sum(case when stock_outs.category IN ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as total_activity_rp"))
                         ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
                     
-                    return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $hpBreakdown, $nhpBreakdown) {
+                    return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $activityItemQuery, $activityNhpQuery, $hpBreakdown, $nhpBreakdown) {
                         $items = $itemStatsQuery->get($stat->owner_id);
                         $nhp = $nhpStatsQuery->get($stat->owner_id);
+                        $actItems = $activityItemQuery->get($stat->owner_id);
+                        $actNhp = $activityNhpQuery->get($stat->owner_id);
+
+                        $stat->total_tu = (int)($actItems->tu_imei ?? 0) + (int)($actNhp->tu_nhp ?? 0);
+                        $stat->total_tt = (int)($actItems->tt_imei ?? 0) + (int)($actNhp->tt_nhp ?? 0);
+                        $stat->total_dw = (int)($actItems->dw_imei ?? 0) + (int)($actNhp->dw_nhp ?? 0);
+                        $stat->total_ab = (int)($actItems->ab_imei ?? 0) + (int)($actNhp->ab_nhp ?? 0);
+                        $stat->total_refund = (int)($actItems->rf_imei ?? 0) + (int)($actNhp->rf_nhp ?? 0);
+                        $stat->total_retur = (int)($actItems->rt_imei ?? 0) + (int)($actNhp->rt_nhp ?? 0);
                         $iphone = (int) ($items->iphone_units ?? 0);
                         $android = (int) ($items->android_units ?? 0);
                         $nonHp = (int) ($nhp->non_hp_units ?? 0);
