@@ -115,11 +115,18 @@
                         <Smartphone :size="14" class="text-blue-500" />
                         Unit HP
                     </p>
-                    <div class="flex items-baseline gap-2 mt-2">
-                        <p class="text-2xl font-black text-blue-600">{{ summaryStats.hpUnits }}</p>
-                        <p class="text-xs font-bold text-text-secondary">Unit</p>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="flex items-baseline gap-1">
+                            <p class="text-2xl font-black text-blue-600">{{ summaryStats.hpUnitsOut }}</p>
+                            <p class="text-[10px] font-bold text-text-secondary uppercase">Out</p>
+                        </div>
+                        <div class="w-px h-6 bg-gray-200 dark:bg-surface-700"></div>
+                        <div class="flex items-baseline gap-1">
+                            <p class="text-2xl font-black text-amber-600">{{ summaryStats.hpUnitsIn }}</p>
+                            <p class="text-[10px] font-bold text-text-secondary uppercase">In</p>
+                        </div>
                     </div>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Barang Ber-IMEI</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Unit HP Masuk & Keluar</p>
                 </div>
             </div>
 
@@ -728,11 +735,11 @@ const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.s
 }, 0))
 
 const summaryStats = computed(() => {
-    let baseSales = 0;      // Penjualan (Store, Online, Shopee)
-    let tradeSelisih = 0;   // Selisih TT/TU
-    let outlay = 0;         // Angkat Barang, Refund, Downgrade
-    
-    let hpUnits = 0;
+    let baseSales = 0;
+    let tradeSelisih = 0;
+    let outlay = 0;
+    let hpUnitsIn = 0;
+    let hpUnitsOut = 0;
     let nonHpUnits = 0;
 
     activeRecords.value.forEach(item => {
@@ -754,28 +761,40 @@ const summaryStats = computed(() => {
             outlay += total;
         }
 
-        // Unit Logic: Exclude activity-only records (Refund, Unit Exchange, Downgrade, Retrievals)
-        const isStandardUnit = !['refund', 'angkat_barang', 'tukar_unit', 'downgrade'].includes(cat);
-
-        if (isStandardUnit) {
-            if (item.items && item.items.length > 0) {
-                item.items.forEach(detail => {
-                    const qty = parseInt(detail.qty) || 0;
-                    if (detail.imei && detail.imei !== '-') {
-                        hpUnits += qty;
+        // Unit Logic: Separate IN and OUT
+        if (item.items && item.items.length > 0) {
+            item.items.forEach(detail => {
+                const qty = parseInt(detail.qty) || 0;
+                const isHp = detail.imei && detail.imei !== '-';
+                if (isHp) {
+                    const name = (detail.name || '').toUpperCase();
+                    if (name.startsWith('IN:')) {
+                        hpUnitsIn += qty;
+                    } else if (name.startsWith('OUT:')) {
+                        hpUnitsOut += qty;
                     } else {
-                        nonHpUnits += qty;
+                        // Fallback logic by category
+                        if (['refund', 'angkat_barang'].includes(cat)) {
+                            hpUnitsIn += qty;
+                        } else {
+                            hpUnitsOut += qty;
+                        }
                     }
-                });
-            } else {
-                const qty = parseInt(item.qty) || 0;
-                // If it's a StockOut record, check for imei fields
-                const hasImei = (item.imei && item.imei !== '-') || (item.imeis && item.imeis !== '-');
-                if (hasImei) {
-                    hpUnits += qty;
                 } else {
                     nonHpUnits += qty;
                 }
+            });
+        } else {
+            const qty = parseInt(item.qty) || 0;
+            const hasImei = (item.imei && item.imei !== '-') || (item.imeis && item.imeis !== '-');
+            if (hasImei) {
+                if (['refund', 'angkat_barang'].includes(cat)) {
+                    hpUnitsIn += qty;
+                } else {
+                    hpUnitsOut += qty;
+                }
+            } else {
+                nonHpUnits += qty;
             }
         }
     });
@@ -783,7 +802,8 @@ const summaryStats = computed(() => {
     return {
         totalOmset: baseSales + tradeSelisih,
         omsetBersih: baseSales - outlay,
-        hpUnits,
+        hpUnitsOut,
+        hpUnitsIn,
         nonHpUnits
     };
 });
