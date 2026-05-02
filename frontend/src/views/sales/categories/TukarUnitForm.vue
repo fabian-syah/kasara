@@ -220,6 +220,12 @@ function selectStockItem(item) {
     showStockDropdown.value = false;
 }
 
+function closeStockDropdown() {
+    setTimeout(() => {
+        showStockDropdown.value = false;
+    }, 200);
+}
+
 async function submitUnitExchange(pin = null) {
     if (!unitExchangeForm.value.customer_name || !unitExchangeForm.value.customer_phone || !unitExchangeForm.value.incoming_brand_id || !unitExchangeForm.value.incoming_product_type_id || !unitExchangeForm.value.incoming_storage || !unitExchangeForm.value.incoming_condition || !unitExchangeForm.value.incoming_cost_price || !unitExchangeForm.value.reason || !unitExchangeForm.value.outgoing_product_detail_id || !unitExchangeForm.value.outgoing_price) {
         alert("Mohon lengkapi semua data wajib (Customer, Unit Masuk, Unit Keluar, Harga Jual, Alasan).");
@@ -465,7 +471,7 @@ async function submitUnitExchange(pin = null) {
                         <div class="relative">
                             <input v-model="stockSearchQuery" type="text"
                                 @focus="showStockDropdown = true"
-                                @blur="window.setTimeout(() => { showStockDropdown = false }, 200)"
+                                @blur="closeStockDropdown"
                                 placeholder="Ketik Nama, Brand, IMEI, atau Harga..."
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                             
