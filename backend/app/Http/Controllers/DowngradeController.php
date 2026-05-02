@@ -164,6 +164,9 @@ class DowngradeController extends Controller
                     'paid' => $negDiff,
                     'payment_method_id' => $request->payment_method_id,
                     'transaction_pin' => $request->transaction_pin,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'online_shop_id' => $targetUser->online_shop_id ?? $user->online_shop_id,
                     'split_payments' => json_encode([
                         [
                             'payment_method_id' => $request->payment_method_id,

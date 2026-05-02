@@ -156,6 +156,9 @@ class UnitExchangeController extends Controller
                     'selling_price' => $outPrice,
                     'total_amount' => $outPrice,
                     'transaction_pin' => $request->transaction_pin,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'online_shop_id' => $targetUser->online_shop_id ?? $user->online_shop_id,
                 ]);
 
                 // Attach the outgoing unit to the StockOut record

@@ -351,6 +351,7 @@ async function submitTradeIn(pin = null) {
     if (pin) formData.append('transaction_pin', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
+    if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', tradeInForm.value.customer_name);
     formData.append('customer_phone', tradeInForm.value.customer_phone);
     if (tradeInForm.value.distributor_id) formData.append('distributor_id', tradeInForm.value.distributor_id);
@@ -407,7 +408,7 @@ async function submitTradeIn(pin = null) {
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
-            inventory_user_name: authStore.user?.name
+            inventory_user_name: props.salesAccount || authStore.user?.name
         };
 
         emit("transaction-complete", transaction);

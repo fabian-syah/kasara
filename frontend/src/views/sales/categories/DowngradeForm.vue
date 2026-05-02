@@ -370,6 +370,7 @@ async function submitDowngrade(pin = null) {
     if (pin) formData.append('transaction_pin', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
+    if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', downgradeForm.value.customer_name);
     formData.append('customer_phone', downgradeForm.value.customer_phone);
     if (downgradeForm.value.distributor_id) formData.append('distributor_id', downgradeForm.value.distributor_id);
@@ -427,7 +428,7 @@ async function submitDowngrade(pin = null) {
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
-            inventory_user_name: authStore.user?.name
+            inventory_user_name: props.salesAccount || authStore.user?.name
         };
 
         emit("transaction-complete", transaction);
