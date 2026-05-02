@@ -142,7 +142,6 @@ watch(() => isImeiExchange.value, (newVal) => {
         unitExchangeForm.value.incoming_storage = "Non-HP";
         unitExchangeForm.value.incoming_condition = "second";
     }
-    }
 }, { immediate: true });
 
 watch(() => unitExchangeForm.value.outgoing_product_detail_id, (newId) => {

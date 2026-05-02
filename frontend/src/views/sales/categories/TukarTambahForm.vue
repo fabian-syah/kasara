@@ -155,6 +155,7 @@ watch(() => isImeiTukarTambah.value, (newVal) => {
 watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
+        if (item) {
             const selling = parseFloat(item.selling_price || item.price || 0);
             const cost = parseFloat(item.cost_price || 0);
             suggestedOutgoingPrice.value = selling > 0 ? selling : (cost > 0 ? cost : 0);
