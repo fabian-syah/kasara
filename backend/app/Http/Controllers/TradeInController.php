@@ -31,7 +31,7 @@ class TradeInController extends Controller
             'imeis.*' => 'nullable|string|max:25',
             'quantity' => 'nullable|integer|min:1',
             'storage' => 'nullable|string|max:50',
-            'condition' => 'required|in:new,second,ex_ibox',
+            'condition' => 'nullable|in:new,second,ex_ibox',
             'buy_price' => 'required|numeric|min:0',
             'payment_method_id' => 'required|exists:payment_methods,id',
             'reason' => 'nullable|string',

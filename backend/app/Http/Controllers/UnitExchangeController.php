@@ -33,7 +33,7 @@ class UnitExchangeController extends Controller
             'incoming_imei' => 'nullable|string|max:25',
             'incoming_quantity' => 'nullable|integer|min:1',
             'incoming_storage' => 'nullable|string|max:20',
-            'incoming_condition' => 'required|in:new,second,ex_ibox',
+            'incoming_condition' => 'nullable|in:new,second,ex_ibox',
             'incoming_cost_price' => 'required|numeric|min:0',
 
             // Outgoing
