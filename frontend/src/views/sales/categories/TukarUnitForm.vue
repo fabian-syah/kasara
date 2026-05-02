@@ -151,13 +151,21 @@ watch(() => unitExchangeForm.value.outgoing_product_detail_id, (newId) => {
             const selling = parseFloat(item.selling_price || item.price || 0);
             const cost = parseFloat(item.cost_price || 0);
             suggestedOutgoingPrice.value = selling > 0 ? selling : (cost > 0 ? cost : 0);
-            // Force manual entry
+            // Force manual entry for outgoing price
             unitExchangeForm.value.outgoing_price = 0;
+            // Sync incoming cost price
+            unitExchangeForm.value.incoming_cost_price = 0;
         }
     } else {
         suggestedOutgoingPrice.value = 0;
         unitExchangeForm.value.outgoing_price = 0;
+        unitExchangeForm.value.incoming_cost_price = 0;
     }
+});
+
+// Sync incoming cost price with outgoing price (Tukar Unit = Same Price)
+watch(() => unitExchangeForm.value.outgoing_price, (newVal) => {
+    unitExchangeForm.value.incoming_cost_price = newVal;
 });
 
 // Helpers
@@ -415,11 +423,10 @@ async function submitUnitExchange(pin = null) {
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                            <input v-money:incoming_cost_price="unitExchangeForm" type="text"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                            <input v-money:incoming_cost_price="unitExchangeForm" type="text" readonly
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-100 dark:bg-surface-800/50 focus:border-primary-500 transition-all outline-none font-black text-lg text-text-secondary cursor-not-allowed" />
                         </div>
-                        <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi
-                            harga modal</p>
+                        <p class="mt-1 text-[10px] text-primary-600 font-bold italic">*Otomatis mengikuti harga barang keluar (Tukar Unit)</p>
                     </div>
                 </div>
 
