@@ -530,27 +530,32 @@ watch(transactionCategory, () => {
                 <AngkatBarangForm v-else-if="transactionCategory === 'angkat_barang'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
                     :productPrices="productPrices" :distributors="distributors" :selectedAccountObject="selectedAccountObject" 
+                    :salesAccount="salesAccount"
                     @back="prevStep" @transaction-complete="handleTransactionComplete"
                     @verify-pin="handleVerifyPin" />
 
                 <RefundForm v-else-if="transactionCategory === 'refund'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
                     :distributors="distributors" :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <TukarUnitForm v-else-if="transactionCategory === 'tukar_unit'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
                     :distributors="distributors" :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <TukarTambahForm v-else-if="transactionCategory === 'tukar_tambah'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
                     :distributors="distributors" :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <DowngradeForm v-else-if="transactionCategory === 'downgrade'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
                     :distributors="distributors" :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
             </div>
 
