@@ -56,6 +56,16 @@ class InventoryLog extends Model
         return $this->belongsTo(Distributor::class);
     }
 
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function onlineShop()
+    {
+        return $this->belongsTo(OnlineShop::class);
+    }
+
     public function productDetail()
     {
         return $this->belongsTo(ProductDetail::class, 'reference_id');

@@ -522,7 +522,7 @@ class InventoryController extends Controller
         foreach ($hpInItems as $idx => $item) {
             $hpInSheet[] = [
                 $idx + 1,
-                date('d/m/Y H:i', strtotime($item->created_at)),
+                $item->created_at->format('d/m/Y H:i'),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 implode('/', array_filter([$item->ram, $item->storage])),
@@ -536,7 +536,7 @@ class InventoryController extends Controller
         }
 
         // --- 2. STOCK IN NON-HP (InventoryLog) ---
-        $nonHpInQuery = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in')
+        $nonHpInQuery = InventoryLog::with(['product', 'user', 'distributor', 'branch', 'warehouse', 'onlineShop'])->where('type', 'in')
             ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
         $this->applyStockHistoryFilters($nonHpInQuery, $request, 'non-hp', 'in');
         $nonHpInItems = $nonHpInQuery->latest()->get();
@@ -544,13 +544,13 @@ class InventoryController extends Controller
         $nonHpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($nonHpInItems as $idx => $item) {
             $locationName = '-';
-            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
-            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
-            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
             $nonHpInSheet[] = [
                 $idx + 1,
-                date('d/m/Y H:i', strtotime($item->created_at)),
+                $item->created_at->format('d/m/Y H:i'),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 $locationName,
@@ -563,7 +563,7 @@ class InventoryController extends Controller
         }
 
         // --- 3. STOCK OUT HP (InventoryLog) ---
-        $hpOutQuery = InventoryLog::with(['product', 'user', 'distributor'])
+        $hpOutQuery = InventoryLog::with(['product', 'user', 'distributor', 'branch', 'warehouse', 'onlineShop'])
             ->where('type', 'out')
             ->whereHas('product', fn($q) => $q->where('type', 'hp'));
         $this->applyStockHistoryFilters($hpOutQuery, $request, 'hp', 'out');
@@ -572,16 +572,16 @@ class InventoryController extends Controller
         $hpOutSheet = [['No', 'Waktu', 'Merek', 'Produk', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
         foreach ($hpOutItems as $idx => $item) {
             $locationName = '-';
-            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
-            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
-            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
             $imei = '-';
-            if (preg_match('/\(([\d]+)\)/', $item->description, $matches)) { $imei = $matches[1]; }
+            if ($item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) { $imei = $matches[1]; }
 
             $hpOutSheet[] = [
                 $idx + 1,
-                date('d/m/Y H:i', strtotime($item->created_at)),
+                $item->created_at->format('d/m/Y H:i'),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 str_replace("'", "", $imei),
@@ -592,7 +592,7 @@ class InventoryController extends Controller
         }
 
         // --- 4. STOCK OUT NON-HP (InventoryLog) ---
-        $nonHpOutQuery = InventoryLog::with(['product', 'user', 'distributor'])
+        $nonHpOutQuery = InventoryLog::with(['product', 'user', 'distributor', 'branch', 'warehouse', 'onlineShop'])
             ->where('type', 'out')
             ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
         $this->applyStockHistoryFilters($nonHpOutQuery, $request, 'non-hp', 'out');
@@ -601,13 +601,13 @@ class InventoryController extends Controller
         $nonHpOutSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
         foreach ($nonHpOutItems as $idx => $item) {
             $locationName = '-';
-            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
-            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
-            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
             $nonHpOutSheet[] = [
                 $idx + 1,
-                date('d/m/Y H:i', strtotime($item->created_at)),
+                $item->created_at->format('d/m/Y H:i'),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 $locationName,
