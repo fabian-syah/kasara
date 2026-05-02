@@ -29,7 +29,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
-const isRestoring = ref(false);
+const isRestoring = ref(true);
 const suggestedOutgoingPrice = ref(0);
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
@@ -61,7 +61,11 @@ const tukarTambahForm = ref({
 });
 
 // Persistence Logic
-const storageKey = computed(() => `temp_tukar_tambah_form_${authStore.user?.id || 'guest'}`);
+const storageKey = computed(() => {
+    const userId = authStore.user?.id || 'guest';
+    const acc = props.salesAccount ? `_acc_${props.salesAccount.replace(/\s+/g, '_')}` : '';
+    return `temp_tukar_tambah_form_${userId}${acc}`;
+});
 
 watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
@@ -78,7 +82,7 @@ watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuer
     }));
 }, { deep: true });
 
-onMounted(async () => {
+async function restoreDraft() {
     const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
@@ -105,14 +109,32 @@ onMounted(async () => {
             
             await nextTick();
             await nextTick();
-            // Give some time for child components and watchers to settle
             setTimeout(() => {
                 isRestoring.value = false;
             }, 500);
         } catch (e) {
             isRestoring.value = false;
         }
+    } else {
+        isRestoring.value = false;
     }
+}
+
+// React to user ID or initial mount
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) {
+        restoreDraft();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    // If user already loaded, restoreDraft will be called by watch immediate
+    // But we ensure it's not stuck in isRestoring if user never loads or no id
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) {
+            isRestoring.value = false;
+        }
+    }, 2000);
 });
 
 // End of state definitions
@@ -225,6 +247,7 @@ watch(() => tukarTambahForm.value.incoming_product_type_id, (newVal, oldVal) => 
 });
 
 watch(() => isImeiTukarTambah.value, (newVal) => {
+    if (isRestoring.value) return;
     if (!newVal) {
         tukarTambahForm.value.incoming_storage = "Non-HP";
         tukarTambahForm.value.incoming_condition = "second";
@@ -232,6 +255,7 @@ watch(() => isImeiTukarTambah.value, (newVal) => {
 }, { immediate: true });
 
 watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
+    if (isRestoring.value) return;
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
         if (item) {

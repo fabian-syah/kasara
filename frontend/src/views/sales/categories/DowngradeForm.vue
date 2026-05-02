@@ -28,7 +28,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
-const isRestoring = ref(false);
+const isRestoring = ref(true);
 const suggestedOutgoingPrice = ref(0);
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
@@ -59,7 +59,12 @@ const downgradeForm = ref({
 });
 
 // Persistence Logic
-const storageKey = computed(() => `temp_downgrade_form_${authStore.user?.id || 'guest'}`);
+// Persistence Logic
+const storageKey = computed(() => {
+    const userId = authStore.user?.id || 'guest';
+    const acc = props.salesAccount ? `_acc_${props.salesAccount.replace(/\s+/g, '_')}` : '';
+    return `temp_downgrade_form_${userId}${acc}`;
+});
 
 watch([downgradeForm, stockSearchQuery, downgradePhotos], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
@@ -76,7 +81,7 @@ watch([downgradeForm, stockSearchQuery, downgradePhotos], ([newForm, newQuery, n
     }));
 }, { deep: true });
 
-onMounted(async () => {
+async function restoreDraft() {
     const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
@@ -103,14 +108,32 @@ onMounted(async () => {
             
             await nextTick();
             await nextTick();
-            // Give some time for child components and watchers to settle
             setTimeout(() => {
                 isRestoring.value = false;
             }, 500);
         } catch (e) {
             isRestoring.value = false;
         }
+    } else {
+        isRestoring.value = false;
     }
+}
+
+// React to user ID or initial mount
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) {
+        restoreDraft();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    // If user already loaded, restoreDraft will be called by watch immediate
+    // But we ensure it's not stuck in isRestoring if user never loads or no id
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) {
+            isRestoring.value = false;
+        }
+    }, 2000);
 });
 
 // End of state definitions
@@ -223,6 +246,7 @@ watch(() => downgradeForm.value.incoming_product_type_id, (newVal, oldVal) => {
 });
 
 watch(() => isImeiDowngrade.value, (newVal) => {
+    if (isRestoring.value) return;
     if (!newVal) {
         downgradeForm.value.incoming_storage = "Non-HP";
         downgradeForm.value.incoming_condition = "second";
@@ -230,6 +254,7 @@ watch(() => isImeiDowngrade.value, (newVal) => {
 }, { immediate: true });
 
 watch(() => downgradeForm.value.outgoing_product_detail_id, (newId) => {
+    if (isRestoring.value) return;
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
         if (item) {

@@ -45,6 +45,7 @@ const distributors = ref([]);
 const currentStep = ref(1);
 const isManualDistributor = ref(false);
 const newDistributorName = ref("");
+const isRestoring = ref(true);
 
 // PIN State
 const showPinModal = ref(false);
@@ -114,6 +115,7 @@ const nonHpItems = ref([
 const getStorageKey = () => `temp_stock_in_state_${authStore.user?.id || 'guest'}`;
 
 const persistState = () => {
+    if (isRestoring.value) return;
     localStorage.setItem(getStorageKey(), JSON.stringify({
         currentStep: currentStep.value,
         itemType: itemType.value,
@@ -130,12 +132,11 @@ const persistState = () => {
     }));
 };
 
-watch([currentStep, itemType, selectedDistributor, selectedInventoryUserId, placementId, placementType, placementLabel, hpItems, nonHpItems, notes, isManualDistributor, newDistributorName], persistState, { deep: true });
-
-onMounted(() => {
+async function restoreDraft() {
     const saved = localStorage.getItem(getStorageKey());
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
             currentStep.value = data.currentStep || 1;
             itemType.value = data.itemType || "hp";
@@ -149,8 +150,31 @@ onMounted(() => {
             notes.value = data.notes || "";
             isManualDistributor.value = !!data.isManualDistributor;
             newDistributorName.value = data.newDistributorName || "";
-        } catch (e) {}
+            
+            await nextTick();
+            setTimeout(() => {
+                isRestoring.value = false;
+            }, 500);
+        } catch (e) {
+            isRestoring.value = false;
+        }
+    } else {
+        isRestoring.value = false;
     }
+}
+
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) restoreDraft();
+}, { immediate: true });
+
+onMounted(() => {
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) isRestoring.value = false;
+    }, 2000);
+    
+    fetchDistributors();
+    fetchInventoryUsers();
+    fetchCurrentBranch();
     fetchInitialData();
 });
 

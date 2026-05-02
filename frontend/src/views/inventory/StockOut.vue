@@ -41,6 +41,7 @@ const authStore = useAuthStore();
 const isLoading = ref(false);
 const isSubmitting = ref(false);
 const showForm = ref(false);
+const isRestoring = ref(true);
 const searchQuery = ref("");
 const inventoryItems = ref([]);
 const selectedItems = ref([]);
@@ -248,6 +249,7 @@ watch(selectedCategory, (newCat) => {
 const getStorageKey = () => `temp_stock_out_state_${authStore.user?.id || 'guest'}`;
 
 const persistState = () => {
+    if (isRestoring.value) return;
     localStorage.setItem(getStorageKey(), JSON.stringify({
         selectedCategory: selectedCategory.value,
         selectedItems: selectedItems.value,
@@ -260,10 +262,11 @@ const persistState = () => {
 
 watch([selectedCategory, selectedItems, selectedNonHpItems, form, selectedRegionIds, showForm], persistState, { deep: true });
 
-onMounted(() => {
+async function restoreDraft() {
     const saved = localStorage.getItem(getStorageKey());
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
             selectedCategory.value = data.selectedCategory || null;
             if (data.selectedItems) selectedItems.value = data.selectedItems;
@@ -271,9 +274,28 @@ onMounted(() => {
             if (data.form) form.value = { ...form.value, ...data.form };
             if (data.selectedRegionIds) selectedRegionIds.value = data.selectedRegionIds;
             showForm.value = !!data.showForm;
-        } catch (e) {}
+            
+            await nextTick();
+            setTimeout(() => {
+                isRestoring.value = false;
+            }, 500);
+        } catch (e) {
+            isRestoring.value = false;
+        }
+    } else {
+        isRestoring.value = false;
     }
+}
 
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) restoreDraft();
+}, { immediate: true });
+
+onMounted(() => {
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) isRestoring.value = false;
+    }, 2000);
+    
     fetchInventory();
     fetchBranches();
     fetchCurrentBranch();

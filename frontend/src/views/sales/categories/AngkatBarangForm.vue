@@ -25,7 +25,7 @@ const emit = defineEmits(["back", "transaction-complete", "reset"]);
 
 const authStore = useAuthStore();
 const isSubmitting = ref(false);
-const isRestoring = ref(false);
+const isRestoring = ref(true);
 
 const tradeInPhotos = ref({
     unit: null,
@@ -55,7 +55,12 @@ const tradeInForm = ref({
 
 
 // Persistence
-const storageKey = computed(() => `temp_angkat_barang_form_${authStore.user?.id || 'guest'}`);
+// Persistence
+const storageKey = computed(() => {
+    const userId = authStore.user?.id || 'guest';
+    const acc = props.salesAccount ? `_acc_${props.salesAccount.replace(/\s+/g, '_')}` : '';
+    return `temp_angkat_barang_form_${userId}${acc}`;
+});
 
 watch([tradeInForm, tradeInPhotos], ([newForm, newPhotos]) => {
     if (isRestoring.value) return;
@@ -71,7 +76,7 @@ watch([tradeInForm, tradeInPhotos], ([newForm, newPhotos]) => {
     }));
 }, { deep: true });
 
-onMounted(async () => {
+async function restoreDraft() {
     const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
@@ -97,14 +102,32 @@ onMounted(async () => {
 
             await nextTick();
             await nextTick();
-            // Give some time for child components and watchers to settle
             setTimeout(() => {
                 isRestoring.value = false;
             }, 500);
         } catch (e) {
             isRestoring.value = false;
         }
+    } else {
+        isRestoring.value = false;
     }
+}
+
+// React to user ID or initial mount
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) {
+        restoreDraft();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    // If user already loaded, restoreDraft will be called by watch immediate
+    // But we ensure it's not stuck in isRestoring if user never loads or no id
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) {
+            isRestoring.value = false;
+        }
+    }, 2000);
 });
 
 // End of state definitions

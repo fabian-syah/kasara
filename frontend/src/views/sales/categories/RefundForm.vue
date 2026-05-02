@@ -25,7 +25,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 
 const authStore = useAuthStore();
 const isSubmitting = ref(false);
-const isRestoring = ref(false);
+const isRestoring = ref(true);
 
 const refundPhotos = ref({
     unit: null,
@@ -51,7 +51,12 @@ const refundForm = ref({
 });
 
 // Persistence Logic
-const storageKey = computed(() => `temp_refund_form_${authStore.user?.id || 'guest'}`);
+// Persistence Logic
+const storageKey = computed(() => {
+    const userId = authStore.user?.id || 'guest';
+    const acc = props.salesAccount ? `_acc_${props.salesAccount.replace(/\s+/g, '_')}` : '';
+    return `temp_refund_form_${userId}${acc}`;
+});
 
 watch([refundForm, refundPhotos], ([newForm, newPhotos]) => {
     if (isRestoring.value) return;
@@ -67,7 +72,7 @@ watch([refundForm, refundPhotos], ([newForm, newPhotos]) => {
     }));
 }, { deep: true });
 
-onMounted(async () => {
+async function restoreDraft() {
     const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
@@ -93,14 +98,32 @@ onMounted(async () => {
 
             await nextTick();
             await nextTick();
-            // Give some time for child components and watchers to settle
             setTimeout(() => {
                 isRestoring.value = false;
             }, 500);
         } catch (e) {
             isRestoring.value = false;
         }
+    } else {
+        isRestoring.value = false;
     }
+}
+
+// React to user ID or initial mount
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) {
+        restoreDraft();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    // If user already loaded, restoreDraft will be called by watch immediate
+    // But we ensure it's not stuck in isRestoring if user never loads or no id
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) {
+            isRestoring.value = false;
+        }
+    }, 2000);
 });
 
 // End of state definitions
@@ -168,11 +191,13 @@ watch(() => refundForm.value.brand_id, (newVal, oldVal) => {
 });
 
 watch(() => refundForm.value.product_type_id, () => {
+    if (isRestoring.value) return;
     refundForm.value.storage = "";
     refundForm.value.condition = "";
 });
 
 watch(() => isImeiRefund.value, (newVal) => {
+    if (isRestoring.value) return;
     if (!newVal) {
         refundForm.value.storage = "Non-HP";
         refundForm.value.condition = "new";

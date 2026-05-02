@@ -10,6 +10,7 @@ export const useCartStore = defineStore('cart', () => {
     const discountType = ref('fixed') // 'percentage' or 'fixed'
     const paymentMethod = ref('cash')
     const notes = ref('')
+    const isRestoring = ref(false)
 
     const authStore = useAuthStore()
     const getStorageKey = () => `temp_cart_state_${authStore.user?.id || 'guest'}`
@@ -17,6 +18,7 @@ export const useCartStore = defineStore('cart', () => {
     // Load from localStorage
     function loadFromStorage() {
         const savedCart = localStorage.getItem(getStorageKey());
+        isRestoring.value = true;
         if (savedCart) {
             try {
                 const data = JSON.parse(savedCart);
@@ -38,6 +40,9 @@ export const useCartStore = defineStore('cart', () => {
             paymentMethod.value = 'cash';
             notes.value = '';
         }
+        nextTick(() => {
+            isRestoring.value = false;
+        });
     }
 
     // Initial load
@@ -50,6 +55,7 @@ export const useCartStore = defineStore('cart', () => {
 
     // Persist to localStorage
     const persist = () => {
+        if (isRestoring.value) return;
         localStorage.setItem(getStorageKey(), JSON.stringify({
             items: items.value,
             customer: customer.value,

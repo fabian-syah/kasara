@@ -28,7 +28,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
-const isRestoring = ref(false);
+const isRestoring = ref(true);
 const suggestedOutgoingPrice = ref(0);
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
@@ -59,7 +59,12 @@ const unitExchangeForm = ref({
 });
 
 // Persistence Logic
-const storageKey = computed(() => `temp_tukar_unit_form_${authStore.user?.id || 'guest'}`);
+// Persistence Logic
+const storageKey = computed(() => {
+    const userId = authStore.user?.id || 'guest';
+    const acc = props.salesAccount ? `_acc_${props.salesAccount.replace(/\s+/g, '_')}` : '';
+    return `temp_tukar_unit_form_${userId}${acc}`;
+});
 
 watch([unitExchangeForm, stockSearchQuery, unitExchangePhotos], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
@@ -77,7 +82,7 @@ watch([unitExchangeForm, stockSearchQuery, unitExchangePhotos], ([newForm, newQu
     }));
 }, { deep: true });
 
-onMounted(async () => {
+async function restoreDraft() {
     const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
@@ -105,14 +110,32 @@ onMounted(async () => {
             
             await nextTick();
             await nextTick();
-            // Give some time for child components and watchers to settle
             setTimeout(() => {
                 isRestoring.value = false;
             }, 500);
         } catch (e) {
             isRestoring.value = false;
         }
+    } else {
+        isRestoring.value = false;
     }
+}
+
+// React to user ID or initial mount
+watch(() => authStore.user?.id, (newId) => {
+    if (newId) {
+        restoreDraft();
+    }
+}, { immediate: true });
+
+onMounted(() => {
+    // If user already loaded, restoreDraft will be called by watch immediate
+    // But we ensure it's not stuck in isRestoring if user never loads or no id
+    setTimeout(() => {
+        if (isRestoring.value && !authStore.user?.id) {
+            isRestoring.value = false;
+        }
+    }, 2000);
 });
 
 // End of state definitions
@@ -231,6 +254,7 @@ watch(() => unitExchangeForm.value.incoming_product_type_id, (newVal, oldVal) =>
 });
 
 watch(() => isImeiExchange.value, (newVal) => {
+    if (isRestoring.value) return;
     if (!newVal) {
         unitExchangeForm.value.incoming_storage = "Non-HP";
         unitExchangeForm.value.incoming_condition = "second";
@@ -238,6 +262,7 @@ watch(() => isImeiExchange.value, (newVal) => {
 }, { immediate: true });
 
 watch(() => unitExchangeForm.value.outgoing_product_detail_id, (newId) => {
+    if (isRestoring.value) return;
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
         if (item) {

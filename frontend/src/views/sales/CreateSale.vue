@@ -58,10 +58,15 @@ const categoriesPenjualan = [
 ];
 
 // Persistence Logic
-const getStorageKey = (base) => `${base}_${authStore.user?.id || 'guest'}`;
+const getWizardStorageKey = () => `temp_sale_state_${authStore.user?.id || 'guest'}`;
+const getCategoryStorageKey = (base) => {
+    const userId = authStore.user?.id || 'guest';
+    const acc = salesAccount.value ? `_acc_${salesAccount.value.replace(/\s+/g, '_')}` : '';
+    return `${base}_${userId}${acc}`;
+};
 
 watch([currentStep, salesAccount, transactionCategory], ([step, acc, cat]) => {
-    localStorage.setItem(getStorageKey('temp_sale_state'), JSON.stringify({
+    localStorage.setItem(getWizardStorageKey(), JSON.stringify({
         currentStep: step,
         salesAccount: acc,
         transactionCategory: cat
@@ -80,6 +85,7 @@ const availablePaymentMethods = ref([]);
 
 function clearAllTempStates() {
     const userId = authStore.user?.id || 'guest';
+    const acc = salesAccount.value ? `_acc_${salesAccount.value.replace(/\s+/g, '_')}` : '';
     const keys = [
         'temp_sale_state',
         'temp_cart_state',
@@ -89,7 +95,10 @@ function clearAllTempStates() {
         'temp_refund_form',
         'temp_angkat_barang_form'
     ];
-    keys.forEach(k => localStorage.removeItem(`${k}_${userId}`));
+    keys.forEach(k => {
+        localStorage.removeItem(`${k}_${userId}`);
+        localStorage.removeItem(`${k}_${userId}${acc}`);
+    });
 }
 
 // Modals State
@@ -198,6 +207,17 @@ async function fetchHeavyData() {
 }
 
 onMounted(async () => {
+    // Restore Main Wizard State (Account, Step, Category)
+    const savedState = localStorage.getItem(getWizardStorageKey());
+    if (savedState) {
+        try {
+            const data = JSON.parse(savedState);
+            currentStep.value = data.currentStep || 1;
+            salesAccount.value = data.salesAccount || "";
+            transactionCategory.value = data.transactionCategory || "";
+        } catch (e) {}
+    }
+
     try {
         // Phase 1: Essential data for Step 1
         const [accountsRes, usersRes, userRes] = await Promise.all([
@@ -223,21 +243,12 @@ onMounted(async () => {
                 showInitialPinSetup.value = true;
             }
             const match = salesAccounts.value.find(acc => acc.name === userData.name || acc.id === userData.id);
-            if (match) salesAccount.value = match.name;
+            if (match && !salesAccount.value) salesAccount.value = match.name;
         }
 
-        // Restore State
-        const saved = localStorage.getItem(getStorageKey('temp_sale_state'));
-        if (saved) {
-            const data = JSON.parse(saved);
-            if (data.salesAccount) salesAccount.value = data.salesAccount;
-            if (data.transactionCategory) transactionCategory.value = data.transactionCategory;
-            if (data.currentStep) currentStep.value = data.currentStep;
-            
-            // If we restored to step 3 or 4, fetch heavy data
-            if (currentStep.value >= 3) {
-                fetchHeavyData();
-            }
+        // If we restored to step 3 or 4, fetch heavy data
+        if (currentStep.value >= 3) {
+            fetchHeavyData();
         }
 
         // Background Phase 2: Start fetching heavy data in background
