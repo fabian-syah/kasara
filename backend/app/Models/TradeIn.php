@@ -29,6 +29,7 @@ class TradeIn extends Model
         'photo_unit',
         'photo_customer',
         'user_id',
+        'inventory_user_id',
         'branch_id',
     ];
 

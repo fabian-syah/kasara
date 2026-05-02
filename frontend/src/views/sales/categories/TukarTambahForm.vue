@@ -49,6 +49,10 @@ const tukarTambahForm = ref({
     notes: "",
 });
 
+const suggestedOutgoingPrice = ref(0);
+const stockSearchQuery = ref("");
+const showStockDropdown = ref(false);
+
 const tukarTambahPhotos = ref({
     unit: null,
     unitPreview: null,
@@ -106,6 +110,18 @@ const selectedOutgoingTukarTambah = computed(() => {
     return inventoryStore.products.find(p => p.id === tukarTambahForm.value.outgoing_product_detail_id);
 });
 
+const filteredInventoryProducts = computed(() => {
+    const q = stockSearchQuery.value.toLowerCase().trim();
+    const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold');
+    if (!q) return allProducts;
+    return allProducts.filter(p => {
+        const name = (p.product?.name || p.name || '').toLowerCase();
+        const brand = (p.product?.brand || p.brand || '').toLowerCase();
+        const imei = (p.imei || '').toLowerCase();
+        return name.includes(q) || brand.includes(q) || imei.includes(q);
+    });
+});
+
 const tukarTambahPriceDiff = computed(() => {
     return (tukarTambahForm.value.outgoing_price || 0) - (tukarTambahForm.value.incoming_cost_price || 0);
 });
@@ -139,12 +155,14 @@ watch(() => isImeiTukarTambah.value, (newVal) => {
 watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
     if (newId) {
         const item = inventoryStore.products.find(p => p.id === newId);
-        if (item) {
             const selling = parseFloat(item.selling_price || item.price || 0);
             const cost = parseFloat(item.cost_price || 0);
-            tukarTambahForm.value.outgoing_price = selling > 0 ? selling : (cost > 0 ? cost : 0);
+            suggestedOutgoingPrice.value = selling > 0 ? selling : (cost > 0 ? cost : 0);
+            // Reset price to 0 to force user to type it (per user request: "biar gak ke skip")
+            tukarTambahForm.value.outgoing_price = 0;
         }
     } else {
+        suggestedOutgoingPrice.value = 0;
         tukarTambahForm.value.outgoing_price = 0;
     }
 });
@@ -189,6 +207,12 @@ function handleTukarTambahPhotoUpload(type, event) {
         }
     };
     reader.readAsDataURL(file);
+}
+
+function selectStockItem(item) {
+    tukarTambahForm.value.outgoing_product_detail_id = item.id;
+    stockSearchQuery.value = `[${item.product?.brand || '-'}] ${item.product?.name || item.name} - ${item.imei || 'Non-IMEI'}`;
+    showStockDropdown.value = false;
 }
 
 async function submitTukarTambah(pin = null) {
@@ -439,20 +463,31 @@ async function submitTukarTambah(pin = null) {
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">CARI
                             & PILIH UNIT KELUAR <span class="text-red-500">*</span></label>
-                        <select v-model="tukarTambahForm.outgoing_product_detail_id"
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                            <option :value="null" disabled>-- Pilih Unit dari Inventory --</option>
-                            <option
-                                v-for="item in inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold')"
-                                :key="item.id" :value="item.id">
-                                [{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}
-                                - {{ item.storage || '-' }} - {{ item.condition || 'SCD' }}
-                                - {{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock ||
-                                    item.quantity) }}
-                                - (Modal: Rp {{ formatNumber(item.cost_price || 0) }})
-                                - (Jual: Rp {{ formatNumber(item.selling_price || item.price) }})
-                            </option>
-                        </select>
+                        <div class="relative">
+                            <input v-model="stockSearchQuery" type="text"
+                                @focus="showStockDropdown = true"
+                                placeholder="Ketik Nama, Brand, atau IMEI..."
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            
+                            <div v-if="showStockDropdown" 
+                                class="absolute z-[100] mt-1 w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <div v-if="filteredInventoryProducts.length === 0" class="p-4 text-center text-xs text-text-secondary">
+                                    Tidak ada stok ditemukan...
+                                </div>
+                                <div v-for="item in filteredInventoryProducts" :key="item.id"
+                                    @click="selectStockItem(item)"
+                                    class="p-4 border-b border-surface-100 dark:border-surface-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer transition-colors">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="font-black text-sm text-text-primary">[{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}</span>
+                                        <span class="text-[10px] font-black px-2 py-0.5 bg-surface-200 dark:bg-surface-700 rounded text-text-secondary uppercase">{{ item.condition || 'SCD' }}</span>
+                                    </div>
+                                    <div class="flex justify-between text-[10px] text-text-secondary font-bold">
+                                        <span>{{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock || item.quantity) }}</span>
+                                        <span class="text-primary-600">Jual: {{ formatCurrency(item.selling_price || item.price) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <p v-if="selectedOutgoingTukarTambah"
                             class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
                             Unit Terpilih: {{ selectedOutgoingTukarTambah.product?.name ||
@@ -468,7 +503,8 @@ async function submitTukarTambah(pin = null) {
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
                             <input v-money:outgoing_price="tukarTambahForm" type="text"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                                :placeholder="'Contoh: ' + formatNumber(suggestedOutgoingPrice)"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
                     </div>
 

@@ -37,12 +37,14 @@ class UnitExchangeController extends Controller
 
             // Outgoing
             'outgoing_product_detail_id' => 'required|exists:product_details,id',
+            'outgoing_price' => 'nullable|numeric|min:0',
 
             'reason' => 'required|string',
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
             'transaction_pin' => 'nullable|string|max:10',
+            'inventory_user_id' => 'nullable|exists:users,id',
         ]);
 
         // PIN Verification using Trait
@@ -61,6 +63,20 @@ class UnitExchangeController extends Controller
                 if ($request->hasFile('photo_customer')) {
                     $photoPathCustomer = $request->file('photo_customer')->store('exchanges/customers', 'public');
                 }
+
+                // Resolve inventory_user_id and target location
+                $inventoryUserId = $request->inventory_user_id;
+                if (!$inventoryUserId && $request->sales_account) {
+                    $invUser = \App\Models\User::where('name', $request->sales_account)
+                                   ->whereHas('roles', function($q) { $q->where('name', 'inventory'); })
+                                   ->first();
+                    if ($invUser) $inventoryUserId = $invUser->id;
+                }
+                $inventoryUserId = $inventoryUserId ?? $user->id;
+                
+                $targetUser = \App\Models\User::find($inventoryUserId);
+                $branchId = $targetUser->branch_id ?? $user->branch_id;
+                $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
 
                 $receiptId = UnitExchange::generateReceiptId();
 
@@ -81,8 +97,9 @@ class UnitExchangeController extends Controller
                     'photo_unit' => $photoPathUnit,
                     'photo_customer' => $photoPathCustomer,
                     'user_id' => $user->id,
+                    'inventory_user_id' => $inventoryUserId,
                     'distributor_id' => $request->distributor_id,
-                    'branch_id' => $user->branch_id,
+                    'branch_id' => $branchId,
                 ]);
 
                 // 3. Handle Incoming Unit (Entry to Inventory)
@@ -100,13 +117,13 @@ class UnitExchangeController extends Controller
                     ]
                 );
 
-                $placementType = $user->branch_id ? 'branch' : ($user->warehouse_id ? 'warehouse' : 'distributor');
-                $placementId = $user->branch_id ?? ($user->warehouse_id ?? $user->distributor_id);
+                $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
+                $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
                 // Add to ProductDetail
                 ProductDetail::create([
                     'product_id' => $product->id,
-                    'user_id' => $user->id,
+                    'user_id' => $inventoryUserId,
                     'imei' => $request->incoming_imei,
                     'storage' => $request->incoming_storage,
                     'condition' => $request->incoming_condition,
@@ -123,7 +140,7 @@ class UnitExchangeController extends Controller
 
                 // 4. Create StockOut record for reporting and tracking visibility
                 $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
-                $outPrice = $outgoingUnit->selling_price ?? 0;
+                $outPrice = $request->outgoing_price ?? ($outgoingUnit->selling_price ?? 0);
 
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
@@ -132,7 +149,7 @@ class UnitExchangeController extends Controller
                     'customer_phone' => $request->customer_phone,
                     'customer_wa' => $request->customer_wa ?? $request->customer_phone,
                     'user_id' => $user->id,
-                    'inventory_user_id' => $user->id,
+                    'inventory_user_id' => $inventoryUserId,
                     'status' => 'received', // Mark as completed
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
@@ -160,9 +177,9 @@ class UnitExchangeController extends Controller
                 // In Log
                 InventoryLog::create([
                     'product_id' => $product->id,
-                    'branch_id' => $user->branch_id,
-                    'warehouse_id' => $user->warehouse_id,
-                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => 1,
                     'reference_id' => 'Exchange IN: ' . $receiptId,
@@ -174,9 +191,9 @@ class UnitExchangeController extends Controller
                 // Out Log
                 InventoryLog::create([
                     'product_id' => $outgoingUnit->product_id,
-                    'branch_id' => $user->branch_id,
-                    'warehouse_id' => $user->warehouse_id,
-                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'user_id' => $inventoryUserId,
                     'type' => 'out',
                     'quantity' => 1,
                     'reference_id' => 'Exchange OUT: ' . $receiptId,

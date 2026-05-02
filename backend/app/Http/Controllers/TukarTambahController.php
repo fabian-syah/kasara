@@ -48,6 +48,7 @@ class TukarTambahController extends Controller
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
             'transaction_pin' => 'nullable|string|max:10',
+            'inventory_user_id' => 'nullable|exists:users,id',
         ]);
 
         // PIN Verification using Trait
@@ -66,6 +67,20 @@ class TukarTambahController extends Controller
                 if ($request->hasFile('photo_customer')) {
                     $photoPathCustomer = $request->file('photo_customer')->store('tukar-tambah/customers', 'public');
                 }
+
+                // Resolve inventory_user_id and target location
+                $inventoryUserId = $request->inventory_user_id;
+                if (!$inventoryUserId && $request->sales_account) {
+                    $invUser = \App\Models\User::where('name', $request->sales_account)
+                                   ->whereHas('roles', function($q) { $q->where('name', 'inventory'); })
+                                   ->first();
+                    if ($invUser) $inventoryUserId = $invUser->id;
+                }
+                $inventoryUserId = $inventoryUserId ?? $user->id;
+                
+                $targetUser = \App\Models\User::find($inventoryUserId);
+                $branchId = $targetUser->branch_id ?? $user->branch_id;
+                $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
 
                 $receiptId = TukarTambah::generateReceiptId();
 
@@ -89,8 +104,9 @@ class TukarTambahController extends Controller
                     'photo_unit' => $photoPathUnit,
                     'photo_customer' => $photoPathCustomer,
                     'user_id' => $user->id,
+                    'inventory_user_id' => $inventoryUserId,
                     'distributor_id' => $request->distributor_id,
-                    'branch_id' => $user->branch_id,
+                    'branch_id' => $branchId,
                 ]);
 
                 // 3. Handle Incoming Unit (Entry to Inventory)
@@ -107,12 +123,12 @@ class TukarTambahController extends Controller
                     ]
                 );
 
-                $placementType = $user->branch_id ? 'branch' : ($user->warehouse_id ? 'warehouse' : 'distributor');
-                $placementId = $user->branch_id ?? ($user->warehouse_id ?? $user->distributor_id);
+                $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
+                $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
                 ProductDetail::create([
                     'product_id' => $product->id,
-                    'user_id' => $user->id,
+                    'user_id' => $inventoryUserId,
                     'imei' => $request->incoming_imei,
                     'storage' => $request->incoming_storage,
                     'condition' => $request->incoming_condition,
@@ -138,7 +154,7 @@ class TukarTambahController extends Controller
                     'customer_phone' => $request->customer_phone,
                     'customer_wa' => $request->customer_phone,
                     'user_id' => $user->id,
-                    'inventory_user_id' => $user->id,
+                    'inventory_user_id' => $inventoryUserId,
                     'status' => 'received',
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
@@ -171,9 +187,9 @@ class TukarTambahController extends Controller
                 // 6. Log Movements
                 InventoryLog::create([
                     'product_id' => $product->id,
-                    'branch_id' => $user->branch_id,
-                    'warehouse_id' => $user->warehouse_id,
-                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => 1,
                     'reference_id' => 'TT IN: ' . $receiptId,
@@ -184,9 +200,9 @@ class TukarTambahController extends Controller
 
                 InventoryLog::create([
                     'product_id' => $outgoingUnit->product_id,
-                    'branch_id' => $user->branch_id,
-                    'warehouse_id' => $user->warehouse_id,
-                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'user_id' => $inventoryUserId,
                     'type' => 'out',
                     'quantity' => 1,
                     'reference_id' => 'TT OUT: ' . $receiptId,

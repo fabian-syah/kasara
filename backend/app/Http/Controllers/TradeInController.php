@@ -39,6 +39,7 @@ class TradeInController extends Controller
             'photo_unit' => 'required|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
             'transaction_pin' => 'nullable|string|max:10',
+            'inventory_user_id' => 'nullable|exists:users,id',
         ]);
 
         // PIN Verification using Trait
@@ -73,10 +74,25 @@ class TradeInController extends Controller
                     ]
                 );
 
+                // Resolve inventory_user_id and target location
+                $inventoryUserId = $request->inventory_user_id;
+                if (!$inventoryUserId && $request->sales_account) {
+                    $invUser = \App\Models\User::where('name', $request->sales_account)
+                                   ->whereHas('roles', function($q) { $q->where('name', 'inventory'); })
+                                   ->first();
+                    if ($invUser) $inventoryUserId = $invUser->id;
+                }
+                $inventoryUserId = $inventoryUserId ?? $user->id;
+                
+                $targetUser = \App\Models\User::find($inventoryUserId);
+                $branchId = $targetUser->branch_id ?? $user->branch_id;
+                $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
+                $onlineShopId = $targetUser->online_shop_id ?? $user->online_shop_id;
+
                 $receiptId = TradeIn::generateReceiptId();
                 $processedTradeIns = [];
-                $placementType = $user->branch_id ? 'branch' : ($user->warehouse_id ? 'warehouse' : 'distributor');
-                $placementId = $user->branch_id ?? ($user->warehouse_id ?? $user->distributor_id);
+                $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
+                $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
                 if ($isImei && $request->has('imeis')) {
                     foreach ($request->imeis as $imei) {
@@ -104,12 +120,13 @@ class TradeInController extends Controller
                             'photo_unit' => $photoLog['unit'] ?? null,
                             'photo_customer' => $photoLog['customer'] ?? null,
                             'user_id' => $user->id,
-                            'branch_id' => $user->branch_id,
+                            'inventory_user_id' => $inventoryUserId,
+                            'branch_id' => $branchId,
                         ]);
 
                         $pd = ProductDetail::create([
                             'product_id' => $product->id,
-                            'user_id' => $user->id,
+                            'user_id' => $inventoryUserId,
                             'imei' => $imei,
                             'ram' => $productType->ram,
                             'storage' => $request->storage,
@@ -127,10 +144,10 @@ class TradeInController extends Controller
 
                         InventoryLog::create([
                             'product_id' => $product->id,
-                            'branch_id' => $user->branch_id,
-                            'warehouse_id' => $user->warehouse_id,
-                            'online_shop_id' => $user->online_shop_id,
-                            'user_id' => $user->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
+                            'online_shop_id' => $onlineShopId,
+                            'user_id' => $inventoryUserId,
                             'type' => 'in',
                             'quantity' => 1,
                             'reference_id' => $pd->id,
@@ -151,10 +168,10 @@ class TradeInController extends Controller
                             'customer_phone' => $request->customer_phone,
                             'customer_wa' => $request->customer_phone,
                             'user_id' => $user->id,
-                            'branch_id' => $user->branch_id,
-                            'warehouse_id' => $user->warehouse_id,
-                            'online_shop_id' => $user->online_shop_id,
-                            'inventory_user_id' => $user->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
+                            'online_shop_id' => $onlineShopId,
+                            'inventory_user_id' => $inventoryUserId,
                             'status' => 'received',
                             'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                             'proof_image' => $photoLog['unit'] ?? null,
@@ -193,7 +210,8 @@ class TradeInController extends Controller
                         'photo_unit' => $photoLog['unit'] ?? null,
                         'photo_customer' => $photoLog['customer'] ?? null,
                         'user_id' => $user->id,
-                        'branch_id' => $user->branch_id,
+                        'inventory_user_id' => $inventoryUserId,
+                        'branch_id' => $branchId,
                     ]);
 
                     $negBuyPriceTotal = -abs((float)$request->buy_price * $quantity);
@@ -205,10 +223,10 @@ class TradeInController extends Controller
                         'customer_phone' => $request->customer_phone,
                         'customer_wa' => $request->customer_phone,
                         'user_id' => $user->id,
-                        'branch_id' => $user->branch_id,
-                        'warehouse_id' => $user->warehouse_id,
-                        'online_shop_id' => $user->online_shop_id,
-                        'inventory_user_id' => $user->id,
+                        'branch_id' => $branchId,
+                        'warehouse_id' => $warehouseId,
+                        'online_shop_id' => $onlineShopId,
+                        'inventory_user_id' => $inventoryUserId,
                         'status' => 'received',
                         'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                         'proof_image' => $photoLog['unit'] ?? null,
@@ -238,7 +256,7 @@ class TradeInController extends Controller
                             'product_id' => $product->id,
                             'placement_type' => $placementType,
                             'placement_id' => $placementId,
-                            'user_id' => $user->id
+                            'user_id' => $inventoryUserId
                         ],
                         ['quantity' => 0]
                     );
@@ -246,10 +264,10 @@ class TradeInController extends Controller
 
                     InventoryLog::create([
                         'product_id' => $product->id,
-                        'branch_id' => $user->branch_id,
-                        'warehouse_id' => $user->warehouse_id,
-                        'online_shop_id' => $user->online_shop_id,
-                        'user_id' => $user->id,
+                        'branch_id' => $branchId,
+                        'warehouse_id' => $warehouseId,
+                        'online_shop_id' => $onlineShopId,
+                        'user_id' => $inventoryUserId,
                         'type' => 'in',
                         'quantity' => $quantity,
                         'reference_id' => 'Trade-In: ' . $receiptId,

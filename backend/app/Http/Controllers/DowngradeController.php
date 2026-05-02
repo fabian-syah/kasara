@@ -47,7 +47,8 @@ class DowngradeController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'nullable|image|max:5120',
             'photo_customer' => 'nullable|image|max:5120',
-            'transaction_pin' => 'nullable|string'
+            'transaction_pin' => 'nullable|string',
+            'inventory_user_id' => 'nullable|exists:users,id',
         ]);
 
         // PIN Verification using Trait
@@ -67,6 +68,20 @@ class DowngradeController extends Controller
                 if ($request->hasFile('photo_customer')) {
                     $photoPathCustomer = $request->file('photo_customer')->store('downgrades/customers', 'public');
                 }
+
+                // Resolve inventory_user_id and target location
+                $inventoryUserId = $request->inventory_user_id;
+                if (!$inventoryUserId && $request->sales_account) {
+                    $invUser = \App\Models\User::where('name', $request->sales_account)
+                                   ->whereHas('roles', function($q) { $q->where('name', 'inventory'); })
+                                   ->first();
+                    if ($invUser) $inventoryUserId = $invUser->id;
+                }
+                $inventoryUserId = $inventoryUserId ?? $user->id;
+                
+                $targetUser = \App\Models\User::find($inventoryUserId);
+                $branchId = $targetUser->branch_id ?? $user->branch_id;
+                $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
 
                 $receiptId = Downgrade::generateReceiptId();
 
@@ -90,8 +105,9 @@ class DowngradeController extends Controller
                     'photo_unit' => $photoPathUnit ?? 'noimage.png',
                     'photo_customer' => $photoPathCustomer,
                     'user_id' => $user->id,
+                    'inventory_user_id' => $inventoryUserId,
                     'distributor_id' => $request->distributor_id,
-                    'branch_id' => $user->branch_id,
+                    'branch_id' => $branchId,
                 ]);
 
                 // 3. Handle Incoming Unit (Entry to Inventory)
@@ -108,12 +124,12 @@ class DowngradeController extends Controller
                     ]
                 );
 
-                $placementType = $user->branch_id ? 'branch' : ($user->warehouse_id ? 'warehouse' : 'distributor');
-                $placementId = $user->branch_id ?? ($user->warehouse_id ?? $user->distributor_id);
+                $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
+                $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
                 ProductDetail::create([
                     'product_id' => $product->id,
-                    'user_id' => $user->id,
+                    'user_id' => $inventoryUserId,
                     'imei' => $request->incoming_imei,
                     'storage' => $request->incoming_storage,
                     'condition' => $request->incoming_condition,
@@ -139,7 +155,7 @@ class DowngradeController extends Controller
                     'customer_phone' => $request->customer_phone,
                     'customer_wa' => $request->customer_phone,
                     'user_id' => $user->id,
-                    'inventory_user_id' => $user->id,
+                    'inventory_user_id' => $inventoryUserId,
                     'status' => 'received',
                     'notes' => "Downgrade Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
@@ -172,8 +188,8 @@ class DowngradeController extends Controller
                 // 6. Log Movements
                 InventoryLog::create([
                     'product_id' => $product->id,
-                    'branch_id' => $user->branch_id,
-                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => 1,
                     'reference_id' => 'DG IN: ' . $receiptId,
@@ -184,8 +200,8 @@ class DowngradeController extends Controller
 
                 InventoryLog::create([
                     'product_id' => $outgoingUnit->product_id,
-                    'branch_id' => $user->branch_id,
-                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'user_id' => $inventoryUserId,
                     'type' => 'out',
                     'quantity' => 1,
                     'reference_id' => 'DG OUT: ' . $receiptId,
