@@ -318,12 +318,36 @@ const selectOutgoingUnit = (item) => {
 </script>
 
 <template>
-    <div class="flex flex-col lg:flex-row gap-8 animate-fade-in items-start">
-        <!-- Left: Product Selection -->
-        <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="flex-[2] flex flex-col min-w-0 w-full">
-            <div
-                class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+    <div class="flex flex-col gap-4 sm:gap-8 animate-fade-in items-start w-full">
+        <!-- Header for Step 3 -->
+        <div class="w-full flex items-center justify-between bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm mb-2">
+            <div class="flex items-center gap-3">
+                <button @click="emit('prev')" class="p-2 -ml-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full text-primary-600 transition-colors">
+                    <ArrowLeft :size="28" stroke-width="3" />
+                </button>
+                <div class="flex flex-col">
+                    <h3 class="text-lg sm:text-xl font-black text-text-primary uppercase tracking-tight leading-none">Penjualan Store</h3>
+                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Pilih Item & Masukkan ke Keranjang</p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-xs font-black uppercase tracking-widest">
+                TRANSAKSI LANGSUNG
+            </div>
+            <!-- Mobile Cart Toggle -->
+            <button @click="showMobileCart = true" class="lg:hidden relative p-3 bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
+                <ShoppingCart :size="20" />
+                <span v-if="cartItemCount > 0" class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                    {{ cartItemCount }}
+                </span>
+            </button>
+        </div>
+
+        <div class="flex flex-col lg:flex-row gap-8 w-full items-start">
+            <!-- Left: Product Selection -->
+            <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
+                class="flex-[2] flex flex-col min-w-0 w-full">
+                <div
+                    class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                 <div class="relative flex-1 w-full">
                     <Search class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
                     <input v-model="searchQuery" type="text" placeholder="Cari..."

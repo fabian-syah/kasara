@@ -361,15 +361,19 @@ async function submitRefund(pin = null) {
     <div
         class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
         <div class="max-w-4xl mx-auto">
-            <div class="flex items-center justify-between mb-8">
-                <h3 class="text-2xl font-black text-text-primary flex items-center gap-3">
-                    <ArrowLeft :size="28" class="text-primary-500 cursor-pointer" @click="emit('back')" />
-                    Formulir Refund
-                    Barang
-                </h3>
+            <div class="flex items-center justify-between mb-8 gap-4">
+                <div class="flex items-center gap-3">
+                    <button @click="emit('back')" class="p-2 -ml-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full text-primary-600 transition-colors">
+                        <ArrowLeft :size="28" stroke-width="3" />
+                    </button>
+                    <div class="flex flex-col">
+                        <h3 class="text-lg sm:text-2xl font-black text-text-primary uppercase tracking-tight leading-none">Formulir Refund</h3>
+                        <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Pengembalian Barang ke Stok</p>
+                    </div>
+                </div>
                 <div
-                    class="px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-xs font-black uppercase tracking-widest">
-                    Masuk ke Inventory
+                    class="hidden xs:block px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    In-Stock
                 </div>
             </div>
 
