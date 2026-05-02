@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { useInventoryStore } from "../../../store/inventory";
@@ -29,6 +29,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
+const isRestoring = ref(false);
 
 
 const tukarTambahForm = ref({
@@ -50,17 +51,51 @@ const tukarTambahForm = ref({
 });
 
 // Persistence Logic
-watch(tukarTambahForm, (newVal) => {
-    localStorage.setItem('temp_tukar_tambah_form', JSON.stringify(newVal));
+watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuery, newPhotos]) => {
+    if (isRestoring.value) return;
+    
+    const persistentPhotos = {
+        unitPreview: newPhotos.unitPreview,
+        customerPreview: newPhotos.customerPreview
+    };
+
+    localStorage.setItem('temp_tukar_tambah_form', JSON.stringify({
+        form: newForm,
+        query: newQuery,
+        photos: persistentPhotos
+    }));
 }, { deep: true });
 
-onMounted(() => {
+onMounted(async () => {
     const saved = localStorage.getItem('temp_tukar_tambah_form');
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
-            Object.assign(tukarTambahForm.value, data);
-        } catch (e) {}
+            Object.assign(tukarTambahForm.value, data.form);
+            stockSearchQuery.value = data.query || "";
+            
+            if (data.photos) {
+                tukarTambahPhotos.value.unitPreview = data.photos.unitPreview;
+                tukarTambahPhotos.value.customerPreview = data.photos.customerPreview;
+                
+                if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
+                    try {
+                        tukarTambahPhotos.value.unit = dataURLtoFile(data.photos.unitPreview, 'unit_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
+                    try {
+                        tukarTambahPhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+            }
+            
+            await nextTick();
+            isRestoring.value = false;
+        } catch (e) {
+            isRestoring.value = false;
+        }
     }
 });
 
@@ -153,18 +188,29 @@ const tukarTambahPriceDiff = computed(() => {
 });
 
 // Watchers
-watch(() => tukarTambahForm.value.distributor_id, () => {
-    tukarTambahForm.value.incoming_brand_id = null;
-    tukarTambahForm.value.incoming_product_type_id = null;
+watch(() => tukarTambahForm.value.distributor_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tukarTambahForm.value.incoming_brand_id = null;
+        tukarTambahForm.value.incoming_product_type_id = null;
+    }
 });
 
-watch(() => tukarTambahForm.value.incoming_brand_id, () => {
-    tukarTambahForm.value.incoming_product_type_id = null;
-    tukarTambahForm.value.incoming_storage = "";
+watch(() => tukarTambahForm.value.incoming_brand_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tukarTambahForm.value.incoming_product_type_id = null;
+        tukarTambahForm.value.incoming_storage = "";
+        tukarTambahForm.value.incoming_condition = "second";
+    }
 });
 
-watch(() => tukarTambahForm.value.incoming_product_type_id, () => {
-    tukarTambahForm.value.incoming_storage = "";
+watch(() => tukarTambahForm.value.incoming_product_type_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tukarTambahForm.value.incoming_storage = "";
+        tukarTambahForm.value.incoming_condition = "second";
+    }
     if (!isImeiTukarTambah.value && tukarTambahForm.value.incoming_product_type_id) {
         tukarTambahForm.value.incoming_storage = "Non-HP";
         tukarTambahForm.value.incoming_condition = "second";
@@ -217,21 +263,30 @@ function parseNumber(s) {
     return parseInt(finalClean) || 0;
 }
 
-function handleTukarTambahPhotoUpload(type, event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        if (type === 'unit') {
-            tukarTambahPhotos.value.unit = file;
-            tukarTambahPhotos.value.unitPreview = e.target.result;
-        } else {
-            tukarTambahPhotos.value.customer = file;
-            tukarTambahPhotos.value.customerPreview = e.target.result;
+function dataURLtoFile(dataurl, filename) {
+    try {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
         }
-    };
-    reader.readAsDataURL(file);
+        return new File([u8arr], filename, { type: mime });
+    } catch (e) {
+        return null;
+    }
+}
+
+async function handlePhotoChange(type, event) {
+    const file = event.target.files[0];
+    if (file) {
+        tukarTambahPhotos.value[type] = file;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            tukarTambahPhotos.value[`${type}Preview`] = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 function selectStockItem(item) {
@@ -572,7 +627,7 @@ async function submitTukarTambah(pin = null) {
                                         Unit</span>
                                 </template>
                             </div>
-                            <input type="file" ref="unitTTInput" @change="e => handleTukarTambahPhotoUpload('unit', e)"
+                            <input type="file" ref="unitTTInput" @change="e => handlePhotoChange('unit', e)"
                                 accept="image/*" class="hidden" capture="environment" />
                         </div>
                         <div>
@@ -595,8 +650,8 @@ async function submitTukarTambah(pin = null) {
                                 </template>
                             </div>
                             <input type="file" ref="customerTTInput"
-                                @change="e => handleTukarTambahPhotoUpload('customer', e)" accept="image/*"
-                                class="hidden" capture="environment" />
+                                @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
+                                capture="environment" />
                         </div>
                     </div>
                 </div>

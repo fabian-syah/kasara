@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { formatCurrency } from "../../../utils/formatters";
@@ -45,33 +45,52 @@ const tradeInForm = ref({
     notes: "",
 });
 
+const isRestoring = ref(false);
+
 // Persistence
-watch(tradeInForm, (newVal) => {
-    localStorage.setItem('temp_angkat_barang_form', JSON.stringify(newVal));
+watch([tradeInForm, tradeInPhotos], ([newForm, newPhotos]) => {
+    if (isRestoring.value) return;
+    
+    const persistentPhotos = {
+        unitPreview: newPhotos.unitPreview,
+        customerPreview: newPhotos.customerPreview
+    };
+
+    localStorage.setItem('temp_angkat_barang_form', JSON.stringify({
+        form: newForm,
+        photos: persistentPhotos
+    }));
 }, { deep: true });
 
-onMounted(() => {
+onMounted(async () => {
     const saved = localStorage.getItem('temp_angkat_barang_form');
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
-            Object.assign(tradeInForm.value, data);
-        } catch (e) {}
-    }
-});
+            Object.assign(tradeInForm.value, data.form || data);
+            
+            if (data.photos) {
+                tradeInPhotos.value.unitPreview = data.photos.unitPreview;
+                tradeInPhotos.value.customerPreview = data.photos.customerPreview;
+                
+                if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
+                    try {
+                        tradeInPhotos.value.unit = dataURLtoFile(data.photos.unitPreview, 'unit_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
+                    try {
+                        tradeInPhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+            }
 
-// Persistence
-watch(tradeInForm, (newVal) => {
-    localStorage.setItem('temp_angkat_barang_form', JSON.stringify(newVal));
-}, { deep: true });
-
-onMounted(() => {
-    const saved = localStorage.getItem('temp_angkat_barang_form');
-    if (saved) {
-        try {
-            const data = JSON.parse(saved);
-            Object.assign(tradeInForm.value, data);
-        } catch (e) {}
+            await nextTick();
+            isRestoring.value = false;
+        } catch (e) {
+            isRestoring.value = false;
+        }
     }
 });
 
@@ -173,26 +192,38 @@ const totalTradeInUnits = computed(() => {
 });
 
 // Watchers
-watch(() => tradeInForm.value.distributor_id, () => {
-    tradeInForm.value.brand_id = null;
-    tradeInForm.value.product_type_id = null;
-    tradeInForm.value.storage = "";
-    tradeInForm.value.condition = "";
+watch(() => tradeInForm.value.distributor_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tradeInForm.value.brand_id = null;
+        tradeInForm.value.product_type_id = null;
+        tradeInForm.value.storage = "";
+        tradeInForm.value.condition = "";
+    }
 });
 
-watch(() => tradeInForm.value.brand_id, () => {
-    tradeInForm.value.product_type_id = null;
-    tradeInForm.value.storage = "";
-    tradeInForm.value.condition = "";
+watch(() => tradeInForm.value.brand_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tradeInForm.value.product_type_id = null;
+        tradeInForm.value.storage = "";
+        tradeInForm.value.condition = "";
+    }
 });
 
-watch(() => tradeInForm.value.product_type_id, () => {
-    tradeInForm.value.storage = "";
-    tradeInForm.value.condition = "";
+watch(() => tradeInForm.value.product_type_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tradeInForm.value.storage = "";
+        tradeInForm.value.condition = "";
+    }
 });
 
-watch(() => tradeInForm.value.storage, () => {
-    tradeInForm.value.condition = "";
+watch(() => tradeInForm.value.storage, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        tradeInForm.value.condition = "";
+    }
 });
 
 // Helpers
@@ -222,11 +253,30 @@ function handleImeiInput(e) {
     e.target.value = filtered;
 }
 
-const handlePhotoUpload = (type, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    tradeInPhotos.value[type] = file;
-    tradeInPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+function dataURLtoFile(dataurl, filename) {
+    try {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+    } catch (e) {
+        return null;
+    }
+}
+
+async function handlePhotoChange(type, event) {
+    const file = event.target.files[0];
+    if (file) {
+        tradeInPhotos.value[type] = file;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            tradeInPhotos.value[`${type}Preview`] = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 // Init payment method
@@ -538,7 +588,7 @@ async function submitTradeIn(pin = null) {
                                 <span class="text-[9px] font-black text-text-secondary uppercase">Upload
                                     Unit</span>
                             </template>
-                            <input type="file" ref="unitInput" @change="e => handlePhotoUpload('unit', e)"
+                            <input type="file" ref="unitInput" @change="e => handlePhotoChange('unit', e)"
                                 accept="image/*" class="hidden" capture="environment" />
                         </div>
                     </div>
@@ -560,8 +610,9 @@ async function submitTradeIn(pin = null) {
                                 <span class="text-[9px] font-black text-text-secondary uppercase">Upload
                                     Customer</span>
                             </template>
-                            <input type="file" ref="customerInput" @change="e => handlePhotoUpload('customer', e)"
-                                accept="image/*" class="hidden" capture="environment" />
+                            <input type="file" ref="customerInput"
+                                @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
+                                capture="environment" />
                         </div>
                     </div>
                 </div>

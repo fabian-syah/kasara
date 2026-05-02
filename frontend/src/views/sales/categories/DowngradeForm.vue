@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { useInventoryStore } from "../../../store/inventory";
@@ -28,6 +28,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
+const isRestoring = ref(false);
 
 const downgradeForm = ref({
     customer_name: "",
@@ -48,17 +49,51 @@ const downgradeForm = ref({
 });
 
 // Persistence Logic
-watch(downgradeForm, (newVal) => {
-    localStorage.setItem('temp_downgrade_form', JSON.stringify(newVal));
+watch([downgradeForm, stockSearchQuery, downgradePhotos], ([newForm, newQuery, newPhotos]) => {
+    if (isRestoring.value) return;
+    
+    const persistentPhotos = {
+        unitPreview: newPhotos.unitPreview,
+        customerPreview: newPhotos.customerPreview
+    };
+
+    localStorage.setItem('temp_downgrade_form', JSON.stringify({
+        form: newForm,
+        query: newQuery,
+        photos: persistentPhotos
+    }));
 }, { deep: true });
 
-onMounted(() => {
+onMounted(async () => {
     const saved = localStorage.getItem('temp_downgrade_form');
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
-            Object.assign(downgradeForm.value, data);
-        } catch (e) {}
+            Object.assign(downgradeForm.value, data.form);
+            stockSearchQuery.value = data.query || "";
+            
+            if (data.photos) {
+                downgradePhotos.value.unitPreview = data.photos.unitPreview;
+                downgradePhotos.value.customerPreview = data.photos.customerPreview;
+                
+                if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
+                    try {
+                        downgradePhotos.value.unit = dataURLtoFile(data.photos.unitPreview, 'unit_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
+                    try {
+                        downgradePhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+            }
+            
+            await nextTick();
+            isRestoring.value = false;
+        } catch (e) {
+            isRestoring.value = false;
+        }
     }
 });
 
@@ -151,18 +186,29 @@ const downgradePriceDiff = computed(() => {
 });
 
 // Watchers
-watch(() => downgradeForm.value.distributor_id, () => {
-    downgradeForm.value.incoming_brand_id = null;
-    downgradeForm.value.incoming_product_type_id = null;
+watch(() => downgradeForm.value.distributor_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        downgradeForm.value.incoming_brand_id = null;
+        downgradeForm.value.incoming_product_type_id = null;
+    }
 });
 
-watch(() => downgradeForm.value.incoming_brand_id, () => {
-    downgradeForm.value.incoming_product_type_id = null;
-    downgradeForm.value.incoming_storage = "";
+watch(() => downgradeForm.value.incoming_brand_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        downgradeForm.value.incoming_product_type_id = null;
+        downgradeForm.value.incoming_storage = "";
+        downgradeForm.value.incoming_condition = "second";
+    }
 });
 
-watch(() => downgradeForm.value.incoming_product_type_id, () => {
-    downgradeForm.value.incoming_storage = "";
+watch(() => downgradeForm.value.incoming_product_type_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        downgradeForm.value.incoming_storage = "";
+        downgradeForm.value.incoming_condition = "second";
+    }
     if (!isImeiDowngrade.value && downgradeForm.value.incoming_product_type_id) {
         downgradeForm.value.incoming_storage = "Non-HP";
         downgradeForm.value.incoming_condition = "second";
@@ -215,21 +261,30 @@ function parseNumber(s) {
     return parseInt(finalClean) || 0;
 }
 
-function handleDowngradePhotoUpload(type, event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        if (type === 'unit') {
-            downgradePhotos.value.unit = file;
-            downgradePhotos.value.unitPreview = e.target.result;
-        } else {
-            downgradePhotos.value.customer = file;
-            downgradePhotos.value.customerPreview = e.target.result;
+function dataURLtoFile(dataurl, filename) {
+    try {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
         }
-    };
-    reader.readAsDataURL(file);
+        return new File([u8arr], filename, { type: mime });
+    } catch (e) {
+        return null;
+    }
+}
+
+async function handlePhotoChange(type, event) {
+    const file = event.target.files[0];
+    if (file) {
+        downgradePhotos.value[type] = file;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            downgradePhotos.value[`${type}Preview`] = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 function selectStockItem(item) {
@@ -581,7 +636,7 @@ async function submitDowngrade(pin = null) {
                                         Unit</span>
                                 </template>
                             </div>
-                            <input type="file" ref="unitDGInput" @change="e => handleDowngradePhotoUpload('unit', e)"
+                            <input type="file" ref="unitDGInput" @change="e => handlePhotoChange('unit', e)"
                                 accept="image/*" class="hidden" capture="environment" />
                         </div>
                         <div>
@@ -604,7 +659,7 @@ async function submitDowngrade(pin = null) {
                                 </template>
                             </div>
                             <input type="file" ref="customerDGInput"
-                                @change="e => handleDowngradePhotoUpload('customer', e)" accept="image/*" class="hidden"
+                                @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
                                 capture="environment" />
                         </div>
                     </div>

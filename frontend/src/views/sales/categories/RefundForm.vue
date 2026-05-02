@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { formatCurrency } from "../../../utils/formatters";
@@ -25,6 +25,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 
 const authStore = useAuthStore();
 const isSubmitting = ref(false);
+const isRestoring = ref(false);
 
 
 const refundForm = ref({
@@ -43,17 +44,49 @@ const refundForm = ref({
 });
 
 // Persistence Logic
-watch(refundForm, (newVal) => {
-    localStorage.setItem('temp_refund_form', JSON.stringify(newVal));
+watch([refundForm, refundPhotos], ([newForm, newPhotos]) => {
+    if (isRestoring.value) return;
+    
+    const persistentPhotos = {
+        unitPreview: newPhotos.unitPreview,
+        customerPreview: newPhotos.customerPreview
+    };
+
+    localStorage.setItem('temp_refund_form', JSON.stringify({
+        form: newForm,
+        photos: persistentPhotos
+    }));
 }, { deep: true });
 
-onMounted(() => {
+onMounted(async () => {
     const saved = localStorage.getItem('temp_refund_form');
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
-            Object.assign(refundForm.value, data);
-        } catch (e) {}
+            Object.assign(refundForm.value, data.form || data);
+            
+            if (data.photos) {
+                refundPhotos.value.unitPreview = data.photos.unitPreview;
+                refundPhotos.value.customerPreview = data.photos.customerPreview;
+                
+                if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
+                    try {
+                        refundPhotos.value.unit = dataURLtoFile(data.photos.unitPreview, 'unit_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
+                    try {
+                        refundPhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+            }
+
+            await nextTick();
+            isRestoring.value = false;
+        } catch (e) {
+            isRestoring.value = false;
+        }
     }
 });
 
@@ -109,15 +142,21 @@ const filteredRefundStorages = computed(() => {
 });
 
 // Watchers
-watch(() => refundForm.value.distributor_id, () => {
-    refundForm.value.brand_id = null;
-    refundForm.value.product_type_id = null;
+watch(() => refundForm.value.distributor_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        refundForm.value.brand_id = null;
+        refundForm.value.product_type_id = null;
+    }
 });
 
-watch(() => refundForm.value.brand_id, () => {
-    refundForm.value.product_type_id = null;
-    refundForm.value.storage = "";
-    refundForm.value.condition = "";
+watch(() => refundForm.value.brand_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        refundForm.value.product_type_id = null;
+        refundForm.value.storage = "";
+        refundForm.value.condition = "";
+    }
 });
 
 watch(() => refundForm.value.product_type_id, () => {
@@ -149,12 +188,30 @@ function parseNumber(s) {
     return parseInt(finalClean) || 0;
 }
 
+function dataURLtoFile(dataurl, filename) {
+    try {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+    } catch (e) {
+        return null;
+    }
+}
 
-const handleRefundPhotoUpload = (type, e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    refundPhotos.value[type] = file;
-    refundPhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+async function handlePhotoChange(type, event) {
+    const file = event.target.files[0];
+    if (file) {
+        refundPhotos.value[type] = file;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            refundPhotos.value[`${type}Preview`] = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 // Init payment method
@@ -237,6 +294,7 @@ async function submitRefund(pin = null) {
         emit("transaction-complete", transaction);
 
         // Reset form
+        localStorage.removeItem('temp_refund_form');
         refundForm.value = {
             customer_name: "",
             customer_phone: "",
@@ -424,7 +482,7 @@ async function submitRefund(pin = null) {
                                         Unit</span>
                                 </template>
                                 <input type="file" ref="unitRefundInput"
-                                    @change="e => handleRefundPhotoUpload('unit', e)" accept="image/*" class="hidden"
+                                    @change="e => handlePhotoChange('unit', e)" accept="image/*" class="hidden"
                                     capture="environment" />
                             </div>
                         </div>

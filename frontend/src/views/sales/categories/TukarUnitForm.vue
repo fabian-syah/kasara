@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { useInventoryStore } from "../../../store/inventory";
@@ -28,6 +28,7 @@ const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
+const isRestoring = ref(false);
 
 
 const unitExchangeForm = ref({
@@ -48,17 +49,54 @@ const unitExchangeForm = ref({
 });
 
 // Persistence Logic
-watch(unitExchangeForm, (newVal) => {
-    localStorage.setItem('temp_tukar_unit_form', JSON.stringify(newVal));
+watch([unitExchangeForm, stockSearchQuery, unitExchangePhotos], ([newForm, newQuery, newPhotos]) => {
+    if (isRestoring.value) return;
+    
+    // We only persist the previews (Base64), not the File objects
+    const persistentPhotos = {
+        unitPreview: newPhotos.unitPreview,
+        customerPreview: newPhotos.customerPreview
+    };
+
+    localStorage.setItem('temp_tukar_unit_form', JSON.stringify({
+        form: newForm,
+        query: newQuery,
+        photos: persistentPhotos
+    }));
 }, { deep: true });
 
-onMounted(() => {
+onMounted(async () => {
     const saved = localStorage.getItem('temp_tukar_unit_form');
     if (saved) {
         try {
+            isRestoring.value = true;
             const data = JSON.parse(saved);
-            Object.assign(unitExchangeForm.value, data);
-        } catch (e) {}
+            Object.assign(unitExchangeForm.value, data.form);
+            stockSearchQuery.value = data.query || "";
+            
+            if (data.photos) {
+                unitExchangePhotos.value.unitPreview = data.photos.unitPreview;
+                unitExchangePhotos.value.customerPreview = data.photos.customerPreview;
+                
+                // Convert back to File if possible for submission
+                if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
+                    try {
+                        unitExchangePhotos.value.unit = dataURLtoFile(data.photos.unitPreview, 'unit_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
+                    try {
+                        unitExchangePhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+            }
+            
+            // Wait for next tick to ensure watchers don't trigger on initial assignment
+            await nextTick();
+            isRestoring.value = false;
+        } catch (e) {
+            isRestoring.value = false;
+        }
     }
 });
 
@@ -161,20 +199,29 @@ const filteredInventoryProducts = computed(() => {
 });
 
 // Watchers
-watch(() => unitExchangeForm.value.distributor_id, () => {
-    unitExchangeForm.value.incoming_brand_id = null;
-    unitExchangeForm.value.incoming_product_type_id = null;
+watch(() => unitExchangeForm.value.distributor_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        unitExchangeForm.value.incoming_brand_id = null;
+        unitExchangeForm.value.incoming_product_type_id = null;
+    }
 });
 
-watch(() => unitExchangeForm.value.incoming_brand_id, () => {
-    unitExchangeForm.value.incoming_product_type_id = null;
-    unitExchangeForm.value.incoming_storage = "";
-    unitExchangeForm.value.incoming_condition = "";
+watch(() => unitExchangeForm.value.incoming_brand_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        unitExchangeForm.value.incoming_product_type_id = null;
+        unitExchangeForm.value.incoming_storage = "";
+        unitExchangeForm.value.incoming_condition = "";
+    }
 });
 
-watch(() => unitExchangeForm.value.incoming_product_type_id, () => {
-    unitExchangeForm.value.incoming_storage = "";
-    unitExchangeForm.value.incoming_condition = "";
+watch(() => unitExchangeForm.value.incoming_product_type_id, (newVal, oldVal) => {
+    if (isRestoring.value) return;
+    if (newVal !== oldVal) {
+        unitExchangeForm.value.incoming_storage = "";
+        unitExchangeForm.value.incoming_condition = "";
+    }
 });
 
 watch(() => isImeiExchange.value, (newVal) => {
@@ -220,11 +267,31 @@ function parseNumber(s) {
     return parseInt(finalClean) || 0;
 }
 
-async function handleExchangePhotoUpload(type, event) {
+function dataURLtoFile(dataurl, filename) {
+    try {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+    } catch (e) {
+        return null;
+    }
+}
+
+async function handlePhotoChange(type, event) {
     const file = event.target.files[0];
-    if (!file) return;
-    unitExchangePhotos.value[type] = file;
-    unitExchangePhotos.value[type + 'Preview'] = URL.createObjectURL(file);
+    if (file) {
+        unitExchangePhotos.value[type] = file;
+        
+        // Use FileReader to get Base64 for persistence
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            unitExchangePhotos.value[`${type}Preview`] = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
 }
 
 function selectStockItem(item) {
@@ -562,7 +629,7 @@ async function submitUnitExchange(pin = null) {
                                 </template>
                             </div>
                             <input type="file" ref="unitExchangeInput"
-                                @change="e => handleExchangePhotoUpload('unit', e)" accept="image/*" class="hidden"
+                                @change="e => handlePhotoChange('unit', e)" accept="image/*" class="hidden"
                                 capture="environment" />
                         </div>
                         <div>
@@ -585,7 +652,7 @@ async function submitUnitExchange(pin = null) {
                                 </template>
                             </div>
                             <input type="file" ref="customerExchangeInput"
-                                @change="e => handleExchangePhotoUpload('customer', e)" accept="image/*" class="hidden"
+                                @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
                                 capture="environment" />
                         </div>
                     </div>
