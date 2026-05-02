@@ -736,34 +736,47 @@ const summaryStats = computed(() => {
     let nonHpUnits = 0;
 
     activeRecords.value.forEach(item => {
-        const cat = item.category;
-        const total = Math.abs(parseFloat(item.grand_total) || 0);
+        const cat = item.category?.toLowerCase();
+        const total = Math.abs(parseFloat(item.selling_price || item.total_amount || item.grand_total) || 0);
 
-        // Kategorisasi sesuai permintaan user
-        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store'].includes(cat)) {
+        // Standard Sales categories
+        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale'].includes(cat);
+        const isTradeIn = cat === 'tukar_tambah';
+        const isDowngrade = cat === 'downgrade';
+        const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(cat);
+
+        if (isBaseSale) {
             baseSales += total;
-        } else if (['tukar_tambah', 'tukar_unit'].includes(cat)) {
+        } else if (isTradeIn || isDowngrade) {
             tradeSelisih += total;
-        } else if (['angkat_barang', 'refund', 'downgrade'].includes(cat)) {
+        }
+
+        if (isDeduction) {
             outlay += total;
         }
 
-        // Unit Logic: Count all items handled
-        if (item.items && item.items.length > 0) {
-            item.items.forEach(detail => {
-                const qty = parseInt(detail.qty) || 0;
-                if (detail.imei && detail.imei !== '-') {
+        // Unit Logic: Exclude activity-only records (Refund, Unit Exchange, Downgrade, Retrievals)
+        const isStandardUnit = !['refund', 'angkat_barang', 'tukar_unit', 'downgrade'].includes(cat);
+
+        if (isStandardUnit) {
+            if (item.items && item.items.length > 0) {
+                item.items.forEach(detail => {
+                    const qty = parseInt(detail.qty) || 0;
+                    if (detail.imei && detail.imei !== '-') {
+                        hpUnits += qty;
+                    } else {
+                        nonHpUnits += qty;
+                    }
+                });
+            } else {
+                const qty = parseInt(item.qty) || 0;
+                // If it's a StockOut record, check for imei fields
+                const hasImei = (item.imei && item.imei !== '-') || (item.imeis && item.imeis !== '-');
+                if (hasImei) {
                     hpUnits += qty;
                 } else {
                     nonHpUnits += qty;
                 }
-            });
-        } else {
-            const qty = parseInt(item.qty) || 0;
-            if (item.imeis && item.imeis !== '-') {
-                hpUnits += qty;
-            } else {
-                nonHpUnits += qty;
             }
         }
     });

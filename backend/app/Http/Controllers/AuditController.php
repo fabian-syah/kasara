@@ -590,9 +590,23 @@ class AuditController extends Controller
                         }
                     });
 
-                    $hpStats = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select('reporting_date', DB::raw("sum(case when (UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' OR UPPER(products.name) LIKE '%IPHONE%') then 1 else 0 end) as iphone_units"), DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('reporting_date')->get()->keyBy('reporting_date');
-                    $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select('reporting_date', DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('reporting_date')->get()->keyBy('reporting_date');
-                    $mainStats = (clone $baseQuery)->select('reporting_date', DB::raw('sum(selling_price) as total_omset'))->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
+                    $hpStats = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                        ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                        ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
+                        ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
+                        ->select('reporting_date', 
+                            DB::raw("sum(case when (UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' OR UPPER(products.name) LIKE '%IPHONE%') then 1 else 0 end) as iphone_units"), 
+                            DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units"))
+                        ->groupBy('reporting_date')->get()->keyBy('reporting_date');
+
+                    $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+                        ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
+                        ->select('reporting_date', DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))
+                        ->groupBy('reporting_date')->get()->keyBy('reporting_date');
+
+                    $mainStats = (clone $baseQuery)->select('reporting_date', 
+                        DB::raw('sum(CASE WHEN category IN (\'tukar_tambah\', \'downgrade\') THEN ABS(selling_price) ELSE selling_price END) as total_omset'))
+                        ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
 
                     return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
                         $hp = $hpStats->get($stat->reporting_date);
@@ -898,22 +912,29 @@ class AuditController extends Controller
                         // Categories that count towards Omset (Revenue)
                         $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
-                        $paymentStats = $pQuery->whereIn('stock_outs.category', $omsetCategories)
-                            ->select(
-                                'payment_method_id',
-                                DB::raw("sum(selling_price) as total_amount"),
-                                DB::raw("count(*) as total_count")
-                            )
-                            ->whereNull('split_payments')
-                            ->groupBy('payment_method_id')
-                            ->get();
-
                         $pSums = [];
                         $paymentTotal = 0;
+                        
+                        // Separate query for non-split payments to handle ABS() logic
+                        $paymentStats = $pQuery->whereIn('stock_outs.category', $omsetCategories)
+                            ->whereNull('split_payments')
+                            ->select(
+                                'payment_method_id',
+                                'category',
+                                'selling_price'
+                            )
+                            ->get();
+
                         foreach ($paymentStats as $ps) {
                             $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
-                            $pSums[$mName] = ($pSums[$mName] ?? 0) + (float) $ps->total_amount;
-                            $paymentTotal += (float) $ps->total_amount;
+                            
+                            // Use absolute value for Trade-in / Downgrade differences
+                            $amount = (in_array($ps->category, ['tukar_tambah', 'downgrade'])) 
+                                ? abs((float)$ps->selling_price) 
+                                : (float)$ps->selling_price;
+                                
+                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amount;
+                            $paymentTotal += $amount;
                         }
 
                         // Handle splits separately across the small set of split transactions (usually few)
@@ -923,11 +944,19 @@ class AuditController extends Controller
                             ->whereNotNull('split_payments')
                             ->select('split_payments', 'category')->get();
 
+                        $omsetBersih = $paymentTotal; // Initial base (will be adjusted below)
+
                         foreach ($splits as $s) {
                             $sData = is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments;
                             if (is_array($sData)) {
                                 foreach ($sData as $sp) {
                                     $amt = (float) ($sp['amount'] ?? 0);
+                                    
+                                    // Use absolute value for split amounts in TT/DG if they are stored as negative
+                                    if (in_array($s->category, ['tukar_tambah', 'downgrade'])) {
+                                        $amt = abs($amt);
+                                    }
+                                    
                                     $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                     $mName = $pm?->name ?? 'Lainnya';
                                     $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
@@ -935,6 +964,20 @@ class AuditController extends Controller
                                 }
                             }
                         }
+
+                        // Calculate Net Revenue (Omset Bersih)
+                        // Omset Bersih = Base Sales - (Refund + Angkat Barang + Downgrade)
+                        // Note: $paymentTotal already includes abs(TT) and abs(DG) in our modified logic above.
+                        // We need the raw Base Sales (standard sales only)
+                        $rawBaseQuery = DB::table('stock_outs');
+                        $applyLocalScope($rawBaseQuery);
+                        $baseSalesOnly = (float) $rawBaseQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])->sum('selling_price');
+
+                        $deductionQuery = DB::table('stock_outs');
+                        $applyLocalScope($deductionQuery);
+                        $deductions = (float) $deductionQuery->whereIn('stock_outs.category', ['refund', 'angkat_barang', 'downgrade'])->sum(DB::raw('ABS(selling_price)'));
+                        
+                        $omsetBersih = $baseSalesOnly - $deductions;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
                         $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
@@ -973,8 +1016,8 @@ class AuditController extends Controller
                             $brand = strtolower($brand ?? '');
                             $trxCategory = strtolower($trxCategory ?? '');
 
-                            // Only count towards HP totals if it's a standard sale, not a return/retrieval
-                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            // Only count towards HP totals if it's a standard sale, not a return/retrieval or special activity
+                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
 
                             if ($isStandardSale) {
                                 if ($itemCategory === 'apple_lux') {
@@ -1014,12 +1057,18 @@ class AuditController extends Controller
                                 ];
                             }
 
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            // Standard sales criteria: Exclude refunds, unit exchanges, and downgrades from standard unit/revenue maps
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
+                            
                             $itemCat = $getCategoryByItem($hp->distributor_id, true);
                             $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
 
-                            if ($isStandardSale) {
-                                $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
+                            if ($isStandardSale || $catLower === 'tukar_tambah') {
+                                // For Tukar Tambah, use absolute price difference
+                                $price = ($catLower === 'tukar_tambah') 
+                                    ? abs((float)$hp->item_price) 
+                                    : (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
+                                    
                                 if (!isset($mapRp[$itemCat])) $mapRp[$itemCat] = 0;
                                 $mapRp[$itemCat] += $price;
                                 $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
@@ -1080,9 +1129,9 @@ class AuditController extends Controller
                             // Breakdown for non-IMEI HP if any
                             if ($cat === 'hp' || $cat === 'apple_lux') {
                                 $brand = strtolower($item->product?->brand ?? '');
-                                $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                                $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
 
-                                if ($isStandardSale) {
+                                if ($isStandardSale || $catLower === 'tukar_tambah') {
                                     if ($brand === 'apple' || str_contains($brand, 'iphone'))
                                         $map['iphone'] += $qty;
                                     elseif ($cat === 'apple_lux')
@@ -1092,15 +1141,17 @@ class AuditController extends Controller
                                 }
                             }
 
-                            // Only count towards totals if it's a standard sale
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            // Only count towards totals if it's a standard sale or TT
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
                             
-                            if ($isStandardSale) {
+                            if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 if (!isset($map[$cat])) $map[$cat] = 0;
                                 if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
                                 
-                                // Use standard selling price minus per-item discount
-                                $pricePerItem = (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
+                                // For Tukar Tambah, use absolute price difference
+                                $pricePerItem = ($catLower === 'tukar_tambah')
+                                    ? abs((float)$item->selling_price)
+                                    : (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
                                 
                                 $map[$cat] += $qty;
                                 $mapRp[$cat] += $pricePerItem * $qty;
@@ -1177,6 +1228,7 @@ class AuditController extends Controller
                         return [
                             'payments' => $pSums,
                             'payment_total' => $paymentTotal,
+                            'omset_bersih' => $omsetBersih,
                             'dist_map' => $map,
                             'dist_map_rp' => $mapRp,
                             'stock_report' => $stockReport,
@@ -1196,6 +1248,7 @@ class AuditController extends Controller
                                 'requested_online_shop_id' => $requestedOnlineShopId,
                                 'resolved_target_id' => $requestedBranchId ? (string) $requestedBranchId : ($requestedOnlineShopId ? (string) $requestedOnlineShopId : 'ALL'),
                                 'total_payments_found' => $paymentTotal,
+                                'omset_bersih' => $omsetBersih,
                                 'total_hp_items' => $totalHpItems,
                                 'total_nhp_items' => $totalNhpItems,
                                 'date_range' => [$startDate, $endDate],
