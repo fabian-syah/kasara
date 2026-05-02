@@ -123,16 +123,25 @@ const filteredInventoryProducts = computed(() => {
         const name = (p.product?.name || p.name || '').toLowerCase();
         const brand = (p.product?.brand || p.brand || '').toLowerCase();
         const imei = (p.imei || '').toLowerCase();
-        const cost = p.cost_price?.toString() || '';
-        const selling = p.selling_price?.toString() || '';
+        const cost = parseFloat(p.cost_price || 0);
+        const selling = parseFloat(p.selling_price || p.price || 0);
+        const itemMaxPrice = Math.max(cost, selling);
 
         const matchesText = name.includes(q) || brand.includes(q) || imei.includes(q);
         
-        // Stricter price matching: must match exactly or be a prefix of at least 4 digits
-        const matchesPrice = (cleanQ && cleanQ.length >= 4 && (cost.startsWith(cleanQ) || selling.startsWith(cleanQ))) ||
-                           (cleanIncoming && cleanIncoming.length >= 5 && (cost === cleanIncoming || selling === cleanIncoming));
+        // Price filtering logic (Tukar Unit fairness)
+        let matchesPriceRange = true;
+        const incomingVal = parseFloat(cleanIncoming || 0);
+        if (incomingVal > 0) {
+            // If incoming is 20M, min allowed is 15M (5M diff). 
+            // If incoming is 8M, min is 3M.
+            const minAllowed = Math.max(0, incomingVal - 5000000);
+            matchesPriceRange = itemMaxPrice >= minAllowed;
+        }
 
-        return matchesText || matchesPrice;
+        const matchesSearchPrice = (cleanQ && cleanQ.length >= 4 && (cost.toString().startsWith(cleanQ) || selling.toString().startsWith(cleanQ)));
+
+        return (matchesText || matchesSearchPrice) && matchesPriceRange;
     });
 });
 
@@ -219,15 +228,14 @@ async function handleExchangePhotoUpload(type, event) {
 function selectStockItem(item) {
     unitExchangeForm.value.outgoing_product_detail_id = item.id;
 
-    // Use price from search query if numeric, otherwise fallback to item price
-    const cleanQ = stockSearchQuery.value.replace(/\./g, '').trim();
-    if (/^\d+$/.test(cleanQ) && cleanQ.length >= 4) {
-        unitExchangeForm.value.outgoing_price = parseInt(cleanQ);
-    } else {
-        const selling = parseFloat(item.selling_price || item.price || 0);
-        const cost = parseFloat(item.cost_price || 0);
-        unitExchangeForm.value.outgoing_price = selling > 0 ? selling : (cost > 0 ? cost : 0);
-    }
+    // Default to inventory price (selling price if available, else cost price)
+    const selling = parseFloat(item.selling_price || item.price || 0);
+    const cost = parseFloat(item.cost_price || 0);
+    const inventoryPrice = selling > 0 ? selling : (cost > 0 ? cost : 0);
+    
+    unitExchangeForm.value.outgoing_price = inventoryPrice;
+    // For Tukar Unit, incoming price MUST match outgoing price (fairness)
+    unitExchangeForm.value.incoming_cost_price = inventoryPrice;
 
     stockSearchQuery.value = `[${item.product?.brand || '-'}] ${item.product?.name || item.name} - ${item.imei || 'Non-IMEI'}`;
     showStockDropdown.value = false;
