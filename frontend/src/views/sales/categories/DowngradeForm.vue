@@ -61,7 +61,6 @@ const downgradeForm = ref({
 });
 
 // Persistence Logic
-// Persistence Logic
 const storageKey = computed(() => {
     const userId = authStore.user?.id || 'guest';
     const acc = props.salesAccount ? `_acc_${props.salesAccount.replace(/\s+/g, '_')}` : '';
@@ -129,17 +128,12 @@ watch(() => authStore.user?.id, (newId) => {
 }, { immediate: true });
 
 onMounted(() => {
-    // If user already loaded, restoreDraft will be called by watch immediate
-    // But we ensure it's not stuck in isRestoring if user never loads or no id
     setTimeout(() => {
         if (isRestoring.value && !authStore.user?.id) {
             isRestoring.value = false;
         }
     }, 2000);
 });
-
-// End of state definitions
-
 
 // Computeds
 const filteredBrands = computed(() => {
@@ -272,7 +266,6 @@ watch(() => downgradeForm.value.outgoing_product_detail_id, (newId) => {
     }
 });
 
-// Init payment method
 watch(() => props.availablePaymentMethods, (methods) => {
     if (methods?.length > 0 && !downgradeForm.value.payment_method_id) {
         const cashMethod = methods.find(p => p.category?.toLowerCase() === 'cash' || p.name?.toLowerCase() === 'tunai');
@@ -284,17 +277,6 @@ watch(() => props.availablePaymentMethods, (methods) => {
 function formatNumber(n) {
     if (!n) return "0";
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-function parseNumber(s) {
-    if (!s) return 0;
-    if (typeof s === 'number') return s;
-    let clean = s.toString().replace(/Rp/g, "").replace(/\s/g, "");
-    if (clean.endsWith('.00') || clean.endsWith(',00')) {
-        clean = clean.slice(0, -3);
-    }
-    const finalClean = clean.replace(/[^0-9]/g, "");
-    return parseInt(finalClean) || 0;
 }
 
 function dataURLtoFile(dataurl, filename) {
@@ -314,7 +296,6 @@ async function handlePhotoChange(type, event) {
     const file = event.target.files[0];
     if (file) {
         downgradePhotos.value[type] = file;
-        
         const reader = new FileReader();
         reader.onload = (e) => {
             downgradePhotos.value[`${type}Preview`] = e.target.result;
@@ -325,8 +306,6 @@ async function handlePhotoChange(type, event) {
 
 function selectStockItem(item) {
     downgradeForm.value.outgoing_product_detail_id = item.id;
-
-    // Use price from search query if numeric, otherwise fallback to item price
     const cleanQ = stockSearchQuery.value.replace(/\./g, '').trim();
     if (/^\d+$/.test(cleanQ) && cleanQ.length >= 4) {
         downgradeForm.value.outgoing_price = parseInt(cleanQ);
@@ -335,7 +314,6 @@ function selectStockItem(item) {
         const cost = parseFloat(item.cost_price || 0);
         downgradeForm.value.outgoing_price = selling > 0 ? selling : (cost > 0 ? cost : 0);
     }
-
     stockSearchQuery.value = `[${item.product?.brand || '-'}] ${item.product?.name || item.name} - ${item.imei || 'Non-IMEI'}`;
     showStockDropdown.value = false;
 }
@@ -348,17 +326,17 @@ function closeStockDropdown() {
 
 async function submitDowngrade(pin = null) {
     if (downgradePriceDiff.value > 0) {
-        alert("Harga Unit Keluar lebih besar dari Harga Unit Masuk. Downgrade seharusnya nilai Unit Keluar lebih murah atau sama dengan Unit Masuk. Silakan gunakan menu 'Tukar Tambah' jika unit toko lebih mahal.");
+        alert("Harga Unit Keluar lebih besar dari Harga Unit Masuk. Gunakan menu 'Tukar Tambah' jika unit toko lebih mahal.");
         return;
     }
 
     if (!downgradeForm.value.customer_name || !downgradeForm.value.customer_phone || !downgradeForm.value.incoming_brand_id || !downgradeForm.value.incoming_product_type_id || !downgradeForm.value.incoming_storage || !downgradeForm.value.incoming_condition || !downgradeForm.value.incoming_cost_price || !downgradeForm.value.outgoing_product_detail_id || !downgradeForm.value.outgoing_price || !downgradeForm.value.reason || !downgradeForm.value.payment_method_id) {
-        alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Metode Bayar, & Alasan).");
+        alert("Mohon lengkapi semua data wajib.");
         return;
     }
 
     if (!downgradePhotos.value.unit && !downgradePhotos.value.customer) {
-        alert("Minimal pilih salah satu foto (Unit atau Customer).");
+        alert("Minimal pilih salah satu foto.");
         return;
     }
 
@@ -400,7 +378,6 @@ async function submitDowngrade(pin = null) {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
 
-
         const data = response.data.data;
         const transaction = {
             id: data.id,
@@ -439,7 +416,7 @@ async function submitDowngrade(pin = null) {
 
         emit("transaction-complete", transaction);
 
-        // Reset form
+        // Reset
         downgradeForm.value = {
             customer_name: "",
             customer_phone: "",
@@ -460,7 +437,7 @@ async function submitDowngrade(pin = null) {
             notes: "",
         };
         downgradePhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
-
+        localStorage.removeItem(storageKey.value);
     } catch (error) {
         console.error("Downgrade failed", error);
         alert(error.response?.data?.message || "Gagal memproses downgrade");
@@ -471,8 +448,7 @@ async function submitDowngrade(pin = null) {
 </script>
 
 <template>
-    <div
-        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
+    <div class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
         <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8 gap-4">
                 <div class="flex items-center gap-3">
@@ -484,30 +460,24 @@ async function submitDowngrade(pin = null) {
                         <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Konsolidasi Selisih Harga</p>
                     </div>
                 </div>
-                <div
-                    class="hidden xs:block px-4 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <div class="hidden xs:block px-4 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full text-[10px] font-black uppercase tracking-widest">
                     Downgrade
                 </div>
             </div>
 
             <!-- 1. DATA CUSTOMER -->
-            <div
-                class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
+            <div class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
                 <h4 class="text-sm font-black text-primary-600 uppercase tracking-widest mb-6 flex items-center gap-2">
                     <User :size="18" /> DATA CUSTOMER
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">NAMA
-                            CUSTOMER <span class="text-red-500">*</span></label>
-                        <input v-model="downgradeForm.customer_name" type="text" placeholder="Nama lengkap..."
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">NAMA CUSTOMER <span class="text-red-500">*</span></label>
+                        <input v-model="downgradeForm.customer_name" type="text" placeholder="Nama lengkap..." class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">NO
-                            WHATSAPP <span class="text-red-500">*</span></label>
-                        <input v-model="downgradeForm.customer_phone" type="text" placeholder="08xxx..."
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">NO WHATSAPP <span class="text-red-500">*</span></label>
+                        <input v-model="downgradeForm.customer_phone" type="text" placeholder="08xxx..." class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                     </div>
                 </div>
             </div>
@@ -515,74 +485,50 @@ async function submitDowngrade(pin = null) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <!-- 2. BARANG MASUK -->
                 <div class="space-y-6">
-                    <h4
-                        class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
+                    <h4 class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
                         [1] BARANG MASUK
                     </h4>
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">SUMBER
-                            HANDPHONE <span class="text-red-500">*</span></label>
-                        <select v-model="downgradeForm.incoming_source"
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">SUMBER HANDPHONE <span class="text-red-500">*</span></label>
+                        <select v-model="downgradeForm.incoming_source" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                             <option value="ex_pstore">Ex PSTORE</option>
                             <option value="luar_pstore">Luar PSTORE</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH DISTRIBUTOR <span class="text-red-500">*</span></label>
-                        <select v-model="downgradeForm.distributor_id"
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-primary-600">
+                        <select v-model="downgradeForm.distributor_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-primary-600">
                             <option :value="null">-- PILIH DISTRIBUTOR --</option>
                             <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
                         </select>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
-                                BRAND
-                                <span class="text-red-500">*</span></label>
-                            <select v-model="downgradeForm.incoming_brand_id"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH BRAND <span class="text-red-500">*</span></label>
+                            <select v-model="downgradeForm.incoming_brand_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null" disabled>Pilih Brand</option>
                                 <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                         </div>
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
-                                TIPE
-                                <span class="text-red-500">*</span></label>
-                            <select v-model="downgradeForm.incoming_product_type_id"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
-                                :disabled="!downgradeForm.incoming_brand_id">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH TIPE <span class="text-red-500">*</span></label>
+                            <select v-model="downgradeForm.incoming_product_type_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" :disabled="!downgradeForm.incoming_brand_id">
                                 <option :value="null" disabled>Pilih Tipe</option>
-                                <option v-for="p in filteredDowngradeTypes" :key="p.id" :value="p.id">{{
-                                    p.name }}</option>
+                                <option v-for="p in filteredDowngradeTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
                             </select>
                         </div>
                     </div>
                     <div v-if="isImeiDowngrade" class="grid grid-cols-2 gap-4">
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
-                                STORAGE
-                                <span class="text-red-500">*</span></label>
-                            <select v-model="downgradeForm.incoming_storage"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none"
-                                :disabled="!downgradeForm.incoming_product_type_id">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH STORAGE <span class="text-red-500">*</span></label>
+                            <select v-model="downgradeForm.incoming_storage" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" :disabled="!downgradeForm.incoming_product_type_id">
                                 <option value="" disabled>Pilih Storage</option>
-                                <option v-for="s in filteredDowngradeStorages" :key="s" :value="s">{{ s }}
-                                </option>
+                                <option v-for="s in filteredDowngradeStorages" :key="s" :value="s">{{ s }}</option>
                             </select>
                         </div>
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH
-                                KATEGORI
-                                <span class="text-red-500">*</span></label>
-                            <select v-model="downgradeForm.incoming_condition"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">PILIH KATEGORI <span class="text-red-500">*</span></label>
+                            <select v-model="downgradeForm.incoming_condition" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option value="" disabled>Pilih Kategori</option>
                                 <option value="new">New</option>
                                 <option value="second">SCD</option>
@@ -591,59 +537,38 @@ async function submitDowngrade(pin = null) {
                         </div>
                     </div>
                     <div v-if="isImeiDowngrade">
-                        <label
-                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">MASUKKAN
-                            IMEI <span class="text-red-500">*</span></label>
-                        <input v-model="downgradeForm.incoming_imei" type="text" placeholder="15 digit IMEI..."
-                            class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-mono" />
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">MASUKKAN IMEI <span class="text-red-500">*</span></label>
+                        <input v-model="downgradeForm.incoming_imei" type="text" placeholder="15 digit IMEI..." class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-mono" />
                     </div>
                     <div v-else>
-                        <label
-                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH UNIT <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH UNIT <span class="text-red-500">*</span></label>
                         <div class="flex items-center gap-4">
-                            <input v-model.number="downgradeForm.incoming_quantity" type="number" min="1"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <input v-model.number="downgradeForm.incoming_quantity" type="number" min="1" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                             <span class="text-xs font-bold text-text-secondary uppercase">Unit</span>
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
-                            UNIT MASUK (PER UNIT) <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA UNIT MASUK (PER UNIT) <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <span
-                                class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                            <input v-money:incoming_cost_price="downgradeForm" type="text"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                            <input v-money:incoming_cost_price="downgradeForm" type="text" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
-                        <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi
-                            harga modal</p>
+                        <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi harga modal</p>
                     </div>
                 </div>
 
                 <!-- 3. BARANG KELUAR -->
                 <div class="space-y-6">
-                    <h4
-                        class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
+                    <h4 class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
                         [2] BARANG KELUAR
                     </h4>
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">CARI
-                            & PILIH UNIT KELUAR <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">CARI & PILIH UNIT KELUAR <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <input v-model="stockSearchQuery" type="text"
-                                @focus="showStockDropdown = true"
-                                @blur="closeStockDropdown"
-                                placeholder="Ketik Nama, Brand, IMEI, atau Harga..."
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
-                            
-                            <div v-if="showStockDropdown" 
-                                class="absolute z-[100] mt-1 w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">
-                                <div v-if="filteredInventoryProducts.length === 0" class="p-4 text-center text-xs text-text-secondary">
-                                    Tidak ada stok ditemukan...
-                                </div>
-                                <div v-for="item in filteredInventoryProducts" :key="item.id"
-                                    @mousedown.prevent="selectStockItem(item)"
-                                    class="p-4 border-b border-surface-100 dark:border-surface-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer transition-colors">
+                            <input v-model="stockSearchQuery" type="text" @focus="showStockDropdown = true" @blur="closeStockDropdown" placeholder="Ketik Nama, Brand, IMEI, atau Harga..." class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <div v-if="showStockDropdown" class="absolute z-[100] mt-1 w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <div v-if="filteredInventoryProducts.length === 0" class="p-4 text-center text-xs text-text-secondary">Tidak ada stok ditemukan...</div>
+                                <div v-for="item in filteredInventoryProducts" :key="item.id" @mousedown.prevent="selectStockItem(item)" class="p-4 border-b border-surface-100 dark:border-surface-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer transition-colors">
                                     <div class="flex justify-between items-start mb-1">
                                         <span class="font-black text-sm text-text-primary">[{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}</span>
                                         <span class="text-[10px] font-black px-2 py-0.5 bg-surface-200 dark:bg-surface-700 rounded text-text-secondary uppercase">{{ item.condition || 'SCD' }}</span>
@@ -655,90 +580,60 @@ async function submitDowngrade(pin = null) {
                                 </div>
                             </div>
                         </div>
-                        <div v-if="selectedOutgoingDowngrade"
-                            class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 space-y-1">
-                            <p class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Detail
-                                Terpilih:</p>
-                            <p class="text-xs font-bold text-primary-700 dark:text-primary-300">
-                                {{ selectedOutgoingDowngrade.product?.name || selectedOutgoingDowngrade.name }} ({{
-                                    selectedOutgoingDowngrade.storage || '-' }})
-                            </p>
-                            <p class="text-[10px] font-mono text-primary-600/70">
-                                {{ selectedOutgoingDowngrade.imei || 'Non-IMEI' }} | Modal: Rp {{
-                                    formatNumber(selectedOutgoingDowngrade.cost_price) }}
-                            </p>
+                        <div v-if="selectedOutgoingDowngrade" class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 space-y-1">
+                            <p class="text-[10px] font-black text-primary-600 uppercase tracking-widest">Detail Terpilih:</p>
+                            <p class="text-xs font-bold text-primary-700 dark:text-primary-300">{{ selectedOutgoingDowngrade.product?.name || selectedOutgoingDowngrade.name }} ({{ selectedOutgoingDowngrade.storage || '-' }})</p>
+                            <p class="text-[10px] font-mono text-primary-600/70">{{ selectedOutgoingDowngrade.imei || 'Non-IMEI' }} | Modal: Rp {{ formatNumber(selectedOutgoingDowngrade.cost_price) }}</p>
                         </div>
                     </div>
-
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">ISI
-                            HARGA
-                            BARANG KELUAR <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">ISI HARGA BARANG KELUAR <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <span
-                                class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                            <input v-money:outgoing_price="downgradeForm" type="text"
-                                :placeholder="'Contoh: ' + formatNumber(suggestedOutgoingPrice)"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
+                            <input v-money:outgoing_price="downgradeForm" type="text" :placeholder="'Contoh: ' + formatNumber(suggestedOutgoingPrice)" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
                     </div>
-
                     <div v-if="selectedOutgoingDowngrade && !selectedOutgoingDowngrade.imei">
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH KELUAR <span class="text-red-500">*</span></label>
                         <div class="flex items-center gap-4">
-                            <input v-model.number="downgradeForm.outgoing_quantity" type="number" min="1" :max="selectedOutgoingDowngrade.stock || selectedOutgoingDowngrade.quantity"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            <input v-model.number="downgradeForm.outgoing_quantity" type="number" min="1" :max="selectedOutgoingDowngrade.stock || selectedOutgoingDowngrade.quantity" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                             <span class="text-xs font-bold text-text-secondary uppercase">Unit (Maks: {{ selectedOutgoingDowngrade.stock || selectedOutgoingDowngrade.quantity }})</span>
                         </div>
                     </div>
-                </div>
 
                     <!-- Photo Section -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO
-                                UNIT <span class="text-red-500">*</span></label>
-                            <div @click="$refs.unitDGInput.click()"
-                                class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO UNIT <span class="text-red-500">*</span></label>
+                            <div @click="$refs.unitDGInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
                                 <template v-if="downgradePhotos.unitPreview">
                                     <img :src="downgradePhotos.unitPreview" class="w-full h-full object-cover" />
-                                    <div
-                                        class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                         <span class="text-white text-[10px] font-black uppercase">Ganti</span>
                                     </div>
                                 </template>
                                 <template v-else>
                                     <Plus :size="24" class="text-text-secondary mb-1" />
-                                    <span class="text-[9px] font-black text-text-secondary uppercase">Upload
-                                        Unit</span>
+                                    <span class="text-[9px] font-black text-text-secondary uppercase">Upload Unit</span>
                                 </template>
                             </div>
-                            <input type="file" ref="unitDGInput" @change="e => handlePhotoChange('unit', e)"
-                                accept="image/*" class="hidden" capture="environment" />
+                            <input type="file" ref="unitDGInput" @change="e => handlePhotoChange('unit', e)" accept="image/*" class="hidden" capture="environment" />
                         </div>
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO
-                                CUSTOMER</label>
-                            <div @click="$refs.customerDGInput.click()"
-                                class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO CUSTOMER</label>
+                            <div @click="$refs.customerDGInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
                                 <template v-if="downgradePhotos.customerPreview">
                                     <img :src="downgradePhotos.customerPreview" class="w-full h-full object-cover" />
-                                    <div
-                                        class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                         <span class="text-white text-[10px] font-black uppercase">Ganti</span>
                                     </div>
                                 </template>
                                 <template v-else>
                                     <Plus :size="24" class="text-text-secondary mb-1" />
-                                    <span class="text-[9px] font-black text-text-secondary uppercase">Upload
-                                        Customer</span>
+                                    <span class="text-[9px] font-black text-text-secondary uppercase">Upload Customer</span>
                                 </template>
                             </div>
-                            <input type="file" ref="customerDGInput"
-                                @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
-                                capture="environment" />
+                            <input type="file" ref="customerDGInput" @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden" capture="environment" />
                         </div>
                     </div>
                     <p class="text-[10px] text-text-secondary italic text-center">*Minimal upload salah satu foto</p>
@@ -747,85 +642,51 @@ async function submitDowngrade(pin = null) {
 
             <!-- 4. ALASAN, PEMBAYARAN & SUMMARY -->
             <div class="mt-8 space-y-6">
-                <h4
-                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                <h4 class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
                     ALASAN & KETERANGAN
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                     <div class="space-y-6">
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">ALASAN
-                                DOWNGRADE <span class="text-red-500">*</span></label>
-                            <textarea v-model="downgradeForm.reason" rows="2"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
-                                placeholder="Kenapa barang ini di-downgrade? (Wajib diisi)"></textarea>
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">ALASAN DOWNGRADE <span class="text-red-500">*</span></label>
+                            <textarea v-model="downgradeForm.reason" rows="2" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm" placeholder="Kenapa barang ini di-downgrade?"></textarea>
                         </div>
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">KETERANGAN
-                                (OPSIONAL)</label>
-                            <textarea v-model="downgradeForm.notes" rows="2"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
-                                placeholder="Tambahan catatan jika ada..."></textarea>
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">KETERANGAN (OPSIONAL)</label>
+                            <textarea v-model="downgradeForm.notes" rows="2" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm" placeholder="Tambahan catatan jika ada..."></textarea>
                         </div>
                         <div>
-                            <label
-                                class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">METODE
-                                PEMBAYARAN <span class="text-red-500">*</span></label>
-                            <select v-model="downgradeForm.payment_method_id"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">METODE PEMBAYARAN <span class="text-red-500">*</span></label>
+                            <select v-model="downgradeForm.payment_method_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null" disabled>Pilih Metode Bayar...</option>
-                                <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{
-                                    m.name
-                                    }}</option>
+                                <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name }}</option>
                             </select>
                         </div>
                     </div>
 
                     <!-- Financial summary card -->
-                    <div
-                        class="p-8 bg-surface-900 dark:bg-surface-950 rounded-[2rem] shadow-2xl border border-surface-800 text-center transform transition-all hover:scale-[1.02]">
+                    <div class="p-8 bg-surface-900 dark:bg-surface-950 rounded-[2rem] shadow-2xl border border-surface-800 text-center transform transition-all hover:scale-[1.02]">
                         <div class="grid grid-cols-2 gap-4 mb-6">
                             <div class="text-left">
-                                <span
-                                    class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">HARGA
-                                    UNIT KELUAR</span>
-                                <p class="text-lg font-bold text-text-primary">
-                                    {{ formatCurrency(downgradeForm.outgoing_price) }}
-                                </p>
+                                <span class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">HARGA UNIT KELUAR</span>
+                                <p class="text-lg font-bold text-text-primary">{{ formatCurrency(downgradeForm.outgoing_price) }}</p>
                             </div>
                             <div class="text-right">
-                                <p class="text-lg font-bold text-text-primary">
-                                    {{ formatCurrency(downgradeForm.outgoing_price * downgradeForm.outgoing_quantity) }}
-                                </p>
+                                <p class="text-lg font-bold text-text-primary">{{ formatCurrency(downgradeForm.outgoing_price * downgradeForm.outgoing_quantity) }}</p>
                             </div>
                             <div class="text-right">
-                                <span
-                                    class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">TOTAL
-                                    UNIT MASUK</span>
-                                <p class="text-lg font-bold text-text-primary">
-                                    {{ formatCurrency(downgradeForm.incoming_cost_price * downgradeForm.incoming_quantity) }}
-                                </p>
+                                <span class="text-[9px] font-black text-text-secondary uppercase tracking-widest block mb-1">TOTAL UNIT MASUK</span>
+                                <p class="text-lg font-bold text-text-primary">{{ formatCurrency(downgradeForm.incoming_cost_price * downgradeForm.incoming_quantity) }}</p>
                             </div>
                         </div>
 
                         <div class="pt-6 border-t border-surface-800">
-                            <span
-                                class="text-[10px] font-black text-primary-500 uppercase tracking-[0.2em] block mb-2">SELISIH
-                                HARGA (SISA BAYAR)</span>
-                            <p class="text-4xl sm:text-5xl font-black text-white px-2 py-1 leading-none">
-                                {{ formatCurrency(Math.abs(downgradePriceDiff)) }}
-                            </p>
+                            <span class="text-[10px] font-black text-primary-500 uppercase tracking-[0.2em] block mb-2">SELISIH HARGA (SISA BAYAR)</span>
+                            <p class="text-4xl sm:text-5xl font-black text-white px-2 py-1 leading-none">{{ formatCurrency(Math.abs(downgradePriceDiff)) }}</p>
                         </div>
-                        <div
-                            class="mt-6 px-4 py-2 bg-primary-500/10 rounded-full inline-flex items-center gap-2 text-[10px] text-primary-500 font-black uppercase tracking-widest border border-primary-500/20"
-                            :class="{ 'bg-red-500/40 border-red-500/60 text-red-500': downgradePriceDiff > 0 }">
+                        <div class="mt-6 px-4 py-2 bg-primary-500/10 rounded-full inline-flex items-center gap-2 text-[10px] text-primary-500 font-black uppercase tracking-widest border border-primary-500/20" :class="{ 'bg-red-500/40 border-red-500/60 text-red-500': downgradePriceDiff > 0 }">
                             <AlertCircle :size="14" />
-                            <span>
-                                {{
-                                    downgradePriceDiff <= 0 ? 'TOKO BAYAR SELISIH KE CUSTOMER' : 'Gunakan Menu Tukar Tambah (Selisih Plus)'
-                                }}</span>
+                            <span>{{ downgradePriceDiff <= 0 ? 'TOKO BAYAR SELISIH KE CUSTOMER' : 'Gunakan Menu Tukar Tambah (Selisih Plus)' }}</span>
                         </div>
                     </div>
                 </div>
@@ -833,13 +694,8 @@ async function submitDowngrade(pin = null) {
 
             <!-- Submit Section -->
             <div class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
-                <button @click="emit('back')"
-                    class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all active:scale-95">
-                    Kembali
-                </button>
-                <button @click="submitDowngrade()" :disabled="isSubmitting || downgradePriceDiff > 0"
-                    class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95"
-                    :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed': downgradePriceDiff > 0 }">
+                <button @click="emit('back')" class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all active:scale-95">Kembali</button>
+                <button @click="submitDowngrade()" :disabled="isSubmitting || downgradePriceDiff > 0" class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95" :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed': downgradePriceDiff > 0 }">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Simpan Downgrade (Selesai)
