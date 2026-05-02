@@ -40,7 +40,8 @@ class ProductDetail extends Model
         'trade_in_id',
         'refund_id',
         'unit_exchange_id',
-        'tukar_tambah_id'
+        'tukar_tambah_id',
+        'downgrade_id'
     ];
 
     protected $casts = [

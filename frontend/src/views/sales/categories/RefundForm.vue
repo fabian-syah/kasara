@@ -278,7 +278,8 @@ async function submitRefund(pin = null) {
                 condition: data.condition,
                 storage: data.storage,
                 price: data.refund_price,
-                qty: 1
+                qty: 1,
+                is_hp: true
             }],
             original_price: data.refund_price,
             grand_total: data.refund_price,
@@ -291,6 +292,7 @@ async function submitRefund(pin = null) {
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
+            inventory_user_name: authStore.user?.name
         };
 
         emit("transaction-complete", transaction);

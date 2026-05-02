@@ -378,6 +378,7 @@ async function submitTradeIn(pin = null) {
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
+            inventory_user_name: authStore.user?.name
         };
 
         emit("transaction-complete", transaction);

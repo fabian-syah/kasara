@@ -364,26 +364,34 @@ async function submitDowngrade(pin = null) {
             order_no: data.receipt_id,
             items: [
                 {
-                    name: 'Downgrade OUT: ' + (selectedOutgoingDowngrade.value?.product?.name || selectedOutgoingDowngrade.value?.name || ''),
+                    name: 'OUT: ' + (selectedOutgoingDowngrade.value?.product?.name || selectedOutgoingDowngrade.value?.name || 'Unit Keluar'),
                     imei: selectedOutgoingDowngrade.value?.imei || '-',
                     price: downgradeForm.value.outgoing_price,
-                    qty: 1
+                    condition: selectedOutgoingDowngrade.value?.condition || 'second',
+                    storage: selectedOutgoingDowngrade.value?.storage,
+                    qty: 1,
+                    is_hp: true
                 },
                 {
-                    name: 'Downgrade IN: ' + (selectedDowngradeType.value?.name || ''),
+                    name: 'IN: ' + (selectedDowngradeType.value?.name || 'Unit Masuk'),
                     imei: downgradeForm.value.incoming_imei || '-',
                     price: -downgradeForm.value.incoming_cost_price,
-                    qty: 1
+                    condition: downgradeForm.value.incoming_condition,
+                    storage: downgradeForm.value.incoming_storage,
+                    qty: 1,
+                    is_hp: true
                 }
             ],
             original_price: downgradePriceDiff.value,
             grand_total: downgradePriceDiff.value,
             total: downgradePriceDiff.value,
             paid: downgradePriceDiff.value,
+            payment_method_name: props.availablePaymentMethods.find(m => m.id === downgradeForm.value.payment_method_id)?.name,
             category: 'downgrade',
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
+            inventory_user_name: authStore.user?.name
         };
 
         emit("transaction-complete", transaction);

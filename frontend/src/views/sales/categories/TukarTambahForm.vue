@@ -365,26 +365,34 @@ async function submitTukarTambah(pin = null) {
             order_no: data.receipt_id,
             items: [
                 {
-                    name: 'Tukar Tambah OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || ''),
+                    name: 'OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || selectedOutgoingTukarTambah.value?.name || 'Unit Keluar'),
                     imei: selectedOutgoingTukarTambah.value?.imei || '-',
                     price: tukarTambahForm.value.outgoing_price,
-                    qty: 1
+                    condition: selectedOutgoingTukarTambah.value?.condition || 'second',
+                    storage: selectedOutgoingTukarTambah.value?.storage,
+                    qty: 1,
+                    is_hp: true
                 },
                 {
-                    name: 'Tukar Tambah IN: ' + (selectedTukarTambahType.value?.name || ''),
+                    name: 'IN: ' + (selectedTukarTambahType.value?.name || 'Unit Masuk'),
                     imei: tukarTambahForm.value.incoming_imei || '-',
                     price: -tukarTambahForm.value.incoming_cost_price,
-                    qty: 1
+                    condition: tukarTambahForm.value.incoming_condition,
+                    storage: tukarTambahForm.value.incoming_storage,
+                    qty: 1,
+                    is_hp: true
                 }
             ],
             original_price: tukarTambahPriceDiff.value,
             grand_total: tukarTambahPriceDiff.value,
             total: tukarTambahPriceDiff.value,
             paid: tukarTambahPriceDiff.value,
+            payment_method_name: props.availablePaymentMethods.find(m => m.id === tukarTambahForm.value.payment_method_id)?.name,
             category: 'tukar_tambah',
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
+            inventory_user_name: authStore.user?.name
         };
 
         emit("transaction-complete", transaction);

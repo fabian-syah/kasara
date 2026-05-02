@@ -2020,8 +2020,9 @@ class StockOutController extends Controller
 
         DB::beginTransaction();
         try {
-            // Load items and nonHpDetails (linked to stock_out_non_hp_items)
+            // Load items and nonHpDetails (linked to stock_out_items)
             $stockOut = StockOut::with(['items', 'nonHpDetails', 'user'])->findOrFail($id);
+            $receiptId = $stockOut->receipt_id;
 
             // 1. Restriction: Only allow cancellations for the last 5 reporting days
             $reportingDate = \Carbon\Carbon::parse($stockOut->reporting_date);
@@ -2037,14 +2038,37 @@ class StockOutController extends Controller
 
             $user = $stockOut->user; // Source user/location record
 
-            // 2. Restore HP Items (ProductDetail)
+            // --- A. Handle HP Items (ProductDetail) ---
+            
+            // 1. Restore OUTGOING Items or Remove INCOMING Items attached to StockOut
             foreach ($stockOut->items as $item) {
-                $item->update([
-                    'status' => 'available' 
-                ]);
+                if ($stockOut->category === 'angkat_barang') {
+                    // For Angkat Barang, the item in StockOut is the one we RECEIVED. Remove it.
+                    $item->forceDelete();
+                } else {
+                    // For normal sales/exchanges, the item in StockOut is the one we SOLD. Restore it.
+                    $item->update(['status' => 'available']);
+                }
             }
 
-            // 3. Restore Non-HP Items
+            // 2. Cleanup INCOMING Items for Exchanges/Refunds (Those not in stock_out_items but linked via transaction models)
+            $incomingHP = \App\Models\ProductDetail::where(function($q) use ($receiptId) {
+                $q->where('notes', 'like', "%Masuk dari %: $receiptId%")
+                  ->orWhereHas('unitExchange', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
+                  ->orWhereHas('tukarTambah', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
+                  ->orWhereHas('downgrade', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
+                  ->orWhereHas('refund', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); });
+            })->get();
+
+            foreach ($incomingHP as $inc) {
+                // Delete the IN log to keep history clean
+                \App\Models\InventoryLog::where('product_id', $inc->product_id)
+                    ->where('reference_id', 'like', "%$receiptId%")
+                    ->delete();
+                $inc->forceDelete();
+            }
+
+            // --- B. Handle Non-HP Items ---
             foreach ($stockOut->nonHpDetails as $detail) {
                 $invQuery = Inventory::where('product_id', $detail->product_id);
 
@@ -2059,31 +2083,42 @@ class StockOutController extends Controller
                 $inventory = $invQuery->first();
                 
                 if ($inventory) {
-                    $inventory->increment('quantity', $detail->quantity);
-                } else {
-                    $distributorId = Distributor::first()->id ?? null;
-                    $inventory = Inventory::create([
-                        'product_id' => $detail->product_id,
-                        'placement_type' => $user->branch_id ? 'branch' : ($user->online_shop_id ? 'online_shop' : 'warehouse'),
-                        'placement_id' => $user->branch_id ?? ($user->online_shop_id ?? $user->warehouse_id),
-                        'quantity' => $detail->quantity,
-                        'distributor_id' => $distributorId,
-                        'user_id' => $user->id
-                    ]);
+                    if ($stockOut->category === 'angkat_barang' || $stockOut->category === 'refund') {
+                        // We received this, now we remove it
+                        $inventory->decrement('quantity', $detail->quantity);
+                        
+                        // Log the removal
+                        $logLabel = $stockOut->category === 'refund' ? 'Refund' : 'Angkat Barang';
+                        InventoryLog::create([
+                            'product_id' => $detail->product_id,
+                            'type' => 'out',
+                            'quantity' => $detail->quantity,
+                            'balance_after' => $inventory->quantity,
+                            'description' => "Pembatalan $logLabel (Ref: $receiptId)",
+                            'user_id' => $request->inventory_user_id,
+                            'distributor_id' => $inventory->distributor_id,
+                            'branch_id' => $user->branch_id,
+                            'warehouse_id' => $user->warehouse_id,
+                            'online_shop_id' => $user->online_shop_id
+                        ]);
+                    } else {
+                        // Normal sale, restore stock
+                        $inventory->increment('quantity', $detail->quantity);
+                        
+                        InventoryLog::create([
+                            'product_id' => $detail->product_id,
+                            'type' => 'in',
+                            'quantity' => $detail->quantity,
+                            'balance_after' => $inventory->quantity,
+                            'description' => "Pembatalan Penjualan (Ref: $receiptId)",
+                            'user_id' => $request->inventory_user_id,
+                            'distributor_id' => $inventory->distributor_id,
+                            'branch_id' => $user->branch_id,
+                            'warehouse_id' => $user->warehouse_id,
+                            'online_shop_id' => $user->online_shop_id
+                        ]);
+                    }
                 }
-
-                InventoryLog::create([
-                    'product_id' => $detail->product_id,
-                    'type' => 'in',
-                    'quantity' => $detail->quantity,
-                    'balance_after' => $inventory->quantity,
-                    'description' => "Pembatalan Penjualan (Ref: {$stockOut->receipt_id})",
-                    'user_id' => $request->inventory_user_id, // Log who actually authorized the cancel
-                    'distributor_id' => $inventory->distributor_id,
-                    'branch_id' => $user->branch_id,
-                    'warehouse_id' => $user->warehouse_id,
-                    'online_shop_id' => $user->online_shop_id
-                ]);
             }
 
             // 4. Update the StockOut record

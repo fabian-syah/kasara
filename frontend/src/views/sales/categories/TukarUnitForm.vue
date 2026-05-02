@@ -364,26 +364,37 @@ async function submitUnitExchange(pin = null) {
         const transaction = {
             id: data.id,
             order_no: data.receipt_id,
-            items: [{
-                product: data.incoming_product_type,
-                name: data.incoming_product_type?.name,
-                imei: data.incoming_imei || '-',
-                selling_price: data.outgoing_price,
-                condition: data.incoming_condition,
-                storage: data.incoming_storage,
-                price: data.outgoing_price,
-                qty: 1
-            }],
+            items: [
+                {
+                    name: `OUT: ${data.outgoing_product_detail?.product?.name || data.outgoing_product_detail?.name || 'Unit Keluar'}`,
+                    imei: data.outgoing_product_detail?.imei || '-',
+                    price: data.outgoing_price,
+                    qty: 1,
+                    condition: data.outgoing_product_detail?.condition || 'second',
+                    storage: data.outgoing_product_detail?.storage,
+                    is_hp: true
+                },
+                {
+                    name: `IN: ${data.incoming_product_type?.name || 'Unit Masuk'}`,
+                    imei: data.incoming_imei || '-',
+                    price: -data.outgoing_price, // Negative to balance out
+                    qty: 1,
+                    condition: data.incoming_condition,
+                    storage: data.incoming_storage,
+                    is_hp: true
+                }
+            ],
             original_price: data.outgoing_price,
-            grand_total: data.outgoing_price,
-            total: data.outgoing_price,
-            paid: data.outgoing_price,
+            grand_total: 0, // balanced
+            total: 0,
+            paid: 0,
             cash: 0,
             transfer: 0,
             category: 'tukar_unit',
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
+            inventory_user_name: authStore.user?.name
         };
 
         emit("transaction-complete", transaction);
