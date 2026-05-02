@@ -247,7 +247,8 @@ class TradeInController extends Controller
                         'stock_out_id' => $stockOut->id,
                         'product_id' => $product->id,
                         'quantity' => $quantity,
-                        'selling_price' => -abs((float)$request->buy_price)
+                        'selling_price' => -abs((float)$request->buy_price),
+                        'distributor_id' => $request->distributor_id
                     ]);
 
                     // For non-HP, use Inventory model (quantity based)

@@ -195,6 +195,7 @@ class UnitExchangeController extends Controller
                         'product_id' => $outgoingUnit->product_id,
                         'quantity' => $outQty,
                         'selling_price' => $outPrice,
+                        'distributor_id' => $outgoingUnit->distributor_id
                     ]);
                     // Decrement from Inventory
                     $inventoryOut = \App\Models\Inventory::where([

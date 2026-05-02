@@ -210,6 +210,7 @@ class TukarTambahController extends Controller
                         'product_id' => $outgoingUnit->product_id,
                         'quantity' => $outQty,
                         'selling_price' => $request->outgoing_price,
+                        'distributor_id' => $outgoingUnit->distributor_id
                     ]);
                     // Decrement from Inventory
                     $inventoryOut = \App\Models\Inventory::where([

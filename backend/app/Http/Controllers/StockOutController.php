@@ -126,7 +126,7 @@ class StockOutController extends Controller
             });
         }
 
-        $results = $query->with(['items.product', 'nonHpDetails.product', 'user', 'inventoryUser', 'destination', 'destinationBranch'])
+        $results = $query->with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user', 'inventoryUser', 'destination', 'destinationBranch'])
             ->latest()
             ->paginate($request->per_page ?? 20);
 
@@ -143,7 +143,8 @@ class StockOutController extends Controller
                     'type' => 'HP',
                     'is_hp' => true,
                     'imei' => $item->imei ?? '-',
-                    'notes' => $item->pivot?->notes
+                    'notes' => $item->pivot?->notes,
+                    'distributor_name' => $item->distributor?->name ?? 'KOSONG'
                 ];
             }
 
@@ -156,7 +157,8 @@ class StockOutController extends Controller
                     'type' => 'Item',
                     'is_hp' => false,
                     'imei' => '-',
-                    'notes' => $detail->notes
+                    'notes' => $detail->notes,
+                    'distributor_name' => $detail->distributor?->name ?? 'KOSONG'
                 ];
             }
 
