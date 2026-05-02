@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { useInventoryStore } from "../../../store/inventory";
@@ -45,6 +45,21 @@ const unitExchangeForm = ref({
     outgoing_price: 0,
     reason: "",
     notes: "",
+});
+
+// Persistence Logic
+watch(unitExchangeForm, (newVal) => {
+    localStorage.setItem('temp_tukar_unit_form', JSON.stringify(newVal));
+}, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_tukar_unit_form');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            Object.assign(unitExchangeForm.value, data);
+        } catch (e) {}
+    }
 });
 
 const suggestedOutgoingPrice = ref(0);

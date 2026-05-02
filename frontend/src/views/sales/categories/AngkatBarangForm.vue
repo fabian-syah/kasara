@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { formatCurrency } from "../../../utils/formatters";
@@ -43,6 +43,36 @@ const tradeInForm = ref({
     payment_method_id: null,
     reason: "",
     notes: "",
+});
+
+// Persistence
+watch(tradeInForm, (newVal) => {
+    localStorage.setItem('temp_angkat_barang_form', JSON.stringify(newVal));
+}, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_angkat_barang_form');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            Object.assign(tradeInForm.value, data);
+        } catch (e) {}
+    }
+});
+
+// Persistence
+watch(tradeInForm, (newVal) => {
+    localStorage.setItem('temp_angkat_barang_form', JSON.stringify(newVal));
+}, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_angkat_barang_form');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            Object.assign(tradeInForm.value, data);
+        } catch (e) {}
+    }
 });
 
 const tradeInPhotos = ref({

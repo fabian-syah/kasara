@@ -229,7 +229,7 @@ async function fetchNonHpInventory() {
 // Watchers
 watch(() => form.value.destination_type, (newType) => {
     form.value.destination_id = null;
-    if (newType === 'branch') fetchBranches(); // Already fetched usually
+    if (newType === 'branch') fetchBranches();
     if (newType === 'warehouse') fetchWarehouses();
     if (newType === 'online_shop') fetchOnlineShops();
     if (newType === 'distributor') fetchDistributors();
@@ -237,13 +237,46 @@ watch(() => form.value.destination_type, (newType) => {
 
 watch(selectedCategory, (newCat) => {
     if (newCat === 'pindah_cabang') {
-        // Ensure data is loaded
         if (form.value.destination_type === 'branch' && branches.value.length === 0) fetchBranches();
     }
-    // Load Non-HP inventory when form opens
     if (newCat) {
         fetchNonHpInventory();
     }
+});
+
+// Persistence Logic
+const persistState = () => {
+    localStorage.setItem('temp_stock_out_state', JSON.stringify({
+        selectedCategory: selectedCategory.value,
+        selectedItems: selectedItems.value,
+        selectedNonHpItems: selectedNonHpItems.value,
+        form: form.value,
+        selectedRegionIds: selectedRegionIds.value,
+        showForm: showForm.value
+    }));
+};
+
+watch([selectedCategory, selectedItems, selectedNonHpItems, form, selectedRegionIds, showForm], persistState, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_stock_out_state');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            selectedCategory.value = data.selectedCategory || null;
+            if (data.selectedItems) selectedItems.value = data.selectedItems;
+            if (data.selectedNonHpItems) selectedNonHpItems.value = data.selectedNonHpItems;
+            if (data.form) form.value = { ...form.value, ...data.form };
+            if (data.selectedRegionIds) selectedRegionIds.value = data.selectedRegionIds;
+            showForm.value = !!data.showForm;
+        } catch (e) {}
+    }
+
+    fetchInventory();
+    fetchBranches();
+    fetchCurrentBranch();
+    fetchProvinces();
+    fetchInventoryUsers();
 });
 
 function addNonHpItem() {
@@ -704,6 +737,7 @@ async function submitStockOut() {
         const receiptId = response.data.receipt_id || response.data.data?.receipt_id || 'OK';
         toast.success(`Stok berhasil dikeluarkan! Nota: ${receiptId}`);
 
+        localStorage.removeItem('temp_stock_out_state');
         selectedItems.value = [];
         closeForm();
         router.push('/inventory');

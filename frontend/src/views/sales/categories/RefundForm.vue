@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { formatCurrency } from "../../../utils/formatters";
@@ -40,6 +40,21 @@ const refundForm = ref({
     payment_method_id: null,
     reason: "",
     notes: "",
+});
+
+// Persistence Logic
+watch(refundForm, (newVal) => {
+    localStorage.setItem('temp_refund_form', JSON.stringify(newVal));
+}, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_refund_form');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            Object.assign(refundForm.value, data);
+        } catch (e) {}
+    }
 });
 
 const refundPhotos = ref({

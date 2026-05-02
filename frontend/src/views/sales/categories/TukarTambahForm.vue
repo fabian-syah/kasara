@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import api from "../../../api/axios";
 import { useAuthStore } from "../../../store/auth";
 import { useInventoryStore } from "../../../store/inventory";
@@ -47,6 +47,21 @@ const tukarTambahForm = ref({
     payment_method_id: null,
     reason: "",
     notes: "",
+});
+
+// Persistence Logic
+watch(tukarTambahForm, (newVal) => {
+    localStorage.setItem('temp_tukar_tambah_form', JSON.stringify(newVal));
+}, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_tukar_tambah_form');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            Object.assign(tukarTambahForm.value, data);
+        } catch (e) {}
+    }
 });
 
 const suggestedOutgoingPrice = ref(0);

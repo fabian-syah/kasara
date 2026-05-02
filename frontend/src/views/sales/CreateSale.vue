@@ -57,6 +57,15 @@ const categoriesPenjualan = [
     { id: "downgrade", label: "Downgrade", icon: 'TrendingDown' },
 ];
 
+// Persistence Logic
+watch([currentStep, salesAccount, transactionCategory], ([step, acc, cat]) => {
+    localStorage.setItem('temp_sale_state', JSON.stringify({
+        currentStep: step,
+        salesAccount: acc,
+        transactionCategory: cat
+    }));
+}, { deep: true });
+
 const brands = ref([]);
 const productTypes = ref([]);
 const productPrices = ref([]);
@@ -66,6 +75,19 @@ const selectedAccountObject = computed(() => {
     return salesAccounts.value.find(acc => acc.name === salesAccount.value) || null;
 });
 const availablePaymentMethods = ref([]);
+
+function clearAllTempStates() {
+    const keys = [
+        'temp_sale_state',
+        'temp_cart_state',
+        'temp_tukar_unit_form',
+        'temp_tukar_tambah_form',
+        'temp_downgrade_form',
+        'temp_refund_form',
+        'temp_angkat_barang_form'
+    ];
+    keys.forEach(k => localStorage.removeItem(k));
+}
 
 // Modals State
 const showSuccessModal = ref(false);
@@ -201,6 +223,20 @@ onMounted(async () => {
             if (match) salesAccount.value = match.name;
         }
 
+        // Restore State
+        const saved = localStorage.getItem('temp_sale_state');
+        if (saved) {
+            const data = JSON.parse(saved);
+            if (data.salesAccount) salesAccount.value = data.salesAccount;
+            if (data.transactionCategory) transactionCategory.value = data.transactionCategory;
+            if (data.currentStep) currentStep.value = data.currentStep;
+            
+            // If we restored to step 3 or 4, fetch heavy data
+            if (currentStep.value >= 3) {
+                fetchHeavyData();
+            }
+        }
+
         // Background Phase 2: Start fetching heavy data in background
         fetchHeavyData();
     } catch (e) {
@@ -240,6 +276,7 @@ function handleTransactionComplete(transaction) {
     lastTransaction.value = transaction;
     showSuccessModal.value = true;
     cartStore.clearCart();
+    clearAllTempStates();
 
     const category = transaction?.category || transactionCategory.value;
     toast.success(categoryLabels[category] || 'Transaksi berhasil! ✅', 4000);

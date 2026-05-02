@@ -110,6 +110,48 @@ const nonHpItems = ref([
     }
 ]);
 
+// Persistence Logic
+const persistState = () => {
+    localStorage.setItem('temp_stock_in_state', JSON.stringify({
+        currentStep: currentStep.value,
+        itemType: itemType.value,
+        selectedDistributor: selectedDistributor.value,
+        selectedInventoryUserId: selectedInventoryUserId.value,
+        placementId: placementId.value,
+        placementType: placementType.value,
+        placementLabel: placementLabel.value,
+        hpItems: hpItems.value,
+        nonHpItems: nonHpItems.value,
+        notes: notes.value,
+        isManualDistributor: isManualDistributor.value,
+        newDistributorName: newDistributorName.value
+    }));
+};
+
+watch([currentStep, itemType, selectedDistributor, selectedInventoryUserId, placementId, placementType, placementLabel, hpItems, nonHpItems, notes, isManualDistributor, newDistributorName], persistState, { deep: true });
+
+onMounted(() => {
+    const saved = localStorage.getItem('temp_stock_in_state');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            currentStep.value = data.currentStep || 1;
+            itemType.value = data.itemType || "hp";
+            selectedDistributor.value = data.selectedDistributor || "";
+            selectedInventoryUserId.value = data.selectedInventoryUserId || null;
+            placementId.value = data.placementId || null;
+            placementType.value = data.placementType || "branch";
+            placementLabel.value = data.placementLabel || "";
+            if (data.hpItems) hpItems.value = data.hpItems;
+            if (data.nonHpItems) nonHpItems.value = data.nonHpItems;
+            notes.value = data.notes || "";
+            isManualDistributor.value = !!data.isManualDistributor;
+            newDistributorName.value = data.newDistributorName || "";
+        } catch (e) {}
+    }
+    fetchInitialData();
+});
+
 const addNonHpItem = () => {
     nonHpItems.value.push({
         brand_id: null,

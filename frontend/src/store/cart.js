@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 export const useCartStore = defineStore('cart', () => {
     // State
@@ -9,6 +9,37 @@ export const useCartStore = defineStore('cart', () => {
     const discountType = ref('fixed') // 'percentage' or 'fixed'
     const paymentMethod = ref('cash')
     const notes = ref('')
+
+    // Load from localStorage
+    const savedCart = localStorage.getItem('temp_cart_state');
+    if (savedCart) {
+        try {
+            const data = JSON.parse(savedCart);
+            items.value = data.items || [];
+            customer.value = data.customer || null;
+            discount.value = data.discount || 0;
+            discountType.value = data.discountType || 'fixed';
+            paymentMethod.value = data.paymentMethod || 'cash';
+            notes.value = data.notes || '';
+        } catch (e) {
+            console.error("Failed to restore cart", e);
+        }
+    }
+
+    // Persist to localStorage
+    const persist = () => {
+        localStorage.setItem('temp_cart_state', JSON.stringify({
+            items: items.value,
+            customer: customer.value,
+            discount: discount.value,
+            discountType: discountType.value,
+            paymentMethod: paymentMethod.value,
+            notes: notes.value
+        }));
+    };
+
+    // Watch for changes to persist
+    watch([items, customer, discount, discountType, paymentMethod, notes], persist, { deep: true });
 
     // Getters
     const itemCount = computed(() =>
@@ -142,6 +173,7 @@ export const useCartStore = defineStore('cart', () => {
         discount.value = 0
         discountType.value = 'fixed'
         notes.value = ''
+        localStorage.removeItem('temp_cart_state');
     }
 
     // Helper for proportional global discount distribution
