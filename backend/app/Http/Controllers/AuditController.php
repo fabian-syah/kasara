@@ -1090,7 +1090,7 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
 
-                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei')->get() as $hp) {
+                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff')->get() as $hp) {
                             $catLower = strtolower($hp->category ?? '');
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
@@ -1108,9 +1108,9 @@ class AuditController extends Controller
                             $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
 
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
-                                // For Tukar Tambah, use absolute price difference
+                                // For Tukar Tambah, use absolute price difference from the record itself, not the item price
                                 $price = ($catLower === 'tukar_tambah') 
-                                    ? abs((float)$hp->item_price) 
+                                    ? abs((float)$hp->total_diff) 
                                     : (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
                                     
                                 if (!isset($mapRp[$itemCat])) $mapRp[$itemCat] = 0;
