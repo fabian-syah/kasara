@@ -346,9 +346,8 @@ const selectOutgoingUnit = (item) => {
             <!-- Left: Product Selection -->
             <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
                 class="flex-[2] flex flex-col min-w-0 w-full">
-                <div
-                    class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
-                <div class="relative flex-1 w-full">
+                <div class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+                    <div class="relative flex-1 w-full">
                     <Search class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
                     <input v-model="searchQuery" type="text" placeholder="Cari..."
                         class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-2xl pl-12 pr-4 py-3 sm:py-4 text-base sm:text-lg font-medium text-text-primary focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all" />
@@ -711,7 +710,7 @@ const selectOutgoingUnit = (item) => {
             </div>
         </div>
 
-        <!-- Bundling Modal Teleport -->
+    <!-- Bundling Modal Teleport -->
         <Teleport to="body">
             <div v-if="showBundlingModal" class="fixed inset-0 z-[150] flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="closeBundlingModal"></div>
@@ -883,5 +882,6 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
         </div>
+    </div>
     </div>
 </template>
