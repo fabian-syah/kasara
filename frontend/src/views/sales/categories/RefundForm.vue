@@ -27,6 +27,13 @@ const authStore = useAuthStore();
 const isSubmitting = ref(false);
 const isRestoring = ref(false);
 
+const refundPhotos = ref({
+    unit: null,
+    unitPreview: null,
+    customer: null,
+    customerPreview: null
+});
+
 
 const refundForm = ref({
     customer_name: "",
@@ -90,12 +97,7 @@ onMounted(async () => {
     }
 });
 
-const refundPhotos = ref({
-    unit: null,
-    unitPreview: null,
-    customer: null,
-    customerPreview: null
-});
+// End of state definitions
 
 
 // Computeds

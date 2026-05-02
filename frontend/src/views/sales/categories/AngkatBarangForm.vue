@@ -25,6 +25,14 @@ const emit = defineEmits(["back", "transaction-complete", "reset"]);
 
 const authStore = useAuthStore();
 const isSubmitting = ref(false);
+const isRestoring = ref(false);
+
+const tradeInPhotos = ref({
+    unit: null,
+    unitPreview: null,
+    customer: null,
+    customerPreview: null
+});
 
 
 const tradeInForm = ref({
@@ -94,12 +102,7 @@ onMounted(async () => {
     }
 });
 
-const tradeInPhotos = ref({
-    unit: null,
-    unitPreview: null,
-    customer: null,
-    customerPreview: null
-});
+// End of state definitions
 
 // Computeds
 const filteredBrands = computed(() => {

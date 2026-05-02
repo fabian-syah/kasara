@@ -29,6 +29,16 @@ const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const isSubmitting = ref(false);
 const isRestoring = ref(false);
+const suggestedOutgoingPrice = ref(0);
+const stockSearchQuery = ref("");
+const showStockDropdown = ref(false);
+
+const downgradePhotos = ref({
+    unit: null,
+    unitPreview: null,
+    customer: null,
+    customerPreview: null
+});
 
 const downgradeForm = ref({
     customer_name: "",
@@ -97,16 +107,7 @@ onMounted(async () => {
     }
 });
 
-const suggestedOutgoingPrice = ref(0);
-const stockSearchQuery = ref("");
-const showStockDropdown = ref(false);
-
-const downgradePhotos = ref({
-    unit: null,
-    unitPreview: null,
-    customer: null,
-    customerPreview: null
-});
+// End of state definitions
 
 
 // Computeds
