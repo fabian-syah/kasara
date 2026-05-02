@@ -503,7 +503,7 @@ class AuditController extends Controller
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
                         DB::raw("sum(case when stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", $stdSalesCats) . "') then stock_outs.selling_price else 0 end) as grand_total"), 
-                        DB::raw("sum(case when stock_outs.category IN ('" . implode("','", $activityCats) . "') then stock_outs.selling_price else 0 end) as total_activity_rp"),
+                        DB::raw("sum(case when stock_outs.category IN ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as total_activity_rp"),
                         DB::raw("sum(case when stock_outs.category = 'tukar_unit' then 1 else 0 end) as total_tu"),
                         DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then 1 else 0 end) as total_tt"),
                         DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as total_dw"),
