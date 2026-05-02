@@ -55,6 +55,8 @@ const tradeInForm = ref({
 
 
 // Persistence
+const storageKey = computed(() => `temp_angkat_barang_form_${authStore.user?.id || 'guest'}`);
+
 watch([tradeInForm, tradeInPhotos], ([newForm, newPhotos]) => {
     if (isRestoring.value) return;
     
@@ -63,14 +65,14 @@ watch([tradeInForm, tradeInPhotos], ([newForm, newPhotos]) => {
         customerPreview: newPhotos.customerPreview
     };
 
-    localStorage.setItem('temp_angkat_barang_form', JSON.stringify({
+    localStorage.setItem(storageKey.value, JSON.stringify({
         form: newForm,
         photos: persistentPhotos
     }));
 }, { deep: true });
 
 onMounted(async () => {
-    const saved = localStorage.getItem('temp_angkat_barang_form');
+    const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
             isRestoring.value = true;
@@ -94,7 +96,11 @@ onMounted(async () => {
             }
 
             await nextTick();
-            isRestoring.value = false;
+            await nextTick();
+            // Give some time for child components and watchers to settle
+            setTimeout(() => {
+                isRestoring.value = false;
+            }, 500);
         } catch (e) {
             isRestoring.value = false;
         }

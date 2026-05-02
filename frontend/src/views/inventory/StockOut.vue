@@ -245,8 +245,10 @@ watch(selectedCategory, (newCat) => {
 });
 
 // Persistence Logic
+const getStorageKey = () => `temp_stock_out_state_${authStore.user?.id || 'guest'}`;
+
 const persistState = () => {
-    localStorage.setItem('temp_stock_out_state', JSON.stringify({
+    localStorage.setItem(getStorageKey(), JSON.stringify({
         selectedCategory: selectedCategory.value,
         selectedItems: selectedItems.value,
         selectedNonHpItems: selectedNonHpItems.value,
@@ -259,7 +261,7 @@ const persistState = () => {
 watch([selectedCategory, selectedItems, selectedNonHpItems, form, selectedRegionIds, showForm], persistState, { deep: true });
 
 onMounted(() => {
-    const saved = localStorage.getItem('temp_stock_out_state');
+    const saved = localStorage.getItem(getStorageKey());
     if (saved) {
         try {
             const data = JSON.parse(saved);

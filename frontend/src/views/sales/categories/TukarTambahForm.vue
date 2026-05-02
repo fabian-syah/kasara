@@ -61,6 +61,8 @@ const tukarTambahForm = ref({
 });
 
 // Persistence Logic
+const storageKey = computed(() => `temp_tukar_tambah_form_${authStore.user?.id || 'guest'}`);
+
 watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
     
@@ -69,7 +71,7 @@ watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuer
         customerPreview: newPhotos.customerPreview
     };
 
-    localStorage.setItem('temp_tukar_tambah_form', JSON.stringify({
+    localStorage.setItem(storageKey.value, JSON.stringify({
         form: newForm,
         query: newQuery,
         photos: persistentPhotos
@@ -77,7 +79,7 @@ watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuer
 }, { deep: true });
 
 onMounted(async () => {
-    const saved = localStorage.getItem('temp_tukar_tambah_form');
+    const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
             isRestoring.value = true;
@@ -102,7 +104,11 @@ onMounted(async () => {
             }
             
             await nextTick();
-            isRestoring.value = false;
+            await nextTick();
+            // Give some time for child components and watchers to settle
+            setTimeout(() => {
+                isRestoring.value = false;
+            }, 500);
         } catch (e) {
             isRestoring.value = false;
         }

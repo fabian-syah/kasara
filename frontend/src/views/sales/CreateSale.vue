@@ -58,8 +58,10 @@ const categoriesPenjualan = [
 ];
 
 // Persistence Logic
+const getStorageKey = (base) => `${base}_${authStore.user?.id || 'guest'}`;
+
 watch([currentStep, salesAccount, transactionCategory], ([step, acc, cat]) => {
-    localStorage.setItem('temp_sale_state', JSON.stringify({
+    localStorage.setItem(getStorageKey('temp_sale_state'), JSON.stringify({
         currentStep: step,
         salesAccount: acc,
         transactionCategory: cat
@@ -77,6 +79,7 @@ const selectedAccountObject = computed(() => {
 const availablePaymentMethods = ref([]);
 
 function clearAllTempStates() {
+    const userId = authStore.user?.id || 'guest';
     const keys = [
         'temp_sale_state',
         'temp_cart_state',
@@ -86,7 +89,7 @@ function clearAllTempStates() {
         'temp_refund_form',
         'temp_angkat_barang_form'
     ];
-    keys.forEach(k => localStorage.removeItem(k));
+    keys.forEach(k => localStorage.removeItem(`${k}_${userId}`));
 }
 
 // Modals State
@@ -224,7 +227,7 @@ onMounted(async () => {
         }
 
         // Restore State
-        const saved = localStorage.getItem('temp_sale_state');
+        const saved = localStorage.getItem(getStorageKey('temp_sale_state'));
         if (saved) {
             const data = JSON.parse(saved);
             if (data.salesAccount) salesAccount.value = data.salesAccount;

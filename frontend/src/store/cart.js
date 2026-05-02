@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useAuthStore } from './auth'
 
 export const useCartStore = defineStore('cart', () => {
     // State
@@ -10,25 +11,46 @@ export const useCartStore = defineStore('cart', () => {
     const paymentMethod = ref('cash')
     const notes = ref('')
 
+    const authStore = useAuthStore()
+    const getStorageKey = () => `temp_cart_state_${authStore.user?.id || 'guest'}`
+
     // Load from localStorage
-    const savedCart = localStorage.getItem('temp_cart_state');
-    if (savedCart) {
-        try {
-            const data = JSON.parse(savedCart);
-            items.value = data.items || [];
-            customer.value = data.customer || null;
-            discount.value = data.discount || 0;
-            discountType.value = data.discountType || 'fixed';
-            paymentMethod.value = data.paymentMethod || 'cash';
-            notes.value = data.notes || '';
-        } catch (e) {
-            console.error("Failed to restore cart", e);
+    function loadFromStorage() {
+        const savedCart = localStorage.getItem(getStorageKey());
+        if (savedCart) {
+            try {
+                const data = JSON.parse(savedCart);
+                items.value = data.items || [];
+                customer.value = data.customer || null;
+                discount.value = data.discount || 0;
+                discountType.value = data.discountType || 'fixed';
+                paymentMethod.value = data.paymentMethod || 'cash';
+                notes.value = data.notes || '';
+            } catch (e) {
+                console.error("Failed to restore cart", e);
+            }
+        } else {
+            // Reset if no saved cart for this user
+            items.value = [];
+            customer.value = null;
+            discount.value = 0;
+            discountType.value = 'fixed';
+            paymentMethod.value = 'cash';
+            notes.value = '';
         }
     }
 
+    // Initial load
+    loadFromStorage();
+
+    // Reload when user changes
+    watch(() => authStore.user?.id, () => {
+        loadFromStorage();
+    });
+
     // Persist to localStorage
     const persist = () => {
-        localStorage.setItem('temp_cart_state', JSON.stringify({
+        localStorage.setItem(getStorageKey(), JSON.stringify({
             items: items.value,
             customer: customer.value,
             discount: discount.value,
@@ -173,7 +195,7 @@ export const useCartStore = defineStore('cart', () => {
         discount.value = 0
         discountType.value = 'fixed'
         notes.value = ''
-        localStorage.removeItem('temp_cart_state');
+        localStorage.removeItem(getStorageKey());
     }
 
     // Helper for proportional global discount distribution

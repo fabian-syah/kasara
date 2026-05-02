@@ -59,6 +59,8 @@ const unitExchangeForm = ref({
 });
 
 // Persistence Logic
+const storageKey = computed(() => `temp_tukar_unit_form_${authStore.user?.id || 'guest'}`);
+
 watch([unitExchangeForm, stockSearchQuery, unitExchangePhotos], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
     
@@ -68,7 +70,7 @@ watch([unitExchangeForm, stockSearchQuery, unitExchangePhotos], ([newForm, newQu
         customerPreview: newPhotos.customerPreview
     };
 
-    localStorage.setItem('temp_tukar_unit_form', JSON.stringify({
+    localStorage.setItem(storageKey.value, JSON.stringify({
         form: newForm,
         query: newQuery,
         photos: persistentPhotos
@@ -76,7 +78,7 @@ watch([unitExchangeForm, stockSearchQuery, unitExchangePhotos], ([newForm, newQu
 }, { deep: true });
 
 onMounted(async () => {
-    const saved = localStorage.getItem('temp_tukar_unit_form');
+    const saved = localStorage.getItem(storageKey.value);
     if (saved) {
         try {
             isRestoring.value = true;
@@ -101,9 +103,12 @@ onMounted(async () => {
                 }
             }
             
-            // Wait for next tick to ensure watchers don't trigger on initial assignment
             await nextTick();
-            isRestoring.value = false;
+            await nextTick();
+            // Give some time for child components and watchers to settle
+            setTimeout(() => {
+                isRestoring.value = false;
+            }, 500);
         } catch (e) {
             isRestoring.value = false;
         }

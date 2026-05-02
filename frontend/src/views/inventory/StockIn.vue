@@ -111,8 +111,10 @@ const nonHpItems = ref([
 ]);
 
 // Persistence Logic
+const getStorageKey = () => `temp_stock_in_state_${authStore.user?.id || 'guest'}`;
+
 const persistState = () => {
-    localStorage.setItem('temp_stock_in_state', JSON.stringify({
+    localStorage.setItem(getStorageKey(), JSON.stringify({
         currentStep: currentStep.value,
         itemType: itemType.value,
         selectedDistributor: selectedDistributor.value,
@@ -131,7 +133,7 @@ const persistState = () => {
 watch([currentStep, itemType, selectedDistributor, selectedInventoryUserId, placementId, placementType, placementLabel, hpItems, nonHpItems, notes, isManualDistributor, newDistributorName], persistState, { deep: true });
 
 onMounted(() => {
-    const saved = localStorage.getItem('temp_stock_in_state');
+    const saved = localStorage.getItem(getStorageKey());
     if (saved) {
         try {
             const data = JSON.parse(saved);
