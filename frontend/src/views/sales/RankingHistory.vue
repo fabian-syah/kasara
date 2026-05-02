@@ -682,7 +682,11 @@
                                     <th v-if="currentView === 'activity'"
                                         class="px-2 py-4 text-center text-primary-500">Total Unit
                                     </th>
-                                    <th class="px-6 py-4 text-right">Grand Total</th>
+                                    <th v-if="currentView === 'activity'" class="px-6 py-4 text-right">
+                                        Grand Total
+                                        <span class="block text-[10px] font-medium normal-case text-text-secondary mt-0.5 tracking-tight">(Refund & AB)</span>
+                                    </th>
+                                    <th v-else class="px-6 py-4 text-right">Grand Total</th>
                                 </template>
                                 <template v-else-if="currentView === 'type'">
                                     <th class="px-6 py-4">Brand</th>
@@ -896,7 +900,7 @@
                                         </template>
                                         <td
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
-                                            {{ formatCurrency(currentView === 'activity' ? item.total_activity_rp :
+                                            {{ formatCurrency(currentView === 'activity' ? Math.abs(item.total_activity_rp) :
                                             item.grand_total) }}
                                         </td>
                                     </template>
@@ -1005,7 +1009,7 @@
                                     <td class="px-2 py-4 text-center text-primary-500 font-black">{{ totals.activity }}
                                     </td>
                                     <td class="px-6 py-4 text-right font-mono">{{
-                                        formatCurrency(totals.activity_revenue) }}</td>
+                                        formatCurrency(Math.abs(totals.activity_revenue)) }}</td>
                                 </template>
 
                                 <template v-else-if="currentView === 'type'">
