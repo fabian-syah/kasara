@@ -788,7 +788,13 @@ class AuditController extends Controller
                 function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $isSuperAdmin, $currentRoles) {
                     try {
                         $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
-                            $query->whereBetween('stock_outs.reporting_date', [$startDate, $endDate]);
+                            $startTS = $startDate . ' 05:00:00';
+                            $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
+                            
+                            $query->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
+                                $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                                    ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                            });
 
                             $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                                 $scoper = function ($qq, $col, $val) {

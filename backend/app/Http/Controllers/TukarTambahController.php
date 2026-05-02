@@ -150,6 +150,7 @@ class TukarTambahController extends Controller
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'tukar_tambah',
+                    'reporting_date' => now()->hour < 5 ? now()->subDay()->toDateString() : now()->toDateString(),
                     'customer_name' => $request->customer_name,
                     'customer_phone' => $request->customer_phone,
                     'customer_wa' => $request->customer_phone,
