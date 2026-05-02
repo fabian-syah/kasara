@@ -77,9 +77,7 @@ class TradeInController extends Controller
                 // Resolve inventory_user_id and target location
                 $inventoryUserId = $request->inventory_user_id;
                 if (!$inventoryUserId && $request->sales_account) {
-                    $invUser = \App\Models\User::where('name', $request->sales_account)
-                                   ->whereHas('roles', function($q) { $q->where('name', 'inventory'); })
-                                   ->first();
+                    $invUser = \App\Models\User::where('name', $request->sales_account)->first();
                     if ($invUser) $inventoryUserId = $invUser->id;
                 }
                 $inventoryUserId = $inventoryUserId ?? $user->id;
@@ -172,6 +170,7 @@ class TradeInController extends Controller
                             'warehouse_id' => $warehouseId,
                             'online_shop_id' => $onlineShopId,
                             'inventory_user_id' => $inventoryUserId,
+                            'sales_account' => $request->sales_account ?? $targetUser?->name,
                             'status' => 'received',
                             'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                             'proof_image' => $photoLog['unit'] ?? null,
@@ -227,6 +226,7 @@ class TradeInController extends Controller
                         'warehouse_id' => $warehouseId,
                         'online_shop_id' => $onlineShopId,
                         'inventory_user_id' => $inventoryUserId,
+                        'sales_account' => $request->sales_account ?? $targetUser?->name,
                         'status' => 'received',
                         'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                         'proof_image' => $photoLog['unit'] ?? null,

@@ -560,13 +560,13 @@ class AuditController extends Controller
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                         if ($requestedBranchId) {
                             $q->where('stock_outs.branch_id', $requestedBranchId)
-                              ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.branch_id', $requestedBranchId));
+                              ->orWhere(fn($sq) => $sq->whereNull('stock_outs.branch_id')->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.branch_id', $requestedBranchId)));
                         } elseif ($requestedOnlineShopId) {
                             $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                              ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.online_shop_id', $requestedOnlineShopId));
+                              ->orWhere(fn($sq) => $sq->whereNull('stock_outs.online_shop_id')->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.online_shop_id', $requestedOnlineShopId)));
                         } elseif ($requestedWarehouseId) {
                             $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                              ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.warehouse_id', $requestedWarehouseId));
+                              ->orWhere(fn($sq) => $sq->whereNull('stock_outs.warehouse_id')->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.warehouse_id', $requestedWarehouseId)));
                         } elseif ($requestedDistributorId) {
                             $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
                         } else {
@@ -594,11 +594,11 @@ class AuditController extends Controller
 
                                 if (!empty($branchIds)) {
                                     $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                        ->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.branch_id', $branchIds));
+                                        ->orWhere(fn($sq) => $sq->whereNull('stock_outs.branch_id')->whereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.branch_id', $branchIds)));
                                 }
                                 if (!empty($onlineShopIds)) {
                                     $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                        ->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.online_shop_id', $onlineShopIds));
+                                        ->orWhere(fn($sq) => $sq->whereNull('stock_outs.online_shop_id')->whereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.online_shop_id', $onlineShopIds)));
                                 }
                                 if (!empty($warehouseIds)) {
                                     $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)

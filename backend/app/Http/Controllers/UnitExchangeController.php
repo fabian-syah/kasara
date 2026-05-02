@@ -67,9 +67,7 @@ class UnitExchangeController extends Controller
                 // Resolve inventory_user_id and target location
                 $inventoryUserId = $request->inventory_user_id;
                 if (!$inventoryUserId && $request->sales_account) {
-                    $invUser = \App\Models\User::where('name', $request->sales_account)
-                                   ->whereHas('roles', function($q) { $q->where('name', 'inventory'); })
-                                   ->first();
+                    $invUser = \App\Models\User::where('name', $request->sales_account)->first();
                     if ($invUser) $inventoryUserId = $invUser->id;
                 }
                 $inventoryUserId = $inventoryUserId ?? $user->id;
@@ -151,6 +149,7 @@ class UnitExchangeController extends Controller
                     'customer_wa' => $request->customer_wa ?? $request->customer_phone,
                     'user_id' => $user->id,
                     'inventory_user_id' => $inventoryUserId,
+                    'sales_account' => $request->sales_account ?? $targetUser?->name,
                     'status' => 'received', // Mark as completed
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
