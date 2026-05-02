@@ -79,27 +79,64 @@
             </div>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
-                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Total Penjualan</p>
-                <p class="text-2xl font-bold text-text-primary mt-1">{{ formatCurrency(totalSales) }}</p>
+        <!-- NEW Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Omset -->
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <TrendingUp :size="14" class="text-primary-500" />
+                        Total Omset
+                    </p>
+                    <p class="text-2xl font-black text-text-primary mt-2">{{ formatCurrency(summaryStats.totalOmset) }}</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan + Selisih TT</p>
+                </div>
             </div>
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
-                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Total Unit</p>
-                <p class="text-2xl font-bold text-primary-500 mt-1">{{ totalUnits }}</p>
+
+            <!-- Omset Bersih -->
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Wallet :size="14" class="text-emerald-500" />
+                        Omset Bersih
+                    </p>
+                    <p class="text-2xl font-black text-emerald-600 mt-2">{{ formatCurrency(summaryStats.omsetBersih) }}</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat + Refund + DG)</p>
+                </div>
             </div>
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
-                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Lunas</p>
-                <p class="text-2xl font-bold text-emerald-500 mt-1">{{ formatCurrency(totalLunas) }}</p>
+
+            <!-- Total Unit HP -->
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Smartphone :size="14" class="text-blue-500" />
+                        Unit HP
+                    </p>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <p class="text-2xl font-black text-blue-600">{{ summaryStats.hpUnits }}</p>
+                        <p class="text-xs font-bold text-text-secondary">Unit</p>
+                    </div>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Barang Ber-IMEI</p>
+                </div>
             </div>
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm">
-                <p class="text-text-secondary text-xs font-medium uppercase tracking-wider">Belum Lunas</p>
-                <p class="text-2xl font-bold text-amber-500 mt-1">{{ formatCurrency(totalBelumLunas) }}</p>
+
+            <!-- Total Unit Non-HP -->
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Box :size="14" class="text-purple-500" />
+                        Unit Non-HP
+                    </p>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <p class="text-2xl font-black text-purple-600">{{ summaryStats.nonHpUnits }}</p>
+                        <p class="text-xs font-bold text-text-secondary">Pcs</p>
+                    </div>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Aksesoris & Lainnya</p>
+                </div>
             </div>
         </div>
 
@@ -465,7 +502,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, Trash2, AlertCircle } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
@@ -486,7 +523,11 @@ const categoryLabels = {
     'retur': 'Retur',
     'cancel_penjualan': 'Dibatalkan',
     'refund': 'Refund',
-    'angkat_barang': 'Angkat Barang'
+    'angkat_barang': 'Angkat Barang',
+    'penjualan_store': 'Penjualan Store',
+    'tukar_tambah': 'Tukar Tambah',
+    'tukar_unit': 'Tukar Unit',
+    'downgrade': 'Downgrade'
 };
 
 const months = [
@@ -685,6 +726,51 @@ const totalLunas = computed(() => activeRecords.value.filter(item => item.status
 const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.status !== 'Lunas').reduce((sum, item) => {
     return sum + (parseFloat(item.grand_total) || 0);
 }, 0))
+
+const summaryStats = computed(() => {
+    let sales = 0;
+    let out = 0;
+    let hpUnits = 0;
+    let nonHpUnits = 0;
+
+    activeRecords.value.forEach(item => {
+        const cat = item.category;
+        const total = parseFloat(item.grand_total) || 0;
+
+        // Omset Logic: Sales categories vs Expense/Return categories
+        if (['angkat_barang', 'refund', 'downgrade'].includes(cat)) {
+            out += total;
+        } else {
+            sales += total;
+        }
+
+        // Unit Logic: HP (with IMEI) vs Non-HP
+        if (item.items && item.items.length > 0) {
+            item.items.forEach(detail => {
+                const qty = parseInt(detail.qty) || 0;
+                if (detail.imei && detail.imei !== '-') {
+                    hpUnits += qty;
+                } else {
+                    nonHpUnits += qty;
+                }
+            });
+        } else {
+            const qty = parseInt(item.qty) || 0;
+            if (item.imeis && item.imeis !== '-') {
+                hpUnits += qty;
+            } else {
+                nonHpUnits += qty;
+            }
+        }
+    });
+
+    return {
+        totalOmset: sales,
+        omsetBersih: sales - out,
+        hpUnits,
+        nonHpUnits
+    };
+});
 
 const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', {
