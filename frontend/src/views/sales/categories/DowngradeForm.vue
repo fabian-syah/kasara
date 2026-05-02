@@ -490,7 +490,7 @@ async function submitDowngrade(pin = null) {
                         <div class="relative">
                             <input v-model="stockSearchQuery" type="text"
                                 @focus="showStockDropdown = true"
-                                @blur="setTimeout(() => { showStockDropdown = false }, 200)"
+                                @blur="window.setTimeout(() => { showStockDropdown = false }, 200)"
                                 placeholder="Ketik Nama, Brand, IMEI, atau Harga..."
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                             
