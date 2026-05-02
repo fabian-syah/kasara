@@ -742,12 +742,11 @@ const summaryStats = computed(() => {
         // Standard Sales categories
         const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale'].includes(cat);
         const isTradeIn = cat === 'tukar_tambah';
-        const isDowngrade = cat === 'downgrade';
         const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(cat);
 
         if (isBaseSale) {
             baseSales += total;
-        } else if (isTradeIn || isDowngrade) {
+        } else if (isTradeIn) {
             tradeSelisih += total;
         }
 

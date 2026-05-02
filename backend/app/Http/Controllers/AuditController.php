@@ -605,7 +605,7 @@ class AuditController extends Controller
                         ->groupBy('reporting_date')->get()->keyBy('reporting_date');
 
                     $mainStats = (clone $baseQuery)->select('reporting_date', 
-                        DB::raw('sum(CASE WHEN category IN (\'tukar_tambah\', \'downgrade\') THEN ABS(selling_price) ELSE selling_price END) as total_omset'))
+                        DB::raw('sum(CASE WHEN category = \'tukar_tambah\' THEN ABS(selling_price) WHEN category IN (\'downgrade\', \'tukar_unit\', \'refund\', \'angkat_barang\') THEN 0 ELSE selling_price END) as total_omset'))
                         ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
 
                     return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
@@ -927,11 +927,17 @@ class AuditController extends Controller
 
                         foreach ($paymentStats as $ps) {
                             $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+                            $cat = $ps->category;
                             
-                            // Use absolute value for Trade-in / Downgrade differences
-                            $amount = (in_array($ps->category, ['tukar_tambah', 'downgrade'])) 
-                                ? abs((float)$ps->selling_price) 
-                                : (float)$ps->selling_price;
+                            // Total Omset formula: Base Sales + Selisih Tukar Tambah
+                            // Downgrade and Tukar Unit are EXCLUDED from Total Omset
+                            if ($cat === 'tukar_tambah') {
+                                $amount = abs((float)$ps->selling_price);
+                            } elseif (in_array($cat, ['downgrade', 'tukar_unit', 'refund', 'angkat_barang'])) {
+                                $amount = 0;
+                            } else {
+                                $amount = (float)$ps->selling_price;
+                            }
                                 
                             $pSums[$mName] = ($pSums[$mName] ?? 0) + $amount;
                             $paymentTotal += $amount;
@@ -951,10 +957,13 @@ class AuditController extends Controller
                             if (is_array($sData)) {
                                 foreach ($sData as $sp) {
                                     $amt = (float) ($sp['amount'] ?? 0);
+                                    $cat = $s->category;
                                     
-                                    // Use absolute value for split amounts in TT/DG if they are stored as negative
-                                    if (in_array($s->category, ['tukar_tambah', 'downgrade'])) {
+                                    // Total Omset formula for splits
+                                    if ($cat === 'tukar_tambah') {
                                         $amt = abs($amt);
+                                    } elseif (in_array($cat, ['downgrade', 'tukar_unit', 'refund', 'angkat_barang'])) {
+                                        $amt = 0;
                                     }
                                     
                                     $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
