@@ -188,17 +188,8 @@ watch(() => unitExchangeForm.value.outgoing_product_detail_id, (newId) => {
     }
 });
 
-// Sync incoming cost price with outgoing price (Tukar Unit = Same Price)
-watch(() => unitExchangeForm.value.outgoing_price, (newVal) => {
-    if (newVal !== unitExchangeForm.value.incoming_cost_price) {
-        unitExchangeForm.value.incoming_cost_price = newVal;
-    }
-});
-
 watch(() => unitExchangeForm.value.incoming_cost_price, (newVal) => {
-    if (newVal && newVal !== unitExchangeForm.value.outgoing_price) {
-        unitExchangeForm.value.outgoing_price = newVal;
-    }
+    // No longer syncing with outgoing_price, just allow independent input
 });
 
 // Helpers
@@ -234,8 +225,8 @@ function selectStockItem(item) {
     const inventoryPrice = selling > 0 ? selling : (cost > 0 ? cost : 0);
     
     unitExchangeForm.value.outgoing_price = inventoryPrice;
-    // For Tukar Unit, incoming price MUST match outgoing price (fairness)
-    unitExchangeForm.value.incoming_cost_price = inventoryPrice;
+    // No longer forcing incoming price to match outgoing price automatically
+    // unitExchangeForm.value.incoming_cost_price = inventoryPrice;
 
     stockSearchQuery.value = `[${item.product?.brand || '-'}] ${item.product?.name || item.name} - ${item.imei || 'Non-IMEI'}`;
     showStockDropdown.value = false;
@@ -475,7 +466,7 @@ async function submitUnitExchange(pin = null) {
                             <input v-money:incoming_cost_price="unitExchangeForm" type="text"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
-                        <p class="mt-1 text-[10px] text-primary-600 font-bold italic">*Harga masuk & keluar akan selalu sama (Tukar Unit)</p>
+                        <p class="mt-1 text-[10px] text-text-secondary font-medium italic">*Otomatis jadi harga modal</p>
                     </div>
                 </div>
 
