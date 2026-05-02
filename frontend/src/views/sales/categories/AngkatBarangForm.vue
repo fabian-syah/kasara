@@ -53,7 +53,6 @@ const tradeInForm = ref({
     notes: "",
 });
 
-const isRestoring = ref(false);
 
 // Persistence
 watch([tradeInForm, tradeInPhotos], ([newForm, newPhotos]) => {
