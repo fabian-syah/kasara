@@ -478,8 +478,8 @@ watch(transactionCategory, () => {
             </div>
 
             <!-- STEP 2: CATEGORY SELECTION -->
-            <div v-if="currentStep === 2" class="flex-1 flex items-center justify-center animate-fade-in py-8">
-                <div class="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div v-if="currentStep === 2" class="flex-1 flex flex-col items-center justify-center animate-fade-in py-8">
+                <div class="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
                     <button v-for="cat in categoriesPenjualan" :key="cat.id"
                         @click="transactionCategory = cat.id; nextStep()"
                         class="p-6 sm:p-8 bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border-2 border-surface-100 dark:border-surface-700 hover:border-primary-500 hover:shadow-2xl hover:shadow-primary-500/10 transition-all group relative overflow-hidden text-left flex flex-col gap-3 sm:gap-4 active:scale-95">
@@ -497,6 +497,15 @@ watch(transactionCategory, () => {
                             {{ cat.label }}</h3>
                     </button>
                 </div>
+
+                <!-- Back to Account Selection -->
+                <button @click="prevStep" 
+                    class="group flex items-center gap-3 px-8 py-4 bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 rounded-2xl transition-all active:scale-95">
+                    <ArrowLeft class="text-text-secondary group-hover:text-primary-600 transition-colors" :size="20" stroke-width="3" />
+                    <span class="text-sm font-black text-text-secondary group-hover:text-primary-600 uppercase tracking-widest transition-colors">
+                        Kembali Ganti Akun
+                    </span>
+                </button>
             </div>
 
             <!-- LOADING OVERLAY FOR STEP 3 DATA -->
