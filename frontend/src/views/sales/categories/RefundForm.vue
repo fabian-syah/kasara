@@ -544,7 +544,7 @@ async function submitRefund(pin = null) {
                                         Customer</span>
                                 </template>
                                 <input type="file" ref="customerRefundInput"
-                                    @change="e => handleRefundPhotoUpload('customer', e)" accept="image/*"
+                                    @change="e => handlePhotoChange('customer', e)" accept="image/*"
                                     class="hidden" capture="environment" />
                             </div>
                         </div>
