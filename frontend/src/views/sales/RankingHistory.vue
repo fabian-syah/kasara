@@ -1293,6 +1293,13 @@ const sortedData = computed(() => {
         })
     }
 
+    if (currentView.value === 'sales') {
+        filtered = base.filter(item => {
+            return (item.total_sales || 0) > 0 || (item.grand_total || 0) > 0
+        })
+    }
+
+
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase().trim()
         const deepSearch = (item) => {
