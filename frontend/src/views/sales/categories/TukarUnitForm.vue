@@ -109,25 +109,28 @@ const selectedOutgoingItem = computed(() => {
 });
 
 const filteredInventoryProducts = computed(() => {
+    // Priority search query: if user is typing in incoming price, use that, otherwise use stockSearchQuery
     const q = stockSearchQuery.value.toLowerCase().trim();
+    const incomingQ = unitExchangeForm.value.incoming_cost_price?.toString() || '';
+    
     const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold');
-    if (!q) return allProducts;
+    if (!q && (!incomingQ || incomingQ === '0')) return allProducts;
 
     const cleanQ = q.replace(/\./g, '');
-    const isNumeric = /^\d+$/.test(cleanQ);
-
+    const cleanIncoming = incomingQ.replace(/\./g, '');
+    
     return allProducts.filter(p => {
         const name = (p.product?.name || p.name || '').toLowerCase();
         const brand = (p.product?.brand || p.brand || '').toLowerCase();
         const imei = (p.imei || '').toLowerCase();
+        const cost = p.cost_price?.toString() || '';
+        const selling = p.selling_price?.toString() || '';
 
         const matchesText = name.includes(q) || brand.includes(q) || imei.includes(q);
-        if (isNumeric && cleanQ.length >= 3) {
-            const cost = p.cost_price?.toString() || '';
-            const selling = p.selling_price?.toString() || '';
-            return matchesText || cost.includes(cleanQ) || selling.includes(cleanQ);
-        }
-        return matchesText;
+        const matchesPrice = (cleanQ && cleanQ.length >= 3 && (cost.includes(cleanQ) || selling.includes(cleanQ))) ||
+                           (cleanIncoming && cleanIncoming.length >= 4 && (cost.includes(cleanIncoming) || selling.includes(cleanIncoming)));
+
+        return matchesText || matchesPrice;
     });
 });
 
@@ -176,7 +179,17 @@ watch(() => unitExchangeForm.value.outgoing_product_detail_id, (newId) => {
 
 // Sync incoming cost price with outgoing price (Tukar Unit = Same Price)
 watch(() => unitExchangeForm.value.outgoing_price, (newVal) => {
-    unitExchangeForm.value.incoming_cost_price = newVal;
+    if (newVal !== unitExchangeForm.value.incoming_cost_price) {
+        unitExchangeForm.value.incoming_cost_price = newVal;
+    }
+});
+
+watch(() => unitExchangeForm.value.incoming_cost_price, (newVal) => {
+    if (newVal && newVal !== unitExchangeForm.value.outgoing_price) {
+        unitExchangeForm.value.outgoing_price = newVal;
+        // If they are typing in price, show the dropdown to help them pick the unit
+        if (newVal > 0) showStockDropdown.value = true;
+    }
 });
 
 // Helpers
@@ -451,10 +464,10 @@ async function submitUnitExchange(pin = null) {
                         <div class="relative">
                             <span
                                 class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                            <input v-money:incoming_cost_price="unitExchangeForm" type="text" readonly
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-100 dark:bg-surface-800/50 focus:border-primary-500 transition-all outline-none font-black text-lg text-text-secondary cursor-not-allowed" />
+                            <input v-money:incoming_cost_price="unitExchangeForm" type="text"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                         </div>
-                        <p class="mt-1 text-[10px] text-primary-600 font-bold italic">*Otomatis mengikuti harga barang keluar (Tukar Unit)</p>
+                        <p class="mt-1 text-[10px] text-primary-600 font-bold italic">*Harga masuk & keluar akan selalu sama (Tukar Unit)</p>
                     </div>
                 </div>
 
