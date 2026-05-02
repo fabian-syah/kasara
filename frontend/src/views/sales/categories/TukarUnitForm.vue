@@ -127,8 +127,10 @@ const filteredInventoryProducts = computed(() => {
         const selling = p.selling_price?.toString() || '';
 
         const matchesText = name.includes(q) || brand.includes(q) || imei.includes(q);
-        const matchesPrice = (cleanQ && cleanQ.length >= 3 && (cost.includes(cleanQ) || selling.includes(cleanQ))) ||
-                           (cleanIncoming && cleanIncoming.length >= 4 && (cost.includes(cleanIncoming) || selling.includes(cleanIncoming)));
+        
+        // Stricter price matching: must match exactly or be a prefix of at least 4 digits
+        const matchesPrice = (cleanQ && cleanQ.length >= 4 && (cost.startsWith(cleanQ) || selling.startsWith(cleanQ))) ||
+                           (cleanIncoming && cleanIncoming.length >= 5 && (cost === cleanIncoming || selling === cleanIncoming));
 
         return matchesText || matchesPrice;
     });
@@ -187,8 +189,6 @@ watch(() => unitExchangeForm.value.outgoing_price, (newVal) => {
 watch(() => unitExchangeForm.value.incoming_cost_price, (newVal) => {
     if (newVal && newVal !== unitExchangeForm.value.outgoing_price) {
         unitExchangeForm.value.outgoing_price = newVal;
-        // If they are typing in price, show the dropdown to help them pick the unit
-        if (newVal > 0) showStockDropdown.value = true;
     }
 });
 

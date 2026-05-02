@@ -122,10 +122,10 @@ const filteredInventoryProducts = computed(() => {
         const imei = (p.imei || '').toLowerCase();
 
         const matchesText = name.includes(q) || brand.includes(q) || imei.includes(q);
-        if (isNumeric && cleanQ.length >= 3) {
+        if (isNumeric && cleanQ.length >= 4) {
             const cost = p.cost_price?.toString() || '';
             const selling = p.selling_price?.toString() || '';
-            return matchesText || cost.includes(cleanQ) || selling.includes(cleanQ);
+            return matchesText || cost.startsWith(cleanQ) || selling.startsWith(cleanQ);
         }
         return matchesText;
     });
