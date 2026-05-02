@@ -170,8 +170,6 @@ watch(() => tukarTambahForm.value.outgoing_product_detail_id, (newId) => {
             const selling = parseFloat(item.selling_price || item.price || 0);
             const cost = parseFloat(item.cost_price || 0);
             suggestedOutgoingPrice.value = selling > 0 ? selling : (cost > 0 ? cost : 0);
-            // Reset price to 0 to force user to type it (per user request: "biar gak ke skip")
-            tukarTambahForm.value.outgoing_price = 0;
         }
     } else {
         suggestedOutgoingPrice.value = 0;

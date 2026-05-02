@@ -176,10 +176,6 @@ watch(() => unitExchangeForm.value.outgoing_product_detail_id, (newId) => {
             const selling = parseFloat(item.selling_price || item.price || 0);
             const cost = parseFloat(item.cost_price || 0);
             suggestedOutgoingPrice.value = selling > 0 ? selling : (cost > 0 ? cost : 0);
-            // Force manual entry for outgoing price
-            unitExchangeForm.value.outgoing_price = 0;
-            // Sync incoming cost price
-            unitExchangeForm.value.incoming_cost_price = 0;
         }
     } else {
         suggestedOutgoingPrice.value = 0;
