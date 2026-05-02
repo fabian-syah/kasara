@@ -728,25 +728,24 @@ const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.s
 }, 0))
 
 const summaryStats = computed(() => {
-    let sales = 0;
-    let out = 0;
+    let baseSales = 0;      // Penjualan (Store, Online, Shopee)
+    let tradeSelisih = 0;   // Selisih TT/TU
+    let outlay = 0;         // Angkat Barang, Refund, Downgrade
+    
     let hpUnits = 0;
     let nonHpUnits = 0;
 
     activeRecords.value.forEach(item => {
         const cat = item.category;
-        // Use Math.abs because backend might send negative values for TT/Expenses
         const total = Math.abs(parseFloat(item.grand_total) || 0);
 
-        // Sales Categories (Income)
-        const isSales = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_tambah', 'tukar_unit'].includes(cat);
-        // Expense/Out Categories
-        const isOut = ['angkat_barang', 'refund', 'downgrade'].includes(cat);
-
-        if (isOut) {
-            out += total;
-        } else if (isSales) {
-            sales += total;
+        // Kategorisasi sesuai permintaan user
+        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store'].includes(cat)) {
+            baseSales += total;
+        } else if (['tukar_tambah', 'tukar_unit'].includes(cat)) {
+            tradeSelisih += total;
+        } else if (['angkat_barang', 'refund', 'downgrade'].includes(cat)) {
+            outlay += total;
         }
 
         // Unit Logic: Count all items handled
@@ -770,8 +769,8 @@ const summaryStats = computed(() => {
     });
 
     return {
-        totalOmset: sales,
-        omsetBersih: sales - out,
+        totalOmset: baseSales + tradeSelisih,
+        omsetBersih: baseSales - outlay,
         hpUnits,
         nonHpUnits
     };
