@@ -215,7 +215,6 @@
                             class="text-text-secondary group-hover:text-primary-500 transition-colors" />
                     </div>
                     <h3 class="text-lg font-bold text-text-primary mb-1">Salin Laporan Penjualan (Teks)</h3>
-                    <p class="text-sm text-text-secondary">Salin ringkasan laporan harian/bulanan untuk dibagikan</p>
                 </button>
             </div>
         </div>
@@ -301,12 +300,7 @@
                             }}</span>
                         </div>
 
-                        <div
-                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mb-12 border-t border-emerald-100 dark:border-surface-700/50 pt-4">
-                            <span class="uppercase tracking-wider italic">OMSET BERSIH</span>
-                            <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.omset_bersih || 0)
-                            }}</span>
-                        </div>
+
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
                         <h3
@@ -1560,7 +1554,7 @@ const getBaseReportText = (isForCopy = false) => {
     }
 
     text += `\n*Total Omset : ${formatCurrency(summary.payment_total)}*\n`;
-    text += `*Omset Bersih: ${formatCurrency(summary.omset_bersih)}*\n`;
+
     text += `__________________\n`;
     text += `__________________\n\n`;
     text += `Rincian Penjualan berdasarkan distributor\n\n`;

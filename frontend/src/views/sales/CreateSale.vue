@@ -401,38 +401,9 @@ watch(transactionCategory, () => {
                                 <label class="block text-xs font-black text-text-secondary uppercase tracking-widest">
                                     Daftar Akun Inventory
                                 </label>
-                                <button v-if="!showCreateAccount" @click="showCreateAccount = true"
-                                    class="flex items-center gap-1.5 text-xs font-black text-primary-600 uppercase hover:text-primary-700 transition-colors">
-                                    <UserPlus :size="14" />
-                                    Tambah Akun
-                                </button>
                             </div>
 
-                            <!-- Create Account Form -->
-                            <div v-if="showCreateAccount"
-                                class="p-4 rounded-2xl border-2 border-dashed border-primary-500/30 bg-primary-500/5 mb-4">
-                                <label class="block text-[10px] font-black text-primary-600 uppercase mb-2 px-1">Nama
-                                    Akun Baru</label>
-                                <div class="flex flex-col sm:flex-row gap-2">
-                                    <input v-model="newAccountName" type="text" placeholder="Nama Akun (Sales A)"
-                                        class="flex-1 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                                        @keyup.enter="handleCreateAccount" />
-                                    <input v-model="newAccountPin" type="password" maxlength="4" placeholder="PIN (Opsional)"
-                                        class="w-full sm:w-32 px-4 py-2.5 rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 font-bold focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-                                        @keyup.enter="handleCreateAccount" />
-                                    <div class="flex gap-2">
-                                        <button @click="handleCreateAccount" :disabled="loadingCreate"
-                                            class="flex-1 sm:flex-none px-4 py-2.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-500 transition-all flex items-center justify-center gap-2">
-                                            <Loader2 v-if="loadingCreate" :size="16" class="animate-spin" />
-                                            Simpan
-                                        </button>
-                                        <button @click="showCreateAccount = false; newAccountName = ''"
-                                            class="flex-1 sm:flex-none px-4 py-2.5 bg-surface-100 dark:bg-surface-700 text-text-secondary rounded-xl font-bold hover:bg-surface-200 transition-all">
-                                            Batal
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                 <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name"
