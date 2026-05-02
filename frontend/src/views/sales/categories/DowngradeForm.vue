@@ -312,6 +312,11 @@ function closeStockDropdown() {
 }
 
 async function submitDowngrade(pin = null) {
+    if (downgradePriceDiff.value > 0) {
+        alert("Harga Unit Keluar lebih besar dari Harga Unit Masuk. Downgrade seharusnya nilai Unit Keluar lebih murah atau sama dengan Unit Masuk. Silakan gunakan menu 'Tukar Tambah' jika unit toko lebih mahal.");
+        return;
+    }
+
     if (!downgradeForm.value.customer_name || !downgradeForm.value.customer_phone || !downgradeForm.value.incoming_brand_id || !downgradeForm.value.incoming_product_type_id || !downgradeForm.value.incoming_storage || !downgradeForm.value.incoming_condition || !downgradeForm.value.incoming_cost_price || !downgradeForm.value.outgoing_product_detail_id || !downgradeForm.value.outgoing_price || !downgradeForm.value.reason || !downgradeForm.value.payment_method_id) {
         alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Metode Bayar, & Alasan).");
         return;
@@ -745,10 +750,13 @@ async function submitDowngrade(pin = null) {
                             </p>
                         </div>
                         <div
-                            class="mt-6 px-4 py-2 bg-primary-500/10 rounded-full inline-flex items-center gap-2 text-[10px] text-primary-500 font-black uppercase tracking-widest border border-primary-500/20">
+                            class="mt-6 px-4 py-2 bg-primary-500/10 rounded-full inline-flex items-center gap-2 text-[10px] text-primary-500 font-black uppercase tracking-widest border border-primary-500/20"
+                            :class="{ 'bg-red-500/40 border-red-500/60 text-red-500': downgradePriceDiff > 0 }">
                             <AlertCircle :size="14" />
                             <span>
-                                TOKO BAYAR SELISIH KE CUSTOMER</span>
+                                {{
+                                    downgradePriceDiff <= 0 ? 'TOKO BAYAR SELISIH KE CUSTOMER' : 'Gunakan Menu Tukar Tambah (Selisih Plus)'
+                                }}</span>
                         </div>
                     </div>
                 </div>
@@ -760,8 +768,9 @@ async function submitDowngrade(pin = null) {
                     class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all active:scale-95">
                     Kembali
                 </button>
-                <button @click="submitDowngrade()" :disabled="isSubmitting"
-                    class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95">
+                <button @click="submitDowngrade()" :disabled="isSubmitting || downgradePriceDiff > 0"
+                    class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95"
+                    :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed': downgradePriceDiff > 0 }">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Simpan Downgrade (Selesai)

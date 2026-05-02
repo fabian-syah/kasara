@@ -314,6 +314,11 @@ function closeStockDropdown() {
 }
 
 async function submitTukarTambah(pin = null) {
+    if (tukarTambahPriceDiff.value < 0) {
+        alert("Harga Unit Keluar lebih kecil dari Harga Unit Masuk. Tukar Tambah seharusnya nilai Unit Keluar lebih besar atau sama dengan Unit Masuk. Silakan gunakan menu 'Downgrade' jika unit toko lebih murah.");
+        return;
+    }
+
     if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || !tukarTambahForm.value.outgoing_product_detail_id || !tukarTambahForm.value.outgoing_price || !tukarTambahForm.value.reason || !tukarTambahForm.value.payment_method_id) {
         alert("Mohon lengkapi semua data wajib (Customer, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
         return;
@@ -727,11 +732,12 @@ async function submitTukarTambah(pin = null) {
                             </p>
                         </div>
                         <div
-                            class="mt-6 px-4 py-2 bg-white/10 rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-widest border border-white/20">
+                            class="mt-6 px-4 py-2 bg-white/10 rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-widest border border-white/20"
+                            :class="{ 'bg-red-500/40 border-red-500/60': tukarTambahPriceDiff < 0 }">
                             <AlertCircle :size="14" />
                             <span>
                                 {{
-                                    tukarTambahPriceDiff >= 0 ? 'USER BAYAR KE TOKO' : 'TOKO KEMBALIKAN KE USER'
+                                    tukarTambahPriceDiff >= 0 ? 'USER BAYAR KE TOKO' : 'Gunakan Menu Downgrade (Selisih Minus)'
                                 }}</span>
                         </div>
                     </div>
@@ -744,8 +750,9 @@ async function submitTukarTambah(pin = null) {
                     class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
                     Kembali Pilih Kategori
                 </button>
-                <button @click="submitTukarTambah()" :disabled="isSubmitting"
-                    class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
+                <button @click="submitTukarTambah()" :disabled="isSubmitting || tukarTambahPriceDiff < 0"
+                    class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3"
+                    :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed': tukarTambahPriceDiff < 0 }">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Selesaikan Tukar Tambah
