@@ -390,6 +390,23 @@ class AuditController extends Controller
                 // 3. CS Sales Stats
                 function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id');
+
+                    // AUTO-REPAIR: If inventory_user_id is missing or same as user_id but sales_account string exists, sync it
+                    // This fixes existing transactions that were misattributed to the main account
+                    DB::table('stock_outs')
+                        ->where(function($q) {
+                            $q->whereNull('inventory_user_id')
+                              ->orWhereRaw('inventory_user_id = user_id');
+                        })
+                        ->whereNotNull('sales_account')
+                        ->whereBetween('reporting_date', [$startDate, $endDate])
+                        ->get()
+                        ->each(function($trx) {
+                            $user = \App\Models\User::where('name', $trx->sales_account)->first();
+                            if ($user && $user->id != $trx->inventory_user_id) {
+                                DB::table('stock_outs')->where('id', $trx->id)->update(['inventory_user_id' => $user->id]);
+                            }
+                        });
                     
                     // Unified date logic with created_at fallback
                     $startTS = $startDate . ' 05:00:00';
@@ -602,7 +619,7 @@ class AuditController extends Controller
                                 }
                                 if (!empty($warehouseIds)) {
                                     $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
-                                        ->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.warehouse_id', $warehouseIds));
+                                        ->orWhere(fn($sq) => $sq->whereNull('stock_outs.warehouse_id')->whereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.warehouse_id', $warehouseIds)));
                                 }
                                 if (!empty($distributorIds)) {
                                     $sub->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.distributor_id', $distributorIds));
