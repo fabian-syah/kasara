@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useAuthStore } from './auth'
 
 export const useCartStore = defineStore('cart', () => {
