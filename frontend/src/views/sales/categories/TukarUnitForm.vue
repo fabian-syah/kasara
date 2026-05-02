@@ -112,11 +112,22 @@ const filteredInventoryProducts = computed(() => {
     const q = stockSearchQuery.value.toLowerCase().trim();
     const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold');
     if (!q) return allProducts;
+
+    const cleanQ = q.replace(/\./g, '');
+    const isNumeric = /^\d+$/.test(cleanQ);
+
     return allProducts.filter(p => {
         const name = (p.product?.name || p.name || '').toLowerCase();
         const brand = (p.product?.brand || p.brand || '').toLowerCase();
         const imei = (p.imei || '').toLowerCase();
-        return name.includes(q) || brand.includes(q) || imei.includes(q);
+
+        const matchesText = name.includes(q) || brand.includes(q) || imei.includes(q);
+        if (isNumeric && cleanQ.length >= 3) {
+            const cost = p.cost_price?.toString() || '';
+            const selling = p.selling_price?.toString() || '';
+            return matchesText || cost.includes(cleanQ) || selling.includes(cleanQ);
+        }
+        return matchesText;
     });
 });
 
@@ -194,6 +205,17 @@ async function handleExchangePhotoUpload(type, event) {
 
 function selectStockItem(item) {
     unitExchangeForm.value.outgoing_product_detail_id = item.id;
+
+    // Use price from search query if numeric, otherwise fallback to item price
+    const cleanQ = stockSearchQuery.value.replace(/\./g, '').trim();
+    if (/^\d+$/.test(cleanQ) && cleanQ.length >= 4) {
+        unitExchangeForm.value.outgoing_price = parseInt(cleanQ);
+    } else {
+        const selling = parseFloat(item.selling_price || item.price || 0);
+        const cost = parseFloat(item.cost_price || 0);
+        unitExchangeForm.value.outgoing_price = selling > 0 ? selling : (cost > 0 ? cost : 0);
+    }
+
     stockSearchQuery.value = `[${item.product?.brand || '-'}] ${item.product?.name || item.name} - ${item.imei || 'Non-IMEI'}`;
     showStockDropdown.value = false;
 }
@@ -443,7 +465,8 @@ async function submitUnitExchange(pin = null) {
                         <div class="relative">
                             <input v-model="stockSearchQuery" type="text"
                                 @focus="showStockDropdown = true"
-                                placeholder="Ketik Nama, Brand, atau IMEI..."
+                                @blur="setTimeout(() => { showStockDropdown = false }, 200)"
+                                placeholder="Ketik Nama, Brand, IMEI, atau Harga..."
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                             
                             <div v-if="showStockDropdown" 
@@ -452,7 +475,7 @@ async function submitUnitExchange(pin = null) {
                                     Tidak ada stok ditemukan...
                                 </div>
                                 <div v-for="item in filteredInventoryProducts" :key="item.id"
-                                    @click="selectStockItem(item)"
+                                    @mousedown.prevent="selectStockItem(item)"
                                     class="p-4 border-b border-surface-100 dark:border-surface-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer transition-colors">
                                     <div class="flex justify-between items-start mb-1">
                                         <span class="font-black text-sm text-text-primary">[{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}</span>
