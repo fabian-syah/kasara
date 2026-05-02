@@ -105,4 +105,9 @@ class ProductDetail extends Model
     {
         return $this->belongsTo(TukarTambah::class);
     }
+
+    public function downgrade()
+    {
+        return $this->belongsTo(Downgrade::class);
+    }
 }

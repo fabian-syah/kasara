@@ -2057,6 +2057,7 @@ class StockOutController extends Controller
                   ->orWhereHas('unitExchange', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('tukarTambah', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('downgrade', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
+                  ->orWhereHas('tradeIn', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('refund', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); });
             })->get();
 
