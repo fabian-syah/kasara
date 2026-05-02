@@ -673,12 +673,12 @@
                                     </template>
                                     <th v-if="currentView === 'sales'" class="px-6 py-4 text-center">Total Penjualan
                                     </th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">TU</th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">TT</th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">DW</th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">AB</th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">RF</th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">RT</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Tukar Unit</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Tukar Tambah</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Downgrade</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Angkat Barang</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Refund</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Retur</th>
                                     <th v-if="currentView === 'activity'"
                                         class="px-2 py-4 text-center text-primary-500">Total Unit
                                     </th>
