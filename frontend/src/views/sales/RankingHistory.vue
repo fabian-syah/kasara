@@ -78,12 +78,14 @@
                     <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchData"
                         class="bg-transparent border-none text-xs font-bold text-text-primary dark:text-white focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
                         <option :value="null" class="dark:bg-surface-800 dark:text-white">Semua Cabang</option>
-                        <option v-for="b in filteredBranches" :key="b.id" :value="b.id" class="dark:bg-surface-800 dark:text-white">{{ b.name }}</option>
+                        <option v-for="b in filteredBranches" :key="b.id" :value="b.id"
+                            class="dark:bg-surface-800 dark:text-white">{{ b.name }}</option>
                     </select>
                     <select v-else v-model="filters.online_shop_id" @change="fetchData"
                         class="bg-transparent border-none text-xs font-bold text-text-primary dark:text-white focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
                         <option :value="null" class="dark:bg-surface-800 dark:text-white">Semua Toko Online</option>
-                        <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id" class="dark:bg-surface-800 dark:text-white">{{ s.name }}</option>
+                        <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id"
+                            class="dark:bg-surface-800 dark:text-white">{{ s.name }}</option>
                     </select>
                 </div>
                 <!-- Restricted users see their location indicator -->
@@ -187,7 +189,8 @@
                             class="text-text-secondary group-hover:text-red-500 transition-colors" />
                     </div>
                     <h3 class="text-lg font-bold text-text-primary mb-1">Ranking Aktivitas Unit</h3>
-                    <p class="text-sm text-text-secondary">Berdasarkan Refund, Tukar Unit/Tambah, Angkat Barang & Downgrade</p>
+                    <p class="text-sm text-text-secondary">Berdasarkan Refund, Tukar Unit/Tambah, Angkat Barang &
+                        Downgrade</p>
                 </button>
 
                 <!-- Card: Per Distributor -->
@@ -214,7 +217,7 @@
                         <ChevronRight :size="20"
                             class="text-text-secondary group-hover:text-primary-500 transition-colors" />
                     </div>
-                    <h3 class="text-lg font-bold text-text-primary mb-1">Salin Laporan Penjualan (Teks)</h3>
+                    <h3 class="text-lg font-bold text-text-primary mb-1">Laporan Penjualan</h3>
                 </button>
             </div>
         </div>
@@ -297,7 +300,7 @@
                             class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-4">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
                             <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
-                            }}</span>
+                                }}</span>
                         </div>
 
 
@@ -331,7 +334,7 @@
                                         <span class="capitalize">{{ cat.label }}</span>
                                     </div>
                                     <span>{{ formatCurrency(salesData?.report_summary?.dist_map_rp?.[cat.key] || 0)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </template>
                         </div>
@@ -567,8 +570,9 @@
 
 
         <div v-else :key="'view-sub-' + currentView" class="space-y-4">
-                <!-- Sub-view Header (Search & Sort) -->
-                <div class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4 space-y-4">
+            <!-- Sub-view Header (Search & Sort) -->
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4 space-y-4">
                 <div class="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
                     <div class="flex flex-wrap items-center gap-3">
                         <div
@@ -586,30 +590,30 @@
                         <!-- Breakdown Toggles (Available in all views except menu) -->
                         <template v-if="currentView !== 'menu'">
                             <div class="h-6 w-px bg-gray-200 dark:bg-surface-700 mx-1 hidden lg:block"></div>
-                             <button @click="toggleBreakdown('distributor')"
-                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                 :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
-                                 Distributor
-                             </button>
-                             <button @click="toggleBreakdown('type')"
-                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                 :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
-                                 Tipe
-                             </button>
-                             <button @click="toggleBreakdown('condition')"
-                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                 :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
-                                 Kondisi
-                             </button>
-                             <button @click="toggleBreakdown('gb')"
-                                 class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                 :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
-                                 <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
-                                 GB
-                             </button>
+                            <button @click="toggleBreakdown('distributor')"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                :class="showBrandDistributor ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandDistributor }" />
+                                Distributor
+                            </button>
+                            <button @click="toggleBreakdown('type')"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                :class="showBrandType ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandType }" />
+                                Tipe
+                            </button>
+                            <button @click="toggleBreakdown('condition')"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                :class="showBrandCondition ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandCondition }" />
+                                Kondisi
+                            </button>
+                            <button @click="toggleBreakdown('gb')"
+                                class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border"
+                                :class="showBrandGb ? 'bg-primary-500/10 border-primary-500/30 text-primary-500' : 'bg-gray-50 dark:bg-surface-900 border-gray-200 dark:border-surface-700 text-text-secondary'">
+                                <CircleDot :size="16" :class="{ 'text-primary-500': showBrandGb }" />
+                                GB
+                            </button>
                         </template>
                     </div>
                 </div>
@@ -617,18 +621,18 @@
                 <!-- Search Bar & Tools -->
                 <div class="flex flex-col gap-4 pt-4 border-t border-gray-100 dark:border-surface-700">
 
-                        <!-- Search Bar -->
-                        <div class="relative w-full sm:w-80 group">
-                            <Search
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors"
-                                :size="18" />
-                            <input v-model="searchQuery" type="text" placeholder="Cari..."
-                                class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
+                    <!-- Search Bar -->
+                    <div class="relative w-full sm:w-80 group">
+                        <Search
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-400 transition-colors"
+                            :size="18" />
+                        <input v-model="searchQuery" type="text" placeholder="Cari..."
+                            class="w-full bg-gray-50 dark:bg-surface-900 border border-gray-200 dark:border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm font-medium text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" />
                     </div>
                 </div>
             </div>
 
-                <!-- Content Area -->
+            <!-- Content Area -->
             <div
                 class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 overflow-hidden shadow-sm">
                 <div v-if="loading" class="p-12 flex justify-center items-center">
@@ -675,7 +679,9 @@
                                     <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">AB</th>
                                     <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">RF</th>
                                     <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">RT</th>
-                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center text-primary-500">Total Unit</th>
+                                    <th v-if="currentView === 'activity'"
+                                        class="px-2 py-4 text-center text-primary-500">Total Unit
+                                    </th>
                                     <th class="px-6 py-4 text-right">Grand Total</th>
                                 </template>
                                 <template v-else-if="currentView === 'type'">
@@ -700,7 +706,8 @@
                                 <tr class="hover:bg-gray-50/50 dark:hover:bg-surface-700/30 transition-colors"
                                     :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': showBrandType || showBrandCondition || showBrandGb }">
                                     <td class="px-6 py-4">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm" :class="getRankBadgeClass(idx)">{{ idx + 1 }}</div>
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-sm"
+                                            :class="getRankBadgeClass(idx)">{{ idx + 1 }}</div>
                                     </td>
                                     <td class="px-6 py-4 font-bold text-text-primary uppercase">{{ row.brand }}</td>
                                     <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4"></td>
@@ -710,28 +717,43 @@
                                 <template v-for="d in row.tree" :key="'dist-' + row.brand + '-' + d.label">
                                     <tr v-if="showBrandDistributor" class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                         <td class="px-6 py-2"></td>
-                                        <td class="px-6 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 pl-10">Distributor: {{ d.label }}</td>
+                                        <td
+                                            class="px-6 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 pl-10">
+                                            Distributor: {{ d.label }}</td>
                                         <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
-                                        <td class="px-6 py-2 text-center text-xs font-black text-indigo-500">{{ d.qty }}</td>
+                                        <td class="px-6 py-2 text-center text-xs font-black text-indigo-500">{{ d.qty }}
+                                        </td>
                                     </tr>
-                                    <template v-for="t in d.types" :key="'type-' + row.brand + '-' + d.label + '-' + t.label">
+                                    <template v-for="t in d.types"
+                                        :key="'type-' + row.brand + '-' + d.label + '-' + t.label">
                                         <tr v-if="showBrandType" class="bg-gray-50/30 dark:bg-surface-900/30">
                                             <td class="px-6 py-2"></td>
-                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">— {{ t.label }}</td>
+                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">— {{ t.label
+                                                }}</td>
                                             <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
-                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{ t.qty }}</td>
+                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{
+                                                t.qty }}</td>
                                         </tr>
                                         <template v-if="showBrandCondition || showBrandGb">
-                                            <template v-for="(c, cIdx) in t.conditions" :key="'cond-' + row.brand + '-' + d.label + '-' + t.label + '-' + cIdx">
-                                                <tr class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
+                                            <template v-for="(c, cIdx) in t.conditions"
+                                                :key="'cond-' + row.brand + '-' + d.label + '-' + t.label + '-' + cIdx">
+                                                <tr
+                                                    class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
                                                     <td class="px-6 py-1.5"></td>
                                                     <td class="px-6 py-1.5 pl-10" colspan="2">
                                                         <div class="flex items-center gap-2">
-                                                            <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">{{ formatCondition(c.condition) }}</span>
-                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ c.capacity }}GB</span>
+                                                            <span v-if="showBrandCondition && c.condition !== '-'"
+                                                                class="px-2 py-0.5 rounded text-[10px] font-bold border"
+                                                                :class="getConditionClass(c.condition)">{{
+                                                                formatCondition(c.condition) }}</span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'"
+                                                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{
+                                                                c.capacity }}GB</span>
                                                         </div>
                                                     </td>
-                                                    <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                    <td
+                                                        class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">
+                                                        {{ c.qty }}</td>
                                                 </tr>
                                             </template>
                                         </template>
@@ -750,8 +772,7 @@
                                     <td
                                         class="px-6 py-4 font-black text-sm text-text-primary dark:text-white uppercase tracking-tight">
                                         {{ row.distributor }}</td>
-                                    <td v-if="showBrandCondition || showBrandGb"
-                                        class="px-6 py-4"></td>
+                                    <td v-if="showBrandCondition || showBrandGb" class="px-6 py-4"></td>
                                     <td class="px-6 py-4 text-center font-black text-indigo-500 uppercase">{{ row.qty }}
                                     </td>
                                 </tr>
@@ -759,28 +780,42 @@
                                 <template v-for="b in row.tree" :key="'dist-brand-' + row.distributor + '-' + b.label">
                                     <tr v-if="showBrandType" class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                         <td class="px-6 py-2"></td>
-                                        <td class="px-6 py-2 text-xs font-bold text-indigo-600 pl-10">— {{ b.label }}</td>
+                                        <td class="px-6 py-2 text-xs font-bold text-indigo-600 pl-10">— {{ b.label }}
+                                        </td>
                                         <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
-                                        <td class="px-6 py-2 text-center text-xs font-black text-indigo-500">{{ b.qty }}</td>
+                                        <td class="px-6 py-2 text-center text-xs font-black text-indigo-500">{{ b.qty }}
+                                        </td>
                                     </tr>
-                                    <template v-for="t in b.types" :key="'dist-type-' + row.distributor + '-' + b.label + '-' + t.label">
+                                    <template v-for="t in b.types"
+                                        :key="'dist-type-' + row.distributor + '-' + b.label + '-' + t.label">
                                         <tr v-if="showBrandType" class="bg-gray-50/30 dark:bg-surface-900/30">
                                             <td class="px-6 py-2"></td>
-                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">{{ t.label }}</td>
+                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16">{{ t.label
+                                                }}</td>
                                             <td v-if="showBrandCondition || showBrandGb" class="px-6 py-2"></td>
-                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{ t.qty }}</td>
+                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{
+                                                t.qty }}</td>
                                         </tr>
                                         <template v-if="showBrandCondition || showBrandGb">
-                                            <template v-for="(c, cIdx) in t.conditions" :key="'dist-cond-' + row.distributor + '-' + b.label + '-' + t.label + '-' + cIdx">
-                                                <tr class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
+                                            <template v-for="(c, cIdx) in t.conditions"
+                                                :key="'dist-cond-' + row.distributor + '-' + b.label + '-' + t.label + '-' + cIdx">
+                                                <tr
+                                                    class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
                                                     <td class="px-6 py-1.5"></td>
                                                     <td class="px-6 py-1.5 pl-10" colspan="2">
                                                         <div class="flex items-center gap-2">
-                                                            <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">{{ formatCondition(c.condition) }}</span>
-                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ formatCapacity(c.capacity) }}</span>
+                                                            <span v-if="showBrandCondition && c.condition !== '-'"
+                                                                class="px-2 py-0.5 rounded text-[10px] font-bold border"
+                                                                :class="getConditionClass(c.condition)">{{
+                                                                formatCondition(c.condition) }}</span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'"
+                                                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{
+                                                                formatCapacity(c.capacity) }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                    <td
+                                                        class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">
+                                                        {{ c.qty }}</td>
                                                 </tr>
                                             </template>
                                         </template>
@@ -789,7 +824,8 @@
                             </template>
                         </tbody>
                         <tbody v-else class="divide-y divide-gray-100 dark:divide-surface-700 text-sm">
-                            <template v-for="(item, idx) in sortedData" :key="'gen-' + currentView + '-' + (item.id || item.reporting_date || item.cs_name || idx)">
+                            <template v-for="(item, idx) in sortedData"
+                                :key="'gen-' + currentView + '-' + (item.id || item.reporting_date || item.cs_name || idx)">
                                 <tr class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors"
                                     :class="{ 'bg-blue-50/20 dark:bg-blue-900/10': ['sales', 'activity'].includes(currentView) && (showBrandType || showBrandCondition || showBrandGb) }">
                                     <td class="px-6 py-4">
@@ -801,13 +837,17 @@
                                     <template v-if="currentView === 'revenue'">
                                         <td class="px-6 py-4 font-bold text-text-primary">{{
                                             formatDateString(item.reporting_date) }}</td>
-                                        <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units || 0
+                                        <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units
+                                            || 0
                                             }}</td>
-                                        <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{ item.android_units
+                                        <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{
+                                            item.android_units
                                             || 0 }}</td>
-                                        <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units || 0
+                                        <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units
+                                            || 0
                                             }}</td>
-                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units || 0
+                                        <td class="px-6 py-4 text-center font-black text-amber-500">{{ item.total_units
+                                            || 0
                                             }}</td>
                                         <td
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
@@ -825,11 +865,13 @@
                                             </div>
                                         </td>
                                         <template v-if="currentView === 'sales'">
-                                            <td class="px-6 py-4 text-center text-blue-500 font-bold">{{ item.iphone_units
+                                            <td class="px-6 py-4 text-center text-blue-500 font-bold">{{
+                                                item.iphone_units
                                                 || 0 }}</td>
                                             <td class="px-6 py-4 text-center text-emerald-500 font-bold">{{
                                                 item.android_units || 0 }}</td>
-                                            <td class="px-6 py-4 text-center text-gray-500 font-bold">{{ item.non_hp_units
+                                            <td class="px-6 py-4 text-center text-gray-500 font-bold">{{
+                                                item.non_hp_units
                                                 || 0 }}</td>
                                             <td class="px-6 py-4 text-center font-black text-primary-500">{{
                                                 item.total_sales }}</td>
@@ -848,17 +890,23 @@
                                             <td class="px-2 py-4 text-center font-bold text-purple-500 text-xs">{{
                                                 item.total_retur || 0 }}</td>
                                             <td class="px-2 py-4 text-center font-black text-primary-500">{{
-                                                (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) + (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur || 0) }}</td>
+                                                (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) +
+                                                (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur ||
+                                                0) }}</td>
                                         </template>
-                                        <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
-                                            {{ formatCurrency(currentView === 'activity' ? item.total_activity_rp : item.grand_total) }}</td>
+                                        <td
+                                            class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
+                                            {{ formatCurrency(currentView === 'activity' ? item.total_activity_rp :
+                                            item.grand_total) }}
+                                        </td>
                                     </template>
 
                                     <!-- Type / Conditioner / Other -->
                                     <template v-else-if="currentView === 'type'">
                                         <td class="px-6 py-4 text-text-secondary">{{ item.brand }}</td>
                                         <td class="px-6 py-4 font-bold text-text-primary">{{ item.name }}</td>
-                                        <td class="px-6 py-4 text-center font-black text-emerald-500">{{ item.qty }}</td>
+                                        <td class="px-6 py-4 text-center font-black text-emerald-500">{{ item.qty }}
+                                        </td>
                                     </template>
                                     <template v-else>
                                         <td class="px-6 py-4 font-bold text-text-primary">{{ item.condition ||
@@ -869,32 +917,47 @@
 
                                 <!-- CS Breakdown (Sales & Activity View) -->
                                 <template v-for="(d, dIdx) in (item.tree || [])" :key="'cs-dist-' + idx + '-' + dIdx">
-                                    <tr v-if="showBrandDistributor && logRender('Distributor Row', d.label)" class="bg-indigo-50/20 dark:bg-indigo-900/10">
+                                    <tr v-if="showBrandDistributor && logRender('Distributor Row', d.label)"
+                                        class="bg-indigo-50/20 dark:bg-indigo-900/10">
                                         <td class="px-6 py-2"></td>
-                                        <td class="px-6 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 pl-10" colspan="5">
+                                        <td class="px-6 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 pl-10"
+                                            colspan="5">
                                             Distributor: {{ d.label }}</td>
                                         <td class="px-6 py-2 text-center text-xs font-black text-indigo-500">
                                             {{ d.qty }}</td>
                                         <td class="px-6 py-2"></td>
                                     </tr>
-                                    <template v-for="(t, tIdx) in (d.types || [])" :key="'cs-type-' + idx + '-' + dIdx + '-' + tIdx">
-                                        <tr v-if="showBrandType && logRender('Type Row', t.label)" class="bg-gray-50/30 dark:bg-surface-900/30">
+                                    <template v-for="(t, tIdx) in (d.types || [])"
+                                        :key="'cs-type-' + idx + '-' + dIdx + '-' + tIdx">
+                                        <tr v-if="showBrandType && logRender('Type Row', t.label)"
+                                            class="bg-gray-50/30 dark:bg-surface-900/30">
                                             <td class="px-6 py-2"></td>
-                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16" colspan="5">— {{ t.label }}</td>
-                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{ t.qty }}</td>
+                                            <td class="px-6 py-2 text-xs font-bold text-text-primary pl-16" colspan="5">
+                                                — {{ t.label }}</td>
+                                            <td class="px-6 py-2 text-center text-xs font-bold text-emerald-500">{{
+                                                t.qty }}</td>
                                             <td class="px-6 py-2"></td>
                                         </tr>
                                         <template v-if="showBrandCondition || showBrandGb">
-                                            <template v-for="(c, cIdx) in (t.conditions || [])" :key="'cs-cond-' + idx + '-' + dIdx + '-' + tIdx + '-' + cIdx">
-                                                <tr v-if="logRender('Cond Row', c.condition)" class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
+                                            <template v-for="(c, cIdx) in (t.conditions || [])"
+                                                :key="'cs-cond-' + idx + '-' + dIdx + '-' + tIdx + '-' + cIdx">
+                                                <tr v-if="logRender('Cond Row', c.condition)"
+                                                    class="bg-white/50 dark:bg-surface-800/30 border-l-2 border-primary-500/20">
                                                     <td class="px-6 py-1.5"></td>
                                                     <td class="px-6 py-1.5 pl-20" colspan="5">
                                                         <div class="flex items-center gap-2">
-                                                            <span v-if="showBrandCondition && c.condition !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold border" :class="getConditionClass(c.condition)">{{ formatCondition(c.condition) }}</span>
-                                                            <span v-if="showBrandGb && c.capacity !== '-'" class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{ formatCapacity(c.capacity) }}</span>
+                                                            <span v-if="showBrandCondition && c.condition !== '-'"
+                                                                class="px-2 py-0.5 rounded text-[10px] font-bold border"
+                                                                :class="getConditionClass(c.condition)">{{
+                                                                formatCondition(c.condition) }}</span>
+                                                            <span v-if="showBrandGb && c.capacity !== '-'"
+                                                                class="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-surface-900 text-text-secondary border border-gray-200 dark:border-surface-700">{{
+                                                                formatCapacity(c.capacity) }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">{{ c.qty }}</td>
+                                                    <td
+                                                        class="px-6 py-1.5 text-center text-[11px] font-medium text-text-secondary">
+                                                        {{ c.qty }}</td>
                                                     <td class="px-6 py-1.5"></td>
                                                 </tr>
                                             </template>
@@ -939,8 +1002,10 @@
                                     <td class="px-2 py-4 text-center text-amber-500 text-xs">{{ totals.ab }}</td>
                                     <td class="px-2 py-4 text-center text-red-500 text-xs">{{ totals.refund }}</td>
                                     <td class="px-2 py-4 text-center text-purple-500 text-xs">{{ totals.retur }}</td>
-                                    <td class="px-2 py-4 text-center text-primary-500 font-black">{{ totals.activity }}</td>
-                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.activity_revenue) }}</td>
+                                    <td class="px-2 py-4 text-center text-primary-500 font-black">{{ totals.activity }}
+                                    </td>
+                                    <td class="px-6 py-4 text-right font-mono">{{
+                                        formatCurrency(totals.activity_revenue) }}</td>
                                 </template>
 
                                 <template v-else-if="currentView === 'type'">
@@ -955,9 +1020,9 @@
                         </tfoot>
                     </table>
                 </div>
+            </div>
         </div>
     </div>
-</div>
 </template>
 
 <script setup>
@@ -1232,11 +1297,11 @@ const sortedData = computed(() => {
         const q = searchQuery.value.toLowerCase().trim()
         const deepSearch = (item) => {
             const label = (
-                (item.cs_name || '') + ' ' + 
-                (item.name || '') + ' ' + 
-                (item.brand || '') + ' ' + 
-                (item.distributor || '') + ' ' + 
-                (item.label || '') + ' ' + 
+                (item.cs_name || '') + ' ' +
+                (item.name || '') + ' ' +
+                (item.brand || '') + ' ' +
+                (item.distributor || '') + ' ' +
+                (item.label || '') + ' ' +
                 (item.condition || '')
             ).toLowerCase()
             if (label.includes(q)) return true
@@ -1385,24 +1450,24 @@ const distributorHierarchy = computed(() => {
 // Hierarchical Sales Report
 const salesHierarchy = computed(() => {
     const raw = salesData.value.cs_sales || []
-    
+
     return raw.map(cs => {
         const distMap = new Map()
-        
+
         // List kategori aktivitas (seperti di backend)
         const activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
-        
+
         // Coba ambil dari 'breakdown' atau 'details'
         const rawItems = cs.breakdown || cs.details || []
-        
+
         const breakdown = rawItems.filter(item => {
             const isActivity = item.category && activityCats.includes(item.category.toLowerCase());
-            
+
             if (currentView.value === 'sales') return !isActivity;
             if (currentView.value === 'activity') return isActivity;
             return true;
         })
-        
+
         breakdown.forEach(item => {
             const dist = item.distributor || 'Tanpa Distributor'
             if (!distMap.has(dist)) {
