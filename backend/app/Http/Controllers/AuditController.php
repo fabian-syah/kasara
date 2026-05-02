@@ -939,11 +939,18 @@ class AuditController extends Controller
                         $pQuery = DB::table('stock_outs');
                         $applyLocalScope($pQuery);
                         
+                        $pSums = [];
+                        
                         // Categories that count towards Omset (Revenue)
                         $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
-                        $pSums = [];
-                        $paymentTotal = 0;
+                        // Direct aggregation for Total Omset to match CheckSales logic
+                        $paymentTotal = (clone $pQuery)->whereIn('stock_outs.category', $omsetCategories)
+                            ->select(DB::raw("SUM(CASE WHEN category = 'tukar_tambah' THEN ABS(selling_price) WHEN category IN ('refund', 'angkat_barang', 'downgrade', 'tukar_unit') THEN 0 ELSE selling_price END) as total"))
+                            ->value('total') ?? 0;
+                        
+                        // Now calculate breakdown for UI (payment method rows)
+                        // Separate query for non-split payments to handle ABS() logic
                         
                         // Separate query for non-split payments to handle ABS() logic
                         $paymentStats = $pQuery->whereIn('stock_outs.category', $omsetCategories)
@@ -970,7 +977,6 @@ class AuditController extends Controller
                             }
                                 
                             $pSums[$mName] = ($pSums[$mName] ?? 0) + $amount;
-                            $paymentTotal += $amount;
                         }
 
                         // Handle splits separately across the small set of split transactions (usually few)
@@ -999,7 +1005,6 @@ class AuditController extends Controller
                                     $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                     $mName = $pm?->name ?? 'Lainnya';
                                     $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
-                                    $paymentTotal += $amt;
                                 }
                             }
                         }
