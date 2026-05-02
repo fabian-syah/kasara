@@ -248,7 +248,7 @@ class DowngradeController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Downgrade berhasil diproses.',
-                    'data' => $downgrade->load('incomingProductType.brand')
+                    'data' => $downgrade->load('incomingProductType.brand', 'distributor')
                 ]);
             });
         } catch (\Exception $e) {

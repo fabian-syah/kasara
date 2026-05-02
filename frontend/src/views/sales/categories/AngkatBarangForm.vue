@@ -395,7 +395,8 @@ async function submitTradeIn(pin = null) {
                 storage: data.storage,
                 ram: data.ram,
                 price: data.buy_price,
-                qty: batchCount
+                qty: batchCount,
+                distributor_name: data.distributor?.name || 'KOSONG'
             }],
             original_price: data.buy_price * batchCount,
             grand_total: data.buy_price * batchCount,
@@ -408,7 +409,8 @@ async function submitTradeIn(pin = null) {
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
             time: new Date().toLocaleString("id-ID"),
-            inventory_user_name: props.salesAccount || authStore.user?.name
+            inventory_user_name: props.salesAccount || authStore.user?.name,
+            distributor_name: data.distributor?.name || 'KOSONG'
         };
 
         emit("transaction-complete", transaction);

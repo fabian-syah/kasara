@@ -249,7 +249,7 @@ class TukarTambahController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Tukar tambah berhasil diproses.',
-                    'data' => $tukarTambah->load('incomingProductType.brand')
+                    'data' => $tukarTambah->load('incomingProductType.brand', 'distributor')
                 ]);
             });
         } catch (\Exception $e) {

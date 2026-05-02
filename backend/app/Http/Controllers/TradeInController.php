@@ -279,11 +279,16 @@ class TradeInController extends Controller
                     $processedTradeIns[] = $tradeIn;
                 }
 
+                $totalQty = 0;
+                foreach($processedTradeIns as $ti) {
+                    $totalQty += ($ti->quantity ?? 1);
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Barang angkat berhasil diproses dan masuk inventory.',
-                    'data' => $processedTradeIns[0]->load('productType.brand', 'paymentMethod'),
-                    'count' => count($processedTradeIns)
+                    'data' => $processedTradeIns[0]->load('productType.brand', 'paymentMethod', 'distributor'),
+                    'count' => $totalQty
                 ]);
             });
         } catch (\Exception $e) {

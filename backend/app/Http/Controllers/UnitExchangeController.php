@@ -236,7 +236,7 @@ class UnitExchangeController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Tukar unit berhasil diproses.',
-                    'data' => $exchange->load('incomingProductType.brand')
+                    'data' => $exchange->load('incomingProductType.brand', 'distributor')
                 ]);
             });
         } catch (\Exception $e) {
