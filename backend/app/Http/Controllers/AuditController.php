@@ -257,7 +257,12 @@ class AuditController extends Controller
                 function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     return StockOut::with(['items.product', 'nonHpDetails.product', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod'])
                         ->whereIn('category', $salesCategories)
-                        ->whereBetween('reporting_date', [$startDate, $endDate])
+                        ->where(function ($q) use ($startDate, $endDate) {
+                            $startTS = $startDate . ' 05:00:00';
+                            $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
+                            $q->whereBetween('reporting_date', [$startDate, $endDate])
+                              ->orWhereBetween('created_at', [$startTS, $endTS]);
+                        })
                         ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
                             if ($requestedCategory === 'orderan_online' || $requestedCategory === 'shopee')
                                 $q->whereIn('category', ['shopee', 'orderan_online']);
@@ -816,7 +821,7 @@ class AuditController extends Controller
                                             ->orWhereExists(function ($sub) use ($col, $val) {
                                                 $sub->select(DB::raw(1))
                                                     ->from('users')
-                                                    ->whereRaw('users.id = stock_outs.user_id')
+                                                    ->whereRaw('users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id')
                                                     ->where("users.$col", $val);
                                             });
                                     });
@@ -849,11 +854,11 @@ class AuditController extends Controller
                                     $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                         if (!empty($branchIds)) {
                                             $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                                ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.branch_id', $branchIds));
+                                                ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id')->whereIn('users.branch_id', $branchIds));
                                         }
                                         if (!empty($onlineShopIds)) {
                                             $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                                ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereIn('users.online_shop_id', $onlineShopIds));
+                                                ->orWhereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id')->whereIn('users.online_shop_id', $onlineShopIds));
                                         }
 
                                         if (empty($branchIds) && empty($onlineShopIds)) {
