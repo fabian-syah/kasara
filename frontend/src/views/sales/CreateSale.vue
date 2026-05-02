@@ -382,7 +382,7 @@ watch(transactionCategory, () => {
                 </div>
             </div>
 
-            <div v-if="currentStep === 1" class="flex items-center justify-center animate-fade-in p-2 sm:p-0">
+            <div v-if="currentStep === 1" class="flex items-center justify-center p-2 sm:p-0">
                 <div
                     class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-12 shadow-2xl relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl">
@@ -410,7 +410,7 @@ watch(transactionCategory, () => {
 
                             <!-- Create Account Form -->
                             <div v-if="showCreateAccount"
-                                class="p-4 rounded-2xl border-2 border-dashed border-primary-500/30 bg-primary-500/5 mb-4 animate-fade-in">
+                                class="p-4 rounded-2xl border-2 border-dashed border-primary-500/30 bg-primary-500/5 mb-4">
                                 <label class="block text-[10px] font-black text-primary-600 uppercase mb-2 px-1">Nama
                                     Akun Baru</label>
                                 <div class="flex flex-col sm:flex-row gap-2">
@@ -478,7 +478,7 @@ watch(transactionCategory, () => {
             </div>
 
             <!-- STEP 2: CATEGORY SELECTION -->
-            <div v-if="currentStep === 2" class="flex-1 flex flex-col items-center justify-center animate-fade-in py-8">
+            <div v-if="currentStep === 2" class="flex-1 flex flex-col items-center justify-center py-8">
                 <div class="w-full max-w-5xl grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
                     <button v-for="cat in categoriesPenjualan" :key="cat.id"
                         @click="transactionCategory = cat.id; nextStep()"
@@ -509,7 +509,7 @@ watch(transactionCategory, () => {
             </div>
 
             <!-- LOADING OVERLAY FOR STEP 3 DATA -->
-            <div v-if="currentStep === 3 && loadingStep3Data" class="flex-1 flex flex-col items-center justify-center animate-fade-in">
+            <div v-if="currentStep === 3 && loadingStep3Data" class="flex-1 flex flex-col items-center justify-center">
                 <div class="flex flex-col items-center gap-6 p-12 rounded-[2.5rem] bg-white/40 dark:bg-surface-800/40 backdrop-blur-md">
                     <div class="relative w-20 h-20">
                         <Loader2 class="w-20 h-20 text-primary-600 animate-spin" stroke-width="2" />

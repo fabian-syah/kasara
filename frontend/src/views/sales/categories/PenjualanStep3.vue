@@ -709,176 +709,177 @@ const selectOutgoingUnit = (item) => {
         </div>
     </div>
 
+    </div>
+
     <!-- Bundling Modal Teleport -->
-        <Teleport to="body">
-            <div v-show="showBundlingModal" class="fixed inset-0 z-[150] flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="closeBundlingModal"></div>
+    <Teleport to="body">
+        <div v-show="showBundlingModal" class="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="closeBundlingModal"></div>
+            <div
+                class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
                 <div
-                    class="relative bg-white dark:bg-surface-800 rounded-[2rem] border border-surface-200 dark:border-surface-700 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+                    class="p-4 sm:p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
+                    <h3 class="text-lg sm:text-2xl font-black text-text-primary">
+                        {{ editingBundleId ? 'Edit Sistem Bundling' : 'Buat Sistem Bundling' }}
+                    </h3>
+                    <button @click="closeBundlingModal"
+                        class="p-1.5 sm:p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
+                        <X :size="20" class="sm:w-6 sm:h-6" />
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+                    <!-- Left: Item Picker -->
                     <div
-                        class="p-4 sm:p-6 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center">
-                        <h3 class="text-lg sm:text-2xl font-black text-text-primary">
-                            {{ editingBundleId ? 'Edit Sistem Bundling' : 'Buat Sistem Bundling' }}
-                        </h3>
-                        <button @click="closeBundlingModal"
-                            class="p-1.5 sm:p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full transition-colors">
-                            <X :size="20" class="sm:w-6 sm:h-6" />
-                        </button>
+                        class="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar border-b md:border-b-0 md:border-r border-surface-100 dark:border-surface-700">
+                        <div class="mb-4 sm:mb-6 sticky top-0 bg-white dark:bg-surface-800 z-10 pb-4">
+                            <div class="relative">
+                                <Search
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary sm:w-[18px] sm:h-[18px]"
+                                    :size="16" />
+                                <input v-model="searchQuery" type="text" placeholder="Cari item untuk bundle..."
+                                    class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium focus:outline-none focus:border-primary-500 transition-all" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div v-for="item in filteredProducts" :key="item.id" @click="addToBundle(item)"
+                                class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group"
+                                :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': isItemFullyOccupied(item) }">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
+                                            item.name }}</p>
+                                        <CheckCircle v-if="getCartStatus(item.id)" :size="14"
+                                            class="text-emerald-500" />
+                                    </div>
+                                    <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
+                                        item.imei
+                                    }}</p>
+                                    <p v-else
+                                        class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
+                                        Sisa: {{ getRemainingStock(item) }}
+                                    </p>
+                                    <p class="text-xs text-primary-600 font-bold mt-1">{{
+                                        formatCurrency(item.selling_price || item.price) }}</p>
+                                </div>
+                                <Plus v-if="!isItemFullyOccupied(item)" :size="18"
+                                    class="text-surface-400 group-hover:text-primary-500 transition-colors" />
+                                <span v-else
+                                    class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{{
+                                        getCartStatus(item.id) || 'Stok Habis' }}</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
-                        <!-- Left: Item Picker -->
-                        <div
-                            class="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar border-b md:border-b-0 md:border-r border-surface-100 dark:border-surface-700">
-                            <div class="mb-4 sm:mb-6 sticky top-0 bg-white dark:bg-surface-800 z-10 pb-4">
-                                <div class="relative">
-                                    <Search
-                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary sm:w-[18px] sm:h-[18px]"
-                                        :size="16" />
-                                    <input v-model="searchQuery" type="text" placeholder="Cari item untuk bundle..."
-                                        class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-xl pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium focus:outline-none focus:border-primary-500 transition-all" />
-                                </div>
-                            </div>
+                    <!-- Right: Selected Items & Final Price -->
+                    <div
+                        class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-3 sm:p-6 flex flex-col h-[350px] sm:h-[400px] md:h-auto md:max-h-full flex-shrink-0 border-t md:border-t-0 border-surface-200 dark:border-surface-700">
+                        <h4
+                            class="text-[10px] sm:text-sm font-black text-text-secondary uppercase tracking-widest mb-3 sm:mb-4">
+                            Item
+                            Terpilih</h4>
 
-                            <div class="space-y-3">
-                                <div v-for="item in filteredProducts" :key="item.id" @click="addToBundle(item)"
-                                    class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 cursor-pointer transition-all flex justify-between items-center group"
-                                    :class="{ 'opacity-50 pointer-events-none border-emerald-500 bg-emerald-500/5': isItemFullyOccupied(item) }">
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <p class="font-bold text-text-primary text-sm">{{ item.product?.name ||
-                                                item.name }}</p>
-                                            <CheckCircle v-if="getCartStatus(item.id)" :size="14"
-                                                class="text-emerald-500" />
-                                        </div>
-                                        <p v-if="item.imei" class="text-xs font-mono text-text-secondary">{{
-                                            item.imei
-                                        }}</p>
-                                        <p v-else
-                                            class="text-[10px] font-black text-primary-600 bg-primary-500/10 px-2 py-0.5 rounded w-fit">
-                                            Sisa: {{ getRemainingStock(item) }}
-                                        </p>
-                                        <p class="text-xs text-primary-600 font-bold mt-1">{{
-                                            formatCurrency(item.selling_price || item.price) }}</p>
+                        <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 mb-4">
+                            <div v-if="bundleItems.length === 0"
+                                class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-2 sm:py-10">
+                                <ShoppingBag class="w-6 h-6 sm:w-12 sm:h-12 mb-1 sm:mb-3" />
+                                <p class="text-[9px] sm:text-xs font-medium text-center">Belum ada item dipilih</p>
+                            </div>
+                            <div v-for="(item, idx) in bundleItems" :key="item.id"
+                                class="p-3 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 animate-fade-in relative group/item">
+                                <button @click="removeFromBundle(idx)"
+                                    class="absolute top-2 right-2 text-surface-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors z-10">
+                                    <Trash2 :size="16" />
+                                </button>
+
+                                <div class="mb-2 pr-6">
+                                    <p class="text-xs font-black text-text-primary truncate">{{
+                                        item.product?.name
+                                        || item.name }}</p>
+                                    <p v-if="item.imei" class="text-[10px] font-mono text-text-secondary">{{
+                                        item.imei }}</p>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-3">
+                                    <!-- Quantity Controls for non-IMEI -->
+                                    <div v-if="!item.imei"
+                                        class="flex items-center bg-surface-100 dark:bg-surface-900 rounded-lg border border-surface-200 dark:border-surface-700 h-9">
+                                        <button @click="decrementBundleItemQty(idx)"
+                                            class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors rounded-l-lg font-black">-</button>
+                                        <span
+                                            class="px-3 text-xs font-black text-center border-x border-surface-200 dark:border-surface-700 h-full flex items-center bg-white dark:bg-surface-800">
+                                            {{ item.quantity }}<span
+                                                class="text-[10px] text-text-secondary ml-0.5">x</span>
+                                        </span>
+                                        <button @click="incrementBundleItemQty(idx)"
+                                            :disabled="isItemFullyOccupied(item)"
+                                            class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-r-lg font-black">+</button>
                                     </div>
-                                    <Plus v-if="!isItemFullyOccupied(item)" :size="18"
-                                        class="text-surface-400 group-hover:text-primary-500 transition-colors" />
-                                    <span v-else
-                                        class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{{
-                                            getCartStatus(item.id) || 'Stok Habis' }}</span>
+                                    <div v-else
+                                        class="h-9 px-3 flex items-center justify-center bg-surface-100 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                                        1 Unit
+                                    </div>
+
+                                    <!-- Price Input -->
+                                    <div class="relative flex-1">
+                                        <span
+                                            class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
+                                        <input v-money:bundle_price="item" type="text"
+                                            @input="calculateBundleTotal"
+                                            class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all h-9"
+                                            :placeholder="formatNumber(item.selling_price || item.price || 0)" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Right: Selected Items & Final Price -->
-                        <div
-                            class="w-full md:w-[350px] bg-surface-50 dark:bg-surface-900 p-3 sm:p-6 flex flex-col h-[350px] sm:h-[400px] md:h-auto md:max-h-full flex-shrink-0 border-t md:border-t-0 border-surface-200 dark:border-surface-700">
-                            <h4
-                                class="text-[10px] sm:text-sm font-black text-text-secondary uppercase tracking-widest mb-3 sm:mb-4">
-                                Item
-                                Terpilih</h4>
-
-                            <div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 mb-4">
-                                <div v-if="bundleItems.length === 0"
-                                    class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-2 sm:py-10">
-                                    <ShoppingBag class="w-6 h-6 sm:w-12 sm:h-12 mb-1 sm:mb-3" />
-                                    <p class="text-[9px] sm:text-xs font-medium text-center">Belum ada item dipilih</p>
-                                </div>
-                                <div v-for="(item, idx) in bundleItems" :key="item.id"
-                                    class="p-3 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 animate-fade-in relative group/item">
-                                    <button @click="removeFromBundle(idx)"
-                                        class="absolute top-2 right-2 text-surface-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors z-10">
-                                        <Trash2 :size="16" />
-                                    </button>
-
-                                    <div class="mb-2 pr-6">
-                                        <p class="text-xs font-black text-text-primary truncate">{{
-                                            item.product?.name
-                                            || item.name }}</p>
-                                        <p v-if="item.imei" class="text-[10px] font-mono text-text-secondary">{{
-                                            item.imei }}</p>
-                                    </div>
-
-                                    <div class="flex items-center justify-between gap-3">
-                                        <!-- Quantity Controls for non-IMEI -->
-                                        <div v-if="!item.imei"
-                                            class="flex items-center bg-surface-100 dark:bg-surface-900 rounded-lg border border-surface-200 dark:border-surface-700 h-9">
-                                            <button @click="decrementBundleItemQty(idx)"
-                                                class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors rounded-l-lg font-black">-</button>
-                                            <span
-                                                class="px-3 text-xs font-black text-center border-x border-surface-200 dark:border-surface-700 h-full flex items-center bg-white dark:bg-surface-800">
-                                                {{ item.quantity }}<span
-                                                    class="text-[10px] text-text-secondary ml-0.5">x</span>
-                                            </span>
-                                            <button @click="incrementBundleItemQty(idx)"
-                                                :disabled="isItemFullyOccupied(item)"
-                                                class="px-2 h-full flex items-center justify-center text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-r-lg font-black">+</button>
-                                        </div>
-                                        <div v-else
-                                            class="h-9 px-3 flex items-center justify-center bg-surface-100 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg text-[10px] font-black uppercase tracking-widest text-text-secondary">
-                                            1 Unit
-                                        </div>
-
-                                        <!-- Price Input -->
-                                        <div class="relative flex-1">
-                                            <span
-                                                class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
-                                            <input v-money:bundle_price="item" type="text"
-                                                @input="calculateBundleTotal"
-                                                class="w-full bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 text-xs font-black text-primary-600 outline-none focus:border-primary-500 transition-all h-9"
-                                                :placeholder="formatNumber(item.selling_price || item.price || 0)" />
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="pt-3 sm:pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
+                            <label
+                                class="block text-[9px] sm:text-xs font-black text-text-secondary uppercase tracking-widest mb-1 sm:mb-3">Harga
+                                Total Bundle</label>
+                            <div class="relative mb-4 sm:mb-6">
+                                <span
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm sm:text-base">Rp</span>
+                                <input v-money:totalPrice="bundlingHelper" type="text"
+                                    @input="handleBundlePriceInput"
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-surface-800 text-text-primary text-lg sm:text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-11 sm:pl-12"
+                                    placeholder="0" />
                             </div>
 
-                            <div class="pt-3 sm:pt-6 border-t border-surface-200 dark:border-surface-700 mt-auto">
-                                <label
-                                    class="block text-[9px] sm:text-xs font-black text-text-secondary uppercase tracking-widest mb-1 sm:mb-3">Harga
-                                    Total Bundle</label>
-                                <div class="relative mb-4 sm:mb-6">
-                                    <span
-                                        class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm sm:text-base">Rp</span>
-                                    <input v-money:totalPrice="bundlingHelper" type="text"
-                                        @input="handleBundlePriceInput"
-                                        class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 sm:px-5 py-3 sm:py-4 bg-white dark:bg-surface-800 text-text-primary text-lg sm:text-xl font-black focus:outline-none focus:border-primary-500 transition-all pl-11 sm:pl-12"
-                                        placeholder="0" />
-                                </div>
-
-                                <button @click="finishBundling"
-                                    :disabled="bundleItems.length < 2 || bundleTotalPrice <= 0"
-                                    class="w-full py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95">
-                                    <CheckCircle :size="18" class="sm:w-5 sm:h-5" />
-                                    Selesai
-                                </button>
-                            </div>
+                            <button @click="finishBundling"
+                                :disabled="bundleItems.length < 2 || bundleTotalPrice <= 0"
+                                class="w-full py-3 sm:py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm sm:text-base active:scale-95">
+                                <CheckCircle :size="18" class="sm:w-5 sm:h-5" />
+                                Selesai
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </Teleport>
+        </div>
+    </Teleport>
 
-        <!-- Mobile Sticky Bottom Summary -->
-        <div v-if="cartStore.items.length > 0 && !showMobileCart"
-            class="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-fade-in">
-            <div @click="showMobileCart = true" 
-                class="bg-primary-600 text-white rounded-2xl p-4 shadow-2xl shadow-primary-500/40 flex items-center justify-between group active:scale-95 transition-all">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center relative">
-                        <ShoppingCart :size="24" stroke-width="2.5" />
-                        <span class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-primary-600">
-                            {{ cartItemCount }}
-                        </span>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-primary-100 leading-none mb-1">Total Sementara</span>
-                        <span class="text-lg font-black tracking-tight">{{ formatCurrency(cartTotal) }}</span>
-                    </div>
+    <!-- Mobile Sticky Bottom Summary -->
+    <div v-if="cartStore.items.length > 0 && !showMobileCart"
+        class="lg:hidden fixed bottom-6 left-6 right-6 z-[100]">
+        <div @click="showMobileCart = true" 
+            class="bg-primary-600 text-white rounded-2xl p-4 shadow-2xl shadow-primary-500/40 flex items-center justify-between group active:scale-95 transition-all">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center relative">
+                    <ShoppingCart :size="24" stroke-width="2.5" />
+                    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-primary-600">
+                        {{ cartItemCount }}
+                    </span>
                 </div>
-                <div class="flex items-center gap-2 bg-white/20 px-4 py-3 rounded-xl font-black text-sm uppercase tracking-widest">
-                    {{ transactionCategory === 'tukar_unit' ? 'Lanjut' : 'Checkout' }}
-                    <ArrowRight :size="18" stroke-width="3" />
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-primary-100 leading-none mb-1">Total Sementara</span>
+                    <span class="text-lg font-black tracking-tight">{{ formatCurrency(cartTotal) }}</span>
                 </div>
+            </div>
+            <div class="flex items-center gap-2 bg-white/20 px-4 py-3 rounded-xl font-black text-sm uppercase tracking-widest">
+                {{ transactionCategory === 'tukar_unit' ? 'Lanjut' : 'Checkout' }}
+                <ArrowRight :size="18" stroke-width="3" />
             </div>
         </div>
     </div>
