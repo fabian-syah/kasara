@@ -167,16 +167,7 @@ watch(() => authStore.user?.id, (newId) => {
     if (newId) restoreDraft();
 }, { immediate: true });
 
-onMounted(() => {
-    setTimeout(() => {
-        if (isRestoring.value && !authStore.user?.id) isRestoring.value = false;
-    }, 2000);
-    
-    fetchDistributors();
-    fetchInventoryUsers();
-    fetchCurrentBranch();
-    fetchInitialData();
-});
+
 
 const addNonHpItem = () => {
     nonHpItems.value.push({
@@ -924,7 +915,12 @@ async function submitStockIn(verifiedPin = null) {
 }
 
 
-onMounted(fetchInitialData);
+onMounted(() => {
+    fetchInitialData();
+    setTimeout(() => {
+        if (isRestoring.value) isRestoring.value = false;
+    }, 3000);
+});
 </script>
 
 <template>
