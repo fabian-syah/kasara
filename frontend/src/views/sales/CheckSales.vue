@@ -735,16 +735,21 @@ const summaryStats = computed(() => {
 
     activeRecords.value.forEach(item => {
         const cat = item.category;
-        const total = parseFloat(item.grand_total) || 0;
+        // Use Math.abs because backend might send negative values for TT/Expenses
+        const total = Math.abs(parseFloat(item.grand_total) || 0);
 
-        // Omset Logic: Sales categories vs Expense/Return categories
-        if (['angkat_barang', 'refund', 'downgrade'].includes(cat)) {
+        // Sales Categories (Income)
+        const isSales = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_tambah', 'tukar_unit'].includes(cat);
+        // Expense/Out Categories
+        const isOut = ['angkat_barang', 'refund', 'downgrade'].includes(cat);
+
+        if (isOut) {
             out += total;
-        } else {
+        } else if (isSales) {
             sales += total;
         }
 
-        // Unit Logic: HP (with IMEI) vs Non-HP
+        // Unit Logic: Count all items handled
         if (item.items && item.items.length > 0) {
             item.items.forEach(detail => {
                 const qty = parseInt(detail.qty) || 0;
