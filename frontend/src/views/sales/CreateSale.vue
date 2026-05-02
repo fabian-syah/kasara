@@ -442,9 +442,9 @@ watch(transactionCategory, () => {
                                     <div class="flex items-center gap-3 w-full pr-8">
                                         <!-- Photo or Initials -->
                                         <div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full bg-surface-200 dark:bg-surface-700 flex items-center justify-center overflow-hidden border border-surface-300 dark:border-surface-600">
-                                            <img v-if="getPhotoUrl(acc)" :src="getPhotoUrl(acc)" class="w-full h-full object-cover" alt="Profile" @error="$event.target.style.display='none'; $event.target.nextSibling.style.display='flex'" />
-                                            <span v-if="!getPhotoUrl(acc)" class="text-xs sm:text-sm font-black text-text-secondary">{{ getInitials(acc.name) }}</span>
-                                            <span style="display:none;" class="text-xs sm:text-sm font-black text-text-secondary w-full h-full items-center justify-center">{{ getInitials(acc.name) }}</span>
+                                            <img v-if="getPhotoUrl(acc)" :src="getPhotoUrl(acc)" class="w-full h-full object-cover" alt="Profile" 
+                                                @error="(e) => e.target.style.display='none'" />
+                                            <span class="text-xs sm:text-sm font-black text-text-secondary">{{ getInitials(acc.name) }}</span>
                                         </div>
 
                                         <!-- Account Info -->

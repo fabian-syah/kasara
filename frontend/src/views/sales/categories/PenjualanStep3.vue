@@ -344,8 +344,7 @@ const selectOutgoingUnit = (item) => {
 
         <div class="flex flex-col lg:flex-row gap-8 w-full items-start">
             <!-- Left: Product Selection -->
-            <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-                class="flex-[2] flex flex-col min-w-0 w-full">
+            <div class="flex-[2] flex flex-col min-w-0 w-full">
                 <div class="bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-6 mb-6 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                     <div class="relative flex-1 w-full">
                     <Search class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary" :size="20" />
@@ -542,8 +541,7 @@ const selectOutgoingUnit = (item) => {
             </div>
         </div>
 
-        <div v-if="transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
-            class="w-full lg:w-[420px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-4 lg:max-h-[calc(100vh-40px)]"
+        <div class="w-full lg:w-[420px] flex flex-col bg-white dark:bg-surface-800 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 shadow-xl overflow-hidden shrink-0 lg:sticky lg:top-4 lg:max-h-[calc(100vh-40px)]"
             :class="{'fixed inset-0 z-[110] rounded-none': showMobileCart, 'hidden lg:flex': !showMobileCart}">
             
             <div
@@ -709,6 +707,7 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
         </div>
+    </div>
 
     <!-- Bundling Modal Teleport -->
         <Teleport to="body">
@@ -860,7 +859,7 @@ const selectOutgoingUnit = (item) => {
         </Teleport>
 
         <!-- Mobile Sticky Bottom Summary -->
-        <div v-if="cartStore.items.length > 0 && !showMobileCart && transactionCategory !== 'angkat_barang' && transactionCategory !== 'refund' && transactionCategory !== 'tukar_unit' && transactionCategory !== 'tukar_tambah'"
+        <div v-if="cartStore.items.length > 0 && !showMobileCart"
             class="lg:hidden fixed bottom-6 left-6 right-6 z-[100] animate-fade-in">
             <div @click="showMobileCart = true" 
                 class="bg-primary-600 text-white rounded-2xl p-4 shadow-2xl shadow-primary-500/40 flex items-center justify-between group active:scale-95 transition-all">
@@ -882,6 +881,5 @@ const selectOutgoingUnit = (item) => {
                 </div>
             </div>
         </div>
-    </div>
     </div>
 </template>
