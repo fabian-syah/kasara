@@ -276,7 +276,7 @@
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex items-center gap-2">
-                                            <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                            <button v-if="item.proof_image || (item.proof_images && item.proof_images.length > 0)" @click="viewProof(item)"
                                                 class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
@@ -345,7 +345,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
-                                            <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                            <button v-if="item.proof_image || (item.proof_images && item.proof_images.length > 0)" @click="viewProof(item)"
                                                 class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
@@ -371,24 +371,52 @@
             </div>
         </div>
 
-        <!-- Proof Photo Modal -->
+        <!-- Proof Photo Modal (HD Gallery) -->
         <div v-if="showProofModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div class="relative max-w-4xl w-full">
+            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+            <div class="relative w-full max-w-6xl h-full flex flex-col items-center justify-center py-12">
+                <!-- Close Button -->
                 <button @click="showProofModal = false"
-                    class="absolute -top-12 right-0 p-2 text-white hover:text-gray-300 transition-colors">
-                    <X :size="32" />
+                    class="absolute top-4 right-0 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[110] backdrop-blur-md border border-white/20 active:scale-95"
+                    title="Tutup (ESC)">
+                    <X :size="28" stroke-width="3" />
                 </button>
-                <div class="bg-white dark:bg-surface-800 rounded-2xl overflow-hidden shadow-2xl">
-                    <img :src="currentProofUrl" alt="Foto Bukti" class="w-full h-auto max-h-[80vh] object-contain" />
-                    <div class="p-4 flex justify-between items-center bg-gray-50 dark:bg-surface-700">
-                        <span class="text-sm font-medium text-text-primary">Foto Bukti Pembayaran / Serah Terima</span>
-                        <a :href="currentProofUrl" download
-                            class="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors text-sm font-medium">
-                            <Download :size="16" />
-                            Unduh Foto
-                        </a>
+
+                <!-- Images Container -->
+                <div class="w-full flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center py-4 px-2">
+                    <div v-for="(imgUrl, index) in currentProofImages" :key="index" 
+                        class="w-full max-w-4xl bg-white dark:bg-surface-800 rounded-3xl overflow-hidden shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] group relative">
+                        
+                        <!-- HD Image -->
+                        <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)" 
+                            class="w-full h-auto min-h-[300px] object-contain bg-gray-50 dark:bg-surface-900" />
+                        
+                        <!-- Image Info Overlay -->
+                        <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white/80 dark:bg-surface-800/80 backdrop-blur-md border-t border-gray-100 dark:border-surface-700">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-black uppercase tracking-widest text-primary-600 mb-1">FOTO BUKTI #{{ index + 1 }}</span>
+                                <span class="text-sm font-bold text-text-primary">Dokumentasi Transaksi CheckSales</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <a :href="imgUrl" target="_blank"
+                                    class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all text-sm font-black uppercase tracking-tighter shadow-lg active:scale-95">
+                                    <TrendingUp :size="16" />
+                                    Lihat Full HD
+                                </a>
+                                <a :href="imgUrl" download
+                                    class="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all text-sm font-black uppercase tracking-tighter shadow-lg active:scale-95 shadow-primary-500/30">
+                                    <Download :size="16" />
+                                    Download
+                                </a>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Multiple Photos Indicator -->
+                <div v-if="currentProofImages.length > 1" 
+                    class="mt-6 px-6 py-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white text-xs font-black uppercase tracking-[0.2em]">
+                    Scroll ke bawah untuk melihat {{ currentProofImages.length - 1 }} foto lainnya
                 </div>
             </div>
         </div>
@@ -516,6 +544,7 @@ import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
 import { getLogicalDate, getTodayLocal } from '../../utils/formatters'
+import { useEscapeKey } from '../../composables/useEscapeKey'
 
 import { useAuthStore } from '../../store/auth'
 
@@ -637,16 +666,26 @@ const handleLocationChange = () => {
 
 // Modals State
 const showProofModal = ref(false)
-const currentProofUrl = ref('')
+const currentProofImages = ref([])
 const showReceiptModal = ref(false)
 const currentReceiptData = ref(null)
 const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
 
-const viewProof = (url) => {
-    currentProofUrl.value = url
+const viewProof = (item) => {
+    if (item.proof_images && item.proof_images.length > 0) {
+        currentProofImages.value = item.proof_images
+    } else if (item.proof_image) {
+        currentProofImages.value = [item.proof_image]
+    } else {
+        currentProofImages.value = []
+    }
     showProofModal.value = true
 }
+
+useEscapeKey(() => {
+    if (showProofModal.value) showProofModal.value = false
+})
 
 const openReceipt = (item) => {
     currentReceiptData.value = item

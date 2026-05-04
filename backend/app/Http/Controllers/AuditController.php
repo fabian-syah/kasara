@@ -1614,6 +1614,11 @@ class AuditController extends Controller
                     'split_payments_data' => $detailedSplitPayments,
                     'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline') ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
+                    'proof_images' => collect([
+                        $trx->proof_image,
+                        $exchangeInfo->photo_unit ?? null,
+                        $exchangeInfo->photo_customer ?? null
+                    ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray(),
                     'proof_image' => $trx->proof_image 
                         ? asset('storage/' . $trx->proof_image) 
                         : ($exchangeInfo && $exchangeInfo->photo_unit 
