@@ -372,35 +372,35 @@ async function handlePinSuccess(pin) {
                                     <label class="label">Nama Lengkap</label>
                                     <div class="relative group">
                                         <User class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.full_name" type="text" class="input pl-10 opacity-70" disabled />
+                                        <input v-model="form.full_name" type="text" class="input !pl-10 opacity-70" disabled />
                                     </div>
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="label">Username</label>
                                     <div class="relative group">
                                         <Shield class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.username" type="text" class="input pl-10 opacity-70" disabled />
+                                        <input v-model="form.username" type="text" class="input !pl-10 opacity-70" disabled />
                                     </div>
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="label">Email</label>
                                     <div class="relative group">
                                         <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.email" type="email" class="input pl-10" placeholder="your@email.com" />
+                                        <input v-model="form.email" type="email" class="input !pl-10" placeholder="your@email.com" />
                                     </div>
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="label">No. Telepon</label>
                                     <div class="relative group">
                                         <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.phone" type="tel" class="input pl-10" placeholder="08xx-xxxx-xxxx" />
+                                        <input v-model="form.phone" type="tel" class="input !pl-10" placeholder="08xx-xxxx-xxxx" />
                                     </div>
                                 </div>
                                 <div class="md:col-span-2 space-y-1.5">
                                     <label class="label">Alamat</label>
                                     <div class="relative group">
                                         <MapPin class="absolute left-3 top-3 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <textarea v-model="form.address" class="input pl-10 min-h-[100px] resize-none" placeholder="Alamat lengkap Anda..."></textarea>
+                                        <textarea v-model="form.address" class="input !pl-10 min-h-[100px] resize-none" placeholder="Alamat lengkap Anda..."></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -418,7 +418,7 @@ async function handlePinSuccess(pin) {
                                     <label class="label">Password Baru</label>
                                     <div class="relative group">
                                         <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.new_password" type="password" class="input pl-10"
+                                        <input v-model="form.new_password" type="password" class="input !pl-10"
                                             placeholder="••••••••" />
                                     </div>
                                 </div>
@@ -426,7 +426,7 @@ async function handlePinSuccess(pin) {
                                     <label class="label">Konfirmasi Password</label>
                                     <div class="relative group">
                                         <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.confirm_password" type="password" class="input pl-10"
+                                        <input v-model="form.confirm_password" type="password" class="input !pl-10"
                                             placeholder="••••••••" />
                                     </div>
                                 </div>
