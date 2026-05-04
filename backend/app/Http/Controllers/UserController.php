@@ -504,6 +504,28 @@ class UserController extends Controller
         return response()->json(['success' => true, 'message' => 'Perubahan foto profil ditolak.']);
     }
 
+    public function approvePinReset($id)
+    {
+        $user = User::findOrFail($id);
+        $currentUser = Auth::user();
+
+        // Security check
+        if (!$currentUser->hasAnyRole(['super_admin', 'owner', 'audit'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Clear PIN and request
+        $user->transaction_pin = null;
+        $user->pin_reset_requested_at = null;
+        $user->pin_enabled = false; // Disable until they set a new one
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => "PIN untuk {$user->full_name} berhasil direset. User sekarang dapat membuat PIN baru."
+        ]);
+    }
+
     public function debugPendingDump()
     {
         $allPending = User::whereNotNull('pending_photo')

@@ -71,21 +71,19 @@ function resetForm() {
     showPassword.value = false;
 }
 
-async function saveUser() {
-    if (!form.value.transaction_pin) {
-        toast.warning("Masukkan PIN baru untuk mereset.");
+async function approveReset(user) {
+    if (!confirm(`Setujui reset PIN untuk ${user.full_name}? PIN lama akan dihapus dan user dapat membuat PIN baru sendiri.`)) {
         return;
     }
 
     isSaving.value = true;
     try {
-        await usersApi.update(editingUser.value.id, form.value);
-        toast.success(`PIN untuk ${editingUser.value.full_name} berhasil direset.`);
-        closeModal();
+        await usersApi.customPost(`/users/${user.id}/approve-pin-reset`);
+        toast.success(`Permintaan reset PIN untuk ${user.full_name} disetujui.`);
         fetchData(); // Refresh list
     } catch (error) {
-        console.error("Save error:", error);
-        toast.error(error.response?.data?.message || "Gagal menyimpan perubahan.");
+        console.error("Approval error:", error);
+        toast.error(error.response?.data?.message || "Gagal menyetujui reset PIN.");
     } finally {
         isSaving.value = false;
     }
@@ -209,9 +207,10 @@ onMounted(() => {
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <button @click="openEditModal(user)"
+                                <button @click="approveReset(user)" :disabled="isSaving"
                                     class="btn btn-primary btn-sm px-4 rounded-xl shadow-lg shadow-primary-500/20">
-                                    Reset PIN
+                                    <Loader2 v-if="isSaving" class="animate-spin mr-2 inline" :size="14" />
+                                    Setujui Reset
                                 </button>
                             </td>
                         </tr>
@@ -220,66 +219,8 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Reset Modal -->
-        <Teleport to="body">
-            <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeModal"></div>
-                <div
-                    class="relative bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 w-full max-w-md p-8 shadow-2xl animate-in zoom-in duration-200">
-                    <button @click="closeModal"
-                        class="absolute top-6 right-6 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-white transition-colors">
-                        <X :size="20" />
-                    </button>
-
-                    <div class="flex flex-col items-center text-center mb-8">
-                        <div
-                            class="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 mb-4">
-                            <Shield :size="32" />
-                        </div>
-                        <h3 class="text-xl font-black text-neutral-900 dark:text-white uppercase tracking-tight">
-                            Otoritas Reset PIN</h3>
-                        <p class="text-sm text-neutral-500 mt-1">Reset PIN untuk <strong
-                                class="text-neutral-900 dark:text-white">{{ editingUser?.full_name }}</strong></p>
-                    </div>
-
-                    <form @submit.prevent="saveUser" class="space-y-6">
-                        <div class="p-4 rounded-2xl bg-red-500/5 border border-red-500/10">
-                            <div class="flex items-center gap-2 text-red-500 mb-2">
-                                <AlertCircle :size="16" />
-                                <span class="text-xs font-bold uppercase tracking-wider">Peringatan Keamanan</span>
-                            </div>
-                            <p class="text-[11px] text-neutral-500 leading-relaxed">
-                                Reset PIN akan menghapus PIN lama user tersebut. Pastikan Anda telah memverifikasi
-                                identitas staff yang bersangkutan.
-                            </p>
-                        </div>
-
-                        <div>
-                            <label
-                                class="block text-xs font-black text-neutral-500 dark:text-neutral-400 border border-transparent rounded-xl mb-2 uppercase tracking-widest text-center">Ganti
-                                PIN (4 Digit)</label>
-                            <input v-model="form.transaction_pin" type="text" maxlength="4" autocomplete="new-password"
-                                class="w-full bg-neutral-100 dark:bg-neutral-800 border-2 border-transparent focus:border-amber-500 rounded-2xl px-5 py-4 text-center text-3xl font-black tracking-[1em] focus:outline-none transition-all placeholder:text-neutral-400 placeholder:text-sm placeholder:tracking-normal"
-                                placeholder="____"
-                                @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" required />
-                        </div>
-
-                        <div class="flex gap-3 pt-2">
-                            <button type="button" @click="closeModal"
-                                class="flex-1 px-6 py-3 rounded-2xl font-bold text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">Batal</button>
-                            <button type="submit"
-                                class="flex-[2] btn btn-primary py-3 rounded-2xl shadow-xl shadow-primary-500/30"
-                                :disabled="isSaving">
-                                <Loader2 v-if="isSaving" class="animate-spin mr-2 inline" :size="18" />
-                                {{ isSaving ? 'Memproses...' : 'Reset PIN Sekarang' }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </Teleport>
-    </div>
-</template>
+     </div>
+ </template>
 
 <style scoped>
 @reference "../../style.css";
