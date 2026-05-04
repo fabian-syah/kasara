@@ -492,8 +492,12 @@ class AuditController extends Controller
                     $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
-                        DB::raw("sum(case when stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", $stdSalesCats) . "') then stock_outs.selling_price else 0 end) as grand_total"), 
-                        DB::raw("sum(case when stock_outs.category IN ('refund', 'angkat_barang') then stock_outs.selling_price else 0 end) as total_activity_rp"))
+                        DB::raw("sum(CASE 
+                            WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", array_merge($stdSalesCats, ['tukar_tambah'])) . "') THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            ELSE 0
+                        END) as grand_total"), 
+                        DB::raw("sum(case when stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') then ABS(COALESCE(stock_outs.selling_price, 0)) else 0 end) as total_activity_rp"))
                         ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
                     
                     return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $activityItemQuery, $activityNhpQuery, $hpBreakdown, $nhpBreakdown) {
@@ -600,7 +604,11 @@ class AuditController extends Controller
                         ->groupBy('reporting_date')->get()->keyBy('reporting_date');
 
                     $mainStats = (clone $baseQuery)->select('reporting_date', 
-                        DB::raw('sum(CASE WHEN category = \'tukar_tambah\' THEN ABS(selling_price) WHEN category IN (\'downgrade\', \'tukar_unit\', \'refund\', \'angkat_barang\') THEN 0 ELSE selling_price END) as total_omset'))
+                        DB::raw("sum(CASE 
+                            WHEN category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(selling_price, 0))
+                            WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') THEN ABS(COALESCE(selling_price, 0))
+                            ELSE 0
+                        END) as total_omset"))
                         ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
 
                     return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
