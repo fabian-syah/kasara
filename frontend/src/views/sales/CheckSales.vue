@@ -391,8 +391,8 @@
 
         <!-- Proof Photo Modal (HD Gallery) -->
         <div v-if="showProofModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <div class="relative w-full max-w-6xl h-full flex flex-col items-center justify-center py-12">
+            class="fixed inset-0 z-[99999] flex items-center justify-center p-4 px-6 sm:px-20 bg-black/90 backdrop-blur-md">
+            <div class="relative w-full max-w-5xl h-full flex flex-col items-center justify-center py-12">
                 <!-- Close Button -->
                 <button @click="showProofModal = false"
                     class="absolute top-4 right-0 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[110] backdrop-blur-md border border-white/20 active:scale-95"
