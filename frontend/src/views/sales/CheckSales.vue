@@ -278,14 +278,14 @@
                                         <div class="flex items-center gap-2">
                                             <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
-                                                    @click="viewProof(item, imgIdx)"
+                                                    @click="viewProof(img)"
                                                     class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                     :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                     <Image :size="12" stroke-width="3" />
                                                     <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' : 'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' + (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
-                                            <button v-else-if="item.proof_image" @click="viewProof(item)"
+                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
                                                 class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
@@ -356,14 +356,14 @@
                                         <div class="flex items-center gap-2">
                                             <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
-                                                    @click="viewProof(item, imgIdx)"
+                                                    @click="viewProof(img)"
                                                     class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                     :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                     <Image :size="12" stroke-width="3" />
                                                     <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' : 'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' + (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
-                                            <button v-else-if="item.proof_image" @click="viewProof(item)"
+                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
                                                 class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
@@ -710,28 +710,9 @@ const currentReceiptData = ref(null)
 const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
 
-const viewProof = (item, startIndex = 0) => {
-    if (item.proof_images && item.proof_images.length > 0) {
-        currentProofImages.value = item.proof_images
-    } else if (item.proof_image) {
-        currentProofImages.value = [item.proof_image]
-    } else {
-        currentProofImages.value = []
-    }
+const viewProof = (imgUrl) => {
+    currentProofImages.value = [imgUrl]
     showProofModal.value = true
-    
-    // Jump to the specific image after modal opens
-    if (startIndex > 0) {
-        setTimeout(() => {
-            const container = document.querySelector('.overflow-y-auto.custom-scrollbar');
-            if (container) {
-                const images = container.querySelectorAll('img');
-                if (images[startIndex]) {
-                    images[startIndex].scrollIntoView({ behavior: 'smooth' });
-                }
-            }
-        }, 100);
-    }
 }
 
 useEscapeKey(() => {
