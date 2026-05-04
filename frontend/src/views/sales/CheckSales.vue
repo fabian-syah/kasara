@@ -277,9 +277,10 @@
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex items-center gap-2">
                                             <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
-                                                class="p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 rounded-lg transition-colors"
+                                                class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
-                                                <Image :size="18" />
+                                                <Image :size="14" stroke-width="2.5" />
+                                                <span>Lihat Bukti</span>
                                             </button>
                                             <button @click="openReceipt(item)"
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
@@ -345,9 +346,10 @@
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
                                             <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
-                                                class="p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 rounded-lg transition-colors"
+                                                class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
-                                                <Image :size="18" />
+                                                <Image :size="14" stroke-width="2.5" />
+                                                <span>Lihat Bukti</span>
                                             </button>
                                             <button @click="openReceipt(item)"
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"

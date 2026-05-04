@@ -1367,8 +1367,9 @@ class AuditController extends Controller
             $ttData = \App\Models\TukarTambah::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
             $dgData = \App\Models\Downgrade::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
             $ueData = \App\Models\UnitExchange::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $rfData = \App\Models\Refund::whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
 
-            $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData) {
+            $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData, $rfData) {
                 $details = [];
                 $catLower = strtolower($trx->category);
                 $receiptId = $trx->receipt_id;
@@ -1380,6 +1381,7 @@ class AuditController extends Controller
                 if ($catLower === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); $exchangeType = 'TUKAR TAMBAH'; }
                 elseif ($catLower === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); $exchangeType = 'DOWNGRADE'; }
                 elseif ($catLower === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); $exchangeType = 'TUKAR UNIT'; }
+                elseif ($catLower === 'refund') { $exchangeInfo = $rfData->get($receiptId); $exchangeType = 'REFUND'; }
 
                 foreach ($trx->items as $item) {
                     $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
@@ -1612,6 +1614,11 @@ class AuditController extends Controller
                     'split_payments_data' => $detailedSplitPayments,
                     'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline') ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
+                    'proof_image' => $trx->proof_image 
+                        ? asset('storage/' . $trx->proof_image) 
+                        : ($exchangeInfo && $exchangeInfo->photo_unit 
+                            ? asset('storage/' . $exchangeInfo->photo_unit) 
+                            : null),
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? $priceOut : null,
                     'price_in' => $exchangeInfo ? (float)($exchangeInfo->incoming_cost_price ?? 0) : null,
