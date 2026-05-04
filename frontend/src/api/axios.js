@@ -142,7 +142,8 @@ export const users = {
     delete: (id) => api.delete(`/users/${id}`),
     listPendingPhotos: () => api.get('/users/pending-photos'),
     approvePhoto: (id) => api.post(`/users/${id}/approve-photo`),
-    rejectPhoto: (id, reason) => api.post(`/users/${id}/reject-photo`, { reason })
+    rejectPhoto: (id, reason) => api.post(`/users/${id}/reject-photo`, { reason }),
+    approvePinReset: (id) => api.post(`/users/${id}/approve-pin-reset`)
 }
 
 // Tambahkan ini di src/api/axios.js

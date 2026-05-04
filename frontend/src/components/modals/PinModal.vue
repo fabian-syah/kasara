@@ -12,15 +12,16 @@ const props = defineProps({
     title: { type: String, default: "Verifikasi PIN Transaksi" },
     description: { type: String, default: "Masukkan 4 digit PIN transaksi Anda untuk melanjutkan." },
     mode: { type: String, default: "verify" }, // 'verify', 'set', 'setup_initial'
-    user: { type: Object, default: null }
+    user: { type: Object, default: null },
+    loading: { type: Boolean, default: false },
+    error: { type: String, default: "" }
 });
 
 const emit = defineEmits(["close", "success", "verified", "error"]);
 
 const pin = ref(["", "", "", ""]);
 const inputs = ref([]);
-const error = ref("");
-const loading = ref(false);
+const localLoading = ref(false);
 
 function handleInput(index, event) {
     const val = event.target.value;
@@ -62,7 +63,7 @@ const toast = useToast();
 async function handleRequestReset() {
     if (!confirm("Kirim permintaan reset PIN ke Admin?")) return;
 
-    loading.value = true;
+    localLoading.value = true;
     try {
         await authApi.requestResetPin();
         toast.success("Permintaan reset PIN telah dikirim.");
@@ -79,9 +80,15 @@ async function handleRequestReset() {
         toast.error("Gagal mengirim permintaan reset.");
         console.error(err);
     } finally {
-        loading.value = false;
+        localLoading.value = false;
     }
 }
+
+watch(() => props.error, (newVal) => {
+    if (newVal) {
+        resetPin();
+    }
+});
 
 function resetPin() {
     pin.value = ["", "", "", ""];
@@ -153,7 +160,7 @@ onMounted(() => {
                         {{ error }}
                     </div>
 
-                    <div v-if="loading" class="flex items-center justify-center gap-3 py-4">
+                    <div v-if="loading || localLoading" class="flex items-center justify-center gap-3 py-4">
                         <div class="w-2 h-2 bg-primary-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                         <div class="w-2 h-2 bg-primary-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                         <div class="w-2 h-2 bg-primary-500 rounded-full animate-bounce"></div>

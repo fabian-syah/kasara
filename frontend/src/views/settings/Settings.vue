@@ -20,6 +20,8 @@ const photoFile = ref(null);
 const showPinModal = ref(false);
 const pinModalMode = ref('verify');
 const pinModalTitle = ref('Verifikasi PIN');
+const pinError = ref("");
+const isPinLoading = ref(false);
 
 const form = ref({
     full_name: "",
@@ -181,6 +183,7 @@ async function handlePinToggle() {
     
     pinModalMode.value = exists ? 'verify' : 'setup';
     pinModalTitle.value = `${action} PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
+    pinError.value = "";
     showPinModal.value = true;
 }
 
@@ -214,7 +217,7 @@ async function requestPinReset() {
 }
 
 async function handlePinSuccess(pin) {
-    showPinModal.value = false;
+    isPinLoading.value = true;
     try {
         if (pinModalMode.value === 'setup') {
             if (selectedAccountId.value === 'main') {
@@ -225,6 +228,7 @@ async function handlePinSuccess(pin) {
                 fd.append('pin_enabled', 1);
                 await inventoryApi.updateAccount(selectedAccountId.value, fd);
             }
+            showPinModal.value = false;
             toast.success("PIN berhasil dipasang dan diaktifkan!");
         } else {
             // Toggle Logic
@@ -236,6 +240,7 @@ async function handlePinSuccess(pin) {
                 const res = await inventoryApi.togglePin(selectedAccountId.value, pin);
                 newState = res.data.data.pin_enabled;
             }
+            showPinModal.value = false;
             toast.success(`PIN berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}!`);
         }
         // Refresh user data
@@ -249,7 +254,14 @@ async function handlePinSuccess(pin) {
         }
     } catch (error) {
         console.error("PIN operation failed", error);
-        toast.error(error.response?.data?.message || "Operasi PIN gagal. Pastikan PIN benar.");
+        // User requested: no error toast if PIN is wrong (422)
+        if (error.response?.status === 422) {
+            pinError.value = error.response.data.message || "PIN salah.";
+        } else {
+            toast.error(error.response?.data?.message || "Operasi PIN gagal.");
+        }
+    } finally {
+        isPinLoading.value = false;
     }
 }
 </script>
@@ -508,7 +520,9 @@ async function handlePinSuccess(pin) {
     </div>
 
     <!-- PIN Modal Component -->
-    <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" @close="showPinModal = false"
+    <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" 
+        :error="pinError" :loading="isPinLoading"
+        @close="showPinModal = false"
         @success="handlePinSuccess" />
 </template>
 

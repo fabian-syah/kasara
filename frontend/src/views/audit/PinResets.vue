@@ -78,7 +78,7 @@ async function approveReset(user) {
 
     isSaving.value = true;
     try {
-        await usersApi.customPost(`/users/${user.id}/approve-pin-reset`);
+        await usersApi.approvePinReset(user.id);
         toast.success(`Permintaan reset PIN untuk ${user.full_name} disetujui.`);
         fetchData(); // Refresh list
     } catch (error) {
