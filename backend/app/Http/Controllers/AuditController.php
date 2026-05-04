@@ -136,14 +136,11 @@ class AuditController extends Controller
             $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                 $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
-                        $q->where('stock_outs.branch_id', $requestedBranchId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                        $q->where('stock_outs.branch_id', $requestedBranchId);
                     } elseif ($requestedOnlineShopId) {
-                        $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                        $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
                     } elseif ($requestedWarehouseId) {
-                        $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));
+                        $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
                     } elseif ($requestedDistributorId) {
                         $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
                     } else {
@@ -172,29 +169,13 @@ class AuditController extends Controller
             $dbScope = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                 $query->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
-                        if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
-                            $sub->where('users.branch_id', $requestedBranchId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
+                        $sub->where('users.branch_id', $requestedBranchId);
                     } elseif ($requestedOnlineShopId) {
-                        if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
-                            $sub->where('users.online_shop_id', $requestedOnlineShopId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
+                        $sub->where('users.online_shop_id', $requestedOnlineShopId);
                     } elseif ($requestedWarehouseId) {
-                        if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
-                            $sub->where('users.warehouse_id', $requestedWarehouseId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
+                        $sub->where('users.warehouse_id', $requestedWarehouseId);
                     } elseif ($requestedDistributorId) {
-                        if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
-                            $sub->where('users.distributor_id', $requestedDistributorId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
+                        $sub->where('users.distributor_id', $requestedDistributorId);
                     } else {
                         $sub->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                             if (!empty($branchIds))
