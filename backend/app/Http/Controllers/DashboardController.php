@@ -154,13 +154,24 @@ class DashboardController extends Controller
                 $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0];
             }
 
+            $cat = strtolower($sale->category ?? '');
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling']);
+            $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+            
+            $saleTotal = abs((float)($sale->selling_price ?? 0));
+
+            if ($isBaseSale) {
+                $totalRevenue += $saleTotal;
+                $csPerformance[$csName]['total_sales'] += $saleTotal;
+            } elseif ($isDeduction) {
+                $totalRevenue -= $saleTotal;
+                $csPerformance[$csName]['total_sales'] -= $saleTotal;
+            }
+
             // HP Items
             foreach ($sale->items as $item) {
-                $price = $item->selling_price;
-                $totalRevenue += $price;
                 $productsSold++;
                 $csPerformance[$csName]['hp_count']++;
-                $csPerformance[$csName]['total_sales'] += $price;
 
                 // Type Stats
                 $typeName = $item->product?->name ?? 'Unknown';
@@ -180,12 +191,9 @@ class DashboardController extends Controller
                     if ($pid && isset($nonHpProducts[$pid])) {
                         $product = $nonHpProducts[$pid];
                         $qty = (int) ($item['quantity'] ?? 1);
-                        $price = (float) ($item['selling_price'] ?? 0) * $qty;
 
-                        $totalRevenue += $price;
                         $productsSold += $qty;
                         $csPerformance[$csName]['non_hp_count'] += $qty;
-                        $csPerformance[$csName]['total_sales'] += $price;
 
                         $typeSales[$product->name] = ($typeSales[$product->name] ?? 0) + $qty;
                         $key = ($product->brand ?? 'Unknown') . " New";
@@ -202,12 +210,11 @@ class DashboardController extends Controller
         $hpStock = ProductDetail::where('placement_type', $placementType)->where('placement_id', $placementId)->where('status', 'available')->count();
         $nonHpStock = Inventory::where('placement_type', $placementType)->where('placement_id', $placementId)->sum('quantity');
 
-        // Recent Trx
         $recentTransactions = $todaySales->take(10)->map(function ($trx) {
             return [
                 'id' => $trx->receipt_id,
                 'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? $trx->customer_name ?? 'Guest',
-                'total' => $trx->items->sum('selling_price') + (collect($trx->non_hp_items)->sum(fn($i) => ($i['selling_price'] ?? 0) * ($i['quantity'] ?? 1))),
+                'total' => abs((float)($trx->selling_price ?? 0)),
                 'time' => $trx->created_at->diffForHumans(),
                 'datetime' => $trx->created_at->format('d M H:i'),
                 'status' => 'success'
@@ -363,8 +370,9 @@ class DashboardController extends Controller
                     DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
                     DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(CASE 
-                        WHEN stock_outs.category = 'refund' THEN -COALESCE(stock_outs.selling_price, 0)
-                        ELSE COALESCE(stock_outs.selling_price, 0)
+                        WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                        WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                        ELSE 0
                     END) as total_omset")
                 )
                     ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
@@ -424,8 +432,9 @@ class DashboardController extends Controller
                     'users.name',
                     DB::raw("COUNT(CASE WHEN stock_outs.category != 'refund' THEN stock_outs.id END) as units"),
                     DB::raw("SUM(CASE 
-                        WHEN stock_outs.category = 'refund' THEN -COALESCE(stock_outs.selling_price, 0)
-                        ELSE COALESCE(stock_outs.selling_price, 0)
+                        WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                        WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                        ELSE 0
                     END) as omset")
                 )
                     ->groupBy('users.id', 'users.name')
