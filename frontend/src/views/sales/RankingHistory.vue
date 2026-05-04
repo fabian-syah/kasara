@@ -1103,21 +1103,16 @@ const selectedYear = ref(currentYear);
 
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return !['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'].some(r => role.includes(r));
+    // Only super_admin and analist/analis are NOT restricted (can see ALL)
+    return !['super_admin', 'analist', 'analis'].some(r => role.includes(r));
 });
 
 const filteredBranches = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    const isExcludedRole = ['super_admin', 'analist', 'analis'].some(r => role.includes(r));
-    if (!isExcludedRole) return branches.value;
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
     return (branches.value || []).filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
 });
 
 const filteredOnlineShops = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    const isExcludedRole = ['super_admin', 'analist', 'analis'].some(r => role.includes(r));
-    if (!isExcludedRole) return onlineShops.value;
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
     return (onlineShops.value || []).filter(s => !excluded.some(term => (s.name || '').toLowerCase().includes(term)));
 });
