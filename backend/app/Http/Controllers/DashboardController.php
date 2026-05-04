@@ -155,7 +155,7 @@ class DashboardController extends Controller
             }
 
             $cat = strtolower($sale->category ?? '');
-            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling']);
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'tukar_unit']);
             $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
             
             $saleTotal = abs((float)($sale->selling_price ?? 0));
@@ -249,10 +249,13 @@ class DashboardController extends Controller
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
         $todayRankingQuery = DB::table('stock_outs')
-            ->whereIn('category', $categories)
             ->where('reporting_date', $currentReportingDate)
             ->whereNull('deleted_at')
-            ->select('user_id', DB::raw('count(*) as total_units'))
+            ->select('user_id', DB::raw("SUM(CASE 
+                WHEN category IN ('refund', 'angkat_barang', 'downgrade') THEN -1
+                WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'tukar_unit') THEN 1
+                ELSE 0
+            END) as total_units"))
             ->groupBy('user_id')
             ->orderByDesc('total_units')
             ->get();
@@ -298,7 +301,15 @@ class DashboardController extends Controller
         $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
             // Count units sold by this user
             $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
-            $units = StockOut::where('user_id', $u->id)->whereIn('category', $categories)->where('reporting_date', $currentReportingDate)->whereNull('deleted_at')->count();
+            $units = StockOut::where('user_id', $u->id)
+                ->where('reporting_date', $currentReportingDate)
+                ->whereNull('deleted_at')
+                ->select(DB::raw("SUM(CASE 
+                    WHEN category IN ('refund', 'angkat_barang', 'downgrade') THEN -1
+                    WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'tukar_unit') THEN 1
+                    ELSE 0
+                END) as net_units"))
+                ->first()->net_units ?? 0;
             return [
                 'id' => $u->id,
                 'name' => $u->name,

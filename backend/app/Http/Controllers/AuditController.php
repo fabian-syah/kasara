@@ -1020,22 +1020,22 @@ class AuditController extends Controller
                             $trxCategory = strtolower($trxCategory ?? '');
 
                             // Only count towards HP totals if it's a standard sale, not a return/retrieval or special activity
-                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
+                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
 
                             if ($isStandardSale) {
                                 if ($itemCategory === 'apple_lux') {
                                     $map['apple_lux']++;
-                                } elseif ($brand === 'apple' || str_contains($brand, 'iphone')) {
-                                    $map['iphone']++;
                                 } else {
-                                    // Count all other HP items as Android for summary purposes
-                                    $map['android']++;
-                                }
-                            }
+                                    if ($brand === 'apple' || str_contains($brand, 'iphone')) {
+                                        $map['iphone']++;
+                                    } else {
+                                        // Count all other HP items as Android for summary purposes
+                                        $map['android']++;
+                                    }
 
-                            if ($isStandardSale) {
-                                if (!isset($map[$itemCategory])) $map[$itemCategory] = 0;
-                                $map[$itemCategory]++;
+                                    if (!isset($map[$itemCategory])) $map[$itemCategory] = 0;
+                                    $map[$itemCategory]++;
+                                }
                             }
                         };
 
@@ -1060,8 +1060,8 @@ class AuditController extends Controller
                                 ];
                             }
 
-                            // Standard sales criteria: Exclude refunds, unit exchanges, and downgrades from standard unit/revenue maps
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
+                            // Standard sales criteria: Exclude refunds, and downgrades from standard unit/revenue maps
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
                             
                             $itemCat = $getCategoryByItem($hp->distributor_id, true);
                             $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
@@ -1130,25 +1130,27 @@ class AuditController extends Controller
                             $cat = $getCategoryByItem($did);
 
                             // Breakdown for non-IMEI HP if any
-                            if ($cat === 'hp' || $cat === 'apple_lux') {
-                                $brand = strtolower($item->product?->brand ?? '');
-                                $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
-
-                                if ($isStandardSale || $catLower === 'tukar_tambah') {
-                                    if ($brand === 'apple' || str_contains($brand, 'iphone'))
-                                        $map['iphone'] += $qty;
-                                    elseif ($cat === 'apple_lux')
-                                        $map['apple_lux'] += $qty;
-                                    else
-                                        $map['android'] += $qty;
-                                }
-                            }
-
-                            // Only count towards totals if it's a standard sale or TT
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'downgrade']);
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
                             
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
-                                if (!isset($map[$cat])) $map[$cat] = 0;
+                                if ($cat === 'apple_lux') {
+                                    $map['apple_lux'] += $qty;
+                                } elseif ($cat === 'hp') {
+                                    $brand = strtolower($item->product?->brand ?? '');
+                                    if ($brand === 'apple' || str_contains($brand, 'iphone'))
+                                        $map['iphone'] += $qty;
+                                    else
+                                        $map['android'] += $qty;
+                                    
+                                    if (!isset($map['hp'])) $map['hp'] = 0;
+                                    $map['hp'] += $qty;
+                                } else {
+                                    if (!isset($map[$cat])) $map[$cat] = 0;
+                                    $map[$cat] += $qty;
+                                }
+                            }
+                            
+                            if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
                                 
                                 // For Tukar Tambah, use absolute price difference
@@ -1156,7 +1158,6 @@ class AuditController extends Controller
                                     ? abs((float)$item->selling_price)
                                     : (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
                                 
-                                $map[$cat] += $qty;
                                 $mapRp[$cat] += $pricePerItem * $qty;
                                 
                                 $soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] ?? 0) + $qty;

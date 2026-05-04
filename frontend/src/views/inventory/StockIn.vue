@@ -53,7 +53,6 @@ const showPinModal = ref(false);
 const targetUsers = ref([]);
 const selectedInventoryUserPinEnabled = ref(false);
 const placementLabel = ref("");
-const notes = ref("");
 // Step 1: Placement
 const placementType = ref("branch");
 const placementId = ref(null);
@@ -127,7 +126,6 @@ const persistState = () => {
         placementLabel: placementLabel.value,
         hpItems: hpItems.value,
         nonHpItems: nonHpItems.value,
-        notes: notes.value,
         isManualDistributor: isManualDistributor.value,
         newDistributorName: newDistributorName.value
     }));
@@ -148,7 +146,6 @@ async function restoreDraft() {
             placementLabel.value = data.placementLabel || "";
             if (data.hpItems) hpItems.value = data.hpItems;
             if (data.nonHpItems) nonHpItems.value = data.nonHpItems;
-            notes.value = data.notes || "";
             isManualDistributor.value = !!data.isManualDistributor;
             newDistributorName.value = data.newDistributorName || "";
             
@@ -760,7 +757,6 @@ async function submitStockIn(verifiedPin = null) {
             placement_type: placementType.value,
             placement_id: placementId.value,
             inventory_user_id: selectedInventoryUserId.value,
-            notes: notes.value,
             transaction_pin: pin,
         };
 
@@ -1377,14 +1373,6 @@ onMounted(() => {
                         </button>
                     </div>
 
-                    <!-- Shared Notes Field -->
-                    <div class="space-y-2 pt-4 border-t border-surface-700/50">
-                        <label class="label text-[10px] uppercase font-black opacity-60">Catatan Transaksi
-                            (Opsional)</label>
-                        <textarea v-model="notes" rows="2"
-                            class="input bg-surface-900 h-16 text-sm p-3 resize-none border-surface-700"
-                            placeholder="Keterangan tambahan untuk batch ini..."></textarea>
-                    </div>
                 </div>
             </div>
 
