@@ -323,16 +323,10 @@ async function handlePhotoChange(type, event) {
             };
             reader.readAsDataURL(compressedFile);
         } catch (error) {
-            console.error("Refund failed", error);
-            let msg = "Gagal memproses refund";
-            if (error.response) {
-                if (error.response.status === 413) msg = "File terlalu besar. Silakan coba kurangi resolusi atau gunakan foto lain.";
-                else if (error.response.data?.message) msg = error.response.data.message;
-                else msg = `Error ${error.response.status}: ${error.response.statusText}`;
-            }
-            alert(msg);
+            console.error("Compression failed:", error);
+            alert("Gagal mengompres gambar. Silakan coba lagi.");
         } finally {
-            isSubmitting.value = false;
+            isCompressing.value = false;
         }
     }
 }
