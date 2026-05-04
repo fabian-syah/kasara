@@ -1,10 +1,10 @@
 <template>
     <transition name="fade">
         <div v-if="isOpen" id="receipt-modal-print-wrapper"
-            class="fixed inset-0 z-[99999] flex items-start justify-center pt-24 sm:pt-0 sm:items-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white"
+            class="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white"
             @click.self="close">
             <div
-                class="bg-white dark:bg-surface-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full flex flex-col max-h-[90vh] sm:max-h-[85vh]">
+                class="bg-white dark:bg-surface-800 rounded-2xl sm:rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full flex flex-col h-full max-h-[92vh] sm:max-h-[85vh]">
 
                 <!-- Modal Header (hide on print) -->
                 <div
@@ -27,20 +27,20 @@
 
                 <!-- Nota Content -->
                 <div id="receipt-content"
-                    class="flex-1 overflow-y-auto p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
+                    class="flex-1 overflow-y-auto p-2 sm:p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
                     <div v-if="transaction"
-                        class="nota-paper max-w-[480px] mx-auto bg-white p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
+                        class="nota-paper w-full sm:max-w-[480px] mx-auto bg-white p-3 sm:p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
 
                         <!-- ===== NOTA HEADER ===== -->
-                        <div class="grid grid-cols-[80px_1fr_60px] gap-2 mb-4 pb-4 border-b border-black">
+                        <div class="grid grid-cols-[60px_1fr_40px] sm:grid-cols-[80px_1fr_60px] gap-1 sm:gap-2 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-black">
                             <!-- Logo -->
                             <div class="w-16 h-16 bg-white overflow-hidden self-center">
                                 <img src="/images/logo-pstore.png" alt="PSTORE" class="w-full h-full object-contain" />
                             </div>
 
                             <!-- Header Info (Center) -->
-                            <div class="text-center self-center px-2">
-                                <h1 class="text-lg font-black text-black uppercase leading-tight">
+                            <div class="text-center self-center px-1">
+                                <h1 class="text-sm sm:text-lg font-black text-black uppercase leading-tight">
                                     {{ (transaction.branch_name || transaction.branch?.name ||
                                         authStore.userBranch?.name || '').toUpperCase().includes('PSTORE')
                                         ? (transaction.branch_name || transaction.branch?.name ||
@@ -86,13 +86,13 @@
                         </div>
 
                         <!-- ===== TABEL ITEMS ===== -->
-                        <table class="w-full text-xs border-collapse mb-4">
+                        <table class="w-full text-[10px] sm:text-xs border-collapse mb-4">
                             <thead>
                                 <tr class="border-t-2 border-b-2 border-black bg-gray-50/50">
-                                    <th class="py-2 px-1 text-left font-bold text-black w-[50px]">Banyak</th>
-                                    <th class="py-2 px-1 text-left font-bold text-black">IMEI</th>
-                                    <th class="py-2 px-1 text-left font-bold text-black">Keterangan</th>
-                                    <th class="py-2 px-1 text-right font-bold text-black w-[100px]">{{ columnLabelJumlah }}</th>
+                                    <th class="py-2 px-1 text-left font-bold text-black w-[40px] sm:w-[50px]">Qty</th>
+                                    <th class="py-2 px-1 text-left font-bold text-black min-w-[70px]">IMEI</th>
+                                    <th class="py-2 px-1 text-left font-bold text-black">Ket.</th>
+                                    <th class="py-2 px-1 text-right font-bold text-black w-[80px] sm:w-[100px]">{{ columnLabelJumlah }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -119,17 +119,17 @@
                                                     'ex_ibox' ? 'Ex iBox' : 'Second') }}
                                             </div>
                                         </td>
-                                        <td class="py-2 px-1 text-black align-top text-right font-bold w-[120px]">
+                                        <td class="py-2 px-1 text-black align-top text-right font-bold w-[80px] sm:w-[120px]">
                                             <div v-if="(item.discount || item.item_discount) > 0"
-                                                class="text-[8px] text-gray-500 line-through opacity-70">
+                                                class="text-[7px] sm:text-[8px] text-gray-500 line-through opacity-70">
                                                 {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
                                             </div>
                                             <div class="flex flex-col">
-                                                <span :class="item.price < 0 ? 'text-emerald-700' : ''">{{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
+                                                <span :class="item.price < 0 ? 'text-emerald-700' : ''" class="text-[9px] sm:text-xs">{{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
                                                     (item.discount || item.item_discount || 0))) }}</span>
                                                 <span v-if="(item.discount || item.item_discount) > 0"
-                                                    class="text-[7px] text-primary-600 bg-primary-50 px-1 rounded inline-block self-end mt-0.5">
-                                                    Disc: -{{ formatNumber(item.qty * (item.discount ||
+                                                    class="text-[6px] sm:text-[7px] text-primary-600 bg-primary-50 px-0.5 rounded inline-block self-end mt-0.5">
+                                                    -{{ formatNumber(item.qty * (item.discount ||
                                                         item.item_discount)) }}
                                                 </span>
                                             </div>
@@ -149,7 +149,7 @@
 
                         <!-- ===== PAYMENT SECTION ===== -->
                         <div class="flex justify-end mb-4 payment-section">
-                            <div class="w-[240px] text-xs space-y-1">
+                            <div class="w-full sm:w-[240px] text-xs space-y-1">
                                 <!-- Subtotal -->
                                 <div class="flex justify-between border-b border-gray-300 pb-1">
                                     <span class="font-bold text-black text-[10px]">SUB TOTAL :</span>
@@ -256,16 +256,16 @@
                         </div>
 
                         <!-- ===== SIGNATURE AREA ===== -->
-                        <div class="flex justify-between text-xs mt-6 mb-2 signature-area">
-                            <div class="text-center">
-                                <p class="font-semibold text-black mb-12">Pembeli,</p>
-                                <div class="border-b border-gray-400 w-32 text-center text-[10px] font-bold">
+                        <div class="flex justify-between text-[10px] sm:text-xs mt-6 mb-2 signature-area gap-2">
+                            <div class="flex-1 text-center min-w-0">
+                                <p class="font-semibold text-black mb-10 sm:mb-12">Pembeli,</p>
+                                <div class="border-b border-gray-400 w-full max-w-[120px] mx-auto text-center text-[8px] sm:text-[10px] font-bold truncate">
                                     {{ transaction.customer_name || 'Umum' }}
                                 </div>
                             </div>
-                            <div class="text-center">
-                                <p class="font-semibold text-black mb-12">Hormat Kami,</p>
-                                <div class="border-b border-gray-400 w-32 text-center text-[10px] font-bold">
+                            <div class="flex-1 text-center min-w-0">
+                                <p class="font-semibold text-black mb-10 sm:mb-12">Hormat Kami,</p>
+                                <div class="border-b border-gray-400 w-full max-w-[120px] mx-auto text-center text-[8px] sm:text-[10px] font-bold truncate">
                                     {{ transaction.inventory_user_name || transaction.inventory_account_name ||
                                         transaction.sales_account || transaction.sales_name || 'PSTORE' }}
                                 </div>
