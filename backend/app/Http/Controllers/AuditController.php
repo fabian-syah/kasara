@@ -1396,7 +1396,7 @@ class AuditController extends Controller
                     $pName = ($trx->is_bundle ? '📦 ' : '') . ($item->product?->name ?? 'Unknown HP');
                     $pImei = $item->imei ?? '-';
 
-                    if ($exchangeInfo) {
+                    if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
                         
@@ -1417,6 +1417,8 @@ class AuditController extends Controller
                         ];
 
                         $pName = "OUT: " . $pName;
+                    } elseif (in_array($catLower, ['refund', 'angkat_barang'])) {
+                        $pName = "IN: " . $pName;
                     }
 
                     $details[] = [
