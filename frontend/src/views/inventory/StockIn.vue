@@ -409,9 +409,9 @@ const lookupPriceHp = debounce(async (index) => {
             const rawCost = Number(res.data.cost_price || 0);
 
             item.suggestedSellingPrice = Math.round(rawPrice);
-            // Only auto-fill if currently 0 or null
-            if (!item.selling_price) item.selling_price = Math.round(rawPrice);
-            if (!item.cost_price) item.cost_price = Math.round(rawCost);
+            // Auto-update prices when lookup succeeds (e.g. condition changed)
+            item.selling_price = Math.round(rawPrice);
+            item.cost_price = Math.round(rawCost);
         } else {
             item.suggestedSellingPrice = 0;
         }
@@ -1203,7 +1203,7 @@ onMounted(() => {
                                 <div><label class="label text-[10px] uppercase">Merk <span
                                             class="text-red-500">*</span></label>
                                     <select v-model="item.brand_id" @change="handleBrandChangeHp(idx)"
-                                        class="input bg-surface-900">
+                                        class="input bg-surface-900 !px-3">
                                         <option :value="null">-- Pilih Merk --</option>
                                         <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}
                                         </option>
@@ -1213,7 +1213,7 @@ onMounted(() => {
                                 <div><label class="label text-[10px] uppercase">Tipe <span
                                             class="text-red-500">*</span></label>
                                     <select v-model="item.type_name" @change="handleTypeChangeHp(idx)"
-                                        :disabled="!item.brand_id" class="input bg-surface-900 disabled:opacity-30">
+                                        :disabled="!item.brand_id" class="input bg-surface-900 disabled:opacity-30 !px-3">
                                         <option value="">-- Pilih Tipe --</option>
                                         <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
                                     </select>
@@ -1222,7 +1222,7 @@ onMounted(() => {
                                 <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas <span
                                             class="text-red-500">*</span></label>
                                     <select v-model="item.capacity" @change="handleCapacityChangeHp(idx)"
-                                        :disabled="!item.type_name" class="input bg-surface-900 disabled:opacity-30">
+                                        :disabled="!item.type_name" class="input bg-surface-900 disabled:opacity-30 !px-3">
                                         <option value="">-- Semua --</option>
                                         <option v-for="c in item.combinations" :key="c" :value="c">{{ c }}</option>
                                     </select>
@@ -1233,7 +1233,7 @@ onMounted(() => {
                                 <div><label class="label text-[10px] uppercase">Kondisi <span
                                             class="text-red-500">*</span></label>
                                     <select v-model="item.condition" @change="lookupPriceHp(idx)"
-                                        class="input bg-surface-900 h-10 text-sm">
+                                        class="input bg-surface-900 h-10 text-sm !px-3">
                                         <option value="new">Baru</option>
                                         <option value="second">Bekas</option>
                                         <option value="ex_ibox">Ex iBox</option>
