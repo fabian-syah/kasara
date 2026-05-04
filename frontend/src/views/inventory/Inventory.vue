@@ -1447,6 +1447,10 @@ async function exportInventory() {
                     selectedItemDetail.placement_type?.replace('_',
                       ' ') }}</span>
                 </div>
+                <div v-if="selectedItemDetail.notes">
+                  <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Catatan</label>
+                  <p class="text-sm text-text-primary italic">"{{ selectedItemDetail.notes }}"</p>
+                </div>
               </div>
             </div>
 
