@@ -36,8 +36,8 @@ class TradeInController extends Controller
             'payment_method_id' => 'required|exists:payment_methods,id',
             'reason' => 'nullable|string',
             'notes' => 'nullable|string',
-            'photo_unit' => 'required|image|max:5120',
-            'photo_customer' => 'nullable|image|max:5120',
+            'photo_unit' => 'required|image|max:20480',
+            'photo_customer' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string|max:10',
             'inventory_user_id' => 'nullable|exists:users,id',
         ]);

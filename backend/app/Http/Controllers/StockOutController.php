@@ -332,7 +332,7 @@ class StockOutController extends Controller
             'customer_wa' => 'nullable|string|max:50',
             'transaction_pin' => 'nullable|string|max:10',
             'return_destination_id' => 'required_if:category,retur|nullable|exists:warehouses,id',
-            'proof_image' => 'nullable|image|max:10240', // Max 10MB
+            'proof_image' => 'nullable|image|max:20480', // Max 20MB
             'split_payments' => 'nullable|string', // JSON string from frontend
             'is_bundle' => 'nullable|boolean',
             'bundle_description' => 'nullable|string',
@@ -362,7 +362,7 @@ class StockOutController extends Controller
             $rules['notes'] = 'nullable|string';
 
             // proof_image always optional
-            $rules['proof_image'] = 'nullable|image|max:10240';
+            $rules['proof_image'] = 'nullable|image|max:20480';
 
             // Only require PIN if user has it enabled
             $rules['transaction_pin'] = 'nullable|string|max:10';

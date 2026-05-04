@@ -47,8 +47,8 @@ class DowngradeController extends Controller
 
             'reason' => 'required|string',
             'notes' => 'nullable|string',
-            'photo_unit' => 'nullable|image|max:5120',
-            'photo_customer' => 'nullable|image|max:5120',
+            'photo_unit' => 'nullable|image|max:20480',
+            'photo_customer' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string',
             'inventory_user_id' => 'nullable|exists:users,id',
         ]);
