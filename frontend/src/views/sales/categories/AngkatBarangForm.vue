@@ -8,8 +8,10 @@ import {
     Loader2,
     Save,
     Receipt,
-    ArrowLeft
+    ArrowLeft,
+    Camera
 } from "lucide-vue-next";
+import { compressImage } from "../../../utils/imageCompressor";
 
 const props = defineProps({
     brands: Array,
@@ -27,6 +29,7 @@ const authStore = useAuthStore();
 const isSubmitting = ref(false);
 const isRestoring = ref(true);
 
+const isCompressing = ref(false);
 const tradeInPhotos = ref({
     unit: null,
     unitPreview: null,
@@ -300,13 +303,37 @@ function dataURLtoFile(dataurl, filename) {
 async function handlePhotoChange(type, event) {
     const file = event.target.files[0];
     if (file) {
-        tradeInPhotos.value[type] = file;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            tradeInPhotos.value[`${type}Preview`] = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        try {
+            isCompressing.value = true;
+            
+            // 1. Compress Image
+            const compressedFile = await compressImage(file, {
+                maxWidth: 1600,
+                maxHeight: 1600,
+                quality: 0.8
+            });
+
+            // 2. Set File Object
+            tradeInPhotos.value[type] = compressedFile;
+
+            // 3. Set Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                tradeInPhotos.value[`${type}Preview`] = e.target.result;
+            };
+            reader.readAsDataURL(compressedFile);
+        } catch (error) {
+            console.error("Refund failed", error);
+            let msg = "Gagal memproses refund";
+            if (error.response) {
+                if (error.response.status === 413) msg = "File terlalu besar. Silakan coba kurangi resolusi atau gunakan foto lain.";
+                else if (error.response.data?.message) msg = error.response.data.message;
+                else msg = `Error ${error.response.status}: ${error.response.statusText}`;
+            }
+            alert(msg);
+        } finally {
+            isSubmitting.value = false;
+        }
     }
 }
 
@@ -438,7 +465,13 @@ async function submitTradeIn(pin = null) {
 
     } catch (error) {
         console.error("Trade-in failed", error);
-        alert(error.response?.data?.message || "Gagal memproses barang angkat");
+        let msg = "Gagal memproses barang angkat";
+        if (error.response) {
+            if (error.response.status === 413) msg = "File terlalu besar. Silakan coba kurangi resolusi atau gunakan foto lain.";
+            else if (error.response.data?.message) msg = error.response.data.message;
+            else msg = `Error ${error.response.status}: ${error.response.statusText}`;
+        }
+        alert(msg);
     } finally {
         isSubmitting.value = false;
     }
@@ -621,46 +654,54 @@ async function submitTradeIn(pin = null) {
                         <label
                             class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
                             Unit <span class="text-red-500">*</span></label>
-                        <div @click="$refs.unitInput.click()"
-                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
-                            <template v-if="tradeInPhotos.unitPreview">
+                        <div @click="$refs.unitAngkatInput.click()"
+                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                            <template v-if="isCompressing">
+                                <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                            </template>
+                            <template v-else-if="tradeInPhotos.unitPreview">
                                 <img :src="tradeInPhotos.unitPreview" class="w-full h-full object-cover" />
                                 <div
                                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <span class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                    <Camera class="text-white w-6 h-6" />
                                 </div>
                             </template>
                             <template v-else>
-                                <Plus :size="24" class="text-text-secondary mb-1" />
-                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                <Plus :size="32" class="text-text-secondary mb-2" />
+                                <span class="text-[10px] font-black text-text-secondary uppercase tracking-widest">Upload
                                     Unit</span>
                             </template>
-                            <input type="file" ref="unitInput" @change="e => handlePhotoChange('unit', e)"
-                                accept="image/*" class="hidden" capture="environment" />
                         </div>
+                        <input type="file" ref="unitAngkatInput" @change="e => handlePhotoChange('unit', e)"
+                            accept="image/*" class="hidden" capture="environment" />
                     </div>
                     <div>
                         <label
-                            class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto
-                            Customer</label>
-                        <div @click="$refs.customerInput.click()"
-                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
-                            <template v-if="tradeInPhotos.customerPreview">
+                            class="block text-xs font-black text-text-secondary uppercase tracking-widest mb-4 text-center">Foto
+                            Customer <span class="text-red-500">*</span></label>
+                        <div @click="$refs.customerAngkatInput.click()"
+                            class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                            <template v-if="isCompressing">
+                                <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                            </template>
+                            <template v-else-if="tradeInPhotos.customerPreview">
                                 <img :src="tradeInPhotos.customerPreview" class="w-full h-full object-cover" />
                                 <div
                                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <span class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                    <Camera class="text-white w-6 h-6" />
                                 </div>
                             </template>
                             <template v-else>
-                                <Plus :size="24" class="text-text-secondary mb-1" />
-                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload
+                                <Plus :size="32" class="text-text-secondary mb-2" />
+                                <span class="text-[10px] font-black text-text-secondary uppercase tracking-widest">Upload
                                     Customer</span>
                             </template>
-                            <input type="file" ref="customerInput"
-                                @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
-                                capture="environment" />
                         </div>
+                        <input type="file" ref="customerAngkatInput"
+                            @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
+                            capture="environment" />
                     </div>
                 </div>
             </div>

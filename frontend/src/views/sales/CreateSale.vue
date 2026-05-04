@@ -201,6 +201,7 @@ async function fetchHeavyData() {
         isDataLoaded.value = true;
     } catch (e) {
         console.error("Gagal memuat data transaksi", e);
+        toast.error("Gagal memuat data inventori. Silakan cek koneksi internet Anda.");
     } finally {
         loadingStep3Data.value = false;
     }

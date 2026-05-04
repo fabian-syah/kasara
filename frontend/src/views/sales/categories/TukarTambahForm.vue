@@ -10,8 +10,10 @@ import {
     Save,
     ArrowLeft,
     User,
-    AlertCircle
+    AlertCircle,
+    Camera
 } from "lucide-vue-next";
+import { compressImage } from "../../../utils/imageCompressor";
 
 const props = defineProps({
     brands: Array,
@@ -34,6 +36,7 @@ const suggestedOutgoingPrice = ref(0);
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
 
+const isCompressing = ref(false);
 const tukarTambahPhotos = ref({
     unit: null,
     unitPreview: null,
@@ -314,13 +317,31 @@ function dataURLtoFile(dataurl, filename) {
 async function handlePhotoChange(type, event) {
     const file = event.target.files[0];
     if (file) {
-        tukarTambahPhotos.value[type] = file;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            tukarTambahPhotos.value[`${type}Preview`] = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        try {
+            isCompressing.value = true;
+            
+            // 1. Compress Image
+            const compressedFile = await compressImage(file, {
+                maxWidth: 1600,
+                maxHeight: 1600,
+                quality: 0.8
+            });
+
+            // 2. Set File Object
+            tukarTambahPhotos.value[type] = compressedFile;
+
+            // 3. Set Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                tukarTambahPhotos.value[`${type}Preview`] = e.target.result;
+            };
+            reader.readAsDataURL(compressedFile);
+        } catch (error) {
+            console.error("Compression failed:", error);
+            alert("Gagal mengompres gambar. Silakan coba lagi.");
+        } finally {
+            isCompressing.value = false;
+        }
     }
 }
 
@@ -464,7 +485,13 @@ async function submitTukarTambah(pin = null) {
 
     } catch (error) {
         console.error("Tukar tambah failed", error);
-        alert(error.response?.data?.message || "Gagal memproses tukar tambah");
+        let msg = "Gagal memproses tukar tambah";
+        if (error.response) {
+            if (error.response.status === 413) msg = "File terlalu besar. Silakan coba kurangi resolusi atau gunakan foto lain.";
+            else if (error.response.data?.message) msg = error.response.data.message;
+            else msg = `Error ${error.response.status}: ${error.response.statusText}`;
+        }
+        alert(msg);
     } finally {
         isSubmitting.value = false;
     }
@@ -691,11 +718,15 @@ async function submitTukarTambah(pin = null) {
                                 UNIT <span class="text-red-500">*</span></label>
                             <div @click="$refs.unitTTInput.click()"
                                 class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
-                                <template v-if="tukarTambahPhotos.unitPreview">
+                                <template v-if="isCompressing">
+                                    <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                    <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                                </template>
+                                <template v-else-if="tukarTambahPhotos.unitPreview">
                                     <img :src="tukarTambahPhotos.unitPreview" class="w-full h-full object-cover" />
                                     <div
                                         class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                        <span class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                        <Camera class="text-white w-6 h-6" />
                                     </div>
                                 </template>
                                 <template v-else>
@@ -713,11 +744,15 @@ async function submitTukarTambah(pin = null) {
                                 CUSTOMER <span class="text-red-500">*</span></label>
                             <div @click="$refs.customerTTInput.click()"
                                 class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
-                                <template v-if="tukarTambahPhotos.customerPreview">
+                                <template v-if="isCompressing">
+                                    <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                    <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                                </template>
+                                <template v-else-if="tukarTambahPhotos.customerPreview">
                                     <img :src="tukarTambahPhotos.customerPreview" class="w-full h-full object-cover" />
                                     <div
                                         class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                        <span class="text-white text-[10px] font-black uppercase">Ganti</span>
+                                        <Camera class="text-white w-6 h-6" />
                                     </div>
                                 </template>
                                 <template v-else>
