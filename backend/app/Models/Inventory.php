@@ -14,7 +14,10 @@ class Inventory extends Model
         'placement_type',
         'placement_id',
         'quantity',
-        'user_id'
+        'cost_price',
+        'distributor_id',
+        'user_id',
+        'notes'
     ];
 
     public function user()

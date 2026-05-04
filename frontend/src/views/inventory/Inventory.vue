@@ -1167,7 +1167,7 @@ async function exportInventory() {
                 <th class="hidden xl:table-cell">Distributor / Supplier</th>
               </template>
 
-              <th class="hidden 2xl:table-cell">Catatan</th>
+              <th class="hidden xl:table-cell">Catatan</th>
               <th class="text-center">Aksi</th>
             </tr>
           </thead>
@@ -1297,7 +1297,7 @@ async function exportInventory() {
                 </td>
               </template>
 
-              <td class="max-w-[200px] hidden 2xl:table-cell">
+              <td class="max-w-[200px] hidden xl:table-cell">
                 <span v-if="item.notes" class="text-xs text-text-secondary italic block truncate" :title="item.notes">
                   {{ item.notes }}
                 </span>

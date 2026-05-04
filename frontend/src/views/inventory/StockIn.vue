@@ -107,7 +107,8 @@ const nonHpItems = ref([
         selling_price_display: "",
         filteredTypes: [],
         uniqueTypeNames: [],
-        isLoadingTypes: false
+        isLoadingTypes: false,
+        notes: ""
     }
 ]);
 
@@ -179,7 +180,8 @@ const addNonHpItem = () => {
         selling_price_display: "",
         filteredTypes: [],
         uniqueTypeNames: [],
-        isLoadingTypes: false
+        isLoadingTypes: false,
+        notes: ""
     });
 };
 
@@ -266,7 +268,8 @@ const hpItems = ref([
         uniqueTypeNames: [],
         combinations: [],
         suggestedSellingPrice: 0,
-        product_id: null
+        product_id: null,
+        notes: ""
     }
 ]);
 
@@ -285,7 +288,8 @@ const addHpItem = () => {
         uniqueTypeNames: [],
         combinations: [],
         suggestedSellingPrice: 0,
-        product_id: null
+        product_id: null,
+        notes: ""
     });
 };
 
@@ -841,7 +845,8 @@ async function submitStockIn(verifiedPin = null) {
                         selling_price: item.selling_price,
                         color: "",
                         ram: item.ram,
-                        storage: item.storage
+                        storage: item.storage,
+                        notes: item.notes
                     }))
                 };
 
@@ -876,7 +881,8 @@ async function submitStockIn(verifiedPin = null) {
                     type_name: item.type_name,
                     quantity: item.quantity,
                     cost_price: item.cost_price || 0,
-                    selling_price: item.selling_price || 0
+                    selling_price: item.selling_price || 0,
+                    notes: item.notes
                 };
             });
         }
@@ -1264,17 +1270,22 @@ onMounted(() => {
                             </div>
 
                             <div class="space-y-2 mt-4">
-                                <label class="label text-sm uppercase font-bold flex justify-between">
-                                    <div class="flex items-center gap-2"><span>Input IMEI</span><span
-                                            class="text-red-500">*</span></div>
-                                    <span
-                                        class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
-                                        {{ item.parsedImeis.length }} items</span>
-                                </label>
-                                <textarea v-model="item.bulkImeiText" @input="handleImeiInput(idx)" rows="4"
-                                    class="input bg-surface-900 font-mono text-xs leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500"
-                                    placeholder="Paste banyak IMEI disini..."></textarea>
-                            </div>
+                <label class="label text-sm uppercase font-bold flex justify-between">
+                    <div class="flex items-center gap-2"><span>Input IMEI</span><span
+                            class="text-red-500">*</span></div>
+                    <span
+                        class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
+                        {{ item.parsedImeis.length }} items</span>
+                </label>
+                <textarea v-model="item.bulkImeiText" @input="handleImeiInput(idx)" rows="4"
+                    class="input bg-surface-900 font-mono text-xs leading-relaxed p-4 w-full rounded-2xl border-2 border-surface-700 focus:border-primary-500"
+                    placeholder="Paste banyak IMEI disini..."></textarea>
+            </div>
+
+            <div class="space-y-2 mt-2">
+                <label class="label text-[10px] uppercase font-bold text-text-secondary">Catatan Batch Ini</label>
+                <input v-model="item.notes" class="input bg-surface-900 h-10 text-xs" placeholder="Contoh: Bazel lecet, Bonus Case, dll" />
+            </div>
                         </div>
 
                         <button @click="addHpItem"
@@ -1353,6 +1364,9 @@ onMounted(() => {
                                         <input v-money:selling_price="item" type="text" placeholder="0"
                                             class="bg-transparent border-none outline-none w-full text-[10px] font-bold text-text-primary" />
                                     </div>
+                                </div>
+                                <div class="md:col-span-full mt-2">
+                                    <input v-model="item.notes" placeholder="Catatan item..." class="input bg-surface-900 text-[10px] h-8 px-2 border-surface-700" />
                                 </div>
                             </div>
                         </div>

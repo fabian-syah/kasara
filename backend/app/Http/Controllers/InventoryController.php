@@ -57,6 +57,7 @@ class InventoryController extends Controller
                     'placement_type',
                     'placement_id',
                     'user_id',
+                    'notes',
                     DB::raw('SUM(quantity) as total_quantity'),
                     DB::raw('MAX(id) as id'), 
                     DB::raw('MAX(distributor_id) as distributor_id'),
@@ -66,7 +67,7 @@ class InventoryController extends Controller
                 ->whereHas('product', function ($q) {
                     $q->where('type', 'non-hp');
                 })
-                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id');
+                ->groupBy('product_id', 'placement_type', 'placement_id', 'user_id', 'notes');
         } else {
             $query = ProductDetail::with([
                 'product',
@@ -319,7 +320,7 @@ class InventoryController extends Controller
             ->select('product_details.*')
             ->get();
 
-        $hpSheet = [['No', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory']];
+        $hpSheet = [['No', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory', 'Catatan']];
         $totalHpPrice = 0;
         foreach ($hpItems as $idx => $item) {
             $price = $item->selling_price > 0 ? $item->selling_price : ($item->product->price ?? ($item->product->selling_price ?? 0));
@@ -336,9 +337,10 @@ class InventoryController extends Controller
                 $price,
                 strtoupper($item->status),
                 $item->user->name ?? '-',
+                $item->notes ?? '-',
             ];
         }
-        $hpSheet[] = ['TOTAL', '', '', '', '', '', '', '', $totalHpPrice, '', ''];
+        $hpSheet[] = ['TOTAL', '', '', '', '', '', '', '', $totalHpPrice, '', '', ''];
 
         // --- PREPARE DATA NON-HP ---
         $nonHpQuery = Inventory::with(['product', 'user', 'placement']);
@@ -446,7 +448,7 @@ class InventoryController extends Controller
         $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'in');
         $hpItems = $hpQuery->latest()->get();
 
-        $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory']];
+        $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($hpItems as $idx => $item) {
             $hpSheet[] = [
                 $idx + 1,
@@ -460,6 +462,7 @@ class InventoryController extends Controller
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
                 $item->user->name ?? '-',
+                $item->notes ?? '-',
             ];
         }
 
@@ -485,7 +488,7 @@ class InventoryController extends Controller
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
                 $item->user->name ?? '-',
-                $item->description ?? '-',
+                $item->notes ?: ($item->description ?? '-'),
             ];
         }
 
@@ -518,7 +521,7 @@ class InventoryController extends Controller
         $this->applyStockHistoryFilters($hpInQuery, $request, 'hp', 'in');
         $hpInItems = $hpInQuery->latest()->get();
 
-        $hpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Spec', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory']];
+        $hpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Spec', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($hpInItems as $idx => $item) {
             $hpInSheet[] = [
                 $idx + 1,
@@ -532,6 +535,7 @@ class InventoryController extends Controller
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
                 $item->user->name ?? '-',
+                $item->notes ?? '-',
             ];
         }
 
@@ -558,7 +562,7 @@ class InventoryController extends Controller
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
                 $item->user->name ?? '-',
-                $item->description ?? '-',
+                $item->notes ?: ($item->description ?? '-'),
             ];
         }
 
@@ -1110,6 +1114,7 @@ class InventoryController extends Controller
             'items.*.quantity' => 'required_with:items|integer|min:1',
             'items.*.cost_price' => 'nullable|numeric|min:0',
             'items.*.selling_price' => 'nullable|numeric|min:0',
+            'items.*.notes' => 'nullable|string|max:5000',
 
             // Fallback for Legacy/Single Input
             'quantity' => 'required_without:items|nullable|integer|min:1',
@@ -1123,6 +1128,7 @@ class InventoryController extends Controller
             'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
             'imeis.*.cost_price' => 'nullable|numeric|min:0',
             'imeis.*.selling_price' => 'nullable|numeric|min:0',
+            'imeis.*.notes' => 'nullable|string|max:5000',
             'notes' => 'nullable|string|max:5000',
             'category' => 'nullable|string|in:pembelian,retur_customer,pindah_cabang,salah_input,cancel_penjualan',
         ]);
@@ -1250,6 +1256,8 @@ class InventoryController extends Controller
                     $sellingPrice = floatval($item['selling_price'] ?? 0);
                     $costPrice = floatval($item['cost_price'] ?? $sellingPrice); // Default to selling price if HPP is 0/missing
 
+                    $itemNote = $item['notes'] ?? $request->notes;
+
                     $inventory = Inventory::firstOrCreate(
                         [
                             'product_id' => $pId,
@@ -1257,7 +1265,8 @@ class InventoryController extends Controller
                             'placement_id' => $request->placement_id,
                             'distributor_id' => $distributorId,
                             'cost_price' => $costPrice,
-                            'user_id' => $ownerUserId
+                            'user_id' => $ownerUserId,
+                            'notes' => $itemNote
                         ],
                         ['quantity' => 0]
                     );
@@ -1279,7 +1288,7 @@ class InventoryController extends Controller
                         'balance_after' => $inventory->quantity,
                         'description' => "Stock In Batch from " . ($supplierName ?: "Distributor"),
                         'reference_id' => 'STOCK-IN-NHP-' . time() . '-' . $pId,
-                        'notes' => $request->notes,
+                        'notes' => $itemNote,
                     ]);
 
                     // Audit StockOut Record
@@ -1289,7 +1298,7 @@ class InventoryController extends Controller
                         'user_id' => Auth::id(),
                         'inventory_user_id' => $ownerUserId,
                         'status' => 'received',
-                        'notes' => $request->notes,
+                        'notes' => $itemNote,
                     ]);
 
                     StockOutNonHpItem::create([
@@ -1362,7 +1371,7 @@ class InventoryController extends Controller
                             'distributor_id' => $distributorId,
                             'supplier_name' => $supplierName,
                             'user_id' => $ownerUserId,
-                            'notes' => $request->notes,
+                            'notes' => $item['notes'] ?? $request->notes,
                         ]);
 
                         // FORCE UPDATE created_at (Bypass Mass Assignment Protection if not fillable)
@@ -1376,6 +1385,7 @@ class InventoryController extends Controller
                         continue;
                     }
 
+                    $itemNote = $item['notes'] ?? $request->notes;
                     $detail = ProductDetail::create([
                         'product_id' => $product->id,
                         'imei' => $item['imei'],
@@ -1390,7 +1400,7 @@ class InventoryController extends Controller
                         'distributor_id' => $distributorId,
                         'supplier_name' => $supplierName,
                         'user_id' => $ownerUserId,
-                        'notes' => $request->notes,
+                        'notes' => $itemNote,
                     ]);
 
                     $newDetails[] = $detail;
@@ -1410,7 +1420,7 @@ class InventoryController extends Controller
                         'balance_after' => ProductDetail::where('product_id', $product->id)->where('status', 'available')->count(),
                         'description' => "Stock In: {$product->name} ({$detail->imei}) dari " . ($supplierName ?: "Distributor"),
                         'reference_id' => (string)$detail->id,
-                        'notes' => $request->notes,
+                        'notes' => $itemNote,
                     ]);
                 }
 
