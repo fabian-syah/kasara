@@ -439,11 +439,11 @@
                                             title="Buka Ukuran Penuh">
                                             <TrendingUp :size="20" />
                                         </a>
-                                        <a :href="imgUrl" download
+                                        <button @click="downloadImage(imgUrl)"
                                             class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all text-xs font-black uppercase tracking-widest shadow-lg shadow-primary-500/30 active:scale-95">
                                             <Download :size="18" />
                                             Download
-                                        </a>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -713,6 +713,29 @@ const selectedSaleForCancel = ref(null)
 const viewProof = (imgUrl) => {
     currentProofImages.value = [imgUrl]
     showProofModal.value = true
+}
+
+const downloadImage = async (url) => {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        
+        // Extract filename from URL or use default
+        const filename = url.split('/').pop() || 'bukti-penjualan.jpg';
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+        console.error('Download failed:', error);
+        // Fallback to opening in new tab if blob download fails
+        window.open(url, '_blank');
+    }
 }
 
 useEscapeKey(() => {
