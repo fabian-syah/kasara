@@ -382,41 +382,61 @@
                     <X :size="28" stroke-width="3" />
                 </button>
 
-                <!-- Images Container -->
-                <div class="w-full flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-8 items-center py-4 px-2">
-                    <div v-for="(imgUrl, index) in currentProofImages" :key="index" 
-                        class="w-full max-w-4xl bg-white dark:bg-surface-800 rounded-3xl overflow-hidden shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] group relative">
-                        
-                        <!-- HD Image -->
-                        <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)" 
-                            class="w-full h-auto min-h-[300px] object-contain bg-gray-50 dark:bg-surface-900" />
-                        
-                        <!-- Image Info Overlay -->
-                        <div class="p-6 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white/80 dark:bg-surface-800/80 backdrop-blur-md border-t border-gray-100 dark:border-surface-700">
-                            <div class="flex flex-col">
-                                <span class="text-xs font-black uppercase tracking-widest text-primary-600 mb-1">FOTO BUKTI #{{ index + 1 }}</span>
-                                <span class="text-sm font-bold text-text-primary">Dokumentasi Transaksi CheckSales</span>
+                <!-- Images Container (HD Grid/Gallery) -->
+                <div class="w-full flex-1 overflow-y-auto custom-scrollbar p-2">
+                    <div :class="[
+                        'w-full max-w-7xl mx-auto',
+                        currentProofImages.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start' : 'flex flex-col gap-10 items-center'
+                    ]">
+                        <div v-for="(imgUrl, index) in currentProofImages" :key="index" 
+                            class="w-full bg-white dark:bg-surface-800 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 group">
+                            
+                            <!-- HD Image Wrapper -->
+                            <div class="relative overflow-hidden bg-gray-900 aspect-square sm:aspect-auto">
+                                <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)" 
+                                    class="w-full h-auto min-h-[400px] max-h-[70vh] object-contain transition-all duration-700 group-hover:scale-105"
+                                    style="image-rendering: -webkit-optimize-contrast; filter: contrast(1.05) brightness(1.02) saturate(1.1);" />
+                                
+                                <!-- HD Badge -->
+                                <div class="absolute top-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/20 text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-1.5">
+                                    <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                                    HD Processing Active
+                                </div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <a :href="imgUrl" target="_blank"
-                                    class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all text-sm font-black uppercase tracking-tighter shadow-lg active:scale-95">
-                                    <TrendingUp :size="16" />
-                                    Lihat Full HD
-                                </a>
-                                <a :href="imgUrl" download
-                                    class="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all text-sm font-black uppercase tracking-tighter shadow-lg active:scale-95 shadow-primary-500/30">
-                                    <Download :size="16" />
-                                    Download
-                                </a>
+                            
+                            <!-- Image Info Overlay (Glassmorphism) -->
+                            <div class="p-6 bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border-t border-gray-100 dark:border-surface-700 flex flex-col gap-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
+                                            FOTO #{{ index + 1 }} 
+                                            <span v-if="index === 0 && currentProofImages.length > 1" class="ml-2 text-gray-400">— UNIT</span>
+                                            <span v-else-if="index === 1" class="ml-2 text-gray-400">— CUSTOMER</span>
+                                        </span>
+                                        <h4 class="text-lg font-black text-text-primary leading-tight">Bukti CheckSales</h4>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <a :href="imgUrl" target="_blank"
+                                            class="p-3 bg-gray-100 dark:bg-surface-700 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-surface-600 transition-all active:scale-95"
+                                            title="Buka Ukuran Penuh">
+                                            <TrendingUp :size="20" />
+                                        </a>
+                                        <a :href="imgUrl" download
+                                            class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all text-xs font-black uppercase tracking-widest shadow-lg shadow-primary-500/30 active:scale-95">
+                                            <Download :size="18" />
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Multiple Photos Indicator -->
-                <div v-if="currentProofImages.length > 1" 
-                    class="mt-6 px-6 py-2.5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full text-white text-xs font-black uppercase tracking-[0.2em]">
-                    Scroll ke bawah untuk melihat {{ currentProofImages.length - 1 }} foto lainnya
+                <!-- Footer Hint -->
+                <div v-if="currentProofImages.length > 2" 
+                    class="mt-8 px-8 py-3 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full text-white/60 text-[10px] font-black uppercase tracking-[0.3em] animate-bounce">
+                    Scroll untuk lihat {{ currentProofImages.length - 2 }} foto lainnya ↓
                 </div>
             </div>
         </div>
