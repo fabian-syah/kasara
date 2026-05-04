@@ -717,13 +717,17 @@ const viewProof = (imgUrl) => {
 
 const downloadImage = async (url) => {
     try {
-        const response = await fetch(url);
-        const blob = await response.blob();
+        // Use backend proxy to bypass CORS and force download
+        const response = await axios.get('/audit/sales/download-proof', {
+            params: { url },
+            responseType: 'blob'
+        });
+        
+        const blob = new Blob([response.data]);
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
         
-        // Extract filename from URL or use default
         const filename = url.split('/').pop() || 'bukti-penjualan.jpg';
         link.download = filename;
         
@@ -733,7 +737,7 @@ const downloadImage = async (url) => {
         window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
         console.error('Download failed:', error);
-        // Fallback to opening in new tab if blob download fails
+        // Fallback
         window.open(url, '_blank');
     }
 }

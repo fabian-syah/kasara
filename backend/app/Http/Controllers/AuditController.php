@@ -1655,6 +1655,30 @@ class AuditController extends Controller
             ], 500);
         }
     }
+    
+    public function downloadProof(Request $request)
+    {
+        $url = $request->url;
+        if (!$url) return response()->json(['message' => 'URL is required'], 400);
+
+        // Convert URL to local path relative to storage/app/public
+        $baseUrl = asset('storage/');
+        $path = str_replace($baseUrl . '/', '', $url);
+        
+        if ($path === $url) {
+            $path = str_replace($baseUrl, '', $url);
+        }
+
+        if (str_contains($path, '..')) {
+            return response()->json(['message' => 'Invalid path'], 403);
+        }
+
+        if (!\Storage::disk('public')->exists($path)) {
+            return response()->json(['message' => 'File not found in storage: ' . $path], 404);
+        }
+
+        return \Storage::disk('public')->download($path);
+    }
 
     public function inventory(Request $request)
     {
