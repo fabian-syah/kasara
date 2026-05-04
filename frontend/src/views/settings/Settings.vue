@@ -184,6 +184,7 @@ async function handlePinToggle() {
     // If turning OFF, don't show modal, just call success handler immediately
     if (account.pin_enabled) {
         if (confirm(`Matikan PIN untuk ${selectedAccountId.value === 'main' ? 'Anda' : account.name}? PIN akan dihapus.`)) {
+            pinModalMode.value = 'verify'; // Ensure we are in toggle mode
             handlePinSuccess(null);
         }
         return;
@@ -227,7 +228,7 @@ async function requestPinReset() {
 async function handlePinSuccess(pin) {
     isPinLoading.value = true;
     try {
-        if (pinModalMode.value === 'setup') {
+        if (pinModalMode.value === 'setup' && pin !== null) {
             if (selectedAccountId.value === 'main') {
                 await authStore.setPin(pin);
             } else {
