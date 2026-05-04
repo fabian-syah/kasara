@@ -134,11 +134,26 @@ class AuthController extends Controller
     public function togglePin(Request $request)
     {
         $user = $request->user();
-        $request->validate(['transaction_pin' => 'required|string|size:4']);
-        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
-            return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+
+        // If PIN is currently ON, we turn it OFF and DELETE it as requested
+        if ($user->pin_enabled) {
+            $user->pin_enabled = false;
+            $user->transaction_pin = null;
+            $user->save();
+            return response()->json(['success' => true, 'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')]);
         }
-        $user->pin_enabled = !$user->pin_enabled;
+
+        // If PIN is currently OFF, we need verification to turn it ON (if PIN exists)
+        // If PIN doesn't exist, the frontend should use setPin instead, 
+        // but we handle it here for safety.
+        if ($user->transaction_pin) {
+            $request->validate(['transaction_pin' => 'required|string|size:4']);
+            if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+                return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+            }
+        }
+
+        $user->pin_enabled = true;
         $user->save();
         return response()->json(['success' => true, 'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')]);
     }

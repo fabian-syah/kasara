@@ -1695,15 +1695,24 @@ class InventoryController extends Controller
         /** @var \App\Models\User $account */
         $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
 
-        $request->validate(['transaction_pin' => 'required|string|size:4']);
-
-        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $account->transaction_pin)) {
-            return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+        // If PIN is currently ON, we turn it OFF and DELETE it
+        if ($account->pin_enabled) {
+            $account->pin_enabled = false;
+            $account->transaction_pin = null;
+            $account->save();
+            return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
         }
 
-        $account->pin_enabled = !$account->pin_enabled;
-        $account->save();
+        // If PIN is currently OFF, we need verification (if PIN exists)
+        if ($account->transaction_pin) {
+            $request->validate(['transaction_pin' => 'required|string|size:4']);
+            if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $account->transaction_pin)) {
+                return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+            }
+        }
 
+        $account->pin_enabled = true;
+        $account->save();
         return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
     }
 

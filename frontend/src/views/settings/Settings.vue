@@ -179,8 +179,16 @@ function openSetPin() {
 async function handlePinToggle() {
     const account = selectedAccount.value;
     const exists = account.transaction_pin_exists;
-    const action = account.pin_enabled ? 'Matikan' : (exists ? 'Aktifkan' : 'Pasang');
+    const action = account.pin_enabled ? 'Matikan' : 'Aktifkan';
     
+    // If turning OFF, don't show modal, just call success handler immediately
+    if (account.pin_enabled) {
+        if (confirm(`Matikan PIN untuk ${selectedAccountId.value === 'main' ? 'Anda' : account.name}? PIN akan dihapus.`)) {
+            handlePinSuccess(null);
+        }
+        return;
+    }
+
     pinModalMode.value = exists ? 'verify' : 'setup';
     pinModalTitle.value = `${action} PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
     pinError.value = "";
