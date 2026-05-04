@@ -182,6 +182,7 @@ onMounted(() => {
                                         class="w-10 h-10 rounded-xl object-cover shadow-sm" />
                                     <div>
                                         <p class="font-bold text-neutral-900 dark:text-white">{{ user.full_name }}</p>
+                                        <p v-if="user.createdBy" class="text-[10px] text-primary-500 font-medium">Milik: {{ user.createdBy.full_name }}</p>
                                         <p class="text-xs text-neutral-500 font-mono">{{ user.username }}</p>
                                     </div>
                                 </div>
