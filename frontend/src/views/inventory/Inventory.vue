@@ -471,14 +471,14 @@ onMounted(() => {
 
   loadInventory();
 
-  // Defer non-critical calls with slightly shorter delay for better UX
+  // Defer non-critical calls with much shorter delay to reduce LCP/TBT overlap
   setTimeout(() => {
     fetchInventoryUsers();
     fetchFilterOptions();
     if (canFilterBranch.value && !props.isEmbedded) {
       fetchLocations();
     }
-  }, 800);
+  }, 300);
 
   if (window.Echo) {
     window.Echo.channel('inventory')
@@ -781,9 +781,9 @@ async function exportInventory() {
 </script>
 
 <template>
-  <div class="space-y-6 animate-in">
-    <!-- Header -->
-    <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+  <div class="space-y-6 pb-20">
+    <!-- Header Section with fixed height to prevent CLS -->
+    <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 min-h-[80px]">
       <div class="flex items-center gap-3">
         <!-- Dynamic Icon based on pageMode -->
         <Warehouse v-if="pageMode === 'warehouse'" :size="32" class="text-amber-500" />
@@ -828,9 +828,9 @@ async function exportInventory() {
       </div>
     </div>
 
-    <!-- Stats Section with min-height to fix CLS -->
+    <!-- Stats Section with fixed height to fix CLS -->
     <div class="min-h-[105px]">
-      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in">
         <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
             'bg-blue-600': stat.color === 'blue',
@@ -1743,5 +1743,9 @@ async function exportInventory() {
 .inventory-table-container {
   content-visibility: auto;
   min-height: 600px;
+}
+
+.animate-in {
+  animation: fadeIn 0.4s ease-out forwards;
 }
 </style>
