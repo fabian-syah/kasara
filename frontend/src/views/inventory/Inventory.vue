@@ -599,8 +599,8 @@ async function fetchMyInventoryUsers() {
   isLoadingUsers.value = true;
   try {
     const response = await inventoryApi.myAccounts();
-    // Filter only those with PIN enabled as per user request
-    const users = (response.data.data || response.data || []).filter(u => u.pin_enabled);
+    // Show all accounts but mark those without PIN
+    const users = (response.data.data || response.data || []);
     myInventoryUsers.value = users;
     inventoryUsers.value = users;
   } catch (e) {
@@ -1668,8 +1668,8 @@ async function exportInventory() {
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Pilih Akun Inventory (Wajib)</label>
             <select v-model="editForm.inventory_user_id" class="input w-full border-primary-500/30 bg-primary-500/5">
               <option :value="null">-- Pilih Akun Inventory --</option>
-              <option v-for="user in myInventoryUsers" :key="user.id" :value="user.id">
-                {{ user.name }} ({{ user.username }})
+              <option v-for="u in myInventoryUsers" :key="u.id" :value="u.id" :disabled="!u.pin_enabled">
+                {{ u.name }} ({{ u.username }}) {{ !u.pin_enabled ? '-- (PIN Belum Aktif)' : '' }}
               </option>
             </select>
             <p class="text-[10px] text-text-secondary mt-1">Pilih akun inventory Anda yang sudah memiliki PIN aktif.</p>
