@@ -595,6 +595,8 @@ const selectedInventoryUser = ref(null);
 const isLoadingUsers = ref(false);
 
 const myInventoryUsers = ref([]);
+const isAccountDropdownOpen = ref(false);
+
 async function fetchMyInventoryUsers() {
   isLoadingUsers.value = true;
   try {
@@ -618,6 +620,18 @@ async function fetchMyInventoryUsers() {
     isLoadingUsers.value = false;
   }
 }
+
+function selectAccount(user) {
+  if (!user.pin_enabled) return;
+  editForm.value.inventory_user_id = user.id;
+  isAccountDropdownOpen.value = false;
+}
+
+const selectedAccountLabel = computed(() => {
+  if (!editForm.value.inventory_user_id) return '-- Pilih Akun Inventory --';
+  const user = myInventoryUsers.value.find(u => u.id === editForm.value.inventory_user_id);
+  return user ? `${user.name} (${user.username})` : '-- Pilih Akun Inventory --';
+});
 
 const filteredProducts = computed(() => {
   return inventoryStore.products;
@@ -1673,14 +1687,37 @@ async function exportInventory() {
             </select>
           </div>
 
-          <div v-if="isInventoryUser">
+          <div v-if="isInventoryUser" class="relative">
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Pilih Akun Inventory (Wajib)</label>
-            <select v-model="editForm.inventory_user_id" class="input w-full border-emerald-500/30 bg-emerald-500/5 focus:border-emerald-500">
-              <option :value="null">-- Pilih Akun Inventory --</option>
-              <option v-for="u in myInventoryUsers" :key="u.id" :value="u.id" :disabled="!u.pin_enabled">
-                {{ u.name }} ({{ u.username }}) {{ !u.pin_enabled ? '-- (PIN Belum Aktif)' : '' }}
-              </option>
-            </select>
+            <button @click="isAccountDropdownOpen = !isAccountDropdownOpen" type="button"
+              class="input w-full border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between text-left transition-all hover:bg-emerald-500/10"
+              :class="{ 'ring-2 ring-emerald-500/50 border-emerald-500': isAccountDropdownOpen }">
+              <span class="truncate font-medium" :class="!editForm.inventory_user_id ? 'text-text-secondary' : 'text-emerald-400'">
+                {{ selectedAccountLabel }}
+              </span>
+              <ChevronDown :size="16" class="text-text-secondary transition-transform duration-300" :class="{ 'rotate-180': isAccountDropdownOpen }" />
+            </button>
+            
+            <div v-if="isAccountDropdownOpen" 
+              class="absolute z-[70] mt-2 w-full bg-surface-800 border border-surface-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div class="max-h-60 overflow-y-auto py-2 custom-scrollbar">
+                <button v-for="u in myInventoryUsers" :key="u.id" @click="selectAccount(u)"
+                  type="button"
+                  class="w-full text-left px-4 py-2.5 hover:bg-surface-700 transition-colors flex flex-col gap-0.5 border-b border-surface-700/50 last:border-0"
+                  :disabled="!u.pin_enabled"
+                  :class="{ 'opacity-50 grayscale cursor-not-allowed': !u.pin_enabled, 'bg-emerald-500/10': editForm.inventory_user_id === u.id }">
+                  <span class="text-sm font-bold" :class="editForm.inventory_user_id === u.id ? 'text-emerald-400' : 'text-text-primary'">
+                    {{ u.name }} ({{ u.username }})
+                  </span>
+                  <span class="text-[10px] uppercase tracking-wider" :class="!u.pin_enabled ? 'text-red-400' : 'text-text-secondary'">
+                    {{ !u.pin_enabled ? 'PIN Belum Aktif - Segera Atur PIN' : 'PIN Aktif' }}
+                  </span>
+                </button>
+                <div v-if="myInventoryUsers.length === 0" class="px-4 py-6 text-center text-text-secondary text-sm">
+                  Tidak ada akun inventory ditemukan
+                </div>
+              </div>
+            </div>
             <p class="text-[10px] text-text-secondary mt-1">Hanya akun dengan PIN aktif yang dapat dipilih.</p>
           </div>
 
