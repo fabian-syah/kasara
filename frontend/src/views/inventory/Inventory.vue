@@ -321,6 +321,7 @@ async function loadInventory(page = 1) {
       condition: selectedCondition.value !== 'all' ? selectedCondition.value : undefined,
       stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : undefined,
       status: selectedStockStatus.value === 'all' ? undefined : selectedStockStatus.value,
+      per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
       signal: inventoryController.signal
     };
 
@@ -470,27 +471,29 @@ onMounted(() => {
 
   loadInventory();
 
-  // Defer non-critical calls to prioritize initial render and reduce TBT
+  // Defer non-critical calls with slightly shorter delay for better UX
   setTimeout(() => {
     fetchInventoryUsers();
     fetchFilterOptions();
     if (canFilterBranch.value && !props.isEmbedded) {
       fetchLocations();
     }
+  }, 800);
 
-    if (window.Echo) {
-      window.Echo.channel('inventory')
-        .listen('.StockInEvent', (e) => {
-          inventoryStore.pushNewProduct(e.product);
-          toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
-        });
+  if (window.Echo) {
+    window.Echo.channel('inventory')
+      .listen('.StockInEvent', (e) => {
+        inventoryStore.pushNewProduct(e.product);
+        toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
+      });
 
-      window.Echo.channel('stock-out')
-        .listen('.StockOutEvent', (e) => {
-          inventoryStore.handleStockOut(e.stockOut);
-        });
-    }
+    window.Echo.channel('stock-out')
+      .listen('.StockOutEvent', (e) => {
+        inventoryStore.handleStockOut(e.stockOut);
+      });
+  }
 
+  setTimeout(() => {
     productTypesApi.list().then(res => {
       typeList.value = res.data.data;
     }).catch(err => console.error("Failed to load types", err));
@@ -498,7 +501,7 @@ onMounted(() => {
     brandsApi.list().then(res => {
       brandList.value = res.data.data || res.data;
     }).catch(err => console.error("Failed to load brands", err));
-  }, 1500);
+  }, 1200);
 
   // fetchProvinces(); // Handled by lazy loading in StockOutModal
 });
