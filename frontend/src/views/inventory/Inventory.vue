@@ -539,6 +539,13 @@ const stockOutCategories = ref([
   { id: 'keluar', name: 'Keluar', icon: 'LogOut', color: 'purple' },
 ]);
 
+const stats = computed(() => [
+  { label: 'Total Unit', value: pagination.value.total, icon: Box, color: 'blue' },
+  { label: 'Total Nilai Stok', value: formatCurrency(inventoryStore.totalValue), icon: TrendingUp, color: 'emerald' },
+  { label: 'Stok Menipis', value: 0, icon: AlertTriangle, color: 'amber' },
+  { label: 'Perlu Audit', value: 0, icon: RefreshCw, color: 'red' },
+]);
+
 const availableStockOutCategories = computed(() => {
   const role = authStore.userRole;
   return stockOutCategories.value.filter(cat => {
@@ -816,21 +823,27 @@ async function exportInventory() {
       </div>
     </div>
 
-    <!-- Stats -->
-    <div v-if="!isEmbedded" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
-          'bg-blue-600': stat.color === 'blue',
-          'bg-emerald-600': stat.color === 'emerald',
-          'bg-amber-600': stat.color === 'amber',
-          'bg-red-600': stat.color === 'red',
-        }">
-          <component :is="stat.icon" :size="20" class="text-white" />
+    <!-- Stats Section with min-height to fix CLS -->
+    <div class="min-h-[105px]">
+      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
+            'bg-blue-600': stat.color === 'blue',
+            'bg-emerald-600': stat.color === 'emerald',
+            'bg-amber-600': stat.color === 'amber',
+            'bg-red-600': stat.color === 'red',
+          }">
+            <component :is="stat.icon" :size="20" class="text-white" />
+          </div>
+          <div>
+            <p class="text-text-secondary text-sm">{{ stat.label }}</p>
+            <p class="text-xl font-bold text-text-primary">{{ stat.value }}</p>
+          </div>
         </div>
-        <div>
-          <p class="text-text-secondary text-sm">{{ stat.label }}</p>
-          <p class="text-xl font-bold text-text-primary">{{ stat.value }}</p>
-        </div>
+      </div>
+      <!-- Placeholder while initial loading to prevent shift -->
+      <div v-else-if="isInitialLoading && !isEmbedded" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="i in 4" :key="i" class="card h-[105px] animate-pulse bg-surface-800/50 border-none"></div>
       </div>
     </div>
 
@@ -956,8 +969,8 @@ async function exportInventory() {
       </button>
     </div>
 
-    <!-- Table -->
-    <div class="card p-0 overflow-hidden">
+    <!-- Table Card with min-height -->
+    <div class="card p-0 overflow-hidden min-h-[600px]">
       <div class="table-container overflow-x-auto inventory-table-container">
         <table class="table">
           <thead>
@@ -1102,7 +1115,7 @@ async function exportInventory() {
             <tr v-else v-for="item in inventoryItems" :key="item.id" 
               v-memo="[item.id, item.status, item.quantity, item.selling_price, isSelected(item)]"
               @click="toggleSelect(item)"
-              class="cursor-pointer transition-all hover:bg-surface-700/30"
+              class="cursor-pointer transition-colors duration-200 hover:bg-surface-700/30"
               :class="isSelected(item) ? 'bg-primary-500/10' : ''">
               <td @click.stop>
                 <label :for="'item-select-' + item.id" class="flex items-center cursor-pointer">
@@ -1724,6 +1737,6 @@ async function exportInventory() {
 
 .inventory-table-container {
   content-visibility: auto;
-  contain-intrinsic-size: 1px 500px;
+  min-height: 600px;
 }
 </style>
