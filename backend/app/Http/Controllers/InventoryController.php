@@ -1922,11 +1922,9 @@ class InventoryController extends Controller
     }
 
     // Get My Inventory Accounts
-    public function getMyInventoryUsers()
+    public function getMyInventoryUsers(Request $request)
     {
-        // One-time sync for any desynced photos across the platform
-        // If photo_inventory exists but photo is null, sync it.
-        // If photo exists but photo_inventory is null on an inventory role, sync it.
+        // One-time sync logic (simplified for brevity)
         $syncNeeded = \App\Models\User::role('inventory')
             ->where(function ($q) {
                 $q->where(function ($sq) {
@@ -1937,21 +1935,16 @@ class InventoryController extends Controller
             })->get();
 
         foreach ($syncNeeded as $u) {
-            if ($u->photo_inventory && !$u->photo) {
-                $u->photo = $u->photo_inventory;
-                $u->save();
-            } else if ($u->photo && !$u->photo_inventory) {
-                $u->photo_inventory = $u->photo;
-                $u->save();
-            } else if ($u->photo && $u->photo_inventory && $u->photo != $u->photo_inventory) {
-                // If both exist but different, we'll favor photo_inventory for inventory accounts
-                $u->photo = $u->photo_inventory;
-                $u->save();
-            }
+            $u->photo = $u->photo_inventory ?: $u->photo;
+            $u->photo_inventory = $u->photo;
+            $u->save();
         }
 
         $user = Auth::user();
-        $inventoryUsers = \App\Models\User::role('inventory')
+        $branchId = $request->branch_id;
+        $onlineShopId = $request->online_shop_id;
+
+        $query = \App\Models\User::role('inventory')
             ->with([
                 'roles',
                 'createdBy' => function ($q) {
@@ -1959,8 +1952,24 @@ class InventoryController extends Controller
                 }
             ])
             ->where('is_active', true)
-            ->where('id', '!=', $user->id) // Exclude self
-            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id')
+            ->where('id', '!=', $user->id);
+
+        // Context-aware filtering
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        } elseif ($onlineShopId) {
+            $query->where('online_shop_id', $onlineShopId);
+        } else {
+            // Default to user's branch/creations if no specific location provided
+            $query->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id);
+                if ($user->branch_id) {
+                    $q->orWhere('branch_id', $user->branch_id);
+                }
+            });
+        }
+
+        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id', 'online_shop_id')
             ->get()
             ->map(function ($u) {
                 $u->has_pin = !empty($u->transaction_pin);
@@ -1968,7 +1977,6 @@ class InventoryController extends Controller
             });
 
         return response()->json($inventoryUsers);
-
     }
     // Get Filter Options for Faceted Search
     public function getFilterOptions(Request $request)

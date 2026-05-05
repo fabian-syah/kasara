@@ -598,7 +598,16 @@ const myInventoryUsers = ref([]);
 async function fetchMyInventoryUsers() {
   isLoadingUsers.value = true;
   try {
-    const response = await inventoryApi.myAccounts();
+    const params = {};
+    if (selectedLocationKey.value && selectedLocationKey.value !== 'all') {
+      const [type, id] = selectedLocationKey.value.split(':');
+      if (type === 'branch') params.branch_id = id;
+      if (type === 'online_shop') params.online_shop_id = id;
+    } else if (authStore.user?.branch_id) {
+      params.branch_id = authStore.user.branch_id;
+    }
+
+    const response = await inventoryApi.myAccounts(params);
     // Show all accounts but mark those without PIN
     const users = (response.data.data || response.data || []);
     myInventoryUsers.value = users;
@@ -1666,13 +1675,13 @@ async function exportInventory() {
 
           <div v-if="isInventoryUser">
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Pilih Akun Inventory (Wajib)</label>
-            <select v-model="editForm.inventory_user_id" class="input w-full border-primary-500/30 bg-primary-500/5">
+            <select v-model="editForm.inventory_user_id" class="input w-full border-emerald-500/30 bg-emerald-500/5 focus:border-emerald-500">
               <option :value="null">-- Pilih Akun Inventory --</option>
               <option v-for="u in myInventoryUsers" :key="u.id" :value="u.id" :disabled="!u.pin_enabled">
                 {{ u.name }} ({{ u.username }}) {{ !u.pin_enabled ? '-- (PIN Belum Aktif)' : '' }}
               </option>
             </select>
-            <p class="text-[10px] text-text-secondary mt-1">Pilih akun inventory Anda yang sudah memiliki PIN aktif.</p>
+            <p class="text-[10px] text-text-secondary mt-1">Hanya akun dengan PIN aktif yang dapat dipilih.</p>
           </div>
 
           <div v-if="!isInventoryUser">
@@ -1681,12 +1690,12 @@ async function exportInventory() {
           </div>
 
           <div v-if="isInventoryUser">
-            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan Akun Terpilih (Wajib)</label>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan Akun (Wajib)</label>
             <input v-model="editForm.pin" type="password" maxlength="6" 
-              class="input w-full text-center text-2xl tracking-[1em] font-bold py-4 bg-surface-800 border-primary-500/20" 
+              class="input w-full text-center text-2xl tracking-[1em] font-bold py-4 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
               placeholder="••••••" />
             <p class="text-[10px] text-text-secondary mt-2">
-              Sebagai akun Inventory, Anda hanya dapat mengupdate harga jual yang masih 0. PIN diperlukan untuk verifikasi.
+              Gunakan PIN dari akun inventory yang dipilih di atas.
             </p>
           </div>
         </div>
