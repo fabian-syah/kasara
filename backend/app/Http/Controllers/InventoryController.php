@@ -318,7 +318,7 @@ class InventoryController extends Controller
                 
                 $res['total_value'] = (float) $totalValueQuery->selectRaw('
                     SUM(
-                        (SELECT COALESCE(price, selling_price, 0) 
+                        (SELECT COALESCE(price, 0) 
                          FROM products 
                          WHERE products.id = inventories.product_id 
                          LIMIT 1) * inventories.quantity
