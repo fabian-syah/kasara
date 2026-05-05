@@ -624,15 +624,6 @@ class AuditController extends Controller
                                 THEN ABS(COALESCE(selling_price, 0))
                                 ELSE 0
                             END
-                            -
-                            CASE 
-                                WHEN category IN ('refund', 'angkat_barang', 'downgrade') 
-                                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                                     OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
-                                THEN ABS(COALESCE(selling_price, 0))
-                                ELSE 0
-                            END
                         ) as total_omset"))
                         ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
 

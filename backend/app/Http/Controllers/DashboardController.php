@@ -188,10 +188,7 @@ class DashboardController extends Controller
                 $csPerformance[$csName]['total_sales'] += $price;
             }
 
-            if ($isDeduction) {
-                $totalRevenue -= $price;
-                $csPerformance[$csName]['total_sales'] -= $price;
-            }
+            // Pure Total Omset has no deduction subtraction!
 
             // HP Items
             foreach ($sale->items as $item) {
@@ -436,15 +433,6 @@ class DashboardController extends Controller
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
                         END
-                        -
-                        CASE
-                            WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
-                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
-                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                            ELSE 0
-                        END
                     ) as total_omset")
                 )
                     ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
@@ -507,15 +495,6 @@ class DashboardController extends Controller
                         CASE 
                             WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
                                  AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                            ELSE 0
-                        END
-                        -
-                        CASE
-                            WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
-                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
                         END

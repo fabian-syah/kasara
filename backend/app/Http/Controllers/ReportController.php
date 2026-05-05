@@ -697,8 +697,8 @@ class ReportController extends Controller
             $branchItems = $itemCounts->where('branch_id', $b->id);
             $topModels = $androidModels->where('branch_id', $b->id)->take(3)->pluck('model_name')->toArray();
             
-            // Total Omset = Sales - AB - Refund (Consistent with Dashboard Ranking)
-            $omset = $branchBase->sum('sales_omset') - $branchBase->sum('ab_amount') - $branchBase->sum('refund_amount');
+            // Total Omset = Sales (Consistent with Dashboard Ranking)
+            $omset = $branchBase->sum('sales_omset');
 
             return (object) [
                 'id' => $b->id,
@@ -729,7 +729,7 @@ class ReportController extends Controller
             $shopItems = $itemCounts->where('online_shop_id', $s->id);
             $topModels = $androidModels->where('online_shop_id', $s->id)->take(3)->pluck('model_name')->toArray();
             
-            $omset = $shopBase->sum('sales_omset') - $shopBase->sum('ab_amount') - $shopBase->sum('refund_amount');
+            $omset = $shopBase->sum('sales_omset');
 
             return (object) [
                 'id' => $s->id,
