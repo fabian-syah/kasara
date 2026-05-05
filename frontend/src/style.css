@@ -138,12 +138,10 @@
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -200,7 +198,6 @@ html {
 
 html {
   font-size: var(--base-font-size);
-  transition: font-size 0.2s ease-in-out;
 }
 
 /* Small Mode: Compact UI for data-heavy views */
@@ -460,7 +457,7 @@ input[type="checkbox"]:indeterminate {
   }
 
   .card {
-    @apply bg-surface-800 border border-surface-700 rounded-2xl p-6 transition-all duration-200;
+    @apply bg-surface-800 border border-surface-700 rounded-2xl p-6;
   }
 
   .card-hover {
@@ -514,7 +511,7 @@ input[type="checkbox"]:indeterminate {
   }
 
   .table tbody tr {
-    @apply hover:bg-surface-800/50 transition-colors;
+    @apply hover:bg-surface-800/50;
   }
 
   /* Specific fix for iOS/Safari where bg-white overrides dark:bg-surface-800 in tables */

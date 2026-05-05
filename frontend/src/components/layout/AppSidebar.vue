@@ -267,7 +267,7 @@ watch(() => route.path, () => {
 
 <template>
     <aside
-        class="fixed inset-y-0 left-0 z-[99999] flex flex-col bg-white/70 dark:bg-[#050505]/70 backdrop-blur-3xl border border-neutral-200/50 dark:border-neutral-800/60 shadow-xl transition-all duration-300 lg:static rounded-2xl md:rounded-[24px] overflow-hidden"
+        class="fixed inset-y-0 left-0 z-[99999] flex flex-col bg-white/70 dark:bg-[#050505]/70 backdrop-blur-3xl border border-neutral-200/50 dark:border-neutral-800/60 shadow-xl transition-[width,transform,opacity] duration-300 lg:static rounded-2xl md:rounded-[24px] overflow-hidden"
         :class="[
             isExpanded ? 'w-[290px]' : 'w-[90px]',
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

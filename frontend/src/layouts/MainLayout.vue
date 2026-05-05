@@ -32,7 +32,7 @@ onErrorCaptured((err, instance, info) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-neutral-50 dark:bg-[#050505] font-sans antialiased transition-colors duration-500">
+  <div class="flex min-h-screen bg-neutral-50 dark:bg-[#050505] font-sans antialiased">
     <!-- Mobile Backdrop -->
     <div v-if="isMobileMenuOpen" class="fixed inset-0 bg-black/50 z-[99998] lg:hidden backdrop-blur-sm"
       @click="isMobileMenuOpen = false">
@@ -47,7 +47,7 @@ onErrorCaptured((err, instance, info) => {
         @close-mobile-menu="isMobileMenuOpen = false" @expand-sidebar="isSidebarExpanded = true" />
 
       <!-- Main Content -->
-      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-surface-900 lg:rounded-3xl shadow-sm border-x border-b lg:border border-neutral-200/50 dark:border-neutral-800/60 relative transition-colors duration-500 overflow-visible lg:overflow-hidden">
+      <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-surface-900 lg:rounded-3xl shadow-sm border-x border-b lg:border border-neutral-200/50 dark:border-neutral-800/60 relative overflow-visible lg:overflow-hidden">
         <!-- Header -->
         <AppHeader @toggle-mobile-menu="isMobileMenuOpen = !isMobileMenuOpen" @toggle-sidebar="toggleSidebar" />
 
