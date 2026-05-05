@@ -1790,9 +1790,14 @@ class InventoryController extends Controller
 
         // 3. Inventory Role Logic
         if ($isOnlyInventory) {
+            // Must have PIN enabled and set
+            if (!$user->pin_enabled || !$user->transaction_pin) {
+                return response()->json(['message' => 'Akun Anda belum memasang/mengaktifkan PIN. Silakan pasang PIN terlebih dahulu agar bisa melakukan edit harga.'], 403);
+            }
+
             // Verify PIN
-            if (!$request->pin || !$this->verifyPin($user, $request->pin)) {
-                return response()->json(['message' => 'PIN Keamanan salah atau belum diatur'], 422);
+            if (!$request->pin || !Hash::check($request->pin, $user->transaction_pin)) {
+                return response()->json(['message' => 'PIN Keamanan salah'], 422);
             }
 
             // Check if current price is 0
