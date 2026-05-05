@@ -512,7 +512,7 @@ onMounted(() => {
 
   // Defer non-critical calls with much shorter delay to reduce LCP/TBT overlap
   setTimeout(() => {
-    fetchInventoryUsers();
+    fetchMyInventoryUsers();
     fetchFilterOptions();
     if (canFilterBranch.value && !props.isEmbedded) {
       fetchLocations();
@@ -600,7 +600,9 @@ async function fetchMyInventoryUsers() {
   try {
     const response = await inventoryApi.myAccounts();
     // Filter only those with PIN enabled as per user request
-    myInventoryUsers.value = (response.data.data || response.data || []).filter(u => u.pin_enabled);
+    const users = (response.data.data || response.data || []).filter(u => u.pin_enabled);
+    myInventoryUsers.value = users;
+    inventoryUsers.value = users;
   } catch (e) {
     console.error("Failed to load my inventory users", e);
   } finally {
