@@ -181,12 +181,12 @@ async function handlePinToggle() {
     const exists = account.transaction_pin_exists;
     const action = account.pin_enabled ? 'Matikan' : 'Aktifkan';
     
-    // If turning OFF, don't show modal, just call success handler immediately
+    // If turning OFF, mandate PIN verification first
     if (account.pin_enabled) {
-        if (confirm(`Matikan PIN untuk ${selectedAccountId.value === 'main' ? 'Anda' : account.name}? PIN akan dihapus.`)) {
-            pinModalMode.value = 'verify'; // Ensure we are in toggle mode
-            handlePinSuccess(null);
-        }
+        pinModalMode.value = 'verify';
+        pinModalTitle.value = `Matikan PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
+        pinError.value = "";
+        showPinModal.value = true;
         return;
     }
 
