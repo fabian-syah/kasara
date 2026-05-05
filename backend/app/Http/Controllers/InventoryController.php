@@ -1768,12 +1768,14 @@ class InventoryController extends Controller
         $user = Auth::user();
         
         // 1. Authorization
-        $allowedRoles = ['super_admin', 'audit', 'owner', 'admin_produk', 'inventory'];
-        if (!$user->hasRole($allowedRoles)) {
+        $superRoles = ['super_admin', 'audit', 'owner', 'admin_produk'];
+        $restrictedRoles = ['inventory', 'toko_offline', 'inventory_kasir', 'gudang', 'toko_online'];
+        
+        if (!$user->hasRole(array_merge($superRoles, $restrictedRoles))) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $isOnlyInventory = $user->hasRole('inventory') && !$user->hasRole(['super_admin', 'audit', 'owner', 'admin_produk']);
+        $isRestricted = !$user->hasRole($superRoles);
 
         // 2. Identify Model (HP vs Non-HP)
         $item = ProductDetail::find($id);
@@ -1789,7 +1791,7 @@ class InventoryController extends Controller
         }
 
         // 3. Inventory Role Logic
-        if ($isOnlyInventory) {
+        if ($isRestricted) {
             // Must have PIN enabled and set
             if (!$user->pin_enabled || !$user->transaction_pin) {
                 return response()->json(['message' => 'Akun Anda belum memasang/mengaktifkan PIN. Silakan pasang PIN terlebih dahulu agar bisa melakukan edit harga.'], 403);
@@ -1816,7 +1818,7 @@ class InventoryController extends Controller
             'selling_price' => 'required|numeric|min:0',
         ];
 
-        if (!$isOnlyInventory) {
+        if (!$isRestricted) {
             if ($type === 'hp') {
                 $rules['imei'] = 'required|string|unique:product_details,imei,' . $id;
                 $rules['status'] = 'required|in:available,sold,retur,missing';
@@ -1831,7 +1833,7 @@ class InventoryController extends Controller
         // 5. Update Execution
         if ($type === 'hp') {
             $data = $request->only(['selling_price', 'notes']);
-            if (!$isOnlyInventory) {
+            if (!$isRestricted) {
                 $data = array_merge($data, $request->only(['imei', 'storage', 'cost_price', 'status']));
             }
             $item->update($data);

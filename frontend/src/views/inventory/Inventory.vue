@@ -383,17 +383,14 @@ function canUserEditItem(item) {
   const isAdmin = ['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
   if (isAdmin) return true;
   
-  if (role.includes('inventory')) {
-    const price = item.selling_price || item.price || 0;
-    return price === 0;
-  }
-  
-  return false;
+  // For other staff (Sales, Inventory, etc), only allow editing if price is currently 0
+  const price = item.selling_price || item.price || 0;
+  return Number(price) === 0;
 }
 
 const isInventoryUser = computed(() => {
   const role = (authStore.userRole || '').toLowerCase();
-  return role.includes('inventory') && !['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
+  return !['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
 });
 
 const displayCostPrice = computed({
