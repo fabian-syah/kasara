@@ -598,7 +598,7 @@ const myInventoryUsers = ref([]);
 async function fetchMyInventoryUsers() {
   isLoadingUsers.value = true;
   try {
-    const response = await inventoryApi.getMyInventoryUsers();
+    const response = await inventoryApi.myAccounts();
     // Filter only those with PIN enabled as per user request
     myInventoryUsers.value = (response.data.data || response.data || []).filter(u => u.pin_enabled);
   } catch (e) {
