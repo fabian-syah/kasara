@@ -374,7 +374,26 @@ const editForm = ref({
   cost_price: 0,
   selling_price: 0,
   status: 'available',
-  notes: ''
+  notes: '',
+  pin: ''
+});
+
+function canUserEditItem(item) {
+  const role = (authStore.userRole || '').toLowerCase();
+  const isAdmin = ['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
+  if (isAdmin) return true;
+  
+  if (role.includes('inventory')) {
+    const price = item.selling_price || item.price || 0;
+    return price === 0;
+  }
+  
+  return false;
+}
+
+const isInventoryUser = computed(() => {
+  const role = (authStore.userRole || '').toLowerCase();
+  return role.includes('inventory') && !['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
 });
 
 const displayCostPrice = computed({
@@ -399,13 +418,19 @@ function openEditModal(item) {
     cost_price: item.cost_price || 0,
     selling_price: item.selling_price || item.price || 0,
     status: item.status || 'available',
-    notes: item.notes || ''
+    notes: item.notes || '',
+    pin: ''
   };
   showEditModal.value = true;
 }
 
 async function saveInventoryUpdate() {
   if (!editingItem.value) return;
+
+  if (isInventoryUser.value && !editForm.value.pin) {
+    toast.error("Silakan masukkan PIN Anda untuk memverifikasi update harga");
+    return;
+  }
   
   isSavingUpdate.value = true;
   try {
@@ -1076,6 +1101,7 @@ async function exportInventory() {
                 <th>Kategori</th>
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th>Stok</th>
+                <th class="text-right">Harga Jual</th>
                 <th class="hidden xl:table-cell">Distributor / Supplier</th>
               </template>
 
@@ -1206,6 +1232,9 @@ async function exportInventory() {
                   <span class="text-lg font-bold text-text-primary">{{ item.quantity }}</span>
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
                 </td>
+                <td class="text-sm font-bold text-blue-500 text-right">
+                  Rp {{ formatNumber(item.selling_price || item.price || 0) }}
+                </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
                    {{ item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
@@ -1227,7 +1256,7 @@ async function exportInventory() {
                     :aria-label="'Lihat detail ' + (item.product?.name || 'barang')">
                     <Eye :size="16" class="text-text-secondary" />
                   </button>
-                  <button v-if="canEditInventory && activeTab === 'hp'" @click.stop="openEditModal(item)"
+                  <button v-if="canUserEditItem(item)" @click.stop="openEditModal(item)"
                     class="p-2 hover:bg-surface-700 rounded-lg transition-colors"
                     :aria-label="'Edit ' + (item.product?.name || 'barang')">
                     <Pencil :size="16" class="text-primary-400" />
@@ -1596,7 +1625,7 @@ async function exportInventory() {
               <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Harga Modal (Rp)</label>
               <div class="relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">Rp</span>
-                <input v-model="displayCostPrice" type="text" class="input w-full pl-10" placeholder="0" />
+                <input v-model="displayCostPrice" type="text" class="input w-full pl-10" placeholder="0" :disabled="isInventoryUser" />
               </div>
             </div>
             <div>
@@ -1609,7 +1638,7 @@ async function exportInventory() {
           </div>
           <div>
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Status</label>
-            <select v-model="editForm.status" class="input w-full">
+            <select v-model="editForm.status" class="input w-full" :disabled="isInventoryUser">
               <option value="available">Tersedia (Available)</option>
               <option value="sold">Terjual (Sold)</option>
               <option value="retur">Retur / Service</option>
@@ -1619,6 +1648,12 @@ async function exportInventory() {
           <div>
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Catatan</label>
             <textarea v-model="editForm.notes" class="input w-full h-24 py-2" placeholder="Catatan tambahan..."></textarea>
+          </div>
+          <div v-if="isInventoryUser">
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan (Wajib)</label>
+            <input v-model="editForm.pin" type="password" class="input w-full font-mono text-center tracking-[0.5em]" 
+              placeholder="••••••" maxlength="6" />
+            <p class="text-[10px] text-amber-400 mt-1">Sebagai akun Inventory, Anda hanya dapat mengupdate harga jual yang masih 0. PIN diperlukan untuk verifikasi.</p>
           </div>
         </div>
 
