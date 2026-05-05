@@ -375,7 +375,8 @@ const editForm = ref({
   selling_price: 0,
   status: 'available',
   notes: '',
-  pin: ''
+  pin: '',
+  inventory_user_id: null
 });
 
 function canUserEditItem(item) {
@@ -407,7 +408,7 @@ const displaySellingPrice = computed({
   }
 });
 
-function openEditModal(item) {
+async function openEditModal(item) {
   editingItem.value = item;
   editForm.value = {
     imei: item.imei || '',
@@ -416,17 +417,33 @@ function openEditModal(item) {
     selling_price: item.selling_price || item.price || 0,
     status: item.status || 'available',
     notes: item.notes || '',
-    pin: ''
+    pin: '',
+    inventory_user_id: null
   };
+  
+  if (isInventoryUser.value) {
+    await fetchMyInventoryUsers();
+    // Auto select if only one user
+    if (myInventoryUsers.value.length === 1) {
+      editForm.value.inventory_user_id = myInventoryUsers.value[0].id;
+    }
+  }
+  
   showEditModal.value = true;
 }
 
 async function saveInventoryUpdate() {
   if (!editingItem.value) return;
 
-  if (isInventoryUser.value && !editForm.value.pin) {
-    toast.error("Silakan masukkan PIN Anda untuk memverifikasi update harga");
-    return;
+  if (isInventoryUser.value) {
+    if (!editForm.value.inventory_user_id) {
+      toast.error("Silakan pilih akun inventory terlebih dahulu");
+      return;
+    }
+    if (!editForm.value.pin) {
+      toast.error("Silakan masukkan PIN akun inventory yang dipilih");
+      return;
+    }
   }
   
   isSavingUpdate.value = true;
@@ -577,13 +594,15 @@ const inventoryUsers = ref([]);
 const selectedInventoryUser = ref(null);
 const isLoadingUsers = ref(false);
 
-async function fetchInventoryUsers() {
+const myInventoryUsers = ref([]);
+async function fetchMyInventoryUsers() {
   isLoadingUsers.value = true;
   try {
-    const response = await usersApi.list({ role: 'inventory' });
-    inventoryUsers.value = response.data.data || response.data;
+    const response = await inventoryApi.getMyInventoryUsers();
+    // Filter only those with PIN enabled as per user request
+    myInventoryUsers.value = (response.data.data || response.data || []).filter(u => u.pin_enabled);
   } catch (e) {
-    console.error("Failed to load inventory users", e);
+    console.error("Failed to load my inventory users", e);
   } finally {
     isLoadingUsers.value = false;
   }
@@ -1642,15 +1661,31 @@ async function exportInventory() {
               <option value="missing">Hilang (Missing)</option>
             </select>
           </div>
-          <div>
+
+          <div v-if="isInventoryUser">
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Pilih Akun Inventory (Wajib)</label>
+            <select v-model="editForm.inventory_user_id" class="input w-full border-primary-500/30 bg-primary-500/5">
+              <option :value="null">-- Pilih Akun Inventory --</option>
+              <option v-for="user in myInventoryUsers" :key="user.id" :value="user.id">
+                {{ user.name }} ({{ user.username }})
+              </option>
+            </select>
+            <p class="text-[10px] text-text-secondary mt-1">Pilih akun inventory Anda yang sudah memiliki PIN aktif.</p>
+          </div>
+
+          <div v-if="!isInventoryUser">
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Catatan</label>
             <textarea v-model="editForm.notes" class="input w-full h-24 py-2" placeholder="Catatan tambahan..."></textarea>
           </div>
+
           <div v-if="isInventoryUser">
-            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan (Wajib)</label>
-            <input v-model="editForm.pin" type="password" class="input w-full font-mono text-center tracking-[0.5em]" 
-              placeholder="••••••" maxlength="6" />
-            <p class="text-[10px] text-amber-400 mt-1">Sebagai akun Inventory, Anda hanya dapat mengupdate harga jual yang masih 0. PIN diperlukan untuk verifikasi.</p>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan Akun Terpilih (Wajib)</label>
+            <input v-model="editForm.pin" type="password" maxlength="6" 
+              class="input w-full text-center text-2xl tracking-[1em] font-bold py-4 bg-surface-800 border-primary-500/20" 
+              placeholder="••••••" />
+            <p class="text-[10px] text-text-secondary mt-2">
+              Sebagai akun Inventory, Anda hanya dapat mengupdate harga jual yang masih 0. PIN diperlukan untuk verifikasi.
+            </p>
           </div>
         </div>
 

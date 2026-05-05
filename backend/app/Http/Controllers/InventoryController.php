@@ -22,6 +22,7 @@ use App\Utils\SimpleXLSXGen;
 class InventoryController extends Controller
 {
     use VerifiesPin;
+
     // List Inventory
     // List Inventory (Granular / Unit based)
     // Filtered by branch - only super_admin can see all
@@ -1792,13 +1793,23 @@ class InventoryController extends Controller
 
         // 3. Inventory Role Logic
         if ($isRestricted) {
+            // Determine which account's PIN to verify
+            $targetUser = $user;
+            if ($request->inventory_user_id) {
+                $targetUser = User::find($request->inventory_user_id);
+                // Security: Ensure this inventory account belongs to the current user
+                if (!$targetUser || ($targetUser->created_by !== $user->id && !$user->hasRole(['super_admin', 'owner']))) {
+                    return response()->json(['message' => 'Akun Inventory tidak valid atau bukan milik Anda'], 403);
+                }
+            }
+
             // Must have PIN enabled and set
-            if (!$user->pin_enabled || !$user->transaction_pin) {
-                return response()->json(['message' => 'Akun Anda belum memasang/mengaktifkan PIN. Silakan pasang PIN terlebih dahulu agar bisa melakukan edit harga.'], 403);
+            if (!$targetUser->pin_enabled || !$targetUser->transaction_pin) {
+                return response()->json(['message' => 'Akun ' . $targetUser->name . ' belum memasang/mengaktifkan PIN.'], 403);
             }
 
             // Verify PIN
-            if (!$request->pin || !Hash::check($request->pin, $user->transaction_pin)) {
+            if (!$request->pin || !Hash::check($request->pin, $targetUser->transaction_pin)) {
                 return response()->json(['message' => 'PIN Keamanan salah'], 422);
             }
 
