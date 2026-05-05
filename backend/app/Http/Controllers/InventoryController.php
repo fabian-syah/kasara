@@ -1959,12 +1959,6 @@ class InventoryController extends Controller
                 }
             ])
             ->where('is_active', true)
-            ->where(function ($q) use ($user) {
-                $q->where('created_by', $user->id);
-                if ($user->branch_id) {
-                    $q->orWhere('branch_id', $user->branch_id);
-                }
-            })
             ->where('id', '!=', $user->id) // Exclude self
             ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id')
             ->get()
