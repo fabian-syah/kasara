@@ -469,138 +469,39 @@ onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside);
 
   loadInventory();
-  fetchInventoryUsers();
-  fetchFilterOptions();
-  if (canFilterBranch.value && !props.isEmbedded) {
-    fetchLocations();
-  }
 
-  if (window.Echo) {
-    window.Echo.channel('inventory')
-      .listen('.StockInEvent', (e) => {
-        inventoryStore.pushNewProduct(e.product);
-        toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
-      });
+  // Defer non-critical calls to prioritize initial render and reduce TBT
+  setTimeout(() => {
+    fetchInventoryUsers();
+    fetchFilterOptions();
+    if (canFilterBranch.value && !props.isEmbedded) {
+      fetchLocations();
+    }
 
-    window.Echo.channel('stock-out')
-      .listen('.StockOutEvent', (e) => {
-        inventoryStore.handleStockOut(e.stockOut);
-      });
-  }
+    if (window.Echo) {
+      window.Echo.channel('inventory')
+        .listen('.StockInEvent', (e) => {
+          inventoryStore.pushNewProduct(e.product);
+          toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
+        });
 
+      window.Echo.channel('stock-out')
+        .listen('.StockOutEvent', (e) => {
+          inventoryStore.handleStockOut(e.stockOut);
+        });
+    }
 
-  productTypesApi.list().then(res => {
-    typeList.value = res.data.data;
-  }).catch(err => console.error("Failed to load types", err));
+    productTypesApi.list().then(res => {
+      typeList.value = res.data.data;
+    }).catch(err => console.error("Failed to load types", err));
 
-  brandsApi.list().then(res => {
-    brandList.value = res.data.data || res.data;
-  }).catch(err => console.error("Failed to load brands", err));
+    brandsApi.list().then(res => {
+      brandList.value = res.data.data || res.data;
+    }).catch(err => console.error("Failed to load brands", err));
+  }, 1500);
 
   // fetchProvinces(); // Handled by lazy loading in StockOutModal
 });
-
-// --- Region Logic ---
-const provinces = ref([]);
-const cities = ref([]);
-const districts = ref([]);
-const villages = ref([]);
-
-const selectedRegionIds = ref({
-  province: "",
-  city: "",
-  district: "",
-  village: ""
-});
-
-async function fetchProvinces() {
-  try {
-    const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json`);
-    provinces.value = await res.json();
-  } catch (e) { console.error(e); }
-}
-
-async function onProvinceChange(id) {
-  selectedRegionIds.value.province = id;
-  selectedRegionIds.value.city = "";
-  selectedRegionIds.value.district = "";
-  selectedRegionIds.value.village = "";
-  cities.value = []; districts.value = []; villages.value = [];
-
-  const p = provinces.value.find(x => x.id == id);
-  const name = p ? p.name : "";
-
-  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
-    stockOutForm.value.shopee_province = name;
-  } else if (selectedStockOutCategory.value === 'giveaway') {
-    stockOutForm.value.giveaway_province = name;
-  }
-
-  if (id) {
-    try {
-      const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${id}.json`);
-      cities.value = await res.json();
-    } catch (e) { console.error(e); }
-  }
-}
-
-async function onCityChange(id) {
-  selectedRegionIds.value.city = id;
-  selectedRegionIds.value.district = "";
-  selectedRegionIds.value.village = "";
-  districts.value = []; villages.value = [];
-
-  const c = cities.value.find(x => x.id == id);
-  const name = c ? c.name : "";
-
-  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
-    stockOutForm.value.shopee_city = name;
-  } else if (selectedStockOutCategory.value === 'giveaway') {
-    stockOutForm.value.giveaway_city = name;
-  }
-
-  if (id) {
-    try {
-      const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${id}.json`);
-      districts.value = await res.json();
-    } catch (e) { console.error(e); }
-  }
-}
-
-async function onDistrictChange(id) {
-  selectedRegionIds.value.district = id;
-  selectedRegionIds.value.village = "";
-  villages.value = [];
-
-  const d = districts.value.find(x => x.id == id);
-  const name = d ? d.name : "";
-
-  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
-    stockOutForm.value.shopee_district = name;
-  } else if (selectedStockOutCategory.value === 'giveaway') {
-    stockOutForm.value.giveaway_district = name;
-  }
-
-  if (id) {
-    try {
-      const res = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${id}.json`);
-      villages.value = await res.json();
-    } catch (e) { console.error(e); }
-  }
-}
-
-function onVillageChange(id) {
-  selectedRegionIds.value.village = id;
-  const v = villages.value.find(x => x.id == id);
-  const name = v ? v.name : "";
-
-  if (selectedStockOutCategory.value === 'shopee' || selectedStockOutCategory.value === 'orderan_online') {
-    stockOutForm.value.shopee_village = name;
-  } else if (selectedStockOutCategory.value === 'giveaway') {
-    stockOutForm.value.giveaway_village = name;
-  }
-}
-
 
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick);
@@ -1195,7 +1096,9 @@ async function exportInventory() {
                 </div>
               </td>
             </tr>
-            <tr v-else v-for="item in filteredProducts" :key="item.id" @click="toggleSelect(item)"
+            <tr v-else v-for="item in inventoryItems" :key="item.id" 
+              v-memo="[item.id, item.status, item.quantity, item.selling_price, isSelected(item)]"
+              @click="toggleSelect(item)"
               class="cursor-pointer transition-all hover:bg-surface-700/30"
               :class="isSelected(item) ? 'bg-primary-500/10' : ''">
               <td @click.stop>

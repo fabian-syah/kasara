@@ -17,7 +17,6 @@ export default defineConfig({
         manualChunks: {
           'vendor': ['vue', 'vue-router', 'pinia', 'axios'],
           'charts': ['chart.js', 'vue-chartjs'],
-          'utils': ['lucide-vue-next', 'clsx', 'tailwind-merge'],
           'qr-scanner': ['html5-qrcode'],
           'export-tools': ['html-to-image', 'html2canvas', 'jspdf']
         }
