@@ -154,11 +154,29 @@ class DashboardController extends Controller
                 $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0];
             }
 
+            $notes = strtolower($sale->notes ?? '');
+            $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower($sale->category ?? '');
-            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'tukar_unit']);
+
+            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                $cat = 'tukar_unit';
+            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                $cat = 'angkat_barang';
+            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
+                $cat = 'refund';
+            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                $cat = 'downgrade';
+            } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                $cat = 'tukar_tambah';
+            }
+
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling']);
             $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
             
             $saleTotal = abs((float)($sale->selling_price ?? 0));
+            if ($cat === 'tukar_unit') {
+                $saleTotal = 0;
+            }
 
             if ($isBaseSale) {
                 $totalRevenue += $saleTotal;
@@ -381,8 +399,14 @@ class DashboardController extends Controller
                     DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
                     DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(CASE 
-                        WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                        WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                        WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
+                             OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                             OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                             OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
+                        THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                        WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                             AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                        THEN ABS(COALESCE(stock_outs.selling_price, 0))
                         ELSE 0
                     END) as total_omset")
                 )
@@ -443,8 +467,14 @@ class DashboardController extends Controller
                     'users.name',
                     DB::raw("COUNT(CASE WHEN stock_outs.category != 'refund' THEN stock_outs.id END) as units"),
                     DB::raw("SUM(CASE 
-                        WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                        WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                        WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
+                             OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                             OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                             OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
+                        THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                        WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                             AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                        THEN ABS(COALESCE(stock_outs.selling_price, 0))
                         ELSE 0
                     END) as omset")
                 )

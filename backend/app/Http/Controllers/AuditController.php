@@ -493,11 +493,24 @@ class AuditController extends Controller
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
                         DB::raw("sum(CASE 
-                            WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                            WHEN stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", array_merge($stdSalesCats, ['tukar_tambah'])) . "') THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
+                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
+                            THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN (stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", array_merge($stdSalesCats, ['tukar_tambah'])) . "'))
+                                 AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
                         END) as grand_total"), 
-                        DB::raw("sum(case when stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') then ABS(COALESCE(stock_outs.selling_price, 0)) else 0 end) as total_activity_rp"))
+                        DB::raw("sum(case 
+                            when stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
+                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
+                            then ABS(COALESCE(stock_outs.selling_price, 0)) 
+                            else 0 
+                        end) as total_activity_rp"))
                         ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
                     
                     return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $activityItemQuery, $activityNhpQuery, $hpBreakdown, $nhpBreakdown) {
@@ -605,8 +618,14 @@ class AuditController extends Controller
 
                     $mainStats = (clone $baseQuery)->select('reporting_date', 
                         DB::raw("sum(CASE 
-                            WHEN category IN ('refund', 'angkat_barang', 'downgrade') THEN -ABS(COALESCE(selling_price, 0))
-                            WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') THEN ABS(COALESCE(selling_price, 0))
+                            WHEN category IN ('refund', 'angkat_barang', 'downgrade') 
+                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
+                            THEN -ABS(COALESCE(selling_price, 0))
+                            WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
+                                 AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                            THEN ABS(COALESCE(selling_price, 0))
                             ELSE 0
                         END) as total_omset"))
                         ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
@@ -903,83 +922,102 @@ class AuditController extends Controller
                         // Categories that count towards Omset (Revenue)
                         $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade'];
 
-                        // Direct aggregation for Total Omset to match CheckSales logic
-                        $paymentTotal = (clone $pQuery)->whereIn('stock_outs.category', $omsetCategories)
-                            ->select(DB::raw("SUM(CASE WHEN category = 'tukar_tambah' THEN ABS(selling_price) WHEN category IN ('refund', 'angkat_barang', 'downgrade', 'tukar_unit') THEN 0 ELSE selling_price END) as total"))
-                            ->value('total') ?? 0;
-                        
-                        // Now calculate breakdown for UI (payment method rows)
-                        // Separate query for non-split payments to handle ABS() logic
-                        
-                        // Separate query for non-split payments to handle ABS() logic
-                        $paymentStats = $pQuery->whereIn('stock_outs.category', $omsetCategories)
-                            ->whereNull('split_payments')
+                        $resolveActualCategory = function ($category, $notes, $salesAccount) {
+                            $category = strtolower($category ?? '');
+                            $notes = strtolower($notes ?? '');
+                            $salesAccount = strtolower($salesAccount ?? '');
+
+                            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
+                                return 'tukar_unit';
+                            }
+                            if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
+                                return 'angkat_barang';
+                            }
+                            if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
+                                return 'refund';
+                            }
+                            if (str_contains($notes, 'downgrade') || str_contains($salesAccount, 'downgrade')) {
+                                return 'downgrade';
+                            }
+                            if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
+                                return 'tukar_tambah';
+                            }
+
+                            return $category;
+                        };
+
+                        // Fetch transactions with notes and sales_account for correct classification
+                        $rawStatsQuery = DB::table('stock_outs');
+                        $applyLocalScope($rawStatsQuery);
+                        $rawStats = $rawStatsQuery->whereIn('stock_outs.category', $omsetCategories)
                             ->select(
                                 'payment_method_id',
                                 'category',
-                                'selling_price'
+                                'selling_price',
+                                'split_payments',
+                                'notes',
+                                'sales_account'
                             )
                             ->get();
 
-                        foreach ($paymentStats as $ps) {
-                            $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
-                            $cat = $ps->category;
-                            
-                            // Total Omset formula: Base Sales + Selisih Tukar Tambah
-                            // Downgrade and Tukar Unit are EXCLUDED from Total Omset
-                            if ($cat === 'tukar_tambah') {
-                                $amount = abs((float)$ps->selling_price);
-                            } elseif (in_array($cat, ['downgrade', 'tukar_unit', 'refund', 'angkat_barang'])) {
-                                $amount = 0;
-                            } else {
-                                $amount = (float)$ps->selling_price;
+                        $baseSalesOnly = 0;
+                        $tradeSelisih = 0;
+                        $deductions = 0;
+
+                        foreach ($rawStats as $ps) {
+                            $cat = $resolveActualCategory($ps->category, $ps->notes, $ps->sales_account);
+                            $price = abs((float)$ps->selling_price);
+
+                            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
+                            $isTradeIn = ($cat === 'tukar_tambah');
+                            $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+
+                            if ($cat === 'tukar_unit') {
+                                // Tukar Unit adds 0 to revenues
+                                $price = 0;
                             }
-                                
-                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amount;
-                        }
 
-                        // Handle splits separately across the small set of split transactions (usually few)
-                        $splitQuery = DB::table('stock_outs');
-                        $applyLocalScope($splitQuery);
-                        $splits = $splitQuery->whereIn('stock_outs.category', $omsetCategories)
-                            ->whereNotNull('split_payments')
-                            ->select('split_payments', 'category')->get();
+                            if ($ps->split_payments) {
+                                $sData = is_string($ps->split_payments) ? json_decode($ps->split_payments, true) : $ps->split_payments;
+                                if (is_array($sData)) {
+                                    foreach ($sData as $sp) {
+                                        $amt = abs((float) ($sp['amount'] ?? 0));
+                                        if ($cat === 'tukar_unit') {
+                                            $amt = 0;
+                                        }
+                                        
+                                        if ($isBaseSale) {
+                                            $baseSalesOnly += $amt;
+                                        } elseif ($isTradeIn) {
+                                            $tradeSelisih += $amt;
+                                        } elseif ($isDeduction) {
+                                            $deductions += $amt;
+                                        }
 
-                        $omsetBersih = $paymentTotal; // Initial base (will be adjusted below)
-
-                        foreach ($splits as $s) {
-                            $sData = is_string($s->split_payments) ? json_decode($s->split_payments, true) : $s->split_payments;
-                            if (is_array($sData)) {
-                                foreach ($sData as $sp) {
-                                    $amt = (float) ($sp['amount'] ?? 0);
-                                    $cat = $s->category;
-                                    
-                                    // Total Omset formula for splits
-                                    if ($cat === 'tukar_tambah') {
-                                        $amt = abs($amt);
-                                    } elseif (in_array($cat, ['downgrade', 'tukar_unit', 'refund', 'angkat_barang'])) {
-                                        $amt = 0;
+                                        if ($isBaseSale || $isTradeIn) {
+                                            $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
+                                            $mName = $pm?->name ?? 'Lainnya';
+                                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
+                                        }
                                     }
-                                    
-                                    $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
-                                    $mName = $pm?->name ?? 'Lainnya';
-                                    $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
+                                }
+                            } else {
+                                if ($isBaseSale) {
+                                    $baseSalesOnly += $price;
+                                } elseif ($isTradeIn) {
+                                    $tradeSelisih += $price;
+                                } elseif ($isDeduction) {
+                                    $deductions += $price;
+                                }
+
+                                if ($isBaseSale || $isTradeIn) {
+                                    $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
+                                    $pSums[$mName] = ($pSums[$mName] ?? 0) + $price;
                                 }
                             }
                         }
 
-                        // Calculate Net Revenue (Omset Bersih)
-                        // Omset Bersih = Base Sales - (Refund + Angkat Barang + Downgrade)
-                        // Note: $paymentTotal already includes abs(TT) and abs(DG) in our modified logic above.
-                        // We need the raw Base Sales (standard sales only)
-                        $rawBaseQuery = DB::table('stock_outs');
-                        $applyLocalScope($rawBaseQuery);
-                        $baseSalesOnly = (float) $rawBaseQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'])->sum('selling_price');
-
-                        $deductionQuery = DB::table('stock_outs');
-                        $applyLocalScope($deductionQuery);
-                        $deductions = (float) $deductionQuery->whereIn('stock_outs.category', ['refund', 'angkat_barang', 'downgrade'])->sum(DB::raw('ABS(selling_price)'));
-                        
+                        $paymentTotal = $baseSalesOnly + $tradeSelisih;
                         $omsetBersih = $baseSalesOnly - $deductions;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];

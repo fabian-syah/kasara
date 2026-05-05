@@ -842,14 +842,42 @@ const summaryStats = computed(() => {
     let hpUnitsOut = 0;
     let nonHpUnits = 0;
 
+    const resolveActualCategory = (category, notes, salesAccount) => {
+        const cat = (category || '').toLowerCase();
+        const n = (notes || '').toLowerCase();
+        const sa = (salesAccount || '').toLowerCase();
+
+        if (n.includes('tukar unit') || n.includes('tukar_unit') || sa.includes('tukar unit') || sa.includes('tukar_unit')) {
+            return 'tukar_unit';
+        }
+        if (n.includes('barang angkat') || n.includes('angkat barang') || n.includes('angkat_barang') || sa.includes('barang angkat') || sa.includes('angkat barang') || sa.includes('angkat_barang')) {
+            return 'angkat_barang';
+        }
+        if (n.includes('refund') || sa.includes('refund')) {
+            return 'refund';
+        }
+        if (n.includes('downgrade') || sa.includes('downgrade')) {
+            return 'downgrade';
+        }
+        if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
+            return 'tukar_tambah';
+        }
+        return cat;
+    };
+
     activeRecords.value.forEach(item => {
-        const cat = item.category?.toLowerCase();
-        const total = Math.abs(parseFloat(item.selling_price || item.total_amount || item.grand_total) || 0);
+        const origCat = item.category?.toLowerCase();
+        const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user_name);
+        
+        let total = Math.abs(parseFloat(item.selling_price || item.total_amount || item.grand_total) || 0);
+        if (cat === 'tukar_unit') {
+            total = 0;
+        }
 
         // Standard Sales categories
-        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale'].includes(cat);
-        const isTradeIn = cat === 'tukar_tambah';
-        const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(cat);
+        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale'].includes(origCat);
+        const isTradeIn = origCat === 'tukar_tambah';
+        const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(origCat) || cat === 'angkat_barang' || cat === 'refund' || cat === 'downgrade';
 
         if (isBaseSale) {
             baseSales += total;
