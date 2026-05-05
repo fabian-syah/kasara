@@ -305,11 +305,9 @@ class InventoryController extends Controller
             if ($type === 'hp') {
                 $res['total_value'] = (clone $query)->sum('selling_price');
             } else {
-                // For non-hp, calculate global total value by joining with products
-                // and summing (quantity * price). Use selectRaw for better SQL compatibility.
-                $totalValueQuery = Inventory::query()
-                    ->join('products', 'inventories.product_id', '=', 'products.id')
-                    ->where('inventories.quantity', '>', 0);
+                // For non-hp, calculate global total value using a subquery for price
+                // to avoid join-related column ambiguity (Fixes Error 500)
+                $totalValueQuery = Inventory::where('inventories.quantity', '>', 0);
                 
                 // Apply same filters as the main list
                 $this->applyInventoryFilters($totalValueQuery, $request, 'non-hp');
@@ -318,8 +316,14 @@ class InventoryController extends Controller
                     $totalValueQuery->where('inventories.placement_type', $request->placement_type);
                 }
                 
-                $res['total_value'] = (float) $totalValueQuery->selectRaw('SUM(COALESCE(products.price, products.selling_price, 0) * inventories.quantity) as total')
-                    ->value('total') ?? 0;
+                $res['total_value'] = (float) $totalValueQuery->selectRaw('
+                    SUM(
+                        (SELECT COALESCE(price, selling_price, 0) 
+                         FROM products 
+                         WHERE products.id = inventories.product_id 
+                         LIMIT 1) * inventories.quantity
+                    ) as total
+                ')->value('total') ?? 0;
             }
 
             return response()->json($res);
