@@ -1726,26 +1726,31 @@ class InventoryController extends Controller
     {
         $user = Auth::user();
         /** @var \App\Models\User $account */
-        $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
+        $account = User::where('id', $id)
+            ->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id);
+                if ($user->branch_id) {
+                    $q->orWhere('branch_id', $user->branch_id);
+                }
+            })
+            ->firstOrFail();
 
-        // If PIN is currently ON, we turn it OFF and DELETE it
-        if ($account->pin_enabled) {
-            $account->pin_enabled = false;
-            $account->transaction_pin = null;
-            $account->save();
-            return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
-        }
-
-        // If PIN is currently OFF, we need verification (if PIN exists)
+        // Verification is MANDATORY if PIN exists
         if ($account->transaction_pin) {
-            $request->validate(['transaction_pin' => 'required|string|size:4']);
+            $request->validate(['transaction_pin' => 'required|string']);
             if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $account->transaction_pin)) {
                 return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
             }
         }
 
-        $account->pin_enabled = true;
+        // Toggle state
+        $account->pin_enabled = !$account->pin_enabled;
+        
+        // Clear reset request on successful verification
+        $account->pin_reset_requested_at = null;
+        
         $account->save();
+
         return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
     }
 
