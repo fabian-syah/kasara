@@ -23,8 +23,10 @@ import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatt
 
 
 
-// Scanner will be imported dynamically when needed
-import StockOutModal from "../../components/inventory/StockOutModal.vue";
+import { defineAsyncComponent } from "vue";
+
+// Scanner and modal imported dynamically when needed
+const StockOutModal = defineAsyncComponent(() => import("../../components/inventory/StockOutModal.vue"));
 const router = useRouter();
 const props = defineProps({
   isEmbedded: {
