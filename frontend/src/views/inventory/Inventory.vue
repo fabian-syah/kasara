@@ -495,7 +495,7 @@ onMounted(() => {
     brandList.value = res.data.data || res.data;
   }).catch(err => console.error("Failed to load brands", err));
 
-  fetchProvinces();
+  // fetchProvinces(); // Handled by lazy loading in StockOutModal
 });
 
 // --- Region Logic ---

@@ -7,15 +7,21 @@ const currentVersion = ref(null);
 const checkInterval = ref(null);
 const isChecking = ref(false);
 
-const CHECK_INTERVAL_MS = 60 * 1000; // Check every 1 minute
+const CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check every 5 minutes
 
 const checkVersion = async () => {
     if (isChecking.value) return;
     isChecking.value = true;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
     try {
         // Add timestamp to prevent caching
-        const response = await fetch(`/version.json?t=${new Date().getTime()}`);
+        const response = await fetch(`/version.json?t=${new Date().getTime()}`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
         if (!response.ok) throw new Error('Failed to fetch version');
 
         const data = await response.json();
@@ -29,7 +35,7 @@ const checkVersion = async () => {
         // Check for mismatch
         if (currentVersion.value !== data.buildTime) {
             hasUpdate.value = true;
-            clearInterval(checkInterval.value); // Stop checking once update found
+            if (checkInterval.value) clearInterval(checkInterval.value); // Stop checking once update found
         }
     } catch (error) {
         // Silent error for periodic version checks to avoid cluttering console 

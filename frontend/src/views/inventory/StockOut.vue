@@ -243,6 +243,10 @@ watch(selectedCategory, (newCat) => {
     if (newCat) {
         fetchNonHpInventory();
     }
+    // Lazy load region data if needed
+    if (['shopee', 'orderan_online', 'giveaway_customer'].includes(newCat) && provinces.value.length === 0) {
+        fetchProvinces();
+    }
 });
 
 // Persistence Logic
@@ -299,7 +303,7 @@ onMounted(() => {
     fetchInventory();
     fetchBranches();
     fetchCurrentBranch();
-    fetchProvinces();
+    // fetchProvinces(); // MOVED TO LAZY LOAD
     fetchInventoryUsers();
 });
 

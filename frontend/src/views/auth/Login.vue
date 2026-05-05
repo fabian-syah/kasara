@@ -67,15 +67,15 @@ async function handleLogin() {
     <!-- Animated Abstract Background (Simplified for Performance) -->
     <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
       <div :class="[
-        'absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob',
+        'absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full mix-blend-multiply filter blur-[60px] opacity-40 animate-blob',
         themeStore.isDark ? 'bg-emerald-900/40 mix-blend-screen' : 'bg-emerald-200/60'
       ]"></div>
       <div :class="[
-        'absolute top-[20%] right-[-20%] w-[60vw] h-[60vw] rounded-full mix-blend-multiply filter blur-[130px] opacity-60 animate-blob animation-delay-2000',
+        'absolute top-[10%] right-[-10%] w-[45vw] h-[45vw] rounded-full mix-blend-multiply filter blur-[70px] opacity-40 animate-blob animation-delay-2000',
         themeStore.isDark ? 'bg-rose-900/30 mix-blend-screen' : 'bg-rose-200/50'
       ]"></div>
       <div :class="[
-        'absolute bottom-[-20%] left-[20%] w-[40vw] h-[40vw] rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob animation-delay-4000',
+        'absolute bottom-[-10%] left-[10%] w-[30vw] h-[30vw] rounded-full mix-blend-multiply filter blur-[60px] opacity-40 animate-blob animation-delay-4000',
         themeStore.isDark ? 'bg-amber-900/30 mix-blend-screen' : 'bg-amber-200/60'
       ]"></div>
       

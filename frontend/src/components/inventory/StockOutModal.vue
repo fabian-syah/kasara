@@ -140,11 +140,7 @@ const selectedRegionIds = ref({
 });
 
 onMounted(() => {
-    fetchBranches();
-    fetchWarehouses();
-    fetchOnlineShops();
-    fetchDistributors();
-    fetchProvinces();
+    // Resources moved to lazy loading in watch
 });
 const isOnlyNonHp = computed(() => {
     return props.selectedItems.length > 0 && props.selectedItems.every(item => item.type === 'non-hp');
@@ -327,6 +323,22 @@ async function fetchInventoryUsers() {
 function selectStockOutCategory(category) {
     selectedStockOutCategory.value = category.id;
 }
+
+// Lazy loading resources based on selected category
+watch(selectedStockOutCategory, (newCat) => {
+    if (!newCat) return;
+
+    if (newCat === 'pindah_cabang') {
+        if (branches.value.length === 0) fetchBranches();
+        if (warehouses.value.length === 0) fetchWarehouses();
+        if (onlineShops.value.length === 0) fetchOnlineShops();
+        if (distributors.value.length === 0) fetchDistributors();
+    } else if (newCat === 'retur') {
+        if (warehouses.value.length === 0) fetchWarehouses();
+    } else if (['shopee', 'orderan_online', 'giveaway'].includes(newCat)) {
+        if (provinces.value.length === 0) fetchProvinces();
+    }
+});
 
 function resetStockOutForm() {
     stockOutForm.value = {
