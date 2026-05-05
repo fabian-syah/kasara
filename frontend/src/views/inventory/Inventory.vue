@@ -783,7 +783,7 @@ async function exportInventory() {
 <template>
   <div class="space-y-6 pb-20">
     <!-- Header Section with fixed height to prevent CLS -->
-    <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 min-h-[80px]">
+    <div v-if="!isEmbedded" class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 min-h-[90px]">
       <div class="flex items-center gap-3">
         <!-- Dynamic Icon based on pageMode -->
         <Warehouse v-if="pageMode === 'warehouse'" :size="32" class="text-amber-500" />
@@ -829,8 +829,8 @@ async function exportInventory() {
     </div>
 
     <!-- Stats Section with fixed height to fix CLS -->
-    <div class="min-h-[105px]">
-      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in">
+    <div class="min-h-[120px]">
+      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
             'bg-blue-600': stat.color === 'blue',
@@ -848,7 +848,7 @@ async function exportInventory() {
       </div>
       <!-- Placeholder while initial loading to prevent shift -->
       <div v-else-if="isInitialLoading && !isEmbedded" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div v-for="i in 4" :key="i" class="card h-[105px] animate-pulse bg-surface-800/50 border-none"></div>
+        <div v-for="i in 4" :key="i" class="card h-[120px] animate-pulse bg-surface-800/50 border-none"></div>
       </div>
     </div>
 
@@ -865,7 +865,7 @@ async function exportInventory() {
       </button>
     </div>
 
-    <div class="card">
+    <div class="card min-h-[110px]">
       <div class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between">
         <!-- Search -->
         <div class="relative w-full xl:w-auto xl:flex-1 min-w-[200px]">
@@ -1671,12 +1671,10 @@ async function exportInventory() {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
