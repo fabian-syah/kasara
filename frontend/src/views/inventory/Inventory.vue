@@ -539,13 +539,6 @@ const stockOutCategories = ref([
   { id: 'keluar', name: 'Keluar', icon: 'LogOut', color: 'purple' },
 ]);
 
-const stats = computed(() => [
-  { label: 'Total Unit', value: pagination.value.total, icon: Box, color: 'blue' },
-  { label: 'Total Nilai Stok', value: formatCurrency(inventoryStore.totalValue), icon: TrendingUp, color: 'emerald' },
-  { label: 'Stok Menipis', value: 0, icon: AlertTriangle, color: 'amber' },
-  { label: 'Perlu Audit', value: 0, icon: RefreshCw, color: 'red' },
-]);
-
 const availableStockOutCategories = computed(() => {
   const role = authStore.userRole;
   return stockOutCategories.value.filter(cat => {
@@ -622,8 +615,8 @@ function isSelected(item) {
 const stats = computed(() => [
   {
     label: "Total Produk",
-    value: inventoryStore.totalProducts,
-    icon: Package,
+    value: pagination.value.total,
+    icon: Box,
     color: "blue",
   },
   {
@@ -632,6 +625,18 @@ const stats = computed(() => [
     icon: TrendingUp,
     color: "emerald",
   },
+  {
+    label: "Stok Menipis",
+    value: 0,
+    icon: AlertTriangle,
+    color: "amber",
+  },
+  {
+    label: "Perlu Audit",
+    value: 0,
+    icon: RefreshCw,
+    color: "red",
+  }
 ]);
 
 const currentBranch = ref(null);
