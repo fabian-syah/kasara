@@ -302,7 +302,24 @@ class InventoryController extends Controller
             }
 
             $res = $items->toArray();
-            $res['total_value'] = ($type === 'hp') ? (clone $query)->sum('selling_price') : 0;
+            if ($type === 'hp') {
+                $res['total_value'] = (clone $query)->sum('selling_price');
+            } else {
+                // For non-hp, calculate global total value by summing (quantity * price)
+                // We join with products to get the price and apply all active filters
+                $totalValueQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
+                    ->where('inventories.quantity', '>', 0);
+                
+                // Re-apply base filters
+                $this->applyInventoryFilters($totalValueQuery, $request, 'non-hp');
+                
+                // Add additional filters that might be in the request but not in the helper
+                if ($request->filled('placement_type')) {
+                    $totalValueQuery->where('placement_type', $request->placement_type);
+                }
+                
+                $res['total_value'] = $totalValueQuery->sum(DB::raw('COALESCE(products.price, products.selling_price, 0) * inventories.quantity'));
+            }
 
             return response()->json($res);
         }
@@ -1744,34 +1761,84 @@ class InventoryController extends Controller
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->hasRole(['super_admin', 'audit', 'owner', 'admin_produk'])) {
+        
+        // 1. Authorization
+        $allowedRoles = ['super_admin', 'audit', 'owner', 'admin_produk', 'inventory'];
+        if (!$user->hasRole($allowedRoles)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $detail = ProductDetail::findOrFail($id);
+        $isOnlyInventory = $user->hasRole('inventory') && !$user->hasRole(['super_admin', 'audit', 'owner', 'admin_produk']);
 
-        $request->validate([
-            'imei' => 'required|string|max:40|regex:/^[a-zA-Z0-9]+$/|unique:product_details,imei,' . $id,
-            'storage' => 'nullable|string',
-            'cost_price' => 'required|numeric',
-            'selling_price' => 'numeric',
-            'status' => 'required|in:available,sold,retur,missing',
+        // 2. Identify Model (HP vs Non-HP)
+        $item = ProductDetail::find($id);
+        $type = 'hp';
+        
+        if (!$item) {
+            $item = Inventory::find($id);
+            $type = 'non-hp';
+        }
+
+        if (!$item) {
+            return response()->json(['message' => 'Item tidak ditemukan'], 404);
+        }
+
+        // 3. Inventory Role Logic
+        if ($isOnlyInventory) {
+            // Verify PIN
+            if (!$request->pin || !$this->verifyPin($user, $request->pin)) {
+                return response()->json(['message' => 'PIN Keamanan salah atau belum diatur'], 422);
+            }
+
+            // Check if current price is 0
+            $currentPrice = ($type === 'hp') 
+                ? ($item->selling_price ?: 0) 
+                : ($item->product->price ?? ($item->product->selling_price ?? 0));
+            
+            if ($currentPrice > 0) {
+                return response()->json(['message' => 'Anda hanya diizinkan mengisi harga jual yang masih Rp 0'], 403);
+            }
+        }
+
+        // 4. Validation
+        $rules = [
             'notes' => 'nullable|string',
-        ]);
+            'selling_price' => 'required|numeric|min:0',
+        ];
 
-        $detail->update($request->only([
-            'imei',
-            'storage',
-            'cost_price',
-            'selling_price',
-            'status',
-            'notes'
-        ]));
+        if (!$isOnlyInventory) {
+            if ($type === 'hp') {
+                $rules['imei'] = 'required|string|unique:product_details,imei,' . $id;
+                $rules['status'] = 'required|in:available,sold,retur,missing';
+                $rules['cost_price'] = 'required|numeric';
+            } else {
+                $rules['cost_price'] = 'nullable|numeric';
+            }
+        }
+
+        $request->validate($rules);
+
+        // 5. Update Execution
+        if ($type === 'hp') {
+            $data = $request->only(['selling_price', 'notes']);
+            if (!$isOnlyInventory) {
+                $data = array_merge($data, $request->only(['imei', 'storage', 'cost_price', 'status']));
+            }
+            $item->update($data);
+        } else {
+            // Non-HP: Update Product Price
+            $product = $item->product;
+            if ($product) {
+                $priceCol = Schema::hasColumn('products', 'price') ? 'price' : 'selling_price';
+                $product->update([$priceCol => $request->selling_price]);
+            }
+            $item->update(['notes' => $request->notes]);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Detail inventory updated',
-            'data' => $detail
+            'message' => 'Inventory berhasil diupdate',
+            'data' => $item->load('product')
         ]);
     }
 
