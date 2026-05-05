@@ -1728,9 +1728,10 @@ async function exportInventory() {
 
           <div v-if="isInventoryUser">
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan Akun (Wajib)</label>
-            <input v-model="editForm.pin" type="password" maxlength="6" 
-              class="input w-full text-center text-3xl tracking-[0.5em] font-bold py-5 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
-              placeholder="••••••" />
+            <input v-model="editForm.pin" type="password" maxlength="4" 
+              class="input w-full text-center text-4xl tracking-[1em] font-bold py-6 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
+              placeholder="••••"
+              @input="editForm.pin = editForm.pin.replace(/\D/g, '')" />
             <p class="text-[10px] text-text-secondary mt-2">
               Gunakan PIN dari akun inventory yang dipilih di atas.
             </p>
