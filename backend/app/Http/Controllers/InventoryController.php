@@ -1951,17 +1951,22 @@ class InventoryController extends Controller
         }
 
         $user = Auth::user();
-        $inventoryUsers = \App\Models\User::role(['inventory', 'toko_offline'])
+        $inventoryUsers = \App\Models\User::role('inventory')
             ->with([
                 'roles',
                 'createdBy' => function ($q) {
                     $q->select('id', 'name', 'full_name');
                 }
             ])
-            ->where('created_by', $user->id) // Only show accounts created by this user (staff)
-            ->where('id', '!=', $user->id)   // Double check to exclude self
             ->where('is_active', true)
-            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory')
+            ->where(function ($q) use ($user) {
+                $q->where('created_by', $user->id);
+                if ($user->branch_id) {
+                    $q->orWhere('branch_id', $user->branch_id);
+                }
+            })
+            ->where('id', '!=', $user->id) // Exclude self
+            ->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id')
             ->get()
             ->map(function ($u) {
                 $u->has_pin = !empty($u->transaction_pin);
