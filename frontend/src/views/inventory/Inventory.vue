@@ -624,18 +624,6 @@ const stats = computed(() => [
     value: formatCurrency(inventoryStore.totalValue),
     icon: TrendingUp,
     color: "emerald",
-  },
-  {
-    label: "Stok Menipis",
-    value: 0,
-    icon: AlertTriangle,
-    color: "amber",
-  },
-  {
-    label: "Perlu Audit",
-    value: 0,
-    icon: RefreshCw,
-    color: "red",
   }
 ]);
 
@@ -830,7 +818,7 @@ async function exportInventory() {
 
     <!-- Stats Section with fixed height to fix CLS -->
     <div class="min-h-[120px]">
-      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div v-if="!isEmbedded && !isInitialLoading" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="(stat, index) in stats" :key="index" class="card flex items-center gap-4">
           <div class="w-12 h-12 rounded-xl flex items-center justify-center" :class="{
             'bg-blue-600': stat.color === 'blue',
@@ -847,8 +835,8 @@ async function exportInventory() {
         </div>
       </div>
       <!-- Placeholder while initial loading to prevent shift -->
-      <div v-else-if="isInitialLoading && !isEmbedded" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div v-for="i in 4" :key="i" class="card h-[120px] animate-pulse bg-surface-800/50 border-none"></div>
+      <div v-else-if="isInitialLoading && !isEmbedded" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="i in 2" :key="i" class="card h-[120px] animate-pulse bg-surface-800/50 border-none"></div>
       </div>
     </div>
 
