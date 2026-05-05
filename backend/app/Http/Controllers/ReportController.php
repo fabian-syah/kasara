@@ -592,15 +592,45 @@ class ReportController extends Controller
         $baseStats = $baseQuery->select(
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
             DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
-            // Omset: Sales excluding AB and Refund
-            DB::raw('SUM(CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as sales_omset'),
-            DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN stock_outs.id END) as transaction_count'),
+            // Omset: Gross Sales (including standard sales categories, excluding Tukar Unit)
+            DB::raw("SUM(CASE 
+                WHEN LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%'
+                THEN 0
+                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling')
+                THEN COALESCE(stock_outs.selling_price, 0)
+                ELSE 0
+            END) as sales_omset"),
+            DB::raw("COUNT(DISTINCT CASE 
+                WHEN NOT (
+                     stock_outs.category IN ('refund', 'angkat_barang') 
+                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                ) THEN stock_outs.id 
+            END) as transaction_count"),
             // Refund details
-            DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'refund\' THEN stock_outs.id END) as refund_count'),
-            DB::raw('SUM(CASE WHEN stock_outs.category = \'refund\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as refund_amount'),
+            DB::raw("COUNT(DISTINCT CASE 
+                WHEN stock_outs.category = 'refund' 
+                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                THEN stock_outs.id 
+            END) as refund_count"),
+            DB::raw("SUM(CASE 
+                WHEN stock_outs.category = 'refund' 
+                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                THEN COALESCE(stock_outs.selling_price, 0) 
+                ELSE 0 
+            END) as refund_amount"),
             // Angkat Barang details
-            DB::raw('COUNT(DISTINCT CASE WHEN stock_outs.category = \'angkat_barang\' THEN stock_outs.id END) as ab_count'),
-            DB::raw('SUM(CASE WHEN stock_outs.category = \'angkat_barang\' THEN COALESCE(stock_outs.selling_price, 0) ELSE 0 END) as ab_amount')
+            DB::raw("COUNT(DISTINCT CASE 
+                WHEN stock_outs.category = 'angkat_barang' 
+                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                THEN stock_outs.id 
+            END) as ab_count"),
+            DB::raw("SUM(CASE 
+                WHEN stock_outs.category = 'angkat_barang' 
+                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                THEN COALESCE(stock_outs.selling_price, 0) 
+                ELSE 0 
+            END) as ab_amount")
         )
         ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
         ->get();
@@ -667,8 +697,8 @@ class ReportController extends Controller
             $branchItems = $itemCounts->where('branch_id', $b->id);
             $topModels = $androidModels->where('branch_id', $b->id)->take(3)->pluck('model_name')->toArray();
             
-            // Total Omset = Sales + AB - Refund (Consistent with Dashboard Ranking)
-            $omset = $branchBase->sum('sales_omset') + $branchBase->sum('ab_amount') - $branchBase->sum('refund_amount');
+            // Total Omset = Sales - AB - Refund (Consistent with Dashboard Ranking)
+            $omset = $branchBase->sum('sales_omset') - $branchBase->sum('ab_amount') - $branchBase->sum('refund_amount');
 
             return (object) [
                 'id' => $b->id,
@@ -699,7 +729,7 @@ class ReportController extends Controller
             $shopItems = $itemCounts->where('online_shop_id', $s->id);
             $topModels = $androidModels->where('online_shop_id', $s->id)->take(3)->pluck('model_name')->toArray();
             
-            $omset = $shopBase->sum('sales_omset') + $shopBase->sum('ab_amount') - $shopBase->sum('refund_amount');
+            $omset = $shopBase->sum('sales_omset') - $shopBase->sum('ab_amount') - $shopBase->sum('refund_amount');
 
             return (object) [
                 'id' => $s->id,
