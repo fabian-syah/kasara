@@ -1746,6 +1746,11 @@ class InventoryController extends Controller
         // Toggle state
         $account->pin_enabled = !$account->pin_enabled;
         
+        // If we are turning it OFF, we DELETE the PIN as requested
+        if (!$account->pin_enabled) {
+            $account->transaction_pin = null;
+        }
+        
         // Clear reset request on successful verification
         $account->pin_reset_requested_at = null;
         
