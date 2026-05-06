@@ -1260,7 +1260,7 @@ onMounted(() => {
 }
 
 .modal-content {
-    @apply bg-surface-900 rounded-[2.5rem] w-full flex flex-col border border-surface-700 shadow-2xl overflow-hidden;
+    @apply bg-surface-900 rounded-[2.5rem] w-full max-h-[90vh] flex flex-col border border-surface-700 shadow-2xl overflow-hidden;
     animation: var(--animate-fade-in);
 }
 
