@@ -597,8 +597,15 @@ onMounted(() => {
                                 <!-- Detail Info -->
                                 <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-bold text-white">
-                                            {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
+                                        <span class="text-xs font-black text-white flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || transfer.nonHpItems?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
+                                        </span>
+                                        <span class="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1">
+                                            <span>Dist: {{ transfer.items?.[0]?.distributor?.name || transfer.items?.[0]?.supplier_name || transfer.nonHpItems?.[0]?.distributor?.name || 'Umum' }}</span>
+                                        </span>
+                                        <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                                            <span>Kondisi: {{ transfer.items?.[0]?.condition || 'Baru/Bekas' }}</span>
                                         </span>
                                         <span v-if="transfer.notes" class="text-[10px] text-text-secondary line-clamp-1 italic max-w-xs">
                                             "{{ transfer.notes }}"
@@ -688,11 +695,16 @@ onMounted(() => {
                             <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
                                 <Package :size="16" />
                             </div>
-                            <div class="flex flex-col">
+                            <div class="flex flex-col gap-0.5">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Detail Info</span>
                                 <span class="font-bold text-white text-sm">
-                                    {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
+                                    {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || transfer.nonHpItems?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
                                 </span>
+                                <div class="flex gap-2 items-center text-[10px] font-black uppercase tracking-wider">
+                                    <span class="text-purple-400">Dist: {{ transfer.items?.[0]?.distributor?.name || transfer.items?.[0]?.supplier_name || transfer.nonHpItems?.[0]?.distributor?.name || 'Umum' }}</span>
+                                    <span class="text-surface-600">|</span>
+                                    <span class="text-amber-500">Kondisi: {{ transfer.items?.[0]?.condition || 'Baru/Bekas' }}</span>
+                                </div>
                             </div>
                         </div>
                         <div class="flex justify-between items-center pt-4 border-t border-surface-700/30">
