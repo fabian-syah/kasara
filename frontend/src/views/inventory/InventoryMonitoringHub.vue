@@ -348,7 +348,7 @@ onMounted(() => {
     <div class="min-h-screen bg-surface-900 pb-20">
         <!-- Dashboard Header -->
         <div class="bg-surface-900 border-b border-surface-700/50 sticky top-0 z-30 backdrop-blur-xl">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="w-full px-6 md:px-10 py-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex items-center gap-4">
                         <div class="p-3 bg-primary-500/10 rounded-2xl border border-primary-500/20">
@@ -360,26 +360,25 @@ onMounted(() => {
                                 Inventory Transfer Hub</p>
                         </div>
                     </div>
-
+ 
                     <!-- Search for History Tabs -->
                     <div v-if="activeTab.includes('history')" class="relative flex-1 max-w-md slide-in">
                         <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
                         <input v-model="searchQuery" type="text" placeholder="Cari Resi atau Cabang..."
                             class="w-full bg-surface-800 border border-surface-700 rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500 transition-all shadow-inner" />
                     </div>
-
+ 
                     <button @click="fetchData(1)" :disabled="isLoading"
                         class="btn btn-secondary gap-2 px-5 h-11 rounded-xl text-sm font-bold border border-surface-700 hover:bg-surface-750 shrink-0">
                         <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
                         <span>Refresh</span>
                     </button>
                 </div>
-
+ 
                 <!-- Responsive Tab Bar -->
-                <div
-                    class="mt-8 flex gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar touch-pan-x snap-x mask-fade-right">
+                <div class="mt-8 flex flex-wrap gap-3">
                     <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
-                        class="flex items-center gap-3 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 snap-start border shrink-0"
+                        class="flex items-center gap-3 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 border cursor-pointer"
                         :class="activeTab === tab.id
                             ? `${tab.bg} ${tab.color} border-${tab.color.split('-')[1]}-500/30 font-black shadow-lg shadow-${tab.color.split('-')[1]}-500/10`
                             : 'bg-surface-800 text-text-secondary border-surface-700 hover:bg-surface-700 font-bold'">
@@ -389,9 +388,9 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-
+ 
         <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <main class="w-full px-6 md:px-10 mt-8">
             <!-- Loading Grid -->
             <div v-if="isLoading && (transfers.length === 0 && historyData.data.length === 0)"
                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
@@ -486,7 +485,8 @@ onMounted(() => {
 
             <!-- Content Grid (History Tabs) -->
             <div v-else class="space-y-8 animate-in duration-500">
-                <div class="overflow-x-auto rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl">
+                <!-- Desktop Table -->
+                <div class="hidden md:block overflow-hidden rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-surface-700/70 bg-surface-800/80">
@@ -544,6 +544,51 @@ onMounted(() => {
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Stacked Cards (No Scrolling Needed!) -->
+                <div class="block md:hidden space-y-4">
+                    <div v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
+                        class="p-6 bg-surface-800/50 border border-surface-700/50 rounded-[2rem] active:scale-[0.98] transition-all flex flex-col gap-4 cursor-pointer">
+                        <div class="flex items-center justify-between">
+                            <span class="px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
+                                {{ transfer.receipt_id }}
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
+                                :class="transfer.status === 'confirmed' || transfer.status === 'received' 
+                                    ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
+                                <span class="w-1.5 h-1.5 rounded-full" 
+                                    :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-green-500' : 'bg-amber-500'"></span>
+                                {{ transfer.status }}
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
+                                <Building2 :size="16" />
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">
+                                    {{ activeTab === 'history_in' ? 'Cabang Asal' : 'Cabang Tujuan' }}
+                                </span>
+                                <span class="font-bold text-white text-base">
+                                    {{ activeTab === 'history_in' 
+                                        ? ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') 
+                                        : (transfer.destination?.name || 'Unknown') }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center pt-4 border-t border-surface-700/30">
+                            <div class="flex items-center gap-2 text-text-secondary text-xs font-bold">
+                                <Calendar :size="14" class="opacity-50" />
+                                <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at) }}</span>
+                            </div>
+                            <span class="text-xs font-black uppercase tracking-widest text-primary-500 flex items-center gap-1">
+                                <span>Detail</span>
+                                <ChevronRight :size="14" />
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Pagination -->
