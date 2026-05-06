@@ -246,7 +246,8 @@ const handleBrandChangeNonHp = (index) => {
     item.filteredTypes = allowedTypes.value.filter(t =>
         t.brand_id === item.brand_id && !isImeiCategory(t.category)
     );
-    item.uniqueTypeNames = Array.from(new Set(item.filteredTypes.map(t => t.name)));
+    item.uniqueTypeNames = Array.from(new Set(item.filteredTypes.map(t => t.name)))
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
 };
 
 // NEW: Sub-form for Multiple HP Items
@@ -317,7 +318,8 @@ const handleBrandChangeHp = (index) => {
     }
 
     const types = allowedTypes.value.filter(t => t.brand_id === item.brand_id && isImeiCategory(t.category));
-    item.uniqueTypeNames = Array.from(new Set(types.map(t => t.name)));
+    item.uniqueTypeNames = Array.from(new Set(types.map(t => t.name)))
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
 };
 
 const handleTypeChangeHp = (index) => {
