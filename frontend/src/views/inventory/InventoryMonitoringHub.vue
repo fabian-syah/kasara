@@ -395,7 +395,7 @@ onMounted(() => {
 <template>
     <div class="min-h-screen bg-surface-900 pb-20">
         <!-- Dashboard Header -->
-        <div class="bg-surface-900 border-b border-surface-700/50 sticky top-0 z-30 backdrop-blur-xl">
+        <div class="bg-surface-900 border-b border-surface-700/50">
             <div class="w-full px-6 md:px-10 py-6">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex items-center gap-4">
