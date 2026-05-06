@@ -718,139 +718,76 @@ class InventoryController extends Controller
         $user = Auth::user();
         $type = $request->type ?? 'hp';
 
-        if ($type === 'non-hp') {
-            $query = InventoryLog::with(['product', 'user', 'distributor'])
-                ->where('type', 'in');
+        $query = InventoryLog::with(['product', 'user', 'distributor', 'productDetail'])
+            ->where('type', 'in');
 
-            // SEARCH
-            if ($request->search) {
-                $search = $request->search;
-                $keywords = explode(' ', $search);
-
-                $query->where(function ($q) use ($keywords) {
-                    foreach ($keywords as $keyword) {
-                        $lowKeyword = strtolower($keyword);
-                        $q->where(function ($sub) use ($lowKeyword) {
-                            $sub->whereHas('product', function ($sq) use ($lowKeyword) {
-                                $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                    ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-
-                                if (\Schema::hasColumn('products', 'non_imei_category')) {
-                                    $sq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
-                                }
-                            })
-                                ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
-                        });
-                    }
-                });
-            }
+        if ($type === 'hp') {
+            $query->whereHas('product', function ($q) {
+                $q->where('type', 'hp');
+            });
         } else {
-            // HP (Product Details created) - This is logically Stock In too
-            $query = ProductDetail::with(['product', 'distributor', 'user']);
-
-            // SEARCH
-            if ($request->search) {
-                $search = $request->search;
-                $keywords = explode(' ', $search);
-
-                $query->where(function ($q) use ($keywords) {
-                    foreach ($keywords as $keyword) {
-                        $lowKeyword = strtolower($keyword);
-                        $q->where(function ($sub) use ($lowKeyword) {
-                            $sub->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"])
-                                ->orWhereHas('product', function ($sq) use ($lowKeyword) {
-                                    $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
-                                        ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
-                                });
-                        });
-                    }
-                });
-            }
+            $query->whereHas('product', function ($q) {
+                $q->where('type', 'non-hp');
+            });
         }
 
-        // PLACEMENT FILTER (Same logic as index)
+        // SEARCH
+        if ($request->search) {
+            $search = $request->search;
+            $keywords = explode(' ', $search);
+
+            $query->where(function ($q) use ($keywords, $type) {
+                foreach ($keywords as $keyword) {
+                    $lowKeyword = strtolower($keyword);
+                    $q->where(function ($sub) use ($lowKeyword, $type) {
+                        $sub->whereHas('product', function ($sq) use ($lowKeyword) {
+                            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
+                                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
+                        })
+                        ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
+
+                        if ($type === 'hp') {
+                            $sub->orWhereHas('productDetail', function ($sq) use ($lowKeyword) {
+                                $sq->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"]);
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // PLACEMENT FILTER
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'analist', 'owner'];
         if (!$user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($user, $type) {
+            $query->where(function ($q) use ($user) {
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
-                $dIds = [];
-                if ($user->distributor_id) {
-                    $dIds[] = $user->distributor_id;
+                $distributorIds = $user->getAccessibleDistributorIds();
+
+                $hasC = false;
+                if (!empty($branchIds)) {
+                    $q->orWhereIn('branch_id', $branchIds);
+                    $hasC = true;
                 }
-
-                if ($type === 'non-hp') {
-                    // For non-hp, check if the inventory log references a product/user combo that exists in an allowed placement in the `inventories` table
-                    $q->whereExists(function ($query) use ($branchIds, $warehouseIds, $onlineShopIds, $dIds) {
-                        $query->select(\DB::raw(1))
-                            ->from('inventories')
-                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
-                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
-                            ->where(function ($sq) use ($branchIds, $warehouseIds, $onlineShopIds, $dIds) {
-                                $hasC = false;
-                                if (!empty($branchIds)) {
-                                    $sq->orWhere(function ($sub) use ($branchIds) {
-                                        $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds);
-                                    });
-                                    $hasC = true;
-                                }
-                                if (!empty($warehouseIds)) {
-                                    $sq->orWhere(function ($sub) use ($warehouseIds) {
-                                        $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds);
-                                    });
-                                    $hasC = true;
-                                }
-                                if (!empty($onlineShopIds)) {
-                                    $sq->orWhere(function ($sub) use ($onlineShopIds) {
-                                        $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
-                                    });
-                                    $hasC = true;
-                                }
-                                if (!empty($dIds)) {
-                                    $sq->orWhere(function ($sub) use ($dIds) {
-                                        $sub->where('placement_type', 'distributor')->whereIn('placement_id', $dIds);
-                                    });
-                                    $hasC = true;
-                                }
-                                if (!$hasC) {
-                                    $sq->whereRaw('0 = 1');
-                                }
-                            });
-                    });
-                } else {
-                    $hasConstraint = false;
-                    if (!empty($branchIds)) {
-                        $q->orWhere(function ($sub) use ($branchIds) {
-                            $sub->where('placement_type', 'branch')->whereIn('placement_id', $branchIds);
-                        });
-                        $hasConstraint = true;
-                    }
-
-                    if (!empty($warehouseIds)) {
-                        $q->orWhere(function ($sub) use ($warehouseIds) {
-                            $sub->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds);
-                        });
-                        $hasConstraint = true;
-                    }
-
-                    if (!empty($onlineShopIds)) {
-                        $q->orWhere(function ($sub) use ($onlineShopIds) {
-                            $sub->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
-                        });
-                        $hasConstraint = true;
-                    }
-
-                    if (!empty($dIds)) {
-                        $q->orWhere(function ($sub) use ($dIds) {
-                            $sub->where('placement_type', 'distributor')->whereIn('placement_id', $dIds);
-                        });
-                        $hasConstraint = true;
-                    }
-
-                    if (!$hasConstraint) {
-                        $q->whereRaw('0 = 1');
-                    }
+                if (!empty($warehouseIds)) {
+                    $q->orWhereIn('warehouse_id', $warehouseIds);
+                    $hasC = true;
+                }
+                if (!empty($onlineShopIds)) {
+                    $q->orWhereIn('online_shop_id', $onlineShopIds);
+                    $hasC = true;
+                }
+                if (!empty($distributorIds)) {
+                    $q->orWhereIn('distributor_id', $distributorIds);
+                    $hasC = true;
+                }
+                if ($user->distributor_id) {
+                    $q->orWhere('user_id', $user->id);
+                    $hasC = true;
+                }
+                if (!$hasC) {
+                    $q->whereRaw('0 = 1');
                 }
             });
         }
@@ -858,86 +795,42 @@ class InventoryController extends Controller
         // Analist Exclusion for Stock In History
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
             $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
-            $query->where(function ($q) use ($excludedKeywords, $type) {
-                if ($type === 'non-hp') {
-                    // For logs, we check the placement of the product/user combo
-                    $q->whereNotExists(function ($sub) use ($excludedKeywords) {
-                        $sub->select(\DB::raw(1))
-                            ->from('inventories')
-                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
-                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
-                            ->where(function ($inner) use ($excludedKeywords) {
-                                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
-                                    $inner->orWhere(function ($sq) use ($pType, $excludedKeywords) {
-                                        $sq->where('placement_type', $pType);
-                                        $tableName = $pType === 'branch' ? 'branches' : ($pType === 'online_shop' ? 'online_shops' : 'warehouses');
-                                        $sq->whereExists(function ($exq) use ($tableName, $excludedKeywords) {
-                                            $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventories.placement_id")
-                                                ->where(function ($nq) use ($excludedKeywords) {
-                                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
-                                                });
-                                        });
-                                    });
-                                }
-                            });
+            $query->where(function ($q) use ($excludedKeywords) {
+                foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
+                    $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
+                        $tableName = match ($pType) {
+                            'branch' => 'branches',
+                            'online_shop' => 'online_shops',
+                            'warehouse' => 'warehouses',
+                            'distributor' => 'distributors',
+                        };
+                        $colName = match ($pType) {
+                            'branch' => 'branch_id',
+                            'online_shop' => 'online_shop_id',
+                            'warehouse' => 'warehouse_id',
+                            'distributor' => 'distributor_id',
+                        };
+                        
+                        $sq->whereNotNull($colName)
+                           ->whereExists(function ($exq) use ($tableName, $colName, $excludedKeywords) {
+                               $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
+                                   ->where(function ($nq) use ($excludedKeywords) {
+                                       foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                                   });
+                           });
                     });
-                } else {
-                    foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
-                        $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
-                            $sq->where('placement_type', $pType);
-                            $modelClass = match ($pType) {
-                                'branch' => \App\Models\Branch::class,
-                                'online_shop' => \App\Models\OnlineShop::class,
-                                'warehouse' => \App\Models\Warehouse::class,
-                                'distributor' => \App\Models\Distributor::class,
-                            };
-                            $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
-                                $pq->where(function ($nq) use ($excludedKeywords) {
-                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
-                                });
-                            });
-                        });
-                    }
                 }
             });
         }
 
         // AUDIT BRANCH FILTER
         if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($request, $type) {
-                if ($type === 'non-hp') {
-                    $q->whereExists(function ($query) use ($request) {
-                        $query->select(\DB::raw(1))
-                            ->from('inventories')
-                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
-                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
-                            ->where('placement_type', 'branch')
-                            ->where('placement_id', $request->branch_id);
-                    });
-                } else {
-                    $q->where('placement_type', 'branch')
-                        ->where('placement_id', $request->branch_id);
-                }
-            });
+            $query->where('branch_id', $request->branch_id);
         }
 
         // AUDIT ONLINE SHOP FILTER
         if ($request->online_shop_id && $user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($request, $type) {
-                if ($type === 'non-hp') {
-                    $q->whereExists(function ($query) use ($request) {
-                        $query->select(\DB::raw(1))
-                            ->from('inventories')
-                            ->whereColumn('inventories.product_id', 'inventory_logs.product_id')
-                            ->whereColumn('inventories.user_id', 'inventory_logs.user_id')
-                            ->where('placement_type', 'online_shop')
-                            ->where('placement_id', $request->online_shop_id);
-                    });
-                } else {
-                    $q->where('placement_type', 'online_shop')
-                        ->where('placement_id', $request->online_shop_id);
-                }
-            });
+            $query->where('online_shop_id', $request->online_shop_id);
         }
 
         // DATE FILTER
@@ -976,7 +869,39 @@ class InventoryController extends Controller
             $query->where('created_at', '>=', $startDate);
         }
 
-        return response()->json($query->latest()->paginate(20));
+        $paginated = $query->latest()->paginate(20);
+
+        if ($type === 'hp') {
+            $paginated->getCollection()->transform(function ($log) {
+                $detail = $log->productDetail;
+                return [
+                    'id' => $log->id,
+                    'created_at' => $log->created_at->toDateTimeString(),
+                    'product' => $log->product,
+                    'imei' => $detail->imei ?? ($log->reference_id ? $log->description : '-'),
+                    'ram' => $detail->ram ?? null,
+                    'storage' => $detail->storage ?? null,
+                    'condition' => $detail->condition ?? '-',
+                    'distributor' => $log->distributor ?? ($detail->distributor ?? null),
+                    'supplier_name' => $log->supplier_name ?? ($detail->supplier_name ?? null),
+                    'placement_name' => match (true) {
+                        !empty($log->branch_id) => \App\Models\Branch::find($log->branch_id)?->name,
+                        !empty($log->warehouse_id) => \App\Models\Warehouse::find($log->warehouse_id)?->name,
+                        !empty($log->online_shop_id) => \App\Models\OnlineShop::find($log->online_shop_id)?->name,
+                        default => $detail ? match ($detail->placement_type) {
+                            'branch' => \App\Models\Branch::find($detail->placement_id)?->name,
+                            'warehouse' => \App\Models\Warehouse::find($detail->placement_id)?->name,
+                            'online_shop' => \App\Models\OnlineShop::find($detail->placement_id)?->name,
+                            default => null
+                        } : null
+                    },
+                    'notes' => $log->notes ?: $log->description,
+                    'user' => $log->user,
+                ];
+            });
+        }
+
+        return response()->json($paginated);
     }
 
     public function stockOutHistory(Request $request)

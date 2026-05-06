@@ -1965,7 +1965,11 @@ class StockOutController extends Controller
             });
         }
 
-        $transfers = $query->latest()->paginate(20);
+        if ($type === 'outgoing') {
+            $transfers = $query->latest()->paginate(20);
+        } else {
+            $transfers = $query->orderByDesc('confirmed_at')->paginate(20);
+        }
 
         // Enrich Non-HP Items
         foreach ($transfers as $transfer) {
